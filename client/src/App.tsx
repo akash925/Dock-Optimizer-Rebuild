@@ -8,7 +8,6 @@ import DockStatus from "@/pages/dock-status";
 import DoorManager from "@/pages/door-manager";
 import BasicDoorManager from "@/pages/basic-door-manager";
 import ExternalBooking from "@/pages/external-booking";
-import ExternalBookingNew from "@/pages/external-booking-new";
 import BookingConfirmation from "@/pages/booking-confirmation";
 import Analytics from "@/pages/analytics";
 import Users from "@/pages/users";
@@ -23,7 +22,6 @@ function App() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/door-manager-demo" component={BasicDoorManager} />
         <Route path="/external-booking" component={ExternalBooking} />
-        <Route path="/external-booking-new" component={ExternalBookingNew} />
         <Route path="/booking-confirmation" component={BookingConfirmation} />
         <ProtectedRoute path="/" component={Dashboard} />
         <ProtectedRoute path="/schedules" component={Schedules} />

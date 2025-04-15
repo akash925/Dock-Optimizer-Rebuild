@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,12 +12,35 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, TruckIcon, ArrowRight, ArrowLeft } from "lucide-react";
+import { Loader2, TruckIcon, ArrowRight, ArrowLeft, Upload, FileText } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Step 1: Appointment Type Selection
-const appointmentTypeSchema = z.object({
+// Define location data
+const locations = [
+  { id: "450-airtech", name: "450 Airtech Pkwy Plainfield IN 46168" },
+  { id: "8370-camby", name: "8370 E Camby Rd Plainfield IN 46168" },
+  { id: "4001-minnesota", name: "4001 W Minnesota Street Indianapolis, IN 46241 (HANZO Cold-Chain)" },
+  { id: "4334-plainfield", name: "4334 Plainfield Road Plainfield, IN 46231" },
+  { id: "9915-lacy", name: "9915 Lacy Knot Dr, Brownsburg, IN 46112" },
+];
+
+// Define appointment types by location
+const appointmentTypesByLocation = {
+  "450-airtech": ["Standard Delivery", "Express Delivery", "Refrigerated Goods", "Hazardous Materials", "Other"],
+  "8370-camby": ["Standard Pickup", "Bulk Delivery", "Express Delivery", "Other"],
+  "4001-minnesota": ["Cold Chain Delivery", "Cold Chain Pickup", "Frozen Goods", "Refrigerated Goods", "Other"],
+  "4334-plainfield": ["Standard Delivery", "Standard Pickup", "Bulk Delivery", "Other"],
+  "9915-lacy": ["Standard Delivery", "Express Delivery", "Other"],
+};
+
+// Step 1: Initial Selections
+const initialSelectionSchema = z.object({
+  location: z.string().min(1, "Please select a location"),
   appointmentType: z.string().min(1, "Please select an appointment type"),
-  pickupOrDropoff: z.string().min(1, "Please select pickup or dropoff"),
+  deliveryOption: z.string().min(1, "Please select pickup or dropoff"),
+  bolUploaded: z.boolean().optional(),
 });
 
 // Step 2: Company Information
@@ -32,19 +55,22 @@ const companyInfoSchema = z.object({
 const appointmentDetailsSchema = z.object({
   appointmentDate: z.string().min(1, "Please select a date"),
   appointmentTime: z.string().min(1, "Please select a time"),
-  location: z.string().min(1, "Please select a location"),
-  mcNumber: z.string().optional(),
+  mcNumber: z.string().min(1, "MC Number is required"),
   truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
   driverPhone: z.string().min(10, "Please enter a valid phone number"),
+  poNumber: z.string().optional(),
+  bolNumber: z.string().optional(), 
+  palletCount: z.string().optional(),
+  weight: z.string().optional(),
   additionalNotes: z.string().optional(),
 });
 
 // Combine all schemas for the final submission
-const bookingSchema = appointmentTypeSchema.merge(companyInfoSchema).merge(appointmentDetailsSchema);
+const bookingSchema = initialSelectionSchema.merge(companyInfoSchema).merge(appointmentDetailsSchema);
 
-type AppointmentTypeFormValues = z.infer<typeof appointmentTypeSchema>;
+type InitialSelectionFormValues = z.infer<typeof initialSelectionSchema>;
 type CompanyInfoFormValues = z.infer<typeof companyInfoSchema>;
 type AppointmentDetailsFormValues = z.infer<typeof appointmentDetailsSchema>;
 type BookingFormValues = z.infer<typeof bookingSchema>;
@@ -55,13 +81,19 @@ export default function ExternalBooking() {
   const [formData, setFormData] = useState<Partial<BookingFormValues>>({});
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [bolFile, setBolFile] = useState<File | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [bolProcessing, setBolProcessing] = useState(false);
+  const [bolPreviewText, setBolPreviewText] = useState<string | null>(null);
   
   // Step 1 Form
-  const appointmentTypeForm = useForm<AppointmentTypeFormValues>({
-    resolver: zodResolver(appointmentTypeSchema),
+  const initialSelectionForm = useForm<InitialSelectionFormValues>({
+    resolver: zodResolver(initialSelectionSchema),
     defaultValues: {
+      location: "",
       appointmentType: "",
-      pickupOrDropoff: "",
+      deliveryOption: "",
+      bolUploaded: false,
     },
   });
   
@@ -82,15 +114,68 @@ export default function ExternalBooking() {
     defaultValues: {
       appointmentDate: "",
       appointmentTime: "",
-      location: "",
       mcNumber: "",
       truckNumber: "",
       trailerNumber: "",
       driverName: "",
       driverPhone: "",
+      poNumber: "",
+      bolNumber: "",
+      palletCount: "",
+      weight: "",
       additionalNotes: "",
     },
   });
+
+  // Watch the location field to update appointment types
+  const watchLocation = initialSelectionForm.watch("location");
+  
+  // Update available appointment types when location changes
+  if (watchLocation !== selectedLocation && watchLocation) {
+    setSelectedLocation(watchLocation);
+    initialSelectionForm.setValue("appointmentType", "");
+  }
+
+  // Handle BOL file upload
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      setBolFile(file);
+      setBolProcessing(true);
+      
+      // Simulate OCR processing
+      setTimeout(() => {
+        const previewText = `Bill of Lading #BOL-${Math.floor(Math.random() * 10000)}
+Location: ${locations[Math.floor(Math.random() * locations.length)].name}
+Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
+        
+        setBolPreviewText(previewText);
+        setBolProcessing(false);
+        
+        // Pre-select some fields based on "OCR"
+        const randomLocationId = locations[Math.floor(Math.random() * locations.length)].id;
+        initialSelectionForm.setValue("location", randomLocationId);
+        initialSelectionForm.setValue("deliveryOption", Math.random() > 0.5 ? "pickup" : "dropoff");
+        
+        // Set appointment type based on selected location
+        const appointmentTypes = appointmentTypesByLocation[randomLocationId as keyof typeof appointmentTypesByLocation];
+        if (appointmentTypes && appointmentTypes.length > 0) {
+          initialSelectionForm.setValue("appointmentType", appointmentTypes[0]);
+        }
+        
+        initialSelectionForm.setValue("bolUploaded", true);
+        
+        // Also set the bol number for step 3
+        appointmentDetailsForm.setValue("bolNumber", `BOL-${Math.floor(Math.random() * 10000)}`);
+        
+        toast({
+          title: "BOL Uploaded and Processed",
+          description: "We've extracted some information to help you with your booking.",
+        });
+      }, 2000);
+    }
+  };
 
   // Update form values when moving between steps
   const updateFormData = (data: Partial<BookingFormValues>) => {
@@ -98,7 +183,7 @@ export default function ExternalBooking() {
   };
 
   // Handle Step 1 Submission
-  const onAppointmentTypeSubmit = (data: AppointmentTypeFormValues) => {
+  const onInitialSelectionSubmit = (data: InitialSelectionFormValues) => {
     updateFormData(data);
     setStep(2);
   };
@@ -125,7 +210,7 @@ export default function ExternalBooking() {
         description: "Your appointment has been successfully scheduled. A confirmation email will be sent shortly.",
       });
       
-      // Navigate to confirmation page or show confirmation component
+      // Navigate to confirmation page
       navigate("/booking-confirmation");
     } catch (error: any) {
       toast({
@@ -150,54 +235,263 @@ export default function ExternalBooking() {
     switch (step) {
       case 1:
         return (
-          <Form {...appointmentTypeForm}>
-            <form onSubmit={appointmentTypeForm.handleSubmit(onAppointmentTypeSubmit)} className="space-y-6">
-              <FormField
-                control={appointmentTypeForm.control}
-                name="appointmentType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dock Appointment Type*</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Dock Appointment Type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="shipping">Shipping</SelectItem>
-                        <SelectItem value="receiving">Receiving</SelectItem>
-                        <SelectItem value="returns">Returns</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={appointmentTypeForm.control}
-                name="pickupOrDropoff"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Pickup or Dropoff*</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Pickup or Dropoff" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pickup">Pickup</SelectItem>
-                        <SelectItem value="dropoff">Dropoff</SelectItem>
-                        <SelectItem value="both">Both</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <Form {...initialSelectionForm}>
+            <form onSubmit={initialSelectionForm.handleSubmit(onInitialSelectionSubmit)} className="space-y-6">
+              <Tabs defaultValue="standard" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="standard">Standard Booking</TabsTrigger>
+                  <TabsTrigger value="bol">Upload BOL</TabsTrigger>
+                </TabsList>
+                <TabsContent value="standard" className="space-y-6">
+                  <FormField
+                    control={initialSelectionForm.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem className="mt-4">
+                        <FormLabel>Location*</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Location" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {locations.map(location => (
+                              <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {watchLocation && (
+                    <FormField
+                      control={initialSelectionForm.control}
+                      name="appointmentType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Appointment Type*</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select Appointment Type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {watchLocation && appointmentTypesByLocation[watchLocation as keyof typeof appointmentTypesByLocation]?.map(type => (
+                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  
+                  <FormField
+                    control={initialSelectionForm.control}
+                    name="deliveryOption"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>Pickup or Dropoff*</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            className="flex flex-col space-y-1"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="pickup" id="pickup" />
+                              <Label htmlFor="pickup">Pickup</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="dropoff" id="dropoff" />
+                              <Label htmlFor="dropoff">Dropoff</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="both" id="both" />
+                              <Label htmlFor="both">Both Pickup and Dropoff</Label>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="bol" className="space-y-4">
+                  <div className="border-2 border-dashed rounded-md border-gray-300 p-6 flex flex-col items-center justify-center bg-gray-50">
+                    <input
+                      type="file"
+                      id="bol-upload"
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleFileUpload}
+                    />
+                    <FileText className="h-10 w-10 text-gray-400 mb-2" />
+                    {bolProcessing ? (
+                      <div className="flex flex-col items-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <p className="mt-2 text-sm text-gray-500">Processing your BOL...</p>
+                      </div>
+                    ) : bolFile ? (
+                      <div className="flex flex-col items-center">
+                        <p className="font-medium text-green-600">File Uploaded: {bolFile.name}</p>
+                        <div className="mt-4 p-3 bg-white border rounded-md max-w-full w-full">
+                          <p className="text-sm font-medium text-gray-700">Extracted Information:</p>
+                          <pre className="mt-2 text-xs whitespace-pre-wrap bg-gray-50 p-2 rounded">
+                            {bolPreviewText}
+                          </pre>
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => {
+                            setBolFile(null);
+                            setBolPreviewText(null);
+                          }}
+                          className="mt-3"
+                        >
+                          Upload Different File
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="mb-2 text-sm font-medium text-gray-500">Upload your Bill of Lading</p>
+                        <p className="text-xs text-gray-400 text-center max-w-xs mb-3">
+                          We'll extract information to help pre-fill your booking details
+                        </p>
+                        <label htmlFor="bol-upload">
+                          <Button type="button" variant="outline" size="sm">
+                            <Upload className="h-4 w-4 mr-2" />
+                            Choose File
+                          </Button>
+                        </label>
+                        <p className="mt-2 text-xs text-gray-400">Supported formats: PDF, JPG, PNG</p>
+                      </>
+                    )}
+                  </div>
+                  
+                  {initialSelectionForm.watch("bolUploaded") && (
+                    <>
+                      <div className="space-y-3 mt-4">
+                        <p className="text-sm font-medium">We've pre-filled the following information:</p>
+                        
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <span className="font-medium">Location:</span>
+                            <p className="text-gray-600">
+                              {locations.find(l => l.id === initialSelectionForm.watch("location"))?.name || "Not detected"}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <span className="font-medium">Delivery Type:</span>
+                            <p className="text-gray-600 capitalize">
+                              {initialSelectionForm.watch("deliveryOption") || "Not detected"}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <span className="font-medium">BOL Number:</span>
+                            <p className="text-gray-600">
+                              {appointmentDetailsForm.watch("bolNumber") || "Not detected"}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <p className="text-xs text-gray-500 italic">
+                          You can review and modify these details in the following steps.
+                        </p>
+                      </div>
+                      
+                      <FormField
+                        control={initialSelectionForm.control}
+                        name="location"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm Location*</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Location" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {locations.map(location => (
+                                  <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {watchLocation && (
+                        <FormField
+                          control={initialSelectionForm.control}
+                          name="appointmentType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confirm Appointment Type*</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select Appointment Type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {watchLocation && appointmentTypesByLocation[watchLocation as keyof typeof appointmentTypesByLocation]?.map(type => (
+                                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                      
+                      <FormField
+                        control={initialSelectionForm.control}
+                        name="deliveryOption"
+                        render={({ field }) => (
+                          <FormItem className="space-y-3">
+                            <FormLabel>Confirm Pickup or Dropoff*</FormLabel>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                className="flex flex-col space-y-1"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="pickup" id="pickup-bol" />
+                                  <Label htmlFor="pickup-bol">Pickup</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="dropoff" id="dropoff-bol" />
+                                  <Label htmlFor="dropoff-bol">Dropoff</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="both" id="both-bol" />
+                                  <Label htmlFor="both-bol">Both Pickup and Dropoff</Label>
+                                </div>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                </TabsContent>
+              </Tabs>
               
               <Button type="submit" className="w-full flex items-center justify-center">
                 Next <ArrowRight className="ml-2 h-4 w-4" />
@@ -319,39 +613,20 @@ export default function ExternalBooking() {
                   )}
                 />
               </div>
-              
-              <FormField
-                control={appointmentDetailsForm.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location*</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Location" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="450-airtech">450 Airtech Pkwy Plainfield IN 46168</SelectItem>
-                        <SelectItem value="8370-camby">8370 E Camby Rd Plainfield IN 46168</SelectItem>
-                        <SelectItem value="4001-minnesota">4001 W Minnesota Street Indianapolis, IN 46241</SelectItem>
-                        <SelectItem value="4334-plainfield">4334 Plainfield Road Plainfield, IN 46231</SelectItem>
-                        <SelectItem value="9915-lacy">9915 Lacy Knot Dr, Brownsburg, IN 46112</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
+              <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                <p className="text-sm text-yellow-800">
+                  <strong>Important:</strong> MC Numbers are required for all shipments as of August 1st, 2023.
+                </p>
+              </div>
+              
               <FormField
                 control={appointmentDetailsForm.control}
                 name="mcNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>MC Number</FormLabel>
-                    <FormDescription>Motor Carrier number (required for all shipments as of August 1st, 2023)</FormDescription>
+                    <FormLabel>MC Number*</FormLabel>
+                    <FormDescription>Motor Carrier number (required for all shipments)</FormDescription>
                     <FormControl>
                       <Input placeholder="MC Number" {...field} />
                     </FormControl>
@@ -412,7 +687,67 @@ export default function ExternalBooking() {
                     <FormItem>
                       <FormLabel>Driver Phone*</FormLabel>
                       <FormControl>
-                        <Input placeholder="Driver Phone" {...field} />
+                        <Input placeholder="(123) 456-7890" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={appointmentDetailsForm.control}
+                  name="poNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>PO Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="PO Number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={appointmentDetailsForm.control}
+                  name="bolNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>BOL Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="BOL Number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={appointmentDetailsForm.control}
+                  name="palletCount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pallet Count</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="Number of Pallets" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={appointmentDetailsForm.control}
+                  name="weight"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Weight (lbs)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="Total Weight" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -429,7 +764,7 @@ export default function ExternalBooking() {
                     <FormControl>
                       <Textarea 
                         placeholder="Any special instructions or requirements" 
-                        className="resize-none" 
+                        className="resize-none min-h-[100px]" 
                         {...field} 
                       />
                     </FormControl>
@@ -474,7 +809,7 @@ export default function ExternalBooking() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-6 md:py-12 px-2 md:px-4">
       <div className="max-w-4xl mx-auto w-full">
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row items-center justify-center mb-4 text-center">
             <img 
               src="https://www.hanzologistics.com/wp-content/uploads/2021/11/Hanzo_Logo_no_tag-1.png" 
@@ -512,12 +847,12 @@ export default function ExternalBooking() {
         <Card className="w-full shadow-lg">
           <CardHeader>
             <CardTitle>
-              {step === 1 && "Select Appointment Type"}
+              {step === 1 && "Schedule Your Appointment"}
               {step === 2 && "Company Information"}
               {step === 3 && "Appointment Details"}
             </CardTitle>
             <CardDescription>
-              {step === 1 && "Please select the type of appointment you need"}
+              {step === 1 && "Select location, appointment type, and whether this is a pickup or dropoff"}
               {step === 2 && "Please provide your company and contact information"}
               {step === 3 && "Please provide details about your appointment"}
             </CardDescription>
