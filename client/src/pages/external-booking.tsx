@@ -19,20 +19,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Define location data
 const locations = [
-  { id: "450-airtech", name: "450 Airtech Pkwy Plainfield IN 46168" },
-  { id: "8370-camby", name: "8370 E Camby Rd Plainfield IN 46168" },
-  { id: "4001-minnesota", name: "4001 W Minnesota Street Indianapolis, IN 46241 (HANZO Cold-Chain)" },
-  { id: "4334-plainfield", name: "4334 Plainfield Road Plainfield, IN 46231" },
-  { id: "9915-lacy", name: "9915 Lacy Knot Dr, Brownsburg, IN 46112" },
+  { id: "6210CORPORATEPARK-L", name: "6210 Corporate Park Drive" },
+  { id: "5620DIVIDEND-L", name: "5620 Dividend Drive" },
+  { id: "450AIRTECH-L", name: "450 Airtech Pkwy" },
+  { id: "8730CAMBY-L", name: "8370 E Camby Rd" },
+  { id: "4001MINNESOTA-L", name: "4001 W Minnesota St (Cold Chain)" },
 ];
 
-// Define appointment types by location
+// Define appointment types by location - exact match from reference site
 const appointmentTypesByLocation = {
-  "450-airtech": ["Standard Delivery", "Express Delivery", "Refrigerated Goods", "Hazardous Materials", "Other"],
-  "8370-camby": ["Standard Pickup", "Bulk Delivery", "Express Delivery", "Other"],
-  "4001-minnesota": ["Cold Chain Delivery", "Cold Chain Pickup", "Frozen Goods", "Refrigerated Goods", "Other"],
-  "4334-plainfield": ["Standard Delivery", "Standard Pickup", "Bulk Delivery", "Other"],
-  "9915-lacy": ["Standard Delivery", "Express Delivery", "Other"],
+  "6210CORPORATEPARK-L": ["LTL Inbound", "LTL Outbound", "Truck Load Inbound", "Truck Load Outbound"],
+  "5620DIVIDEND-L": ["LTL Inbound", "LTL Outbound", "Truck Load Inbound", "Truck Load Outbound"],
+  "450AIRTECH-L": ["LTL Inbound", "LTL Outbound", "Truck Load Inbound", "Truck Load Outbound", "Container Inbound", "Container Outbound"],
+  "8730CAMBY-L": ["LTL Inbound", "LTL Outbound", "Truck Load Inbound", "Truck Load Outbound", "Container Inbound", "Container Outbound"],
+  "4001MINNESOTA-L": ["LTL Inbound (Cold Chain)", "LTL Outbound (Cold Chain)", "Truck Load Inbound (Cold Chain)", "Truck Load Outbound (Cold Chain)"],
 };
 
 // Step 1: Initial Selections
@@ -876,11 +876,11 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
           <h2 className="text-lg md:text-xl font-bold mb-4 text-center md:text-left">HANZO LOGISTICS INC.</h2>
           <p className="mb-2 text-sm md:text-base">Select from the following locations:</p>
           <ul className="space-y-2 text-sm md:text-base text-gray-700">
-            <li className="p-2 bg-gray-50 rounded">450 Airtech Pkwy Plainfield IN 46168</li>
-            <li className="p-2 bg-gray-50 rounded">8370 E Camby Rd Plainfield IN 46168</li>
-            <li className="p-2 bg-gray-50 rounded">4001 W Minnesota Street Indianapolis, IN 46241 <span className="font-medium">(HANZO Cold-Chain)</span></li>
-            <li className="p-2 bg-gray-50 rounded">4334 Plainfield Road Plainfield, IN 46231</li>
-            <li className="p-2 bg-gray-50 rounded">9915 Lacy Knot Dr, Brownsburg, IN 46112</li>
+            <li className="p-2 bg-gray-50 rounded">6210 Corporate Park Drive</li>
+            <li className="p-2 bg-gray-50 rounded">5620 Dividend Drive</li>
+            <li className="p-2 bg-gray-50 rounded">450 Airtech Pkwy</li>
+            <li className="p-2 bg-gray-50 rounded">8370 E Camby Rd</li>
+            <li className="p-2 bg-gray-50 rounded">4001 W Minnesota St <span className="font-medium">(Cold Chain)</span></li>
           </ul>
           <p className="mt-4 text-center text-sm text-gray-500">
             Please arrive 15 minutes before your appointment and check in at the security desk.
