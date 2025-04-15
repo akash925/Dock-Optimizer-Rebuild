@@ -292,7 +292,7 @@ export default function AuthPage() {
           <div className="max-w-md text-white">
             <h1 className="text-3xl font-bold mb-6">Optimize Your Dock Operations</h1>
             <p className="mb-6">
-              Hanzo Logistics Dock Optimizer helps you streamline your warehouse operations with efficient truck scheduling, real-time dock monitoring, and powerful analytics.
+              Dock Optimizer helps you streamline your warehouse operations with efficient truck scheduling, real-time dock monitoring, and powerful analytics.
             </p>
             <ul className="space-y-4">
               <li className="flex items-start">

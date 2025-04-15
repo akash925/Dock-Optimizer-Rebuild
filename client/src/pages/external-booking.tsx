@@ -770,7 +770,7 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               alt="Hanzo Logistics" 
               className="h-16 mb-3 md:mb-0 md:mr-3" 
             />
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Dock Appointment Scheduler</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Dock Optimizer</h1>
           </div>
           <p className="text-center text-gray-600 max-w-2xl px-4">
             Please use this form to pick the type of Dock Appointment that you need at Hanzo Logistics. 
