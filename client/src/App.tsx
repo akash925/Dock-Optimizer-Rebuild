@@ -7,6 +7,8 @@ import Schedules from "@/pages/schedules";
 import DockStatus from "@/pages/dock-status";
 import DoorManager from "@/pages/door-manager";
 import BasicDoorManager from "@/pages/basic-door-manager";
+import ExternalBooking from "@/pages/external-booking";
+import BookingConfirmation from "@/pages/booking-confirmation";
 import Analytics from "@/pages/analytics";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
@@ -19,6 +21,8 @@ function App() {
       <Switch>
         <Route path="/auth" component={AuthPage} />
         <Route path="/door-manager-demo" component={BasicDoorManager} />
+        <Route path="/external-booking" component={ExternalBooking} />
+        <Route path="/booking-confirmation" component={BookingConfirmation} />
         <ProtectedRoute path="/" component={Dashboard} />
         <ProtectedRoute path="/schedules" component={Schedules} />
         <ProtectedRoute path="/dock-status" component={DockStatus} />

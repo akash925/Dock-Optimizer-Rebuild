@@ -295,6 +295,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // External booking endpoint - no authentication required
+  app.post("/api/external-booking", async (req, res) => {
+    try {
+      // Create a schema for external booking validation
+      const externalBookingSchema = z.object({
+        appointmentType: z.string().min(1),
+        pickupOrDropoff: z.string().min(1),
+        companyName: z.string().min(2),
+        contactName: z.string().min(2),
+        contactEmail: z.string().email(),
+        contactPhone: z.string().min(10),
+        appointmentDate: z.string().min(1),
+        appointmentTime: z.string().min(1),
+        location: z.string().min(1),
+        mcNumber: z.string().optional(),
+        truckNumber: z.string().min(1),
+        trailerNumber: z.string().optional(),
+        driverName: z.string().min(1),
+        driverPhone: z.string().min(10),
+        additionalNotes: z.string().optional(),
+      });
+      
+      const validatedData = externalBookingSchema.parse(req.body);
+      
+      // Find or create the carrier based on company name
+      let carrier = (await storage.getCarriers()).find(
+        c => c.name.toLowerCase() === validatedData.companyName.toLowerCase()
+      );
+      
+      if (!carrier) {
+        carrier = await storage.createCarrier({
+          name: validatedData.companyName,
+          contactName: validatedData.contactName,
+          contactEmail: validatedData.contactEmail,
+          contactPhone: validatedData.contactPhone,
+        });
+      }
+      
+      // Find the appropriate dock based on location
+      // Here we're simplifying by getting the first available dock
+      // In a real implementation, you'd have logic to find the right dock based on location
+      const docks = await storage.getDocks();
+      if (docks.length === 0) {
+        return res.status(400).json({ message: "No available docks" });
+      }
+      
+      // In a real implementation, you'd need to parse the appointmentDate and appointmentTime
+      // For now, we'll use a simple approach to create Date objects
+      const [year, month, day] = validatedData.appointmentDate.split('-').map(Number);
+      const [hour, minute] = validatedData.appointmentTime.split(':').map(Number);
+      
+      const startTime = new Date(year, month - 1, day, hour, minute);
+      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
+      
+      // Create schedule with the available information
+      const scheduleData = {
+        type: validatedData.appointmentType,
+        status: "scheduled",
+        dockId: docks[0].id,
+        carrierId: carrier.id,
+        truckNumber: validatedData.truckNumber,
+        startTime,
+        endTime,
+        notes: validatedData.additionalNotes || null,
+        createdBy: 1, // System user ID - in a real app, you might have a designated system user
+      };
+      
+      const schedule = await storage.createSchedule(scheduleData);
+      
+      // Create a confirmation number
+      const confirmationNumber = `HZL-${Math.floor(100000 + Math.random() * 900000)}`;
+      
+      // In a real application, you'd send an email confirmation here
+      
+      // Return success response
+      res.status(201).json({
+        success: true,
+        confirmationNumber,
+        schedule,
+        message: "Appointment successfully scheduled",
+      });
+      
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid booking data", errors: err.errors });
+      }
+      console.error("External booking error:", err);
+      res.status(500).json({ message: "Failed to create booking" });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   
