@@ -66,14 +66,19 @@ export default function BookingConfirmation() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
-            <CheckCircle className="h-12 w-12 text-green-600" />
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-6 md:py-12 px-2 md:px-4">
+      <div className="max-w-3xl mx-auto w-full">
+        <div className="flex flex-col items-center mb-6 md:mb-8">
+          <img 
+            src="https://www.hanzologistics.com/wp-content/uploads/2021/11/Hanzo_Logo_no_tag-1.png" 
+            alt="Hanzo Logistics" 
+            className="h-12 mb-3" 
+          />
+          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-green-100 flex items-center justify-center mb-3 md:mb-4">
+            <CheckCircle className="h-10 w-10 md:h-12 md:w-12 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 text-center">Appointment Confirmed!</h1>
-          <p className="text-center text-gray-600 mt-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 text-center">Appointment Confirmed!</h1>
+          <p className="text-center text-gray-600 mt-2 px-2">
             Your dock appointment has been successfully scheduled with Hanzo Logistics.
           </p>
         </div>
@@ -129,16 +134,27 @@ export default function BookingConfirmation() {
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row w-full gap-4">
-              <Button variant="outline" className="flex-1" onClick={handlePrint}>
+            <div className="flex flex-col sm:flex-row w-full gap-3">
+              <Button 
+                variant="outline" 
+                className="flex-1 flex items-center justify-center" 
+                onClick={handlePrint}
+              >
                 <Printer className="mr-2 h-4 w-4" />
-                Print Confirmation
+                Print
               </Button>
-              <Button variant="outline" className="flex-1" onClick={handleNewBooking}>
+              <Button 
+                variant="outline" 
+                className="flex-1 flex items-center justify-center" 
+                onClick={handleNewBooking}
+              >
                 <CalendarCheck className="mr-2 h-4 w-4" />
                 New Booking
               </Button>
-              <Button className="flex-1" onClick={handleHome}>
+              <Button 
+                className="flex-1 flex items-center justify-center" 
+                onClick={handleHome}
+              >
                 <Home className="mr-2 h-4 w-4" />
                 Return Home
               </Button>

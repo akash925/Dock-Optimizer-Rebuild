@@ -199,7 +199,7 @@ export default function ExternalBooking() {
                 )}
               />
               
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full flex items-center justify-center">
                 Next <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </form>
@@ -266,11 +266,19 @@ export default function ExternalBooking() {
                 )}
               />
               
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={goBack}>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={goBack}
+                  className="w-full sm:w-auto order-2 sm:order-1 flex items-center justify-center"
+                >
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
-                <Button type="submit">
+                <Button 
+                  type="submit"
+                  className="w-full sm:w-auto order-1 sm:order-2 flex items-center justify-center"
+                >
                   Next <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -430,11 +438,20 @@ export default function ExternalBooking() {
                 )}
               />
               
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={goBack}>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={goBack}
+                  className="w-full sm:w-auto order-2 sm:order-1 flex items-center justify-center"
+                >
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto order-1 sm:order-2 flex items-center justify-center"
+                >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
@@ -455,16 +472,24 @@ export default function ExternalBooking() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-6 md:py-12 px-2 md:px-4">
+      <div className="max-w-4xl mx-auto w-full">
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center mb-4">
-            <TruckIcon className="h-10 w-10 text-primary mr-3" />
-            <h1 className="text-3xl font-bold text-gray-800">Hanzo Logistics Dock Appointment Scheduler</h1>
+          <div className="flex flex-col md:flex-row items-center justify-center mb-4 text-center">
+            <img 
+              src="https://www.hanzologistics.com/wp-content/uploads/2021/11/Hanzo_Logo_no_tag-1.png" 
+              alt="Hanzo Logistics" 
+              className="h-16 mb-3 md:mb-0 md:mr-3" 
+            />
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Dock Appointment Scheduler</h1>
           </div>
-          <p className="text-center text-gray-600 max-w-2xl">
-            Please use this form to schedule a dock appointment with Hanzo Logistics. 
-            For support using this page, please contact our customer service team.
+          <p className="text-center text-gray-600 max-w-2xl px-4">
+            Please use this form to pick the type of Dock Appointment that you need at Hanzo Logistics. 
+            For support using this page, <a href="#" className="text-primary underline hover:text-primary/80">please check out this video</a>.
+          </p>
+          <p className="text-center text-gray-700 font-medium mt-4 max-w-2xl px-4">
+            Effective August 1st, 2023, MC Numbers are required for all incoming and outgoing shipments. 
+            This is to protect the security of our customer's shipments and reduce the risk of fraud.
           </p>
           
           <div className="w-full max-w-3xl mt-6">
@@ -511,22 +536,20 @@ export default function ExternalBooking() {
             )}
           </CardFooter>
         </Card>
-        
-        <div className="mt-8 text-center text-gray-600">
-          <p>Effective August 1st, 2023, MC Numbers are required for all incoming and outgoing shipments.</p>
-          <p className="mt-2">This is to protect the security of our customer's shipments and reduce the risk of fraud.</p>
-        </div>
 
-        <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4">HANZO LOGISTICS INC.</h2>
-          <p className="mb-2">Select from the following locations:</p>
-          <ul className="space-y-1 text-gray-700">
-            <li>450 Airtech Pkwy Plainfield IN 46168</li>
-            <li>8370 E Camby Rd Plainfield IN 46168</li>
-            <li>4001 W Minnesota Street Indianapolis, IN 46241 (HANZO Cold-Chain)</li>
-            <li>4334 Plainfield Road Plainfield, IN 46231</li>
-            <li>9915 Lacy Knot Dr, Brownsburg, IN 46112</li>
+        <div className="mt-8 p-4 bg-white rounded-lg shadow-sm">
+          <h2 className="text-lg md:text-xl font-bold mb-4 text-center md:text-left">HANZO LOGISTICS INC.</h2>
+          <p className="mb-2 text-sm md:text-base">Select from the following locations:</p>
+          <ul className="space-y-2 text-sm md:text-base text-gray-700">
+            <li className="p-2 bg-gray-50 rounded">450 Airtech Pkwy Plainfield IN 46168</li>
+            <li className="p-2 bg-gray-50 rounded">8370 E Camby Rd Plainfield IN 46168</li>
+            <li className="p-2 bg-gray-50 rounded">4001 W Minnesota Street Indianapolis, IN 46241 <span className="font-medium">(HANZO Cold-Chain)</span></li>
+            <li className="p-2 bg-gray-50 rounded">4334 Plainfield Road Plainfield, IN 46231</li>
+            <li className="p-2 bg-gray-50 rounded">9915 Lacy Knot Dr, Brownsburg, IN 46112</li>
           </ul>
+          <p className="mt-4 text-center text-sm text-gray-500">
+            Please arrive 15 minutes before your appointment and check in at the security desk.
+          </p>
         </div>
       </div>
     </div>
