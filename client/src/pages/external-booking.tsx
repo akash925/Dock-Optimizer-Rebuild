@@ -19,11 +19,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Define location data
 const locations = [
-  { id: "6210CORPORATEPARK-L", name: "6210 Corporate Park Drive" },
-  { id: "5620DIVIDEND-L", name: "5620 Dividend Drive" },
-  { id: "450AIRTECH-L", name: "450 Airtech Pkwy" },
-  { id: "8730CAMBY-L", name: "8370 E Camby Rd" },
-  { id: "4001MINNESOTA-L", name: "4001 W Minnesota St (Cold Chain)" },
+  { id: "6210CORPORATEPARK-L", name: "6210 Corporate Park Drive, Browns Valley" },
+  { id: "5620DIVIDEND-L", name: "5620 Dividend Drive, Indianapolis" },
+  { id: "450AIRTECH-L", name: "450 Airtech Pkwy, Plainfield" },
+  { id: "8730CAMBY-L", name: "8370 E Camby Rd, Plainfield" },
+  { id: "4001MINNESOTA-L", name: "4001 W Minnesota St, Indianapolis (Cold Chain)" },
 ];
 
 // Define appointment types by location - exact match from reference site
@@ -39,7 +39,6 @@ const appointmentTypesByLocation = {
 const initialSelectionSchema = z.object({
   location: z.string().min(1, "Please select a location"),
   appointmentType: z.string().min(1, "Please select an appointment type"),
-  deliveryOption: z.string().min(1, "Please select pickup or dropoff"),
   bolUploaded: z.boolean().optional(),
 });
 
@@ -92,7 +91,6 @@ export default function ExternalBooking() {
     defaultValues: {
       location: "",
       appointmentType: "",
-      deliveryOption: "",
       bolUploaded: false,
     },
   });
@@ -156,7 +154,6 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
         // Pre-select some fields based on "OCR"
         const randomLocationId = locations[Math.floor(Math.random() * locations.length)].id;
         initialSelectionForm.setValue("location", randomLocationId);
-        initialSelectionForm.setValue("deliveryOption", Math.random() > 0.5 ? "pickup" : "dropoff");
         
         // Set appointment type based on selected location
         const appointmentTypes = appointmentTypesByLocation[randomLocationId as keyof typeof appointmentTypesByLocation];
@@ -281,46 +278,21 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                             </FormControl>
                             <SelectContent>
                               {watchLocation && appointmentTypesByLocation[watchLocation as keyof typeof appointmentTypesByLocation]?.map(type => (
-                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                                <SelectItem key={type} value={type}>
+                                  {type} {type.includes("Container") ? "(4 hrs)" : "(1 hr)"}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormDescription>
+                            Trailer appointments: 1 hour duration. Container appointments: 4 hours duration.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   )}
-                  
-                  <FormField
-                    control={initialSelectionForm.control}
-                    name="deliveryOption"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Pickup or Dropoff*</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex flex-col space-y-1"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="pickup" id="pickup" />
-                              <Label htmlFor="pickup">Pickup</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="dropoff" id="dropoff" />
-                              <Label htmlFor="dropoff">Dropoff</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="both" id="both" />
-                              <Label htmlFor="both">Both Pickup and Dropoff</Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
                 </TabsContent>
                 
                 <TabsContent value="bol" className="space-y-4">
@@ -391,9 +363,9 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                           </div>
                           
                           <div>
-                            <span className="font-medium">Delivery Type:</span>
-                            <p className="text-gray-600 capitalize">
-                              {initialSelectionForm.watch("deliveryOption") || "Not detected"}
+                            <span className="font-medium">Appointment Type:</span>
+                            <p className="text-gray-600">
+                              {initialSelectionForm.watch("appointmentType") || "Not detected"}
                             </p>
                           </div>
                           
@@ -457,37 +429,6 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                           )}
                         />
                       )}
-                      
-                      <FormField
-                        control={initialSelectionForm.control}
-                        name="deliveryOption"
-                        render={({ field }) => (
-                          <FormItem className="space-y-3">
-                            <FormLabel>Confirm Pickup or Dropoff*</FormLabel>
-                            <FormControl>
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                value={field.value}
-                                className="flex flex-col space-y-1"
-                              >
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="pickup" id="pickup-bol" />
-                                  <Label htmlFor="pickup-bol">Pickup</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="dropoff" id="dropoff-bol" />
-                                  <Label htmlFor="dropoff-bol">Dropoff</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="both" id="both-bol" />
-                                  <Label htmlFor="both-bol">Both Pickup and Dropoff</Label>
-                                </div>
-                              </RadioGroup>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                     </>
                   )}
                 </TabsContent>
@@ -852,7 +793,7 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               {step === 3 && "Appointment Details"}
             </CardTitle>
             <CardDescription>
-              {step === 1 && "Select location, appointment type, and whether this is a pickup or dropoff"}
+              {step === 1 && "Select your facility location and appointment type"}
               {step === 2 && "Please provide your company and contact information"}
               {step === 3 && "Please provide details about your appointment"}
             </CardDescription>
