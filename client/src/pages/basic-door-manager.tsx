@@ -363,19 +363,25 @@ export default function BasicDoorManager() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Tabs
-              value={viewMode}
-              onValueChange={(value) => setViewMode(value as "board" | "timeline")}
-              className="ml-2"
-            >
-              <TabsList>
-                <TabsTrigger value="board">Board</TabsTrigger>
-                <TabsTrigger value="timeline">Timeline</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="ml-2">
+              <div className="inline-flex items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+                <button 
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${viewMode === "board" ? "bg-background text-foreground shadow-sm" : ""}`}
+                  onClick={() => setViewMode("board")}
+                >
+                  Board
+                </button>
+                <button 
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${viewMode === "timeline" ? "bg-background text-foreground shadow-sm" : ""}`}
+                  onClick={() => setViewMode("timeline")}
+                >
+                  Timeline
+                </button>
+              </div>
+            </div>
           </div>
           
-          <TabsContent value="board" className="m-0">
+          {viewMode === "board" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredDoors.map((door) => (
                 <div 
@@ -455,9 +461,9 @@ export default function BasicDoorManager() {
                 </div>
               ))}
             </div>
-          </TabsContent>
+          )}
           
-          <TabsContent value="timeline" className="m-0">
+          {viewMode === "timeline" && (
             <div className="flex items-center justify-center p-8 bg-gray-50 rounded-md">
               <div className="flex flex-col items-center gap-2 text-gray-500">
                 <Calendar className="h-12 w-12" />
@@ -471,7 +477,7 @@ export default function BasicDoorManager() {
                 </Button>
               </div>
             </div>
-          </TabsContent>
+          )}
         </CardContent>
       </Card>
       
