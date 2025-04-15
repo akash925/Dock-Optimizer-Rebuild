@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,8 +36,16 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export default function AuthPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
+  
+  // Get auth context
+  const { loginMutation, registerMutation, user } = useAuth();
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
   
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -62,56 +71,20 @@ export default function AuthPage() {
   
   // Handle login submission
   async function onLoginSubmit(data: LoginFormValues) {
-    try {
-      setIsLoggingIn(true);
-      const res = await apiRequest("POST", "/api/login", data);
-      const user = await res.json();
-      
-      // Update the query cache with the user data
-      queryClient.setQueryData(["/api/user"], user);
-      
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${user.firstName}!`,
-      });
-      
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        title: "Login failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoggingIn(false);
-    }
+    loginMutation.mutate(data, {
+      onSuccess: () => {
+        navigate("/");
+      }
+    });
   }
   
   // Handle registration submission
   async function onRegisterSubmit(data: RegisterFormValues) {
-    try {
-      setIsRegistering(true);
-      const res = await apiRequest("POST", "/api/register", data);
-      const user = await res.json();
-      
-      // Update the query cache with the user data
-      queryClient.setQueryData(["/api/user"], user);
-      
-      toast({
-        title: "Registration successful",
-        description: `Welcome, ${user.firstName}!`,
-      });
-      
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsRegistering(false);
-    }
+    registerMutation.mutate(data, {
+      onSuccess: () => {
+        navigate("/");
+      }
+    });
   }
 
   return (
@@ -170,9 +143,9 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={isLoggingIn}
+                        disabled={loginMutation.isPending}
                       >
-                        {isLoggingIn ? "Logging in..." : "Login"}
+                        {loginMutation.isPending ? "Logging in..." : "Login"}
                       </Button>
                     </form>
                   </Form>
@@ -270,9 +243,9 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={isRegistering}
+                        disabled={registerMutation.isPending}
                       >
-                        {isRegistering ? "Creating account..." : "Register"}
+                        {registerMutation.isPending ? "Creating account..." : "Register"}
                       </Button>
                     </form>
                   </Form>
