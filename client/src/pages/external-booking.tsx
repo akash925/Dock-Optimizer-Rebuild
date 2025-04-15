@@ -19,20 +19,36 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Define location data
 const locations = [
-  { id: "6210CORPORATEPARK-L", name: "6210 Corporate Park Drive, Browns Valley" },
-  { id: "5620DIVIDEND-L", name: "5620 Dividend Drive, Indianapolis" },
-  { id: "450AIRTECH-L", name: "450 Airtech Pkwy, Plainfield" },
-  { id: "8730CAMBY-L", name: "8370 E Camby Rd, Plainfield" },
-  { id: "4001MINNESOTA-L", name: "4001 W Minnesota St, Indianapolis (Cold Chain)" },
+  { id: "4334PLAINFIELD-L", name: "4334 Plainfield Road (Hanzo Metro), Plainfield, IN 46231" },
+  { id: "450AIRTECH-L", name: "450 Airtech Parkway, Plainfield, IN 46168" },
+  { id: "8370CAMBY-L", name: "8370 E Camby Rd, Plainfield, IN 46168" },
+  { id: "4001MINNESOTA-L", name: "4001 W Minnesota Street, Indianapolis, IN 46241 (Cold Chain)" },
+  { id: "9915LACY-L", name: "9915 Lacy Knot Dr, Brownsburg, IN 46112" },
 ];
 
 // Define appointment types by location - exact match from reference site
 const appointmentTypesByLocation = {
-  "6210CORPORATEPARK-L": ["LTL Inbound", "LTL Outbound", "Truck Load Inbound", "Truck Load Outbound"],
-  "5620DIVIDEND-L": ["LTL Inbound", "LTL Outbound", "Truck Load Inbound", "Truck Load Outbound"],
-  "450AIRTECH-L": ["LTL Inbound", "LTL Outbound", "Truck Load Inbound", "Truck Load Outbound", "Container Inbound", "Container Outbound"],
-  "8730CAMBY-L": ["LTL Inbound", "LTL Outbound", "Truck Load Inbound", "Truck Load Outbound", "Container Inbound", "Container Outbound"],
-  "4001MINNESOTA-L": ["LTL Inbound (Cold Chain)", "LTL Outbound (Cold Chain)", "Truck Load Inbound (Cold Chain)", "Truck Load Outbound (Cold Chain)"],
+  "4334PLAINFIELD-L": [
+    "4334 Plainfield Road (Hanzo Metro) - MVP (1 Hour)",
+    "4334 Plainfield Road (Hanzo Metro) - Palletized Load Appointment (1 Hour)"
+  ],
+  "450AIRTECH-L": [
+    "450 Airtech Parkway - Hand-Unload Appointment (4 Hour)",
+    "450 Airtech Parkway - LTL Pickup or Dropoff",
+    "450 Airtech Parkway - Palletized Load Appointment (1 Hour)"
+  ],
+  "8370CAMBY-L": [
+    "Camby Rd - Hand-Unload Appointment (4 Hour)",
+    "Camby Rd - Palletized Load Appointment (1 Hour)"
+  ],
+  "4001MINNESOTA-L": [
+    "HANZO Cold-Chain - Hand-Unload Appointment (4 Hour)",
+    "HANZO Cold-Chain - Palletized Load Appointment (1 Hour)",
+    "Sam Pride - Floor Loaded Container Drop (4 Hour Unloading)"
+  ],
+  "9915LACY-L": [
+    "9915 Lacy Knot Dr (Hanzo Brownsburg) - Palletized Load Appointment (1 Hour)"
+  ],
 };
 
 // Step 1: Initial Selections
@@ -279,14 +295,11 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                             <SelectContent>
                               {watchLocation && appointmentTypesByLocation[watchLocation as keyof typeof appointmentTypesByLocation]?.map(type => (
                                 <SelectItem key={type} value={type}>
-                                  {type} {type.includes("Container") ? "(4 hrs)" : "(1 hr)"}
+                                  {type}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                          <FormDescription>
-                            Trailer appointments: 1 hour duration. Container appointments: 4 hours duration.
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -817,11 +830,11 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
           <h2 className="text-lg md:text-xl font-bold mb-4 text-center md:text-left">HANZO LOGISTICS INC.</h2>
           <p className="mb-2 text-sm md:text-base">Select from the following locations:</p>
           <ul className="space-y-2 text-sm md:text-base text-gray-700">
-            <li className="p-2 bg-gray-50 rounded">6210 Corporate Park Drive</li>
-            <li className="p-2 bg-gray-50 rounded">5620 Dividend Drive</li>
-            <li className="p-2 bg-gray-50 rounded">450 Airtech Pkwy</li>
-            <li className="p-2 bg-gray-50 rounded">8370 E Camby Rd</li>
-            <li className="p-2 bg-gray-50 rounded">4001 W Minnesota St <span className="font-medium">(Cold Chain)</span></li>
+            <li className="p-2 bg-gray-50 rounded">4334 Plainfield Road, Plainfield, IN 46231 <span className="font-medium">(Hanzo Metro)</span></li>
+            <li className="p-2 bg-gray-50 rounded">450 Airtech Pkwy, Plainfield, IN 46168</li>
+            <li className="p-2 bg-gray-50 rounded">8370 E Camby Rd, Plainfield, IN 46168</li>
+            <li className="p-2 bg-gray-50 rounded">9915 Lacy Knot Dr, Brownsburg, IN 46112</li>
+            <li className="p-2 bg-gray-50 rounded">4001 W Minnesota St, Indianapolis, IN 46241 <span className="font-medium">(Cold Chain)</span></li>
           </ul>
           <p className="mt-4 text-center text-sm text-gray-500">
             Please arrive 15 minutes before your appointment and check in at the security desk.
