@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +10,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
+import CalendarView from "../components/door-manager/calendar-view";
 
 // Mock data types
 interface Dock {
@@ -74,6 +74,46 @@ const mockSchedules: Schedule[] = [
     truckNumber: "FF-56789",
     startTime: new Date(currentTime.getTime() + (0.5 * hour)),
     endTime: new Date(currentTime.getTime() + (2 * hour)),
+    type: "outbound",
+    status: "scheduled",
+  },
+  {
+    id: 3,
+    dockId: 3,
+    carrierId: 3,
+    truckNumber: "GT-78901",
+    startTime: new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() + 1, 9, 0),
+    endTime: new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() + 1, 11, 0),
+    type: "inbound",
+    status: "scheduled",
+  },
+  {
+    id: 4,
+    dockId: 4,
+    carrierId: 4,
+    truckNumber: "MM-24680",
+    startTime: new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() + 2, 13, 0),
+    endTime: new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() + 2, 15, 0),
+    type: "outbound",
+    status: "scheduled",
+  },
+  {
+    id: 5,
+    dockId: 5,
+    carrierId: 1,
+    truckNumber: "AT-67890",
+    startTime: new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() + 2, 10, 0),
+    endTime: new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() + 2, 12, 0),
+    type: "inbound",
+    status: "scheduled",
+  },
+  {
+    id: 6,
+    dockId: 6,
+    carrierId: 2,
+    truckNumber: "FF-13579",
+    startTime: new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() + 1, 14, 0),
+    endTime: new Date(currentTime.getFullYear(), currentTime.getMonth(), currentTime.getDate() + 1, 16, 0),
     type: "outbound",
     status: "scheduled",
   },
@@ -464,19 +504,12 @@ export default function BasicDoorManager() {
           )}
           
           {viewMode === "timeline" && (
-            <div className="flex items-center justify-center p-8 bg-gray-50 rounded-md">
-              <div className="flex flex-col items-center gap-2 text-gray-500">
-                <Calendar className="h-12 w-12" />
-                <p>Timeline view coming soon</p>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setViewMode("board")}
-                >
-                  Switch to Board View
-                </Button>
-              </div>
-            </div>
+            <CalendarView 
+              schedules={schedules}
+              docks={docks}
+              carriers={carriers}
+              onCreateAppointment={handleCreateAppointment}
+            />
           )}
         </CardContent>
       </Card>
