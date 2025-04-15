@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "../hooks/use-auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { TruckIcon } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 // Login form schema
 const loginSchema = z.object({
@@ -33,14 +34,9 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [, navigate] = useLocation();
-  const { user, loginMutation, registerMutation } = useAuth();
-  
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
+  const { toast } = useToast();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -65,13 +61,57 @@ export default function AuthPage() {
   });
   
   // Handle login submission
-  function onLoginSubmit(data: LoginFormValues) {
-    loginMutation.mutate(data);
+  async function onLoginSubmit(data: LoginFormValues) {
+    try {
+      setIsLoggingIn(true);
+      const res = await apiRequest("POST", "/api/login", data);
+      const user = await res.json();
+      
+      // Update the query cache with the user data
+      queryClient.setQueryData(["/api/user"], user);
+      
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${user.firstName}!`,
+      });
+      
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
   }
   
   // Handle registration submission
-  function onRegisterSubmit(data: RegisterFormValues) {
-    registerMutation.mutate(data);
+  async function onRegisterSubmit(data: RegisterFormValues) {
+    try {
+      setIsRegistering(true);
+      const res = await apiRequest("POST", "/api/register", data);
+      const user = await res.json();
+      
+      // Update the query cache with the user data
+      queryClient.setQueryData(["/api/user"], user);
+      
+      toast({
+        title: "Registration successful",
+        description: `Welcome, ${user.firstName}!`,
+      });
+      
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegistering(false);
+    }
   }
 
   return (
@@ -130,9 +170,9 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={loginMutation.isPending}
+                        disabled={isLoggingIn}
                       >
-                        {loginMutation.isPending ? "Logging in..." : "Login"}
+                        {isLoggingIn ? "Logging in..." : "Login"}
                       </Button>
                     </form>
                   </Form>
@@ -230,9 +270,9 @@ export default function AuthPage() {
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={registerMutation.isPending}
+                        disabled={isRegistering}
                       >
-                        {registerMutation.isPending ? "Creating account..." : "Register"}
+                        {isRegistering ? "Creating account..." : "Register"}
                       </Button>
                     </form>
                   </Form>

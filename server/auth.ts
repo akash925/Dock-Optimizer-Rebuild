@@ -4,12 +4,21 @@ import { Express } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { storage } from "./storage";
+import { getStorage } from "./storage";
 import { User, Role } from "@shared/schema";
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User {
+      id: number;
+      username: string;
+      password: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: Role;
+      createdAt: Date;
+    }
   }
 }
 
@@ -28,7 +37,10 @@ export async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-export function setupAuth(app: Express) {
+export async function setupAuth(app: Express) {
+  // Get the storage instance
+  const storage = await getStorage();
+  
   // Ensure we have a session secret
   const sessionSecret = process.env.SESSION_SECRET || "dock-optimizer-secret-key";
 

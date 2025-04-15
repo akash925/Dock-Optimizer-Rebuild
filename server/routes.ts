@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
 import {
@@ -12,10 +12,13 @@ import {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
-  setupAuth(app);
+  await setupAuth(app);
   
   // Get the role check middleware
   const { checkRole } = app.locals;
+  
+  // Get storage instance
+  const storage = await getStorage();
 
   // API Routes
   // Dock routes

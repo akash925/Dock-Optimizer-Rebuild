@@ -4,12 +4,17 @@ import {
   Schedule, InsertSchedule, 
   Carrier, InsertCarrier, 
   Notification, InsertNotification, 
-  ScheduleStatus, DockStatus
+  ScheduleStatus, DockStatus,
+  users, docks, schedules, carriers, notifications
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { eq, and, gte, lte } from "drizzle-orm";
+import { db, pool } from "./db";
 
 const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 // Storage Interface
 export interface IStorage {
@@ -46,7 +51,7 @@ export interface IStorage {
   markNotificationAsRead(id: number): Promise<Notification | undefined>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Type-safe session store
 }
 
 // In-Memory Storage Implementation
@@ -56,7 +61,7 @@ export class MemStorage implements IStorage {
   private schedules: Map<number, Schedule>;
   private carriers: Map<number, Carrier>;
   private notifications: Map<number, Notification>;
-  sessionStore: session.SessionStore;
+  sessionStore: any;
   
   private userIdCounter: number = 1;
   private dockIdCounter: number = 1;
@@ -287,4 +292,252 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.SessionStore;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true
+    });
+  }
+
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+  
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  // Dock operations
+  async getDock(id: number): Promise<Dock | undefined> {
+    const [dock] = await db.select().from(docks).where(eq(docks.id, id));
+    return dock;
+  }
+
+  async getDocks(): Promise<Dock[]> {
+    return await db.select().from(docks);
+  }
+
+  async createDock(insertDock: InsertDock): Promise<Dock> {
+    const [dock] = await db.insert(docks).values(insertDock).returning();
+    return dock;
+  }
+
+  async updateDock(id: number, dockUpdate: Partial<Dock>): Promise<Dock | undefined> {
+    const [updatedDock] = await db
+      .update(docks)
+      .set(dockUpdate)
+      .where(eq(docks.id, id))
+      .returning();
+    return updatedDock;
+  }
+
+  // Schedule operations
+  async getSchedule(id: number): Promise<Schedule | undefined> {
+    const [schedule] = await db.select().from(schedules).where(eq(schedules.id, id));
+    return schedule;
+  }
+
+  async getSchedules(): Promise<Schedule[]> {
+    return await db.select().from(schedules);
+  }
+
+  async getSchedulesByDock(dockId: number): Promise<Schedule[]> {
+    return await db
+      .select()
+      .from(schedules)
+      .where(eq(schedules.dockId, dockId));
+  }
+
+  async getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]> {
+    return await db
+      .select()
+      .from(schedules)
+      .where(
+        and(
+          gte(schedules.startTime, startDate),
+          lte(schedules.endTime, endDate)
+        )
+      );
+  }
+
+  async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
+    const [schedule] = await db
+      .insert(schedules)
+      .values({
+        ...insertSchedule,
+        lastModifiedAt: new Date(),
+        lastModifiedBy: insertSchedule.createdBy
+      })
+      .returning();
+    return schedule;
+  }
+
+  async updateSchedule(id: number, scheduleUpdate: Partial<Schedule>): Promise<Schedule | undefined> {
+    const [updatedSchedule] = await db
+      .update(schedules)
+      .set({
+        ...scheduleUpdate,
+        lastModifiedAt: new Date()
+      })
+      .where(eq(schedules.id, id))
+      .returning();
+    return updatedSchedule;
+  }
+
+  async deleteSchedule(id: number): Promise<boolean> {
+    const result = await db
+      .delete(schedules)
+      .where(eq(schedules.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Carrier operations
+  async getCarrier(id: number): Promise<Carrier | undefined> {
+    const [carrier] = await db.select().from(carriers).where(eq(carriers.id, id));
+    return carrier;
+  }
+
+  async getCarriers(): Promise<Carrier[]> {
+    return await db.select().from(carriers);
+  }
+
+  async createCarrier(insertCarrier: InsertCarrier): Promise<Carrier> {
+    const [carrier] = await db.insert(carriers).values(insertCarrier).returning();
+    return carrier;
+  }
+
+  // Notification operations
+  async getNotification(id: number): Promise<Notification | undefined> {
+    const [notification] = await db.select().from(notifications).where(eq(notifications.id, id));
+    return notification;
+  }
+
+  async getNotificationsByUser(userId: number): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(notifications.createdAt);
+  }
+
+  async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    const [notification] = await db
+      .insert(notifications)
+      .values({
+        ...insertNotification,
+        isRead: false
+      })
+      .returning();
+    return notification;
+  }
+
+  async markNotificationAsRead(id: number): Promise<Notification | undefined> {
+    const [notification] = await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    return notification;
+  }
+}
+
+// Initialize database
+export async function initializeDatabase() {
+  const dbStorage = new DatabaseStorage();
+  
+  // Check if we need to seed initial data
+  const existingUsers = await dbStorage.getUsers();
+  if (existingUsers.length === 0) {
+    console.log("Seeding initial database data...");
+    
+    // Create default admin user
+    await dbStorage.createUser({
+      username: "admin",
+      password: "$2b$10$NrM4S5VFRWKxIFBdSvGQVObcUQZrsquxA3KH9RBKuHKpHHFQXsNGe", // "admin123"
+      email: "admin@example.com",
+      firstName: "Admin",
+      lastName: "User",
+      role: "admin",
+    });
+    
+    // Create test manager
+    await dbStorage.createUser({
+      username: "manager",
+      password: "$2b$10$NrM4S5VFRWKxIFBdSvGQVObcUQZrsquxA3KH9RBKuHKpHHFQXsNGe", // "admin123"
+      email: "manager@example.com",
+      firstName: "Manager",
+      lastName: "User",
+      role: "manager",
+    });
+    
+    // Create test dock worker
+    await dbStorage.createUser({
+      username: "worker",
+      password: "$2b$10$NrM4S5VFRWKxIFBdSvGQVObcUQZrsquxA3KH9RBKuHKpHHFQXsNGe", // "admin123"
+      email: "worker@example.com",
+      firstName: "Dock",
+      lastName: "Worker",
+      role: "worker",
+    });
+    
+    // Create some docks
+    const dockNames = ["A-01", "A-02", "A-03", "A-04", "B-01", "B-02", "B-03", "B-04"];
+    for (const name of dockNames) {
+      await dbStorage.createDock({
+        name,
+        isActive: true,
+        type: "both",
+        constraints: { maxTrailerLength: 53, requiresForklift: false }
+      });
+    }
+    
+    // Create some carriers
+    const carrierNames = ["FedEx", "UPS", "DHL Express", "USPS", "Amazon Logistics", "Swift", "JB Hunt", "YRC"];
+    for (const name of carrierNames) {
+      await dbStorage.createCarrier({
+        name,
+        contactName: `${name} Contact`,
+        contactEmail: `contact@${name.toLowerCase().replace(/\s+/g, '')}.com`,
+        contactPhone: "555-123-4567"
+      });
+    }
+    
+    console.log("Database seeding completed.");
+  }
+  
+  return dbStorage;
+}
+
+// Use database storage
+let storage: IStorage;
+
+export async function getStorage(): Promise<IStorage> {
+  if (!storage) {
+    // Use database storage
+    try {
+      storage = await initializeDatabase();
+      console.log("Using PostgreSQL database storage");
+    } catch (error) {
+      console.error("Error initializing database storage:", error);
+      console.log("Falling back to in-memory storage");
+      storage = new MemStorage();
+    }
+  }
+  return storage;
+}
