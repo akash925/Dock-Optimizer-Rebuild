@@ -1,0 +1,182 @@
+import { cn } from "@/lib/utils";
+import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  BarChart3,
+  Calendar,
+  DoorOpen,
+  HelpCircle,
+  Home,
+  Settings,
+  TruckIcon,
+  Users,
+  Menu,
+  Layout,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { useMediaQuery } from "@/hooks/use-mobile";
+
+interface SidebarProps {
+  className?: string;
+}
+
+interface SidebarItemProps {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+}
+
+const SidebarItem: React.FC<SidebarItemProps> = ({
+  href,
+  icon,
+  label,
+  active,
+  onClick,
+}) => {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={cn(
+        "flex items-center px-4 py-3 text-neutral-400 hover:bg-neutral-100 transition-colors",
+        active && "text-primary bg-opacity-10 border-l-4 border-primary sidebar-active"
+      )}
+    >
+      <span className="mr-3">{icon}</span>
+      {label}
+    </Link>
+  );
+};
+
+export default function Sidebar({ className }: SidebarProps) {
+  const [location] = useLocation();
+  const { user } = useAuth();
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  
+  useEffect(() => {
+    setIsSidebarOpen(!isMobile);
+  }, [isMobile]);
+
+  // Early return if not authenticated
+  if (!user) return null;
+
+  const closeSidebar = () => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const sidebarContent = (
+    <div 
+      className={cn(
+        "bg-white shadow-md h-full transition-all duration-300",
+        isMobile ? (
+          isSidebarOpen 
+            ? "fixed inset-y-0 left-0 z-50 w-64" 
+            : "hidden"
+        ) : "w-64",
+        className
+      )}
+    >
+      <div className="p-4 border-b border-neutral-200">
+        <h1 className="text-xl font-medium text-primary flex items-center">
+          <TruckIcon className="mr-2" />
+          Dock Optimizer
+        </h1>
+      </div>
+      
+      <div className="py-4">
+        <div className="px-4 py-2 mb-2 text-neutral-400 text-xs font-medium uppercase">
+          Dashboard
+        </div>
+        <SidebarItem 
+          href="/" 
+          icon={<Home size={20} />} 
+          label="Overview" 
+          active={location === "/"} 
+          onClick={closeSidebar}
+        />
+        <SidebarItem 
+          href="/schedules" 
+          icon={<Calendar size={20} />} 
+          label="Schedule" 
+          active={location === "/schedules"}
+          onClick={closeSidebar}
+        />
+        <SidebarItem 
+          href="/dock-status" 
+          icon={<DoorOpen size={20} />} 
+          label="Dock Status" 
+          active={location === "/dock-status"}
+          onClick={closeSidebar}
+        />
+        <SidebarItem 
+          href="/door-manager" 
+          icon={<Layout size={20} />} 
+          label="Door Manager" 
+          active={location === "/door-manager"}
+          onClick={closeSidebar}
+        />
+        <SidebarItem 
+          href="/analytics" 
+          icon={<BarChart3 size={20} />} 
+          label="Analytics" 
+          active={location === "/analytics"}
+          onClick={closeSidebar}
+        />
+        
+        {(user.role === "admin" || user.role === "manager") && (
+          <>
+            <div className="px-4 py-2 mt-6 mb-2 text-neutral-400 text-xs font-medium uppercase">
+              Management
+            </div>
+            {user.role === "admin" && (
+              <SidebarItem 
+                href="/users" 
+                icon={<Users size={20} />} 
+                label="Users" 
+                active={location === "/users"}
+                onClick={closeSidebar}
+              />
+            )}
+            <SidebarItem 
+              href="/settings" 
+              icon={<Settings size={20} />} 
+              label="Settings" 
+              active={location === "/settings"}
+              onClick={closeSidebar}
+            />
+            <SidebarItem 
+              href="#" 
+              icon={<HelpCircle size={20} />} 
+              label="Help" 
+              active={location === "/help"}
+              onClick={closeSidebar}
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {isMobile && (
+        <button 
+          onClick={toggleSidebar}
+          className="fixed bottom-4 right-4 bg-primary text-white p-3 rounded-full shadow-lg z-50 md:hidden"
+        >
+          <Menu size={24} />
+        </button>
+      )}
+      {sidebarContent}
+    </>
+  );
+}
