@@ -906,9 +906,10 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                             selected={field.value ? new Date(field.value) : undefined}
                             onSelect={(date) => {
                               if (date) {
-                                // Ensure we're selecting the correct date (not the prior day)
-                                const today = startOfToday();
-                                const selectedDate = startOfDay(date);
+                                // Fix the timezone issue that may cause date shifting
+                                // By setting time to noon, we ensure the date remains the same in all timezones
+                                const selectedDate = new Date(date);
+                                selectedDate.setHours(12, 0, 0, 0);
                                 
                                 // Convert to ISO string for form storage
                                 field.onChange(format(selectedDate, "yyyy-MM-dd"));
