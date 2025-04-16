@@ -78,9 +78,10 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           slug: bookingPage.slug,
           title: bookingPage.title,
           description: bookingPage.description,
-          introText: bookingPage.introText,
-          successMessage: bookingPage.successMessage,
-          logoUrl: bookingPage.logoUrl,
+          welcomeMessage: bookingPage.welcomeMessage,
+          confirmationMessage: bookingPage.confirmationMessage,
+          customLogo: bookingPage.customLogo,
+          useOrganizationLogo: bookingPage.useOrganizationLogo,
           primaryColor: bookingPage.primaryColor || "#22c55e",
           isActive: bookingPage.isActive
         }
@@ -89,9 +90,10 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           slug: "",
           title: "",
           description: "",
-          introText: "Book your appointment online",
-          successMessage: "Your appointment has been successfully booked.",
-          logoUrl: "",
+          welcomeMessage: "Book your appointment online",
+          confirmationMessage: "Your appointment has been successfully booked.",
+          customLogo: "",
+          useOrganizationLogo: true,
           primaryColor: "#22c55e",
           isActive: true
         }
@@ -327,7 +329,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="introText"
+            name="welcomeMessage"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Introduction Text</FormLabel>
@@ -348,7 +350,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
 
           <FormField
             control={form.control}
-            name="successMessage"
+            name="confirmationMessage"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Success Message</FormLabel>
