@@ -154,6 +154,13 @@ export default function Sidebar({ className }: SidebarProps) {
               active={location === "/facilities"}
               onClick={closeSidebar}
             />
+            <SidebarItem 
+              href="/facility-master" 
+              icon={<Warehouse size={20} />} 
+              label="Facility Master" 
+              active={location === "/facility-master"}
+              onClick={closeSidebar}
+            />
             {user.role === "admin" && (
               <SidebarItem 
                 href="/users" 
