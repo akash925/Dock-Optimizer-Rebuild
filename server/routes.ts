@@ -347,29 +347,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/facilities", checkRole(["admin", "manager"]), async (req, res) => {
     try {
+      console.log("Creating facility with request body:", req.body);
       const validatedData = insertFacilitySchema.parse(req.body);
+      console.log("Validated facility data:", validatedData);
+      
       const facility = await storage.createFacility(validatedData);
+      console.log("Facility created successfully:", facility);
+      
       res.status(201).json(facility);
     } catch (err) {
+      console.error("Error creating facility:", err);
+      
       if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid facility data", errors: err.errors });
+        return res.status(400).json({ 
+          message: "Invalid facility data", 
+          errors: err.errors,
+          details: err.format() 
+        });
       }
-      res.status(500).json({ message: "Failed to create facility" });
+      
+      res.status(500).json({ 
+        message: "Failed to create facility",
+        error: err instanceof Error ? err.message : "Unknown error" 
+      });
     }
   });
 
   app.put("/api/facilities/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
+      console.log(`Updating facility ID: ${id} with data:`, req.body);
+      
       const facility = await storage.getFacility(id);
       if (!facility) {
         return res.status(404).json({ message: "Facility not found" });
       }
       
+      // Make sure we have at least the required fields
+      try {
+        const fieldsToCheck = {
+          ...facility,  // Start with existing facility data
+          ...req.body   // Override with update data
+        };
+        // Validate combined data preserves required fields
+        insertFacilitySchema.parse(fieldsToCheck);
+      } catch (validationErr) {
+        if (validationErr instanceof z.ZodError) {
+          console.error("Validation error updating facility:", validationErr.format());
+          return res.status(400).json({ 
+            message: "Invalid facility data", 
+            errors: validationErr.errors,
+            details: validationErr.format()
+          });
+        }
+        throw validationErr;
+      }
+      
       const updatedFacility = await storage.updateFacility(id, req.body);
+      console.log("Facility updated successfully:", updatedFacility);
       res.json(updatedFacility);
     } catch (err) {
-      res.status(500).json({ message: "Failed to update facility" });
+      console.error("Error updating facility:", err);
+      res.status(500).json({ 
+        message: "Failed to update facility",
+        error: err instanceof Error ? err.message : "Unknown error"
+      });
     }
   });
   

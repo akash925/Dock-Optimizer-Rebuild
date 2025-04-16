@@ -357,10 +357,21 @@ export default function FacilityMaster() {
   // Create facility mutation
   const createFacilityMutation = useMutation({
     mutationFn: async (values: FacilityFormValues) => {
+      // Add console log to debug what's being sent
+      console.log("Creating facility with data:", values);
+      
       const res = await apiRequest("POST", "/api/facilities", values);
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Facility creation error:", errorData);
+        throw new Error(errorData.message || "Failed to create facility");
+      }
+      
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Facility created successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
       setIsCreateDialogOpen(false);
       createForm.reset();
@@ -370,6 +381,7 @@ export default function FacilityMaster() {
       });
     },
     onError: (error: Error) => {
+      console.error("Facility mutation error:", error);
       toast({
         title: "Error",
         description: `Failed to create facility: ${error.message}`,
@@ -395,10 +407,20 @@ export default function FacilityMaster() {
   // Update facility mutation
   const updateFacilityMutation = useMutation({
     mutationFn: async (values: FacilityFormValues) => {
+      console.log("Updating facility with data:", values);
+      
       const res = await apiRequest("PUT", `/api/facilities/${values.id}`, values);
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Facility update error:", errorData);
+        throw new Error(errorData.message || "Failed to update facility");
+      }
+      
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Facility updated successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
       setIsEditDialogOpen(false);
       setCurrentFacility(null);
@@ -408,6 +430,7 @@ export default function FacilityMaster() {
       });
     },
     onError: (error: Error) => {
+      console.error("Facility update error:", error);
       toast({
         title: "Error",
         description: `Failed to update facility: ${error.message}`,
