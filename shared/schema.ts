@@ -85,6 +85,14 @@ export const schedules = pgTable("schedules", {
   dockId: integer("dock_id").notNull(),
   carrierId: integer("carrier_id").notNull(),
   truckNumber: text("truck_number").notNull(),
+  trailerNumber: text("trailer_number"),
+  driverName: text("driver_name"),
+  driverPhone: text("driver_phone"),
+  bolNumber: text("bol_number"),
+  poNumber: text("po_number"),
+  palletCount: text("pallet_count"),
+  weight: text("weight"),
+  appointmentMode: text("appointment_mode").default("trailer"), // trailer or container
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   type: text("type").notNull(), // inbound or outbound
