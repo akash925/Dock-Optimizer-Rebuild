@@ -210,18 +210,7 @@ export default function DoorAppointmentForm({
     const appointment = todaysAppointments.find(a => a.id.toString() === appointmentId);
     if (appointment) {
       setSelectedExistingAppointment(appointment);
-      // Update the form with the selected appointment details
-      form.setValue("carrierId", appointment.carrierId);
-      // Find the carrier name for the selected carrier ID
-      const carrier = carriers.find(c => c.id === appointment.carrierId);
-      if (carrier) {
-        form.setValue("carrierName", carrier.name);
-      } else {
-        form.setValue("carrierName", "");
-      }
-      form.setValue("truckNumber", appointment.truckNumber);
-      form.setValue("type", appointment.type as "inbound" | "outbound");
-      form.setValue("notes", appointment.notes || "");
+      // We don't update the form fields since we're just connecting the appointment to this dock
     }
   };
   
@@ -280,267 +269,287 @@ export default function DoorAppointmentForm({
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <FormField
-                control={form.control}
-                name="carrierId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Carrier</FormLabel>
-                    <Select 
-                      value={field.value?.toString() || ""} 
-                      onValueChange={(value) => {
-                        field.onChange(value ? parseInt(value) : undefined);
-                        // Find the carrier name for the selected ID
-                        if (value) {
-                          const carrier = carriers.find(c => c.id.toString() === value);
-                          if (carrier) {
-                            form.setValue("carrierName", carrier.name);
-                          }
-                        } else {
-                          form.setValue("carrierName", "");
-                        }
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a carrier (optional)" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <div className="p-2">
+            {appointmentType === "existing" && selectedExistingAppointment ? (
+              <div className="p-4 border rounded-md mb-4 bg-gray-50">
+                <h3 className="font-medium mb-2">Selected Appointment Details:</h3>
+                <p className="text-sm mb-1">
+                  <span className="font-medium">Carrier:</span> {carriers.find(c => c.id === selectedExistingAppointment.carrierId)?.name || "N/A"}
+                </p>
+                <p className="text-sm mb-1">
+                  <span className="font-medium">Truck #:</span> {selectedExistingAppointment.truckNumber}
+                </p>
+                <p className="text-sm mb-1">
+                  <span className="font-medium">Type:</span> {selectedExistingAppointment.type}
+                </p>
+                <p className="text-sm">
+                  <span className="font-medium">Time:</span> {format(new Date(selectedExistingAppointment.startTime), "PPP")} {format(new Date(selectedExistingAppointment.startTime), "p")} - {format(new Date(selectedExistingAppointment.endTime), "p")}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="carrierId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Carrier</FormLabel>
+                        <Select 
+                          value={field.value?.toString() || ""} 
+                          onValueChange={(value) => {
+                            field.onChange(value ? parseInt(value) : undefined);
+                            // Find the carrier name for the selected ID
+                            if (value) {
+                              const carrier = carriers.find(c => c.id.toString() === value);
+                              if (carrier) {
+                                form.setValue("carrierName", carrier.name);
+                              }
+                            } else {
+                              form.setValue("carrierName", "");
+                            }
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a carrier (optional)" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <div className="p-2">
+                              <Input 
+                                placeholder="Search carriers..." 
+                                className="mb-2"
+                                onChange={(e) => {
+                                  // This would filter the carriers list in a real implementation
+                                  // For now, we'll just log the search term
+                                  console.log("Searching for carrier:", e.target.value);
+                                }}
+                              />
+                            </div>
+                            {carriers.map(carrier => (
+                              <SelectItem key={carrier.id} value={carrier.id.toString()}>
+                                {carrier.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="carrierName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Custom Carrier Name</FormLabel>
+                        <FormControl>
                           <Input 
-                            placeholder="Search carriers..." 
-                            className="mb-2"
+                            placeholder="Enter carrier name if not in list above" 
+                            {...field}
                             onChange={(e) => {
-                              // This would filter the carriers list in a real implementation
-                              // For now, we'll just log the search term
-                              console.log("Searching for carrier:", e.target.value);
+                              field.onChange(e);
+                              // Clear carrier ID if custom name is entered
+                              if (e.target.value) {
+                                form.setValue("carrierId", undefined);
+                              }
                             }}
                           />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="truckNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Truck Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter truck number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startTime"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Start Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className="text-left font-normal"
+                              >
+                                <CalendarIcon className="h-4 w-4 mr-2" />
+                                {field.value ? format(field.value, "PPP") : "Select date"}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(date) => {
+                                if (date) {
+                                  // Preserve the time part
+                                  const newDate = new Date(date);
+                                  newDate.setHours(
+                                    field.value.getHours(),
+                                    field.value.getMinutes(),
+                                    0, 0
+                                  );
+                                  field.onChange(newDate);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="startTime"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Time</FormLabel>
+                        <div className="flex items-center">
+                          <FormControl>
+                            <Input
+                              type="time"
+                              value={formatTimeForInput(field.value)}
+                              onChange={(e) => {
+                                field.onChange(parseTimeString(e.target.value, field.value));
+                              }}
+                            />
+                          </FormControl>
+                          <Clock className="ml-2 h-4 w-4 text-gray-400" />
                         </div>
-                        {carriers.map(carrier => (
-                          <SelectItem key={carrier.id} value={carrier.id.toString()}>
-                            {carrier.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="carrierName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Custom Carrier Name</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter carrier name if not in list above" 
-                        {...field}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          // Clear carrier ID if custom name is entered
-                          if (e.target.value) {
-                            form.setValue("carrierId", undefined);
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="truckNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Truck Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter truck number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Start Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="endTime"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>End Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className="text-left font-normal"
+                              >
+                                <CalendarIcon className="h-4 w-4 mr-2" />
+                                {field.value ? format(field.value, "PPP") : "Select date"}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={(date) => {
+                                if (date) {
+                                  // Preserve the time part
+                                  const newDate = new Date(date);
+                                  newDate.setHours(
+                                    field.value.getHours(),
+                                    field.value.getMinutes(),
+                                    0, 0
+                                  );
+                                  field.onChange(newDate);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="endTime"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End Time</FormLabel>
+                        <div className="flex items-center">
+                          <FormControl>
+                            <Input
+                              type="time"
+                              value={formatTimeForInput(field.value)}
+                              onChange={(e) => {
+                                field.onChange(parseTimeString(e.target.value, field.value));
+                              }}
+                            />
+                          </FormControl>
+                          <Clock className="ml-2 h-4 w-4 text-gray-400" />
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
                         <FormControl>
-                          <Button
-                            variant="outline"
-                            className="text-left font-normal"
-                          >
-                            <CalendarIcon className="h-4 w-4 mr-2" />
-                            {field.value ? format(field.value, "PPP") : "Select date"}
-                          </Button>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
                         </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={(date) => {
-                            if (date) {
-                              // Preserve the time part
-                              const newDate = new Date(date);
-                              newDate.setHours(
-                                field.value.getHours(),
-                                field.value.getMinutes(),
-                                0, 0
-                              );
-                              field.onChange(newDate);
-                            }
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time</FormLabel>
-                    <div className="flex items-center">
+                        <SelectContent>
+                          <SelectItem value={ScheduleType.INBOUND}>Inbound</SelectItem>
+                          <SelectItem value={ScheduleType.OUTBOUND}>Outbound</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes (Optional)</FormLabel>
                       <FormControl>
-                        <Input
-                          type="time"
-                          value={formatTimeForInput(field.value)}
-                          onChange={(e) => {
-                            field.onChange(parseTimeString(e.target.value, field.value));
-                          }}
-                        />
+                        <Input placeholder="Add any additional notes" {...field} />
                       </FormControl>
-                      <Clock className="ml-2 h-4 w-4 text-gray-400" />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>End Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className="text-left font-normal"
-                          >
-                            <CalendarIcon className="h-4 w-4 mr-2" />
-                            {field.value ? format(field.value, "PPP") : "Select date"}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={(date) => {
-                            if (date) {
-                              // Preserve the time part
-                              const newDate = new Date(date);
-                              newDate.setHours(
-                                field.value.getHours(),
-                                field.value.getMinutes(),
-                                0, 0
-                              );
-                              field.onChange(newDate);
-                            }
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>End Time</FormLabel>
-                    <div className="flex items-center">
-                      <FormControl>
-                        <Input
-                          type="time"
-                          value={formatTimeForInput(field.value)}
-                          onChange={(e) => {
-                            field.onChange(parseTimeString(e.target.value, field.value));
-                          }}
-                        />
-                      </FormControl>
-                      <Clock className="ml-2 h-4 w-4 text-gray-400" />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={ScheduleType.INBOUND}>Inbound</SelectItem>
-                      <SelectItem value={ScheduleType.OUTBOUND}>Outbound</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Add any additional notes" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
             
             <DialogFooter className="mt-6">
               <Button type="button" variant="outline" onClick={onClose}>

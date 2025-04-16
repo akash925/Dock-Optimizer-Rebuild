@@ -112,13 +112,7 @@ export default function Sidebar({ className }: SidebarProps) {
           active={location === "/schedules"}
           onClick={closeSidebar}
         />
-        <SidebarItem 
-          href="/dock-status" 
-          icon={<DoorOpen size={20} />} 
-          label="Dock Status" 
-          active={location === "/dock-status"}
-          onClick={closeSidebar}
-        />
+
         <SidebarItem 
           href="/door-manager" 
           icon={<Layout size={20} />} 

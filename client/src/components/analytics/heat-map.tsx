@@ -1,0 +1,344 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, Filter } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 6); // 6 AM to 6 PM
+
+interface HeatMapCellProps {
+  value: number;
+  maxValue: number;
+  displayValue?: string;
+  onHover?: (value: number) => void;
+}
+
+const HeatMapCell: React.FC<HeatMapCellProps> = ({ value, maxValue, displayValue, onHover }) => {
+  // Calculate the intensity (0-100%) based on the value relative to maxValue
+  const intensity = maxValue > 0 ? (value / maxValue) * 100 : 0;
+  
+  // Calculate color - we'll use a gradient from light blue to dark blue
+  const color = `hsl(210, 100%, ${100 - intensity * 0.5}%)`;
+  
+  return (
+    <div 
+      className="relative w-full h-12 border border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors"
+      style={{ backgroundColor: color }}
+      onMouseEnter={() => onHover && onHover(value)}
+    >
+      <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
+        {displayValue || value}
+      </div>
+    </div>
+  );
+};
+
+interface HeatMapViewProps {
+  data: {
+    day: string;
+    hour: number;
+    count: number;
+    onTimePercentage?: number;
+  }[];
+  mode: "appointments" | "ontime";
+  filter: {
+    location?: string;
+    appointment?: string;
+    customer?: string;
+    carrier?: string;
+  };
+}
+
+const HeatMapView: React.FC<HeatMapViewProps> = ({ data, mode, filter }) => {
+  const [hoveredValue, setHoveredValue] = useState<number | null>(null);
+  
+  // Find the max value for color scaling
+  const maxValue = Math.max(...data.map(d => mode === "appointments" ? d.count : (d.onTimePercentage || 0)));
+  
+  // Group data by day and hour
+  const dataByDayAndHour = data.reduce((acc, item) => {
+    if (!acc[item.day]) {
+      acc[item.day] = {};
+    }
+    acc[item.day][item.hour] = item;
+    return acc;
+  }, {} as Record<string, Record<number, typeof data[0]>>);
+  
+  // Create a legend for the color scale
+  const renderLegend = () => {
+    return (
+      <div className="flex items-center mt-4 justify-end">
+        <div className="mr-2 text-sm">Low</div>
+        <div className="flex">
+          {[0, 20, 40, 60, 80, 100].map((percent) => (
+            <div 
+              key={percent} 
+              className="w-6 h-4"
+              style={{ backgroundColor: `hsl(210, 100%, ${100 - percent * 0.5}%)` }}
+            />
+          ))}
+        </div>
+        <div className="ml-2 text-sm">High</div>
+      </div>
+    );
+  };
+  
+  // Render info for hovered cell
+  const renderHoverInfo = () => {
+    if (hoveredValue === null) return null;
+    
+    return (
+      <div className="mt-2 p-2 bg-gray-100 rounded text-sm">
+        {mode === "appointments" 
+          ? `${hoveredValue} appointments` 
+          : `${hoveredValue}% on-time`}
+      </div>
+    );
+  };
+  
+  return (
+    <div>
+      <div className="grid grid-cols-[auto_1fr]">
+        <div className="pt-12 pr-2"> {/* Empty space for the top-left corner */}
+          {DAYS.map(day => (
+            <div key={day} className="h-12 flex items-center justify-end font-medium">
+              <span className="text-sm">{day}</span>
+            </div>
+          ))}
+        </div>
+        
+        <div>
+          <div className="grid grid-cols-13 mb-2">
+            {HOURS.map(hour => (
+              <div key={hour} className="text-center text-xs font-medium">
+                {hour > 12 ? (hour - 12) + 'PM' : hour + 'AM'}
+              </div>
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-13">
+            {DAYS.map(day => (
+              <React.Fragment key={day}>
+                {HOURS.map(hour => {
+                  const cellData = dataByDayAndHour[day]?.[hour];
+                  const value = cellData 
+                    ? (mode === "appointments" ? cellData.count : (cellData.onTimePercentage || 0)) 
+                    : 0;
+                  
+                  const displayValue = mode === "appointments" 
+                    ? (value > 0 ? value.toString() : "") 
+                    : (value > 0 ? `${value}%` : "");
+                  
+                  return (
+                    <HeatMapCell 
+                      key={`${day}-${hour}`} 
+                      value={value} 
+                      maxValue={maxValue}
+                      displayValue={displayValue}
+                      onHover={setHoveredValue}
+                    />
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      {renderLegend()}
+      {renderHoverInfo()}
+    </div>
+  );
+};
+
+export default function AnalyticsHeatMap() {
+  const [filter, setFilter] = useState({
+    location: "all",
+    appointment: "all",
+    customer: "all",
+    carrier: "all"
+  });
+  
+  const [activeTab, setActiveTab] = useState<"appointments" | "ontime">("appointments");
+  
+  // Sample data - in a real app, this would come from an API
+  const sampleData = [
+    // Monday
+    { day: "Monday", hour: 8, count: 5, onTimePercentage: 80 },
+    { day: "Monday", hour: 9, count: 8, onTimePercentage: 75 },
+    { day: "Monday", hour: 10, count: 12, onTimePercentage: 92 },
+    { day: "Monday", hour: 11, count: 10, onTimePercentage: 70 },
+    { day: "Monday", hour: 12, count: 6, onTimePercentage: 83 },
+    { day: "Monday", hour: 13, count: 7, onTimePercentage: 85 },
+    { day: "Monday", hour: 14, count: 9, onTimePercentage: 78 },
+    { day: "Monday", hour: 15, count: 11, onTimePercentage: 91 },
+    { day: "Monday", hour: 16, count: 6, onTimePercentage: 83 },
+    
+    // Tuesday
+    { day: "Tuesday", hour: 8, count: 4, onTimePercentage: 75 },
+    { day: "Tuesday", hour: 9, count: 7, onTimePercentage: 71 },
+    { day: "Tuesday", hour: 10, count: 9, onTimePercentage: 89 },
+    { day: "Tuesday", hour: 11, count: 12, onTimePercentage: 83 },
+    { day: "Tuesday", hour: 12, count: 8, onTimePercentage: 75 },
+    { day: "Tuesday", hour: 13, count: 6, onTimePercentage: 67 },
+    { day: "Tuesday", hour: 14, count: 5, onTimePercentage: 80 },
+    { day: "Tuesday", hour: 15, count: 7, onTimePercentage: 85 },
+    { day: "Tuesday", hour: 16, count: 8, onTimePercentage: 88 },
+    
+    // Wednesday
+    { day: "Wednesday", hour: 8, count: 6, onTimePercentage: 83 },
+    { day: "Wednesday", hour: 9, count: 9, onTimePercentage: 78 },
+    { day: "Wednesday", hour: 10, count: 15, onTimePercentage: 93 },
+    { day: "Wednesday", hour: 11, count: 14, onTimePercentage: 86 },
+    { day: "Wednesday", hour: 12, count: 10, onTimePercentage: 90 },
+    { day: "Wednesday", hour: 13, count: 8, onTimePercentage: 75 },
+    { day: "Wednesday", hour: 14, count: 7, onTimePercentage: 71 },
+    { day: "Wednesday", hour: 15, count: 9, onTimePercentage: 89 },
+    { day: "Wednesday", hour: 16, count: 5, onTimePercentage: 80 },
+    
+    // Thursday
+    { day: "Thursday", hour: 8, count: 5, onTimePercentage: 60 },
+    { day: "Thursday", hour: 9, count: 10, onTimePercentage: 70 },
+    { day: "Thursday", hour: 10, count: 13, onTimePercentage: 92 },
+    { day: "Thursday", hour: 11, count: 15, onTimePercentage: 87 },
+    { day: "Thursday", hour: 12, count: 9, onTimePercentage: 78 },
+    { day: "Thursday", hour: 13, count: 7, onTimePercentage: 71 },
+    { day: "Thursday", hour: 14, count: 8, onTimePercentage: 75 },
+    { day: "Thursday", hour: 15, count: 10, onTimePercentage: 90 },
+    { day: "Thursday", hour: 16, count: 6, onTimePercentage: 83 },
+    
+    // Friday
+    { day: "Friday", hour: 8, count: 7, onTimePercentage: 71 },
+    { day: "Friday", hour: 9, count: 12, onTimePercentage: 92 },
+    { day: "Friday", hour: 10, count: 16, onTimePercentage: 88 },
+    { day: "Friday", hour: 11, count: 14, onTimePercentage: 86 },
+    { day: "Friday", hour: 12, count: 10, onTimePercentage: 80 },
+    { day: "Friday", hour: 13, count: 9, onTimePercentage: 89 },
+    { day: "Friday", hour: 14, count: 7, onTimePercentage: 71 },
+    { day: "Friday", hour: 15, count: 8, onTimePercentage: 75 },
+    { day: "Friday", hour: 16, count: 5, onTimePercentage: 60 },
+  ];
+  
+  return (
+    <Card className="w-full mb-6">
+      <CardHeader className="pb-0">
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-2xl flex items-center">
+              <Calendar className="mr-2 h-6 w-6" /> Appointment Heatmap
+            </CardTitle>
+            <CardDescription>
+              View appointment distribution and on-time performance
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-6">
+        <div className="mb-6">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "appointments" | "ontime")}>
+            <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
+              <TabsTrigger value="appointments" className="text-sm">
+                Appointment Count
+              </TabsTrigger>
+              <TabsTrigger value="ontime" className="text-sm">
+                On-Time Percentage
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          {/* Filters */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div>
+              <Label htmlFor="location-filter">Location</Label>
+              <Select 
+                value={filter.location} 
+                onValueChange={(value) => setFilter({...filter, location: value})}
+              >
+                <SelectTrigger id="location-filter">
+                  <SelectValue placeholder="All Locations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Locations</SelectItem>
+                  <SelectItem value="main">Main Warehouse</SelectItem>
+                  <SelectItem value="north">North Facility</SelectItem>
+                  <SelectItem value="south">South Facility</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="appointment-filter">Appointment Type</Label>
+              <Select 
+                value={filter.appointment} 
+                onValueChange={(value) => setFilter({...filter, appointment: value})}
+              >
+                <SelectTrigger id="appointment-filter">
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="inbound">Inbound</SelectItem>
+                  <SelectItem value="outbound">Outbound</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="customer-filter">Customer</Label>
+              <Select 
+                value={filter.customer} 
+                onValueChange={(value) => setFilter({...filter, customer: value})}
+              >
+                <SelectTrigger id="customer-filter">
+                  <SelectValue placeholder="All Customers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Customers</SelectItem>
+                  <SelectItem value="acme">Acme Inc</SelectItem>
+                  <SelectItem value="globex">Globex Corp</SelectItem>
+                  <SelectItem value="wayne">Wayne Enterprises</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="carrier-filter">Carrier</Label>
+              <Select 
+                value={filter.carrier} 
+                onValueChange={(value) => setFilter({...filter, carrier: value})}
+              >
+                <SelectTrigger id="carrier-filter">
+                  <SelectValue placeholder="All Carriers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Carriers</SelectItem>
+                  <SelectItem value="fedex">FedEx</SelectItem>
+                  <SelectItem value="ups">UPS</SelectItem>
+                  <SelectItem value="dhl">DHL</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="mb-4 flex justify-end">
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              Reset Filters
+            </Button>
+          </div>
+        </div>
+        
+        <HeatMapView 
+          data={sampleData} 
+          mode={activeTab} 
+          filter={filter} 
+        />
+      </CardContent>
+    </Card>
+  );
+}
