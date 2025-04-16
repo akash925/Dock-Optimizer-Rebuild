@@ -1246,28 +1246,46 @@ export default function AppointmentMaster() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="day-start">Day Start Time</Label>
-                    <Input 
-                      id="day-start" 
-                      type="time"
+                    <Select
                       value={schedulingSettings.dayStartTime}
-                      onChange={(e) => setSchedulingSettings({
+                      onValueChange={(value) => setSchedulingSettings({
                         ...schedulingSettings, 
-                        dayStartTime: e.target.value
+                        dayStartTime: value
                       })}
-                    />
+                    >
+                      <SelectTrigger id="day-start">
+                        <SelectValue placeholder="Select start time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="08:00">8:00 AM</SelectItem>
+                        <SelectItem value="08:30">8:30 AM</SelectItem>
+                        <SelectItem value="09:00">9:00 AM</SelectItem>
+                        <SelectItem value="09:30">9:30 AM</SelectItem>
+                        <SelectItem value="10:00">10:00 AM</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="space-y-2">
                     <Label htmlFor="day-end">Day End Time</Label>
-                    <Input 
-                      id="day-end" 
-                      type="time"
+                    <Select
                       value={schedulingSettings.dayEndTime}
-                      onChange={(e) => setSchedulingSettings({
+                      onValueChange={(value) => setSchedulingSettings({
                         ...schedulingSettings, 
-                        dayEndTime: e.target.value
+                        dayEndTime: value
                       })}
-                    />
+                    >
+                      <SelectTrigger id="day-end">
+                        <SelectValue placeholder="Select end time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="16:00">4:00 PM</SelectItem>
+                        <SelectItem value="16:30">4:30 PM</SelectItem>
+                        <SelectItem value="17:00">5:00 PM</SelectItem>
+                        <SelectItem value="17:30">5:30 PM</SelectItem>
+                        <SelectItem value="18:00">6:00 PM</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 
@@ -1280,28 +1298,44 @@ export default function AppointmentMaster() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                     <div className="space-y-2">
                       <Label htmlFor="break-start">Break Start Time</Label>
-                      <Input 
-                        id="break-start" 
-                        type="time"
+                      <Select
                         value={schedulingSettings.breakStartTime}
-                        onChange={(e) => setSchedulingSettings({
+                        onValueChange={(value) => setSchedulingSettings({
                           ...schedulingSettings, 
-                          breakStartTime: e.target.value
+                          breakStartTime: value
                         })}
-                      />
+                      >
+                        <SelectTrigger id="break-start">
+                          <SelectValue placeholder="Select break start time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="11:30">11:30 AM</SelectItem>
+                          <SelectItem value="12:00">12:00 PM</SelectItem>
+                          <SelectItem value="12:30">12:30 PM</SelectItem>
+                          <SelectItem value="13:00">1:00 PM</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="break-end">Break End Time</Label>
-                      <Input 
-                        id="break-end" 
-                        type="time"
+                      <Select
                         value={schedulingSettings.breakEndTime}
-                        onChange={(e) => setSchedulingSettings({
+                        onValueChange={(value) => setSchedulingSettings({
                           ...schedulingSettings, 
-                          breakEndTime: e.target.value
+                          breakEndTime: value
                         })}
-                      />
+                      >
+                        <SelectTrigger id="break-end">
+                          <SelectValue placeholder="Select break end time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="12:30">12:30 PM</SelectItem>
+                          <SelectItem value="13:00">1:00 PM</SelectItem>
+                          <SelectItem value="13:30">1:30 PM</SelectItem>
+                          <SelectItem value="14:00">2:00 PM</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
