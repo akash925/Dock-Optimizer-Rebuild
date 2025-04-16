@@ -113,12 +113,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           new Date(endDate as string)
         );
       } else {
-        schedules = await storage.getSchedules();
+        try {
+          schedules = await storage.getSchedules();
+        } catch (error) {
+          console.error("Error in getSchedules:", error);
+          throw error;
+        }
       }
       
       res.json(schedules);
     } catch (err) {
-      res.status(500).json({ message: "Failed to fetch schedules" });
+      console.error("Failed to fetch schedules:", err);
+      res.status(500).json({ message: "Failed to fetch schedules", error: err instanceof Error ? err.message : String(err) });
     }
   });
 
