@@ -1,12 +1,32 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Schedule, Dock, Carrier } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { formatDate, formatTime } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useMemo } from "react";
+import {
+  Calendar,
+  Loader2,
+  Plus,
+  PenIcon,
+  TrashIcon,
+  FileText,
+  Truck,
+  Clock,
+  MapPin,
+} from "lucide-react";
+import { formatDate, formatTime, getDockStatus } from "@/lib/utils";
+import { Schedule } from "@shared/schema";
 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -17,72 +37,67 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-
-import { PlusCircle, MoreVertical, Search, Calendar as CalendarIcon, Pencil, Trash2 } from "lucide-react";
-import AppointmentForm from "@/components/schedules/appointment-form";
 
 export default function AppointmentsPage() {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deletingAppointment, setDeletingAppointment] = useState<Schedule | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editScheduleId, setEditScheduleId] = useState<number | null>(null);
-
+  const queryClient = useQueryClient();
+  
   // Fetch all schedules
-  const { data: schedules = [], isLoading: isLoadingSchedules } = useQuery<Schedule[]>({
+  const { data: schedules, isLoading, error } = useQuery({
     queryKey: ["/api/schedules"],
-  });
-
-  // Fetch all docks
-  const { data: docks = [] } = useQuery<Dock[]>({
-    queryKey: ["/api/docks"],
-  });
-
-  // Fetch all carriers
-  const { data: carriers = [] } = useQuery<Carrier[]>({
-    queryKey: ["/api/carriers"],
-  });
-
-  // Delete appointment
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      if (!deletingAppointment) return null;
-      
-      const res = await apiRequest("DELETE", `/api/schedules/${deletingAppointment.id}`, {});
-      if (!res.ok) {
-        throw new Error("Failed to delete appointment");
+    queryFn: async () => {
+      const response = await fetch("/api/schedules");
+      if (!response.ok) {
+        throw new Error("Failed to fetch schedules");
       }
-      return true;
+      return response.json() as Promise<Schedule[]>;
+    },
+  });
+  
+  // Fetch all docks
+  const { data: docks } = useQuery({
+    queryKey: ["/api/docks"],
+    queryFn: async () => {
+      const response = await fetch("/api/docks");
+      if (!response.ok) {
+        throw new Error("Failed to fetch docks");
+      }
+      return response.json();
+    },
+  });
+  
+  // Fetch all carriers
+  const { data: carriers } = useQuery({
+    queryKey: ["/api/carriers"],
+    queryFn: async () => {
+      const response = await fetch("/api/carriers");
+      if (!response.ok) {
+        throw new Error("Failed to fetch carriers");
+      }
+      return response.json();
+    },
+  });
+  
+  // Delete schedule mutation
+  const deleteScheduleMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/schedules/${id}`);
+      return res.ok;
     },
     onSuccess: () => {
-      // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
-      setIsDeleteModalOpen(false);
-      setDeletingAppointment(null);
       toast({
         title: "Success",
         description: "Appointment deleted successfully",
@@ -94,238 +109,226 @@ export default function AppointmentsPage() {
         description: `Failed to delete appointment: ${error.message}`,
         variant: "destructive",
       });
-    },
+    }
   });
-
-  const handleDelete = () => {
-    deleteMutation.mutate();
-  };
-
-  // Set up editing appointment
+  
   const handleEditClick = (schedule: Schedule) => {
-    setEditScheduleId(schedule.id);
-    setIsFormOpen(true);
+    // For now, we'll just redirect to the schedule page with the ID
+    window.location.href = `/schedules?edit=${schedule.id}`;
   };
-
-  // Set up deleting appointment
+  
   const handleDeleteClick = (schedule: Schedule) => {
-    setDeletingAppointment(schedule);
-    setIsDeleteModalOpen(true);
+    deleteScheduleMutation.mutate(schedule.id);
   };
+  
+  // Get appointment type badge
+  const getAppointmentTypeBadge = (type: string) => {
+    switch (type.toLowerCase()) {
+      case "inbound":
+        return <Badge className="bg-green-500">Inbound</Badge>;
+      case "outbound":
+        return <Badge className="bg-blue-500">Outbound</Badge>;
+      default:
+        return <Badge>{type}</Badge>;
+    }
+  };
+  
+  // Get appointment status badge
+  const getAppointmentStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "scheduled":
+        return <Badge variant="outline" className="border-blue-500 text-blue-500">Scheduled</Badge>;
+      case "in-progress":
+        return <Badge variant="outline" className="border-yellow-500 text-yellow-500">In Progress</Badge>;
+      case "completed":
+        return <Badge variant="outline" className="border-green-500 text-green-500">Completed</Badge>;
+      case "cancelled":
+        return <Badge variant="outline" className="border-red-500 text-red-500">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+  
+  // Get dock name from ID
+  const getDockName = (dockId: number) => {
+    if (!docks) return "Loading...";
+    const dock = docks.find((d: any) => d.id === dockId);
+    return dock ? dock.name : `Dock #${dockId}`;
+  };
+  
+  // Get carrier name from ID
+  const getCarrierName = (carrierId: number) => {
+    if (!carriers) return "Loading...";
+    const carrier = carriers.find((c: any) => c.id === carrierId);
+    return carrier ? carrier.name : `Carrier #${carrierId}`;
+  };
+  
+  // Sort schedules by date (newest first)
+  const sortedSchedules = useMemo(() => {
+    if (!schedules) return [];
+    return [...schedules].sort((a, b) => 
+      new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
+    );
+  }, [schedules]);
 
-  // Filter schedules
-  const filteredSchedules = schedules.filter((schedule) => {
-    const matchesSearch = searchQuery 
-      ? schedule.truckNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        carriers.find(c => c.id === schedule.carrierId)?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        docks.find(d => d.id === schedule.dockId)?.name.toLowerCase().includes(searchQuery.toLowerCase())
-      : true;
-    
-    const matchesDate = selectedDate
-      ? new Date(schedule.startTime).toDateString() === selectedDate.toDateString()
-      : true;
-    
-    return matchesSearch && matchesDate;
-  });
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-6 flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
-  // Schedule being edited
-  const scheduleToEdit = editScheduleId 
-    ? schedules.find(s => s.id === editScheduleId) 
-    : undefined;
+  if (error) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          Error loading appointments: {error.message}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Appointments Management</h1>
-        <Button onClick={() => {
-          setEditScheduleId(null);
-          setIsFormOpen(true);
-        }}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Create Appointment
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Appointments</h1>
+        <Button onClick={() => window.location.href = "/schedules"}>
+          <Plus className="mr-2 h-4 w-4" /> New Appointment
         </Button>
       </div>
-
-      {/* Filter controls */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by truck #, carrier, or dock..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={selectedDate ? "default" : "outline"}
-              className={`w-full sm:w-auto justify-start text-left font-normal ${
-                !selectedDate && "text-muted-foreground"
-              }`}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {selectedDate ? formatDate(selectedDate) : "Filter by date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => setSelectedDate(date)}
-              initialFocus
-            />
-            {selectedDate && (
-              <div className="p-3 border-t border-border flex justify-end">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setSelectedDate(undefined)}
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
-          </PopoverContent>
-        </Popover>
-      </div>
-
+      
       <Card>
         <CardHeader>
           <CardTitle>All Appointments</CardTitle>
+          <CardDescription>
+            Showing {sortedSchedules.length} total appointments
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoadingSchedules ? (
-            <div className="text-center py-4">Loading appointments...</div>
-          ) : (
-            <Table>
-              <TableCaption>List of all scheduled appointments</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Truck #</TableHead>
-                  <TableHead>Carrier</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Dock</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Mode</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSchedules.map((schedule) => {
-                  const carrier = carriers.find(c => c.id === schedule.carrierId);
-                  const dock = docks.find(d => d.id === schedule.dockId);
-                  return (
-                    <TableRow key={schedule.id}>
-                      <TableCell className="font-medium">{schedule.truckNumber}</TableCell>
-                      <TableCell>{carrier?.name || "Unknown"}</TableCell>
-                      <TableCell>{formatDate(schedule.startTime)}</TableCell>
-                      <TableCell>
-                        {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
-                      </TableCell>
-                      <TableCell>{dock?.name || "Unknown"}</TableCell>
-                      <TableCell>
-                        <Badge variant={schedule.type === "inbound" ? "default" : "secondary"}>
-                          {schedule.type.charAt(0).toUpperCase() + schedule.type.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={
-                            schedule.status === "scheduled" ? "outline" :
-                            schedule.status === "in-progress" ? "default" :
-                            schedule.status === "completed" ? "secondary" :
-                            "destructive"
-                          }
-                        >
-                          {schedule.status.charAt(0).toUpperCase() + schedule.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {schedule.appointmentMode === "trailer" ? "Trailer" : "Container"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEditClick(schedule)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-red-500 focus:text-red-500" 
-                              onClick={() => handleDeleteClick(schedule)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date & Time</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Carrier</TableHead>
+                <TableHead>Truck #</TableHead>
+                <TableHead>Dock</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedSchedules.map((schedule) => (
+                <TableRow key={schedule.id}>
+                  <TableCell>
+                    <div className="font-medium">{formatDate(schedule.startTime)}</div>
+                    <div className="text-muted-foreground text-sm">{formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}</div>
+                  </TableCell>
+                  <TableCell>{getAppointmentTypeBadge(schedule.type)}</TableCell>
+                  <TableCell>{getCarrierName(schedule.carrierId)}</TableCell>
+                  <TableCell>{schedule.truckNumber}</TableCell>
+                  <TableCell>{getDockName(schedule.dockId)}</TableCell>
+                  <TableCell>{getAppointmentStatusBadge(schedule.status)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEditClick(schedule)}>
+                        <PenIcon className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <TrashIcon className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the appointment
+                              scheduled for {formatDate(schedule.startTime)} at {formatTime(schedule.startTime)}.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteClick(schedule)}>
                               Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {filteredSchedules.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-4">
-                      {searchQuery || selectedDate 
-                        ? "No appointments found matching your filters." 
-                        : "No appointments found. Create your first appointment to get started."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              
+              {sortedSchedules.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground">
+                      <Calendar className="h-10 w-10 mb-2" />
+                      <p>No appointments found</p>
+                      <Button variant="link" onClick={() => window.location.href = "/schedules"}>
+                        Create your first appointment
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the appointment for truck #{deletingAppointment?.truckNumber}? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete Appointment"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Appointment Form */}
-      <AppointmentForm 
-        isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditScheduleId(null);
-        }}
-        initialData={scheduleToEdit}
-        mode={editScheduleId ? "edit" : "create"}
-        initialDate={selectedDate}
-      />
+      
+      {/* Additional Cards for Quick Info */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Truck className="mr-2 h-5 w-5" /> Today's Appointments
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {sortedSchedules.filter(s => 
+                new Date(s.startTime).toDateString() === new Date().toDateString()
+              ).length}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Clock className="mr-2 h-5 w-5" /> Upcoming (Next 7 Days)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {sortedSchedules.filter(s => {
+                const scheduleDate = new Date(s.startTime);
+                const today = new Date();
+                const nextWeek = new Date();
+                nextWeek.setDate(today.getDate() + 7);
+                return scheduleDate >= today && scheduleDate <= nextWeek;
+              }).length}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <MapPin className="mr-2 h-5 w-5" /> Available Docks
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {docks?.filter((d: any) => d.isActive).length || 0}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
