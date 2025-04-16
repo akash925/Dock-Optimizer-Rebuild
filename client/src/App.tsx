@@ -12,7 +12,6 @@ import BookingConfirmation from "@/pages/booking-confirmation";
 import Analytics from "@/pages/analytics";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
-import Facilities from "@/pages/facilities";
 import FacilityMaster from "@/pages/facility-master";
 import Appointments from "@/pages/appointments";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -29,7 +28,6 @@ function App() {
         <ProtectedRoute path="/" component={Dashboard} />
         <ProtectedRoute path="/schedules" component={Schedules} />
         <ProtectedRoute path="/appointments" component={Appointments} />
-        <ProtectedRoute path="/facilities" component={Facilities} roles={["admin", "manager"]} />
         <ProtectedRoute path="/facility-master" component={FacilityMaster} roles={["admin", "manager"]} />
         <ProtectedRoute path="/dock-status" component={DockStatus} />
         <ProtectedRoute path="/door-manager" component={DoorManager} />
