@@ -893,6 +893,7 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                               )}
                             >
                               {field.value ? (
+                                // No need to add a day here since the display should match what was selected
                                 format(new Date(field.value), "MM/dd/yyyy")
                               ) : (
                                 <span>Select a date</span>
@@ -906,13 +907,15 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                             selected={field.value ? new Date(field.value) : undefined}
                             onSelect={(date) => {
                               if (date) {
-                                // Fix the timezone issue that may cause date shifting
-                                // By setting time to noon, we ensure the date remains the same in all timezones
-                                const selectedDate = new Date(date);
-                                selectedDate.setHours(12, 0, 0, 0);
+                                // Get the user-facing display date components
+                                const year = date.getFullYear();
+                                const month = date.getMonth() + 1; // JavaScript months are 0-based
+                                const day = date.getDate();
                                 
-                                // Convert to ISO string for form storage
-                                field.onChange(format(selectedDate, "yyyy-MM-dd"));
+                                // Construct a date string in YYYY-MM-DD format 
+                                const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                                
+                                field.onChange(dateString);
                               } else {
                                 field.onChange("");
                               }
@@ -983,12 +986,13 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                       return true;
                     });
                     
-                    // Use effect to clear time selection when date changes
-                    useEffect(() => {
-                      if (!selectedDate && field.value) {
+                    // Clear time selection when date changes (no useEffect needed)
+                    if (!selectedDate && field.value) {
+                      // Use a setTimeout to avoid infinite update loops
+                      setTimeout(() => {
                         field.onChange("");
-                      }
-                    }, [selectedDate, field.value]);
+                      }, 0);
+                    }
                     
                     return (
                       <FormItem>
