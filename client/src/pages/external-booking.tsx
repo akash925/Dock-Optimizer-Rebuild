@@ -94,20 +94,19 @@ function CarrierSelectField({ field, setValue }: CarrierSelectFieldProps) {
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <FormControl>
-            <Button
-              variant="outline"
-              role="combobox"
-              aria-expanded={open}
+            <div 
               className={cn(
-                "w-full justify-between",
+                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 justify-between items-center",
                 !field.value && "text-muted-foreground"
               )}
+              role="combobox"
+              aria-expanded={open}
             >
-              {field.value
-                ? field.value
-                : "Select or enter carrier name"}
+              <span className="flex-grow truncate">
+                {field.value ? field.value : "Select or enter carrier name"}
+              </span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
+            </div>
           </FormControl>
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0">
@@ -139,7 +138,7 @@ function CarrierSelectField({ field, setValue }: CarrierSelectFieldProps) {
                   ) : (
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground">
-                        Adding a new carrier? You'll need to provide their MC Number in the next field.
+                        Adding a new carrier? You can provide their MC Number in the next field if available.
                       </p>
                       <div className="flex gap-2">
                         <Button 
