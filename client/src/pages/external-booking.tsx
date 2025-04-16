@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, useEffect, useMemo } from "react";
+import React, { useState, ChangeEvent, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -86,6 +86,8 @@ export default function ExternalBooking() {
   const [bolProcessing, setBolProcessing] = useState(false);
   const [bolPreviewText, setBolPreviewText] = useState<string | null>(null);
   const [parsedFacilities, setParsedFacilities] = useState<ParsedFacilities>({});
+  // Used to prevent infinite re-renders
+  const parsedFacilitiesRef = React.useRef<ParsedFacilities>({});
   
   // Fetch booking page data
   const { data: bookingPage, isLoading: isLoadingBookingPage, error: bookingPageError } = useQuery<BookingPage>({
@@ -790,7 +792,7 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                     });
                     
                     // Use effect to clear time selection when date changes
-                    React.useEffect(() => {
+                    useEffect(() => {
                       if (!selectedDate && field.value) {
                         field.onChange("");
                       }

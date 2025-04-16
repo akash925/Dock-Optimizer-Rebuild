@@ -13,7 +13,9 @@ import {
   Calendar,
   Copy,
   ExternalLink,
-  Share2
+  Share2,
+  Globe,
+  BookOpen
 } from "lucide-react";
 import organizationLogo from "@/assets/organization_logo.jpeg";
 import { Button } from "@/components/ui/button";
@@ -22,7 +24,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -31,7 +39,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 // Avatar import removed as no longer needed
-import { Notification } from "@shared/schema";
+import { Notification, BookingPage } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
 export default function TopNav() {
@@ -40,6 +48,7 @@ export default function TopNav() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [orgLogo, setOrgLogo] = useState<string | null>(null);
+  const [selectedBookingPage, setSelectedBookingPage] = useState<string | null>(null);
 
   // Load organization logo from localStorage
   useEffect(() => {
@@ -48,6 +57,12 @@ export default function TopNav() {
       setOrgLogo(savedLogo);
     }
   }, []);
+  
+  // Fetch booking pages
+  const { data: bookingPages = [], isLoading: isLoadingBookingPages } = useQuery<BookingPage[]>({
+    queryKey: ["/api/booking-pages"],
+    enabled: !!user,
+  });
   
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -61,6 +76,15 @@ export default function TopNav() {
 
   const handleLogout = () => {
     logoutMutation.mutate();
+  };
+  
+  const copyBookingPageLink = (slug: string) => {
+    const url = `${window.location.origin}/external/${slug}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link Copied",
+      description: "Booking page link has been copied to clipboard",
+    });
   };
   
   const copyExternalBookingLink = () => {
