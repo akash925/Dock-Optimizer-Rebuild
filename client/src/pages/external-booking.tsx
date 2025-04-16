@@ -74,9 +74,8 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
   const handleSelectCarrier = useCallback((carrier: Carrier) => {
     console.log("Selecting carrier:", carrier);
     form.setValue("carrierName", carrier.name);
-    if (carrier.mcNumber) {
-      form.setValue("mcNumber", carrier.mcNumber);
-    }
+    // Explicitly update the MC number field - if there's an MC number use it, otherwise set to empty string
+    form.setValue("mcNumber", carrier.mcNumber || "");
     setOpen(false);
   }, [form]);
   
@@ -907,13 +906,15 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                             selected={field.value ? new Date(field.value) : undefined}
                             onSelect={(date) => {
                               if (date) {
-                                // Get the user-facing display date components
-                                const year = date.getFullYear();
-                                const month = date.getMonth() + 1; // JavaScript months are 0-based
-                                const day = date.getDate();
+                                // Create a new date and manually add a day to counter the timezone issue
+                                const adjusted = new Date(date);
+                                adjusted.setDate(adjusted.getDate() + 1);
                                 
-                                // Construct a date string in YYYY-MM-DD format 
-                                const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                                // Create an ISO string in the format YYYY-MM-DD
+                                const dateString = adjusted.toISOString().split('T')[0];
+                                console.log('Selected date:', date);
+                                console.log('Adjusted date:', adjusted);
+                                console.log('Date string:', dateString);
                                 
                                 field.onChange(dateString);
                               } else {
@@ -1055,7 +1056,11 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                     <FormControl>
                       <Input 
                         placeholder="MC Number (Optional)" 
-                        {...field}
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
                       />
                     </FormControl>
                     <FormMessage />
