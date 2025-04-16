@@ -35,6 +35,12 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
   const [isSearching, setIsSearching] = useState(false);
   const [addingNewCarrier, setAddingNewCarrier] = useState(false);
   
+  // Reset MC Number on component mount
+  useEffect(() => {
+    // This ensures the MC Number field starts blank
+    form.setValue("mcNumber", "");
+  }, []);
+  
   // Load initial carriers
   useEffect(() => {
     const fetchInitialCarriers = async () => {
@@ -74,8 +80,14 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
   const handleSelectCarrier = useCallback((carrier: Carrier) => {
     console.log("Selecting carrier:", carrier);
     form.setValue("carrierName", carrier.name);
-    // Explicitly update the MC number field - if there's an MC number use it, otherwise set to empty string
-    form.setValue("mcNumber", carrier.mcNumber || "");
+    
+    // Use a short timeout to break the call stack and ensure this happens after other state updates
+    setTimeout(() => {
+      // Explicitly update the MC number field - if there's an MC number use it, otherwise set to empty string
+      console.log("Setting MC Number to:", carrier.mcNumber || "");
+      form.setValue("mcNumber", carrier.mcNumber || "");
+    }, 0);
+    
     setOpen(false);
   }, [form]);
   
@@ -83,7 +95,13 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
     if (searchQuery.trim()) {
       console.log("Adding new carrier:", searchQuery);
       form.setValue("carrierName", searchQuery.trim());
-      form.setValue("mcNumber", "");
+      
+      // Use a short timeout to break the call stack and ensure this happens after other state updates
+      setTimeout(() => {
+        console.log("Clearing MC Number field for new carrier");
+        form.setValue("mcNumber", "");
+      }, 0);
+      
       setOpen(false);
       setAddingNewCarrier(false);
     }
@@ -361,6 +379,12 @@ export default function ExternalBooking() {
 
   // Watch the location field to update appointment types
   const watchLocation = initialSelectionForm.watch("location");
+  
+  // Force MC Number to be empty when the component mounts
+  useEffect(() => {
+    // Clear MC Number field on component mount
+    appointmentDetailsForm.setValue("mcNumber", "");
+  }, []);
   
   // Use an effect to update available appointment types when location changes
   useEffect(() => {
