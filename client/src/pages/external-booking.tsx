@@ -94,19 +94,21 @@ function CarrierSelectField({ field, setValue }: CarrierSelectFieldProps) {
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <FormControl>
-            <div 
-              className={cn(
-                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 justify-between items-center",
-                !field.value && "text-muted-foreground"
-              )}
+            <Button
+              type="button"
+              variant="outline"
               role="combobox"
               aria-expanded={open}
+              className={cn(
+                "w-full justify-between text-left font-normal",
+                !field.value && "text-muted-foreground"
+              )}
             >
               <span className="flex-grow truncate">
                 {field.value ? field.value : "Select or enter carrier name"}
               </span>
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </div>
+            </Button>
           </FormControl>
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0">
