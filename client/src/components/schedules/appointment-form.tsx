@@ -24,7 +24,8 @@ import { Separator } from "@/components/ui/separator";
 
 // Tab 1: Truck Information
 const truckInfoSchema = z.object({
-  carrierId: z.coerce.number().min(1, "Please select a carrier"),
+  carrierId: z.coerce.number().optional(),
+  carrierName: z.string().optional(),
   truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
@@ -356,33 +357,84 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                 
                 <TabsContent value="standard" className="space-y-4 pt-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={truckInfoForm.control}
-                      name="carrierId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Carrier*</FormLabel>
-                          <Select 
-                            value={field.value.toString()} 
-                            onValueChange={field.onChange}
-                          >
+                    <div className="grid grid-cols-1 gap-4">
+                      <FormField
+                        control={truckInfoForm.control}
+                        name="carrierId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Carrier</FormLabel>
+                            <Select 
+                              value={field.value?.toString() || ""} 
+                              onValueChange={(value) => {
+                                field.onChange(value ? parseInt(value) : undefined);
+                                // Find the carrier name for the selected ID
+                                if (value) {
+                                  const carrier = carriers.find(c => c.id.toString() === value);
+                                  if (carrier) {
+                                    truckInfoForm.setValue("carrierName", carrier.name);
+                                  }
+                                } else {
+                                  truckInfoForm.setValue("carrierName", "");
+                                }
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a carrier (optional)" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <div className="p-2">
+                                  <Input 
+                                    placeholder="Search carriers..." 
+                                    className="mb-2"
+                                    onChange={(e) => {
+                                      // This would filter the carriers list in a real implementation
+                                      // For now, we'll just log the search term
+                                      console.log("Searching for:", e.target.value);
+                                    }}
+                                  />
+                                </div>
+                                {carriers.map(carrier => (
+                                  <SelectItem key={carrier.id} value={carrier.id.toString()}>
+                                    {carrier.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>
+                              Optional: Select an existing carrier or enter a new one below
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={truckInfoForm.control}
+                        name="carrierName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Custom Carrier Name</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a carrier" />
-                              </SelectTrigger>
+                              <Input 
+                                placeholder="Enter carrier name if not in list above" 
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  // Clear carrier ID if custom name is entered
+                                  if (e.target.value) {
+                                    truckInfoForm.setValue("carrierId", undefined);
+                                  }
+                                }}
+                              />
                             </FormControl>
-                            <SelectContent>
-                              {carriers.map(carrier => (
-                                <SelectItem key={carrier.id} value={carrier.id.toString()}>
-                                  {carrier.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     
                     <FormField
                       control={truckInfoForm.control}
