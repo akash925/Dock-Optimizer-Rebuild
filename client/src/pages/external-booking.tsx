@@ -1300,42 +1300,102 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-6 md:py-12 px-2 md:px-4">
-      <div className="max-w-4xl mx-auto w-full">
-        <div className="flex flex-col items-center mb-6 md:mb-8">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-4 text-center w-full">
+    <div className="min-h-screen bg-green-50 py-6 md:py-12 px-2 md:px-4">
+      {step === 1 ? (
+        // Step 1: Two-column layout with information on left, form on right
+        <div className="max-w-7xl mx-auto w-full">
+          {/* Header with logo */}
+          <div className="flex items-center justify-center mb-8">
             {bookingPage && (
-              <div className="flex items-center gap-3">
-                <img 
-                  src={bookingPage.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo} 
-                  alt={bookingPage.title || "Hanzo Logistics"} 
-                  className="h-16" 
-                />
-                <h1 className="text-2xl font-bold text-gray-800">{bookingPage.title || "Schedule Appointment"}</h1>
-              </div>
+              <img 
+                src={bookingPage?.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo} 
+                alt={bookingPage?.title || "Hanzo Logistics"} 
+                className="h-16" 
+              />
             )}
-            <div className="text-sm text-gray-500 mt-2 md:mt-0">
-              Powered by <span className="font-medium">Dock Optimizer</span>
+          </div>
+          
+          {/* Two-column layout for desktop, stacked for mobile */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+            {/* Left Side - Information Block */}
+            <div className="md:col-span-5 space-y-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {bookingPage?.title || "Hanzo Logistics Dock Appointment Scheduler"}
+                </h1>
+                <p className="text-gray-600 mb-4">
+                  Please use this form to pick the type of Dock Appointment that
+                  you need at Hanzo Logistics. For support using this page,
+                  please <a href="#" className="text-blue-600 hover:underline">check out this video</a>.
+                </p>
+              </div>
+              
+              <div className="border-l-4 border-yellow-400 bg-yellow-50 p-4">
+                <p className="text-sm text-gray-800">
+                  <span className="font-semibold">Effective August 1st, 2023, MC Numbers are required for all
+                  incoming and outgoing shipments.</span> This is to protect the
+                  security of our customer's shipments and reduce the risk of
+                  fraud.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-2">HANZO LOGISTICS INC.</h3>
+                <p className="text-gray-700 mb-1">Select from the following locations:</p>
+                <div className="space-y-1 text-sm text-gray-700">
+                  <p>450 Airtech Pkwy Plainfield IN 46168</p>
+                  <p>8370 E Camby Rd Plainfield IN 46168</p>
+                  <p>4001 W Minnesota Street Indianapolis, IN 46241</p>
+                  <p>(HANZO Cold-Chain)</p>
+                  <p>4334 Plainfield Road Plainfield, IN 46231</p>
+                  <p>9915 Lacy Knot Dr, Brownsburg, IN 46112</p>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-700">
+                Please arrive 15 minutes before your appointment and check in at the guard shack.
+              </p>
+            </div>
+            
+            {/* Right Side - Form Block */}
+            <div className="md:col-span-7">
+              <Card className="border-0 shadow-lg rounded-lg overflow-hidden">
+                <CardContent className="pt-6 px-6 pb-6">
+                  {renderForm()}
+                </CardContent>
+              </Card>
             </div>
           </div>
-        </div>
-        <div className="flex flex-col items-center">
-          {bookingPage && bookingPage.welcomeMessage ? (
-            <div className="bg-blue-50 p-4 rounded-md border border-blue-100 mb-4 max-w-2xl">
-              <p className="text-blue-700">{bookingPage.welcomeMessage}</p>
-            </div>
-          ) : (
-            <p className="text-center text-gray-600 max-w-2xl px-4">
-              Please use this form to pick the type of Dock Appointment that you need. 
-              For support using this page, <a href="#" className="text-primary underline hover:text-primary/80">please check out this video</a>.
-            </p>
-          )}
-          <p className="text-center text-gray-700 font-medium mt-4 max-w-2xl px-4">
-            Effective August 1st, 2023, MC Numbers are required for all incoming and outgoing shipments. 
-            This is to protect the security of our customer's shipments and reduce the risk of fraud.
-          </p>
           
-          <div className="w-full max-w-3xl mt-6">
+          {/* Footer */}
+          <div className="mt-8 text-center text-xs text-gray-500">
+            &copy; {new Date().getFullYear()} Conmitto Inc. All rights reserved.
+          </div>
+        </div>
+      ) : (
+        // Steps 2 and 3: Standard layout with card
+        <div className="max-w-4xl mx-auto w-full">
+          {/* Header */}
+          <div className="flex flex-col items-center mb-6 md:mb-8">
+            <div className="flex flex-col md:flex-row items-center justify-between mb-4 text-center w-full">
+              {bookingPage && (
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={bookingPage.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo} 
+                    alt={bookingPage.title || "Hanzo Logistics"} 
+                    className="h-16" 
+                  />
+                  <h1 className="text-2xl font-bold text-gray-800">{bookingPage.title || "Schedule Appointment"}</h1>
+                </div>
+              )}
+              <div className="text-sm text-gray-500 mt-2 md:mt-0">
+                Powered by <span className="font-medium">Dock Optimizer</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Progress indicator */}
+          <div className="w-full max-w-3xl mx-auto mb-6">
             <div className="relative pt-1">
               <div className="flex mb-2 items-center justify-between">
                 <div className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-primary bg-primary-50">
@@ -1350,74 +1410,40 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               </div>
             </div>
           </div>
-        </div>
-
-        <Card className="w-full shadow-lg">
-          <CardHeader>
-            <CardTitle>
-              {step === 1 && "Schedule Your Appointment"}
-              {step === 2 && "Company Information"}
-              {step === 3 && "Appointment Details"}
-            </CardTitle>
-            <CardDescription>
-              {step === 1 && "Select your facility location and appointment type"}
-              {step === 2 && "Please provide your company and contact information"}
-              {step === 3 && "Please provide details about your appointment"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {renderForm()}
-          </CardContent>
-          <CardFooter className="flex flex-col">
-            <p className="text-xs text-center text-neutral-500 mt-4">
-              Please arrive 15 minutes before your appointment and check in at the security desk.
-            </p>
-            {formData.appointmentType === "shipping" && (
-              <p className="text-xs text-center text-neutral-500 mt-2">
-                For shipping appointments, please ensure all paperwork is ready upon arrival.
+          
+          {/* Main form card */}
+          <Card className="w-full shadow-lg mb-8">
+            <CardHeader>
+              <CardTitle>
+                {step === 2 && "Company Information"}
+                {step === 3 && "Appointment Details"}
+              </CardTitle>
+              <CardDescription>
+                {step === 2 && "Please provide your company and contact information"}
+                {step === 3 && "Please provide details about your appointment"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {renderForm()}
+            </CardContent>
+            <CardFooter className="flex flex-col">
+              <p className="text-xs text-center text-neutral-500 mt-4">
+                Please arrive 15 minutes before your appointment and check in at the security desk.
               </p>
-            )}
-          </CardFooter>
-        </Card>
-
-        <div className="mt-8 p-4 bg-white rounded-lg shadow-sm">
-          {bookingPage && (
-            <>
-              <div className="flex items-center justify-center md:justify-start mb-4">
-                <img 
-                  src={bookingPage.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo} 
-                  alt={bookingPage.title} 
-                  className="h-10 mr-2" 
-                />
-                <h2 className="text-lg md:text-xl font-bold text-center md:text-left">
-                  {bookingPage.title}
-                </h2>
-              </div>
-              {Object.keys(parsedFacilities).length > 0 && (
-                <>
-                  <p className="mb-2 text-sm md:text-base">Facilities available for booking:</p>
-                  <ul className="space-y-2 text-sm md:text-base text-gray-700">
-                    {Object.values(parsedFacilities).map(({ facility }) => (
-                      <li key={facility.id} className="p-2 bg-gray-50 rounded">
-                        {facility.address1}, {facility.city}, {facility.state} {facility.pincode} 
-                        {facility.company && <span className="font-medium"> ({facility.company})</span>}
-                      </li>
-                    ))}
-                  </ul>
-                </>
+              {formData.appointmentType === "shipping" && (
+                <p className="text-xs text-center text-neutral-500 mt-2">
+                  For shipping appointments, please ensure all paperwork is ready upon arrival.
+                </p>
               )}
-            </>
-          )}
-          <div className="mt-6 flex flex-col items-center">
-            <p className="text-center text-sm text-gray-600 mb-3">
-              Please arrive 15 minutes before your appointment and check in at the security desk.
-            </p>
-            <div className="flex items-center text-xs text-gray-500">
-              <span>© 2025 Conmitto Inc. All rights reserved</span>
-            </div>
+            </CardFooter>
+          </Card>
+          
+          {/* Footer */}
+          <div className="text-center text-xs text-gray-500 mt-4">
+            &copy; {new Date().getFullYear()} Conmitto Inc. All rights reserved.
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
