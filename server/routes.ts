@@ -9,6 +9,7 @@ import {
   insertCarrierSchema,
   insertNotificationSchema,
   insertFacilitySchema,
+  insertAppointmentSettingsSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {

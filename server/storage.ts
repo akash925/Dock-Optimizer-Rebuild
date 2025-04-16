@@ -6,8 +6,9 @@ import {
   Notification, InsertNotification,
   Facility, InsertFacility,
   Holiday, InsertHoliday,
-  ScheduleStatus, DockStatus, HolidayScope,
-  users, docks, schedules, carriers, notifications, facilities, holidays
+  AppointmentSettings, InsertAppointmentSettings,
+  ScheduleStatus, DockStatus, HolidayScope, TimeInterval,
+  users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -95,6 +96,7 @@ export class MemStorage implements IStorage {
     this.carriers = new Map();
     this.facilities = new Map();
     this.notifications = new Map();
+    this.appointmentSettings = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 24 hours
     });
@@ -169,6 +171,15 @@ export class MemStorage implements IStorage {
         contactEmail: `contact@${name.toLowerCase().replace(/\s+/g, '')}.com`,
         contactPhone: "555-123-4567"
       });
+    });
+    
+    // Create default appointment settings for the main facility
+    this.createAppointmentSettings({
+      facilityId: 1, // Main facility
+      timeInterval: TimeInterval.MINUTES_30,
+      maxConcurrentInbound: 3,
+      maxConcurrentOutbound: 2,
+      shareAvailabilityInfo: true,
     });
   }
 
@@ -373,6 +384,42 @@ export class MemStorage implements IStorage {
     const updatedNotification = { ...notification, isRead: true };
     this.notifications.set(id, updatedNotification);
     return updatedNotification;
+  }
+
+  // Appointment Settings operations
+  async getAppointmentSettings(facilityId: number): Promise<AppointmentSettings | undefined> {
+    return Array.from(this.appointmentSettings.values()).find(
+      (settings) => settings.facilityId === facilityId
+    );
+  }
+
+  async createAppointmentSettings(insertSettings: InsertAppointmentSettings): Promise<AppointmentSettings> {
+    const id = this.appointmentSettingsIdCounter++;
+    const createdAt = new Date();
+    const settings: AppointmentSettings = {
+      ...insertSettings,
+      id,
+      createdAt,
+      lastModifiedAt: null
+    };
+    this.appointmentSettings.set(id, settings);
+    return settings;
+  }
+
+  async updateAppointmentSettings(facilityId: number, settingsUpdate: Partial<AppointmentSettings>): Promise<AppointmentSettings | undefined> {
+    const settings = Array.from(this.appointmentSettings.values()).find(
+      (settings) => settings.facilityId === facilityId
+    );
+    if (!settings) return undefined;
+    
+    const lastModifiedAt = new Date();
+    const updatedSettings = {
+      ...settings,
+      ...settingsUpdate,
+      lastModifiedAt
+    };
+    this.appointmentSettings.set(settings.id, updatedSettings);
+    return updatedSettings;
   }
 }
 
@@ -740,6 +787,38 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return notification;
   }
+
+  // Appointment Settings operations
+  async getAppointmentSettings(facilityId: number): Promise<AppointmentSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(appointmentSettings)
+      .where(eq(appointmentSettings.facilityId, facilityId));
+    return settings;
+  }
+
+  async createAppointmentSettings(insertSettings: InsertAppointmentSettings): Promise<AppointmentSettings> {
+    const [settings] = await db
+      .insert(appointmentSettings)
+      .values({
+        ...insertSettings,
+        lastModifiedAt: null
+      })
+      .returning();
+    return settings;
+  }
+
+  async updateAppointmentSettings(facilityId: number, settingsUpdate: Partial<AppointmentSettings>): Promise<AppointmentSettings | undefined> {
+    const [updatedSettings] = await db
+      .update(appointmentSettings)
+      .set({
+        ...settingsUpdate,
+        lastModifiedAt: new Date()
+      })
+      .where(eq(appointmentSettings.facilityId, facilityId))
+      .returning();
+    return updatedSettings;
+  }
 }
 
 // Initialize database
@@ -817,6 +896,15 @@ export async function initializeDatabase() {
         contactPhone: "555-123-4567"
       });
     }
+    
+    // Create default appointment settings for the main facility
+    await dbStorage.createAppointmentSettings({
+      facilityId: mainFacility.id,
+      timeInterval: TimeInterval.MINUTES_30,
+      maxConcurrentInbound: 3,
+      maxConcurrentOutbound: 2,
+      shareAvailabilityInfo: true,
+    });
     
     console.log("Database seeding completed.");
   }
