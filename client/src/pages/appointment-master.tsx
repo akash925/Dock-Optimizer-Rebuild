@@ -363,9 +363,9 @@ export default function AppointmentMaster() {
   
   const getAppointmentTypeLabel = (type: string) => {
     switch (type) {
-      case "inbound": return <Badge variant="outline" className="bg-blue-50">Inbound</Badge>;
-      case "outbound": return <Badge variant="outline" className="bg-green-50">Outbound</Badge>;
-      case "both": return <Badge variant="outline" className="bg-purple-50">Both</Badge>;
+      case "inbound": return <Badge variant="outline" className="bg-slate-50 text-blue-700 border-blue-200">Inbound</Badge>;
+      case "outbound": return <Badge variant="outline" className="bg-slate-50 text-emerald-700 border-emerald-200">Outbound</Badge>;
+      case "both": return <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">Both</Badge>;
       default: return null;
     }
   };
@@ -597,7 +597,7 @@ export default function AppointmentMaster() {
                         <CardHeader className="pb-2">
                           <CardTitle className="text-base flex justify-between items-center">
                             <span>{day}</span>
-                            {isClosed && <Badge variant="outline" className="bg-red-50">Closed</Badge>}
+                            {isClosed && <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">Closed</Badge>}
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -1305,7 +1305,7 @@ export default function AppointmentMaster() {
                 </p>
                 
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="bg-muted p-2 flex justify-between items-center">
+                  <div className="bg-slate-100 p-2 flex justify-between items-center">
                     <h3 className="text-sm font-medium">Selected Questions</h3>
                     <Button variant="ghost" size="sm">
                       <PlusCircle className="h-4 w-4 mr-1" />
