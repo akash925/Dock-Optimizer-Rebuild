@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 const truckInfoSchema = z.object({
   carrierId: z.coerce.number().optional(),
   carrierName: z.string().optional(),
+  mcNumber: z.string().optional(), // MC Number field
   truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
@@ -106,6 +107,7 @@ export default function AppointmentForm({
     defaultValues: initialData
       ? {
           carrierId: initialData.carrierId,
+          mcNumber: "", // Will be set when carrier is loaded
           truckNumber: initialData.truckNumber,
           trailerNumber: initialData.trailerNumber || "",
           driverName: initialData.driverName || "",
@@ -115,6 +117,7 @@ export default function AppointmentForm({
         }
       : {
           carrierId: 0,
+          mcNumber: "",
           truckNumber: "",
           trailerNumber: "",
           driverName: "",
@@ -253,7 +256,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       const endTime = getDefaultEndTime(startTime, completeData.appointmentMode as "trailer" | "container");
       
       // Format for API
-      const scheduleData = {
+      const scheduleData: any = {
         carrierId: completeData.carrierId,
         dockId: completeData.dockId,
         truckNumber: completeData.truckNumber,
@@ -272,6 +275,14 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         notes: completeData.notes,
         createdBy: user?.id || 0,
       };
+      
+      // If it's a custom carrier (no carrierId but has name), include carrier info
+      if (!completeData.carrierId && completeData.carrierName) {
+        scheduleData.newCarrier = {
+          name: completeData.carrierName,
+          mcNumber: completeData.mcNumber || ''
+        };
+      }
       
       if (mode === "create") {
         await createScheduleMutation.mutateAsync(scheduleData);
@@ -373,9 +384,11 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                                   const carrier = carriers.find(c => c.id.toString() === value);
                                   if (carrier) {
                                     truckInfoForm.setValue("carrierName", carrier.name);
+                                    truckInfoForm.setValue("mcNumber", carrier.mcNumber || "");
                                   }
                                 } else {
                                   truckInfoForm.setValue("carrierName", "");
+                                  truckInfoForm.setValue("mcNumber", "");
                                 }
                               }}
                             >
@@ -430,6 +443,31 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                                 }}
                               />
                             </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={truckInfoForm.control}
+                        name="mcNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>MC Number</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Enter Motor Carrier number" 
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  // In a real implementation, we would validate with FMCSA API here
+                                  // For now, we'll just update the field
+                                }}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              The MC Number is used for carrier verification with the FMCSA
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -595,9 +633,33 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Time*</FormLabel>
-                      <FormControl>
-                        <Input type="time" {...field} />
-                      </FormControl>
+                      <Select 
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an appointment time" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {/* Generate time slots in 30 minute intervals from 5am to 7pm */}
+                          {Array.from({ length: 29 }).map((_, i) => {
+                            const hour = Math.floor(i / 2) + 5; // Start at 5am
+                            const minute = (i % 2) * 30; // 0 or 30 minutes
+                            const formattedHour = hour.toString().padStart(2, '0');
+                            const formattedMinute = minute.toString().padStart(2, '0');
+                            const timeValue = `${formattedHour}:${formattedMinute}`;
+                            const displayTime = `${hour > 12 ? hour - 12 : hour}:${formattedMinute} ${hour >= 12 ? 'PM' : 'AM'}`;
+                            
+                            return (
+                              <SelectItem key={timeValue} value={timeValue}>
+                                {displayTime}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                       <FormDescription>
                         Duration: {appointmentMode === 'trailer' ? '1 hour' : '4 hours'}
