@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -39,6 +39,15 @@ export default function TopNav() {
   const { toast } = useToast();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [orgLogo, setOrgLogo] = useState<string | null>(null);
+
+  // Load organization logo from localStorage
+  useEffect(() => {
+    const savedLogo = localStorage.getItem('organizationLogo');
+    if (savedLogo) {
+      setOrgLogo(savedLogo);
+    }
+  }, []);
   
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -165,7 +174,7 @@ export default function TopNav() {
         
         {/* Organization logo */}
         <img 
-          src={organizationLogo} 
+          src={orgLogo || organizationLogo} 
           alt="Organization Logo" 
           className="h-8 w-auto mr-2 hidden md:block" 
         />

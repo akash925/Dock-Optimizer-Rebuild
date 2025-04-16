@@ -37,6 +37,15 @@ export default function Settings() {
   const [selectedHoliday, setSelectedHoliday] = useState<string | null>(null);
   const [customHolidayName, setCustomHolidayName] = useState("");
   const [customHolidayDate, setCustomHolidayDate] = useState("");
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  
+  // Load saved logo from localStorage on component mount
+  useEffect(() => {
+    const savedLogo = localStorage.getItem('organizationLogo');
+    if (savedLogo) {
+      setLogoPreview(savedLogo);
+    }
+  }, []);
   const [organizationHolidays, setOrganizationHolidays] = useState([
     { name: "New Year's Day", date: "2025-01-01", enabled: true },
     { name: "Memorial Day", date: "2025-05-26", enabled: true },
@@ -616,7 +625,7 @@ export default function Settings() {
                   <div className="flex items-center gap-4">
                     <div className="w-24 h-24 border rounded-md flex items-center justify-center overflow-hidden bg-white">
                       <img 
-                        src={organizationLogo} 
+                        src={logoPreview || organizationLogo} 
                         alt="Organization Logo" 
                         className="max-w-full max-h-full object-contain"
                       />
@@ -629,11 +638,26 @@ export default function Settings() {
                         accept="image/*"
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
-                            // Here you would handle the file upload
-                            toast({
-                              title: "Logo Updated",
-                              description: "Your organization logo has been updated successfully.",
-                            });
+                            const file = e.target.files[0];
+                            const reader = new FileReader();
+                            
+                            reader.onload = (event) => {
+                              if (event.target?.result) {
+                                // Set the preview image and show the toast
+                                setLogoPreview(event.target.result as string);
+                                
+                                // In a real app, we'd upload the file to the server here
+                                // For this demo, we'll just use the local preview
+                                localStorage.setItem('organizationLogo', event.target.result as string);
+                                
+                                toast({
+                                  title: "Logo Updated",
+                                  description: "Your organization logo has been updated successfully.",
+                                });
+                              }
+                            };
+                            
+                            reader.readAsDataURL(file);
                           }
                         }}
                       />
