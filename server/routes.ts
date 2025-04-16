@@ -262,6 +262,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: req.user!.id
       };
       
+      // Extract newCarrier data if present
+      const newCarrierData = scheduleData.newCarrier;
+      delete scheduleData.newCarrier;
+      
       const validatedData = insertScheduleSchema.parse(scheduleData);
       
       // Check if dock exists
@@ -270,10 +274,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid dock ID" });
       }
       
-      // Check if carrier exists
-      const carrier = await storage.getCarrier(validatedData.carrierId);
-      if (!carrier) {
-        return res.status(400).json({ message: "Invalid carrier ID" });
+      // Handle custom carrier creation if needed
+      let carrierId = validatedData.carrierId;
+      if (!carrierId && newCarrierData) {
+        try {
+          console.log("Creating new carrier:", newCarrierData);
+          const validatedCarrierData = insertCarrierSchema.parse(newCarrierData);
+          const newCarrier = await storage.createCarrier(validatedCarrierData);
+          carrierId = newCarrier.id;
+          validatedData.carrierId = carrierId;
+          console.log("New carrier created with ID:", carrierId);
+        } catch (carrierErr) {
+          console.error("Failed to create new carrier:", carrierErr);
+          if (carrierErr instanceof z.ZodError) {
+            return res.status(400).json({ 
+              message: "Invalid carrier data", 
+              errors: carrierErr.errors 
+            });
+          }
+          return res.status(500).json({ message: "Failed to create new carrier" });
+        }
+      } else {
+        // Check if existing carrier ID is valid
+        const carrier = await storage.getCarrier(validatedData.carrierId);
+        if (!carrier) {
+          return res.status(400).json({ message: "Invalid carrier ID" });
+        }
       }
       
       // Check for schedule conflicts
@@ -293,6 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schedule = await storage.createSchedule(validatedData);
       res.status(201).json(schedule);
     } catch (err) {
+      console.error("Failed to create schedule:", err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid schedule data", errors: err.errors });
       }
@@ -590,6 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!carrier) {
         carrier = await storage.createCarrier({
           name: validatedData.companyName,
+          mcNumber: validatedData.mcNumber,
           contactName: validatedData.contactName,
           contactEmail: validatedData.contactEmail,
           contactPhone: validatedData.contactPhone,
