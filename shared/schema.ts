@@ -12,6 +12,20 @@ export const ScheduleType = {
   OUTBOUND: "outbound",
 } as const;
 
+// Enum for Field Type
+export const FieldType = {
+  TEXT: "text",
+  TEXTAREA: "textarea",
+  SELECT: "select",
+  RADIO: "radio",
+  CHECKBOX: "checkbox",
+  FILE: "file",
+  NUMBER: "number",
+  EMAIL: "email",
+  PHONE: "phone",
+  DATE: "date",
+} as const;
+
 // Enum for Schedule Status
 export const ScheduleStatus = {
   SCHEDULED: "scheduled",
@@ -98,11 +112,12 @@ export const schedules = pgTable("schedules", {
   id: serial("id").primaryKey(),
   dockId: integer("dock_id").notNull(),
   carrierId: integer("carrier_id").notNull(),
+  appointmentTypeId: integer("appointment_type_id"),
   truckNumber: text("truck_number").notNull(),
   trailerNumber: text("trailer_number"),
   driverName: text("driver_name"),
   driverPhone: text("driver_phone"),
-  bolNumber: text("bol_number"),
+  bolNumber: text("bol_number"), // Free text field for BOL (can contain text and numbers)
   poNumber: text("po_number"),
   palletCount: text("pallet_count"),
   weight: text("weight"),
@@ -112,6 +127,7 @@ export const schedules = pgTable("schedules", {
   type: text("type").notNull(), // inbound or outbound
   status: text("status").notNull(), // scheduled, in-progress, completed, cancelled
   notes: text("notes"),
+  customFormData: jsonb("custom_form_data"), // Stores responses to custom questions
   createdBy: integer("created_by").notNull(), // User ID who created the schedule
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),
@@ -200,6 +216,69 @@ export const insertAppointmentSettingsSchema = createInsertSchema(appointmentSet
   lastModifiedAt: true,
 });
 
+// Appointment Type Model
+export const appointmentTypes = pgTable("appointment_types", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  facilityId: integer("facility_id").notNull(),
+  duration: integer("duration").notNull(), // in minutes
+  color: text("color").notNull(),
+  type: text("type").notNull().$type<keyof typeof ScheduleType>(), // inbound or outbound
+  showRemainingSlots: boolean("show_remaining_slots").notNull().default(true),
+  gracePeriod: integer("grace_period").notNull().default(15), // in minutes
+  emailReminderTime: integer("email_reminder_time").notNull().default(24), // in hours
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastModifiedAt: timestamp("last_modified_at"),
+});
+
+export const insertAppointmentTypeSchema = createInsertSchema(appointmentTypes).omit({
+  id: true,
+  createdAt: true,
+  lastModifiedAt: true,
+});
+
+// Daily Availability Model - for day-specific settings
+export const dailyAvailability = pgTable("daily_availability", {
+  id: serial("id").primaryKey(),
+  appointmentTypeId: integer("appointment_type_id").notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 0-6 for Sunday-Saturday
+  isAvailable: boolean("is_available").notNull().default(true),
+  maxAppointments: integer("max_appointments").notNull().default(0),
+  startTime: text("start_time").notNull().default("08:00"),
+  endTime: text("end_time").notNull().default("17:00"),
+  breakStartTime: text("break_start_time").default("12:00"),
+  breakEndTime: text("break_end_time").default("13:00"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDailyAvailabilitySchema = createInsertSchema(dailyAvailability).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Custom Form Question Model
+export const customQuestions = pgTable("custom_questions", {
+  id: serial("id").primaryKey(),
+  label: text("label").notNull(),
+  type: text("type").notNull().$type<keyof typeof FieldType>(),
+  isRequired: boolean("is_required").notNull().default(false),
+  placeholder: text("placeholder"),
+  options: jsonb("options"), // for select, radio, checkbox
+  defaultValue: text("default_value"),
+  order: integer("order").notNull(),
+  appointmentTypeId: integer("appointment_type_id"), // If null, applies to all types
+  applicableType: text("applicable_type").$type<keyof typeof ScheduleType | "both">().default("both"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastModifiedAt: timestamp("last_modified_at"),
+});
+
+export const insertCustomQuestionSchema = createInsertSchema(customQuestions).omit({
+  id: true,
+  createdAt: true,
+  lastModifiedAt: true,
+});
+
 // Define relations
 export const usersRelations = relations(users, ({ many }) => ({
   createdSchedules: many(schedules, { relationName: "user_created_schedules" }),
@@ -227,6 +306,10 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
   carrier: one(carriers, {
     fields: [schedules.carrierId],
     references: [carriers.id],
+  }),
+  appointmentType: one(appointmentTypes, {
+    fields: [schedules.appointmentTypeId],
+    references: [appointmentTypes.id],
   }),
   creator: one(users, {
     fields: [schedules.createdBy],
@@ -256,6 +339,7 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   docks: many(docks),
   holidays: many(holidays, { relationName: "facility_holidays" }),
   appointmentSettings: many(appointmentSettings, { relationName: "facility_appointment_settings" }),
+  appointmentTypes: many(appointmentTypes, { relationName: "facility_appointment_types" }),
 }));
 
 export const appointmentSettingsRelations = relations(appointmentSettings, ({ one }) => ({
@@ -272,6 +356,32 @@ export const holidaysRelations = relations(holidays, ({ one }) => ({
     references: [facilities.id],
     relationName: "facility_holidays"
   }),
+}));
+
+export const appointmentTypesRelations = relations(appointmentTypes, ({ one, many }) => ({
+  facility: one(facilities, {
+    fields: [appointmentTypes.facilityId],
+    references: [facilities.id],
+    relationName: "facility_appointment_types"
+  }),
+  dailyAvailability: many(dailyAvailability),
+  customQuestions: many(customQuestions),
+  schedules: many(schedules)
+}));
+
+export const dailyAvailabilityRelations = relations(dailyAvailability, ({ one }) => ({
+  appointmentType: one(appointmentTypes, {
+    fields: [dailyAvailability.appointmentTypeId],
+    references: [appointmentTypes.id]
+  })
+}));
+
+export const customQuestionsRelations = relations(customQuestions, ({ one }) => ({
+  appointmentType: one(appointmentTypes, {
+    fields: [customQuestions.appointmentTypeId],
+    references: [appointmentTypes.id],
+    relationName: "appointment_type_questions"
+  })
 }));
 
 // Types
@@ -298,3 +408,12 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export type AppointmentSettings = typeof appointmentSettings.$inferSelect;
 export type InsertAppointmentSettings = z.infer<typeof insertAppointmentSettingsSchema>;
+
+export type AppointmentType = typeof appointmentTypes.$inferSelect;
+export type InsertAppointmentType = z.infer<typeof insertAppointmentTypeSchema>;
+
+export type DailyAvailability = typeof dailyAvailability.$inferSelect;
+export type InsertDailyAvailability = z.infer<typeof insertDailyAvailabilitySchema>;
+
+export type CustomQuestion = typeof customQuestions.$inferSelect;
+export type InsertCustomQuestion = z.infer<typeof insertCustomQuestionSchema>;

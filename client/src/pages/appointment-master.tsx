@@ -41,11 +41,42 @@ interface AvailabilityRule {
 
 export default function AppointmentMaster() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("questions");
+  const [activeTab, setActiveTab] = useState("types");
   const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
   const [showQuestionDialog, setShowQuestionDialog] = useState(false);
   const [showAvailabilityDialog, setShowAvailabilityDialog] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  
+  // Event Type Management
+  const [showNewEventTypeDialog, setShowNewEventTypeDialog] = useState(false);
+  const [selectedEventTypeId, setSelectedEventTypeId] = useState<number | null>(null);
+  const [eventTypeFormStep, setEventTypeFormStep] = useState(1); // 1: Details, 2: Scheduling, 3: Questions
+  
+  // Event Type Form Data
+  const [eventTypeForm, setEventTypeForm] = useState({
+    name: "",
+    description: "",
+    facilityId: 0,
+    color: "#4CAF50",
+    duration: 60,
+    type: "inbound",
+    maxSlots: 1,
+    timezone: "America/New_York",
+    gracePeriod: 15,
+    emailReminderTime: 24,
+    showRemainingSlots: true,
+    location: ""
+  });
+  
+  // Scheduling settings for event type
+  const [schedulingSettings, setSchedulingSettings] = useState({
+    maxDaysInAdvance: 90,
+    availableDays: [1, 2, 3, 4, 5], // Monday to Friday
+    dayStartTime: "08:00",
+    dayEndTime: "17:00",
+    breakStartTime: "12:00",
+    breakEndTime: "13:00"
+  });
   
   // Form fields for question editing
   const [questionForm, setQuestionForm] = useState<Partial<QuestionFormField>>({
@@ -66,14 +97,55 @@ export default function AppointmentMaster() {
     appointmentType: "both"
   });
   
+  // Mock data for event types
+  const [eventTypes, setEventTypes] = useState([
+    {
+      id: 1,
+      name: "Sam Pride - Floor Loaded Container Drop (4 Hour Unloading)",
+      facilityName: "Hanzo Logistics",
+      createdDate: "2025-04-11"
+    },
+    {
+      id: 2,
+      name: "450 Airtech Parkway - LTL Pickup or Dropoff",
+      facilityName: "Hanzo Logistics",
+      createdDate: "2024-11-26"
+    },
+    {
+      id: 3,
+      name: "TBA",
+      facilityName: "Hanzo Logistics",
+      createdDate: "2024-08-14"
+    },
+    {
+      id: 4,
+      name: "HANZO Cold-Chain - Hand-Unload Appointment (4 Hour)",
+      facilityName: "Hanzo Logistics",
+      createdDate: "2024-08-14"
+    },
+    {
+      id: 5,
+      name: "HANZO Cold-Chain - Palletized Load Appointment (1 Hour)",
+      facilityName: "Hanzo Logistics",
+      createdDate: "2024-08-14"
+    }
+  ]);
+  
+  // Mock data for facilities
+  const [facilities, setFacilities] = useState([
+    { id: 1, name: "Sam Prime Products" },
+    { id: 2, name: "Hanzo Brownsburg" },
+    { id: 3, name: "Hanzo Metro" }
+  ]);
+  
   // Mock data for question form fields
   const [customFields, setCustomFields] = useState<QuestionFormField[]>([
     { 
       id: 1, 
-      label: "Special Handling Instructions", 
-      type: "textarea", 
-      required: false, 
-      placeholder: "Enter any special handling instructions", 
+      label: "Customer Name", 
+      type: "text", 
+      required: true, 
+      placeholder: "Enter customer name", 
       order: 1,
       appointmentType: "both"
     },
