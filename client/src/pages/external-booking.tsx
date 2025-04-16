@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, TruckIcon, ArrowRight, ArrowLeft, Upload, FileText, AlertCircle, Check, CheckCircle, ChevronsUpDown, PlusCircle } from "lucide-react";
+import { Loader2, TruckIcon, ArrowRight, ArrowLeft, Upload, FileText, AlertCircle, Check, CheckCircle, ChevronsUpDown, PlusCircle, X } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -438,9 +438,16 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
   // Handle Step 2 Submission
   const onCompanyInfoSubmit = (data: CompanyInfoFormValues) => {
     updateFormData(data);
-    // Clear any previously set values for carrier name and MC number to avoid issues
-    appointmentDetailsForm.setValue("carrierName", "");
-    appointmentDetailsForm.setValue("mcNumber", "");
+    
+    // Ensure we're not inadvertently using company or contact info for carrier info
+    // This is important to prevent company email/phone being used instead of carrier data
+    if (appointmentDetailsForm.getValues("carrierName") === data.contactEmail ||
+        appointmentDetailsForm.getValues("mcNumber") === data.contactPhone) {
+      // Clear carrier fields if they accidentally contain contact info
+      appointmentDetailsForm.setValue("carrierName", "");
+      appointmentDetailsForm.setValue("mcNumber", "");
+    }
+    
     setStep(3);
   };
 
