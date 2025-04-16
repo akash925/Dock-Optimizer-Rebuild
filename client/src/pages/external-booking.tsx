@@ -560,9 +560,33 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Appointment Time*</FormLabel>
-                      <FormControl>
-                        <Input type="time" {...field} />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a time slot" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="08:00">8:00 AM</SelectItem>
+                          <SelectItem value="08:30">8:30 AM</SelectItem>
+                          <SelectItem value="09:00">9:00 AM</SelectItem>
+                          <SelectItem value="09:30">9:30 AM</SelectItem>
+                          <SelectItem value="10:00">10:00 AM</SelectItem>
+                          <SelectItem value="10:30">10:30 AM</SelectItem>
+                          <SelectItem value="11:00">11:00 AM</SelectItem>
+                          <SelectItem value="11:30">11:30 AM</SelectItem>
+                          <SelectItem value="12:00">12:00 PM</SelectItem>
+                          <SelectItem value="12:30">12:30 PM</SelectItem>
+                          <SelectItem value="13:00">1:00 PM</SelectItem>
+                          <SelectItem value="13:30">1:30 PM</SelectItem>
+                          <SelectItem value="14:00">2:00 PM</SelectItem>
+                          <SelectItem value="14:30">2:30 PM</SelectItem>
+                          <SelectItem value="15:00">3:00 PM</SelectItem>
+                          <SelectItem value="15:30">3:30 PM</SelectItem>
+                          <SelectItem value="16:00">4:00 PM</SelectItem>
+                          <SelectItem value="16:30">4:30 PM</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
