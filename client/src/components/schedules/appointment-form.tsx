@@ -643,21 +643,40 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {/* Generate time slots in 30 minute intervals from 5am to 7pm */}
-                          {Array.from({ length: 29 }).map((_, i) => {
-                            const hour = Math.floor(i / 2) + 5; // Start at 5am
-                            const minute = (i % 2) * 30; // 0 or 30 minutes
-                            const formattedHour = hour.toString().padStart(2, '0');
-                            const formattedMinute = minute.toString().padStart(2, '0');
-                            const timeValue = `${formattedHour}:${formattedMinute}`;
-                            const displayTime = `${hour > 12 ? hour - 12 : hour}:${formattedMinute} ${hour >= 12 ? 'PM' : 'AM'}`;
+                          {/* Generate time slots from 5am to 7pm based on configured interval */}
+                          {(() => {
+                            // Get facility settings or use defaults
+                            // In a real implementation, this would be fetched from the server
+                            // For example: const settings = await storage.getAppointmentSettings(facilityId);
+                            // And then: const timeInterval = settings.timeInterval;
+                            // For now, we use these defaults
+                            const timeInterval = 30; // Default 30 minutes (15, 30, or 60 min options)
+                            const startHour = 5; // 5 AM
+                            const endHour = 19; // 7 PM
                             
-                            return (
-                              <SelectItem key={timeValue} value={timeValue}>
-                                {displayTime}
-                              </SelectItem>
-                            );
-                          })}
+                            // Calculate total minutes from start to end
+                            const totalMinutes = (endHour - startHour) * 60;
+                            const slots = Math.floor(totalMinutes / timeInterval);
+                            
+                            return Array.from({ length: slots }).map((_, i) => {
+                              // Calculate time for this slot
+                              const minutesFromStart = i * timeInterval;
+                              const hour = Math.floor(minutesFromStart / 60) + startHour;
+                              const minute = minutesFromStart % 60;
+                              
+                              const formattedHour = hour.toString().padStart(2, '0');
+                              const formattedMinute = minute.toString().padStart(2, '0');
+                              const timeValue = `${formattedHour}:${formattedMinute}`;
+                              const displayHour = hour > 12 ? hour - 12 : hour;
+                              const displayTime = `${displayHour}:${formattedMinute.padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
+                              
+                              return (
+                                <SelectItem key={timeValue} value={timeValue}>
+                                  {displayTime}
+                                </SelectItem>
+                              );
+                            });
+                          })()}
                         </SelectContent>
                       </Select>
                       <FormMessage />
