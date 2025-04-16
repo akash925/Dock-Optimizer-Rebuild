@@ -90,23 +90,22 @@ export default function Sidebar({ className }: SidebarProps) {
       )}
     >
       <div className="p-4 border-b border-neutral-200">
-        <div className="flex flex-col space-y-3">
-          <Link href="/" className="flex items-center">
-            <img 
-              src={dockOptimizerLogo} 
-              alt="Dock Optimizer Logo" 
-              className="h-10 mr-2"
-            />
-            <h1 className="text-xl font-medium text-primary">Dock Optimizer</h1>
+        <div className="flex items-center">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <img 
+                src={hanzoLogo} 
+                alt="Hanzo Logistics Logo" 
+                className="h-10 mr-1"
+              />
+              <div className="h-6 border-r border-gray-300 mx-1"></div>
+              <img 
+                src={dockOptimizerLogo} 
+                alt="Dock Optimizer Logo" 
+                className="h-8"
+              />
+            </div>
           </Link>
-          <div className="flex items-center justify-center pt-2 border-t border-neutral-100">
-            <span className="text-xs text-neutral-400 mr-2">Powered by</span>
-            <img 
-              src={hanzoLogo} 
-              alt="Hanzo Logistics Logo" 
-              className="h-6"
-            />
-          </div>
         </div>
       </div>
       
