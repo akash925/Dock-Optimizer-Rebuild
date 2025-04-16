@@ -924,18 +924,32 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
       <div className="max-w-4xl mx-auto w-full">
         <div className="flex flex-col items-center mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row items-center justify-between mb-4 text-center w-full">
-            <img 
-              src={hanzoLogo} 
-              alt="Hanzo Logistics" 
-              className="h-16" 
-            />
+            {bookingPage && (
+              <div className="flex items-center gap-3">
+                <img 
+                  src={bookingPage.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo} 
+                  alt={bookingPage.title || "Hanzo Logistics"} 
+                  className="h-16" 
+                />
+                <h1 className="text-2xl font-bold text-gray-800">{bookingPage.title || "Schedule Appointment"}</h1>
+              </div>
+            )}
+            <div className="text-sm text-gray-500 mt-2 md:mt-0">
+              Powered by <span className="font-medium">Dock Optimizer</span>
+            </div>
           </div>
         </div>
         <div className="flex flex-col items-center">
-          <p className="text-center text-gray-600 max-w-2xl px-4">
-            Please use this form to pick the type of Dock Appointment that you need at Hanzo Logistics. 
-            For support using this page, <a href="#" className="text-primary underline hover:text-primary/80">please check out this video</a>.
-          </p>
+          {bookingPage && bookingPage.welcomeMessage ? (
+            <div className="bg-blue-50 p-4 rounded-md border border-blue-100 mb-4 max-w-2xl">
+              <p className="text-blue-700">{bookingPage.welcomeMessage}</p>
+            </div>
+          ) : (
+            <p className="text-center text-gray-600 max-w-2xl px-4">
+              Please use this form to pick the type of Dock Appointment that you need. 
+              For support using this page, <a href="#" className="text-primary underline hover:text-primary/80">please check out this video</a>.
+            </p>
+          )}
           <p className="text-center text-gray-700 font-medium mt-4 max-w-2xl px-4">
             Effective August 1st, 2023, MC Numbers are required for all incoming and outgoing shipments. 
             This is to protect the security of our customer's shipments and reduce the risk of fraud.
@@ -987,22 +1001,33 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
         </Card>
 
         <div className="mt-8 p-4 bg-white rounded-lg shadow-sm">
-          <div className="flex items-center justify-center md:justify-start mb-4">
-            <img 
-              src={hanzoLogo} 
-              alt="Hanzo Logistics" 
-              className="h-10 mr-2" 
-            />
-            <h2 className="text-lg md:text-xl font-bold text-center md:text-left">HANZO LOGISTICS INC.</h2>
-          </div>
-          <p className="mb-2 text-sm md:text-base">Select from the following locations:</p>
-          <ul className="space-y-2 text-sm md:text-base text-gray-700">
-            <li className="p-2 bg-gray-50 rounded">4334 Plainfield Road, Plainfield, IN 46231 <span className="font-medium">(Hanzo Metro)</span></li>
-            <li className="p-2 bg-gray-50 rounded">450 Airtech Pkwy, Plainfield, IN 46168</li>
-            <li className="p-2 bg-gray-50 rounded">8370 E Camby Rd, Plainfield, IN 46168</li>
-            <li className="p-2 bg-gray-50 rounded">9915 Lacy Knot Dr, Brownsburg, IN 46112</li>
-            <li className="p-2 bg-gray-50 rounded">4001 W Minnesota St, Indianapolis, IN 46241 <span className="font-medium">(Cold Chain)</span></li>
-          </ul>
+          {bookingPage && (
+            <>
+              <div className="flex items-center justify-center md:justify-start mb-4">
+                <img 
+                  src={bookingPage.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo} 
+                  alt={bookingPage.title} 
+                  className="h-10 mr-2" 
+                />
+                <h2 className="text-lg md:text-xl font-bold text-center md:text-left">
+                  {bookingPage.title}
+                </h2>
+              </div>
+              {Object.keys(parsedFacilities).length > 0 && (
+                <>
+                  <p className="mb-2 text-sm md:text-base">Facilities available for booking:</p>
+                  <ul className="space-y-2 text-sm md:text-base text-gray-700">
+                    {Object.values(parsedFacilities).map(({ facility }) => (
+                      <li key={facility.id} className="p-2 bg-gray-50 rounded">
+                        {facility.address1}, {facility.city}, {facility.state} {facility.pincode} 
+                        {facility.company && <span className="font-medium"> ({facility.company})</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
           <div className="mt-6 flex flex-col items-center">
             <p className="text-center text-sm text-gray-600 mb-3">
               Please arrive 15 minutes before your appointment and check in at the security desk.

@@ -26,6 +26,7 @@ function App() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/door-manager-demo" component={BasicDoorManager} />
         <Route path="/external-booking" component={ExternalBooking} />
+        <Route path="/booking/:slug" component={ExternalBooking} />
         <Route path="/booking-confirmation" component={BookingConfirmation} />
         <ProtectedRoute path="/" component={Dashboard} />
         <ProtectedRoute path="/schedules" component={Schedules} />
