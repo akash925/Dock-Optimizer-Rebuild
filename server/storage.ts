@@ -60,6 +60,11 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<Notification | undefined>;
   
+  // Appointment Settings operations
+  getAppointmentSettings(facilityId: number): Promise<AppointmentSettings | undefined>;
+  createAppointmentSettings(settings: InsertAppointmentSettings): Promise<AppointmentSettings>;
+  updateAppointmentSettings(facilityId: number, settings: Partial<AppointmentSettings>): Promise<AppointmentSettings | undefined>;
+  
   // Session store
   sessionStore: any; // Type-safe session store
 }
@@ -72,6 +77,7 @@ export class MemStorage implements IStorage {
   private carriers: Map<number, Carrier>;
   private facilities: Map<number, Facility>;
   private notifications: Map<number, Notification>;
+  private appointmentSettings: Map<number, AppointmentSettings>;
   sessionStore: any;
   
   private userIdCounter: number = 1;
@@ -80,6 +86,7 @@ export class MemStorage implements IStorage {
   private carrierIdCounter: number = 1;
   private facilityIdCounter: number = 1;
   private notificationIdCounter: number = 1;
+  private appointmentSettingsIdCounter: number = 1;
 
   constructor() {
     this.users = new Map();

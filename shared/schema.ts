@@ -42,6 +42,13 @@ export const HolidayScope = {
   ORGANIZATION: "organization",
 } as const;
 
+// Enum for Time Intervals
+export const TimeInterval = {
+  MINUTES_15: 15,
+  MINUTES_30: 30,
+  MINUTES_60: 60,
+} as const;
+
 // User Model
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -175,6 +182,24 @@ export const insertHolidaySchema = createInsertSchema(holidays).omit({
   lastModifiedAt: true,
 });
 
+// Appointment Settings Model
+export const appointmentSettings = pgTable("appointment_settings", {
+  id: serial("id").primaryKey(),
+  timeInterval: integer("time_interval").notNull().default(TimeInterval.MINUTES_30),
+  maxConcurrentInbound: integer("max_concurrent_inbound").notNull().default(2),
+  maxConcurrentOutbound: integer("max_concurrent_outbound").notNull().default(2),
+  shareAvailabilityInfo: boolean("share_availability_info").notNull().default(true),
+  facilityId: integer("facility_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastModifiedAt: timestamp("last_modified_at"),
+});
+
+export const insertAppointmentSettingsSchema = createInsertSchema(appointmentSettings).omit({
+  id: true,
+  createdAt: true,
+  lastModifiedAt: true,
+});
+
 // Define relations
 export const usersRelations = relations(users, ({ many }) => ({
   createdSchedules: many(schedules, { relationName: "user_created_schedules" }),
@@ -230,6 +255,15 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 export const facilitiesRelations = relations(facilities, ({ many }) => ({
   docks: many(docks),
   holidays: many(holidays, { relationName: "facility_holidays" }),
+  appointmentSettings: many(appointmentSettings, { relationName: "facility_appointment_settings" }),
+}));
+
+export const appointmentSettingsRelations = relations(appointmentSettings, ({ one }) => ({
+  facility: one(facilities, {
+    fields: [appointmentSettings.facilityId],
+    references: [facilities.id],
+    relationName: "facility_appointment_settings"
+  }),
 }));
 
 export const holidaysRelations = relations(holidays, ({ one }) => ({
@@ -261,3 +295,6 @@ export type InsertHoliday = z.infer<typeof insertHolidaySchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type AppointmentSettings = typeof appointmentSettings.$inferSelect;
+export type InsertAppointmentSettings = z.infer<typeof insertAppointmentSettingsSchema>;
