@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Save, Clock, Mail, Bell, LogOut } from "lucide-react";
+import { Save, Clock, Mail, Bell, LogOut, Building, CalendarDays, Globe } from "lucide-react";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -78,6 +78,12 @@ export default function Settings() {
                   className="w-full justify-start px-0 py-2 data-[state=active]:border-l-2 data-[state=active]:border-primary data-[state=active]:pl-2"
                 >
                   Scheduling
+                </TabsTrigger>
+                <TabsTrigger
+                  value="organization"
+                  className="w-full justify-start px-0 py-2 data-[state=active]:border-l-2 data-[state=active]:border-primary data-[state=active]:pl-2"
+                >
+                  Organization
                 </TabsTrigger>
                 <TabsTrigger
                   value="integrations"

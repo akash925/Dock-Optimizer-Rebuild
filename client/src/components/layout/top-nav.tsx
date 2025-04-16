@@ -9,9 +9,14 @@ import {
   LogOut, 
   User as UserIcon, 
   Settings,
-  ChevronDown
+  ChevronDown,
+  Calendar,
+  Copy,
+  ExternalLink,
+  Share2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,10 +31,13 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Notification } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TopNav() {
   const { user, logoutMutation } = useAuth();
+  const { toast } = useToast();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const { data: notifications = [] } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
@@ -46,6 +54,15 @@ export default function TopNav() {
   const handleLogout = () => {
     logoutMutation.mutate();
   };
+  
+  const copyExternalBookingLink = () => {
+    const url = `${window.location.origin}/external-booking`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link Copied",
+      description: "External booking link has been copied to clipboard",
+    });
+  };
 
   return (
     <header className="bg-white shadow-sm h-16 flex items-center justify-between px-4 sticky top-0 z-40">
@@ -53,8 +70,56 @@ export default function TopNav() {
         <div className="md:hidden text-lg font-medium">Dock Optimizer</div>
       </div>
       
-      <div className="flex items-center">
-        <Button variant="ghost" size="icon" className="mr-2">
+      <div className="flex items-center gap-2">
+        <div className="relative hidden md:flex items-center">
+          <Input
+            type="text"
+            placeholder="Search appointments..."
+            className="w-64 pl-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <Search className="h-4 w-4 text-neutral-500 absolute left-3" />
+        </div>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Calendar className="h-5 w-5 text-neutral-500" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <div className="text-sm font-medium px-2 py-1.5 text-neutral-500">
+              External Booking
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={copyExternalBookingLink}>
+              <Copy className="mr-2 h-4 w-4" />
+              <span>Copy Link</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/external-booking" className="flex items-center cursor-pointer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                <span>Visit Page</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              if (navigator.share) {
+                navigator.share({
+                  title: "Dock Optimizer External Booking",
+                  url: `${window.location.origin}/external-booking`
+                });
+              } else {
+                copyExternalBookingLink();
+              }
+            }}>
+              <Share2 className="mr-2 h-4 w-4" />
+              <span>Share</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        
+        <Button variant="ghost" size="icon" className="md:hidden">
           <Search className="h-5 w-5 text-neutral-500" />
         </Button>
         
