@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format, addDays, startOfWeek, endOfWeek, isWithinInterval, areIntervalsOverlapping } from "date-fns";
 import { Schedule, Carrier } from "@shared/schema";
 import { formatTime } from "@/lib/utils";
@@ -39,9 +39,9 @@ export default function ScheduleWeekCalendar({
   // Generate days of the week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   
-  // Generate hours from 3AM to 11PM
-  const hours = Array.from({ length: 21 }, (_, i) => {
-    const hour = i + 3; // Starting from 3 AM
+  // Generate hours from 5AM to 11PM
+  const hours = Array.from({ length: 19 }, (_, i) => {
+    const hour = i + 5; // Starting from 5 AM
     return {
       display: hour < 12 
         ? `${hour === 0 ? 12 : hour}am` 
@@ -83,8 +83,8 @@ export default function ScheduleWeekCalendar({
     const endHour = scheduleEnd.getHours();
     const endMinute = scheduleEnd.getMinutes();
     
-    // Calculate top position (hours from 3am)
-    const hourOffset = startHour - 3; // Hours since 3am
+    // Calculate top position (hours from 5am)
+    const hourOffset = startHour - 5; // Hours since 5am
     const minuteOffset = startMinute / 60; // Percentage of hour
     const topPosition = (hourOffset + minuteOffset) * 60; // Each hour is 60px
     
@@ -117,6 +117,18 @@ export default function ScheduleWeekCalendar({
   const goToToday = () => {
     onDateChange(new Date());
   };
+  
+  // Reference to the calendar grid container for auto-scrolling
+  const calendarGridRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-scroll to 8-9 AM when the component mounts or updates
+  useEffect(() => {
+    if (calendarGridRef.current) {
+      // Calculate position for 8 AM (3 hours from 5 AM start time)
+      const scrollToPosition = 3 * 50; // 3 hours * 50px per hour
+      calendarGridRef.current.scrollTop = scrollToPosition;
+    }
+  }, [date, schedules]); // Re-scroll when date or schedules change
 
   return (
     <div className="bg-white rounded-lg shadow p-4 mb-6 relative w-full overflow-hidden">
@@ -227,17 +239,17 @@ export default function ScheduleWeekCalendar({
       </div>
       
       {/* Week Calendar Grid */}
-      <div className="border rounded overflow-auto max-h-[calc(100vh-300px)]">
+      <div ref={calendarGridRef} className="border rounded overflow-auto max-h-[calc(100vh-300px)]">
         <div className="grid grid-cols-8 min-w-max">
           {/* Empty top-left cell */}
-          <div className="border-b border-r h-10 w-16 bg-gray-50"></div>
+          <div className="border-b border-r h-10 w-12 bg-gray-50"></div>
           
           {/* Day headers */}
           {weekDays.map((day, i) => (
             <div 
               key={i} 
               className={cn(
-                "border-b border-r h-10 px-2 w-[calc((100%-4rem)/7)] min-w-[8rem] text-center flex flex-col justify-center",
+                "border-b border-r h-10 px-1 w-[calc((100%-3rem)/7)] min-w-[6rem] text-center flex flex-col justify-center",
                 day.getDate() === new Date().getDate() && 
                 day.getMonth() === new Date().getMonth() && 
                 day.getFullYear() === new Date().getFullYear() 
@@ -245,7 +257,7 @@ export default function ScheduleWeekCalendar({
                   : "bg-gray-50"
               )}
             >
-              <div className="font-medium">{format(day, 'EEE M/d')}</div>
+              <div className="font-medium text-sm">{format(day, 'EEE M/d')}</div>
             </div>
           ))}
           
@@ -253,7 +265,7 @@ export default function ScheduleWeekCalendar({
           {hours.map((hour, i) => (
             <div key={i} style={{ display: "contents" }}>
               {/* Hour label */}
-              <div className="border-b border-r py-1 px-1 w-16 text-xs text-gray-500 h-[50px]">
+              <div className="border-b border-r py-1 px-1 w-12 text-xs text-gray-500 h-[50px]">
                 {hour.display}
               </div>
               
@@ -268,7 +280,7 @@ export default function ScheduleWeekCalendar({
                   <div 
                     key={j} 
                     className={cn(
-                      "border-b border-r w-[calc((100%-4rem)/7)] min-w-[8rem] h-[50px] relative cursor-pointer hover:bg-gray-100 transition-colors",
+                      "border-b border-r w-[calc((100%-3rem)/7)] min-w-[6rem] h-[50px] relative cursor-pointer hover:bg-gray-100 transition-colors",
                       day.getDate() === new Date().getDate() && 
                       day.getMonth() === new Date().getMonth() && 
                       day.getFullYear() === new Date().getFullYear() 
