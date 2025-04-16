@@ -101,6 +101,9 @@ export class MemStorage implements IStorage {
   private facilities: Map<number, Facility>;
   private notifications: Map<number, Notification>;
   private appointmentSettings: Map<number, AppointmentSettings>;
+  private appointmentTypes: Map<number, AppointmentType>;
+  private dailyAvailability: Map<number, DailyAvailability>;
+  private customQuestions: Map<number, CustomQuestion>;
   sessionStore: any;
   
   private userIdCounter: number = 1;
@@ -110,6 +113,9 @@ export class MemStorage implements IStorage {
   private facilityIdCounter: number = 1;
   private notificationIdCounter: number = 1;
   private appointmentSettingsIdCounter: number = 1;
+  private appointmentTypeIdCounter: number = 1;
+  private dailyAvailabilityIdCounter: number = 1;
+  private customQuestionIdCounter: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -119,6 +125,9 @@ export class MemStorage implements IStorage {
     this.facilities = new Map();
     this.notifications = new Map();
     this.appointmentSettings = new Map();
+    this.appointmentTypes = new Map();
+    this.dailyAvailability = new Map();
+    this.customQuestions = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 24 hours
     });
@@ -442,6 +451,126 @@ export class MemStorage implements IStorage {
     };
     this.appointmentSettings.set(settings.id, updatedSettings);
     return updatedSettings;
+  }
+
+  // Appointment Type operations
+  async getAppointmentType(id: number): Promise<AppointmentType | undefined> {
+    return this.appointmentTypes.get(id);
+  }
+
+  async getAppointmentTypes(): Promise<AppointmentType[]> {
+    return Array.from(this.appointmentTypes.values());
+  }
+
+  async getAppointmentTypesByFacility(facilityId: number): Promise<AppointmentType[]> {
+    return Array.from(this.appointmentTypes.values()).filter(
+      (appointmentType) => appointmentType.facilityId === facilityId
+    );
+  }
+
+  async createAppointmentType(insertAppointmentType: InsertAppointmentType): Promise<AppointmentType> {
+    const id = this.appointmentTypeIdCounter++;
+    const createdAt = new Date();
+    const appointmentType: AppointmentType = {
+      ...insertAppointmentType,
+      id,
+      createdAt,
+      lastModifiedAt: null
+    };
+    this.appointmentTypes.set(id, appointmentType);
+    return appointmentType;
+  }
+
+  async updateAppointmentType(id: number, appointmentTypeUpdate: Partial<AppointmentType>): Promise<AppointmentType | undefined> {
+    const appointmentType = this.appointmentTypes.get(id);
+    if (!appointmentType) return undefined;
+    
+    const lastModifiedAt = new Date();
+    const updatedAppointmentType = {
+      ...appointmentType,
+      ...appointmentTypeUpdate,
+      lastModifiedAt
+    };
+    this.appointmentTypes.set(id, updatedAppointmentType);
+    return updatedAppointmentType;
+  }
+
+  async deleteAppointmentType(id: number): Promise<boolean> {
+    return this.appointmentTypes.delete(id);
+  }
+
+  // Daily Availability operations
+  async getDailyAvailability(id: number): Promise<DailyAvailability | undefined> {
+    return this.dailyAvailability.get(id);
+  }
+
+  async getDailyAvailabilityByAppointmentType(appointmentTypeId: number): Promise<DailyAvailability[]> {
+    return Array.from(this.dailyAvailability.values()).filter(
+      (availability) => availability.appointmentTypeId === appointmentTypeId
+    );
+  }
+
+  async createDailyAvailability(insertDailyAvailability: InsertDailyAvailability): Promise<DailyAvailability> {
+    const id = this.dailyAvailabilityIdCounter++;
+    const dailyAvailability: DailyAvailability = {
+      ...insertDailyAvailability,
+      id
+    };
+    this.dailyAvailability.set(id, dailyAvailability);
+    return dailyAvailability;
+  }
+
+  async updateDailyAvailability(id: number, dailyAvailabilityUpdate: Partial<DailyAvailability>): Promise<DailyAvailability | undefined> {
+    const dailyAvailability = this.dailyAvailability.get(id);
+    if (!dailyAvailability) return undefined;
+    
+    const updatedDailyAvailability = {
+      ...dailyAvailability,
+      ...dailyAvailabilityUpdate
+    };
+    this.dailyAvailability.set(id, updatedDailyAvailability);
+    return updatedDailyAvailability;
+  }
+
+  async deleteDailyAvailability(id: number): Promise<boolean> {
+    return this.dailyAvailability.delete(id);
+  }
+
+  // Custom Question operations
+  async getCustomQuestion(id: number): Promise<CustomQuestion | undefined> {
+    return this.customQuestions.get(id);
+  }
+
+  async getCustomQuestionsByAppointmentType(appointmentTypeId: number): Promise<CustomQuestion[]> {
+    return Array.from(this.customQuestions.values()).filter(
+      (question) => question.appointmentTypeId === appointmentTypeId
+    );
+  }
+
+  async createCustomQuestion(insertCustomQuestion: InsertCustomQuestion): Promise<CustomQuestion> {
+    const id = this.customQuestionIdCounter++;
+    const customQuestion: CustomQuestion = {
+      ...insertCustomQuestion,
+      id
+    };
+    this.customQuestions.set(id, customQuestion);
+    return customQuestion;
+  }
+
+  async updateCustomQuestion(id: number, customQuestionUpdate: Partial<CustomQuestion>): Promise<CustomQuestion | undefined> {
+    const customQuestion = this.customQuestions.get(id);
+    if (!customQuestion) return undefined;
+    
+    const updatedCustomQuestion = {
+      ...customQuestion,
+      ...customQuestionUpdate
+    };
+    this.customQuestions.set(id, updatedCustomQuestion);
+    return updatedCustomQuestion;
+  }
+
+  async deleteCustomQuestion(id: number): Promise<boolean> {
+    return this.customQuestions.delete(id);
   }
 }
 
