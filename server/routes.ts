@@ -373,6 +373,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch carriers" });
     }
   });
+  
+  app.get("/api/carriers/search", async (req, res) => {
+    try {
+      const { query } = req.query;
+      if (!query || typeof query !== 'string') {
+        return res.json([]);
+      }
+      
+      const carriers = await storage.getCarriers();
+      const filteredCarriers = carriers.filter(carrier => 
+        carrier.name.toLowerCase().includes(query.toLowerCase()) || 
+        (carrier.mcNumber && carrier.mcNumber.toLowerCase().includes(query.toLowerCase()))
+      );
+      res.json(filteredCarriers);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to search carriers" });
+    }
+  });
 
   app.get("/api/carriers/:id", async (req, res) => {
     try {
