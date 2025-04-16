@@ -370,22 +370,44 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           />
         </div>
 
+        <FormField
+          control={form.control}
+          name="useOrganizationLogo"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Use Organization Logo</FormLabel>
+                <FormDescription>
+                  Use the logo from organization settings.
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
-            name="logoUrl"
+            name="customLogo"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Logo URL</FormLabel>
+                <FormLabel>Custom Logo URL</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="https://example.com/logo.png"
                     {...field}
                     value={field.value || ""}
+                    disabled={form.getValues("useOrganizationLogo")}
                   />
                 </FormControl>
                 <FormDescription>
-                  URL to the logo displayed on the booking page.
+                  URL to a custom logo if not using organization logo.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
