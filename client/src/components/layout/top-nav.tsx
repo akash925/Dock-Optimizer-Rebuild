@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Share2
 } from "lucide-react";
+import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -67,7 +68,15 @@ export default function TopNav() {
   return (
     <header className="bg-white shadow-sm h-16 flex items-center justify-between px-4 sticky top-0 z-40">
       <div className="flex items-center">
-        <div className="md:hidden text-lg font-medium">Dock Optimizer</div>
+        <Link href="/" className="flex items-center">
+          <img 
+            src={dockOptimizerLogo} 
+            alt="Dock Optimizer Logo" 
+            className="h-10 mr-2"
+          />
+          <div className="text-lg font-medium text-primary hidden md:block">Dock Optimizer</div>
+          <div className="md:hidden text-lg font-medium text-primary">DO</div>
+        </Link>
       </div>
       
       <div className="flex items-center gap-2">
