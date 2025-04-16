@@ -448,8 +448,10 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
   const onCompanyInfoSubmit = (data: CompanyInfoFormValues) => {
     updateFormData(data);
     
-    // Only proceed to step 3, no more auto-clearing of fields
-    // which might have been causing issues with carrier selection
+    // Make sure the MC number field is cleared when moving to step 3
+    appointmentDetailsForm.setValue("mcNumber", "");
+    
+    // Proceed to step 3
     setStep(3);
   };
 
@@ -485,6 +487,11 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
   // Go back to previous step
   const goBack = () => {
     if (step > 1) {
+      // When going back from step 3 to step 2, clear the carrier-related fields
+      if (step === 3) {
+        appointmentDetailsForm.setValue("carrierName", "");
+        appointmentDetailsForm.setValue("mcNumber", "");
+      }
       setStep(step - 1);
     }
   };
