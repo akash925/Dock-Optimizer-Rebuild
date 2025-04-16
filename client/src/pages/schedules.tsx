@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/ui/data-table";
 import ScheduleCalendar from "@/components/schedules/schedule-calendar";
+import ScheduleWeekCalendar from "@/components/schedules/schedule-week-calendar";
 import ScheduleForm from "@/components/schedules/schedule-form";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +21,7 @@ export default function Schedules() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editScheduleId, setEditScheduleId] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+  const [viewMode, setViewMode] = useState<"calendar" | "week" | "day" | "month" | "list">("week");
   
   // Fetch schedules
   const { data: schedules = [] } = useQuery<Schedule[]>({
@@ -171,65 +172,52 @@ export default function Schedules() {
         </Button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Date picker card */}
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg">Select Date</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => date && setSelectedDate(date)}
-              className="rounded-md border w-full"
-            />
-          </CardContent>
-        </Card>
+      {/* Schedule View */}
+      <div className="w-full">
+        {viewMode === "week" && (
+          <ScheduleWeekCalendar
+            schedules={schedules}
+            docks={docks}
+            carriers={carriers}
+            date={selectedDate}
+            onScheduleClick={handleScheduleClick}
+            onDateChange={setSelectedDate}
+            onViewChange={setViewMode}
+          />
+        )}
         
-        {/* Schedules content */}
-        <div className="md:col-span-3">
+        {viewMode === "calendar" && (
+          <ScheduleCalendar 
+            schedules={filteredSchedules}
+            docks={docks}
+            date={selectedDate}
+            onScheduleClick={handleScheduleClick}
+          />
+        )}
+        
+        {viewMode === "list" && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">
-                Schedules for {format(selectedDate, "MMMM d, yyyy")}
+                Schedules List
               </CardTitle>
               <div className="flex items-center space-x-2">
                 <Button variant="outline" size="sm">
                   <ListFilter className="h-4 w-4 mr-2" />
                   Filter
                 </Button>
-                <Tabs defaultValue={viewMode} onValueChange={(v) => setViewMode(v as "calendar" | "list")}>
-                  <TabsList className="grid w-[120px] grid-cols-2">
-                    <TabsTrigger value="calendar">
-                      <CalendarIcon className="h-4 w-4" />
-                    </TabsTrigger>
-                    <TabsTrigger value="list">
-                      <List className="h-4 w-4" />
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
               </div>
             </CardHeader>
             <CardContent>
-              {viewMode === "calendar" ? (
-                <ScheduleCalendar 
-                  schedules={filteredSchedules}
-                  docks={docks}
-                  date={selectedDate}
-                  onScheduleClick={handleScheduleClick}
-                />
-              ) : (
-                <DataTable 
-                  columns={columns} 
-                  data={filteredSchedules} 
-                  searchKey="truckNumber"
-                  searchPlaceholder="Search by truck number..."
-                />
-              )}
+              <DataTable 
+                columns={columns} 
+                data={schedules} 
+                searchKey="truckNumber"
+                searchPlaceholder="Search by truck number..."
+              />
             </CardContent>
           </Card>
-        </div>
+        )}
       </div>
       
       <ScheduleForm 
