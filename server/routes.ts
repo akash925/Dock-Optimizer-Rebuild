@@ -992,19 +992,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/booking-pages/:id", async (req, res) => {
-    try {
-      const bookingPage = await storage.getBookingPage(Number(req.params.id));
-      if (!bookingPage) {
-        return res.status(404).json({ message: "Booking page not found" });
-      }
-      res.json(bookingPage);
-    } catch (err) {
-      console.error("Error fetching booking page:", err);
-      res.status(500).json({ message: "Failed to fetch booking page" });
-    }
-  });
-
   app.get("/api/booking-pages/slug/:slug", async (req, res) => {
     try {
       const bookingPage = await storage.getBookingPageBySlug(req.params.slug);
@@ -1014,6 +1001,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(bookingPage);
     } catch (err) {
       console.error("Error fetching booking page by slug:", err);
+      res.status(500).json({ message: "Failed to fetch booking page" });
+    }
+  });
+
+  app.get("/api/booking-pages/:id", async (req, res) => {
+    try {
+      const bookingPage = await storage.getBookingPage(Number(req.params.id));
+      if (!bookingPage) {
+        return res.status(404).json({ message: "Booking page not found" });
+      }
+      res.json(bookingPage);
+    } catch (err) {
+      console.error("Error fetching booking page:", err);
       res.status(500).json({ message: "Failed to fetch booking page" });
     }
   });
