@@ -70,6 +70,7 @@ export class MemStorage implements IStorage {
   private docks: Map<number, Dock>;
   private schedules: Map<number, Schedule>;
   private carriers: Map<number, Carrier>;
+  private facilities: Map<number, Facility>;
   private notifications: Map<number, Notification>;
   sessionStore: any;
   
@@ -77,6 +78,7 @@ export class MemStorage implements IStorage {
   private dockIdCounter: number = 1;
   private scheduleIdCounter: number = 1;
   private carrierIdCounter: number = 1;
+  private facilityIdCounter: number = 1;
   private notificationIdCounter: number = 1;
 
   constructor() {
@@ -84,6 +86,7 @@ export class MemStorage implements IStorage {
     this.docks = new Map();
     this.schedules = new Map();
     this.carriers = new Map();
+    this.facilities = new Map();
     this.notifications = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 24 hours
@@ -124,11 +127,26 @@ export class MemStorage implements IStorage {
       role: "worker",
     });
     
+    // Create a default facility
+    const mainFacility = this.createFacility({
+      name: "Main Warehouse",
+      address1: "123 Logistics Way",
+      address2: "Building A",
+      city: "Indianapolis",
+      state: "IN",
+      pincode: "46201",
+      country: "USA",
+      latitude: "39.768403",
+      longitude: "-86.158068",
+      company: "Hanzo Logistics"
+    });
+    
     // Create some docks
     const dockNames = ["A-01", "A-02", "A-03", "A-04", "B-01", "B-02", "B-03", "B-04"];
     dockNames.forEach(name => {
       this.createDock({
         name,
+        facilityId: 1, // Associate with the main facility
         isActive: true,
         type: "both",
         constraints: { maxTrailerLength: 53, requiresForklift: false }
@@ -278,6 +296,41 @@ export class MemStorage implements IStorage {
     const carrier: Carrier = { ...insertCarrier, id };
     this.carriers.set(id, carrier);
     return carrier;
+  }
+
+  // Facility operations
+  async getFacility(id: number): Promise<Facility | undefined> {
+    return this.facilities.get(id);
+  }
+
+  async getFacilities(): Promise<Facility[]> {
+    return Array.from(this.facilities.values());
+  }
+
+  async createFacility(insertFacility: InsertFacility): Promise<Facility> {
+    const id = this.facilityIdCounter++;
+    const createdAt = new Date();
+    const facility: Facility = { ...insertFacility, id, createdAt };
+    this.facilities.set(id, facility);
+    return facility;
+  }
+
+  async updateFacility(id: number, facilityUpdate: Partial<Facility>): Promise<Facility | undefined> {
+    const facility = this.facilities.get(id);
+    if (!facility) return undefined;
+    
+    const lastModifiedAt = new Date();
+    const updatedFacility = { 
+      ...facility, 
+      ...facilityUpdate,
+      lastModifiedAt
+    };
+    this.facilities.set(id, updatedFacility);
+    return updatedFacility;
+  }
+
+  async deleteFacility(id: number): Promise<boolean> {
+    return this.facilities.delete(id);
   }
 
   // Notification operations
@@ -611,6 +664,40 @@ export class DatabaseStorage implements IStorage {
   async createCarrier(insertCarrier: InsertCarrier): Promise<Carrier> {
     const [carrier] = await db.insert(carriers).values(insertCarrier).returning();
     return carrier;
+  }
+
+  // Facility operations
+  async getFacility(id: number): Promise<Facility | undefined> {
+    const [facility] = await db.select().from(facilities).where(eq(facilities.id, id));
+    return facility;
+  }
+
+  async getFacilities(): Promise<Facility[]> {
+    return await db.select().from(facilities);
+  }
+
+  async createFacility(insertFacility: InsertFacility): Promise<Facility> {
+    const [facility] = await db.insert(facilities).values(insertFacility).returning();
+    return facility;
+  }
+
+  async updateFacility(id: number, facilityUpdate: Partial<Facility>): Promise<Facility | undefined> {
+    const [updatedFacility] = await db
+      .update(facilities)
+      .set({
+        ...facilityUpdate,
+        lastModifiedAt: new Date()
+      })
+      .where(eq(facilities.id, id))
+      .returning();
+    return updatedFacility;
+  }
+
+  async deleteFacility(id: number): Promise<boolean> {
+    const result = await db
+      .delete(facilities)
+      .where(eq(facilities.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   // Notification operations
