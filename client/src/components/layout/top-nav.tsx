@@ -119,36 +119,70 @@ export default function TopNav() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="hidden md:flex">
-              <Calendar className="h-5 w-5 text-neutral-500" />
+              <Globe className="h-5 w-5 text-neutral-500" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <div className="text-sm font-medium px-2 py-1.5 text-neutral-500">
-              External Booking
-            </div>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Booking Pages</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={copyExternalBookingLink}>
-              <Copy className="mr-2 h-4 w-4" />
-              <span>Copy Link</span>
-            </DropdownMenuItem>
+            
+            {bookingPages.length === 0 ? (
+              <div className="px-2 py-1.5 text-sm text-neutral-500">
+                No booking pages found
+              </div>
+            ) : (
+              <DropdownMenuRadioGroup value={selectedBookingPage} onValueChange={setSelectedBookingPage}>
+                {bookingPages.map(page => (
+                  <DropdownMenuRadioItem key={page.id} value={page.slug}>
+                    <div className="flex items-center justify-between w-full">
+                      <span className="truncate">{page.name}</span>
+                      {page.isActive ? (
+                        <span className="ml-2 h-2 w-2 rounded-full bg-green-500" title="Active" />
+                      ) : (
+                        <span className="ml-2 h-2 w-2 rounded-full bg-gray-300" title="Inactive" />
+                      )}
+                    </div>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            )}
+            
+            <DropdownMenuSeparator />
+            
+            {selectedBookingPage && (
+              <>
+                <DropdownMenuItem onClick={() => copyBookingPageLink(selectedBookingPage)}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  <span>Copy Link</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/external/${selectedBookingPage}`} className="flex items-center cursor-pointer">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    <span>Visit Page</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: "Dock Optimizer Booking Page",
+                      url: `${window.location.origin}/external/${selectedBookingPage}`
+                    });
+                  } else {
+                    copyBookingPageLink(selectedBookingPage);
+                  }
+                }}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  <span>Share</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            
             <DropdownMenuItem asChild>
-              <Link href="/external-booking" className="flex items-center cursor-pointer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                <span>Visit Page</span>
+              <Link href="/booking-pages" className="flex items-center cursor-pointer">
+                <BookOpen className="mr-2 h-4 w-4" />
+                <span>Manage Booking Pages</span>
               </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: "Dock Optimizer External Booking",
-                  url: `${window.location.origin}/external-booking`
-                });
-              } else {
-                copyExternalBookingLink();
-              }
-            }}>
-              <Share2 className="mr-2 h-4 w-4" />
-              <span>Share</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
