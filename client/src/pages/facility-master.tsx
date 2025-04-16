@@ -328,19 +328,15 @@ export default function FacilityMaster() {
     },
   });
 
-  // Fetch facilities (using mock data for now)
+  // Fetch facilities
   const { data: facilities, isLoading, error } = useQuery({
     queryKey: ["/api/facilities"],
     queryFn: async () => {
-      // In a real implementation, you would fetch from the backend
-      // const response = await fetch("/api/facilities");
-      // if (!response.ok) {
-      //   throw new Error("Failed to fetch facilities");
-      // }
-      // return response.json() as Promise<Facility[]>;
-      
-      // For now, return mock data
-      return Promise.resolve(mockFacilities);
+      const response = await fetch("/api/facilities");
+      if (!response.ok) {
+        throw new Error("Failed to fetch facilities");
+      }
+      return response.json() as Promise<Facility[]>;
     },
   });
 
@@ -361,15 +357,11 @@ export default function FacilityMaster() {
   // Create facility mutation
   const createFacilityMutation = useMutation({
     mutationFn: async (values: FacilityFormValues) => {
-      // In a real implementation, you would send to the backend
-      // const res = await apiRequest("POST", "/api/facilities", values);
-      // return res.json();
-      
-      // For now, just return the values with a mock ID
-      return Promise.resolve({ ...values, id: Math.floor(Math.random() * 1000) });
+      const res = await apiRequest("POST", "/api/facilities", values);
+      return await res.json();
     },
     onSuccess: () => {
-      // queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
       setIsCreateDialogOpen(false);
       createForm.reset();
       toast({
