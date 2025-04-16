@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMediaQuery } from "@/hooks/use-mobile";
-import hanzoLogo from "@/assets/hanzo_logo.jpeg";
+import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
 
 interface SidebarProps {
   className?: string;
@@ -94,8 +94,8 @@ export default function Sidebar({ className }: SidebarProps) {
           <Link href="/" className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               <img 
-                src={hanzoLogo} 
-                alt="Hanzo Logistics Logo" 
+                src={dockOptimizerLogo} 
+                alt="Dock Optimizer Logo" 
                 className="h-10 mr-1"
               />
             </div>

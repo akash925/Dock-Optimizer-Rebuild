@@ -15,7 +15,7 @@ import {
   ExternalLink,
   Share2
 } from "lucide-react";
-import hanzoLogo from "@/assets/hanzo_logo.jpeg";
+// No logo import needed for top nav
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
