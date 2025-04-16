@@ -224,7 +224,7 @@ const appointmentDetailsSchema = z.object({
   appointmentDate: z.string().min(1, "Please select a date"),
   appointmentTime: z.string().min(1, "Please select a time"),
   carrierName: z.string().min(1, "Carrier name is required"),
-  mcNumber: z.string().regex(/^[a-zA-Z0-9]+$/, "MC Number must be alphanumeric").min(1, "MC Number is required"),
+  mcNumber: z.string().optional(),
   truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
@@ -1045,17 +1045,12 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                 name="mcNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>MC Number*</FormLabel>
-                    <FormDescription>Motor Carrier number (required for all shipments)</FormDescription>
+                    <FormLabel>MC Number</FormLabel>
+                    <FormDescription>Motor Carrier number (if available)</FormDescription>
                     <FormControl>
                       <Input 
-                        placeholder="MC Number" 
-                        {...field} 
-                        onChange={(e) => {
-                          // Only allow alphanumeric characters
-                          const value = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
-                          field.onChange(value);
-                        }}
+                        placeholder="MC Number (Optional)" 
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -1332,8 +1327,8 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               
               <div className="border-l-4 border-yellow-400 bg-yellow-50 p-4">
                 <p className="text-sm text-gray-800">
-                  <span className="font-semibold">Effective August 1st, 2023, MC Numbers are required for all
-                  incoming and outgoing shipments.</span> This is to protect the
+                  <span className="font-semibold">Please provide MC Numbers when available for
+                  incoming and outgoing shipments.</span> This helps protect the
                   security of our customer's shipments and reduce the risk of
                   fraud.
                 </p>
