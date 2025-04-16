@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { cn, formatTime } from "@/lib/utils";
 import { Link } from "wouter";
 import { Schedule, Dock, Carrier } from "@shared/schema";
@@ -102,12 +102,12 @@ export default function ScheduleTimeline({
         
         {/* Door rows */}
         {docks.map((dock) => (
-          <React.Fragment key={dock.id}>
+          <Fragment key={dock.id}>
             <div className="calendar-door">{dock.name}</div>
             {Array.from({ length: 24 }, (_, i) => (
               <div key={i} className="calendar-hour"></div>
             ))}
-          </React.Fragment>
+          </Fragment>
         ))}
         
         {/* Schedule events */}
