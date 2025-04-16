@@ -296,6 +296,22 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
 
   // Render the appropriate form based on current step
   const renderForm = () => {
+    // No slug provided
+    if (!slug) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <img src={dockOptimizerLogo} alt="Dock Optimizer" className="h-16 mb-4" />
+          <Alert variant="destructive" className="max-w-lg">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Invalid URL</AlertTitle>
+            <AlertDescription>
+              No booking page specified. Please check the URL or contact the administrator.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+    
     // Loading state
     if (isLoadingBookingPage || isLoadingFacilities || isLoadingAppointmentTypes) {
       return (
@@ -309,26 +325,36 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
     // Error state
     if (bookingPageError || !bookingPage) {
       return (
-        <Alert variant="destructive" className="mx-auto max-w-lg my-8">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {bookingPageError ? bookingPageError.message : "Booking page not found"}
-          </AlertDescription>
-        </Alert>
+        <div className="flex flex-col items-center justify-center py-12">
+          <img src={dockOptimizerLogo} alt="Dock Optimizer" className="h-16 mb-4" />
+          <Alert variant="destructive" className="max-w-lg">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              {bookingPageError ? bookingPageError.message : `Booking page "${slug}" not found.`}
+            </AlertDescription>
+          </Alert>
+        </div>
       );
     }
     
     // No facilities configured
     if (Object.keys(parsedFacilities).length === 0) {
       return (
-        <Alert variant="destructive" className="mx-auto max-w-lg my-8">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Configuration Error</AlertTitle>
-          <AlertDescription>
-            No facilities are configured for this booking page. Please contact the administrator.
-          </AlertDescription>
-        </Alert>
+        <div className="flex flex-col items-center justify-center py-12">
+          <img 
+            src={bookingPage.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : dockOptimizerLogo} 
+            alt={bookingPage.title} 
+            className="h-16 mb-4"
+          />
+          <Alert variant="destructive" className="max-w-lg">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Configuration Error</AlertTitle>
+            <AlertDescription>
+              No facilities are configured for this booking page. Please contact the administrator.
+            </AlertDescription>
+          </Alert>
+        </div>
       );
     }
     
