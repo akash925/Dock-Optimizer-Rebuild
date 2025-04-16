@@ -102,6 +102,7 @@ export const insertDockSchema = createInsertSchema(docks).omit({
 export const carriers = pgTable("carriers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
+  mcNumber: text("mc_number"), // Motor Carrier number
   contactName: text("contact_name"),
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
