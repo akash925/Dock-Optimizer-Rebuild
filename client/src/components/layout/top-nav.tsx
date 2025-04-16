@@ -15,7 +15,6 @@ import {
   ExternalLink,
   Share2
 } from "lucide-react";
-import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
 import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,13 +73,7 @@ export default function TopNav() {
             <img 
               src={hanzoLogo} 
               alt="Hanzo Logistics Logo" 
-              className="h-10 mr-1"
-            />
-            <div className="h-6 border-r border-gray-300 mx-1"></div>
-            <img 
-              src={dockOptimizerLogo} 
-              alt="Dock Optimizer Logo" 
-              className="h-8"
+              className="h-10"
             />
           </div>
         </Link>

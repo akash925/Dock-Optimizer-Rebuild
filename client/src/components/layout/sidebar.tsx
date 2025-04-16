@@ -98,12 +98,6 @@ export default function Sidebar({ className }: SidebarProps) {
                 alt="Hanzo Logistics Logo" 
                 className="h-10 mr-1"
               />
-              <div className="h-6 border-r border-gray-300 mx-1"></div>
-              <img 
-                src={dockOptimizerLogo} 
-                alt="Dock Optimizer Logo" 
-                className="h-8"
-              />
             </div>
           </Link>
         </div>
@@ -161,6 +155,13 @@ export default function Sidebar({ className }: SidebarProps) {
               icon={<Warehouse size={20} />} 
               label="Facility Master" 
               active={location === "/facility-master"}
+              onClick={closeSidebar}
+            />
+            <SidebarItem 
+              href="/appointment-master" 
+              icon={<FileText size={20} />} 
+              label="Appointment Master" 
+              active={location === "/appointment-master"}
               onClick={closeSidebar}
             />
             {user.role === "admin" && (

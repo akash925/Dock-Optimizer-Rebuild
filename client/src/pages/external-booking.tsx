@@ -16,7 +16,6 @@ import { Loader2, TruckIcon, ArrowRight, ArrowLeft, Upload, FileText } from "luc
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
 import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 
 // Define location data
@@ -766,12 +765,7 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-6 md:py-12 px-2 md:px-4">
       <div className="max-w-4xl mx-auto w-full">
         <div className="flex flex-col items-center mb-6 md:mb-8">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-4 text-center w-full">
-            <img 
-              src={dockOptimizerLogo} 
-              alt="Dock Optimizer" 
-              className="h-14 mb-3 md:mb-0" 
-            />
+          <div className="flex flex-col md:flex-row items-center justify-center mb-4 text-center w-full">
             <img 
               src={hanzoLogo} 
               alt="Hanzo Logistics" 
