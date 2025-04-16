@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/ui/data-table";
 import ScheduleCalendar from "@/components/schedules/schedule-calendar";
 import ScheduleWeekCalendar from "@/components/schedules/schedule-week-calendar";
-import ScheduleForm from "@/components/schedules/schedule-form";
+import AppointmentForm from "@/components/schedules/appointment-form";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatTime } from "@/lib/utils";
@@ -21,6 +21,7 @@ export default function Schedules() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editScheduleId, setEditScheduleId] = useState<number | null>(null);
+  const [clickedCellDate, setClickedCellDate] = useState<Date | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"calendar" | "week" | "day" | "month" | "list">("week");
   
   // Fetch schedules
@@ -185,9 +186,8 @@ export default function Schedules() {
             onViewChange={setViewMode}
             onCellClick={(date) => {
               setEditScheduleId(null);
+              setClickedCellDate(date);
               setIsFormOpen(true);
-              // You can pass the clicked date to the form to prefill it
-              // This could be handled via context or by updating the form component
             }}
           />
         )}
@@ -226,11 +226,15 @@ export default function Schedules() {
         )}
       </div>
       
-      <ScheduleForm 
+      <AppointmentForm 
         isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={() => {
+          setIsFormOpen(false);
+          setClickedCellDate(undefined);
+        }}
         initialData={scheduleToEdit}
         mode={editScheduleId ? "edit" : "create"}
+        initialDate={clickedCellDate || selectedDate}
       />
     </div>
   );
