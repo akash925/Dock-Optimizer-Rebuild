@@ -395,15 +395,11 @@ export default function FacilityMaster() {
   // Update facility mutation
   const updateFacilityMutation = useMutation({
     mutationFn: async (values: FacilityFormValues) => {
-      // In a real implementation, you would send to the backend
-      // const res = await apiRequest("PUT", `/api/facilities/${values.id}`, values);
-      // return res.json();
-      
-      // For now, just return the values
-      return Promise.resolve(values);
+      const res = await apiRequest("PUT", `/api/facilities/${values.id}`, values);
+      return await res.json();
     },
     onSuccess: () => {
-      // queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
       setIsEditDialogOpen(false);
       setCurrentFacility(null);
       toast({
@@ -423,15 +419,11 @@ export default function FacilityMaster() {
   // Delete facility mutation
   const deleteFacilityMutation = useMutation({
     mutationFn: async (id: number) => {
-      // In a real implementation, you would send to the backend
-      // const res = await apiRequest("DELETE", `/api/facilities/${id}`);
-      // return res.ok;
-      
-      // For now, just return true
-      return Promise.resolve(true);
+      const res = await apiRequest("DELETE", `/api/facilities/${id}`);
+      return res.ok;
     },
     onSuccess: () => {
-      // queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
       toast({
         title: "Success",
         description: "Facility deleted successfully",
