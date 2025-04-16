@@ -474,7 +474,7 @@ export default function FacilityMaster() {
     holidayForm.reset({
       date: new Date(),
       description: "",
-      facilityId: holidayTab === "facility" ? currentFacility?.id : null,
+      facilityId: holidayTab === "facility" ? currentFacility?.id : undefined,
       scope: holidayTab
     });
     setIsAddHolidayDialogOpen(true);
