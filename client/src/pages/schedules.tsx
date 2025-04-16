@@ -168,7 +168,7 @@ export default function Schedules() {
           className="bg-primary text-white"
         >
           <PlusCircle className="h-4 w-4 mr-2" />
-          New Schedule
+          New Appointment
         </Button>
       </div>
       
@@ -183,6 +183,12 @@ export default function Schedules() {
             onScheduleClick={handleScheduleClick}
             onDateChange={setSelectedDate}
             onViewChange={setViewMode}
+            onCellClick={(date) => {
+              setEditScheduleId(null);
+              setIsFormOpen(true);
+              // You can pass the clicked date to the form to prefill it
+              // This could be handled via context or by updating the form component
+            }}
           />
         )}
         

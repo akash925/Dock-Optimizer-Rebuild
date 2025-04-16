@@ -19,6 +19,7 @@ interface ScheduleWeekCalendarProps {
   onScheduleClick: (scheduleId: number) => void;
   onDateChange: (date: Date) => void;
   onViewChange: (view: "month" | "week" | "day" | "list") => void;
+  onCellClick?: (date: Date, dockId?: number) => void;
 }
 
 export default function ScheduleWeekCalendar({
@@ -29,6 +30,7 @@ export default function ScheduleWeekCalendar({
   onScheduleClick,
   onDateChange,
   onViewChange,
+  onCellClick,
 }: ScheduleWeekCalendarProps) {
   // Current week dates
   const weekStart = startOfWeek(date, { weekStartsOn: 0 }); // Sunday as start of week
@@ -256,19 +258,27 @@ export default function ScheduleWeekCalendar({
               </div>
               
               {/* Day cells */}
-              {weekDays.map((day, j) => (
-                <div 
-                  key={j} 
-                  className={cn(
-                    "border-b border-r w-[calc((100%-4rem)/7)] min-w-[8rem] h-[50px] relative",
-                    day.getDate() === new Date().getDate() && 
-                    day.getMonth() === new Date().getMonth() && 
-                    day.getFullYear() === new Date().getFullYear() 
-                      ? "bg-blue-50/30" 
-                      : hour.value % 2 === 0 ? "bg-gray-50/30" : ""
-                  )}
-                ></div>
-              ))}
+              {weekDays.map((day, j) => {
+                // Create date object for the current cell (day + time)
+                const cellDate = new Date(day);
+                cellDate.setHours(hour.value);
+                cellDate.setMinutes(0);
+
+                return (
+                  <div 
+                    key={j} 
+                    className={cn(
+                      "border-b border-r w-[calc((100%-4rem)/7)] min-w-[8rem] h-[50px] relative cursor-pointer hover:bg-gray-100 transition-colors",
+                      day.getDate() === new Date().getDate() && 
+                      day.getMonth() === new Date().getMonth() && 
+                      day.getFullYear() === new Date().getFullYear() 
+                        ? "bg-blue-50/30" 
+                        : hour.value % 2 === 0 ? "bg-gray-50/30" : ""
+                    )}
+                    onClick={() => onCellClick && onCellClick(cellDate)}
+                  ></div>
+                );
+              })}
             </div>
           ))}
           
