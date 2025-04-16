@@ -66,6 +66,28 @@ export interface IStorage {
   createAppointmentSettings(settings: InsertAppointmentSettings): Promise<AppointmentSettings>;
   updateAppointmentSettings(facilityId: number, settings: Partial<AppointmentSettings>): Promise<AppointmentSettings | undefined>;
   
+  // Appointment Type operations
+  getAppointmentType(id: number): Promise<AppointmentType | undefined>;
+  getAppointmentTypes(): Promise<AppointmentType[]>;
+  getAppointmentTypesByFacility(facilityId: number): Promise<AppointmentType[]>;
+  createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType>;
+  updateAppointmentType(id: number, appointmentType: Partial<AppointmentType>): Promise<AppointmentType | undefined>;
+  deleteAppointmentType(id: number): Promise<boolean>;
+  
+  // Daily Availability operations
+  getDailyAvailability(id: number): Promise<DailyAvailability | undefined>;
+  getDailyAvailabilityByAppointmentType(appointmentTypeId: number): Promise<DailyAvailability[]>;
+  createDailyAvailability(dailyAvailability: InsertDailyAvailability): Promise<DailyAvailability>;
+  updateDailyAvailability(id: number, dailyAvailability: Partial<DailyAvailability>): Promise<DailyAvailability | undefined>;
+  deleteDailyAvailability(id: number): Promise<boolean>;
+  
+  // Custom Question operations
+  getCustomQuestion(id: number): Promise<CustomQuestion | undefined>;
+  getCustomQuestionsByAppointmentType(appointmentTypeId: number): Promise<CustomQuestion[]>;
+  createCustomQuestion(customQuestion: InsertCustomQuestion): Promise<CustomQuestion>;
+  updateCustomQuestion(id: number, customQuestion: Partial<CustomQuestion>): Promise<CustomQuestion | undefined>;
+  deleteCustomQuestion(id: number): Promise<boolean>;
+  
   // Session store
   sessionStore: any; // Type-safe session store
 }

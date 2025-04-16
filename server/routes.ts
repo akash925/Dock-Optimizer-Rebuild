@@ -10,6 +10,9 @@ import {
   insertNotificationSchema,
   insertFacilitySchema,
   insertAppointmentSettingsSchema,
+  insertAppointmentTypeSchema,
+  insertDailyAvailabilitySchema,
+  insertCustomQuestionSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -593,6 +596,217 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid settings data", errors: err.errors });
       }
       res.status(500).json({ message: "Failed to update appointment settings" });
+    }
+  });
+
+  // Appointment Type routes
+  app.get("/api/appointment-types", async (req, res) => {
+    try {
+      const appointmentTypes = await storage.getAppointmentTypes();
+      res.json(appointmentTypes);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch appointment types" });
+    }
+  });
+
+  app.get("/api/appointment-types/:id", async (req, res) => {
+    try {
+      const appointmentType = await storage.getAppointmentType(Number(req.params.id));
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      res.json(appointmentType);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch appointment type" });
+    }
+  });
+
+  app.get("/api/facilities/:id/appointment-types", async (req, res) => {
+    try {
+      const facilityId = Number(req.params.id);
+      const appointmentTypes = await storage.getAppointmentTypesByFacility(facilityId);
+      res.json(appointmentTypes);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch appointment types for facility" });
+    }
+  });
+
+  app.post("/api/appointment-types", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const validatedData = insertAppointmentTypeSchema.parse(req.body);
+      
+      // Check if facility exists
+      const facility = await storage.getFacility(validatedData.facilityId);
+      if (!facility) {
+        return res.status(400).json({ message: "Invalid facility ID" });
+      }
+      
+      const appointmentType = await storage.createAppointmentType(validatedData);
+      res.status(201).json(appointmentType);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid appointment type data", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create appointment type" });
+    }
+  });
+
+  app.put("/api/appointment-types/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const appointmentType = await storage.getAppointmentType(id);
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      const updatedAppointmentType = await storage.updateAppointmentType(id, req.body);
+      res.json(updatedAppointmentType);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update appointment type" });
+    }
+  });
+
+  app.delete("/api/appointment-types/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const appointmentType = await storage.getAppointmentType(id);
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Check if there are any schedules using this appointment type
+      const schedules = await storage.getSchedules();
+      const appointmentTypeSchedules = schedules.filter(s => s.appointmentTypeId === id);
+      
+      if (appointmentTypeSchedules.length > 0) {
+        return res.status(409).json({ 
+          message: "Cannot delete appointment type with existing schedules", 
+          count: appointmentTypeSchedules.length
+        });
+      }
+      
+      // Delete the appointment type
+      const success = await storage.deleteAppointmentType(id);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete appointment type" });
+      }
+      
+      res.status(204).send();
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete appointment type" });
+    }
+  });
+
+  // Daily Availability routes
+  app.get("/api/appointment-types/:id/availability", async (req, res) => {
+    try {
+      const appointmentTypeId = Number(req.params.id);
+      const dailyAvailability = await storage.getDailyAvailabilityByAppointmentType(appointmentTypeId);
+      res.json(dailyAvailability);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch daily availability" });
+    }
+  });
+
+  app.post("/api/daily-availability", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const validatedData = insertDailyAvailabilitySchema.parse(req.body);
+      
+      // Check if appointment type exists
+      const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId);
+      if (!appointmentType) {
+        return res.status(400).json({ message: "Invalid appointment type ID" });
+      }
+      
+      const dailyAvailability = await storage.createDailyAvailability(validatedData);
+      res.status(201).json(dailyAvailability);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid daily availability data", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create daily availability" });
+    }
+  });
+
+  app.put("/api/daily-availability/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const dailyAvailability = await storage.getDailyAvailability(id);
+      if (!dailyAvailability) {
+        return res.status(404).json({ message: "Daily availability not found" });
+      }
+      
+      const updatedDailyAvailability = await storage.updateDailyAvailability(id, req.body);
+      res.json(updatedDailyAvailability);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update daily availability" });
+    }
+  });
+
+  // Custom Question routes
+  app.get("/api/appointment-types/:id/questions", async (req, res) => {
+    try {
+      const appointmentTypeId = Number(req.params.id);
+      const customQuestions = await storage.getCustomQuestionsByAppointmentType(appointmentTypeId);
+      res.json(customQuestions);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch custom questions" });
+    }
+  });
+
+  app.post("/api/custom-questions", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const validatedData = insertCustomQuestionSchema.parse(req.body);
+      
+      // Check if appointment type exists if appointmentTypeId is provided
+      if (validatedData.appointmentTypeId) {
+        const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId);
+        if (!appointmentType) {
+          return res.status(400).json({ message: "Invalid appointment type ID" });
+        }
+      }
+      
+      const customQuestion = await storage.createCustomQuestion(validatedData);
+      res.status(201).json(customQuestion);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid custom question data", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create custom question" });
+    }
+  });
+
+  app.put("/api/custom-questions/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const customQuestion = await storage.getCustomQuestion(id);
+      if (!customQuestion) {
+        return res.status(404).json({ message: "Custom question not found" });
+      }
+      
+      const updatedCustomQuestion = await storage.updateCustomQuestion(id, req.body);
+      res.json(updatedCustomQuestion);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update custom question" });
+    }
+  });
+
+  app.delete("/api/custom-questions/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const customQuestion = await storage.getCustomQuestion(id);
+      if (!customQuestion) {
+        return res.status(404).json({ message: "Custom question not found" });
+      }
+      
+      const success = await storage.deleteCustomQuestion(id);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete custom question" });
+      }
+      
+      res.status(204).send();
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete custom question" });
     }
   });
 
