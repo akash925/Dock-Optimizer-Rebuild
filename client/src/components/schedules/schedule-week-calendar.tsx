@@ -320,9 +320,9 @@ export default function ScheduleWeekCalendar({
                   ...positionStyle,
                   top: `${adjustedTop}px`,
                   height: `${adjustedHeight}px`,
-                  left: `calc(16px + ${dayIndex} * (100% - 4rem) / 7 + 2px)`,
-                  width: 'calc((100% - 4rem) / 7 - 4px)',
-                  minWidth: 'calc(8rem - 4px)',
+                  left: `calc(12px + ${dayIndex} * (100% - 3rem) / 7 + 2px)`,
+                  width: 'calc((100% - 3rem) / 7 - 4px)',
+                  minWidth: 'calc(6rem - 4px)',
                   zIndex: 10
                 }}
                 onClick={() => onScheduleClick(schedule.id)}
