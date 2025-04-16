@@ -774,11 +774,26 @@ export async function initializeDatabase() {
       role: "worker",
     });
     
+    // Create a default facility
+    const mainFacility = await dbStorage.createFacility({
+      name: "Main Warehouse",
+      address1: "123 Logistics Way",
+      address2: "Building A",
+      city: "Indianapolis",
+      state: "IN",
+      pincode: "46201",
+      country: "USA",
+      latitude: "39.768403",
+      longitude: "-86.158068",
+      company: "Hanzo Logistics"
+    });
+    
     // Create some docks
     const dockNames = ["A-01", "A-02", "A-03", "A-04", "B-01", "B-02", "B-03", "B-04"];
     for (const name of dockNames) {
       await dbStorage.createDock({
         name,
+        facilityId: mainFacility.id, // Associate with the main facility
         isActive: true,
         type: "both",
         constraints: { maxTrailerLength: 53, requiresForklift: false }
