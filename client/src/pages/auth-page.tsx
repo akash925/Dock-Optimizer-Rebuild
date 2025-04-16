@@ -97,20 +97,16 @@ export default function AuthPage() {
           <Card className="w-full max-w-md">
             <CardHeader className="space-y-1">
               <div className="flex flex-col items-center justify-center mb-4">
-                <div className="flex items-center mb-2">
+                <div className="flex items-center justify-between w-full mb-4">
                   <img 
                     src={dockOptimizerLogo} 
                     alt="Dock Optimizer Logo" 
-                    className="h-14 mr-2"
+                    className="h-14"
                   />
-                  <h2 className="text-2xl font-bold text-primary">Dock Optimizer</h2>
-                </div>
-                <div className="flex items-center text-xs text-neutral-500 mt-1">
-                  <span className="mr-1">Powered by</span>
                   <img 
                     src={hanzoLogo} 
                     alt="Hanzo Logistics Logo" 
-                    className="h-4"
+                    className="h-12"
                   />
                 </div>
               </div>
@@ -273,12 +269,7 @@ export default function AuthPage() {
                 By signing in, you agree to our Terms of Service and Privacy Policy.
               </p>
               <div className="flex items-center text-xs text-neutral-500">
-                <span className="mr-1">© 2025 Hanzo Logistics</span>
-                <img 
-                  src={hanzoLogo} 
-                  alt="Hanzo Logistics Logo" 
-                  className="h-3 ml-1"
-                />
+                <span>© 2025 Conmitto Inc. All rights reserved</span>
               </div>
             </CardFooter>
           </Card>

@@ -766,21 +766,20 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-6 md:py-12 px-2 md:px-4">
       <div className="max-w-4xl mx-auto w-full">
         <div className="flex flex-col items-center mb-6 md:mb-8">
-          <div className="flex flex-col md:flex-row items-center justify-center mb-4 text-center">
-            <div className="flex items-center mb-3 md:mb-0">
-              <img 
-                src={hanzoLogo} 
-                alt="Hanzo Logistics" 
-                className="h-16 md:mr-4" 
-              />
-              <img 
-                src={dockOptimizerLogo} 
-                alt="Dock Optimizer" 
-                className="h-14 ml-2" 
-              />
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 md:ml-2">Dock Optimizer</h1>
+          <div className="flex flex-col md:flex-row items-center justify-between mb-4 text-center w-full">
+            <img 
+              src={dockOptimizerLogo} 
+              alt="Dock Optimizer" 
+              className="h-14 mb-3 md:mb-0" 
+            />
+            <img 
+              src={hanzoLogo} 
+              alt="Hanzo Logistics" 
+              className="h-16" 
+            />
           </div>
+        </div>
+        <div className="flex flex-col items-center">
           <p className="text-center text-gray-600 max-w-2xl px-4">
             Please use this form to pick the type of Dock Appointment that you need at Hanzo Logistics. 
             For support using this page, <a href="#" className="text-primary underline hover:text-primary/80">please check out this video</a>.
@@ -857,12 +856,7 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               Please arrive 15 minutes before your appointment and check in at the security desk.
             </p>
             <div className="flex items-center text-xs text-gray-500">
-              <span>© 2025 Hanzo Logistics, Inc. | Powered by</span>
-              <img 
-                src={dockOptimizerLogo} 
-                alt="Dock Optimizer" 
-                className="h-4 ml-1" 
-              />
+              <span>© 2025 Conmitto Inc. All rights reserved</span>
             </div>
           </div>
         </div>
