@@ -16,6 +16,7 @@ import {
   Share2
 } from "lucide-react";
 import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
+import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -67,13 +68,21 @@ export default function TopNav() {
 
   return (
     <header className="bg-white shadow-sm h-16 flex items-center justify-between px-4 sticky top-0 z-40">
-      <div className="flex items-center">
+      <div className="flex items-center gap-2">
         <Link href="/" className="flex items-center">
-          <img 
-            src={dockOptimizerLogo} 
-            alt="Dock Optimizer Logo" 
-            className="h-10 mr-2"
-          />
+          <div className="flex items-center gap-2">
+            <img 
+              src={hanzoLogo} 
+              alt="Hanzo Logistics Logo" 
+              className="h-10 mr-1"
+            />
+            <div className="h-6 border-r border-gray-300 mx-1"></div>
+            <img 
+              src={dockOptimizerLogo} 
+              alt="Dock Optimizer Logo" 
+              className="h-8"
+            />
+          </div>
         </Link>
       </div>
       
