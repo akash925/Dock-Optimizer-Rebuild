@@ -14,10 +14,10 @@ import {
   Layout,
   ClipboardList,
   Warehouse,
+  FileText,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMediaQuery } from "@/hooks/use-mobile";
-import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
 import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 
 interface SidebarProps {

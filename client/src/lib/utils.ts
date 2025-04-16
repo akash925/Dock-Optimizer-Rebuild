@@ -114,3 +114,6 @@ export function calculateDuration(startTime: Date | string, endTime: Date | stri
   const end = typeof endTime === 'string' ? new Date(endTime) : endTime;
   return end.getTime() - start.getTime();
 }
+
+// Array of week days for availability settings
+export const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
