@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/layout/index";
+import { Facility } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -133,12 +134,10 @@ export default function AppointmentMaster() {
     }
   ]);
   
-  // Mock data for facilities
-  const [facilities, setFacilities] = useState([
-    { id: 1, name: "Sam Prime Products" },
-    { id: 2, name: "Hanzo Brownsburg" },
-    { id: 3, name: "Hanzo Metro" }
-  ]);
+  // Fetch facilities from API
+  const { data: facilities = [], isLoading: isLoadingFacilities } = useQuery<Facility[]>({
+    queryKey: ["/api/facilities"],
+  });
   
   // Mock data for question form fields
   const [customFields, setCustomFields] = useState<QuestionFormField[]>([
