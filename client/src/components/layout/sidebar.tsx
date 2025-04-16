@@ -12,6 +12,8 @@ import {
   Users,
   Menu,
   Layout,
+  ClipboardList,
+  Warehouse,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMediaQuery } from "@/hooks/use-mobile";

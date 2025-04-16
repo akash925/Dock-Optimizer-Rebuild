@@ -12,6 +12,8 @@ import BookingConfirmation from "@/pages/booking-confirmation";
 import Analytics from "@/pages/analytics";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
+import Facilities from "@/pages/facilities";
+import Appointments from "@/pages/appointments";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 
@@ -25,6 +27,8 @@ function App() {
         <Route path="/booking-confirmation" component={BookingConfirmation} />
         <ProtectedRoute path="/" component={Dashboard} />
         <ProtectedRoute path="/schedules" component={Schedules} />
+        <ProtectedRoute path="/appointments" component={Appointments} />
+        <ProtectedRoute path="/facilities" component={Facilities} roles={["admin", "manager"]} />
         <ProtectedRoute path="/dock-status" component={DockStatus} />
         <ProtectedRoute path="/door-manager" component={DoorManager} />
         <ProtectedRoute path="/analytics" component={Analytics} />
