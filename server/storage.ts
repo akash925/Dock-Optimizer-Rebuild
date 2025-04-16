@@ -371,31 +371,183 @@ export class DatabaseStorage implements IStorage {
 
   // Schedule operations
   async getSchedule(id: number): Promise<Schedule | undefined> {
-    const [schedule] = await db.select().from(schedules).where(eq(schedules.id, id));
-    return schedule;
+    try {
+      const result = await db.execute(`
+        SELECT 
+          id, type, status, dock_id as "dockId", carrier_id as "carrierId", 
+          truck_number as "truckNumber", start_time as "startTime", end_time as "endTime", 
+          created_at as "createdAt", created_by as "createdBy", 
+          last_modified_at as "lastModifiedAt", last_modified_by as "lastModifiedBy",
+          notes
+        FROM schedules
+        WHERE id = $1
+      `, [id]);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        type: row.type,
+        status: row.status,
+        dockId: row.dockId,
+        carrierId: row.carrierId,
+        truckNumber: row.truckNumber,
+        trailerNumber: null,
+        driverName: null,
+        driverPhone: null,
+        bolNumber: null,
+        poNumber: null,
+        palletCount: null,
+        weight: null,
+        appointmentMode: "trailer",
+        startTime: row.startTime,
+        endTime: row.endTime,
+        createdAt: row.createdAt,
+        createdBy: row.createdBy,
+        lastModifiedAt: row.lastModifiedAt,
+        lastModifiedBy: row.lastModifiedBy,
+        notes: row.notes
+      };
+    } catch (error) {
+      console.error("Error executing getSchedule:", error);
+      throw error;
+    }
   }
 
   async getSchedules(): Promise<Schedule[]> {
-    return await db.select().from(schedules);
+    try {
+      // Use raw SQL to handle potential schema differences
+      const result = await db.execute(`
+        SELECT 
+          id, type, status, dock_id as "dockId", carrier_id as "carrierId", 
+          truck_number as "truckNumber", start_time as "startTime", end_time as "endTime", 
+          created_at as "createdAt", created_by as "createdBy", 
+          last_modified_at as "lastModifiedAt", last_modified_by as "lastModifiedBy",
+          notes
+        FROM schedules
+      `);
+      
+      // Transform to match our expected Schedule interface
+      return result.rows.map((row: any) => {
+        return {
+          id: row.id,
+          type: row.type,
+          status: row.status,
+          dockId: row.dockId,
+          carrierId: row.carrierId,
+          truckNumber: row.truckNumber,
+          trailerNumber: null,
+          driverName: null,
+          driverPhone: null,
+          bolNumber: null,
+          poNumber: null,
+          palletCount: null,
+          weight: null,
+          appointmentMode: "trailer",
+          startTime: row.startTime,
+          endTime: row.endTime,
+          createdAt: row.createdAt,
+          createdBy: row.createdBy,
+          lastModifiedAt: row.lastModifiedAt,
+          lastModifiedBy: row.lastModifiedBy,
+          notes: row.notes
+        };
+      });
+    } catch (error) {
+      console.error("Error executing getSchedules:", error);
+      throw error;
+    }
   }
 
   async getSchedulesByDock(dockId: number): Promise<Schedule[]> {
-    return await db
-      .select()
-      .from(schedules)
-      .where(eq(schedules.dockId, dockId));
+    try {
+      const result = await db.execute(`
+        SELECT 
+          id, type, status, dock_id as "dockId", carrier_id as "carrierId", 
+          truck_number as "truckNumber", start_time as "startTime", end_time as "endTime", 
+          created_at as "createdAt", created_by as "createdBy", 
+          last_modified_at as "lastModifiedAt", last_modified_by as "lastModifiedBy",
+          notes
+        FROM schedules
+        WHERE dock_id = $1
+      `, [dockId]);
+      
+      return result.rows.map((row: any) => {
+        return {
+          id: row.id,
+          type: row.type,
+          status: row.status,
+          dockId: row.dockId,
+          carrierId: row.carrierId,
+          truckNumber: row.truckNumber,
+          trailerNumber: null,
+          driverName: null,
+          driverPhone: null,
+          bolNumber: null,
+          poNumber: null,
+          palletCount: null,
+          weight: null,
+          appointmentMode: "trailer",
+          startTime: row.startTime,
+          endTime: row.endTime,
+          createdAt: row.createdAt,
+          createdBy: row.createdBy,
+          lastModifiedAt: row.lastModifiedAt,
+          lastModifiedBy: row.lastModifiedBy,
+          notes: row.notes
+        };
+      });
+    } catch (error) {
+      console.error("Error executing getSchedulesByDock:", error);
+      throw error;
+    }
   }
 
   async getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]> {
-    return await db
-      .select()
-      .from(schedules)
-      .where(
-        and(
-          gte(schedules.startTime, startDate),
-          lte(schedules.endTime, endDate)
-        )
-      );
+    try {
+      const result = await db.execute(`
+        SELECT 
+          id, type, status, dock_id as "dockId", carrier_id as "carrierId", 
+          truck_number as "truckNumber", start_time as "startTime", end_time as "endTime", 
+          created_at as "createdAt", created_by as "createdBy", 
+          last_modified_at as "lastModifiedAt", last_modified_by as "lastModifiedBy",
+          notes
+        FROM schedules
+        WHERE start_time >= $1 AND end_time <= $2
+      `, [startDate, endDate]);
+      
+      return result.rows.map((row: any) => {
+        return {
+          id: row.id,
+          type: row.type,
+          status: row.status,
+          dockId: row.dockId,
+          carrierId: row.carrierId,
+          truckNumber: row.truckNumber,
+          trailerNumber: null,
+          driverName: null,
+          driverPhone: null,
+          bolNumber: null,
+          poNumber: null,
+          palletCount: null,
+          weight: null,
+          appointmentMode: "trailer",
+          startTime: row.startTime,
+          endTime: row.endTime,
+          createdAt: row.createdAt,
+          createdBy: row.createdBy,
+          lastModifiedAt: row.lastModifiedAt,
+          lastModifiedBy: row.lastModifiedBy,
+          notes: row.notes
+        };
+      });
+    } catch (error) {
+      console.error("Error executing getSchedulesByDateRange:", error);
+      throw error;
+    }
   }
 
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
