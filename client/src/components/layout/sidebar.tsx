@@ -148,13 +148,6 @@ export default function Sidebar({ className }: SidebarProps) {
               Management
             </div>
             <SidebarItem 
-              href="/facilities" 
-              icon={<Warehouse size={20} />} 
-              label="Facilities" 
-              active={location === "/facilities"}
-              onClick={closeSidebar}
-            />
-            <SidebarItem 
               href="/facility-master" 
               icon={<Warehouse size={20} />} 
               label="Facility Master" 
