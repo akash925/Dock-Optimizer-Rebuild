@@ -13,7 +13,7 @@ import { Save, Clock, Mail, Bell, LogOut, Building, CalendarDays, Globe, Loader2
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { TimeInterval } from "@shared/schema";
-import hanzoLogo from "@/assets/hanzo_logo.jpeg";
+import organizationLogo from "@/assets/organization_logo.jpeg";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -616,7 +616,7 @@ export default function Settings() {
                   <div className="flex items-center gap-4">
                     <div className="w-24 h-24 border rounded-md flex items-center justify-center overflow-hidden bg-white">
                       <img 
-                        src={hanzoLogo} 
+                        src={organizationLogo} 
                         alt="Organization Logo" 
                         className="max-w-full max-h-full object-contain"
                       />

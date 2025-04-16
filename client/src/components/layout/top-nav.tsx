@@ -15,7 +15,7 @@ import {
   ExternalLink,
   Share2
 } from "lucide-react";
-// No logo import needed for top nav
+import organizationLogo from "@/assets/organization_logo.jpeg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -162,6 +162,13 @@ export default function TopNav() {
             </div>
           </SheetContent>
         </Sheet>
+        
+        {/* Organization logo */}
+        <img 
+          src={organizationLogo} 
+          alt="Organization Logo" 
+          className="h-8 w-auto mr-2 hidden md:block" 
+        />
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
