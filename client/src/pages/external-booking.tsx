@@ -79,14 +79,23 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
   
   const handleSelectCarrier = useCallback((carrier: Carrier) => {
     console.log("Selecting carrier:", carrier);
+    
+    // First clear the fields to ensure they update properly
+    form.setValue("mcNumber", "");
+    
+    // Then set carrier name
     form.setValue("carrierName", carrier.name);
     
-    // Use a short timeout to break the call stack and ensure this happens after other state updates
+    // Use a longer timeout (100ms) to ensure the form state has updated 
+    // before we try to set the MC number
     setTimeout(() => {
-      // Explicitly update the MC number field - if there's an MC number use it, otherwise set to empty string
-      console.log("Setting MC Number to:", carrier.mcNumber || "");
-      form.setValue("mcNumber", carrier.mcNumber || "");
-    }, 0);
+      if (carrier.mcNumber) {
+        console.log("Setting MC Number to:", carrier.mcNumber);
+        form.setValue("mcNumber", carrier.mcNumber);
+      } else {
+        console.log("No MC Number available, keeping field blank");
+      }
+    }, 100);
     
     setOpen(false);
   }, [form]);
@@ -94,13 +103,18 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
   const handleAddCarrier = useCallback(() => {
     if (searchQuery.trim()) {
       console.log("Adding new carrier:", searchQuery);
+      
+      // First clear MC Number
+      form.setValue("mcNumber", "");
+      
+      // Then set the carrier name
       form.setValue("carrierName", searchQuery.trim());
       
-      // Use a short timeout to break the call stack and ensure this happens after other state updates
+      // Use a longer timeout to ensure the MC number stays cleared
       setTimeout(() => {
-        console.log("Clearing MC Number field for new carrier");
+        console.log("Ensuring MC Number field is empty for new carrier");
         form.setValue("mcNumber", "");
-      }, 0);
+      }, 100);
       
       setOpen(false);
       setAddingNewCarrier(false);
@@ -384,7 +398,7 @@ export default function ExternalBooking() {
   useEffect(() => {
     // Clear MC Number field on component mount
     appointmentDetailsForm.setValue("mcNumber", "");
-  }, []);
+  }, [appointmentDetailsForm]);
   
   // Use an effect to update available appointment types when location changes
   useEffect(() => {
@@ -1073,23 +1087,31 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               <FormField
                 control={appointmentDetailsForm.control}
                 name="mcNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>MC Number</FormLabel>
-                    <FormDescription>Motor Carrier number (if available)</FormDescription>
-                    <FormControl>
-                      <Input 
-                        placeholder="MC Number (Optional)" 
-                        value={field.value || ""}
-                        onChange={field.onChange}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Replace any phone numbers with empty string to avoid showing that data
+                  const fieldValue = field.value && field.value.includes('-') ? '' : field.value;
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>MC Number</FormLabel>
+                      <FormDescription>Motor Carrier number (if available)</FormDescription>
+                      <FormControl>
+                        <Input 
+                          placeholder="MC Number (Optional)" 
+                          value={fieldValue || ""}
+                          onChange={(e) => {
+                            // Allow direct editing of the field
+                            field.onChange(e.target.value);
+                          }}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
