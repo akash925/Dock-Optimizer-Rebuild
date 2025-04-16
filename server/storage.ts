@@ -580,7 +580,7 @@ export class MemStorage implements IStorage {
 
 // Database Storage Implementation
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any for session store compatibility
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
@@ -973,6 +973,136 @@ export class DatabaseStorage implements IStorage {
       .where(eq(appointmentSettings.facilityId, facilityId))
       .returning();
     return updatedSettings;
+  }
+
+  // Appointment Type operations
+  async getAppointmentType(id: number): Promise<AppointmentType | undefined> {
+    const [appointmentType] = await db
+      .select()
+      .from(appointmentTypes)
+      .where(eq(appointmentTypes.id, id));
+    return appointmentType;
+  }
+
+  async getAppointmentTypes(): Promise<AppointmentType[]> {
+    return await db.select().from(appointmentTypes);
+  }
+
+  async getAppointmentTypesByFacility(facilityId: number): Promise<AppointmentType[]> {
+    return await db
+      .select()
+      .from(appointmentTypes)
+      .where(eq(appointmentTypes.facilityId, facilityId));
+  }
+
+  async createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType> {
+    const [newAppointmentType] = await db
+      .insert(appointmentTypes)
+      .values(appointmentType)
+      .returning();
+    return newAppointmentType;
+  }
+
+  async updateAppointmentType(id: number, appointmentTypeUpdate: Partial<AppointmentType>): Promise<AppointmentType | undefined> {
+    const [updatedAppointmentType] = await db
+      .update(appointmentTypes)
+      .set({
+        ...appointmentTypeUpdate,
+        lastModifiedAt: new Date()
+      })
+      .where(eq(appointmentTypes.id, id))
+      .returning();
+    return updatedAppointmentType;
+  }
+
+  async deleteAppointmentType(id: number): Promise<boolean> {
+    const result = await db
+      .delete(appointmentTypes)
+      .where(eq(appointmentTypes.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Daily Availability operations
+  async getDailyAvailability(id: number): Promise<DailyAvailability | undefined> {
+    const [availability] = await db
+      .select()
+      .from(dailyAvailability)
+      .where(eq(dailyAvailability.id, id));
+    return availability;
+  }
+
+  async getDailyAvailabilityByAppointmentType(appointmentTypeId: number): Promise<DailyAvailability[]> {
+    return await db
+      .select()
+      .from(dailyAvailability)
+      .where(eq(dailyAvailability.appointmentTypeId, appointmentTypeId));
+  }
+
+  async createDailyAvailability(availability: InsertDailyAvailability): Promise<DailyAvailability> {
+    const [newAvailability] = await db
+      .insert(dailyAvailability)
+      .values(availability)
+      .returning();
+    return newAvailability;
+  }
+
+  async updateDailyAvailability(id: number, availabilityUpdate: Partial<DailyAvailability>): Promise<DailyAvailability | undefined> {
+    const [updatedAvailability] = await db
+      .update(dailyAvailability)
+      .set(availabilityUpdate)
+      .where(eq(dailyAvailability.id, id))
+      .returning();
+    return updatedAvailability;
+  }
+
+  async deleteDailyAvailability(id: number): Promise<boolean> {
+    const result = await db
+      .delete(dailyAvailability)
+      .where(eq(dailyAvailability.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Custom Question operations
+  async getCustomQuestion(id: number): Promise<CustomQuestion | undefined> {
+    const [question] = await db
+      .select()
+      .from(customQuestions)
+      .where(eq(customQuestions.id, id));
+    return question;
+  }
+
+  async getCustomQuestionsByAppointmentType(appointmentTypeId: number): Promise<CustomQuestion[]> {
+    return await db
+      .select()
+      .from(customQuestions)
+      .where(eq(customQuestions.appointmentTypeId, appointmentTypeId));
+  }
+
+  async createCustomQuestion(question: InsertCustomQuestion): Promise<CustomQuestion> {
+    const [newQuestion] = await db
+      .insert(customQuestions)
+      .values(question)
+      .returning();
+    return newQuestion;
+  }
+
+  async updateCustomQuestion(id: number, questionUpdate: Partial<CustomQuestion>): Promise<CustomQuestion | undefined> {
+    const [updatedQuestion] = await db
+      .update(customQuestions)
+      .set({
+        ...questionUpdate,
+        lastModifiedAt: new Date()
+      })
+      .where(eq(customQuestions.id, id))
+      .returning();
+    return updatedQuestion;
+  }
+
+  async deleteCustomQuestion(id: number): Promise<boolean> {
+    const result = await db
+      .delete(customQuestions)
+      .where(eq(customQuestions.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 }
 
