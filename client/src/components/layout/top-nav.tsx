@@ -74,26 +74,26 @@ export default function TopNav() {
             alt="Dock Optimizer Logo" 
             className="h-10 mr-2"
           />
-          <div className="text-lg font-medium text-primary hidden md:block">Dock Optimizer</div>
-          <div className="md:hidden text-lg font-medium text-primary">DO</div>
         </Link>
       </div>
       
-      <div className="flex items-center gap-2">
-        <div className="relative hidden md:flex items-center">
+      <div className="flex-1 max-w-md mx-auto px-4">
+        <div className="relative w-full">
           <Input
             type="text"
             placeholder="Search appointments..."
-            className="w-64 pl-9"
+            className="w-full pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <Search className="h-4 w-4 text-neutral-500 absolute left-3" />
+          <Search className="h-4 w-4 text-neutral-500 absolute left-3 top-1/2 transform -translate-y-1/2" />
         </div>
-        
+      </div>
+      
+      <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="hidden md:flex">
               <Calendar className="h-5 w-5 text-neutral-500" />
             </Button>
           </DropdownMenuTrigger>
@@ -128,13 +128,9 @@ export default function TopNav() {
           </DropdownMenuContent>
         </DropdownMenu>
         
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Search className="h-5 w-5 text-neutral-500" />
-        </Button>
-        
         <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="mr-2 relative">
+            <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5 text-neutral-500" />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">

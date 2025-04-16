@@ -442,7 +442,7 @@ export default function Settings() {
                             <SelectValue placeholder="Select facility" />
                           </SelectTrigger>
                           <SelectContent>
-                            {facilities.map((facility) => (
+                            {facilities.map((facility: { id: number; name: string }) => (
                               <SelectItem key={facility.id} value={facility.id.toString()}>
                                 {facility.name}
                               </SelectItem>
@@ -505,7 +505,7 @@ export default function Settings() {
                       <Checkbox 
                         id="share-availability" 
                         checked={shareAvailability}
-                        onCheckedChange={setShareAvailability}
+                        onCheckedChange={(checked) => setShareAvailability(checked === true)}
                       />
                       <label
                         htmlFor="share-availability"
