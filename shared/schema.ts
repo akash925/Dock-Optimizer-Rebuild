@@ -420,5 +420,46 @@ export type InsertAppointmentType = z.infer<typeof insertAppointmentTypeSchema>;
 export type DailyAvailability = typeof dailyAvailability.$inferSelect;
 export type InsertDailyAvailability = z.infer<typeof insertDailyAvailabilitySchema>;
 
+// Booking Page Model (External public booking pages)
+export const bookingPages = pgTable("booking_pages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(), // URL-friendly identifier
+  title: text("title").notNull(), // Page title/heading
+  description: text("description"), // Description text
+  welcomeMessage: text("welcome_message"), // Message shown at top of booking form
+  confirmationMessage: text("confirmation_message"), // Shown after successful booking
+  isActive: boolean("is_active").notNull().default(true),
+  facilities: jsonb("facilities").notNull(), // JSON array of facility IDs included on this page
+  excludedAppointmentTypes: jsonb("excluded_appointment_types"), // JSON array of appointment types to exclude
+  useOrganizationLogo: boolean("use_organization_logo").notNull().default(true), // Whether to show the org logo
+  customLogo: text("custom_logo"), // URL to custom logo if not using org logo
+  primaryColor: text("primary_color").default("#4CAF50"), // Theme color
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastModifiedAt: timestamp("last_modified_at"),
+  lastModifiedBy: integer("last_modified_by"),
+});
+
+export const insertBookingPageSchema = createInsertSchema(bookingPages).omit({
+  id: true,
+  createdAt: true,
+  lastModifiedAt: true,
+});
+
+export const bookingPagesRelations = relations(bookingPages, ({ one }) => ({
+  creator: one(users, {
+    fields: [bookingPages.createdBy],
+    references: [users.id],
+  }),
+  modifier: one(users, {
+    fields: [bookingPages.lastModifiedBy],
+    references: [users.id],
+  }),
+}));
+
+export type BookingPage = typeof bookingPages.$inferSelect;
+export type InsertBookingPage = z.infer<typeof insertBookingPageSchema>;
+
 export type CustomQuestion = typeof customQuestions.$inferSelect;
 export type InsertCustomQuestion = z.infer<typeof insertCustomQuestionSchema>;

@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Warehouse,
   FileText,
+  Globe,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMediaQuery } from "@/hooks/use-mobile";
@@ -162,6 +163,13 @@ export default function Sidebar({ className }: SidebarProps) {
               icon={<FileText size={20} />} 
               label="Appointment Master" 
               active={location === "/appointment-master"}
+              onClick={closeSidebar}
+            />
+            <SidebarItem 
+              href="/booking-pages" 
+              icon={<Globe size={20} />} 
+              label="Booking Pages" 
+              active={location === "/booking-pages"}
               onClick={closeSidebar}
             />
             {user.role === "admin" && (

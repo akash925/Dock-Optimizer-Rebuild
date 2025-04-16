@@ -10,9 +10,10 @@ import {
   AppointmentType, InsertAppointmentType,
   DailyAvailability, InsertDailyAvailability,
   CustomQuestion, InsertCustomQuestion,
+  BookingPage, InsertBookingPage,
   ScheduleStatus, DockStatus, HolidayScope, TimeInterval,
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
-  appointmentTypes, dailyAvailability, customQuestions
+  appointmentTypes, dailyAvailability, customQuestions, bookingPages
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -92,6 +93,14 @@ export interface IStorage {
   updateCustomQuestion(id: number, customQuestion: Partial<CustomQuestion>): Promise<CustomQuestion | undefined>;
   deleteCustomQuestion(id: number): Promise<boolean>;
   
+  // Booking Pages operations
+  getBookingPage(id: number): Promise<BookingPage | undefined>;
+  getBookingPageBySlug(slug: string): Promise<BookingPage | undefined>;
+  getBookingPages(): Promise<BookingPage[]>;
+  createBookingPage(bookingPage: InsertBookingPage): Promise<BookingPage>;
+  updateBookingPage(id: number, bookingPage: Partial<BookingPage>): Promise<BookingPage | undefined>;
+  deleteBookingPage(id: number): Promise<boolean>;
+  
   // Session store
   sessionStore: any; // Type-safe session store
 }
@@ -108,6 +117,7 @@ export class MemStorage implements IStorage {
   private appointmentTypes: Map<number, AppointmentType>;
   private dailyAvailability: Map<number, DailyAvailability>;
   private customQuestions: Map<number, CustomQuestion>;
+  private bookingPages: Map<number, BookingPage>;
   sessionStore: any;
   
   private userIdCounter: number = 1;
@@ -120,6 +130,7 @@ export class MemStorage implements IStorage {
   private appointmentTypeIdCounter: number = 1;
   private dailyAvailabilityIdCounter: number = 1;
   private customQuestionIdCounter: number = 1;
+  private bookingPageIdCounter: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -132,6 +143,7 @@ export class MemStorage implements IStorage {
     this.appointmentTypes = new Map();
     this.dailyAvailability = new Map();
     this.customQuestions = new Map();
+    this.bookingPages = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 24 hours
     });
@@ -575,6 +587,53 @@ export class MemStorage implements IStorage {
 
   async deleteCustomQuestion(id: number): Promise<boolean> {
     return this.customQuestions.delete(id);
+  }
+  
+  // Booking Pages operations
+  async getBookingPage(id: number): Promise<BookingPage | undefined> {
+    return this.bookingPages.get(id);
+  }
+
+  async getBookingPageBySlug(slug: string): Promise<BookingPage | undefined> {
+    return Array.from(this.bookingPages.values()).find(
+      (page) => page.slug === slug
+    );
+  }
+
+  async getBookingPages(): Promise<BookingPage[]> {
+    return Array.from(this.bookingPages.values());
+  }
+
+  async createBookingPage(insertBookingPage: InsertBookingPage): Promise<BookingPage> {
+    const id = this.bookingPageIdCounter++;
+    const createdAt = new Date();
+    const bookingPage: BookingPage = {
+      ...insertBookingPage,
+      id,
+      createdAt,
+      lastModifiedAt: null,
+      lastModifiedBy: insertBookingPage.createdBy
+    };
+    this.bookingPages.set(id, bookingPage);
+    return bookingPage;
+  }
+
+  async updateBookingPage(id: number, bookingPageUpdate: Partial<BookingPage>): Promise<BookingPage | undefined> {
+    const bookingPage = this.bookingPages.get(id);
+    if (!bookingPage) return undefined;
+    
+    const lastModifiedAt = new Date();
+    const updatedBookingPage = {
+      ...bookingPage,
+      ...bookingPageUpdate,
+      lastModifiedAt
+    };
+    this.bookingPages.set(id, updatedBookingPage);
+    return updatedBookingPage;
+  }
+
+  async deleteBookingPage(id: number): Promise<boolean> {
+    return this.bookingPages.delete(id);
   }
 }
 
