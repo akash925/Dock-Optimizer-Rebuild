@@ -7,8 +7,12 @@ import {
   Facility, InsertFacility,
   Holiday, InsertHoliday,
   AppointmentSettings, InsertAppointmentSettings,
+  AppointmentType, InsertAppointmentType,
+  DailyAvailability, InsertDailyAvailability,
+  CustomQuestion, InsertCustomQuestion,
   ScheduleStatus, DockStatus, HolidayScope, TimeInterval,
-  users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings
+  users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
+  appointmentTypes, dailyAvailability, customQuestions
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
