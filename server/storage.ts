@@ -211,9 +211,19 @@ export class MemStorage implements IStorage {
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
     const id = this.scheduleIdCounter++;
     const createdAt = new Date();
+    
+    // Set default values for new fields
     const schedule: Schedule = { 
       ...insertSchedule, 
       id, 
+      trailerNumber: insertSchedule.trailerNumber || null,
+      driverName: insertSchedule.driverName || null,
+      driverPhone: insertSchedule.driverPhone || null,
+      bolNumber: insertSchedule.bolNumber || null,
+      poNumber: insertSchedule.poNumber || null,
+      palletCount: insertSchedule.palletCount || null,
+      weight: insertSchedule.weight || null,
+      appointmentMode: insertSchedule.appointmentMode || "trailer",
       createdAt,
       lastModifiedAt: createdAt,
       lastModifiedBy: insertSchedule.createdBy
@@ -381,6 +391,14 @@ export class DatabaseStorage implements IStorage {
       .insert(schedules)
       .values({
         ...insertSchedule,
+        trailerNumber: insertSchedule.trailerNumber || null,
+        driverName: insertSchedule.driverName || null,
+        driverPhone: insertSchedule.driverPhone || null,
+        bolNumber: insertSchedule.bolNumber || null,
+        poNumber: insertSchedule.poNumber || null,
+        palletCount: insertSchedule.palletCount || null,
+        weight: insertSchedule.weight || null,
+        appointmentMode: insertSchedule.appointmentMode || "trailer",
         lastModifiedAt: new Date(),
         lastModifiedBy: insertSchedule.createdBy
       })
