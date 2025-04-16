@@ -53,7 +53,8 @@ const companyInfoSchema = z.object({
 const appointmentDetailsSchema = z.object({
   appointmentDate: z.string().min(1, "Please select a date"),
   appointmentTime: z.string().min(1, "Please select a time"),
-  mcNumber: z.string().min(1, "MC Number is required"),
+  carrierName: z.string().min(1, "Carrier name is required"),
+  mcNumber: z.string().regex(/^[a-zA-Z0-9]+$/, "MC Number must be alphanumeric").min(1, "MC Number is required"),
   truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
@@ -162,6 +163,7 @@ export default function ExternalBooking() {
     defaultValues: {
       appointmentDate: "",
       appointmentTime: "",
+      carrierName: "",
       mcNumber: "",
       truckNumber: "",
       trailerNumber: "",
@@ -685,11 +687,41 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                   control={appointmentDetailsForm.control}
                   name="appointmentDate"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Appointment Date*</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(new Date(field.value), "MMMM d, yyyy")
+                              ) : (
+                                <span>Select a date</span>
+                              )}
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value ? new Date(field.value) : undefined}
+                            onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
+                            disabled={(date) => 
+                              // Disable past dates and weekends (Saturday and Sunday)
+                              date < new Date(new Date().setHours(0, 0, 0, 0)) ||
+                              date.getDay() === 0 || 
+                              date.getDay() === 6
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -742,13 +774,82 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               
               <FormField
                 control={appointmentDetailsForm.control}
+                name="carrierName"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Carrier Name*</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? field.value
+                              : "Select carrier"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search carriers..." />
+                          <CommandEmpty>No carrier found. Enter new carrier name.</CommandEmpty>
+                          <CommandGroup>
+                            {["ABC Trucking", "XYZ Transport", "Fast Logistics", "Cross Country Inc.", "Global Carriers"].map((carrier) => (
+                              <CommandItem
+                                key={carrier}
+                                value={carrier}
+                                onSelect={() => {
+                                  appointmentDetailsForm.setValue("carrierName", carrier);
+                                  // For demo only - you would fetch real MC numbers from API
+                                  if (carrier === "ABC Trucking") appointmentDetailsForm.setValue("mcNumber", "MC123456");
+                                  if (carrier === "XYZ Transport") appointmentDetailsForm.setValue("mcNumber", "MC789123");
+                                  if (carrier === "Fast Logistics") appointmentDetailsForm.setValue("mcNumber", "MC456789");
+                                  if (carrier === "Cross Country Inc.") appointmentDetailsForm.setValue("mcNumber", "MC654321");
+                                  if (carrier === "Global Carriers") appointmentDetailsForm.setValue("mcNumber", "MC987654");
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === carrier ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {carrier}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={appointmentDetailsForm.control}
                 name="mcNumber"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>MC Number*</FormLabel>
                     <FormDescription>Motor Carrier number (required for all shipments)</FormDescription>
                     <FormControl>
-                      <Input placeholder="MC Number" {...field} />
+                      <Input 
+                        placeholder="MC Number" 
+                        {...field} 
+                        onChange={(e) => {
+                          // Only allow alphanumeric characters
+                          const value = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                          field.onChange(value);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
