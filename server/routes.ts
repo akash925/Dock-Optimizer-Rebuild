@@ -8,6 +8,7 @@ import {
   insertScheduleSchema,
   insertCarrierSchema,
   insertNotificationSchema,
+  insertFacilitySchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -318,6 +319,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Facility routes
+  app.get("/api/facilities", async (req, res) => {
+    try {
+      const facilities = await storage.getFacilities();
+      res.json(facilities);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch facilities" });
+    }
+  });
+
+  app.get("/api/facilities/:id", async (req, res) => {
+    try {
+      const facility = await storage.getFacility(Number(req.params.id));
+      if (!facility) {
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      res.json(facility);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch facility" });
+    }
+  });
+
+  app.post("/api/facilities", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const validatedData = insertFacilitySchema.parse(req.body);
+      const facility = await storage.createFacility(validatedData);
+      res.status(201).json(facility);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid facility data", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create facility" });
+    }
+  });
+
+  app.put("/api/facilities/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const facility = await storage.getFacility(id);
+      if (!facility) {
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      const updatedFacility = await storage.updateFacility(id, req.body);
+      res.json(updatedFacility);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update facility" });
+    }
+  });
+  
+  app.delete("/api/facilities/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const facility = await storage.getFacility(id);
+      if (!facility) {
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      // Check if there are any docks using this facility
+      const docks = await storage.getDocks();
+      const facilityDocks = docks.filter(d => d.facilityId === id);
+      
+      if (facilityDocks.length > 0) {
+        return res.status(409).json({ 
+          message: "Cannot delete facility with existing docks", 
+          count: facilityDocks.length
+        });
+      }
+      
+      // Delete the facility
+      const success = await storage.deleteFacility(id);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete facility" });
+      }
+      
+      res.status(204).send();
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete facility" });
+    }
+  });
+
   // User routes (admin only)
   app.get("/api/users", checkRole("admin"), async (req, res) => {
     try {

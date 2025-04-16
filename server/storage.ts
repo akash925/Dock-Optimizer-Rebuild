@@ -54,15 +54,6 @@ export interface IStorage {
   updateFacility(id: number, facility: Partial<Facility>): Promise<Facility | undefined>;
   deleteFacility(id: number): Promise<boolean>;
   
-  // Holiday operations
-  getHoliday(id: number): Promise<Holiday | undefined>;
-  getHolidays(): Promise<Holiday[]>;
-  getHolidaysByFacility(facilityId: number): Promise<Holiday[]>;
-  getHolidaysByScope(scope: keyof typeof HolidayScope): Promise<Holiday[]>;
-  createHoliday(holiday: InsertHoliday): Promise<Holiday>;
-  updateHoliday(id: number, holiday: Partial<Holiday>): Promise<Holiday | undefined>;
-  deleteHoliday(id: number): Promise<boolean>;
-  
   // Notification operations
   getNotification(id: number): Promise<Notification | undefined>;
   getNotificationsByUser(userId: number): Promise<Notification[]>;
