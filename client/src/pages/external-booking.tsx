@@ -173,11 +173,13 @@ export default function ExternalBooking() {
   // Watch the location field to update appointment types
   const watchLocation = initialSelectionForm.watch("location");
   
-  // Update available appointment types when location changes
-  if (watchLocation !== selectedLocation && watchLocation) {
-    setSelectedLocation(watchLocation);
-    initialSelectionForm.setValue("appointmentType", "");
-  }
+  // Use an effect to update available appointment types when location changes
+  useEffect(() => {
+    if (watchLocation !== selectedLocation && watchLocation) {
+      setSelectedLocation(watchLocation);
+      initialSelectionForm.setValue("appointmentType", "");
+    }
+  }, [watchLocation, selectedLocation]);
 
   // Handle BOL file upload
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
