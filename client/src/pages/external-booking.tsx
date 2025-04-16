@@ -789,10 +789,12 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                       return true;
                     });
                     
-                    // Clear time selection if no date selected or if it's invalid
-                    if (!selectedDate && field.value) {
-                      setTimeout(() => field.onChange(""), 0);
-                    }
+                    // Use effect to clear time selection when date changes
+                    React.useEffect(() => {
+                      if (!selectedDate && field.value) {
+                        field.onChange("");
+                      }
+                    }, [selectedDate, field.value]);
                     
                     return (
                       <FormItem>
