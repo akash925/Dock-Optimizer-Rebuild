@@ -80,13 +80,17 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 });
 
+// Dock/Door Types
+export type DoorType = "dry" | "refrigerated" | "frozen" | "hazmat" | "extra_heavy" | "custom";
+
 // Dock Model
 export const docks = pgTable("docks", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   facilityId: integer("facility_id").notNull(),
   isActive: boolean("is_active").notNull().default(true),
-  type: text("type").notNull(), // e.g., loading, unloading, both
+  type: text("type").notNull().$type<DoorType>(), // Door type (dry, refrigerated, etc)
+  customType: text("custom_type"), // For custom door types
   constraints: jsonb("constraints"), // Store constraints like door height, trailer length, etc.
 });
 

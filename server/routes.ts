@@ -35,6 +35,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch docks" });
     }
   });
+  
+  // Get docks by facility
+  app.get("/api/facilities/:id/docks", async (req, res) => {
+    try {
+      const facilityId = Number(req.params.id);
+      const facility = await storage.getFacility(facilityId);
+      
+      if (!facility) {
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      const docks = await storage.getDocks();
+      const facilityDocks = docks.filter(dock => dock.facilityId === facilityId);
+      
+      res.json(facilityDocks);
+    } catch (err) {
+      console.error("Error fetching facility docks:", err);
+      res.status(500).json({ message: "Failed to fetch facility docks" });
+    }
+  });
 
   app.get("/api/docks/:id", async (req, res) => {
     try {
@@ -60,25 +80,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create dock" });
     }
   });
+  
+  // Create dock for a specific facility
+  app.post("/api/facilities/:id/docks", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const facilityId = Number(req.params.id);
+      console.log(`Creating dock for facility ID: ${facilityId} with data:`, req.body);
+      
+      const facility = await storage.getFacility(facilityId);
+      if (!facility) {
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      // Add facility ID to the dock data
+      const dockData = {
+        ...req.body,
+        facilityId
+      };
+      
+      // Validate dock data
+      const validatedData = insertDockSchema.parse(dockData);
+      console.log("Validated dock data:", validatedData);
+      
+      // Create the dock
+      const dock = await storage.createDock(validatedData);
+      console.log("Dock created successfully:", dock);
+      
+      res.status(201).json(dock);
+    } catch (err) {
+      console.error("Error creating dock for facility:", err);
+      
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid dock data", 
+          errors: err.errors,
+          details: err.format() 
+        });
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to create dock",
+        error: err instanceof Error ? err.message : "Unknown error" 
+      });
+    }
+  });
 
   app.put("/api/docks/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
+      console.log(`Updating dock ID: ${id} with data:`, req.body);
+      
       const dock = await storage.getDock(id);
       if (!dock) {
         return res.status(404).json({ message: "Dock not found" });
       }
       
+      // Make sure we have all required fields by combining existing and new data
+      try {
+        const fieldsToCheck = {
+          ...dock,  // Start with existing dock data
+          ...req.body   // Override with update data
+        };
+        // Validate combined data preserves required fields
+        insertDockSchema.parse(fieldsToCheck);
+      } catch (validationErr) {
+        if (validationErr instanceof z.ZodError) {
+          console.error("Validation error updating dock:", validationErr.format());
+          return res.status(400).json({ 
+            message: "Invalid dock data", 
+            errors: validationErr.errors,
+            details: validationErr.format()
+          });
+        }
+        throw validationErr;
+      }
+      
       const updatedDock = await storage.updateDock(id, req.body);
+      console.log("Dock updated successfully:", updatedDock);
       res.json(updatedDock);
     } catch (err) {
-      res.status(500).json({ message: "Failed to update dock" });
+      console.error("Error updating dock:", err);
+      res.status(500).json({ 
+        message: "Failed to update dock",
+        error: err instanceof Error ? err.message : "Unknown error"
+      });
     }
   });
   
   app.delete("/api/docks/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
+      console.log(`Attempting to delete dock ID: ${id}`);
+      
       const dock = await storage.getDock(id);
       if (!dock) {
         return res.status(404).json({ message: "Dock not found" });
@@ -87,6 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if there are any scheduled appointments using this dock
       const dockSchedules = await storage.getSchedulesByDock(id);
       if (dockSchedules.length > 0) {
+        console.log(`Cannot delete dock ID ${id}: ${dockSchedules.length} existing schedules`);
         return res.status(409).json({ 
           message: "Cannot delete dock with existing schedules", 
           count: dockSchedules.length
@@ -96,12 +190,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete the dock
       const success = await storage.deleteDock(id);
       if (!success) {
+        console.error(`Failed to delete dock ID ${id} from storage`);
         return res.status(500).json({ message: "Failed to delete dock" });
       }
       
+      console.log(`Successfully deleted dock ID: ${id}`);
       res.status(204).send();
     } catch (err) {
-      res.status(500).json({ message: "Failed to delete dock" });
+      console.error("Error deleting dock:", err);
+      res.status(500).json({ 
+        message: "Failed to delete dock",
+        error: err instanceof Error ? err.message : "Unknown error"
+      });
     }
   });
 
