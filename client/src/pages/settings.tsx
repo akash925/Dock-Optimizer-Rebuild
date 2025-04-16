@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,6 +20,20 @@ export default function Settings() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Organization states
+  const [orgTimeZone, setOrgTimeZone] = useState("America/New_York");
+  const [selectedHoliday, setSelectedHoliday] = useState<string | null>(null);
+  const [customHolidayName, setCustomHolidayName] = useState("");
+  const [customHolidayDate, setCustomHolidayDate] = useState("");
+  const [organizationHolidays, setOrganizationHolidays] = useState([
+    { name: "New Year's Day", date: "2025-01-01", enabled: true },
+    { name: "Memorial Day", date: "2025-05-26", enabled: true },
+    { name: "Independence Day", date: "2025-07-04", enabled: true },
+    { name: "Labor Day", date: "2025-09-01", enabled: true },
+    { name: "Thanksgiving Day", date: "2025-11-27", enabled: true },
+    { name: "Christmas Day", date: "2025-12-25", enabled: true },
+  ]);
 
   // Handle save settings
   const handleSaveSettings = (settingType: string) => {
@@ -47,57 +60,52 @@ export default function Settings() {
             <CardTitle className="text-lg">Options</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs
-              defaultValue="account"
-              orientation="vertical"
-              value={activeTab}
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <TabsList className="flex flex-col items-start w-full bg-transparent">
-                <TabsTrigger
-                  value="account"
-                  className="w-full justify-start px-0 py-2 data-[state=active]:border-l-2 data-[state=active]:border-primary data-[state=active]:pl-2"
+            <div className="flex flex-col items-start w-full">
+              <div className="w-full border-b mb-4">
+                <div
+                  className={`px-0 py-2 mb-2 cursor-pointer ${activeTab === "account" ? "border-l-2 border-primary pl-2 font-medium" : ""}`}
+                  onClick={() => setActiveTab("account")}
                 >
                   Account
-                </TabsTrigger>
-                <TabsTrigger
-                  value="notifications"
-                  className="w-full justify-start px-0 py-2 data-[state=active]:border-l-2 data-[state=active]:border-primary data-[state=active]:pl-2"
+                </div>
+                <div
+                  className={`px-0 py-2 mb-2 cursor-pointer ${activeTab === "notifications" ? "border-l-2 border-primary pl-2 font-medium" : ""}`}
+                  onClick={() => setActiveTab("notifications")}
                 >
                   Notifications
-                </TabsTrigger>
-                <TabsTrigger
-                  value="appearance"
-                  className="w-full justify-start px-0 py-2 data-[state=active]:border-l-2 data-[state=active]:border-primary data-[state=active]:pl-2"
+                </div>
+                <div
+                  className={`px-0 py-2 mb-2 cursor-pointer ${activeTab === "appearance" ? "border-l-2 border-primary pl-2 font-medium" : ""}`}
+                  onClick={() => setActiveTab("appearance")}
                 >
                   Appearance
-                </TabsTrigger>
-                <TabsTrigger
-                  value="scheduling"
-                  className="w-full justify-start px-0 py-2 data-[state=active]:border-l-2 data-[state=active]:border-primary data-[state=active]:pl-2"
+                </div>
+                <div
+                  className={`px-0 py-2 mb-2 cursor-pointer ${activeTab === "scheduling" ? "border-l-2 border-primary pl-2 font-medium" : ""}`}
+                  onClick={() => setActiveTab("scheduling")}
                 >
                   Scheduling
-                </TabsTrigger>
-                <TabsTrigger
-                  value="organization"
-                  className="w-full justify-start px-0 py-2 data-[state=active]:border-l-2 data-[state=active]:border-primary data-[state=active]:pl-2"
+                </div>
+                <div
+                  className={`px-0 py-2 mb-2 cursor-pointer ${activeTab === "organization" ? "border-l-2 border-primary pl-2 font-medium" : ""}`}
+                  onClick={() => setActiveTab("organization")}
                 >
                   Organization
-                </TabsTrigger>
-                <TabsTrigger
-                  value="integrations"
-                  className="w-full justify-start px-0 py-2 data-[state=active]:border-l-2 data-[state=active]:border-primary data-[state=active]:pl-2"
+                </div>
+                <div
+                  className={`px-0 py-2 cursor-pointer ${activeTab === "integrations" ? "border-l-2 border-primary pl-2 font-medium" : ""}`}
+                  onClick={() => setActiveTab("integrations")}
                 >
                   Integrations
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
         
         <Card className="md:col-span-3">
-          <TabsContent value="account" className="m-0" hidden={activeTab !== "account"}>
+          {/* Account Tab */}
+          <div className={activeTab !== "account" ? "hidden" : ""}>
             <CardHeader>
               <CardTitle>Account Settings</CardTitle>
               <CardDescription>
@@ -152,9 +160,10 @@ export default function Settings() {
                 </Button>
               </div>
             </CardContent>
-          </TabsContent>
+          </div>
           
-          <TabsContent value="notifications" className="m-0" hidden={activeTab !== "notifications"}>
+          {/* Notifications Tab */}
+          <div className={activeTab !== "notifications" ? "hidden" : ""}>
             <CardHeader>
               <CardTitle>Notification Settings</CardTitle>
               <CardDescription>
@@ -267,9 +276,10 @@ export default function Settings() {
                 </Button>
               </div>
             </CardContent>
-          </TabsContent>
+          </div>
           
-          <TabsContent value="appearance" className="m-0" hidden={activeTab !== "appearance"}>
+          {/* Appearance Tab */}
+          <div className={activeTab !== "appearance" ? "hidden" : ""}>
             <CardHeader>
               <CardTitle>Appearance Settings</CardTitle>
               <CardDescription>
@@ -319,9 +329,10 @@ export default function Settings() {
                 </Button>
               </div>
             </CardContent>
-          </TabsContent>
+          </div>
           
-          <TabsContent value="scheduling" className="m-0" hidden={activeTab !== "scheduling"}>
+          {/* Scheduling Tab */}
+          <div className={activeTab !== "scheduling" ? "hidden" : ""}>
             <CardHeader>
               <CardTitle>Scheduling Settings</CardTitle>
               <CardDescription>
@@ -386,9 +397,139 @@ export default function Settings() {
                 </Button>
               </div>
             </CardContent>
-          </TabsContent>
+          </div>
           
-          <TabsContent value="integrations" className="m-0" hidden={activeTab !== "integrations"}>
+          {/* Organization Tab */}
+          <div className={activeTab !== "organization" ? "hidden" : ""}>
+            <CardHeader>
+              <CardTitle>Organization Settings</CardTitle>
+              <CardDescription>
+                Configure organization-wide settings for time zones and holidays.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Time Zone</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="org-timezone">Organization default time zone</Label>
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-neutral-500" />
+                    <Select value={orgTimeZone} onValueChange={setOrgTimeZone}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select time zone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="America/New_York">Eastern Time (US & Canada)</SelectItem>
+                        <SelectItem value="America/Chicago">Central Time (US & Canada)</SelectItem>
+                        <SelectItem value="America/Denver">Mountain Time (US & Canada)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Pacific Time (US & Canada)</SelectItem>
+                        <SelectItem value="America/Anchorage">Alaska (US)</SelectItem>
+                        <SelectItem value="America/Honolulu">Hawaii (US)</SelectItem>
+                        <SelectItem value="Europe/London">London</SelectItem>
+                        <SelectItem value="Europe/Paris">Paris</SelectItem>
+                        <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
+                        <SelectItem value="Australia/Sydney">Sydney</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-sm text-neutral-500 mt-1">
+                    This time zone will be used as the default for all locations unless overridden at the facility level.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Organization-wide Holidays</h3>
+                <p className="text-sm text-neutral-500">
+                  Configure holidays that apply to all facilities in your organization. Individual facilities can also have their own specific holidays.
+                </p>
+                
+                <div className="border rounded-lg divide-y">
+                  {organizationHolidays.map((holiday, index) => (
+                    <div key={index} className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 text-neutral-500" />
+                        <div>
+                          <div className="font-medium">{holiday.name}</div>
+                          <div className="text-sm text-neutral-500">
+                            {new Date(holiday.date).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <Switch 
+                        checked={holiday.enabled} 
+                        onCheckedChange={(checked) => {
+                          const updatedHolidays = [...organizationHolidays];
+                          updatedHolidays[index] = { ...holiday, enabled: checked };
+                          setOrganizationHolidays(updatedHolidays);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="space-y-4 pt-4 border-t">
+                  <h4 className="font-medium">Add Custom Holiday</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="holiday-name">Holiday name</Label>
+                      <Input 
+                        id="holiday-name" 
+                        placeholder="Enter holiday name" 
+                        value={customHolidayName}
+                        onChange={(e) => setCustomHolidayName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="holiday-date">Date</Label>
+                      <Input 
+                        id="holiday-date" 
+                        type="date" 
+                        value={customHolidayDate}
+                        onChange={(e) => setCustomHolidayDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end mt-4">
+                    <Button
+                      onClick={() => {
+                        if (customHolidayName && customHolidayDate) {
+                          setOrganizationHolidays([
+                            ...organizationHolidays,
+                            { 
+                              name: customHolidayName, 
+                              date: customHolidayDate, 
+                              enabled: true 
+                            }
+                          ]);
+                          setCustomHolidayName("");
+                          setCustomHolidayDate("");
+                          toast({
+                            title: "Holiday Added",
+                            description: `${customHolidayName} has been added to organization holidays.`,
+                          });
+                        }
+                      }}
+                      disabled={!customHolidayName || !customHolidayDate}
+                    >
+                      Add Holiday
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end pt-4 border-t">
+                <Button onClick={() => handleSaveSettings("organization")}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save changes
+                </Button>
+              </div>
+            </CardContent>
+          </div>
+          
+          {/* Integrations Tab */}
+          <div className={activeTab !== "integrations" ? "hidden" : ""}>
             <CardHeader>
               <CardTitle>Integration Settings</CardTitle>
               <CardDescription>
@@ -462,7 +603,7 @@ export default function Settings() {
                 </Button>
               </div>
             </CardContent>
-          </TabsContent>
+          </div>
         </Card>
       </div>
     </div>
