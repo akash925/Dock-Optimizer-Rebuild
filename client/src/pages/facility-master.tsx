@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DockManagementDialog } from "@/components/facility/dock-management-dialog";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Table,
@@ -110,6 +111,7 @@ export default function FacilityMaster() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isHolidaysDialogOpen, setIsHolidaysDialogOpen] = useState(false);
   const [isAddHolidayDialogOpen, setIsAddHolidayDialogOpen] = useState(false);
+  const [isDockManagementDialogOpen, setIsDockManagementDialogOpen] = useState(false);
   const [currentFacility, setCurrentFacility] = useState<Facility | null>(null);
   const [currentHoliday, setCurrentHoliday] = useState<Holiday | null>(null);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
@@ -492,6 +494,11 @@ export default function FacilityMaster() {
     setCurrentFacility(facility);
     setIsHolidaysDialogOpen(true);
   };
+  
+  const handleDoorsClick = (facility: Facility) => {
+    setCurrentFacility(facility);
+    setIsDockManagementDialogOpen(true);
+  };
 
   const handleAddHoliday = () => {
     holidayForm.reset({
@@ -638,8 +645,40 @@ export default function FacilityMaster() {
                       size="icon" 
                       className="h-8 w-8 p-0 bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-600"
                       onClick={() => handleEditClick(facility)}
+                      title="Edit Facility"
                     >
                       <Pencil className="h-4 w-4" />
+                    </Button>
+
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-8 w-8 p-0 bg-green-50 hover:bg-green-100 border-green-200 text-green-600"
+                      onClick={() => handleDoorsClick(facility)}
+                      title="Manage Doors"
+                    >
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        className="h-4 w-4" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M12 5v14m7-7H5" 
+                        />
+                        <rect 
+                          x="4" 
+                          y="4" 
+                          width="16" 
+                          height="16" 
+                          rx="2" 
+                          strokeWidth={2} 
+                        />
+                      </svg>
                     </Button>
                     
                     <AlertDialog>
@@ -648,6 +687,7 @@ export default function FacilityMaster() {
                           variant="outline" 
                           size="icon" 
                           className="h-8 w-8 p-0 bg-red-50 hover:bg-red-100 border-red-200 text-red-600"
+                          title="Delete Facility"
                         >
                           <Trash className="h-4 w-4" />
                         </Button>
@@ -1011,6 +1051,15 @@ export default function FacilityMaster() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Dock Management Dialog */}
+      {currentFacility && (
+        <DockManagementDialog
+          isOpen={isDockManagementDialogOpen}
+          onClose={() => setIsDockManagementDialogOpen(false)}
+          facility={currentFacility}
+        />
+      )}
     </div>
   );
 }
