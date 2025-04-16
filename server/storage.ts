@@ -3,9 +3,11 @@ import {
   Dock, InsertDock, 
   Schedule, InsertSchedule, 
   Carrier, InsertCarrier, 
-  Notification, InsertNotification, 
-  ScheduleStatus, DockStatus,
-  users, docks, schedules, carriers, notifications
+  Notification, InsertNotification,
+  Facility, InsertFacility,
+  Holiday, InsertHoliday,
+  ScheduleStatus, DockStatus, HolidayScope,
+  users, docks, schedules, carriers, notifications, facilities, holidays
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -44,6 +46,22 @@ export interface IStorage {
   getCarrier(id: number): Promise<Carrier | undefined>;
   getCarriers(): Promise<Carrier[]>;
   createCarrier(carrier: InsertCarrier): Promise<Carrier>;
+  
+  // Facility operations
+  getFacility(id: number): Promise<Facility | undefined>;
+  getFacilities(): Promise<Facility[]>;
+  createFacility(facility: InsertFacility): Promise<Facility>;
+  updateFacility(id: number, facility: Partial<Facility>): Promise<Facility | undefined>;
+  deleteFacility(id: number): Promise<boolean>;
+  
+  // Holiday operations
+  getHoliday(id: number): Promise<Holiday | undefined>;
+  getHolidays(): Promise<Holiday[]>;
+  getHolidaysByFacility(facilityId: number): Promise<Holiday[]>;
+  getHolidaysByScope(scope: keyof typeof HolidayScope): Promise<Holiday[]>;
+  createHoliday(holiday: InsertHoliday): Promise<Holiday>;
+  updateHoliday(id: number, holiday: Partial<Holiday>): Promise<Holiday | undefined>;
+  deleteHoliday(id: number): Promise<boolean>;
   
   // Notification operations
   getNotification(id: number): Promise<Notification | undefined>;

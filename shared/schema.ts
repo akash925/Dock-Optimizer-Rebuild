@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, date } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -34,6 +34,12 @@ export const NotificationType = {
   DELAY: "delay",
   UPCOMING_ARRIVAL: "upcoming-arrival",
   SYSTEM: "system",
+} as const;
+
+// Enum for Holiday Scope
+export const HolidayScope = {
+  FACILITY: "facility",
+  ORGANIZATION: "organization",
 } as const;
 
 // User Model
@@ -128,6 +134,46 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   isRead: true,
 });
 
+// Facility Model
+export const facilities = pgTable("facilities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address1: text("address1").notNull(),
+  address2: text("address2"),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  pincode: text("pincode").notNull(),
+  country: text("country").notNull(),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  company: text("company"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastModifiedAt: timestamp("last_modified_at"),
+});
+
+export const insertFacilitySchema = createInsertSchema(facilities).omit({
+  id: true,
+  createdAt: true,
+  lastModifiedAt: true,
+});
+
+// Holiday Model
+export const holidays = pgTable("holidays", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(),
+  description: text("description").notNull(),
+  scope: text("scope").notNull().$type<keyof typeof HolidayScope>(), // facility or organization
+  facilityId: integer("facility_id"), // null if organization-wide
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastModifiedAt: timestamp("last_modified_at"),
+});
+
+export const insertHolidaySchema = createInsertSchema(holidays).omit({
+  id: true,
+  createdAt: true,
+  lastModifiedAt: true,
+});
+
 // Define relations
 export const usersRelations = relations(users, ({ many }) => ({
   createdSchedules: many(schedules, { relationName: "user_created_schedules" }),
@@ -135,8 +181,12 @@ export const usersRelations = relations(users, ({ many }) => ({
   notifications: many(notifications),
 }));
 
-export const docksRelations = relations(docks, ({ many }) => ({
+export const docksRelations = relations(docks, ({ many, one }) => ({
   schedules: many(schedules),
+  facility: one(facilities, {
+    fields: [docks.id], // This should actually be a facility_id field that we need to add
+    references: [facilities.id],
+  }),
 }));
 
 export const carriersRelations = relations(carriers, ({ many }) => ({
@@ -176,6 +226,19 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+export const facilitiesRelations = relations(facilities, ({ many }) => ({
+  docks: many(docks),
+  holidays: many(holidays, { relationName: "facility_holidays" }),
+}));
+
+export const holidaysRelations = relations(holidays, ({ one }) => ({
+  facility: one(facilities, {
+    fields: [holidays.facilityId],
+    references: [facilities.id],
+    relationName: "facility_holidays"
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -188,6 +251,12 @@ export type InsertSchedule = z.infer<typeof insertScheduleSchema>;
 
 export type Carrier = typeof carriers.$inferSelect;
 export type InsertCarrier = z.infer<typeof insertCarrierSchema>;
+
+export type Facility = typeof facilities.$inferSelect;
+export type InsertFacility = z.infer<typeof insertFacilitySchema>;
+
+export type Holiday = typeof holidays.$inferSelect;
+export type InsertHoliday = z.infer<typeof insertHolidaySchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
