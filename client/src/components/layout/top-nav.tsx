@@ -68,15 +68,7 @@ export default function TopNav() {
   return (
     <header className="bg-white shadow-sm h-16 flex items-center justify-between px-4 sticky top-0 z-40">
       <div className="flex items-center gap-2">
-        <Link href="/" className="flex items-center">
-          <div className="flex items-center gap-2">
-            <img 
-              src={hanzoLogo} 
-              alt="Hanzo Logistics Logo" 
-              className="h-10"
-            />
-          </div>
-        </Link>
+        {/* Logo is now in sidebar only */}
       </div>
       
       <div className="flex-1 max-w-md mx-auto px-4">

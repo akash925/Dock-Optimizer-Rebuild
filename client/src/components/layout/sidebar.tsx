@@ -89,7 +89,7 @@ export default function Sidebar({ className }: SidebarProps) {
         className
       )}
     >
-      <div className="p-4 border-b border-neutral-200">
+      <div className="p-4">
         <div className="flex items-center">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex items-center gap-1">
@@ -103,7 +103,7 @@ export default function Sidebar({ className }: SidebarProps) {
         </div>
       </div>
       
-      <div className="py-4">
+      <div className="border-t border-neutral-100 py-4">
         <div className="px-4 py-2 mb-2 text-neutral-400 text-xs font-medium uppercase">
           Dashboard
         </div>
