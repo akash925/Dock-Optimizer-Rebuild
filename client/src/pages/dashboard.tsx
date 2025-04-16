@@ -6,7 +6,6 @@ import KPICard from "@/components/dashboard/kpi-card";
 import DockStatusCard from "@/components/dashboard/dock-status-card";
 import ArrivalCard from "@/components/dashboard/arrival-card";
 import MetricBar from "@/components/dashboard/metric-bar";
-import ScheduleTimeline from "@/components/dashboard/schedule-timeline";
 import PerformanceMetrics from "@/components/dashboard/performance-metrics";
 import { BarChart3, Calendar, ChevronRight, Clock, DoorOpen, Filter, MessageCircle, PlusCircle, TruckIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -289,12 +288,6 @@ export default function Dashboard() {
         </div>
       </div>
       
-      {/* Today's Schedule */}
-      <ScheduleTimeline 
-        schedules={schedules}
-        docks={docks}
-        carriers={carriers}
-      />
       
       {/* Bottom Two Columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
