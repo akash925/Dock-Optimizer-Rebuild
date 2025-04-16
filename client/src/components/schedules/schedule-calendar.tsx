@@ -85,12 +85,12 @@ export default function ScheduleCalendar({
         
         {/* Door rows */}
         {docks.map((dock) => (
-          <React.Fragment key={dock.id}>
+          <div key={dock.id} className="door-group" style={{ display: "contents" }}>
             <div className="calendar-door">{dock.name}</div>
             {Array.from({ length: 24 }, (_, i) => (
               <div key={i} className="calendar-hour"></div>
             ))}
-          </React.Fragment>
+          </div>
         ))}
         
         {/* Schedule events */}
