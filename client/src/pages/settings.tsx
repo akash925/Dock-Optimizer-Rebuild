@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Save, Clock, Mail, Bell, LogOut, Building, CalendarDays, Globe } from "lucide-react";
+import { Save, Clock, Mail, Bell, LogOut, Building, CalendarDays, Globe, Loader2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { TimeInterval } from "@shared/schema";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -20,6 +23,13 @@ export default function Settings() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Scheduling states
+  const [selectedFacility, setSelectedFacility] = useState<number | null>(null);
+  const [timeInterval, setTimeInterval] = useState<string>("30");
+  const [maxInbound, setMaxInbound] = useState<number>(3);
+  const [maxOutbound, setMaxOutbound] = useState<number>(2);
+  const [shareAvailability, setShareAvailability] = useState<boolean>(true);
   
   // Organization states
   const [orgTimeZone, setOrgTimeZone] = useState("America/New_York");
@@ -34,6 +44,75 @@ export default function Settings() {
     { name: "Thanksgiving Day", date: "2025-11-27", enabled: true },
     { name: "Christmas Day", date: "2025-12-25", enabled: true },
   ]);
+  
+  // Fetch facilities
+  const { data: facilities } = useQuery({
+    queryKey: ["/api/facilities"],
+    queryFn: async () => {
+      const response = await fetch("/api/facilities");
+      if (!response.ok) throw new Error("Failed to fetch facilities");
+      return response.json();
+    }
+  });
+  
+  // Set default facility when facilities are loaded
+  useEffect(() => {
+    if (facilities && facilities.length > 0 && !selectedFacility) {
+      setSelectedFacility(facilities[0].id);
+    }
+  }, [facilities, selectedFacility]);
+  
+  // Fetch appointment settings for selected facility
+  const {
+    data: appointmentSettings,
+    isLoading: isLoadingSettings,
+    error: settingsError
+  } = useQuery({
+    queryKey: ["/api/facilities", selectedFacility, "appointment-settings"],
+    queryFn: async () => {
+      if (!selectedFacility) return null;
+      const response = await fetch(`/api/facilities/${selectedFacility}/appointment-settings`);
+      if (!response.ok) throw new Error("Failed to fetch appointment settings");
+      return response.json();
+    },
+    enabled: !!selectedFacility
+  });
+  
+  // Update appointment settings when they're loaded
+  useEffect(() => {
+    if (appointmentSettings) {
+      setTimeInterval(appointmentSettings.timeInterval.toString());
+      setMaxInbound(appointmentSettings.maxConcurrentInbound);
+      setMaxOutbound(appointmentSettings.maxConcurrentOutbound);
+      setShareAvailability(appointmentSettings.shareAvailabilityInfo);
+    }
+  }, [appointmentSettings]);
+  
+  // Mutation to update appointment settings
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("PUT", `/api/facilities/${selectedFacility}/appointment-settings`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Settings Updated",
+        description: "Appointment settings have been updated successfully.",
+      });
+      
+      // Invalidate the settings query to refetch with new data
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/facilities", selectedFacility, "appointment-settings"] 
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   // Handle save settings
   const handleSaveSettings = (settingType: string) => {
@@ -340,62 +419,184 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Default Dwell Times</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="inbound-dwell">Default inbound dwell time (minutes)</Label>
-                    <Input id="inbound-dwell" type="number" defaultValue="60" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="outbound-dwell">Default outbound dwell time (minutes)</Label>
-                    <Input id="outbound-dwell" type="number" defaultValue="45" />
-                  </div>
+              {isLoadingSettings ? (
+                <div className="flex justify-center items-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="buffer-time">Buffer time between appointments (minutes)</Label>
-                  <Input id="buffer-time" type="number" defaultValue="15" />
+              ) : settingsError ? (
+                <div className="p-4 bg-red-50 rounded-md">
+                  <p className="text-red-600">Failed to load appointment settings</p>
                 </div>
-              </div>
+              ) : (
+                <>
+                  {facilities && facilities.length > 0 && (
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Facility</h3>
+                      <div className="space-y-2">
+                        <Label htmlFor="facility-selector">Select facility to configure</Label>
+                        <Select
+                          value={selectedFacility?.toString()}
+                          onValueChange={(value) => setSelectedFacility(Number(value))}
+                        >
+                          <SelectTrigger id="facility-selector" className="w-full">
+                            <SelectValue placeholder="Select facility" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {facilities.map((facility) => (
+                              <SelectItem key={facility.id} value={facility.id.toString()}>
+                                {facility.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
               
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Scheduling Rules</h3>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="allow-overlapping" />
-                  <label
-                    htmlFor="allow-overlapping"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Allow overlapping schedules (with manual override)
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="auto-assign" defaultChecked />
-                  <label
-                    htmlFor="auto-assign"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Automatically assign optimal dock doors
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="prioritize-carriers" defaultChecked />
-                  <label
-                    htmlFor="prioritize-carriers"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Prioritize preferred carriers
-                  </label>
-                </div>
-              </div>
-              
-              <div className="flex justify-end pt-4 border-t">
-                <Button onClick={() => handleSaveSettings("scheduling")}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save changes
-                </Button>
-              </div>
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Default Dwell Times</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="inbound-dwell">Default inbound dwell time (minutes)</Label>
+                        <Input id="inbound-dwell" type="number" defaultValue="60" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="outbound-dwell">Default outbound dwell time (minutes)</Label>
+                        <Input id="outbound-dwell" type="number" defaultValue="45" />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="buffer-time">Buffer time between appointments (minutes)</Label>
+                      <Input id="buffer-time" type="number" defaultValue="15" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Scheduling Rules</h3>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="allow-overlapping" />
+                      <label
+                        htmlFor="allow-overlapping"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Allow overlapping schedules (with manual override)
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="auto-assign" defaultChecked />
+                      <label
+                        htmlFor="auto-assign"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Automatically assign optimal dock doors
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="prioritize-carriers" defaultChecked />
+                      <label
+                        htmlFor="prioritize-carriers"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Prioritize preferred carriers
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="share-availability" 
+                        checked={shareAvailability}
+                        onCheckedChange={setShareAvailability}
+                      />
+                      <label
+                        htmlFor="share-availability"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Share availability information in appointment details
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Appointment Settings</h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="time-interval">Time interval for appointments</Label>
+                      <Select 
+                        value={timeInterval} 
+                        onValueChange={setTimeInterval}
+                      >
+                        <SelectTrigger id="time-interval" className="w-full">
+                          <SelectValue placeholder="Select time interval" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="15">15 minutes</SelectItem>
+                          <SelectItem value="30">30 minutes</SelectItem>
+                          <SelectItem value="60">60 minutes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-neutral-500">
+                        Controls how appointments are scheduled and displayed on the calendar
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="max-inbound">Maximum concurrent inbound appointments</Label>
+                        <Input 
+                          id="max-inbound" 
+                          type="number" 
+                          value={maxInbound}
+                          onChange={(e) => setMaxInbound(Number(e.target.value))}
+                          min="1" 
+                          max="10" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="max-outbound">Maximum concurrent outbound appointments</Label>
+                        <Input 
+                          id="max-outbound" 
+                          type="number" 
+                          value={maxOutbound}
+                          onChange={(e) => setMaxOutbound(Number(e.target.value))}
+                          min="1" 
+                          max="10" 
+                        />
+                      </div>
+                    </div>
+                    <p className="text-sm text-neutral-500">
+                      Limits the number of concurrent appointments that can be scheduled per type
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-end pt-4 border-t">
+                    <Button 
+                      onClick={() => {
+                        if (selectedFacility) {
+                          updateSettingsMutation.mutate({
+                            facilityId: selectedFacility,
+                            timeInterval: Number(timeInterval),
+                            maxConcurrentInbound: maxInbound,
+                            maxConcurrentOutbound: maxOutbound,
+                            shareAvailabilityInfo: shareAvailability
+                          });
+                        }
+                      }}
+                      disabled={updateSettingsMutation.isPending || !selectedFacility}
+                    >
+                      {updateSettingsMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save changes
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </div>
           

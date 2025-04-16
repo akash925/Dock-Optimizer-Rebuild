@@ -504,6 +504,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Appointment Settings routes
+  app.get("/api/facilities/:id/appointment-settings", async (req, res) => {
+    try {
+      const facilityId = Number(req.params.id);
+      const facility = await storage.getFacility(facilityId);
+      if (!facility) {
+        return res.status(404).json({ message: "Facility not found" });
+      }
+
+      const settings = await storage.getAppointmentSettings(facilityId);
+      if (!settings) {
+        // Return default settings if none exist
+        return res.json({
+          facilityId,
+          timeInterval: 30, // Default to 30 minutes
+          maxConcurrentInbound: 2,
+          maxConcurrentOutbound: 2,
+          shareAvailabilityInfo: true
+        });
+      }
+      res.json(settings);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch appointment settings" });
+    }
+  });
+
+  app.post("/api/facilities/:id/appointment-settings", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const facilityId = Number(req.params.id);
+      const facility = await storage.getFacility(facilityId);
+      if (!facility) {
+        return res.status(404).json({ message: "Facility not found" });
+      }
+
+      // Check if settings already exist
+      const existingSettings = await storage.getAppointmentSettings(facilityId);
+      if (existingSettings) {
+        return res.status(409).json({ 
+          message: "Appointment settings already exist for this facility. Use PUT to update.",
+          settings: existingSettings
+        });
+      }
+
+      const settingsData = {
+        ...req.body,
+        facilityId
+      };
+      
+      const validatedData = insertAppointmentSettingsSchema.parse(settingsData);
+      const settings = await storage.createAppointmentSettings(validatedData);
+      res.status(201).json(settings);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid settings data", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create appointment settings" });
+    }
+  });
+
+  app.put("/api/facilities/:id/appointment-settings", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const facilityId = Number(req.params.id);
+      const facility = await storage.getFacility(facilityId);
+      if (!facility) {
+        return res.status(404).json({ message: "Facility not found" });
+      }
+
+      // Check if settings exist
+      const existingSettings = await storage.getAppointmentSettings(facilityId);
+      if (!existingSettings) {
+        // If settings don't exist, create them
+        const settingsData = {
+          ...req.body,
+          facilityId
+        };
+        
+        const validatedData = insertAppointmentSettingsSchema.parse(settingsData);
+        const settings = await storage.createAppointmentSettings(validatedData);
+        return res.status(201).json(settings);
+      }
+
+      // Update existing settings
+      const updatedSettings = await storage.updateAppointmentSettings(facilityId, req.body);
+      res.json(updatedSettings);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid settings data", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to update appointment settings" });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   
