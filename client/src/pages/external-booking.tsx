@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, TruckIcon, ArrowRight, ArrowLeft, Upload, FileText, AlertCircle, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, TruckIcon, ArrowRight, ArrowLeft, Upload, FileText, AlertCircle, Check, CheckCircle, ChevronsUpDown, PlusCircle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,10 +20,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { format, addDays, isAfter, isBefore, parse } from "date-fns";
+import { format, addDays, isAfter, isBefore, parse, startOfDay, startOfToday, endOfDay, getHours, getMinutes, setHours, setMinutes } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { useQuery } from "@tanstack/react-query";
-import { Facility, BookingPage, AppointmentType } from "@shared/schema";
+import { Facility, BookingPage, AppointmentType, Carrier } from "@shared/schema";
 import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
 
@@ -700,7 +700,7 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                               )}
                             >
                               {field.value ? (
-                                format(new Date(field.value), "MMMM d, yyyy")
+                                format(new Date(field.value), "MM/dd/yyyy")
                               ) : (
                                 <span>Select a date</span>
                               )}
@@ -711,10 +711,21 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                           <Calendar
                             mode="single"
                             selected={field.value ? new Date(field.value) : undefined}
-                            onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
+                            onSelect={(date) => {
+                              if (date) {
+                                // Ensure we're selecting the correct date (not the prior day)
+                                const today = startOfToday();
+                                const selectedDate = startOfDay(date);
+                                
+                                // Convert to ISO string for form storage
+                                field.onChange(format(selectedDate, "yyyy-MM-dd"));
+                              } else {
+                                field.onChange("");
+                              }
+                            }}
                             disabled={(date) => 
-                              // Disable past dates and weekends (Saturday and Sunday)
-                              date < new Date(new Date().setHours(0, 0, 0, 0)) ||
+                              // Disable dates before today and weekends (Saturday and Sunday)
+                              isBefore(date, startOfToday()) ||
                               date.getDay() === 0 || 
                               date.getDay() === 6
                             }
@@ -730,39 +741,98 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                 <FormField
                   control={appointmentDetailsForm.control}
                   name="appointmentTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Appointment Time*</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a time slot" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="08:00">8:00 AM</SelectItem>
-                          <SelectItem value="08:30">8:30 AM</SelectItem>
-                          <SelectItem value="09:00">9:00 AM</SelectItem>
-                          <SelectItem value="09:30">9:30 AM</SelectItem>
-                          <SelectItem value="10:00">10:00 AM</SelectItem>
-                          <SelectItem value="10:30">10:30 AM</SelectItem>
-                          <SelectItem value="11:00">11:00 AM</SelectItem>
-                          <SelectItem value="11:30">11:30 AM</SelectItem>
-                          <SelectItem value="12:00">12:00 PM</SelectItem>
-                          <SelectItem value="12:30">12:30 PM</SelectItem>
-                          <SelectItem value="13:00">1:00 PM</SelectItem>
-                          <SelectItem value="13:30">1:30 PM</SelectItem>
-                          <SelectItem value="14:00">2:00 PM</SelectItem>
-                          <SelectItem value="14:30">2:30 PM</SelectItem>
-                          <SelectItem value="15:00">3:00 PM</SelectItem>
-                          <SelectItem value="15:30">3:30 PM</SelectItem>
-                          <SelectItem value="16:00">4:00 PM</SelectItem>
-                          <SelectItem value="16:30">4:30 PM</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    // Get the currently selected appointment date
+                    const selectedDate = appointmentDetailsForm.watch("appointmentDate");
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const currentMinute = now.getMinutes();
+                    
+                    // Only show future times if the selected date is today
+                    const isToday = selectedDate ? 
+                      format(new Date(selectedDate), "yyyy-MM-dd") === format(now, "yyyy-MM-dd") : 
+                      false;
+                    
+                    // Available time slots
+                    const timeSlots = [
+                      { value: "08:00", label: "8:00 AM", available: 2 },
+                      { value: "08:30", label: "8:30 AM", available: 3 },
+                      { value: "09:00", label: "9:00 AM", available: 1 },
+                      { value: "09:30", label: "9:30 AM", available: 2 },
+                      { value: "10:00", label: "10:00 AM", available: 2 },
+                      { value: "10:30", label: "10:30 AM", available: 3 },
+                      { value: "11:00", label: "11:00 AM", available: 1 },
+                      { value: "11:30", label: "11:30 AM", available: 2 },
+                      { value: "12:00", label: "12:00 PM", available: 3 },
+                      { value: "12:30", label: "12:30 PM", available: 2 },
+                      { value: "13:00", label: "1:00 PM", available: 2 },
+                      { value: "13:30", label: "1:30 PM", available: 1 },
+                      { value: "14:00", label: "2:00 PM", available: 3 },
+                      { value: "14:30", label: "2:30 PM", available: 2 },
+                      { value: "15:00", label: "3:00 PM", available: 3 },
+                      { value: "15:30", label: "3:30 PM", available: 1 },
+                      { value: "16:00", label: "4:00 PM", available: 2 },
+                      { value: "16:30", label: "4:30 PM", available: 3 },
+                    ];
+                    
+                    // Filter out past times if the selected date is today
+                    const availableTimeSlots = timeSlots.filter(slot => {
+                      if (!selectedDate) return false;
+                      
+                      if (isToday) {
+                        const [hour, minute] = slot.value.split(":").map(Number);
+                        if (hour < currentHour || (hour === currentHour && minute <= currentMinute)) {
+                          return false;
+                        }
+                      }
+                      
+                      return true;
+                    });
+                    
+                    // Clear time selection if no date selected or if it's invalid
+                    if (!selectedDate && field.value) {
+                      setTimeout(() => field.onChange(""), 0);
+                    }
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Appointment Time*</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value}
+                          disabled={!selectedDate}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a time slot" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {!availableTimeSlots.length && (
+                              <div className="px-2 py-4 text-center">
+                                <p className="text-sm text-muted-foreground">
+                                  {!selectedDate 
+                                    ? "Please select a date first" 
+                                    : "No available time slots for the selected date"}
+                                </p>
+                              </div>
+                            )}
+                            {availableTimeSlots.map(slot => (
+                              <SelectItem key={slot.value} value={slot.value}>
+                                <div className="flex justify-between items-center w-full">
+                                  <span>{slot.label}</span>
+                                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
+                                    {slot.available} {slot.available === 1 ? "slot" : "slots"}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
 
@@ -775,62 +845,168 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               <FormField
                 control={appointmentDetailsForm.control}
                 name="carrierName"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Carrier Name*</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value
-                              ? field.value
-                              : "Select carrier"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0">
-                        <Command>
-                          <CommandInput placeholder="Search carriers..." />
-                          <CommandEmpty>No carrier found. Enter new carrier name.</CommandEmpty>
-                          <CommandGroup>
-                            {["ABC Trucking", "XYZ Transport", "Fast Logistics", "Cross Country Inc.", "Global Carriers"].map((carrier) => (
-                              <CommandItem
-                                key={carrier}
-                                value={carrier}
-                                onSelect={() => {
-                                  appointmentDetailsForm.setValue("carrierName", carrier);
-                                  // For demo only - you would fetch real MC numbers from API
-                                  if (carrier === "ABC Trucking") appointmentDetailsForm.setValue("mcNumber", "MC123456");
-                                  if (carrier === "XYZ Transport") appointmentDetailsForm.setValue("mcNumber", "MC789123");
-                                  if (carrier === "Fast Logistics") appointmentDetailsForm.setValue("mcNumber", "MC456789");
-                                  if (carrier === "Cross Country Inc.") appointmentDetailsForm.setValue("mcNumber", "MC654321");
-                                  if (carrier === "Global Carriers") appointmentDetailsForm.setValue("mcNumber", "MC987654");
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    field.value === carrier ? "opacity-100" : "opacity-0"
+                render={({ field }) => {
+                  const [open, setOpen] = useState(false);
+                  const [carriers, setCarriers] = useState<Carrier[]>([]);
+                  const [searchQuery, setSearchQuery] = useState('');
+                  const [isSearching, setIsSearching] = useState(false);
+                  const [addingNewCarrier, setAddingNewCarrier] = useState(false);
+                  
+                  // Function to search carriers
+                  const searchCarriers = async (query: string) => {
+                    if (!query || query.length < 2) {
+                      setCarriers([]);
+                      return;
+                    }
+                    
+                    try {
+                      setIsSearching(true);
+                      const res = await fetch(`/api/carriers/search?query=${encodeURIComponent(query)}`);
+                      const data = await res.json();
+                      setCarriers(data);
+                    } catch (err) {
+                      console.error("Error searching carriers:", err);
+                    } finally {
+                      setIsSearching(false);
+                    }
+                  };
+                  
+                  // Debounce the search
+                  useEffect(() => {
+                    const timer = setTimeout(() => {
+                      searchCarriers(searchQuery);
+                    }, 300);
+                    
+                    return () => clearTimeout(timer);
+                  }, [searchQuery]);
+                  
+                  // Function to handle selecting a carrier
+                  const handleSelectCarrier = (carrier: Carrier) => {
+                    appointmentDetailsForm.setValue("carrierName", carrier.name);
+                    if (carrier.mcNumber) {
+                      appointmentDetailsForm.setValue("mcNumber", carrier.mcNumber);
+                    }
+                    setOpen(false);
+                  };
+                  
+                  // Function to handle adding a new carrier
+                  const handleAddCarrier = () => {
+                    if (searchQuery.trim()) {
+                      appointmentDetailsForm.setValue("carrierName", searchQuery.trim());
+                      appointmentDetailsForm.setValue("mcNumber", "");
+                      setOpen(false);
+                      setAddingNewCarrier(false);
+                    }
+                  };
+                  
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Carrier Name*</FormLabel>
+                      <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={open}
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value
+                                ? field.value
+                                : "Select or enter carrier name"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Search carriers..." 
+                              value={searchQuery}
+                              onValueChange={setSearchQuery}
+                            />
+                            <CommandEmpty>
+                              {isSearching ? (
+                                <div className="py-6 text-center text-sm">
+                                  <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                                  Searching carriers...
+                                </div>
+                              ) : (
+                                <div className="py-3 px-2">
+                                  <p className="text-sm text-muted-foreground mb-2">No carrier found with that name.</p>
+                                  {!addingNewCarrier ? (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="w-full" 
+                                      onClick={() => setAddingNewCarrier(true)}
+                                    >
+                                      <PlusCircle className="mr-2 h-4 w-4" />
+                                      Add "{searchQuery}" as new carrier
+                                    </Button>
+                                  ) : (
+                                    <div className="space-y-2">
+                                      <p className="text-xs text-muted-foreground">
+                                        Adding a new carrier? You'll need to provide their MC Number in the next field.
+                                      </p>
+                                      <div className="flex gap-2">
+                                        <Button 
+                                          size="sm" 
+                                          className="flex-1" 
+                                          onClick={handleAddCarrier}
+                                        >
+                                          <CheckCircle className="mr-2 h-4 w-4" />
+                                          Confirm new carrier
+                                        </Button>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          onClick={() => setAddingNewCarrier(false)}
+                                        >
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
                                   )}
-                                />
-                                {carrier}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                                </div>
+                              )}
+                            </CommandEmpty>
+                            <CommandGroup heading="Existing Carriers">
+                              {carriers.map(carrier => (
+                                <CommandItem
+                                  key={carrier.id}
+                                  value={carrier.name}
+                                  onSelect={() => handleSelectCarrier(carrier)}
+                                >
+                                  <div className="flex flex-col">
+                                    <div className="flex items-center">
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          field.value === carrier.name ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      <span>{carrier.name}</span>
+                                    </div>
+                                    {carrier.mcNumber && (
+                                      <span className="text-xs text-muted-foreground ml-6">
+                                        MC: {carrier.mcNumber}
+                                      </span>
+                                    )}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
