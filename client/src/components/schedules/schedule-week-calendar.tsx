@@ -101,7 +101,7 @@ export default function ScheduleWeekCalendar({
   };
   
   // Format the date range for display (e.g., "Apr 13 - 19, 2025")
-  const dateRangeDisplay = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'd, yyyy')}`;
+  const dateRangeDisplay = `${format(weekStart, 'MMM M/d')} - ${format(weekEnd, 'M/d, yyyy')}`;
   
   // Move to previous/next week
   const goToPreviousWeek = () => {
@@ -117,9 +117,46 @@ export default function ScheduleWeekCalendar({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-6 relative">
+    <div className="bg-white rounded-lg shadow p-4 mb-6 relative w-full overflow-hidden">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 mb-4 items-center">
+        <div className="flex-1 min-w-[200px]">
+          <input 
+            type="text" 
+            placeholder="Customer Name" 
+            className="w-full h-10 px-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div className="flex-1 min-w-[200px]">
+          <input 
+            type="text" 
+            placeholder="Carrier Name" 
+            className="w-full h-10 px-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div className="flex-1 min-w-[200px]">
+          <select 
+            className="w-full h-10 px-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
+            defaultValue="Select TimeZone"
+          >
+            <option disabled>Select TimeZone</option>
+            <option>Eastern Time (ET)</option>
+            <option>Central Time (CT)</option>
+            <option>Mountain Time (MT)</option>
+            <option>Pacific Time (PT)</option>
+          </select>
+        </div>
+        <Button 
+          variant="secondary" 
+          size="sm"
+          className="h-10 px-4"
+        >
+          Clear
+        </Button>
+      </div>
+
       {/* Calendar Header & Navigation */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline" 
@@ -151,7 +188,7 @@ export default function ScheduleWeekCalendar({
           {dateRangeDisplay}
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-wrap">
           <Button 
             variant={`outline`} 
             size="sm"
@@ -188,17 +225,17 @@ export default function ScheduleWeekCalendar({
       </div>
       
       {/* Week Calendar Grid */}
-      <div className="border rounded overflow-auto">
+      <div className="border rounded overflow-auto max-h-[calc(100vh-300px)]">
         <div className="grid grid-cols-8 min-w-max">
           {/* Empty top-left cell */}
-          <div className="border-b border-r h-10 w-20 bg-gray-50"></div>
+          <div className="border-b border-r h-10 w-16 bg-gray-50"></div>
           
           {/* Day headers */}
           {weekDays.map((day, i) => (
             <div 
               key={i} 
               className={cn(
-                "border-b border-r h-10 px-2 w-40 text-center flex flex-col justify-center",
+                "border-b border-r h-10 px-2 w-[calc((100%-4rem)/7)] min-w-[8rem] text-center flex flex-col justify-center",
                 day.getDate() === new Date().getDate() && 
                 day.getMonth() === new Date().getMonth() && 
                 day.getFullYear() === new Date().getFullYear() 
@@ -206,7 +243,7 @@ export default function ScheduleWeekCalendar({
                   : "bg-gray-50"
               )}
             >
-              <div className="font-medium">{format(day, 'EEE d/M')}</div>
+              <div className="font-medium">{format(day, 'EEE M/d')}</div>
             </div>
           ))}
           
@@ -214,7 +251,7 @@ export default function ScheduleWeekCalendar({
           {hours.map((hour, i) => (
             <div key={i} style={{ display: "contents" }}>
               {/* Hour label */}
-              <div className="border-b border-r py-1 px-2 w-20 text-xs text-gray-500 h-[60px]">
+              <div className="border-b border-r py-1 px-1 w-16 text-xs text-gray-500 h-[50px]">
                 {hour.display}
               </div>
               
@@ -223,7 +260,7 @@ export default function ScheduleWeekCalendar({
                 <div 
                   key={j} 
                   className={cn(
-                    "border-b border-r w-40 h-[60px] relative",
+                    "border-b border-r w-[calc((100%-4rem)/7)] min-w-[8rem] h-[50px] relative",
                     day.getDate() === new Date().getDate() && 
                     day.getMonth() === new Date().getMonth() && 
                     day.getFullYear() === new Date().getFullYear() 
@@ -245,10 +282,11 @@ export default function ScheduleWeekCalendar({
             const carrier = carriers.find(c => c.id === schedule.carrierId);
             const startTimeStr = formatTime(schedule.startTime);
             const endTimeStr = formatTime(schedule.endTime);
-            
-            // Calculate column position (first column is time labels)
-            const columnStart = dayIndex + 2; // +2 because grid is 1-indexed and first column is for time labels
 
+            // Adjust for the new cell height
+            const adjustedTop = parseFloat(positionStyle.top) * (50/60);
+            const adjustedHeight = parseFloat(positionStyle.height) * (50/60);
+            
             return (
               <div 
                 key={schedule.id}
@@ -258,9 +296,11 @@ export default function ScheduleWeekCalendar({
                 )}
                 style={{
                   ...positionStyle,
-                  gridColumn: columnStart,
-                  left: `calc(20px + ${dayIndex} * 10rem + 2px)`, // 20px for time column + day position
-                  width: 'calc(10rem - 4px)',
+                  top: `${adjustedTop}px`,
+                  height: `${adjustedHeight}px`,
+                  left: `calc(16px + ${dayIndex} * (100% - 4rem) / 7 + 2px)`,
+                  width: 'calc((100% - 4rem) / 7 - 4px)',
+                  minWidth: 'calc(8rem - 4px)',
                   zIndex: 10
                 }}
                 onClick={() => onScheduleClick(schedule.id)}
