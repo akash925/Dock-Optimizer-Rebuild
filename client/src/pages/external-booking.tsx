@@ -1,10 +1,10 @@
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { useLocation } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -12,45 +12,22 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, TruckIcon, ArrowRight, ArrowLeft, Upload, FileText } from "lucide-react";
+import { Loader2, TruckIcon, ArrowRight, ArrowLeft, Upload, FileText, AlertCircle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useQuery } from "@tanstack/react-query";
+import { Facility, BookingPage, AppointmentType } from "@shared/schema";
 import hanzoLogo from "@/assets/hanzo_logo.jpeg";
+import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
 
-// Define location data
-const locations = [
-  { id: "4334PLAINFIELD-L", name: "4334 Plainfield Road (Hanzo Metro), Plainfield, IN 46231" },
-  { id: "450AIRTECH-L", name: "450 Airtech Parkway, Plainfield, IN 46168" },
-  { id: "8370CAMBY-L", name: "8370 E Camby Rd, Plainfield, IN 46168" },
-  { id: "4001MINNESOTA-L", name: "4001 W Minnesota Street, Indianapolis, IN 46241 (Cold Chain)" },
-  { id: "9915LACY-L", name: "9915 Lacy Knot Dr, Brownsburg, IN 46112" },
-];
-
-// Define appointment types by location - exact match from reference site
-const appointmentTypesByLocation = {
-  "4334PLAINFIELD-L": [
-    "4334 Plainfield Road (Hanzo Metro) - MVP (1 Hour)",
-    "4334 Plainfield Road (Hanzo Metro) - Palletized Load Appointment (1 Hour)"
-  ],
-  "450AIRTECH-L": [
-    "450 Airtech Parkway - Hand-Unload Appointment (4 Hour)",
-    "450 Airtech Parkway - LTL Pickup or Dropoff",
-    "450 Airtech Parkway - Palletized Load Appointment (1 Hour)"
-  ],
-  "8370CAMBY-L": [
-    "Camby Rd - Hand-Unload Appointment (4 Hour)",
-    "Camby Rd - Palletized Load Appointment (1 Hour)"
-  ],
-  "4001MINNESOTA-L": [
-    "HANZO Cold-Chain - Hand-Unload Appointment (4 Hour)",
-    "HANZO Cold-Chain - Palletized Load Appointment (1 Hour)",
-    "Sam Pride - Floor Loaded Container Drop (4 Hour Unloading)"
-  ],
-  "9915LACY-L": [
-    "9915 Lacy Knot Dr (Hanzo Brownsburg) - Palletized Load Appointment (1 Hour)"
-  ],
-};
+interface ParsedFacilities {
+  [facilityId: string]: {
+    facility: Facility;
+    excludedAppointmentTypes: number[];
+  }
+}
 
 // Step 1: Initial Selections
 const initialSelectionSchema = z.object({
@@ -92,6 +69,7 @@ type AppointmentDetailsFormValues = z.infer<typeof appointmentDetailsSchema>;
 type BookingFormValues = z.infer<typeof bookingSchema>;
 
 export default function ExternalBooking() {
+  const { slug } = useParams<{ slug: string }>();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<BookingFormValues>>({});
@@ -101,6 +79,56 @@ export default function ExternalBooking() {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [bolProcessing, setBolProcessing] = useState(false);
   const [bolPreviewText, setBolPreviewText] = useState<string | null>(null);
+  const [parsedFacilities, setParsedFacilities] = useState<ParsedFacilities>({});
+  
+  // Fetch booking page data
+  const { data: bookingPage, isLoading: isLoadingBookingPage, error: bookingPageError } = useQuery<BookingPage>({
+    queryKey: [`/api/booking-pages/slug/${slug}`],
+    enabled: !!slug,
+    retry: false
+  });
+  
+  // Fetch facilities that are in this booking page
+  const { data: facilities = [], isLoading: isLoadingFacilities } = useQuery<Facility[]>({
+    queryKey: ['/api/facilities'],
+    enabled: !!bookingPage,
+    retry: false
+  });
+  
+  // Fetch appointment types
+  const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useQuery<AppointmentType[]>({
+    queryKey: ['/api/appointment-types'],
+    enabled: !!bookingPage && !!facilities,
+    retry: false
+  });
+  
+  // Process facilities data when it's available
+  useEffect(() => {
+    if (bookingPage && facilities && appointmentTypes) {
+      try {
+        // Parse the facilities JSON array from the booking page
+        const facilityIds = bookingPage.facilities as unknown as number[];
+        const excludedAppointmentIds = bookingPage.excludedAppointmentTypes as unknown as number[] || [];
+        
+        // Create a map of facilities that are included in this booking page
+        const facilitiesMap: ParsedFacilities = {};
+        
+        facilityIds.forEach(facilityId => {
+          const facility = facilities.find(f => f.id === facilityId);
+          if (facility) {
+            facilitiesMap[facilityId] = {
+              facility,
+              excludedAppointmentTypes: excludedAppointmentIds
+            };
+          }
+        });
+        
+        setParsedFacilities(facilitiesMap);
+      } catch (err) {
+        console.error("Error parsing booking page data:", err);
+      }
+    }
+  }, [bookingPage, facilities, appointmentTypes]);
   
   // Step 1 Form
   const initialSelectionForm = useForm<InitialSelectionFormValues>({
@@ -161,27 +189,49 @@ export default function ExternalBooking() {
       
       // Simulate OCR processing
       setTimeout(() => {
-        const previewText = `Bill of Lading #BOL-${Math.floor(Math.random() * 10000)}
-Location: ${locations[Math.floor(Math.random() * locations.length)].name}
+        // Generate a random BOL number
+        const bolNumber = `BOL-${Math.floor(Math.random() * 10000)}`;
+        
+        // Get a random facility from available ones
+        const availableFacilities = Object.values(parsedFacilities);
+        if (availableFacilities.length === 0) {
+          setBolProcessing(false);
+          toast({
+            title: "Processing Error",
+            description: "No facilities available for this booking page.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        const randomFacility = availableFacilities[Math.floor(Math.random() * availableFacilities.length)].facility;
+        
+        // Find appointment types for this facility
+        const facilityAppointmentTypes = appointmentTypes.filter(type => 
+          type.facilityId === randomFacility.id && 
+          !parsedFacilities[randomFacility.id]?.excludedAppointmentTypes.includes(type.id)
+        );
+        
+        const previewText = `Bill of Lading #${bolNumber}
+Location: ${randomFacility.name}
 Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
         
         setBolPreviewText(previewText);
         setBolProcessing(false);
         
-        // Pre-select some fields based on "OCR"
-        const randomLocationId = locations[Math.floor(Math.random() * locations.length)].id;
-        initialSelectionForm.setValue("location", randomLocationId);
+        // Pre-select fields based on "OCR"
+        initialSelectionForm.setValue("location", randomFacility.id.toString());
         
-        // Set appointment type based on selected location
-        const appointmentTypes = appointmentTypesByLocation[randomLocationId as keyof typeof appointmentTypesByLocation];
-        if (appointmentTypes && appointmentTypes.length > 0) {
-          initialSelectionForm.setValue("appointmentType", appointmentTypes[0]);
+        // Set appointment type if available
+        if (facilityAppointmentTypes.length > 0) {
+          const randomAppointmentType = facilityAppointmentTypes[Math.floor(Math.random() * facilityAppointmentTypes.length)];
+          initialSelectionForm.setValue("appointmentType", randomAppointmentType.id.toString());
         }
         
         initialSelectionForm.setValue("bolUploaded", true);
         
         // Also set the bol number for step 3
-        appointmentDetailsForm.setValue("bolNumber", `BOL-${Math.floor(Math.random() * 10000)}`);
+        appointmentDetailsForm.setValue("bolNumber", bolNumber);
         
         toast({
           title: "BOL Uploaded and Processed",
@@ -246,6 +296,42 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
 
   // Render the appropriate form based on current step
   const renderForm = () => {
+    // Loading state
+    if (isLoadingBookingPage || isLoadingFacilities || isLoadingAppointmentTypes) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+          <p className="text-lg font-medium">Loading booking page...</p>
+        </div>
+      );
+    }
+    
+    // Error state
+    if (bookingPageError || !bookingPage) {
+      return (
+        <Alert variant="destructive" className="mx-auto max-w-lg my-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {bookingPageError ? bookingPageError.message : "Booking page not found"}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    
+    // No facilities configured
+    if (Object.keys(parsedFacilities).length === 0) {
+      return (
+        <Alert variant="destructive" className="mx-auto max-w-lg my-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Configuration Error</AlertTitle>
+          <AlertDescription>
+            No facilities are configured for this booking page. Please contact the administrator.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    
     switch (step) {
       case 1:
         return (
@@ -270,8 +356,8 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {locations.map(location => (
-                              <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
+                            {Object.values(parsedFacilities).map(({ facility }) => (
+                              <SelectItem key={facility.id} value={facility.id.toString()}>{facility.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -294,11 +380,19 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {watchLocation && appointmentTypesByLocation[watchLocation as keyof typeof appointmentTypesByLocation]?.map(type => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
-                                </SelectItem>
-                              ))}
+                              {appointmentTypes
+                                .filter(type => type.facilityId === parseInt(watchLocation))
+                                .filter(type => {
+                                  // Check if this appointment type is excluded
+                                  const facilityInfo = parsedFacilities[parseInt(watchLocation)];
+                                  return facilityInfo && !facilityInfo.excludedAppointmentTypes.includes(type.id);
+                                })
+                                .map(type => (
+                                  <SelectItem key={type.id} value={type.id.toString()}>
+                                    {type.name}
+                                  </SelectItem>
+                                ))
+                              }
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -372,14 +466,18 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                           <div>
                             <span className="font-medium">Location:</span>
                             <p className="text-gray-600">
-                              {locations.find(l => l.id === initialSelectionForm.watch("location"))?.name || "Not detected"}
+                              {Object.values(parsedFacilities).find(({ facility }) => 
+                                facility.id.toString() === initialSelectionForm.watch("location")
+                              )?.facility.name || "Not detected"}
                             </p>
                           </div>
                           
                           <div>
                             <span className="font-medium">Appointment Type:</span>
                             <p className="text-gray-600">
-                              {initialSelectionForm.watch("appointmentType") || "Not detected"}
+                              {appointmentTypes.find(type => 
+                                type.id.toString() === initialSelectionForm.watch("appointmentType")
+                              )?.name || "Not detected"}
                             </p>
                           </div>
                           
@@ -409,8 +507,8 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {locations.map(location => (
-                                  <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
+                                {Object.values(parsedFacilities).map(({ facility }) => (
+                                  <SelectItem key={facility.id} value={facility.id.toString()}>{facility.name}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -433,9 +531,19 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {watchLocation && appointmentTypesByLocation[watchLocation as keyof typeof appointmentTypesByLocation]?.map(type => (
-                                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                                  ))}
+                                  {appointmentTypes
+                                    .filter(type => type.facilityId === parseInt(watchLocation))
+                                    .filter(type => {
+                                      // Check if this appointment type is excluded
+                                      const facilityInfo = parsedFacilities[parseInt(watchLocation)];
+                                      return facilityInfo && !facilityInfo.excludedAppointmentTypes.includes(type.id);
+                                    })
+                                    .map(type => (
+                                      <SelectItem key={type.id} value={type.id.toString()}>
+                                        {type.name}
+                                      </SelectItem>
+                                    ))
+                                  }
                                 </SelectContent>
                               </Select>
                               <FormMessage />
