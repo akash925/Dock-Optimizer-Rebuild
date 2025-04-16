@@ -30,7 +30,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+// Avatar import removed as no longer needed
 import { Notification } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
@@ -58,8 +58,6 @@ export default function TopNav() {
   const unreadCount = notifications.filter(n => !n.isRead).length;
   
   if (!user) return null;
-  
-  const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`;
 
   const handleLogout = () => {
     logoutMutation.mutate();
@@ -182,10 +180,7 @@ export default function TopNav() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium hidden md:block">
+              <span className="text-sm font-medium">
                 {user.firstName} {user.lastName}
               </span>
               <ChevronDown className="h-4 w-4 text-neutral-400" />
