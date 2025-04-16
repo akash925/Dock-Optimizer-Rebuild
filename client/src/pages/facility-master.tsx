@@ -63,9 +63,22 @@ const facilitySchema = z.object({
   state: z.string().min(2, "State is required"),
   pincode: z.string().min(5, "Postal code is required"),
   country: z.string().min(2, "Country is required"),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  company: z.string().optional(),
+});
+
+// Define the holiday schema for form validation
+const holidaySchema = z.object({
+  id: z.number().optional(),
+  date: z.date(),
+  description: z.string().min(2, "Description is required"),
+  facilityId: z.number().optional(),
+  scope: z.enum(["facility", "organization"]).default("facility"),
 });
 
 type FacilityFormValues = z.infer<typeof facilitySchema>;
+type HolidayFormValues = z.infer<typeof holidaySchema>;
 
 interface Facility {
   id: number;
@@ -76,6 +89,17 @@ interface Facility {
   state: string;
   pincode: string;
   country: string;
+  latitude?: string;
+  longitude?: string;
+  company?: string;
+}
+
+interface Holiday {
+  id: number;
+  date: Date;
+  description: string;
+  facilityId: number | null;
+  scope: "facility" | "organization";
 }
 
 export default function FacilityMaster() {
@@ -84,10 +108,14 @@ export default function FacilityMaster() {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isHolidaysDialogOpen, setIsHolidaysDialogOpen] = useState(false);
+  const [isAddHolidayDialogOpen, setIsAddHolidayDialogOpen] = useState(false);
   const [currentFacility, setCurrentFacility] = useState<Facility | null>(null);
+  const [currentHoliday, setCurrentHoliday] = useState<Holiday | null>(null);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [holidayTab, setHolidayTab] = useState<"facility" | "organization">("facility");
 
   // Mock data for demonstration
   const mockFacilities: Facility[] = [
@@ -152,6 +180,153 @@ export default function FacilityMaster() {
       country: "USA"
     }
   ];
+
+  // Mock holiday data
+  const mockHolidays: Holiday[] = [
+    {
+      id: 1,
+      date: new Date("2025-01-01"),
+      description: "New Year's Day",
+      facilityId: null,
+      scope: "organization"
+    },
+    {
+      id: 2,
+      date: new Date("2025-05-26"),
+      description: "Memorial Day",
+      facilityId: null,
+      scope: "organization"
+    },
+    {
+      id: 3,
+      date: new Date("2025-07-04"),
+      description: "Independence Day",
+      facilityId: null,
+      scope: "organization"
+    },
+    {
+      id: 4,
+      date: new Date("2025-09-01"),
+      description: "Labor Day",
+      facilityId: null,
+      scope: "organization"
+    },
+    {
+      id: 5,
+      date: new Date("2025-11-27"),
+      description: "Thanksgiving Day",
+      facilityId: null,
+      scope: "organization"
+    },
+    {
+      id: 6,
+      date: new Date("2025-12-25"),
+      description: "Christmas Day",
+      facilityId: null,
+      scope: "organization"
+    },
+    {
+      id: 7,
+      date: new Date("2025-02-14"),
+      description: "Facility Maintenance Day",
+      facilityId: 1,
+      scope: "facility"
+    },
+    {
+      id: 8,
+      date: new Date("2025-04-10"),
+      description: "Inventory Audit",
+      facilityId: 2,
+      scope: "facility"
+    }
+  ];
+
+  // Create holiday form
+  const holidayForm = useForm<HolidayFormValues>({
+    resolver: zodResolver(holidaySchema),
+    defaultValues: {
+      date: new Date(),
+      description: "",
+      scope: "facility"
+    }
+  });
+
+  // Create holiday mutation
+  const createHolidayMutation = useMutation({
+    mutationFn: async (values: HolidayFormValues) => {
+      // In a real implementation, you would send to the backend
+      // const res = await apiRequest("POST", "/api/holidays", values);
+      // return res.json();
+      
+      // For now, just return the values with a mock ID
+      return Promise.resolve({
+        ...values,
+        id: Math.floor(Math.random() * 1000)
+      });
+    },
+    onSuccess: () => {
+      // queryClient.invalidateQueries({ queryKey: ["/api/holidays"] });
+      setIsAddHolidayDialogOpen(false);
+      holidayForm.reset({
+        date: new Date(),
+        description: "",
+        scope: holidayTab
+      });
+      toast({
+        title: "Success",
+        description: "Holiday added successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to add holiday: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Delete holiday mutation
+  const deleteHolidayMutation = useMutation({
+    mutationFn: async (id: number) => {
+      // In a real implementation, you would send to the backend
+      // const res = await apiRequest("DELETE", `/api/holidays/${id}`);
+      // return res.ok;
+      
+      // For now, just return true
+      return Promise.resolve(true);
+    },
+    onSuccess: () => {
+      // queryClient.invalidateQueries({ queryKey: ["/api/holidays"] });
+      toast({
+        title: "Success",
+        description: "Holiday deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete holiday: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Fetch holidays (using mock data for now)
+  const { data: holidays } = useQuery({
+    queryKey: ["/api/holidays"],
+    queryFn: async () => {
+      // In a real implementation, you would fetch from the backend
+      // const response = await fetch("/api/holidays");
+      // if (!response.ok) {
+      //   throw new Error("Failed to fetch holidays");
+      // }
+      // return response.json() as Promise<Holiday[]>;
+      
+      // For now, return mock data
+      return Promise.resolve(mockHolidays);
+    },
+  });
 
   // Fetch facilities (using mock data for now)
   const { data: facilities, isLoading, error } = useQuery({
@@ -305,6 +480,38 @@ export default function FacilityMaster() {
   const handleDeleteClick = (facility: Facility) => {
     deleteFacilityMutation.mutate(facility.id);
   };
+
+  const handleHolidaysClick = (facility: Facility) => {
+    setCurrentFacility(facility);
+    setIsHolidaysDialogOpen(true);
+  };
+
+  const handleAddHoliday = () => {
+    holidayForm.reset({
+      date: new Date(),
+      description: "",
+      facilityId: holidayTab === "facility" ? currentFacility?.id : null,
+      scope: holidayTab
+    });
+    setIsAddHolidayDialogOpen(true);
+  };
+
+  const handleDeleteHoliday = (holiday: Holiday) => {
+    deleteHolidayMutation.mutate(holiday.id);
+  };
+
+  const handleHolidaySubmit = (values: HolidayFormValues) => {
+    createHolidayMutation.mutate(values);
+  };
+
+  // Filter holidays based on facility and scope
+  const filteredHolidays = holidays?.filter((holiday) => {
+    if (holidayTab === "organization") {
+      return holiday.scope === "organization";
+    } else {
+      return holiday.scope === "facility" && holiday.facilityId === currentFacility?.id;
+    }
+  });
 
   // Filter facilities based on search query
   const filteredFacilities = facilities?.filter((facility) => {
