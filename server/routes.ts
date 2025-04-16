@@ -13,6 +13,7 @@ import {
   insertAppointmentTypeSchema,
   insertDailyAvailabilitySchema,
   insertCustomQuestionSchema,
+  insertBookingPageSchema,
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -977,6 +978,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (err) {
       res.status(500).json({ message: "Failed to delete custom question" });
+    }
+  });
+
+  // Booking Pages routes
+  app.get("/api/booking-pages", async (req, res) => {
+    try {
+      const bookingPages = await storage.getBookingPages();
+      res.json(bookingPages);
+    } catch (err) {
+      console.error("Error fetching booking pages:", err);
+      res.status(500).json({ message: "Failed to fetch booking pages" });
+    }
+  });
+
+  app.get("/api/booking-pages/:id", async (req, res) => {
+    try {
+      const bookingPage = await storage.getBookingPage(Number(req.params.id));
+      if (!bookingPage) {
+        return res.status(404).json({ message: "Booking page not found" });
+      }
+      res.json(bookingPage);
+    } catch (err) {
+      console.error("Error fetching booking page:", err);
+      res.status(500).json({ message: "Failed to fetch booking page" });
+    }
+  });
+
+  app.get("/api/booking-pages/slug/:slug", async (req, res) => {
+    try {
+      const bookingPage = await storage.getBookingPageBySlug(req.params.slug);
+      if (!bookingPage) {
+        return res.status(404).json({ message: "Booking page not found" });
+      }
+      res.json(bookingPage);
+    } catch (err) {
+      console.error("Error fetching booking page by slug:", err);
+      res.status(500).json({ message: "Failed to fetch booking page" });
+    }
+  });
+
+  app.post("/api/booking-pages", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      // Add the current user to createdBy field
+      const bookingPageData = {
+        ...req.body,
+        createdBy: req.user!.id
+      };
+      
+      const validatedData = insertBookingPageSchema.parse(bookingPageData);
+      
+      // Check if slug already exists
+      const existingBookingPage = await storage.getBookingPageBySlug(validatedData.slug);
+      if (existingBookingPage) {
+        return res.status(400).json({ message: "Slug already in use" });
+      }
+      
+      const bookingPage = await storage.createBookingPage(validatedData);
+      res.status(201).json(bookingPage);
+    } catch (err) {
+      console.error("Error creating booking page:", err);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid booking page data", 
+          errors: err.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to create booking page" });
+    }
+  });
+
+  app.put("/api/booking-pages/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const bookingPage = await storage.getBookingPage(id);
+      if (!bookingPage) {
+        return res.status(404).json({ message: "Booking page not found" });
+      }
+      
+      // Add the current user to lastModifiedBy field
+      const bookingPageData = {
+        ...req.body,
+        lastModifiedBy: req.user!.id
+      };
+      
+      // If slug is being changed, check if new slug already exists
+      if (bookingPageData.slug && bookingPageData.slug !== bookingPage.slug) {
+        const existingBookingPage = await storage.getBookingPageBySlug(bookingPageData.slug);
+        if (existingBookingPage && existingBookingPage.id !== id) {
+          return res.status(400).json({ message: "Slug already in use" });
+        }
+      }
+      
+      const updatedBookingPage = await storage.updateBookingPage(id, bookingPageData);
+      res.json(updatedBookingPage);
+    } catch (err) {
+      console.error("Error updating booking page:", err);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid booking page data", 
+          errors: err.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to update booking page" });
+    }
+  });
+
+  app.delete("/api/booking-pages/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const bookingPage = await storage.getBookingPage(id);
+      if (!bookingPage) {
+        return res.status(404).json({ message: "Booking page not found" });
+      }
+      
+      const success = await storage.deleteBookingPage(id);
+      if (success) {
+        res.status(204).send();
+      } else {
+        res.status(500).json({ message: "Failed to delete booking page" });
+      }
+    } catch (err) {
+      console.error("Error deleting booking page:", err);
+      res.status(500).json({ message: "Failed to delete booking page" });
     }
   });
 

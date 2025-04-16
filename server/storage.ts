@@ -1163,6 +1163,58 @@ export class DatabaseStorage implements IStorage {
       .where(eq(customQuestions.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
   }
+  
+  // Booking Pages operations
+  async getBookingPage(id: number): Promise<BookingPage | undefined> {
+    const [bookingPage] = await db
+      .select()
+      .from(bookingPages)
+      .where(eq(bookingPages.id, id));
+    return bookingPage;
+  }
+
+  async getBookingPageBySlug(slug: string): Promise<BookingPage | undefined> {
+    const [bookingPage] = await db
+      .select()
+      .from(bookingPages)
+      .where(eq(bookingPages.slug, slug));
+    return bookingPage;
+  }
+
+  async getBookingPages(): Promise<BookingPage[]> {
+    return await db.select().from(bookingPages);
+  }
+
+  async createBookingPage(insertBookingPage: InsertBookingPage): Promise<BookingPage> {
+    const [bookingPage] = await db
+      .insert(bookingPages)
+      .values({
+        ...insertBookingPage,
+        lastModifiedAt: null,
+        lastModifiedBy: insertBookingPage.createdBy
+      })
+      .returning();
+    return bookingPage;
+  }
+
+  async updateBookingPage(id: number, bookingPageUpdate: Partial<BookingPage>): Promise<BookingPage | undefined> {
+    const [updatedBookingPage] = await db
+      .update(bookingPages)
+      .set({
+        ...bookingPageUpdate,
+        lastModifiedAt: new Date()
+      })
+      .where(eq(bookingPages.id, id))
+      .returning();
+    return updatedBookingPage;
+  }
+
+  async deleteBookingPage(id: number): Promise<boolean> {
+    const result = await db
+      .delete(bookingPages)
+      .where(eq(bookingPages.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
 }
 
 // Initialize database
