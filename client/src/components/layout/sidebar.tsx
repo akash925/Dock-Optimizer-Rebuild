@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMediaQuery } from "@/hooks/use-mobile";
+import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
+import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 
 interface SidebarProps {
   className?: string;
@@ -88,10 +90,24 @@ export default function Sidebar({ className }: SidebarProps) {
       )}
     >
       <div className="p-4 border-b border-neutral-200">
-        <h1 className="text-xl font-medium text-primary flex items-center">
-          <TruckIcon className="mr-2" />
-          Dock Optimizer
-        </h1>
+        <div className="flex flex-col space-y-3">
+          <Link href="/" className="flex items-center">
+            <img 
+              src={dockOptimizerLogo} 
+              alt="Dock Optimizer Logo" 
+              className="h-10 mr-2"
+            />
+            <h1 className="text-xl font-medium text-primary">Dock Optimizer</h1>
+          </Link>
+          <div className="flex items-center justify-center pt-2 border-t border-neutral-100">
+            <span className="text-xs text-neutral-400 mr-2">Powered by</span>
+            <img 
+              src={hanzoLogo} 
+              alt="Hanzo Logistics Logo" 
+              className="h-6"
+            />
+          </div>
+        </div>
       </div>
       
       <div className="py-4">

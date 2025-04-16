@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { TruckIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
+import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 
 // Login form schema
 const loginSchema = z.object({
@@ -94,9 +96,23 @@ export default function AuthPage() {
         <div className="flex items-center justify-center w-full md:w-1/2 p-8">
           <Card className="w-full max-w-md">
             <CardHeader className="space-y-1">
-              <div className="flex items-center justify-center mb-4">
-                <TruckIcon className="h-10 w-10 text-primary mr-2" />
-                <h2 className="text-2xl font-bold text-primary">Dock Optimizer</h2>
+              <div className="flex flex-col items-center justify-center mb-4">
+                <div className="flex items-center mb-2">
+                  <img 
+                    src={dockOptimizerLogo} 
+                    alt="Dock Optimizer Logo" 
+                    className="h-14 mr-2"
+                  />
+                  <h2 className="text-2xl font-bold text-primary">Dock Optimizer</h2>
+                </div>
+                <div className="flex items-center text-xs text-neutral-500 mt-1">
+                  <span className="mr-1">Powered by</span>
+                  <img 
+                    src={hanzoLogo} 
+                    alt="Hanzo Logistics Logo" 
+                    className="h-4"
+                  />
+                </div>
               </div>
               <CardTitle className="text-xl text-center">Welcome back</CardTitle>
               <CardDescription className="text-center">
@@ -252,10 +268,18 @@ export default function AuthPage() {
                 </TabsContent>
               </Tabs>
             </CardContent>
-            <CardFooter className="flex flex-col">
-              <p className="text-xs text-center text-neutral-500 mt-4">
+            <CardFooter className="flex flex-col items-center">
+              <p className="text-xs text-center text-neutral-500 mt-4 mb-4">
                 By signing in, you agree to our Terms of Service and Privacy Policy.
               </p>
+              <div className="flex items-center text-xs text-neutral-500">
+                <span className="mr-1">© 2025 Hanzo Logistics</span>
+                <img 
+                  src={hanzoLogo} 
+                  alt="Hanzo Logistics Logo" 
+                  className="h-3 ml-1"
+                />
+              </div>
             </CardFooter>
           </Card>
         </div>
