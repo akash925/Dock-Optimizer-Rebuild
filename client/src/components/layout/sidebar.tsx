@@ -134,11 +134,26 @@ export default function Sidebar({ className }: SidebarProps) {
           onClick={closeSidebar}
         />
         
+        <SidebarItem 
+          href="/appointments" 
+          icon={<ClipboardList size={20} />} 
+          label="Appointments" 
+          active={location === "/appointments"}
+          onClick={closeSidebar}
+        />
+        
         {(user.role === "admin" || user.role === "manager") && (
           <>
             <div className="px-4 py-2 mt-6 mb-2 text-neutral-400 text-xs font-medium uppercase">
               Management
             </div>
+            <SidebarItem 
+              href="/facilities" 
+              icon={<Warehouse size={20} />} 
+              label="Facilities" 
+              active={location === "/facilities"}
+              onClick={closeSidebar}
+            />
             {user.role === "admin" && (
               <SidebarItem 
                 href="/users" 

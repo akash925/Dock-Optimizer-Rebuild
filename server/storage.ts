@@ -29,6 +29,7 @@ export interface IStorage {
   getDocks(): Promise<Dock[]>;
   createDock(dock: InsertDock): Promise<Dock>;
   updateDock(id: number, dock: Partial<Dock>): Promise<Dock | undefined>;
+  deleteDock(id: number): Promise<boolean>;
 
   // Schedule operations
   getSchedule(id: number): Promise<Schedule | undefined>;
@@ -183,6 +184,10 @@ export class MemStorage implements IStorage {
     const updatedDock = { ...dock, ...dockUpdate };
     this.docks.set(id, updatedDock);
     return updatedDock;
+  }
+
+  async deleteDock(id: number): Promise<boolean> {
+    return this.docks.delete(id);
   }
 
   // Schedule operations
@@ -356,6 +361,13 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedDock;
   }
+  
+  async deleteDock(id: number): Promise<boolean> {
+    const result = await db
+      .delete(docks)
+      .where(eq(docks.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
 
   // Schedule operations
   async getSchedule(id: number): Promise<Schedule | undefined> {
@@ -422,7 +434,7 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .delete(schedules)
       .where(eq(schedules.id, id));
-    return result.rowCount > 0;
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   // Carrier operations

@@ -70,6 +70,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update dock" });
     }
   });
+  
+  app.delete("/api/docks/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const dock = await storage.getDock(id);
+      if (!dock) {
+        return res.status(404).json({ message: "Dock not found" });
+      }
+      
+      // Check if there are any scheduled appointments using this dock
+      const dockSchedules = await storage.getSchedulesByDock(id);
+      if (dockSchedules.length > 0) {
+        return res.status(409).json({ 
+          message: "Cannot delete dock with existing schedules", 
+          count: dockSchedules.length
+        });
+      }
+      
+      // Delete the dock
+      const success = await storage.deleteDock(id);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete dock" });
+      }
+      
+      res.status(204).send();
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete dock" });
+    }
+  });
 
   // Schedule routes
   app.get("/api/schedules", async (req, res) => {
