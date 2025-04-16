@@ -16,6 +16,8 @@ import { Loader2, TruckIcon, ArrowRight, ArrowLeft, Upload, FileText } from "luc
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
+import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 
 // Define location data
 const locations = [
@@ -765,12 +767,19 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
       <div className="max-w-4xl mx-auto w-full">
         <div className="flex flex-col items-center mb-6 md:mb-8">
           <div className="flex flex-col md:flex-row items-center justify-center mb-4 text-center">
-            <img 
-              src="https://www.hanzologistics.com/wp-content/uploads/2021/11/Hanzo_Logo_no_tag-1.png" 
-              alt="Hanzo Logistics" 
-              className="h-16 mb-3 md:mb-0 md:mr-3" 
-            />
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Dock Optimizer</h1>
+            <div className="flex items-center mb-3 md:mb-0">
+              <img 
+                src={hanzoLogo} 
+                alt="Hanzo Logistics" 
+                className="h-16 md:mr-4" 
+              />
+              <img 
+                src={dockOptimizerLogo} 
+                alt="Dock Optimizer" 
+                className="h-14 ml-2" 
+              />
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 md:ml-2">Dock Optimizer</h1>
           </div>
           <p className="text-center text-gray-600 max-w-2xl px-4">
             Please use this form to pick the type of Dock Appointment that you need at Hanzo Logistics. 
@@ -827,7 +836,14 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
         </Card>
 
         <div className="mt-8 p-4 bg-white rounded-lg shadow-sm">
-          <h2 className="text-lg md:text-xl font-bold mb-4 text-center md:text-left">HANZO LOGISTICS INC.</h2>
+          <div className="flex items-center justify-center md:justify-start mb-4">
+            <img 
+              src={hanzoLogo} 
+              alt="Hanzo Logistics" 
+              className="h-10 mr-2" 
+            />
+            <h2 className="text-lg md:text-xl font-bold text-center md:text-left">HANZO LOGISTICS INC.</h2>
+          </div>
           <p className="mb-2 text-sm md:text-base">Select from the following locations:</p>
           <ul className="space-y-2 text-sm md:text-base text-gray-700">
             <li className="p-2 bg-gray-50 rounded">4334 Plainfield Road, Plainfield, IN 46231 <span className="font-medium">(Hanzo Metro)</span></li>
@@ -836,9 +852,19 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
             <li className="p-2 bg-gray-50 rounded">9915 Lacy Knot Dr, Brownsburg, IN 46112</li>
             <li className="p-2 bg-gray-50 rounded">4001 W Minnesota St, Indianapolis, IN 46241 <span className="font-medium">(Cold Chain)</span></li>
           </ul>
-          <p className="mt-4 text-center text-sm text-gray-500">
-            Please arrive 15 minutes before your appointment and check in at the security desk.
-          </p>
+          <div className="mt-6 flex flex-col items-center">
+            <p className="text-center text-sm text-gray-600 mb-3">
+              Please arrive 15 minutes before your appointment and check in at the security desk.
+            </p>
+            <div className="flex items-center text-xs text-gray-500">
+              <span>© 2025 Hanzo Logistics, Inc. | Powered by</span>
+              <img 
+                src={dockOptimizerLogo} 
+                alt="Dock Optimizer" 
+                className="h-4 ml-1" 
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
