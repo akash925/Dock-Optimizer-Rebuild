@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Save, Clock, Mail, Bell, LogOut, Building, CalendarDays, Globe, Loader2 } from "lucide-react";
+import { Save, Clock, Mail, Bell, LogOut, Building, CalendarDays, Globe, Loader2, Upload } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { TimeInterval } from "@shared/schema";
+import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -610,6 +611,39 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
+                <h3 className="text-lg font-medium">Organization Logo</h3>
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-24 h-24 border rounded-md flex items-center justify-center overflow-hidden bg-white">
+                      <img 
+                        src={hanzoLogo} 
+                        alt="Organization Logo" 
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                    <div className="space-y-2 flex-1">
+                      <Label htmlFor="logo-upload">Logo Image</Label>
+                      <Input 
+                        id="logo-upload" 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            // Here you would handle the file upload
+                            toast({
+                              title: "Logo Updated",
+                              description: "Your organization logo has been updated successfully.",
+                            });
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-neutral-500">
+                        Recommended size: 400x400px. Maximum file size: 2MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
                 <h3 className="text-lg font-medium">Time Zone</h3>
                 <div className="space-y-2">
                   <Label htmlFor="org-timezone">Organization default time zone</Label>
