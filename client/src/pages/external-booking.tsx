@@ -71,10 +71,18 @@ function CarrierSelectField({ field, setValue }: CarrierSelectFieldProps) {
   
   // Function to handle selecting a carrier
   const handleSelectCarrier = (carrier: Carrier) => {
-    setValue("carrierName", carrier.name);
-    if (carrier.mcNumber) {
-      setValue("mcNumber", carrier.mcNumber);
+    console.log("Selected carrier data:", carrier);
+    
+    // Make sure we're setting the actual carrier name, not email
+    if (carrier && typeof carrier.name === 'string') {
+      setValue("carrierName", carrier.name);
+      
+      // Only set MC number if it exists
+      if (carrier.mcNumber && typeof carrier.mcNumber === 'string') {
+        setValue("mcNumber", carrier.mcNumber);
+      }
     }
+    
     setOpen(false);
   };
   
