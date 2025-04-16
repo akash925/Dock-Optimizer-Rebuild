@@ -440,15 +440,8 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
   const onCompanyInfoSubmit = (data: CompanyInfoFormValues) => {
     updateFormData(data);
     
-    // Ensure we're not inadvertently using company or contact info for carrier info
-    // This is important to prevent company email/phone being used instead of carrier data
-    if (appointmentDetailsForm.getValues("carrierName") === data.contactEmail ||
-        appointmentDetailsForm.getValues("mcNumber") === data.contactPhone) {
-      // Clear carrier fields if they accidentally contain contact info
-      appointmentDetailsForm.setValue("carrierName", "");
-      appointmentDetailsForm.setValue("mcNumber", "");
-    }
-    
+    // Only proceed to step 3, no more auto-clearing of fields
+    // which might have been causing issues with carrier selection
     setStep(3);
   };
 
