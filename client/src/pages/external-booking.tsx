@@ -765,7 +765,7 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-6 md:py-12 px-2 md:px-4">
       <div className="max-w-4xl mx-auto w-full">
         <div className="flex flex-col items-center mb-6 md:mb-8">
-          <div className="flex flex-col md:flex-row items-center justify-center mb-4 text-center w-full">
+          <div className="flex flex-col md:flex-row items-center justify-between mb-4 text-center w-full">
             <img 
               src={hanzoLogo} 
               alt="Hanzo Logistics" 

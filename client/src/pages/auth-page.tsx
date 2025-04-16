@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { TruckIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import hanzoLogo from "@/assets/hanzo_logo.jpeg";
+import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
 
 // Login form schema
 const loginSchema = z.object({
@@ -98,9 +98,9 @@ export default function AuthPage() {
               <div className="flex flex-col items-center justify-center mb-4">
                 <div className="flex items-center justify-center w-full mb-4">
                   <img 
-                    src={hanzoLogo} 
-                    alt="Hanzo Logistics Logo" 
-                    className="h-14"
+                    src={dockOptimizerLogo} 
+                    alt="Dock Optimizer Logo" 
+                    className="h-16"
                   />
                 </div>
               </div>
