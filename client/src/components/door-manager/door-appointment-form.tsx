@@ -10,6 +10,7 @@ import {
   DialogDescription, 
   DialogFooter 
 } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { 
   Form, 
   FormControl, 
@@ -21,14 +22,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
-import { insertScheduleSchema, ScheduleType, ScheduleStatus, Carrier } from "@shared/schema";
+import { 
+  insertScheduleSchema, 
+  ScheduleType, 
+  ScheduleStatus, 
+  Carrier, 
+  Schedule 
+} from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
 // Create a schema for the appointment form with time validation
@@ -54,6 +61,7 @@ interface DoorAppointmentFormProps {
   initialStartTime: Date;
   initialEndTime: Date;
   carriers: Carrier[];
+  schedules?: Schedule[];
   onSuccess: () => void;
 }
 
@@ -64,6 +72,7 @@ export default function DoorAppointmentForm({
   initialStartTime,
   initialEndTime,
   carriers,
+  schedules = [],
   onSuccess
 }: DoorAppointmentFormProps) {
   const { toast } = useToast();
@@ -115,12 +124,45 @@ export default function DoorAppointmentForm({
     },
   });
   
+  // Update existing appointment mutation
+  const updateAppointmentMutation = useMutation({
+    mutationFn: async (scheduleId: number) => {
+      const res = await apiRequest("PATCH", `/api/schedules/${scheduleId}`, {
+        dockId,
+        lastModifiedBy: user?.id || 1,
+        lastModifiedAt: new Date(),
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      toast({
+        title: "Door assigned",
+        description: "The existing appointment has been assigned to this door.",
+      });
+      onSuccess();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to assign door",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Handle form submission
   const onSubmit = async (data: AppointmentValues) => {
     setIsSubmitting(true);
     
     try {
-      await createAppointmentMutation.mutateAsync(data);
+      if (appointmentType === "existing" && selectedExistingAppointment) {
+        // Update existing appointment with new dock
+        await updateAppointmentMutation.mutateAsync(selectedExistingAppointment.id);
+      } else {
+        // Create new appointment
+        await createAppointmentMutation.mutateAsync(data);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -139,15 +181,93 @@ export default function DoorAppointmentForm({
     return newDate;
   };
   
+  // Get existing appointments for the day
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  // Filter schedules for today's appointments that aren't for this door
+  const { data: todaysAppointments = [] } = useQuery<Schedule[]>({
+    queryKey: ["/api/schedules/today"],
+    queryFn: async () => {
+      // This would normally call the backend API
+      // For now, let's filter the existing schedules
+      return schedules.filter(s => 
+        new Date(s.startTime) >= today && 
+        new Date(s.startTime) < tomorrow &&
+        s.dockId !== dockId
+      );
+    },
+  });
+  
+  const [appointmentType, setAppointmentType] = useState<"new" | "existing">("new");
+  const [selectedExistingAppointment, setSelectedExistingAppointment] = useState<Schedule | null>(null);
+  
+  const handleExistingAppointmentSelect = (appointmentId: string) => {
+    const appointment = todaysAppointments.find(a => a.id.toString() === appointmentId);
+    if (appointment) {
+      setSelectedExistingAppointment(appointment);
+      // Update the form with the selected appointment details
+      form.setValue("carrierId", appointment.carrierId);
+      form.setValue("truckNumber", appointment.truckNumber);
+      form.setValue("type", appointment.type as "inbound" | "outbound");
+      form.setValue("notes", appointment.notes || "");
+    }
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>Add Door Appointment</DialogTitle>
+          <DialogTitle>Assign Door</DialogTitle>
           <DialogDescription>
-            Create a new appointment for the selected door. Fill in the details below.
+            Create a new appointment or assign an existing appointment to this door.
           </DialogDescription>
         </DialogHeader>
+        
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <Button
+            type="button"
+            variant={appointmentType === "new" ? "default" : "outline"}
+            onClick={() => setAppointmentType("new")}
+            className="w-full"
+          >
+            Create New Appointment
+          </Button>
+          <Button
+            type="button"
+            variant={appointmentType === "existing" ? "default" : "outline"}
+            onClick={() => setAppointmentType("existing")}
+            className="w-full"
+          >
+            Use Existing Appointment
+          </Button>
+        </div>
+        
+        {appointmentType === "existing" && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">
+              Select an existing appointment:
+            </label>
+            <Select onValueChange={handleExistingAppointmentSelect}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose appointment" />
+              </SelectTrigger>
+              <SelectContent>
+                {todaysAppointments.length > 0 ? (
+                  todaysAppointments.map((appointment) => (
+                    <SelectItem key={appointment.id} value={appointment.id.toString()}>
+                      {carriers.find(c => c.id === appointment.carrierId)?.name} - {appointment.truckNumber} ({new Date(appointment.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>No appointments available</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -367,7 +487,9 @@ export default function DoorAppointmentForm({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Appointment"}
+                {isSubmitting 
+                  ? appointmentType === "existing" ? "Assigning..." : "Creating..." 
+                  : appointmentType === "existing" ? "Assign Door" : "Create Appointment"}
               </Button>
             </DialogFooter>
           </form>

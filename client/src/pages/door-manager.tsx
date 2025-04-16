@@ -226,6 +226,7 @@ export default function DoorManager() {
           initialStartTime={selectedTimeSlot.start}
           initialEndTime={selectedTimeSlot.end}
           carriers={carriers}
+          schedules={schedules}
           onSuccess={() => {
             refetchSchedules();
             handleCloseAppointmentForm();

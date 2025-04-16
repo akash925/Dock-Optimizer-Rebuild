@@ -185,7 +185,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const docksRelations = relations(docks, ({ many, one }) => ({
   schedules: many(schedules),
   facility: one(facilities, {
-    fields: [docks.id], // This should actually be a facility_id field that we need to add
+    fields: [docks.facilityId],
     references: [facilities.id],
   }),
 }));
