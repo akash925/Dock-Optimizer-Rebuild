@@ -91,7 +91,7 @@ export default function ExternalBooking() {
   const { data: bookingPage, isLoading: isLoadingBookingPage, error: bookingPageError } = useQuery<BookingPage>({
     queryKey: [`/api/booking-pages/slug/${slug}`],
     enabled: !!slug,
-    retry: false
+    retry: 1
   });
   
   // Fetch facilities that are in this booking page
