@@ -41,7 +41,8 @@ import { useAuth } from "@/hooks/use-auth";
 // Create a schema for the appointment form with time validation
 const appointmentSchema = z.object({
   dockId: z.number(),
-  carrierId: z.number(),
+  carrierId: z.number().optional(),
+  carrierName: z.string().optional(),
   truckNumber: z.string().min(1, "Truck number is required"),
   startTime: z.date(),
   endTime: z.date(),
@@ -84,7 +85,8 @@ export default function DoorAppointmentForm({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
       dockId,
-      carrierId: carriers[0]?.id || 1,
+      carrierId: undefined,
+      carrierName: "",
       truckNumber: "",
       startTime: initialStartTime,
       endTime: initialEndTime,
@@ -210,6 +212,13 @@ export default function DoorAppointmentForm({
       setSelectedExistingAppointment(appointment);
       // Update the form with the selected appointment details
       form.setValue("carrierId", appointment.carrierId);
+      // Find the carrier name for the selected carrier ID
+      const carrier = carriers.find(c => c.id === appointment.carrierId);
+      if (carrier) {
+        form.setValue("carrierName", carrier.name);
+      } else {
+        form.setValue("carrierName", "");
+      }
       form.setValue("truckNumber", appointment.truckNumber);
       form.setValue("type", appointment.type as "inbound" | "outbound");
       form.setValue("notes", appointment.notes || "");
@@ -271,30 +280,81 @@ export default function DoorAppointmentForm({
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="carrierId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Carrier</FormLabel>
-                  <Select value={field.value.toString()} onValueChange={(value) => field.onChange(parseInt(value))}>
+            <div className="grid grid-cols-1 gap-4">
+              <FormField
+                control={form.control}
+                name="carrierId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Carrier</FormLabel>
+                    <Select 
+                      value={field.value?.toString() || ""} 
+                      onValueChange={(value) => {
+                        field.onChange(value ? parseInt(value) : undefined);
+                        // Find the carrier name for the selected ID
+                        if (value) {
+                          const carrier = carriers.find(c => c.id.toString() === value);
+                          if (carrier) {
+                            form.setValue("carrierName", carrier.name);
+                          }
+                        } else {
+                          form.setValue("carrierName", "");
+                        }
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a carrier (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <div className="p-2">
+                          <Input 
+                            placeholder="Search carriers..." 
+                            className="mb-2"
+                            onChange={(e) => {
+                              // This would filter the carriers list in a real implementation
+                              // For now, we'll just log the search term
+                              console.log("Searching for carrier:", e.target.value);
+                            }}
+                          />
+                        </div>
+                        {carriers.map(carrier => (
+                          <SelectItem key={carrier.id} value={carrier.id.toString()}>
+                            {carrier.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="carrierName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Carrier Name</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a carrier" />
-                      </SelectTrigger>
+                      <Input 
+                        placeholder="Enter carrier name if not in list above" 
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          // Clear carrier ID if custom name is entered
+                          if (e.target.value) {
+                            form.setValue("carrierId", undefined);
+                          }
+                        }}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {carriers.map(carrier => (
-                        <SelectItem key={carrier.id} value={carrier.id.toString()}>
-                          {carrier.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <FormField
               control={form.control}

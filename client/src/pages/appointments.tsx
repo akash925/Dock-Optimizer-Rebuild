@@ -14,6 +14,7 @@ import {
   Truck,
   Clock,
   MapPin,
+  Copy,
 } from "lucide-react";
 import { formatDate, formatTime, getDockStatus } from "@/lib/utils";
 import { Schedule } from "@shared/schema";
@@ -112,6 +113,46 @@ export default function AppointmentsPage() {
     }
   });
   
+  // Duplicate schedule mutation
+  const duplicateScheduleMutation = useMutation({
+    mutationFn: async (schedule: Schedule) => {
+      // Create a new schedule based on the existing one
+      const newSchedule = {
+        ...schedule,
+        // Remove ID so a new one is created
+        id: undefined,
+        // Update timestamps if needed
+        createdAt: new Date(),
+        createdBy: user?.id || 1,
+        lastModifiedAt: null,
+        lastModifiedBy: null,
+        // You can customize the new start/end times or leave them as is
+        // For example, you might want to schedule it for the next day
+        status: "scheduled"
+      };
+      
+      const res = await apiRequest("POST", "/api/schedules", newSchedule);
+      if (!res.ok) {
+        throw new Error("Failed to duplicate appointment");
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      toast({
+        title: "Success",
+        description: "Appointment duplicated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to duplicate appointment: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
   const handleEditClick = (schedule: Schedule) => {
     // For now, we'll just redirect to the schedule page with the ID
     window.location.href = `/schedules?edit=${schedule.id}`;
@@ -119,6 +160,10 @@ export default function AppointmentsPage() {
   
   const handleDeleteClick = (schedule: Schedule) => {
     deleteScheduleMutation.mutate(schedule.id);
+  };
+  
+  const handleDuplicateClick = (schedule: Schedule) => {
+    duplicateScheduleMutation.mutate(schedule);
   };
   
   // Get appointment type badge
@@ -234,6 +279,14 @@ export default function AppointmentsPage() {
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleEditClick(schedule)}>
                         <PenIcon className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleDuplicateClick(schedule)}
+                        className="text-blue-500 border-blue-200 hover:bg-blue-50"
+                      >
+                        <Copy className="h-4 w-4" />
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
