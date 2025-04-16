@@ -234,6 +234,7 @@ const appointmentDetailsSchema = z.object({
   palletCount: z.string().optional(),
   weight: z.string().optional(),
   additionalNotes: z.string().optional(),
+  bolFileUploaded: z.boolean().optional(),
 });
 
 // Combine all schemas for the final submission
@@ -346,6 +347,7 @@ export default function ExternalBooking() {
       palletCount: "",
       weight: "",
       additionalNotes: "",
+      bolFileUploaded: false,
     },
   });
 
@@ -436,6 +438,9 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
   // Handle Step 2 Submission
   const onCompanyInfoSubmit = (data: CompanyInfoFormValues) => {
     updateFormData(data);
+    // Clear any previously set values for carrier name and MC number to avoid issues
+    appointmentDetailsForm.setValue("carrierName", "");
+    appointmentDetailsForm.setValue("mcNumber", "");
     setStep(3);
   };
 
@@ -1188,6 +1193,71 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                   </FormItem>
                 )}
               />
+              
+              {/* BOL Upload */}
+              <div className="border-2 border-dashed rounded-md border-gray-300 p-6">
+                <div className="mb-2 flex items-start">
+                  <FileText className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                  <div>
+                    <h3 className="font-medium text-gray-900">BOL Document Upload</h3>
+                    <p className="text-sm text-gray-500">
+                      If you have a BOL document ready, you can upload it here. Accepted formats: PDF, JPG, PNG.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <input
+                    type="file"
+                    id="bol-upload-step3"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files && files.length > 0) {
+                        const file = files[0];
+                        setBolFile(file);
+                        appointmentDetailsForm.setValue("bolFileUploaded", true);
+                        appointmentDetailsForm.setValue("bolNumber", appointmentDetailsForm.getValues("bolNumber") || `BOL-${Date.now().toString().slice(-6)}`);
+                        
+                        toast({
+                          title: "BOL Uploaded",
+                          description: `File "${file.name}" has been attached to this appointment.`,
+                        });
+                      }
+                    }}
+                  />
+                  
+                  <div className="flex items-center">
+                    {bolFile ? (
+                      <div className="flex-1 flex items-center bg-green-50 border border-green-200 rounded-md p-3">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-green-800">BOL Document Uploaded</p>
+                          <p className="text-xs text-green-700">{bolFile.name}</p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {
+                            setBolFile(null);
+                            appointmentDetailsForm.setValue("bolFileUploaded", false);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <label htmlFor="bol-upload-step3" className="flex cursor-pointer">
+                        <Button type="button" variant="outline" size="sm">
+                          <Upload className="h-4 w-4 mr-2" />
+                          Choose File
+                        </Button>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
               
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between">
                 <Button 
