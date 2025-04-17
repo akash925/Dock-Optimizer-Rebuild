@@ -29,11 +29,15 @@ export default function Schedules() {
   
   // Fetch schedules
   const { data: schedules = [] } = useQuery<Schedule[]>({
-    queryKey: ["/api/schedules"],
-    onSuccess: (data) => {
-      console.log("Schedules data:", data);
-    }
+    queryKey: ["/api/schedules"]
   });
+  
+  // Set the most current schedule as selected on first load
+  useEffect(() => {
+    if (schedules.length > 0 && !selectedSchedule) {
+      setSelectedSchedule(schedules[0]);
+    }
+  }, [schedules, selectedSchedule]);
   
   // Fetch docks
   const { data: docks = [] } = useQuery<Dock[]>({

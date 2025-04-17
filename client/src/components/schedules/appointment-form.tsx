@@ -145,7 +145,8 @@ export default function AppointmentForm({
           appointmentMode: initialData.appointmentMode as "trailer" | "container" || "trailer"
         }
       : {
-          carrierId: 0,
+          carrierId: undefined,
+          carrierName: "",
           mcNumber: "",
           truckNumber: "",
           trailerNumber: "",
@@ -182,7 +183,7 @@ export default function AppointmentForm({
       : {
           appointmentDate: initialDate ? format(initialDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
           appointmentTime: initialDate ? format(initialDate, "HH:mm") : "09:00",
-          dockId: docks && docks.length > 0 ? docks[0].id : 1,
+          dockId: docks && docks.length > 0 ? docks[0].id : undefined,
           bolNumber: "",
           poNumber: "",
           palletCount: "",
