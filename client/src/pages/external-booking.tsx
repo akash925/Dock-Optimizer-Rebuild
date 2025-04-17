@@ -1165,16 +1165,23 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                 )}
               />
 
-              {/* Temporarily removing MC Number field to prevent form submission errors */}
-              <input type="hidden" name="mcNumber" value="" />
-              {/* Informational message replacing the MC Number field */}
-              <div className="bg-blue-50 p-3 rounded border border-blue-200 mb-4">
-                <h3 className="text-sm font-semibold text-blue-800">MC Number Field</h3>
-                <p className="text-xs text-blue-700 mt-1">
-                  The MC Number field has been temporarily removed while we resolve an issue with it.
-                  It will be restored in an upcoming update.
-                </p>
-              </div>
+              {/* MC Number field */}
+              <FormField
+                control={appointmentDetailsForm.control}
+                name="mcNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>MC Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter MC Number (if applicable)" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Motor Carrier number for the transportation provider
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
