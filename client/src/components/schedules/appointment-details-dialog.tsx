@@ -614,27 +614,75 @@ export function AppointmentDetailsDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Carrier Name:</Label>
-              <div className="font-medium">{appointment.carrierName || "Unknown Carrier"}</div>
+              {isEditing ? (
+                <Input 
+                  value={formData.carrierName || ''} 
+                  onChange={(e) => handleInputChange('carrierName', e.target.value)}
+                  className="h-8"
+                />
+              ) : (
+                <div className="font-medium">{appointment.carrierName || "Unknown Carrier"}</div>
+              )}
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">MC Number:</Label>
-              <div className="font-medium">{appointment.mcNumber || "N/A"}</div>
+              {isEditing ? (
+                <Input 
+                  value={formData.mcNumber || ''} 
+                  onChange={(e) => handleInputChange('mcNumber', e.target.value)}
+                  className="h-8"
+                />
+              ) : (
+                <div className="font-medium">{appointment.mcNumber || "N/A"}</div>
+              )}
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Customer Name:</Label>
-              <div className="font-medium">{appointment.customerName || "N/A"}</div>
+              {isEditing ? (
+                <Input 
+                  value={formData.customerName || ''} 
+                  onChange={(e) => handleInputChange('customerName', e.target.value)}
+                  className="h-8"
+                />
+              ) : (
+                <div className="font-medium">{appointment.customerName || "N/A"}</div>
+              )}
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Driver Name:</Label>
-              <div className="font-medium">{appointment.driverName || "N/A"}</div>
+              {isEditing ? (
+                <Input 
+                  value={formData.driverName || ''} 
+                  onChange={(e) => handleInputChange('driverName', e.target.value)}
+                  className="h-8"
+                />
+              ) : (
+                <div className="font-medium">{appointment.driverName || "N/A"}</div>
+              )}
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Driver Phone:</Label>
-              <div className="font-medium">{appointment.driverPhone || "N/A"}</div>
+              {isEditing ? (
+                <Input 
+                  value={formData.driverPhone || ''} 
+                  onChange={(e) => handleInputChange('driverPhone', e.target.value)}
+                  className="h-8"
+                />
+              ) : (
+                <div className="font-medium">{appointment.driverPhone || "N/A"}</div>
+              )}
             </div>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Truck Number:</Label>
-              <div className="font-medium">{appointment.truckNumber || "N/A"}</div>
+              {isEditing ? (
+                <Input 
+                  value={formData.truckNumber || ''} 
+                  onChange={(e) => handleInputChange('truckNumber', e.target.value)}
+                  className="h-8"
+                />
+              ) : (
+                <div className="font-medium">{appointment.truckNumber || "N/A"}</div>
+              )}
             </div>
           </div>
         </div>
@@ -735,10 +783,19 @@ export function AppointmentDetailsDialog({
         <div className="border-t py-4">
           <h3 className="text-sm font-medium mb-3">Notes</h3>
           <div className="rounded-md border bg-slate-50 p-3">
-            {appointment.notes ? (
-              <p className="text-sm whitespace-pre-line">{appointment.notes}</p>
+            {isEditing ? (
+              <textarea 
+                value={formData.notes || ''}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                className="w-full h-24 p-2 text-sm border rounded"
+                placeholder="Add notes about this appointment..."
+              />
             ) : (
-              <p className="text-sm text-muted-foreground italic">No notes provided for this appointment</p>
+              appointment.notes ? (
+                <p className="text-sm whitespace-pre-line">{appointment.notes}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">No notes provided for this appointment</p>
+              )
             )}
           </div>
         </div>

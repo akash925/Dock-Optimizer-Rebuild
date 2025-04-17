@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Calendar as CalendarIcon, ListFilter, Grid, List, Eye } from "lucide-react";
+import { PlusCircle, Calendar as CalendarIcon, ListFilter, Grid, List, Eye, Search, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/ui/data-table";
@@ -16,6 +16,10 @@ import { AppointmentDetailsDialog } from "@/components/schedules/appointment-det
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatTime } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
 
 export default function Schedules() {
   const { toast } = useToast();
@@ -26,6 +30,10 @@ export default function Schedules() {
   const [viewMode, setViewMode] = useState<"calendar" | "week" | "day" | "month" | "list">("week");
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterDockId, setFilterDockId] = useState<number | "all">("all");
   
   // Fetch schedules
   const { data: schedules = [] } = useQuery<Schedule[]>({
@@ -181,14 +189,41 @@ export default function Schedules() {
     },
   ];
   
-  // Filter schedules for the selected date
+  // Filter and search schedules
   const filteredSchedules = schedules.filter((schedule: Schedule) => {
+    // Date filter - always applied
     const scheduleDate = new Date(schedule.startTime);
-    return (
+    const dateMatches = 
       scheduleDate.getDate() === selectedDate.getDate() &&
       scheduleDate.getMonth() === selectedDate.getMonth() &&
-      scheduleDate.getFullYear() === selectedDate.getFullYear()
-    );
+      scheduleDate.getFullYear() === selectedDate.getFullYear();
+    
+    // Status filter
+    const statusMatches = filterStatus === "all" || schedule.status === filterStatus;
+    
+    // Type filter
+    const typeMatches = filterType === "all" || schedule.type === filterType;
+    
+    // Dock filter
+    const dockMatches = filterDockId === "all" || schedule.dockId === filterDockId;
+    
+    // Search query - check multiple fields
+    let searchMatches = true;
+    if (searchQuery.trim() !== "") {
+      const query = searchQuery.toLowerCase();
+      const carrier = carriers.find(c => c.id === schedule.carrierId);
+      
+      searchMatches = 
+        (schedule.truckNumber?.toLowerCase().includes(query) || false) ||
+        (schedule.driverName?.toLowerCase().includes(query) || false) ||
+        (schedule.driverPhone?.includes(query) || false) ||
+        (schedule.customerName?.toLowerCase().includes(query) || false) ||
+        (schedule.poNumber?.toLowerCase().includes(query) || false) ||
+        (schedule.bolNumber?.toLowerCase().includes(query) || false) ||
+        (carrier?.name.toLowerCase().includes(query) || false);
+    }
+    
+    return dateMatches && statusMatches && typeMatches && dockMatches && searchMatches;
   });
 
   return (
