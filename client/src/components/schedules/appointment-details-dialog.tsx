@@ -242,7 +242,8 @@ export function AppointmentDetailsDialog({
 
   if (!appointment) return null;
 
-  const appointmentTitle = `${appointment.carrierName || "Unknown Carrier"} - ${facilityName || "Facility"} Appointment`;
+  // Prioritize carrier name if available, then customer name, then use a default
+  const appointmentTitle = `${appointment.carrierName || appointment.customerName || "Appointment"} - ${facilityName || "Facility"}`;
   
   // Determine appointment type badge color
   const getTypeColor = () => {
@@ -356,7 +357,7 @@ export function AppointmentDetailsDialog({
             </div>
           </DialogTitle>
           <DialogDescription>
-            Appointment details for {appointment.carrierName || "Unknown Carrier"}.
+            {appointment.type === "inbound" ? "Inbound" : "Outbound"} appointment details. 
             You can view, edit, or manage this appointment.
           </DialogDescription>
         </DialogHeader>
@@ -413,21 +414,58 @@ export function AppointmentDetailsDialog({
           </div>
         </div>
 
-        {/* QR Code for check-in - only show for scheduled appointments */}
-        {appointment.status === "scheduled" && (
-          <div className="border-t border-b py-4">
-            <h3 className="text-sm font-medium mb-3 flex items-center">
-              <QrCode className="h-4 w-4 mr-2 text-primary" />
-              Check-in QR Code
-            </h3>
-            <div className="flex justify-center">
-              <AppointmentQRCode 
-                schedule={appointment} 
-                confirmationCode={`HC${appointment.id.toString().padStart(6, '0')}`}
-              />
+        {/* Carrier and Driver information */}
+        <div className="border-t py-4">
+          <h3 className="text-sm font-medium mb-3">Carrier & Driver Information</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Carrier Name:</Label>
+              <div className="font-medium">{appointment.carrierName || "Unknown Carrier"}</div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">MC Number:</Label>
+              <div className="font-medium">{appointment.mcNumber || "N/A"}</div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Customer Name:</Label>
+              <div className="font-medium">{appointment.customerName || "N/A"}</div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Driver Name:</Label>
+              <div className="font-medium">{appointment.driverName || "N/A"}</div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Driver Phone:</Label>
+              <div className="font-medium">{appointment.driverPhone || "N/A"}</div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Truck Number:</Label>
+              <div className="font-medium">{appointment.truckNumber || "N/A"}</div>
             </div>
           </div>
-        )}
+        </div>
+        
+        {/* QR Code for check-in */}
+        <div className="border-t border-b py-4">
+          <h3 className="text-sm font-medium mb-3 flex items-center">
+            <QrCode className="h-4 w-4 mr-2 text-muted-foreground" />
+            Appointment Confirmation Code: HC{appointment.id.toString().padStart(6, '0')}
+          </h3>
+          
+          {appointment.status === "scheduled" && (
+            <div className="flex flex-col items-center">
+              <p className="text-sm text-muted-foreground mb-2">
+                Scan this code at the facility to check in the driver
+              </p>
+              <div className="border p-2 rounded-md inline-block bg-white shadow-sm">
+                <AppointmentQRCode 
+                  schedule={appointment} 
+                  confirmationCode={`HC${appointment.id.toString().padStart(6, '0')}`}
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="py-2">
           <h3 className="text-sm font-medium mb-3">Question Answers:</h3>
