@@ -145,10 +145,17 @@ export const schedules = pgTable("schedules", {
   lastModifiedBy: integer("last_modified_by"),
 });
 
-export const insertScheduleSchema = createInsertSchema(schedules).omit({
+// Create a base schema using drizzle-zod
+const baseInsertScheduleSchema = createInsertSchema(schedules).omit({
   id: true,
   createdAt: true,
   lastModifiedAt: true,
+});
+
+// Enhance the schema to handle date strings for startTime and endTime
+export const insertScheduleSchema = baseInsertScheduleSchema.extend({
+  startTime: z.string().transform((str) => new Date(str)),
+  endTime: z.string().transform((str) => new Date(str)),
 });
 
 // Notification Model
