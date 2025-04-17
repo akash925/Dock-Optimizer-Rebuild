@@ -811,7 +811,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [year, month, day] = validatedData.appointmentDate.split('-').map(Number);
       const [hour, minute] = validatedData.appointmentTime.split(':').map(Number);
       
-      const startTime = new Date(year, month - 1, day, hour, minute);
+      // Round minutes to nearest 15-minute interval (0, 15, 30, 45)
+      const roundedMinute = Math.round(minute / 15) * 15;
+      const adjustedHour = roundedMinute === 60 ? hour + 1 : hour;
+      const finalMinute = roundedMinute === 60 ? 0 : roundedMinute;
+      
+      const startTime = new Date(year, month - 1, day, adjustedHour, finalMinute);
       const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
       
       // Create schedule with the available information

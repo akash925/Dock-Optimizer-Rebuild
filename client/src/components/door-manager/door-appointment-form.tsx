@@ -229,11 +229,14 @@ export default function DoorAppointmentForm({
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
   
-  // Parse time string to Date object
+  // Parse time string to Date object and round to nearest 15 minutes
   const parseTimeString = (timeString: string, baseDate: Date) => {
     const [hours, minutes] = timeString.split(':').map(Number);
+    // Round minutes to nearest 15 (0, 15, 30, 45)
+    const roundedMinutes = Math.round(minutes / 15) * 15;
     const newDate = new Date(baseDate);
-    newDate.setHours(hours, minutes, 0, 0);
+    newDate.setHours(hours, roundedMinutes === 60 ? hours + 1 : hours, 
+                    roundedMinutes === 60 ? 0 : roundedMinutes, 0);
     return newDate;
   };
   
