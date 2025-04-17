@@ -308,71 +308,38 @@ export default function ExternalBooking() {
     retry: false
   });
   
-  // Process facilities data when it's available
+  // Process facilities data when it's available - only run once
   useEffect(() => {
     if (bookingPage && facilities && appointmentTypes) {
-      try {
-        // Parse the facilities JSON array from the booking page
-        // Default to include all facilities if none specifically selected
-        let facilityIds: number[] = [];
-        
-        // Handle different formats of facilities data
-        if (bookingPage.facilities) {
-          try {
-            if (typeof bookingPage.facilities === 'string') {
-              facilityIds = JSON.parse(bookingPage.facilities);
-            } else if (Array.isArray(bookingPage.facilities)) {
-              facilityIds = bookingPage.facilities as unknown as number[];
-            } else {
-              console.error("Unknown facilities format:", bookingPage.facilities);
-              // Default to all facilities
-              facilityIds = facilities.map(f => f.id);
-            }
-          } catch (parseError) {
-            console.error("Error parsing facilities JSON:", parseError);
-            // Default to all facilities on error
-            facilityIds = facilities.map(f => f.id);
-          }
-        } else {
-          // If no facilities specified, include all
-          facilityIds = facilities.map(f => f.id);
-        }
-        
-        // For excluded appointment types, similar approach
-        let excludedAppointmentIds: number[] = [];
-        if (bookingPage.excludedAppointmentTypes) {
-          try {
-            if (typeof bookingPage.excludedAppointmentTypes === 'string') {
-              excludedAppointmentIds = JSON.parse(bookingPage.excludedAppointmentTypes);
-            } else if (Array.isArray(bookingPage.excludedAppointmentTypes)) {
-              excludedAppointmentIds = bookingPage.excludedAppointmentTypes as unknown as number[];
-            }
-          } catch (parseError) {
-            console.error("Error parsing excludedAppointmentTypes:", parseError);
-          }
-        }
-        
-        // Create a map of facilities that are included in this booking page
-        const facilitiesMap: ParsedFacilities = {};
-        
-        facilityIds.forEach(facilityId => {
-          const facility = facilities.find(f => f.id === facilityId);
-          if (facility) {
-            facilitiesMap[facilityId] = {
+      console.log("DEBUG - Booking page:", bookingPage.name);
+      console.log("DEBUG - Available facilities:", facilities.length);
+      console.log("DEBUG - Booking page facilities data:", typeof bookingPage.facilities);
+      
+      // Use all facilities by default if parsedFacilities is empty
+      if (Object.keys(parsedFacilities).length === 0) {
+        try {
+          // Use all facilities by default - this ensures we always have locations
+          const facilitiesMap: ParsedFacilities = {};
+          
+          // Add every facility to the map
+          facilities.forEach(facility => {
+            facilitiesMap[facility.id] = {
               facility,
-              excludedAppointmentTypes: excludedAppointmentIds
+              excludedAppointmentTypes: []
             };
-          }
-        });
-        
-        // Log the processed facilities
-        console.log("Processed facilities for booking page:", Object.keys(facilitiesMap).length);
-        
-        setParsedFacilities(facilitiesMap);
-      } catch (err) {
-        console.error("Error processing booking page data:", err);
+          });
+          
+          // Log the processed facilities
+          console.log("Using all facilities for booking page:", Object.keys(facilitiesMap).length);
+          
+          // Set facilities state once
+          setParsedFacilities(facilitiesMap);
+        } catch (err) {
+          console.error("Error processing booking page data:", err);
+        }
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookingPage, facilities, appointmentTypes]);
   
   // Step 1 Form
