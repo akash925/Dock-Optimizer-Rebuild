@@ -286,7 +286,11 @@ export default function ScheduleWeekCalendar({
           
           {/* Schedule events */}
           {weekSchedules.map(schedule => {
+            console.log("Checking schedule:", schedule);
+            
             const dayIndex = getScheduleDayIndex(schedule);
+            console.log("Finding day index for schedule:", schedule.id);
+            console.log("Found day index:", dayIndex);
             if (dayIndex === -1) return null;
             
             const isInbound = schedule.type === "inbound";
@@ -294,20 +298,29 @@ export default function ScheduleWeekCalendar({
             const startTimeStr = formatTime(schedule.startTime);
             const endTimeStr = formatTime(schedule.endTime);
 
+            // Parse dates properly to handle timezone consistently
+            const startDate = new Date(schedule.startTime);
+            const endDate = new Date(schedule.endTime);
+            
+            console.log("Schedule start date:", JSON.stringify(startDate));
+            console.log("Schedule end date:", JSON.stringify(endDate));
+            
             // Calculate precise position based on hours and cell size
-            const startHour = new Date(schedule.startTime).getHours();
-            const startMinute = new Date(schedule.startTime).getMinutes();
-            const endHour = new Date(schedule.endTime).getHours();
-            const endMinute = new Date(schedule.endTime).getMinutes();
+            const startHour = startDate.getHours();
+            const startMinute = startDate.getMinutes();
+            const endHour = endDate.getHours();
+            const endMinute = endDate.getMinutes();
             
             // Calculate position relative to visible hours (starting from 5am)
             const hourOffset = startHour - 5; // Hours since 5am
             const minuteOffset = startMinute / 60; // Percentage of hour
-            const topPosition = (hourOffset + minuteOffset) * 50; // Each hour is 50px
             
-            // Calculate height
-            const durationHours = (endHour - startHour) + ((endMinute - startMinute) / 60);
-            const height = durationHours * 50; // Each hour is 50px
+            // Ensure calculations don't result in negative values
+            const topPosition = Math.max(0, (hourOffset + minuteOffset) * 50); // Each hour is 50px
+            
+            // Calculate height (clamp to minimum height for visibility)
+            const durationHours = Math.max(0.5, (endHour - startHour) + ((endMinute - startMinute) / 60));
+            const height = Math.max(25, durationHours * 50); // Each hour is 50px, min height 25px
             
             return (
               <div 
@@ -319,7 +332,7 @@ export default function ScheduleWeekCalendar({
                 style={{
                   top: `${topPosition}px`,
                   height: `${height}px`,
-                  left: `calc(12px + ${dayIndex} * (100% - 3rem) / 7 + 2px)`,
+                  left: `calc(3rem + ${dayIndex} * (100% - 3rem) / 7)`,
                   width: 'calc((100% - 3rem) / 7 - 4px)',
                   minWidth: 'calc(6rem - 4px)',
                   zIndex: 10
