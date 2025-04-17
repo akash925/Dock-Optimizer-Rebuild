@@ -55,13 +55,22 @@ export default function ScheduleWeekCalendar({
     const scheduleStart = new Date(schedule.startTime);
     const scheduleEnd = new Date(schedule.endTime);
     
+    console.log("Checking schedule:", schedule);
+    console.log("Schedule start date:", scheduleStart);
+    console.log("Schedule end date:", scheduleEnd);
+    console.log("Week start:", weekStart);
+    console.log("Week end:", weekEnd);
+    
     // Check if schedule overlaps with the week
-    return isWithinInterval(scheduleStart, { start: weekStart, end: weekEnd }) ||
+    const result = isWithinInterval(scheduleStart, { start: weekStart, end: weekEnd }) ||
            isWithinInterval(scheduleEnd, { start: weekStart, end: weekEnd }) ||
            areIntervalsOverlapping(
              { start: scheduleStart, end: scheduleEnd },
              { start: weekStart, end: weekEnd }
            );
+    
+    console.log("Schedule within week range:", result);
+    return result;
   });
   
   // Function to get the day index for a schedule

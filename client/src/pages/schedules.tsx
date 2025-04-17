@@ -30,6 +30,9 @@ export default function Schedules() {
   // Fetch schedules
   const { data: schedules = [] } = useQuery<Schedule[]>({
     queryKey: ["/api/schedules"],
+    onSuccess: (data) => {
+      console.log("Schedules data:", data);
+    }
   });
   
   // Fetch docks
