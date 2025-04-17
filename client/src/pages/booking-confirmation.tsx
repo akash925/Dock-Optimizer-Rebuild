@@ -2,7 +2,19 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarCheck, CheckCircle, Printer, Home } from "lucide-react";
+import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { format } from "date-fns";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
 
 export default function BookingConfirmation() {
   const [, navigate] = useLocation();
@@ -55,6 +67,35 @@ export default function BookingConfirmation() {
 
   const handleHome = () => {
     navigate("/");
+  };
+  
+  // Generate a check-in URL with the confirmation code
+  const getCheckInUrl = () => {
+    const code = bookingDetails.confirmationNumber.replace('HZL-', '');
+    return `${window.location.origin}/driver-check-in?code=${code}`;
+  };
+  
+  // Email the appointment details
+  const handleEmailShare = () => {
+    const subject = `Dock Appointment Confirmation: ${bookingDetails.confirmationNumber}`;
+    const body = `
+Hello,
+
+Here are your appointment details for Hanzo Logistics:
+
+Confirmation Number: ${bookingDetails.confirmationNumber}
+Date: ${bookingDetails.appointmentDate}
+Time: ${bookingDetails.appointmentTime}
+Location: ${bookingDetails.location}
+
+Please bring this confirmation to your appointment.
+You can check in by visiting: ${getCheckInUrl()}
+
+Thank you,
+Hanzo Logistics
+    `;
+    
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   if (!bookingDetails) {
@@ -128,12 +169,84 @@ export default function BookingConfirmation() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
+            {/* QR Code Display */}
+            <div className="bg-blue-50 p-4 rounded-md border border-blue-100 w-full">
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="bg-white p-3 rounded-md shadow-sm">
+                  <QRCodeSVG 
+                    value={getCheckInUrl()}
+                    size={120}
+                    bgColor="#FFFFFF"
+                    fgColor="#000000"
+                    level="H"
+                    includeMargin={false}
+                  />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-blue-800 mb-1">Check-In QR Code</h3>
+                  <p className="text-sm text-blue-700 mb-3">
+                    Show this QR code to dock staff when you arrive at the warehouse.
+                  </p>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="bg-blue-100 border-blue-200 hover:bg-blue-200">
+                        <Share2 className="mr-2 h-4 w-4" />
+                        Share via Email
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Share Appointment Details</DialogTitle>
+                        <DialogDescription>
+                          Send the appointment details and check-in QR code to the driver.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="flex flex-col space-y-4 py-4">
+                        <div className="border rounded-md p-4 bg-slate-50">
+                          <p className="text-sm mb-2">
+                            <strong>Subject:</strong> Dock Appointment Confirmation: {bookingDetails.confirmationNumber}
+                          </p>
+                          <p className="text-sm whitespace-pre-wrap border-t pt-2 mt-2">
+                            {`Hello,
+
+Here are your appointment details for Hanzo Logistics:
+
+Confirmation Number: ${bookingDetails.confirmationNumber}
+Date: ${bookingDetails.appointmentDate}
+Time: ${bookingDetails.appointmentTime}
+Location: ${bookingDetails.location}
+
+Please bring this confirmation to your appointment.
+You can check in by visiting: ${getCheckInUrl()}
+
+Thank you,
+Hanzo Logistics`}
+                          </p>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button onClick={handleEmailShare}>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Send Email
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+            </div>
+
+            {/* Important notice */}
             <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 w-full">
               <p className="text-sm text-yellow-800">
                 <strong>Important:</strong> Please arrive 15 minutes before your scheduled time and have your confirmation number ready.
               </p>
             </div>
             
+            {/* Action buttons */}
             <div className="flex flex-col sm:flex-row w-full gap-3">
               <Button 
                 variant="outline" 

@@ -143,10 +143,10 @@ export default function DriverCheckIn() {
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl flex items-center justify-center gap-2">
             <Truck className="h-6 w-6" />
-            Driver Check-In
+            Driver Check-In Portal
           </CardTitle>
           <CardDescription>
-            {!foundSchedule ? "Enter your appointment confirmation code to check in" : "Appointment found"}
+            {!foundSchedule ? "Scan or enter the driver's confirmation code to check them in" : "Appointment found"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -191,10 +191,10 @@ export default function DriverCheckIn() {
                 <div className="p-4 border border-dashed rounded-md bg-slate-50">
                   <div className="text-center space-y-4">
                     <QrCode className="h-16 w-16 mx-auto text-gray-400" />
-                    <h3 className="font-medium">Scan your QR code</h3>
+                    <h3 className="font-medium">Scan the driver's QR code</h3>
                     <p className="text-sm text-muted-foreground">
-                      Open your camera app and point it at the QR code on your appointment confirmation. 
-                      The code will automatically redirect you to this page with your information.
+                      Open your camera app and point it at the QR code provided by the driver. 
+                      The code will automatically redirect you to this page with the appointment information.
                     </p>
                     
                     <Alert className="bg-blue-50 border-blue-200">
