@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -127,6 +127,12 @@ export default function AppointmentForm({
         },
   });
   
+  // Force MC Number to be empty when the component mounts
+  useEffect(() => {
+    // Clear MC Number field on component mount
+    truckInfoForm.setValue("mcNumber", "");
+  }, [truckInfoForm]);
+  
   // Watch the appointment mode for duration changes
   const appointmentMode = truckInfoForm.watch("appointmentMode");
   
@@ -190,7 +196,12 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
   
   // Handle step 1 submission
   const onTruckInfoSubmit = (data: TruckInfoFormValues) => {
-    setFormData(prev => ({...prev, ...data}));
+    // Filter out any phone numbers in MC Number field
+    const cleanedData = {
+      ...data,
+      mcNumber: data.mcNumber && data.mcNumber.includes('-') ? '' : data.mcNumber
+    };
+    setFormData(prev => ({...prev, ...cleanedData}));
     setStep(2);
   };
   
@@ -247,6 +258,11 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
     try {
       // Combine all data
       const completeData = {...formData, ...data};
+      
+      // Clean MC Number (remove phone numbers if any exist)
+      if (completeData.mcNumber && completeData.mcNumber.includes('-')) {
+        completeData.mcNumber = '';
+      }
       
       // Create date objects from form inputs
       const appointmentDate = completeData.appointmentDate;
@@ -379,12 +395,24 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                               value={field.value?.toString() || ""} 
                               onValueChange={(value) => {
                                 field.onChange(value ? parseInt(value) : undefined);
+                                // First clear the MC Number field 
+                                truckInfoForm.setValue("mcNumber", "");
+                                
                                 // Find the carrier name for the selected ID
                                 if (value) {
                                   const carrier = carriers.find(c => c.id.toString() === value);
                                   if (carrier) {
                                     truckInfoForm.setValue("carrierName", carrier.name);
-                                    truckInfoForm.setValue("mcNumber", carrier.mcNumber || "");
+                                    
+                                    // Use a timeout to ensure field updates in the correct order
+                                    setTimeout(() => {
+                                      if (carrier.mcNumber) {
+                                        console.log("Setting MC Number to:", carrier.mcNumber);
+                                        truckInfoForm.setValue("mcNumber", carrier.mcNumber);
+                                      } else {
+                                        console.log("No MC Number available for carrier, keeping field blank");
+                                      }
+                                    }, 100);
                                   }
                                 } else {
                                   truckInfoForm.setValue("carrierName", "");
@@ -451,26 +479,33 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                       <FormField
                         control={truckInfoForm.control}
                         name="mcNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>MC Number</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Enter Motor Carrier number" 
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  // In a real implementation, we would validate with FMCSA API here
-                                  // For now, we'll just update the field
-                                }}
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              The MC Number is used for carrier verification with the FMCSA
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        render={({ field }) => {
+                          // Replace any phone numbers with empty string to avoid showing that data
+                          const fieldValue = field.value && field.value.includes('-') ? '' : field.value;
+                          
+                          return (
+                            <FormItem>
+                              <FormLabel>MC Number</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Enter Motor Carrier number" 
+                                  value={fieldValue || ""}
+                                  onChange={(e) => {
+                                    // Allow direct editing of the field
+                                    field.onChange(e.target.value);
+                                  }}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                The MC Number is used for carrier verification with the FMCSA
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
                       />
                     </div>
                     
