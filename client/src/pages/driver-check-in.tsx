@@ -1,252 +1,238 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { Navigate, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Label } from "@/components/ui/label";
-import { Loader2, CheckCircle2, XCircle, Truck, Clock, FileText, QrCode, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, QrCode, Truck } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { Schedule } from "@shared/schema";
+import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 export default function DriverCheckIn() {
-  const [_, setLocation] = useLocation();
-  const { toast } = useToast();
   const [confirmationCode, setConfirmationCode] = useState("");
-  const [searchClicked, setSearchClicked] = useState(false);
-  
-  // Parse confirmation code from the URL if present
-  const params = new URLSearchParams(window.location.search);
-  const codeFromUrl = params.get("code");
-  
-  // If code from URL, automatically fill and search
-  useState(() => {
-    if (codeFromUrl) {
-      setConfirmationCode(codeFromUrl);
-      setSearchClicked(true);
+  const [_location, navigate] = useLocation();
+  const [foundSchedule, setFoundSchedule] = useState<Schedule | null>(null);
+
+  const lookupMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const response = await apiRequest("GET", `/api/schedules/confirmation/${code}`);
+      if (!response.ok) {
+        throw new Error(response.statusText);
+      }
+      return response.json() as Promise<Schedule>;
+    },
+    onSuccess: (data) => {
+      setFoundSchedule(data);
+      toast({
+        title: "Appointment found",
+        description: "Your appointment details have been loaded.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error finding appointment",
+        description: error.message || "Could not find appointment with that confirmation code",
+        variant: "destructive",
+      });
     }
   });
-  
-  // Query to get appointment details by confirmation code
-  const { 
-    data: appointment, 
-    isLoading, 
-    isError, 
-    error, 
-    refetch 
-  } = useQuery({
-    queryKey: ["/api/schedules/by-confirmation", confirmationCode],
-    queryFn: async () => {
-      if (!confirmationCode || !searchClicked) return null;
-      const res = await apiRequest("GET", `/api/schedules/confirmation/${confirmationCode}`);
-      if (!res.ok) {
-        throw new Error("Appointment not found or has expired");
-      }
-      return res.json();
-    },
-    enabled: Boolean(confirmationCode && searchClicked),
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
-  
-  // Mutation for checking in appointment
+
   const checkInMutation = useMutation({
-    mutationFn: async () => {
-      if (!appointment?.id) throw new Error("No appointment ID found");
-      const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-in`);
-      return res.json();
+    mutationFn: async (scheduleId: number) => {
+      const response = await apiRequest("PATCH", `/api/schedules/${scheduleId}/check-in`);
+      if (!response.ok) {
+        throw new Error(response.statusText);
+      }
+      return response.json() as Promise<Schedule>;
     },
     onSuccess: () => {
       toast({
         title: "Check-in successful",
-        description: "You have been checked in. Please proceed to the indicated dock.",
+        description: "You have been checked in for your appointment.",
       });
-      // Reset the search after successful check-in and refetch
-      setSearchClicked(false);
-      refetch();
+      // Reset the form after successful check-in
+      setFoundSchedule(null);
+      setConfirmationCode("");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Check-in failed",
-        description: error.message,
+        description: error.message || "Failed to check in",
         variant: "destructive",
       });
-    },
+    }
   });
-  
-  const handleSearch = () => {
-    if (!confirmationCode) {
-      toast({
-        title: "Confirmation code required",
-        description: "Please enter your confirmation code to proceed with check-in",
-        variant: "destructive",
-      });
-      return;
-    }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirmationCode) return;
     
-    setSearchClicked(true);
+    // Clean up the code if needed (strip any HC prefix)
+    const cleanCode = confirmationCode.trim();
+    lookupMutation.mutate(cleanCode);
   };
-  
-  const formatDate = (dateStr: string) => {
-    try {
-      return format(new Date(dateStr), "MM/dd/yyyy hh:mm a");
-    } catch (e) {
-      return "Invalid date";
+
+  const handleCheckIn = () => {
+    if (foundSchedule) {
+      checkInMutation.mutate(foundSchedule.id);
     }
   };
-  
-  const isAppointmentValid = appointment && appointment.status === "scheduled";
-  
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-      <div className="w-full max-w-3xl space-y-6">
-        <header className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Hanzo Logistics</h1>
-          <p className="text-muted-foreground">Driver Check-In Portal</p>
-        </header>
-        
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <QrCode className="h-5 w-5 text-primary" />
-              Driver Check-In
-            </CardTitle>
-            <CardDescription>
-              Enter your confirmation code or scan your QR code to check in for your appointment
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent>
-            <div className="grid gap-6">
-              <div className="flex items-end gap-4">
-                <div className="grid gap-2 flex-1">
-                  <Label htmlFor="confirmation-code">Confirmation Code</Label>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <Card className="w-full max-w-lg shadow-lg">
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-2xl flex items-center justify-center gap-2">
+            <Truck className="h-6 w-6" />
+            Driver Check-In
+          </CardTitle>
+          <CardDescription>
+            Enter your appointment confirmation code to check in
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!foundSchedule ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <div className="relative">
                   <Input
+                    type="text"
                     id="confirmation-code"
-                    placeholder="Enter your confirmation code (e.g., HC000123)"
+                    placeholder="Enter confirmation code (e.g. HC123)"
                     value={confirmationCode}
                     onChange={(e) => setConfirmationCode(e.target.value)}
-                    disabled={isLoading || checkInMutation.isPending}
+                    className="pr-10 text-center text-lg tracking-wider"
+                    autoComplete="off"
+                    disabled={lookupMutation.isPending}
                   />
+                  <QrCode className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 </div>
-                
-                <Button 
-                  onClick={handleSearch}
-                  disabled={isLoading || !confirmationCode || checkInMutation.isPending}
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                  Find Appointment
-                </Button>
               </div>
-              
-              {isLoading && (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              )}
-              
-              {isError && (
-                <Alert variant="destructive">
-                  <XCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>
-                    {error instanceof Error ? error.message : "Appointment not found or invalid confirmation code"}
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              {appointment && (
-                <div className="border rounded-md p-4 mt-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className={`rounded-full h-3 w-3 ${appointment.status === "scheduled" ? "bg-green-500" : appointment.status === "in-progress" ? "bg-blue-500" : "bg-red-500"}`}></div>
-                    <span className="font-medium">
-                      Status: {appointment.status === "scheduled" ? "Ready for Check-In" : 
-                              appointment.status === "in-progress" ? "In Progress (Already Checked In)" : 
-                              "Not Available (Completed or Cancelled)"}
-                    </span>
-                  </div>
-                  
-                  <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Appointment Time:</Label>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{formatDate(appointment.startTime)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Dock Assignment:</Label>
-                      <div className="flex items-center">
-                        <Truck className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{appointment.dockName || "Not assigned yet"}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Customer:</Label>
-                      <div className="flex items-center">
-                        <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{appointment.customerName || "Not specified"}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Carrier:</Label>
-                      <div className="flex items-center">
-                        <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{appointment.carrierName || "Not specified"}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Truck Number:</Label>
-                      <div className="flex items-center">
-                        <Truck className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{appointment.truckNumber || "Not specified"}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Type:</Label>
-                      <div className="flex items-center">
-                        <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{appointment.type === "inbound" ? "Inbound (Drop-off)" : "Outbound (Pick-up)"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-          
-          <CardFooter className="flex justify-between">
-            <Button 
-              variant="outline" 
-              onClick={() => setLocation("/")}
-            >
-              Return to Homepage
-            </Button>
-            
-            {appointment && isAppointmentValid && (
-              <Button 
-                onClick={() => checkInMutation.mutate()}
-                disabled={checkInMutation.isPending}
-                className="bg-green-600 hover:bg-green-700"
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={!confirmationCode || lookupMutation.isPending}
               >
-                {checkInMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                )}
-                Check In Now
+                {lookupMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                {lookupMutation.isPending ? "Looking up..." : "Find Appointment"}
               </Button>
-            )}
-          </CardFooter>
-        </Card>
-      </div>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-md bg-slate-50 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">Appointment Details</h3>
+                    <p className="text-sm text-gray-500">
+                      ID: HC{foundSchedule.id}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      foundSchedule.status === "scheduled"
+                        ? "outline"
+                        : foundSchedule.status === "in-progress"
+                        ? "default"
+                        : foundSchedule.status === "completed"
+                        ? "success"
+                        : "destructive"
+                    }
+                  >
+                    {foundSchedule.status.toUpperCase()}
+                  </Badge>
+                </div>
+
+                <Separator />
+                
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-gray-500">Customer:</p>
+                    <p className="font-medium">{foundSchedule.customerName || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Carrier:</p>
+                    <p className="font-medium">{foundSchedule.carrierName || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Dock:</p>
+                    <p className="font-medium">#{foundSchedule.dockId}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Type:</p>
+                    <p className="font-medium">{foundSchedule.type}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Start Time:</p>
+                    <p className="font-medium">
+                      {format(new Date(foundSchedule.startTime), "MMM d, yyyy h:mm a")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">End Time:</p>
+                    <p className="font-medium">
+                      {format(new Date(foundSchedule.endTime), "MMM d, yyyy h:mm a")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Truck #:</p>
+                    <p className="font-medium">{foundSchedule.truckNumber || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Trailer #:</p>
+                    <p className="font-medium">{foundSchedule.trailerNumber || "N/A"}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <Button
+                    className="w-full"
+                    variant={
+                      foundSchedule.status === "scheduled" ? "default" : "outline"
+                    }
+                    disabled={
+                      foundSchedule.status !== "scheduled" ||
+                      checkInMutation.isPending
+                    }
+                    onClick={handleCheckIn}
+                  >
+                    {checkInMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    {foundSchedule.status === "scheduled"
+                      ? "Check In"
+                      : foundSchedule.status === "in-progress"
+                      ? "Already Checked In"
+                      : foundSchedule.status === "completed"
+                      ? "Appointment Completed"
+                      : "Appointment Cancelled"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-center space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (foundSchedule) {
+                setFoundSchedule(null);
+                setConfirmationCode("");
+              } else {
+                navigate("/");
+              }
+            }}
+          >
+            {foundSchedule ? "Back" : "Return Home"}
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
