@@ -346,10 +346,10 @@ export default function ScheduleWeekCalendar({
                 onClick={() => onScheduleClick(schedule.id)}
               >
                 <div className="font-medium truncate">
-                  {startTimeStr}-{endTimeStr} {carrier?.name} #{schedule.truckNumber}
+                  {startTimeStr}-{endTimeStr} {schedule.customerName || "(No customer)"} 
                 </div>
                 <div className="truncate">
-                  {isInbound ? "INBOUND" : "OUTBOUND"}
+                  {carrier?.name || schedule.carrierName || ""} #{schedule.truckNumber} • {isInbound ? "IN" : "OUT"}
                 </div>
               </div>
             );

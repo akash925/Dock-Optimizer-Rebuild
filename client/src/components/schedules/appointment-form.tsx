@@ -138,6 +138,7 @@ export default function AppointmentForm({
     defaultValues: initialData
       ? {
           carrierId: initialData.carrierId,
+          customerName: initialData.customerName || "",
           mcNumber: "", // Will be set when carrier is loaded
           truckNumber: initialData.truckNumber,
           trailerNumber: initialData.trailerNumber || "",
@@ -149,6 +150,7 @@ export default function AppointmentForm({
       : {
           carrierId: undefined,
           carrierName: "",
+          customerName: "",
           mcNumber: "",
           truckNumber: "",
           trailerNumber: "",
@@ -318,6 +320,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       // Format for API
       const scheduleData: any = {
         carrierId: formData.carrierId,
+        customerName: formData.customerName,
         dockId: data.dockId,
         truckNumber: formData.truckNumber,
         trailerNumber: formData.trailerNumber,
@@ -516,6 +519,24 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                                     truckInfoForm.setValue("carrierId", undefined);
                                   }
                                 }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={truckInfoForm.control}
+                        name="customerName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Customer Name*</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Enter customer name" 
+                                {...field}
+                                required
                               />
                             </FormControl>
                             <FormMessage />
