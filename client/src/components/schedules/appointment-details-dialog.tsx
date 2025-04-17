@@ -457,18 +457,17 @@ export function AppointmentDetailsDialog({
             </span>
           </div>
           
-          {appointment.status === "scheduled" && (
+          {/* Only show QR code for external appointments (identified by having null createdBy or no carrier name) */}
+          {appointment.status === "scheduled" && (!appointment.createdBy || appointment.createdBy === 0) && (
             <div className="flex flex-col items-center">
               <p className="text-sm text-muted-foreground mb-3">
-                {appointment.carrierName 
-                  ? "Share this QR code with the driver for efficient check-in upon arrival"
-                  : "External appointment - ensure driver receives this QR code for check-in"}
+                External appointment - ensure driver receives this QR code for check-in
               </p>
-              <div className={`border ${!appointment.carrierName ? "border-primary border-2" : ""} p-3 rounded-md inline-block bg-white shadow-sm`}>
+              <div className="border border-primary border-2 p-3 rounded-md inline-block bg-white shadow-sm">
                 <AppointmentQRCode 
                   schedule={appointment} 
                   confirmationCode={`HC${appointment.id.toString().padStart(6, '0')}`}
-                  isExternal={!appointment.carrierName}
+                  isExternal={true}
                 />
               </div>
               <div className="mt-4 flex justify-center gap-3">
