@@ -64,42 +64,16 @@ export default function ScheduleWeekCalendar({
            );
   });
   
-  // Function to position a schedule in the grid
-  const getSchedulePosition = (schedule: Schedule) => {
+  // Function to get the day index for a schedule
+  const getScheduleDayIndex = (schedule: Schedule) => {
     const scheduleStart = new Date(schedule.startTime);
-    const scheduleEnd = new Date(schedule.endTime);
     
     // Get day index (0-6)
-    const dayIndex = weekDays.findIndex(day => 
+    return weekDays.findIndex(day => 
       day.getDate() === scheduleStart.getDate() && 
       day.getMonth() === scheduleStart.getMonth() &&
       day.getFullYear() === scheduleStart.getFullYear()
     );
-    
-    if (dayIndex === -1) return null;
-    
-    const startHour = scheduleStart.getHours();
-    const startMinute = scheduleStart.getMinutes();
-    const endHour = scheduleEnd.getHours();
-    const endMinute = scheduleEnd.getMinutes();
-    
-    // Calculate top position (hours from 5am)
-    const hourOffset = startHour - 5; // Hours since 5am
-    const minuteOffset = startMinute / 60; // Percentage of hour
-    const topPosition = (hourOffset + minuteOffset) * 60; // Each hour is 60px
-    
-    // Calculate height
-    const durationHours = (endHour - startHour) + ((endMinute - startMinute) / 60);
-    const height = durationHours * 60; // Each hour is 60px
-    
-    return {
-      dayIndex,
-      top: `${topPosition}px`,
-      height: `${height}px`,
-      left: '2px',
-      right: '2px',
-      position: 'absolute' as const
-    };
   };
   
   // Format the date range for display (e.g., "Apr 13 - 19, 2025")
@@ -296,18 +270,28 @@ export default function ScheduleWeekCalendar({
           
           {/* Schedule events */}
           {weekSchedules.map(schedule => {
-            const position = getSchedulePosition(schedule);
-            if (!position) return null;
+            const dayIndex = getScheduleDayIndex(schedule);
+            if (dayIndex === -1) return null;
             
-            const { dayIndex, ...positionStyle } = position;
             const isInbound = schedule.type === "inbound";
             const carrier = carriers.find(c => c.id === schedule.carrierId);
             const startTimeStr = formatTime(schedule.startTime);
             const endTimeStr = formatTime(schedule.endTime);
 
-            // Adjust for the new cell height
-            const adjustedTop = parseFloat(positionStyle.top) * (50/60);
-            const adjustedHeight = parseFloat(positionStyle.height) * (50/60);
+            // Calculate precise position based on hours and cell size
+            const startHour = new Date(schedule.startTime).getHours();
+            const startMinute = new Date(schedule.startTime).getMinutes();
+            const endHour = new Date(schedule.endTime).getHours();
+            const endMinute = new Date(schedule.endTime).getMinutes();
+            
+            // Calculate position relative to visible hours (starting from 5am)
+            const hourOffset = startHour - 5; // Hours since 5am
+            const minuteOffset = startMinute / 60; // Percentage of hour
+            const topPosition = (hourOffset + minuteOffset) * 50; // Each hour is 50px
+            
+            // Calculate height
+            const durationHours = (endHour - startHour) + ((endMinute - startMinute) / 60);
+            const height = durationHours * 50; // Each hour is 50px
             
             return (
               <div 
@@ -317,9 +301,8 @@ export default function ScheduleWeekCalendar({
                   isInbound ? "bg-green-100 border border-green-300" : "bg-blue-100 border border-blue-300"
                 )}
                 style={{
-                  ...positionStyle,
-                  top: `${adjustedTop}px`,
-                  height: `${adjustedHeight}px`,
+                  top: `${topPosition}px`,
+                  height: `${height}px`,
                   left: `calc(12px + ${dayIndex} * (100% - 3rem) / 7 + 2px)`,
                   width: 'calc((100% - 3rem) / 7 - 4px)',
                   minWidth: 'calc(6rem - 4px)',

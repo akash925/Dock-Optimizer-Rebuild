@@ -118,7 +118,7 @@ export default function Sidebar({ className }: SidebarProps) {
         <SidebarItem 
           href="/schedules" 
           icon={<Calendar size={20} />} 
-          label="Schedule" 
+          label="Calendar" 
           active={location === "/schedules"}
           onClick={closeSidebar}
         />
