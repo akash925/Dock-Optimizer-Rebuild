@@ -61,12 +61,12 @@ export default function Schedules() {
   
   // Schedule being edited
   const scheduleToEdit = editScheduleId 
-    ? schedules.find(s => s.id === editScheduleId) 
+    ? schedules.find((s: Schedule) => s.id === editScheduleId) 
     : undefined;
   
   // Handle schedule selection
   const handleScheduleClick = (scheduleId: number) => {
-    const schedule = schedules.find(s => s.id === scheduleId);
+    const schedule = schedules.find((s: Schedule) => s.id === scheduleId);
     if (schedule) {
       setSelectedSchedule(schedule);
       setIsDetailsDialogOpen(true);
@@ -178,7 +178,7 @@ export default function Schedules() {
   ];
   
   // Filter schedules for the selected date
-  const filteredSchedules = schedules.filter(schedule => {
+  const filteredSchedules = schedules.filter((schedule: Schedule) => {
     const scheduleDate = new Date(schedule.startTime);
     return (
       scheduleDate.getDate() === selectedDate.getDate() &&
@@ -207,7 +207,7 @@ export default function Schedules() {
       <div className="w-full">
         {viewMode === "week" && (
           <ScheduleWeekCalendar
-            schedules={schedules}
+            schedules={schedules as Schedule[]}
             docks={docks}
             carriers={carriers}
             date={selectedDate}
@@ -247,7 +247,7 @@ export default function Schedules() {
             <CardContent>
               <DataTable 
                 columns={columns} 
-                data={schedules} 
+                data={schedules as Schedule[]} 
                 searchKey="truckNumber"
                 searchPlaceholder="Search by truck number..."
               />
