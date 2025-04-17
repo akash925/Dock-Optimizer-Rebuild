@@ -889,6 +889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         location: z.string().min(1),
         // Make MC Number completely optional (empty string is also valid)
         mcNumber: z.string().optional().or(z.literal("")),
+        customerName: z.string().min(1),  // Add required customer name
         truckNumber: z.string().min(1),
         trailerNumber: z.string().optional(),
         driverName: z.string().min(1),
@@ -941,6 +942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "scheduled",
         dockId: docks[0].id,
         carrierId: carrier.id,
+        customerName: validatedData.customerName, // Include the customer name
         truckNumber: validatedData.truckNumber,
         trailerNumber: validatedData.trailerNumber || null,
         driverName: validatedData.driverName || null,
