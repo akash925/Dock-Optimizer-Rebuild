@@ -101,43 +101,25 @@ export default function AppointmentMaster() {
     appointmentType: "both"
   });
   
-  // Mock data for appointment types
-  const [appointmentTypes, setAppointmentTypes] = useState([
-    {
-      id: 1,
-      name: "Sam Pride - Floor Loaded Container Drop (4 Hour Unloading)",
-      facilityName: "Hanzo Logistics",
-      createdDate: "2025-04-11"
-    },
-    {
-      id: 2,
-      name: "450 Airtech Parkway - LTL Pickup or Dropoff",
-      facilityName: "Hanzo Logistics",
-      createdDate: "2024-11-26"
-    },
-    {
-      id: 3,
-      name: "TBA",
-      facilityName: "Hanzo Logistics",
-      createdDate: "2024-08-14"
-    },
-    {
-      id: 4,
-      name: "HANZO Cold-Chain - Hand-Unload Appointment (4 Hour)",
-      facilityName: "Hanzo Logistics",
-      createdDate: "2024-08-14"
-    },
-    {
-      id: 5,
-      name: "HANZO Cold-Chain - Palletized Load Appointment (1 Hour)",
-      facilityName: "Hanzo Logistics",
-      createdDate: "2024-08-14"
-    }
-  ]);
-  
   // Fetch facilities from API
   const { data: facilities = [], isLoading: isLoadingFacilities } = useQuery<Facility[]>({
     queryKey: ["/api/facilities"],
+  });
+
+  // Fetch appointment types from API
+  const { data: apiAppointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useQuery<AppointmentType[]>({
+    queryKey: ["/api/appointment-types"],
+  });
+  
+  // For displaying in the table, we'll map the API data to include facility names
+  const appointmentTypesWithFacilityNames = apiAppointmentTypes.map(appointmentType => {
+    const facility = facilities.find(f => f.id === appointmentType.facilityId);
+    return {
+      ...appointmentType,
+      facilityName: facility?.name || "Unknown Facility",
+      // Format the date for display
+      createdDate: appointmentType.createdAt ? new Date(appointmentType.createdAt).toLocaleDateString() : "N/A"
+    };
   });
   
   // Mock data for question form fields
@@ -437,7 +419,12 @@ export default function AppointmentMaster() {
                 </div>
               </CardHeader>
               <CardContent>
-                {appointmentTypes.length === 0 ? (
+                {isLoadingAppointmentTypes ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                    <p className="text-muted-foreground">Loading appointment types...</p>
+                  </div>
+                ) : apiAppointmentTypes.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <p>No appointment types have been created yet.</p>
                     <p className="text-sm mt-2">Click "New Appointment Type" to create your first appointment type.</p>
@@ -448,15 +435,17 @@ export default function AppointmentMaster() {
                       <TableRow>
                         <TableHead>Appointment Name</TableHead>
                         <TableHead>Facility</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Created</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {appointmentTypes.map((appointmentType) => (
+                      {appointmentTypesWithFacilityNames.map((appointmentType) => (
                         <TableRow key={appointmentType.id}>
                           <TableCell className="font-medium">{appointmentType.name}</TableCell>
                           <TableCell>{appointmentType.facilityName}</TableCell>
+                          <TableCell>{getAppointmentTypeLabel(appointmentType.type)}</TableCell>
                           <TableCell>{appointmentType.createdDate}</TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
