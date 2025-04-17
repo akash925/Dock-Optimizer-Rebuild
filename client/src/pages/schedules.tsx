@@ -228,7 +228,7 @@ export default function Schedules() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-medium">Calendar</h2>
         <Button 
           onClick={() => {
@@ -242,11 +242,91 @@ export default function Schedules() {
         </Button>
       </div>
       
+      {/* Search and Filter Bar */}
+      <div className="flex flex-wrap gap-3 mb-6 items-center">
+        <div className="relative w-full md:w-72">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search appointments..."
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button 
+              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+              onClick={() => setSearchQuery("")}
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        
+        <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value)}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="in-progress">In Progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={filterType} onValueChange={(value) => setFilterType(value)}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="inbound">Inbound</SelectItem>
+            <SelectItem value="outbound">Outbound</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select 
+          value={filterDockId === "all" ? "all" : filterDockId.toString()} 
+          onValueChange={(value) => setFilterDockId(value === "all" ? "all" : parseInt(value))}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Dock" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Docks</SelectItem>
+            {docks.map((dock) => (
+              <SelectItem key={dock.id} value={dock.id.toString()}>
+                {dock.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        {(searchQuery || filterStatus !== "all" || filterType !== "all" || filterDockId !== "all") && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => {
+              setSearchQuery("");
+              setFilterStatus("all");
+              setFilterType("all");
+              setFilterDockId("all");
+            }}
+            className="text-xs"
+          >
+            Clear Filters
+          </Button>
+        )}
+      </div>
+      
       {/* Schedule View */}
       <div className="w-full">
         {viewMode === "week" && (
           <ScheduleWeekCalendar
-            schedules={schedules as Schedule[]}
+            schedules={(filterStatus !== "all" || filterType !== "all" || filterDockId !== "all" || searchQuery.trim() !== "") 
+              ? filteredSchedules 
+              : (schedules as Schedule[])}
             docks={docks}
             carriers={carriers}
             date={selectedDate}
