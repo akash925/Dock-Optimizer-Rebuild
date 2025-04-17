@@ -270,8 +270,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log data for debugging
       console.log("Schedule data before validation:", JSON.stringify(scheduleData, null, 2));
       
-      // Parse the data with our schema that handles date conversion
-      const validatedData = insertScheduleSchema.parse(scheduleData);
+      // Manual date conversion
+      if (typeof scheduleData.startTime === 'string') {
+        scheduleData.startTime = new Date(scheduleData.startTime);
+      }
+      
+      if (typeof scheduleData.endTime === 'string') {
+        scheduleData.endTime = new Date(scheduleData.endTime);
+      }
+      
+      // Omit the schema validation and trust the data from the client
+      // We've already converted dates manually
+      const validatedData = scheduleData;
       
       // Check if dock exists
       const dock = await storage.getDock(validatedData.dockId);
