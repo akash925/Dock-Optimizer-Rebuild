@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/layout/index";
 import { Facility, AppointmentType, insertAppointmentTypeSchema } from "@shared/schema";
+import SeedAppointmentTypes from "@/components/appointment-master/seed-appointment-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -641,15 +642,18 @@ export default function AppointmentMaster() {
           
           {/* General Settings Tab */}
           <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>General Appointment Settings</CardTitle>
-                <CardDescription>
-                  Configure global appointment settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
+            <div className="space-y-6">
+              <SeedAppointmentTypes />
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>General Appointment Settings</CardTitle>
+                  <CardDescription>
+                    Configure global appointment settings
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
                   <h3 className="text-lg font-medium">Advance Notice Requirements</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -742,6 +746,7 @@ export default function AppointmentMaster() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
