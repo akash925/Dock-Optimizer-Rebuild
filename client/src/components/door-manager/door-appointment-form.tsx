@@ -22,6 +22,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList
 } from "@/components/ui/command"
 import { 
   Form, 
@@ -57,6 +58,7 @@ import { useAuth } from "@/hooks/use-auth";
 const appointmentSchema = z.object({
   dockId: z.number(),
   carrierId: z.number(),
+  carrierName: z.string().optional(), // Used when creating a new carrier
   truckNumber: z.string().optional(),
   startTime: z.date(),
   endTime: z.date().optional(),
@@ -118,6 +120,7 @@ export default function DoorAppointmentForm({
     defaultValues: {
       dockId,
       carrierId: carriers.length > 0 ? carriers[0].id : 0,
+      carrierName: "", // For new carriers
       truckNumber: "",
       startTime: initialStartTime,
       endTime: undefined,
@@ -500,39 +503,41 @@ export default function DoorAppointmentForm({
                                 value={carrierSearch}
                                 onValueChange={setCarrierSearch}
                               />
-                              <CommandEmpty>
-                                No carrier found. 
-                                <Button 
-                                  type="button" 
-                                  variant="link" 
-                                  onClick={handleNewCarrierMode}
-                                  size="sm"
-                                  className="p-0 ml-1"
-                                >
-                                  Add "{carrierSearch}"
-                                </Button>
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {filteredCarriers.map((carrier) => (
-                                  <CommandItem
-                                    key={carrier.id}
-                                    value={carrier.name}
-                                    onSelect={() => handleSelectCarrier(carrier.id)}
+                              <CommandList>
+                                <CommandEmpty>
+                                  No carrier found. 
+                                  <Button 
+                                    type="button" 
+                                    variant="link" 
+                                    onClick={handleNewCarrierMode}
+                                    size="sm"
+                                    className="p-0 ml-1"
                                   >
-                                    {carrier.name}
-                                    {carrier.mcNumber && <span className="ml-2 text-xs text-muted-foreground">MC# {carrier.mcNumber}</span>}
-                                  </CommandItem>
-                                ))}
-                                {carrierSearch && (
-                                  <CommandItem
-                                    onSelect={handleNewCarrierMode}
-                                    className="text-primary"
-                                  >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Add new carrier: "{carrierSearch}"
-                                  </CommandItem>
-                                )}
-                              </CommandGroup>
+                                    Add "{carrierSearch}"
+                                  </Button>
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {filteredCarriers.map((carrier) => (
+                                    <CommandItem
+                                      key={carrier.id}
+                                      value={carrier.name}
+                                      onSelect={() => handleSelectCarrier(carrier.id)}
+                                    >
+                                      {carrier.name}
+                                      {carrier.mcNumber && <span className="ml-2 text-xs text-muted-foreground">MC# {carrier.mcNumber}</span>}
+                                    </CommandItem>
+                                  ))}
+                                  {carrierSearch && (
+                                    <CommandItem
+                                      onSelect={handleNewCarrierMode}
+                                      className="text-primary"
+                                    >
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Add new carrier: "{carrierSearch}"
+                                    </CommandItem>
+                                  )}
+                                </CommandGroup>
+                              </CommandList>
                             </Command>
                           </PopoverContent>
                         </Popover>
