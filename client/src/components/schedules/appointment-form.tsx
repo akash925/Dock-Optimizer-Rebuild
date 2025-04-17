@@ -268,7 +268,20 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       const appointmentDate = completeData.appointmentDate;
       const appointmentTime = completeData.appointmentTime;
       
-      const startTime = new Date(`${appointmentDate}T${appointmentTime}`);
+      // Create Date object from input
+      const rawStartTime = new Date(`${appointmentDate}T${appointmentTime}`);
+      
+      // Round to nearest 15-minute interval
+      const minutes = rawStartTime.getMinutes();
+      const roundedMinutes = Math.round(minutes / 15) * 15;
+      const newHours = roundedMinutes === 60 ? rawStartTime.getHours() + 1 : rawStartTime.getHours();
+      const newMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
+      
+      // Create new date with rounded minutes
+      const startTime = new Date(rawStartTime);
+      startTime.setHours(newHours, newMinutes, 0, 0);
+      
+      // Calculate endTime after rounding startTime
       const endTime = getDefaultEndTime(startTime, completeData.appointmentMode as "trailer" | "container");
       
       // Format for API
