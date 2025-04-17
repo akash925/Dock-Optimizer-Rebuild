@@ -18,9 +18,24 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
+interface BookingDetails {
+  id: number;
+  confirmationNumber: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  location: string;
+  customerName: string;
+  carrierName: string;
+  contactName: string;
+  truckNumber: string;
+  trailerNumber: string | null;
+  type: string;
+  notes: string | null;
+}
+
 export default function BookingConfirmation() {
   const [, navigate] = useLocation();
-  const [bookingDetails, setBookingDetails] = useState<any>(null);
+  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
