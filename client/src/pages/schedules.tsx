@@ -187,7 +187,7 @@ export default function Schedules() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-medium">Schedules</h2>
+        <h2 className="text-2xl font-medium">Calendar</h2>
         <Button 
           onClick={() => {
             setEditScheduleId(null);
@@ -232,7 +232,7 @@ export default function Schedules() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">
-                Schedules List
+                Calendar List
               </CardTitle>
               <div className="flex items-center space-x-2">
                 <Button variant="outline" size="sm">

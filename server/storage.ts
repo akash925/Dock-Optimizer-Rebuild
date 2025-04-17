@@ -705,10 +705,17 @@ export class DatabaseStorage implements IStorage {
       const result = await db.execute(`
         SELECT 
           id, type, status, dock_id as "dockId", carrier_id as "carrierId", 
-          truck_number as "truckNumber", start_time as "startTime", end_time as "endTime", 
+          appointment_type_id as "appointmentTypeId", truck_number as "truckNumber", 
+          trailer_number as "trailerNumber", driver_name as "driverName", 
+          driver_phone as "driverPhone", driver_email as "driverEmail",
+          customer_name as "customerName", carrier_name as "carrierName", 
+          mc_number as "mcNumber", bol_number as "bolNumber", po_number as "poNumber",
+          pallet_count as "palletCount", weight, appointment_mode as "appointmentMode",
+          start_time as "startTime", end_time as "endTime", 
+          actual_start_time as "actualStartTime", actual_end_time as "actualEndTime",
+          notes, custom_form_data as "customFormData",
           created_at as "createdAt", created_by as "createdBy", 
-          last_modified_at as "lastModifiedAt", last_modified_by as "lastModifiedBy",
-          notes
+          last_modified_at as "lastModifiedAt", last_modified_by as "lastModifiedBy"
         FROM schedules
         WHERE id = $1
       `, [id]);
@@ -724,22 +731,30 @@ export class DatabaseStorage implements IStorage {
         status: row.status,
         dockId: row.dockId,
         carrierId: row.carrierId,
+        appointmentTypeId: row.appointmentTypeId,
         truckNumber: row.truckNumber,
-        trailerNumber: null,
-        driverName: null,
-        driverPhone: null,
-        bolNumber: null,
-        poNumber: null,
-        palletCount: null,
-        weight: null,
-        appointmentMode: "trailer",
+        trailerNumber: row.trailerNumber,
+        driverName: row.driverName,
+        driverPhone: row.driverPhone,
+        driverEmail: row.driverEmail,
+        customerName: row.customerName,
+        carrierName: row.carrierName,
+        mcNumber: row.mcNumber,
+        bolNumber: row.bolNumber,
+        poNumber: row.poNumber,
+        palletCount: row.palletCount,
+        weight: row.weight,
+        appointmentMode: row.appointmentMode,
         startTime: row.startTime,
         endTime: row.endTime,
+        actualStartTime: row.actualStartTime,
+        actualEndTime: row.actualEndTime,
+        notes: row.notes,
+        customFormData: row.customFormData,
         createdAt: row.createdAt,
         createdBy: row.createdBy,
         lastModifiedAt: row.lastModifiedAt,
-        lastModifiedBy: row.lastModifiedBy,
-        notes: row.notes
+        lastModifiedBy: row.lastModifiedBy
       };
     } catch (error) {
       console.error("Error executing getSchedule:", error);
@@ -939,11 +954,23 @@ export class DatabaseStorage implements IStorage {
       if ('trailerNumber' in updateWithoutAppointmentTypeId) updateFields.trailer_number = updateWithoutAppointmentTypeId.trailerNumber;
       if ('driverName' in updateWithoutAppointmentTypeId) updateFields.driver_name = updateWithoutAppointmentTypeId.driverName;
       if ('driverPhone' in updateWithoutAppointmentTypeId) updateFields.driver_phone = updateWithoutAppointmentTypeId.driverPhone;
+      if ('driverEmail' in updateWithoutAppointmentTypeId) updateFields.driver_email = updateWithoutAppointmentTypeId.driverEmail;
+      if ('customerName' in updateWithoutAppointmentTypeId) updateFields.customer_name = updateWithoutAppointmentTypeId.customerName;
+      if ('carrierName' in updateWithoutAppointmentTypeId) updateFields.carrier_name = updateWithoutAppointmentTypeId.carrierName;
+      if ('mcNumber' in updateWithoutAppointmentTypeId) updateFields.mc_number = updateWithoutAppointmentTypeId.mcNumber;
+      if ('bolNumber' in updateWithoutAppointmentTypeId) updateFields.bol_number = updateWithoutAppointmentTypeId.bolNumber;
+      if ('poNumber' in updateWithoutAppointmentTypeId) updateFields.po_number = updateWithoutAppointmentTypeId.poNumber;
+      if ('palletCount' in updateWithoutAppointmentTypeId) updateFields.pallet_count = updateWithoutAppointmentTypeId.palletCount;
+      if ('weight' in updateWithoutAppointmentTypeId) updateFields.weight = updateWithoutAppointmentTypeId.weight;
+      if ('appointmentMode' in updateWithoutAppointmentTypeId) updateFields.appointment_mode = updateWithoutAppointmentTypeId.appointmentMode;
       if ('startTime' in updateWithoutAppointmentTypeId) updateFields.start_time = updateWithoutAppointmentTypeId.startTime;
       if ('endTime' in updateWithoutAppointmentTypeId) updateFields.end_time = updateWithoutAppointmentTypeId.endTime;
+      if ('actualStartTime' in updateWithoutAppointmentTypeId) updateFields.actual_start_time = updateWithoutAppointmentTypeId.actualStartTime;
+      if ('actualEndTime' in updateWithoutAppointmentTypeId) updateFields.actual_end_time = updateWithoutAppointmentTypeId.actualEndTime;
       if ('type' in updateWithoutAppointmentTypeId) updateFields.type = updateWithoutAppointmentTypeId.type;
       if ('status' in updateWithoutAppointmentTypeId) updateFields.status = updateWithoutAppointmentTypeId.status;
       if ('notes' in updateWithoutAppointmentTypeId) updateFields.notes = updateWithoutAppointmentTypeId.notes;
+      if ('customFormData' in updateWithoutAppointmentTypeId) updateFields.custom_form_data = updateWithoutAppointmentTypeId.customFormData;
       
       // Always update last_modified_at
       updateFields.last_modified_at = new Date();
