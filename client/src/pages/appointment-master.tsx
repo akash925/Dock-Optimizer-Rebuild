@@ -353,35 +353,60 @@ export default function AppointmentMaster() {
   
   return (
     <Layout>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Appointment Master</h1>
-            <p className="text-muted-foreground">
-              Configure appointment types, forms, and availability
-            </p>
+      <div className="container mx-auto py-6 space-y-6">
+        <h1 className="text-3xl font-bold text-center mb-6">Appointment Master</h1>
+        
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-muted-foreground">Configure appointment types, forms, and availability</span>
           </div>
+          
+          <Button 
+            onClick={() => {
+              setSelectedAppointmentTypeId(null);
+              setAppointmentTypeForm({
+                name: "",
+                description: "",
+                facilityId: facilities.length > 0 ? facilities[0].id : 0,
+                color: "#4CAF50",
+                duration: 60,
+                type: "both",
+                maxSlots: 1,
+                timezone: "America/New_York",
+                gracePeriod: 15,
+                emailReminderTime: 24,
+                showRemainingSlots: true,
+                location: ""
+              });
+              setAppointmentTypeFormStep(1);
+              setShowNewAppointmentTypeDialog(true);
+            }}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" /> New Appointment Type
+          </Button>
         </div>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="types">
-              <FilePlus className="h-4 w-4 mr-2" />
-              Appointment Types
-            </TabsTrigger>
-            <TabsTrigger value="questions">
-              <FilePlus className="h-4 w-4 mr-2" />
-              Custom Questions
-            </TabsTrigger>
-            <TabsTrigger value="availability">
-              <Clock className="h-4 w-4 mr-2" />
-              Availability Rules
-            </TabsTrigger>
-            <TabsTrigger value="settings">
-              <Settings className="h-4 w-4 mr-2" />
-              General Settings
-            </TabsTrigger>
-          </TabsList>
+        <div className="border rounded-md">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="types">
+                <FilePlus className="h-4 w-4 mr-2" />
+                Appointment Types
+              </TabsTrigger>
+              <TabsTrigger value="questions">
+                <FilePlus className="h-4 w-4 mr-2" />
+                Custom Questions
+              </TabsTrigger>
+              <TabsTrigger value="availability">
+                <Clock className="h-4 w-4 mr-2" />
+                Availability Rules
+              </TabsTrigger>
+              <TabsTrigger value="settings">
+                <Settings className="h-4 w-4 mr-2" />
+                General Settings
+              </TabsTrigger>
+            </TabsList>
           
           {/* Appointment Types Tab */}
           <TabsContent value="types">
@@ -739,6 +764,7 @@ export default function AppointmentMaster() {
             </Card>
           </TabsContent>
         </Tabs>
+        </div> {/* Close the border rounded-md div */}
         
         {/* Question Dialog */}
         <Dialog open={showQuestionDialog} onOpenChange={setShowQuestionDialog}>
