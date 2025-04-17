@@ -216,7 +216,7 @@ export default function DoorAppointmentForm({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Assign Door</DialogTitle>
           <DialogDescription>

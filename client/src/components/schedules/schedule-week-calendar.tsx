@@ -77,12 +77,19 @@ export default function ScheduleWeekCalendar({
   const getScheduleDayIndex = (schedule: Schedule) => {
     const scheduleStart = new Date(schedule.startTime);
     
+    console.log("Finding day index for schedule:", schedule.id);
+    console.log("Schedule start date:", scheduleStart);
+    console.log("Week days:", weekDays);
+    
     // Get day index (0-6)
-    return weekDays.findIndex(day => 
+    const index = weekDays.findIndex(day => 
       day.getDate() === scheduleStart.getDate() && 
       day.getMonth() === scheduleStart.getMonth() &&
       day.getFullYear() === scheduleStart.getFullYear()
     );
+    
+    console.log("Found day index:", index);
+    return index;
   };
   
   // Format the date range for display (e.g., "Apr 13 - 19, 2025")
