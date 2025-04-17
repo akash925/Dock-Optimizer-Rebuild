@@ -618,7 +618,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appointmentDate: z.string().min(1),
         appointmentTime: z.string().min(1),
         location: z.string().min(1),
-        mcNumber: z.string().optional(),
+        // Make MC Number completely optional (empty string is also valid)
+        mcNumber: z.string().optional().or(z.literal("")),
         truckNumber: z.string().min(1),
         trailerNumber: z.string().optional(),
         driverName: z.string().min(1),

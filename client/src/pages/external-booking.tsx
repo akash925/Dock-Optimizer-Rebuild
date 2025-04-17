@@ -251,7 +251,8 @@ const appointmentDetailsSchema = z.object({
   appointmentDate: z.string().min(1, "Please select a date"),
   appointmentTime: z.string().min(1, "Please select a time"),
   carrierName: z.string().min(1, "Carrier name is required"),
-  mcNumber: z.string().optional(),
+  // Make mcNumber completely optional, empty string is also valid
+  mcNumber: z.string().optional().or(z.literal("")),
   truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
@@ -1076,35 +1077,16 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               {/* Using the new direct CarrierSelect component */}
               <CarrierSelect form={appointmentDetailsForm} />
 
-              <FormField
-                control={appointmentDetailsForm.control}
-                name="mcNumber"
-                render={({ field }) => {
-                  // Replace any phone numbers with empty string to avoid showing that data
-                  const fieldValue = field.value && field.value.includes('-') ? '' : field.value;
-                  
-                  return (
-                    <FormItem>
-                      <FormLabel>MC Number</FormLabel>
-                      <FormDescription>Motor Carrier number (if available)</FormDescription>
-                      <FormControl>
-                        <Input 
-                          placeholder="MC Number (Optional)" 
-                          value={fieldValue || ""}
-                          onChange={(e) => {
-                            // Allow direct editing of the field
-                            field.onChange(e.target.value);
-                          }}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
+              {/* Temporarily removing MC Number field to prevent form submission errors */}
+              <input type="hidden" name="mcNumber" value="" />
+              {/* Informational message replacing the MC Number field */}
+              <div className="bg-blue-50 p-3 rounded border border-blue-200 mb-4">
+                <h3 className="text-sm font-semibold text-blue-800">MC Number Field</h3>
+                <p className="text-xs text-blue-700 mt-1">
+                  The MC Number field has been temporarily removed while we resolve an issue with it.
+                  It will be restored in an upcoming update.
+                </p>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
