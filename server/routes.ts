@@ -1354,7 +1354,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customFormData: photoInfo ? JSON.stringify({
           ...(schedule.customFormData ? JSON.parse(schedule.customFormData) : {}),
           releasePhoto: photoInfo
-        }) : schedule.customFormData
+        }) : typeof req.body.customFormData !== 'undefined' ? req.body.customFormData : schedule.customFormData
       };
       
       const updatedSchedule = await storage.updateSchedule(id, scheduleData);

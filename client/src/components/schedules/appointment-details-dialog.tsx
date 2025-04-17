@@ -79,9 +79,9 @@ export function AppointmentDetailsDialog({
     mutationFn: async (data: Partial<Schedule>) => {
       if (!appointment?.id) throw new Error("No appointment ID provided");
       
-      // Remove any undefined or null values to prevent overwriting with nulls
+      // Remove any undefined values but allow empty strings and null values to be saved
       const cleanedData = Object.entries(data)
-        .filter(([_, value]) => value !== undefined && value !== null && value !== '')
+        .filter(([_, value]) => value !== undefined)
         .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
       
       console.log("Updating appointment with data:", cleanedData);
