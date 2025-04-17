@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import DoorAppointmentForm from "../components/door-manager/door-appointment-form";
-import { X } from "lucide-react";
+import ReleaseDoorForm from "../components/door-manager/release-door-form";
+import { X, LogOut } from "lucide-react";
 
 export default function DoorManager() {
   const { toast } = useToast();
@@ -13,7 +14,9 @@ export default function DoorManager() {
   const [filterType, setFilterType] = useState<"all" | "available" | "not_available">("all");
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
+  const [showReleaseDoorForm, setShowReleaseDoorForm] = useState(false);
   const [selectedDockId, setSelectedDockId] = useState<number | null>(null);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{start: Date, end: Date} | null>(null);
   
   // Fetch facilities
@@ -54,37 +57,56 @@ export default function DoorManager() {
     return () => clearInterval(interval);
   }, [refetchDocks, refetchSchedules]);
 
-  // Determine door status
-  const getDoorStatus = (dock: Dock): "available" | "not_available" => {
+  // Determine door status and current schedule
+  const getDoorStatus = (dock: Dock): { 
+    status: "available" | "occupied" | "reserved" | "not_available";
+    currentSchedule?: Schedule;
+  } => {
     const now = new Date();
     
-    const isOccupied = schedules.some(s => 
+    // Check if door is occupied (has active appointment)
+    const currentSchedule = schedules.find(s => 
       s.dockId === dock.id && 
       new Date(s.startTime) <= now && 
-      new Date(s.endTime) >= now
+      new Date(s.endTime) >= now &&
+      s.status !== "cancelled" && s.status !== "completed"
     );
     
-    const isReserved = schedules.some(s => 
+    if (currentSchedule) {
+      return { status: "occupied", currentSchedule };
+    }
+    
+    // Check if door is reserved soon
+    const upcomingSchedule = schedules.find(s => 
       s.dockId === dock.id && 
       new Date(s.startTime) > now &&
-      new Date(s.startTime).getTime() - now.getTime() < 3600000 // Within the next hour
+      new Date(s.startTime).getTime() - now.getTime() < 3600000 && // Within the next hour
+      s.status !== "cancelled"
     );
     
-    return (!isOccupied && !isReserved && dock.isActive) ? "available" : "not_available";
+    if (upcomingSchedule) {
+      return { status: "reserved", currentSchedule: upcomingSchedule };
+    }
+    
+    // Door is in maintenance
+    if (!dock.isActive) {
+      return { status: "not_available" };
+    }
+    
+    // Door is available
+    return { status: "available" };
   };
 
   // Filter docks by facility and availability
   const filteredDocks = docks.filter(dock => {
     // Filter by facility
-    // Note: We would need to add a facilityId to the dock model for this to work properly
-    // For now, we'll use a mock filtering approach by using the dock name prefix
     const facilityMatch = selectedFacilityId ? 
       (dock.facilityId === selectedFacilityId) : true;
     
     // Filter by availability
-    const status = getDoorStatus(dock);
+    const { status } = getDoorStatus(dock);
     const availabilityMatch = filterType === "all" ? 
-      true : (filterType === status);
+      true : (filterType === "available" ? status === "available" : status !== "available");
     
     return facilityMatch && availabilityMatch;
   });
@@ -100,11 +122,23 @@ export default function DoorManager() {
     setShowAppointmentForm(true);
   };
   
+  // Handle releasing a door
+  const handleReleaseDoor = (scheduleId: number) => {
+    setSelectedScheduleId(scheduleId);
+    setShowReleaseDoorForm(true);
+  };
+  
   // Close the appointment form
   const handleCloseAppointmentForm = () => {
     setShowAppointmentForm(false);
     setSelectedDockId(null);
     setSelectedTimeSlot(null);
+  };
+  
+  // Close the release door form
+  const handleCloseReleaseDoorForm = () => {
+    setShowReleaseDoorForm(false);
+    setSelectedScheduleId(null);
   };
 
   return (
@@ -184,26 +218,58 @@ export default function DoorManager() {
                 <div className="h-4 w-4 rounded-full bg-green-500 mr-2"></div>
                 <span>Available</span>
               </div>
+              <div className="flex items-center">
+                <div className="h-4 w-4 rounded-full bg-amber-500 mr-2"></div>
+                <span>Reserved</span>
+              </div>
             </div>
           </div>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredDocks.map((dock) => {
-            const isAvailable = getDoorStatus(dock) === "available";
+            const { status, currentSchedule } = getDoorStatus(dock);
+            const carrierName = currentSchedule && carriers.find(c => c.id === currentSchedule.carrierId)?.name;
+            
             return (
               <div key={dock.id} className="border rounded-md overflow-hidden shadow-sm">
                 <div className="p-4 border-b flex justify-between items-center">
                   <div className="font-semibold">{dock.name}</div>
-                  <div className={`h-4 w-4 rounded-full ${isAvailable ? "bg-green-500" : "bg-red-500"}`}></div>
+                  <div className={`h-4 w-4 rounded-full ${
+                    status === "available" ? "bg-green-500" : 
+                    status === "occupied" ? "bg-red-500" : 
+                    status === "reserved" ? "bg-amber-500" : "bg-gray-500"
+                  }`}></div>
                 </div>
+                
+                {status === "occupied" && currentSchedule && (
+                  <div className="px-4 pt-2">
+                    <p className="text-sm font-medium">{carrierName || "Unknown Carrier"}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(currentSchedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                      {new Date(currentSchedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                )}
+                
                 <div className="p-4 flex justify-center">
-                  <Button 
-                    onClick={() => handleCreateAppointment(dock.id)}
-                    className="w-full"
-                  >
-                    Use Door
-                  </Button>
+                  {status === "occupied" && currentSchedule ? (
+                    <Button 
+                      onClick={() => handleReleaseDoor(currentSchedule.id)}
+                      className="w-full bg-amber-600 hover:bg-amber-700"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Release Door
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => handleCreateAppointment(dock.id)}
+                      className="w-full"
+                      disabled={status === "not_available"}
+                    >
+                      Use Door
+                    </Button>
+                  )}
                 </div>
               </div>
             );
@@ -230,6 +296,19 @@ export default function DoorManager() {
           onSuccess={() => {
             refetchSchedules();
             handleCloseAppointmentForm();
+          }}
+        />
+      )}
+      
+      {/* Release Door Form Dialog */}
+      {showReleaseDoorForm && selectedScheduleId && (
+        <ReleaseDoorForm
+          isOpen={showReleaseDoorForm}
+          onClose={handleCloseReleaseDoorForm}
+          scheduleId={selectedScheduleId}
+          onSuccess={() => {
+            refetchSchedules();
+            handleCloseReleaseDoorForm();
           }}
         />
       )}
