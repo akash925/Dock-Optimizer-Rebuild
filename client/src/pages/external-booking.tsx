@@ -39,7 +39,7 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
   useEffect(() => {
     // This ensures the MC Number field starts blank
     form.setValue("mcNumber", "");
-  }, []);
+  }, [form.setValue]);
   
   // Load initial carriers
   useEffect(() => {
@@ -98,7 +98,7 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
     }, 100);
     
     setOpen(false);
-  }, [form]);
+  }, [form.setValue]);
   
   const handleAddCarrier = useCallback(() => {
     if (searchQuery.trim()) {
@@ -119,7 +119,7 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
       setOpen(false);
       setAddingNewCarrier(false);
     }
-  }, [searchQuery, form]);
+  }, [searchQuery, form.setValue, setOpen, setAddingNewCarrier]);
   
   const carrierNameValue = form.watch("carrierName");
   
@@ -398,15 +398,18 @@ export default function ExternalBooking() {
   useEffect(() => {
     // Clear MC Number field on component mount
     appointmentDetailsForm.setValue("mcNumber", "");
-  }, [appointmentDetailsForm]);
+  }, [appointmentDetailsForm.setValue]);
   
   // Use an effect to update available appointment types when location changes
   useEffect(() => {
     if (watchLocation !== selectedLocation && watchLocation) {
       setSelectedLocation(watchLocation);
-      initialSelectionForm.setValue("appointmentType", "");
+      // Only reset the appointment type if we have a new valid location
+      if (watchLocation) {
+        initialSelectionForm.setValue("appointmentType", "");
+      }
     }
-  }, [watchLocation, selectedLocation]);
+  }, [watchLocation, selectedLocation, initialSelectionForm.setValue]);
 
   // Handle BOL file upload
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
