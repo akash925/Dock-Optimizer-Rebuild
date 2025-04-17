@@ -906,6 +906,25 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined> {
+    try {
+      // Remove any HC prefix if present and convert to number
+      const cleanCode = code.replace(/^HC/, '');
+      const scheduleId = parseInt(cleanCode, 10);
+      
+      if (isNaN(scheduleId)) {
+        return undefined;
+      }
+      
+      // For now, simply call getSchedule with the ID
+      // In the future, we might want a more sophisticated confirmation code system
+      return this.getSchedule(scheduleId);
+    } catch (error) {
+      console.error("Error executing getScheduleByConfirmationCode:", error);
+      throw error;
+    }
+  }
+
   async createSchedule(insertSchedule: any): Promise<Schedule> {
     // Instead of using the ORM, let's use a direct SQL query to avoid the schema mismatch
     try {
