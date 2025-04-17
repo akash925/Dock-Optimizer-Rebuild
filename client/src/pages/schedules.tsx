@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Schedule, Dock, Carrier } from "@shared/schema";
+import { Schedule, Dock, Carrier, Facility } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Calendar as CalendarIcon, ListFilter, Grid, List } from "lucide-react";
+import { PlusCircle, Calendar as CalendarIcon, ListFilter, Grid, List, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/ui/data-table";
 import ScheduleCalendar from "@/components/schedules/schedule-calendar";
 import ScheduleWeekCalendar from "@/components/schedules/schedule-week-calendar";
 import AppointmentForm from "@/components/schedules/appointment-form";
+import { AppointmentDetailsDialog } from "@/components/schedules/appointment-details-dialog";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatTime } from "@/lib/utils";
@@ -23,6 +24,8 @@ export default function Schedules() {
   const [editScheduleId, setEditScheduleId] = useState<number | null>(null);
   const [clickedCellDate, setClickedCellDate] = useState<Date | undefined>(undefined);
   const [viewMode, setViewMode] = useState<"calendar" | "week" | "day" | "month" | "list">("week");
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   
   // Fetch schedules
   const { data: schedules = [] } = useQuery<Schedule[]>({
@@ -39,6 +42,20 @@ export default function Schedules() {
     queryKey: ["/api/carriers"],
   });
   
+  // Fetch facilities
+  const { data: facilities = [] } = useQuery<Facility[]>({
+    queryKey: ["/api/facilities"],
+  });
+  
+  // Get facility name for a dock
+  const getFacilityNameForDock = (dockId: number): string => {
+    const dock = docks.find(d => d.id === dockId);
+    if (!dock) return "Unknown Facility";
+    
+    const facility = facilities.find(f => f.id === dock.facilityId);
+    return facility?.name || "Unknown Facility";
+  };
+  
   // Schedule being edited
   const scheduleToEdit = editScheduleId 
     ? schedules.find(s => s.id === editScheduleId) 
@@ -46,8 +63,18 @@ export default function Schedules() {
   
   // Handle schedule selection
   const handleScheduleClick = (scheduleId: number) => {
+    const schedule = schedules.find(s => s.id === scheduleId);
+    if (schedule) {
+      setSelectedSchedule(schedule);
+      setIsDetailsDialogOpen(true);
+    }
+  };
+  
+  // Handle edit click from details dialog
+  const handleEditClick = (scheduleId: number) => {
     setEditScheduleId(scheduleId);
     setIsFormOpen(true);
+    setIsDetailsDialogOpen(false);
   };
   
   // Columns for the data table
@@ -235,6 +262,14 @@ export default function Schedules() {
         initialData={scheduleToEdit}
         mode={editScheduleId ? "edit" : "create"}
         initialDate={clickedCellDate || selectedDate}
+      />
+      
+      {/* Appointment Details Dialog */}
+      <AppointmentDetailsDialog 
+        appointment={selectedSchedule}
+        open={isDetailsDialogOpen}
+        onOpenChange={setIsDetailsDialogOpen}
+        facilityName={selectedSchedule ? getFacilityNameForDock(selectedSchedule.dockId) : ""}
       />
     </div>
   );

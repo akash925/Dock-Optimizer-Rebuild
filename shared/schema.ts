@@ -122,6 +122,10 @@ export const schedules = pgTable("schedules", {
   trailerNumber: text("trailer_number"),
   driverName: text("driver_name"),
   driverPhone: text("driver_phone"),
+  driverEmail: text("driver_email"),
+  customerName: text("customer_name"),
+  carrierName: text("carrier_name"),
+  mcNumber: text("mc_number"),
   bolNumber: text("bol_number"), // Free text field for BOL (can contain text and numbers)
   poNumber: text("po_number"),
   palletCount: text("pallet_count"),
@@ -129,6 +133,8 @@ export const schedules = pgTable("schedules", {
   appointmentMode: text("appointment_mode").default("trailer"), // trailer or container
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
+  actualStartTime: timestamp("actual_start_time"),
+  actualEndTime: timestamp("actual_end_time"),
   type: text("type").notNull(), // inbound or outbound
   status: text("status").notNull(), // scheduled, in-progress, completed, cancelled
   notes: text("notes"),

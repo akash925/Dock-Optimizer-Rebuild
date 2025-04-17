@@ -348,6 +348,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update schedule" });
     }
   });
+  
+  // PATCH for partial updates to schedules
+  app.patch("/api/schedules/:id", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const schedule = await storage.getSchedule(id);
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      
+      // Add the current user to lastModifiedBy field
+      const scheduleData = {
+        ...req.body,
+        lastModifiedBy: req.user?.id || null,
+        lastModifiedAt: new Date()
+      };
+      
+      const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      res.json(updatedSchedule);
+    } catch (err) {
+      console.error("Failed to patch schedule:", err);
+      res.status(500).json({ message: "Failed to update schedule" });
+    }
+  });
+  
+  // Check-in endpoint - starts appointment
+  app.patch("/api/schedules/:id/check-in", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const schedule = await storage.getSchedule(id);
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      
+      // Update schedule status to in-progress and set actual start time
+      const scheduleData = {
+        status: "in-progress",
+        actualStartTime: new Date(),
+        lastModifiedBy: req.user?.id || null,
+        lastModifiedAt: new Date()
+      };
+      
+      const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      res.json(updatedSchedule);
+    } catch (err) {
+      console.error("Failed to check in schedule:", err);
+      res.status(500).json({ message: "Failed to check in" });
+    }
+  });
+  
+  // Check-out endpoint - completes appointment
+  app.patch("/api/schedules/:id/check-out", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const schedule = await storage.getSchedule(id);
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      
+      // Update schedule status to completed and set actual end time
+      const scheduleData = {
+        status: "completed",
+        actualEndTime: new Date(),
+        lastModifiedBy: req.user?.id || null,
+        lastModifiedAt: new Date()
+      };
+      
+      const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      res.json(updatedSchedule);
+    } catch (err) {
+      console.error("Failed to check out schedule:", err);
+      res.status(500).json({ message: "Failed to check out" });
+    }
+  });
+  
+  // Cancel endpoint
+  app.patch("/api/schedules/:id/cancel", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const schedule = await storage.getSchedule(id);
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      
+      // Update schedule status to cancelled
+      const scheduleData = {
+        status: "cancelled",
+        lastModifiedBy: req.user?.id || null,
+        lastModifiedAt: new Date()
+      };
+      
+      const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      res.json(updatedSchedule);
+    } catch (err) {
+      console.error("Failed to cancel schedule:", err);
+      res.status(500).json({ message: "Failed to cancel appointment" });
+    }
+  });
 
   app.delete("/api/schedules/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
