@@ -263,9 +263,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("=== SCHEDULE CREATION START ===");
       console.log("Raw request body:", JSON.stringify(req.body, null, 2));
       
-      // Add the current user to createdBy field
+      // Add the current user to createdBy field and process the dates
+      const rawData = { ...req.body };
+      
+      // Round start and end times to 15 minute intervals
+      if (rawData.startTime) {
+        const startDate = new Date(rawData.startTime);
+        const roundedStartMin = Math.round(startDate.getMinutes() / 15) * 15;
+        startDate.setHours(
+          roundedStartMin === 60 ? startDate.getHours() + 1 : startDate.getHours(),
+          roundedStartMin === 60 ? 0 : roundedStartMin,
+          0, 0
+        );
+        rawData.startTime = startDate;
+      }
+      
+      if (rawData.endTime) {
+        const endDate = new Date(rawData.endTime);
+        const roundedEndMin = Math.round(endDate.getMinutes() / 15) * 15;
+        endDate.setHours(
+          roundedEndMin === 60 ? endDate.getHours() + 1 : endDate.getHours(),
+          roundedEndMin === 60 ? 0 : roundedEndMin,
+          0, 0
+        );
+        rawData.endTime = endDate;
+      }
+      
       let scheduleData = {
-        ...req.body,
+        ...rawData,
         createdBy: req.user!.id
       };
       
@@ -347,8 +372,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Add the current user to lastModifiedBy field
+      const rawData = { ...req.body };
+      
+      // Round start and end times to 15 minute intervals
+      if (rawData.startTime) {
+        const startDate = new Date(rawData.startTime);
+        const roundedStartMin = Math.round(startDate.getMinutes() / 15) * 15;
+        startDate.setHours(
+          roundedStartMin === 60 ? startDate.getHours() + 1 : startDate.getHours(),
+          roundedStartMin === 60 ? 0 : roundedStartMin,
+          0, 0
+        );
+        rawData.startTime = startDate;
+      }
+      
+      if (rawData.endTime) {
+        const endDate = new Date(rawData.endTime);
+        const roundedEndMin = Math.round(endDate.getMinutes() / 15) * 15;
+        endDate.setHours(
+          roundedEndMin === 60 ? endDate.getHours() + 1 : endDate.getHours(),
+          roundedEndMin === 60 ? 0 : roundedEndMin,
+          0, 0
+        );
+        rawData.endTime = endDate;
+      }
+      
       const scheduleData = {
-        ...req.body,
+        ...rawData,
         lastModifiedBy: req.user!.id
       };
       
@@ -369,8 +419,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Add the current user to lastModifiedBy field
+      const rawData = { ...req.body };
+      
+      // Round start and end times to 15 minute intervals
+      if (rawData.startTime) {
+        const startDate = new Date(rawData.startTime);
+        const roundedStartMin = Math.round(startDate.getMinutes() / 15) * 15;
+        startDate.setHours(
+          roundedStartMin === 60 ? startDate.getHours() + 1 : startDate.getHours(),
+          roundedStartMin === 60 ? 0 : roundedStartMin,
+          0, 0
+        );
+        rawData.startTime = startDate;
+      }
+      
+      if (rawData.endTime) {
+        const endDate = new Date(rawData.endTime);
+        const roundedEndMin = Math.round(endDate.getMinutes() / 15) * 15;
+        endDate.setHours(
+          roundedEndMin === 60 ? endDate.getHours() + 1 : endDate.getHours(),
+          roundedEndMin === 60 ? 0 : roundedEndMin,
+          0, 0
+        );
+        rawData.endTime = endDate;
+      }
+      
       const scheduleData = {
-        ...req.body,
+        ...rawData,
         lastModifiedBy: req.user?.id || null,
         lastModifiedAt: new Date()
       };
@@ -467,10 +542,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate new times
-      const { startTime, endTime } = req.body;
-      if (!startTime || !endTime) {
+      const { startTime: rawStartTime, endTime: rawEndTime } = req.body;
+      if (!rawStartTime || !rawEndTime) {
         return res.status(400).json({ message: "Start time and end time are required" });
       }
+      
+      // Round times to 15-minute intervals
+      const startDate = new Date(rawStartTime);
+      const endDate = new Date(rawEndTime);
+      
+      // Round minutes to nearest 15-minute interval (0, 15, 30, 45)
+      const roundStartMinutes = Math.round(startDate.getMinutes() / 15) * 15;
+      const roundEndMinutes = Math.round(endDate.getMinutes() / 15) * 15;
+      
+      // Handle case where rounding results in 60 minutes
+      const startHour = roundStartMinutes === 60 ? startDate.getHours() + 1 : startDate.getHours();
+      const endHour = roundEndMinutes === 60 ? endDate.getHours() + 1 : endDate.getHours();
+      const startMinutes = roundStartMinutes === 60 ? 0 : roundStartMinutes;
+      const endMinutes = roundEndMinutes === 60 ? 0 : roundEndMinutes;
+      
+      startDate.setHours(startHour, startMinutes, 0, 0);
+      endDate.setHours(endHour, endMinutes, 0, 0);
+      
+      const startTime = startDate;
+      const endTime = endDate;
       
       // Check for schedule conflicts with new times
       const conflictingSchedules = (await storage.getSchedulesByDock(schedule.dockId))
