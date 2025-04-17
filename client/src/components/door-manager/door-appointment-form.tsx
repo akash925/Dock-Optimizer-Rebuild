@@ -138,7 +138,9 @@ export default function DoorAppointmentForm({
         ...data,
         // If endTime is not provided, set it to 1 hour after startTime by default
         endTime: data.endTime || new Date(data.startTime.getTime() + 60 * 60 * 1000),
-        status: ScheduleStatus.SCHEDULED,
+        // Set status to in-progress by default for door manager appointments
+        status: ScheduleStatus.IN_PROGRESS,
+        actualStartTime: new Date().toISOString(),
         createdBy: user?.id || 1,
       };
       
