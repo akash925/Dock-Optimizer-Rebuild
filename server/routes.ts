@@ -1,8 +1,11 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
+import path from "path";
+import fs from "fs";
+import multer from "multer";
 import {
   insertDockSchema,
   // Removing insertScheduleSchema as we're handling date validation manually
