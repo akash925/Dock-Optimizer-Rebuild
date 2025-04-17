@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 const truckInfoSchema = z.object({
   carrierId: z.coerce.number().optional(),
   carrierName: z.string().optional(),
+  customerName: z.string().min(1, "Customer name is required"),
   mcNumber: z.string().optional(), // MC Number field
   truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
@@ -61,6 +62,7 @@ const appointmentFormSchema = z.object({
   // Truck info fields
   carrierId: z.coerce.number().optional(),
   carrierName: z.string().optional(),
+  customerName: z.string().min(1, "Customer name is required"),
   mcNumber: z.string().optional(),
   truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
@@ -775,7 +777,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                   <FormItem>
                     <FormLabel>Dock Door*</FormLabel>
                     <Select 
-                      value={field.value.toString()} 
+                      value={field.value ? field.value.toString() : ''} 
                       onValueChange={field.onChange}
                     >
                       <FormControl>
