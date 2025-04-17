@@ -35,13 +35,7 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
   const [isSearching, setIsSearching] = useState(false);
   const [addingNewCarrier, setAddingNewCarrier] = useState(false);
   
-  // Reset MC Number on component mount
-  useEffect(() => {
-    // This ensures the MC Number field starts blank
-    form.setValue("mcNumber", "");
-  }, [form.setValue]);
-  
-  // Load initial carriers
+  // Load initial carriers when the component mounts
   useEffect(() => {
     const fetchInitialCarriers = async () => {
       try {
@@ -54,8 +48,12 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
         console.error("Error loading initial carriers:", err);
       }
     };
+    
+    // Clear MC Number on mount
+    form.setValue("mcNumber", "");
+    
     fetchInitialCarriers();
-  }, []);
+  }, [form]);
   
   // Search carriers when query changes
   useEffect(() => {
@@ -80,46 +78,35 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
   const handleSelectCarrier = useCallback((carrier: Carrier) => {
     console.log("Selecting carrier:", carrier);
     
-    // First clear the fields to ensure they update properly
-    form.setValue("mcNumber", "");
-    
-    // Then set carrier name
+    // First set carrier name
     form.setValue("carrierName", carrier.name);
     
-    // Use a longer timeout (100ms) to ensure the form state has updated 
-    // before we try to set the MC number
-    setTimeout(() => {
-      if (carrier.mcNumber) {
-        console.log("Setting MC Number to:", carrier.mcNumber);
-        form.setValue("mcNumber", carrier.mcNumber);
-      } else {
-        console.log("No MC Number available, keeping field blank");
-      }
-    }, 100);
+    // Then handle MC Number (with a batch of operations)
+    if (carrier.mcNumber) {
+      console.log("Setting MC Number to:", carrier.mcNumber);
+      form.setValue("mcNumber", carrier.mcNumber);
+    } else {
+      console.log("No MC Number available, keeping field blank");
+      form.setValue("mcNumber", "");
+    }
     
     setOpen(false);
-  }, [form.setValue]);
+  }, [form]);
   
   const handleAddCarrier = useCallback(() => {
     if (searchQuery.trim()) {
       console.log("Adding new carrier:", searchQuery);
       
-      // First clear MC Number
-      form.setValue("mcNumber", "");
-      
-      // Then set the carrier name
+      // Set the carrier name
       form.setValue("carrierName", searchQuery.trim());
       
-      // Use a longer timeout to ensure the MC number stays cleared
-      setTimeout(() => {
-        console.log("Ensuring MC Number field is empty for new carrier");
-        form.setValue("mcNumber", "");
-      }, 100);
+      // Explicitly clear MC Number for new carriers
+      form.setValue("mcNumber", "");
       
       setOpen(false);
       setAddingNewCarrier(false);
     }
-  }, [searchQuery, form.setValue, setOpen, setAddingNewCarrier]);
+  }, [searchQuery, form, setOpen, setAddingNewCarrier]);
   
   const carrierNameValue = form.watch("carrierName");
   
@@ -326,8 +313,44 @@ export default function ExternalBooking() {
     if (bookingPage && facilities && appointmentTypes) {
       try {
         // Parse the facilities JSON array from the booking page
-        const facilityIds = bookingPage.facilities as unknown as number[];
-        const excludedAppointmentIds = bookingPage.excludedAppointmentTypes as unknown as number[] || [];
+        // Default to include all facilities if none specifically selected
+        let facilityIds: number[] = [];
+        
+        // Handle different formats of facilities data
+        if (bookingPage.facilities) {
+          try {
+            if (typeof bookingPage.facilities === 'string') {
+              facilityIds = JSON.parse(bookingPage.facilities);
+            } else if (Array.isArray(bookingPage.facilities)) {
+              facilityIds = bookingPage.facilities as unknown as number[];
+            } else {
+              console.error("Unknown facilities format:", bookingPage.facilities);
+              // Default to all facilities
+              facilityIds = facilities.map(f => f.id);
+            }
+          } catch (parseError) {
+            console.error("Error parsing facilities JSON:", parseError);
+            // Default to all facilities on error
+            facilityIds = facilities.map(f => f.id);
+          }
+        } else {
+          // If no facilities specified, include all
+          facilityIds = facilities.map(f => f.id);
+        }
+        
+        // For excluded appointment types, similar approach
+        let excludedAppointmentIds: number[] = [];
+        if (bookingPage.excludedAppointmentTypes) {
+          try {
+            if (typeof bookingPage.excludedAppointmentTypes === 'string') {
+              excludedAppointmentIds = JSON.parse(bookingPage.excludedAppointmentTypes);
+            } else if (Array.isArray(bookingPage.excludedAppointmentTypes)) {
+              excludedAppointmentIds = bookingPage.excludedAppointmentTypes as unknown as number[];
+            }
+          } catch (parseError) {
+            console.error("Error parsing excludedAppointmentTypes:", parseError);
+          }
+        }
         
         // Create a map of facilities that are included in this booking page
         const facilitiesMap: ParsedFacilities = {};
@@ -342,9 +365,12 @@ export default function ExternalBooking() {
           }
         });
         
+        // Log the processed facilities
+        console.log("Processed facilities for booking page:", Object.keys(facilitiesMap).length);
+        
         setParsedFacilities(facilitiesMap);
       } catch (err) {
-        console.error("Error parsing booking page data:", err);
+        console.error("Error processing booking page data:", err);
       }
     }
   }, [bookingPage, facilities, appointmentTypes]);
@@ -394,11 +420,7 @@ export default function ExternalBooking() {
   // Watch the location field to update appointment types
   const watchLocation = initialSelectionForm.watch("location");
   
-  // Force MC Number to be empty when the component mounts
-  useEffect(() => {
-    // Clear MC Number field on component mount
-    appointmentDetailsForm.setValue("mcNumber", "");
-  }, [appointmentDetailsForm.setValue]);
+  // No need for additional MC Number clearing effect as it's handled in CarrierSelect component
   
   // Use an effect to update available appointment types when location changes
   useEffect(() => {
