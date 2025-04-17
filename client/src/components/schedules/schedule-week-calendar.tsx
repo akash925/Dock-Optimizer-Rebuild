@@ -311,15 +311,21 @@ export default function ScheduleWeekCalendar({
             const endHour = endDate.getHours();
             const endMinute = endDate.getMinutes();
             
+            // Round startMinute to nearest 15-min slot (0, 15, 30, 45)
+            const roundedStartMinute = Math.floor(startMinute / 15) * 15;
+            
+            // For end time, round up to nearest 15-min slot
+            const roundedEndMinute = Math.ceil(endMinute / 15) * 15;
+            
             // Calculate position relative to visible hours (starting from 5am)
             const hourOffset = startHour - 5; // Hours since 5am
-            const minuteOffset = startMinute / 60; // Percentage of hour
+            const minuteOffset = roundedStartMinute / 60; // Percentage of hour
             
             // Ensure calculations don't result in negative values
             const topPosition = Math.max(0, (hourOffset + minuteOffset) * 50); // Each hour is 50px
             
-            // Calculate height (clamp to minimum height for visibility)
-            const durationHours = Math.max(0.5, (endHour - startHour) + ((endMinute - startMinute) / 60));
+            // Calculate height using rounded minutes (clamp to minimum height for visibility)
+            const durationHours = Math.max(0.5, (endHour - startHour) + ((roundedEndMinute - roundedStartMinute) / 60));
             const height = Math.max(25, durationHours * 50); // Each hour is 50px, min height 25px
             
             return (

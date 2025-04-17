@@ -685,7 +685,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                             // For example: const settings = await storage.getAppointmentSettings(facilityId);
                             // And then: const timeInterval = settings.timeInterval;
                             // For now, we use these defaults
-                            const timeInterval = 30; // Default 30 minutes (15, 30, or 60 min options)
+                            const timeInterval = 15; // Default to 15 minutes for finer time slot control
                             const startHour = 5; // 5 AM
                             const endHour = 19; // 7 PM
                             
