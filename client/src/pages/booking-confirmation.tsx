@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2 } from "lucide-react";
+import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { 
@@ -15,47 +15,116 @@ import {
   DialogFooter,
   DialogClose
 } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 export default function BookingConfirmation() {
   const [, navigate] = useLocation();
   const [bookingDetails, setBookingDetails] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   
-  // In a real app, you would fetch the booking details from the query parameters or API
-  // For demo purposes, we're using dummy data
+  // Fetch the schedule and related data based on URL parameters
   useEffect(() => {
-    // This would typically come from query parameters or local storage
-    const urlParams = new URLSearchParams(window.location.search);
-    const bookingId = urlParams.get("bookingId");
+    const fetchBookingDetails = async () => {
+      try {
+        setLoading(true);
+        const urlParams = new URLSearchParams(window.location.search);
+        const bookingId = urlParams.get("bookingId");
+        const confirmationNumber = urlParams.get("confirmationNumber");
+        
+        if (!bookingId || isNaN(Number(bookingId))) {
+          toast({
+            title: "Missing booking information",
+            description: "No valid booking ID was provided. Redirecting you to the booking page.",
+            variant: "destructive",
+          });
+          setTimeout(() => navigate("/external-booking"), 3000);
+          return;
+        }
+        
+        // Fetch the schedule data
+        const response = await fetch(`/api/schedules/${bookingId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch schedule data: ${response.statusText}`);
+        }
+        
+        const schedule = await response.json();
+        
+        // Get dock information to get the facility/location
+        const dockResponse = await fetch(`/api/docks/${schedule.dockId}`);
+        let facilityId = null;
+        
+        if (dockResponse.ok) {
+          const dock = await dockResponse.json();
+          facilityId = dock.facilityId;
+        }
+        
+        // Get facility information for location
+        let locationName = "Unknown Location";
+        if (facilityId) {
+          const facilityResponse = await fetch(`/api/facilities/${facilityId}`);
+          if (facilityResponse.ok) {
+            const facility = await facilityResponse.json();
+            locationName = facility.name;
+            if (facility.address1) {
+              locationName += `, ${facility.address1}`;
+            }
+            if (facility.city && facility.state) {
+              locationName += `, ${facility.city}, ${facility.state}`;
+            }
+          }
+        }
+        
+        // Get carrier information
+        let carrierName = "Unknown Carrier";
+        if (schedule.carrierId) {
+          const carrierResponse = await fetch(`/api/carriers/${schedule.carrierId}`);
+          if (carrierResponse.ok) {
+            const carrier = await carrierResponse.json();
+            carrierName = carrier.name;
+          }
+        }
+        
+        // Format dates
+        const startDate = new Date(schedule.startTime);
+        const appointmentDate = startDate.toLocaleDateString();
+        const appointmentTime = startDate.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        // Set booking details
+        setBookingDetails({
+          id: bookingId,
+          confirmationNumber: confirmationNumber || "HZL-" + Math.floor(100000 + Math.random() * 900000),
+          appointmentDate,
+          appointmentTime,
+          location: locationName,
+          companyName: schedule.customerName || "Not provided",
+          carrierName,
+          contactName: schedule.driverName || "Not provided",
+          truckNumber: schedule.truckNumber,
+          trailerNumber: schedule.trailerNumber,
+          type: schedule.type,
+          notes: schedule.notes,
+        });
+        
+      } catch (error) {
+        console.error("Error fetching booking details:", error);
+        toast({
+          title: "Error loading booking details",
+          description: error instanceof Error ? error.message : "An unknown error occurred",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    if (bookingId) {
-      // In a real application, you would fetch the booking details from the API
-      // For now, we'll use mock data
-      setBookingDetails({
-        id: bookingId,
-        confirmationNumber: "HZL-" + Math.floor(100000 + Math.random() * 900000),
-        appointmentDate: new Date().toLocaleDateString(),
-        appointmentTime: "10:00 AM",
-        location: "450 Airtech Pkwy Plainfield IN 46168",
-        companyName: "Sample Company",
-        contactName: "John Doe",
-      });
-    } else {
-      // If there's no booking ID, redirect to the booking page
-      // uncomment this in production
-      // navigate("/external-booking");
-      
-      // For demo, use mock data
-      setBookingDetails({
-        id: "demo-123456",
-        confirmationNumber: "HZL-" + Math.floor(100000 + Math.random() * 900000),
-        appointmentDate: new Date().toLocaleDateString(),
-        appointmentTime: "10:00 AM",
-        location: "450 Airtech Pkwy Plainfield IN 46168",
-        companyName: "Sample Company",
-        contactName: "John Doe",
-      });
-    }
-  }, [navigate]);
+    fetchBookingDetails();
+  }, [navigate, toast]);
 
   const handlePrint = () => {
     window.print();
@@ -78,18 +147,29 @@ export default function BookingConfirmation() {
   // Email the appointment details
   const handleEmailShare = () => {
     const subject = `Dock Appointment Confirmation: ${bookingDetails.confirmationNumber}`;
+    const appointmentType = bookingDetails.type ? bookingDetails.type.toLowerCase() : "appointment";
+    
     const body = `
 Hello,
 
-Here are your appointment details for Hanzo Logistics:
+Here are your ${appointmentType} appointment details for Hanzo Logistics:
 
 Confirmation Number: ${bookingDetails.confirmationNumber}
 Date: ${bookingDetails.appointmentDate}
 Time: ${bookingDetails.appointmentTime}
 Location: ${bookingDetails.location}
+Carrier: ${bookingDetails.carrierName}
+${bookingDetails.truckNumber ? `Truck #: ${bookingDetails.truckNumber}` : ''}
+${bookingDetails.trailerNumber ? `Trailer #: ${bookingDetails.trailerNumber}` : ''}
+Driver: ${bookingDetails.contactName}
 
-Please bring this confirmation to your appointment.
-You can check in by visiting: ${getCheckInUrl()}
+IMPORTANT:
+- Please arrive 15 minutes before your scheduled time
+- Have your confirmation number or QR code ready
+- Check in with dock staff upon arrival
+- For questions, call the facility directly
+
+You can check in by scanning the QR code in the attachment or visiting: ${getCheckInUrl()}
 
 Thank you,
 Hanzo Logistics
@@ -98,10 +178,16 @@ Hanzo Logistics
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
-  if (!bookingDetails) {
+  if (loading || !bookingDetails) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-green-50 to-green-100">
+        <img 
+          src="https://www.hanzologistics.com/wp-content/uploads/2021/11/Hanzo_Logo_no_tag-1.png" 
+          alt="Hanzo Logistics" 
+          className="h-12 mb-6" 
+        />
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg font-medium text-gray-700">Loading your appointment details...</p>
       </div>
     );
   }
@@ -157,15 +243,44 @@ Hanzo Logistics
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-500">Company</span>
+                  <span className="text-sm font-medium text-gray-500">Customer</span>
                   <span>{bookingDetails.companyName}</span>
                 </div>
                 
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-500">Contact</span>
-                  <span>{bookingDetails.contactName}</span>
+                  <span className="text-sm font-medium text-gray-500">Carrier</span>
+                  <span>{bookingDetails.carrierName}</span>
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-500">Driver</span>
+                  <span>{bookingDetails.contactName}</span>
+                </div>
+                
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-500">Truck #</span>
+                  <span>{bookingDetails.truckNumber || "Not provided"}</span>
+                </div>
+              </div>
+
+              {bookingDetails.trailerNumber && (
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-500">Trailer #</span>
+                  <span>{bookingDetails.trailerNumber}</span>
+                </div>
+              )}
+
+              {bookingDetails.type && (
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-500">Appointment Type</span>
+                  <div className="flex items-center">
+                    <span className={`inline-block w-3 h-3 rounded-full mr-2 ${bookingDetails.type.toLowerCase() === 'inbound' ? 'bg-blue-500' : 'bg-green-500'}`}></span>
+                    <span className="capitalize">{bookingDetails.type.toLowerCase()}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
@@ -209,15 +324,24 @@ Hanzo Logistics
                           <p className="text-sm whitespace-pre-wrap border-t pt-2 mt-2">
                             {`Hello,
 
-Here are your appointment details for Hanzo Logistics:
+Here are your ${bookingDetails.type ? bookingDetails.type.toLowerCase() : "appointment"} appointment details for Hanzo Logistics:
 
 Confirmation Number: ${bookingDetails.confirmationNumber}
 Date: ${bookingDetails.appointmentDate}
 Time: ${bookingDetails.appointmentTime}
 Location: ${bookingDetails.location}
+Carrier: ${bookingDetails.carrierName}
+${bookingDetails.truckNumber ? `Truck #: ${bookingDetails.truckNumber}` : ''}
+${bookingDetails.trailerNumber ? `Trailer #: ${bookingDetails.trailerNumber}` : ''}
+Driver: ${bookingDetails.contactName}
 
-Please bring this confirmation to your appointment.
-You can check in by visiting: ${getCheckInUrl()}
+IMPORTANT:
+- Please arrive 15 minutes before your scheduled time
+- Have your confirmation number or QR code ready
+- Check in with dock staff upon arrival
+- For questions, call the facility directly
+
+You can check in by scanning the QR code in the attachment or visiting: ${getCheckInUrl()}
 
 Thank you,
 Hanzo Logistics`}
