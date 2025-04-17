@@ -881,10 +881,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
+    // Create a new object without appointmentTypeId to match the database schema
+    const { appointmentTypeId, ...scheduleWithoutAppointmentTypeId } = insertSchedule;
+    
     const [schedule] = await db
       .insert(schedules)
       .values({
-        ...insertSchedule,
+        ...scheduleWithoutAppointmentTypeId,
         trailerNumber: insertSchedule.trailerNumber || null,
         driverName: insertSchedule.driverName || null,
         driverPhone: insertSchedule.driverPhone || null,
@@ -897,19 +900,26 @@ export class DatabaseStorage implements IStorage {
         lastModifiedBy: insertSchedule.createdBy
       })
       .returning();
-    return schedule;
+    
+    // Add the appointmentTypeId back to the returned object to match the TypeScript type
+    return { ...schedule, appointmentTypeId: appointmentTypeId || null } as Schedule;
   }
 
   async updateSchedule(id: number, scheduleUpdate: Partial<Schedule>): Promise<Schedule | undefined> {
+    // Extract appointmentTypeId and create a new object without it
+    const { appointmentTypeId, ...updateWithoutAppointmentTypeId } = scheduleUpdate;
+    
     const [updatedSchedule] = await db
       .update(schedules)
       .set({
-        ...scheduleUpdate,
+        ...updateWithoutAppointmentTypeId,
         lastModifiedAt: new Date()
       })
       .where(eq(schedules.id, id))
       .returning();
-    return updatedSchedule;
+      
+    // Add the appointmentTypeId back to the returned object to match the TypeScript type
+    return updatedSchedule ? { ...updatedSchedule, appointmentTypeId: appointmentTypeId || null } as Schedule : undefined;
   }
 
   async deleteSchedule(id: number): Promise<boolean> {
