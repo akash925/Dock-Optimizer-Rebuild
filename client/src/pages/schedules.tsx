@@ -170,7 +170,7 @@ export default function Schedules() {
             onClick={() => handleScheduleClick(row.original.id)}
             className="p-0 h-8 px-2"
           >
-            Edit
+            View
           </Button>
         );
       },
