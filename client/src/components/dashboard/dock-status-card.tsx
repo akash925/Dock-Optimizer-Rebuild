@@ -93,13 +93,13 @@ export default function DockStatusCard({
         
         <div className="mt-auto">
           <Link
-            href={`/dock-status/${dock.id}`}
+            href="/door-manager"
             className={cn(
               buttonVariants({ variant: "link", size: "sm" }),
               "p-0 h-auto text-primary text-sm"
             )}
           >
-            Details
+            Manage Door
           </Link>
         </div>
       </div>

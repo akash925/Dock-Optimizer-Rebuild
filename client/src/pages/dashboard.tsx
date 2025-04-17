@@ -269,8 +269,8 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium">Current Dock Status</h3>
           <Button variant="link" asChild>
-            <Link href="/dock-status" className="text-primary flex items-center text-sm">
-              View All
+            <Link href="/door-manager" className="text-primary flex items-center text-sm">
+              Door Manager
               <ChevronRight className="h-4 w-4 ml-1" />
             </Link>
           </Button>
