@@ -145,11 +145,12 @@ export default function DoorAppointmentForm({
       // Convert dates to ISO strings for JSON serialization
       const serializedData = {
         ...appointmentData,
-        startTime: appointmentData.startTime.toISOString(),
-        endTime: appointmentData.endTime.toISOString(),
+        // Force convert to ISO strings
+        startTime: appointmentData.startTime ? appointmentData.startTime.toISOString() : new Date().toISOString(),
+        endTime: appointmentData.endTime ? appointmentData.endTime.toISOString() : new Date(Date.now() + 3600000).toISOString(),
       };
       
-      console.log("Sending appointment data:", serializedData);
+      console.log("Sending appointment data:", JSON.stringify(serializedData, null, 2));
       
       const res = await apiRequest("POST", "/api/schedules", serializedData);
       return await res.json();

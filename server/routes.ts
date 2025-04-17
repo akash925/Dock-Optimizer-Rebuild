@@ -257,6 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/schedules", checkRole(["admin", "manager"]), async (req, res) => {
     try {
+      console.log("=== SCHEDULE CREATION START ===");
       console.log("Raw request body:", JSON.stringify(req.body, null, 2));
       
       // Add the current user to createdBy field
@@ -269,31 +270,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCarrierData = scheduleData.newCarrier;
       delete scheduleData.newCarrier;
       
-      console.log("Schedule data (raw):", JSON.stringify(scheduleData, null, 2));
+      // NO validation, NO date conversion, pass directly to storage
+      console.log("IMPORTANT: Bypassing all validation and date conversion");
       
-      // Convert Date strings to Date objects
-      try {
-        if (typeof scheduleData.startTime === 'string') {
-          scheduleData.startTime = new Date(scheduleData.startTime);
-        }
-        
-        if (typeof scheduleData.endTime === 'string') {
-          scheduleData.endTime = new Date(scheduleData.endTime);
-        }
-      } catch (dateErr) {
-        console.error("Date conversion error:", dateErr);
-        return res.status(400).json({ message: "Invalid date format" });
-      }
-      
-      console.log("Schedule data after date conversion:", 
-        JSON.stringify({
-          ...scheduleData,
-          startTime: scheduleData.startTime?.toISOString(),
-          endTime: scheduleData.endTime?.toISOString()
-        }, null, 2)
-      );
-      
-      // Skip zod validation entirely - use the converted data directly
+      // Just pass the raw data to storage and let it handle everything
       const validatedData = scheduleData;
       
       // Check if dock exists

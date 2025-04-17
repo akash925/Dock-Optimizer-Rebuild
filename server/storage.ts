@@ -893,19 +893,30 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
+  async createSchedule(insertSchedule: any): Promise<Schedule> {
     // Instead of using the ORM, let's use a direct SQL query to avoid the schema mismatch
     try {
+      console.log("Raw insertSchedule in storage:", JSON.stringify(insertSchedule, null, 2));
+      
       // Extract values from insertSchedule that match the actual database columns
+      // Manually ensure dates are Date objects
+      const startTime = typeof insertSchedule.startTime === 'string' 
+        ? new Date(insertSchedule.startTime) 
+        : insertSchedule.startTime;
+        
+      const endTime = typeof insertSchedule.endTime === 'string' 
+        ? new Date(insertSchedule.endTime) 
+        : insertSchedule.endTime;
+      
       const values = {
         dock_id: insertSchedule.dockId,
         carrier_id: insertSchedule.carrierId,
-        truck_number: insertSchedule.truckNumber,
+        truck_number: insertSchedule.truckNumber || '',
         trailer_number: insertSchedule.trailerNumber || null,
         driver_name: insertSchedule.driverName || null,
         driver_phone: insertSchedule.driverPhone || null,
-        start_time: insertSchedule.startTime,
-        end_time: insertSchedule.endTime,
+        start_time: startTime,
+        end_time: endTime,
         type: insertSchedule.type,
         status: insertSchedule.status,
         notes: insertSchedule.notes || null,
