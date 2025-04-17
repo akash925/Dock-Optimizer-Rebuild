@@ -1281,6 +1281,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Set up multer for photo upload
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  
+  // Create upload directory if it doesn't exist
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  // Configure storage for file uploads
+  const multerStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, `schedule-${req.params.id}-${uniqueSuffix}${ext}`);
+    }
+  });
+  
+  const upload = multer({ 
+    storage: multerStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+      // Accept only images
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed'), false);
+      }
+    }
+  });
+  
+  // Release door endpoint (with optional notes and photo)
+  app.post("/api/schedules/:id/release", upload.single('photo'), async (req, res) => {
+    try {
+      console.log("=== RELEASE DOOR START ===");
+      const id = Number(req.params.id);
+      const schedule = await storage.getSchedule(id);
+      
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      
+      // Get notes and release type from request body
+      const { notes, releaseType = 'normal' } = req.body;
+      
+      // Optional photo file info
+      const photoInfo = req.file ? {
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        path: req.file.path,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      } : null;
+      
+      console.log(`Releasing door for schedule ${id} with notes: ${notes}`);
+      if (photoInfo) {
+        console.log(`Photo uploaded: ${photoInfo.filename}`);
+      }
+      
+      // Update schedule with notes, photo, and mark as completed
+      const scheduleData = {
+        status: "completed",
+        actualEndTime: new Date(),
+        notes: notes || schedule.notes,
+        lastModifiedBy: req.user?.id || null,
+        lastModifiedAt: new Date(),
+        // Store photo information in custom form data if available
+        customFormData: photoInfo ? JSON.stringify({
+          ...JSON.parse(schedule.customFormData || '{}'),
+          releasePhoto: photoInfo
+        }) : schedule.customFormData
+      };
+      
+      const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      
+      // Return updated schedule with photo information
+      res.json({
+        ...updatedSchedule,
+        photoInfo: photoInfo
+      });
+    } catch (err) {
+      console.error("Failed to release door:", err);
+      res.status(500).json({ 
+        message: "Failed to release door", 
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   

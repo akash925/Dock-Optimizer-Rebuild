@@ -3,7 +3,8 @@ import { Dock, Schedule, Carrier } from "@shared/schema";
 import { formatDuration, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Plus } from "lucide-react";
+import { Calendar, Clock, Plus, Lock, LogOut } from "lucide-react";
+import ReleaseDoorForm from "./release-door-form";
 
 interface DoorStatusItem {
   id: number;
