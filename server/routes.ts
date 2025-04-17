@@ -446,6 +446,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to cancel appointment" });
     }
   });
+  
+  // Reschedule endpoint
+  app.patch("/api/schedules/:id/reschedule", async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const schedule = await storage.getSchedule(id);
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      
+      // Validate new times
+      const { startTime, endTime } = req.body;
+      if (!startTime || !endTime) {
+        return res.status(400).json({ message: "Start time and end time are required" });
+      }
+      
+      // Check for schedule conflicts with new times
+      const conflictingSchedules = (await storage.getSchedulesByDock(schedule.dockId))
+        .filter(s => 
+          s.id !== id && // Ignore the current schedule
+          (new Date(startTime) < new Date(s.endTime)) && 
+          (new Date(endTime) > new Date(s.startTime))
+        );
+      
+      if (conflictingSchedules.length > 0) {
+        return res.status(409).json({ 
+          message: "Schedule conflicts with existing schedules", 
+          conflicts: conflictingSchedules 
+        });
+      }
+      
+      // Update the schedule with new times
+      const scheduleData = {
+        startTime,
+        endTime,
+        lastModifiedBy: req.user?.id || null,
+        lastModifiedAt: new Date()
+      };
+      
+      const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      res.json(updatedSchedule);
+    } catch (err) {
+      console.error("Failed to reschedule appointment:", err);
+      res.status(500).json({ message: "Failed to reschedule appointment" });
+    }
+  });
 
   app.delete("/api/schedules/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {

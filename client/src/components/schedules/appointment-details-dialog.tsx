@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,20 @@ import { Schedule } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, ClipboardList, Trash2, Pencil } from "lucide-react";
-import { format } from "date-fns";
+import { format, addHours } from "date-fns";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface AppointmentDetailsDialogProps {
   appointment: Schedule | null;
@@ -27,7 +40,28 @@ export function AppointmentDetailsDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [formData, setFormData] = useState<Partial<Schedule>>({});
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(
+    appointment ? new Date(appointment.startTime) : undefined
+  );
+  const [rescheduleTime, setRescheduleTime] = useState<string>("");
+  const [rescheduleDuration, setRescheduleDuration] = useState<number>(60); // Default 1 hour
+  
+  // Initialize reschedule data when appointment changes
+  useEffect(() => {
+    if (appointment) {
+      const startDate = new Date(appointment.startTime);
+      setRescheduleDate(startDate);
+      setRescheduleTime(format(startDate, "HH:mm"));
+      
+      // Calculate duration in minutes
+      const startTime = new Date(appointment.startTime).getTime();
+      const endTime = new Date(appointment.endTime).getTime();
+      const durationMs = endTime - startTime;
+      setRescheduleDuration(durationMs / (1000 * 60)); // Convert ms to minutes
+    }
+  }, [appointment]);
 
   // Initialize form data when appointment changes
   useState(() => {
@@ -159,6 +193,44 @@ export function AppointmentDetailsDialog({
     onError: (error) => {
       toast({
         title: "Error deleting appointment",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Mutation for rescheduling appointment
+  const rescheduleAppointmentMutation = useMutation({
+    mutationFn: async () => {
+      if (!appointment?.id) throw new Error("No appointment ID provided");
+      if (!rescheduleDate) throw new Error("No date selected");
+      
+      // Create start and end Date objects
+      const [hours, minutes] = rescheduleTime.split(':').map(Number);
+      const startTime = new Date(rescheduleDate);
+      startTime.setHours(hours, minutes, 0, 0);
+      
+      // Calculate end time based on duration in minutes
+      const endTime = new Date(startTime.getTime());
+      endTime.setMinutes(endTime.getMinutes() + rescheduleDuration);
+      
+      const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}/reschedule`, {
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString()
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      setIsRescheduling(false);
+      toast({
+        title: "Appointment rescheduled",
+        description: "The appointment has been rescheduled successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error rescheduling appointment",
         description: error.message,
         variant: "destructive",
       });
@@ -428,12 +500,18 @@ export function AppointmentDetailsDialog({
                       Cancel Event
                     </Button>
 
-                    <Button variant="outline" className="bg-slate-50 hover:bg-slate-100 border-slate-200">
+                    <Button 
+                      variant="outline" 
+                      className="bg-slate-50 hover:bg-slate-100 border-slate-200"
+                      onClick={() => setIsRescheduling(true)}
+                    >
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Reschedule
                     </Button>
 
-                    <Button variant="outline" className="bg-red-50 hover:bg-red-100 border-red-200"
+                    <Button 
+                      variant="outline" 
+                      className="bg-red-50 hover:bg-red-100 border-red-200"
                       onClick={() => deleteAppointmentMutation.mutate()}
                       disabled={deleteAppointmentMutation.isPending}
                     >
@@ -449,6 +527,30 @@ export function AppointmentDetailsDialog({
                     >
                       <Check className="h-4 w-4 mr-2" />
                       Check-In
+                    </Button>
+                  </>
+                )}
+                
+                {appointment.status === "in-progress" && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="bg-red-50 hover:bg-red-100 border-red-200"
+                      onClick={() => cancelAppointmentMutation.mutate()}
+                      disabled={cancelAppointmentMutation.isPending}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel Event
+                    </Button>
+                    
+                    <Button 
+                      variant="default" 
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => checkOutAppointmentMutation.mutate()}
+                      disabled={checkOutAppointmentMutation.isPending}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Check-Out
                     </Button>
                   </>
                 )}
