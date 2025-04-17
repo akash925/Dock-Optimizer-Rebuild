@@ -880,7 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const externalBookingSchema = z.object({
         appointmentType: z.string().min(1),
         pickupOrDropoff: z.string().min(1),
-        companyName: z.string().min(2),
+        customerName: z.string().min(2), // This is the company name from step 2
         contactName: z.string().min(2),
         contactEmail: z.string().email(),
         contactPhone: z.string().min(10),
@@ -889,7 +889,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         location: z.string().min(1),
         // Make MC Number completely optional (empty string is also valid)
         mcNumber: z.string().optional().or(z.literal("")),
-        customerName: z.string().min(1),  // Add required customer name
         truckNumber: z.string().min(1),
         trailerNumber: z.string().optional(),
         driverName: z.string().min(1),
@@ -899,14 +898,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = externalBookingSchema.parse(req.body);
       
-      // Find or create the carrier based on company name
+      // Find or create the carrier based on customer name
       let carrier = (await storage.getCarriers()).find(
-        c => c.name.toLowerCase() === validatedData.companyName.toLowerCase()
+        c => c.name.toLowerCase() === validatedData.customerName.toLowerCase()
       );
       
       if (!carrier) {
         carrier = await storage.createCarrier({
-          name: validatedData.companyName,
+          name: validatedData.customerName,
           mcNumber: validatedData.mcNumber,
           contactName: validatedData.contactName,
           contactEmail: validatedData.contactEmail,
