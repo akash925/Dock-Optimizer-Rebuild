@@ -256,6 +256,7 @@ const appointmentDetailsSchema = z.object({
   carrierName: z.string().min(1, "Carrier name is required"),
   // Make mcNumber completely optional, empty string is also valid
   mcNumber: z.string().optional().or(z.literal("")),
+  customerName: z.string().min(1, "Customer name is required"),  // Adding customer name field
   truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
@@ -376,6 +377,7 @@ export default function ExternalBooking() {
       appointmentTime: "",
       carrierName: "",
       mcNumber: "",
+      customerName: "",  // Added customer name default value
       truckNumber: "",
       trailerNumber: "",
       driverName: "",
@@ -505,8 +507,12 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
         description: "Your appointment has been successfully scheduled. A confirmation email will be sent shortly.",
       });
       
-      // Navigate to confirmation page
-      navigate("/booking-confirmation");
+      // Navigate to confirmation page with booking ID and confirmation number
+      if (result.schedule && result.confirmationNumber) {
+        navigate(`/booking-confirmation?bookingId=${result.schedule.id}&confirmationNumber=${result.confirmationNumber}`);
+      } else {
+        navigate("/booking-confirmation");
+      }
     } catch (error: any) {
       toast({
         title: "Booking Failed",
@@ -1140,6 +1146,24 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               
               {/* Using the new direct CarrierSelect component */}
               <CarrierSelect form={appointmentDetailsForm} />
+
+              {/* Customer Name field */}
+              <FormField
+                control={appointmentDetailsForm.control}
+                name="customerName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Customer Name*</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter customer name" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Enter the customer or client for this shipment
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Temporarily removing MC Number field to prevent form submission errors */}
               <input type="hidden" name="mcNumber" value="" />
