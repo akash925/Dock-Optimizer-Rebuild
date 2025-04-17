@@ -33,7 +33,16 @@ const truckInfoSchema = z.object({
   driverPhone: z.string().min(6, "Valid phone number is required"),
   type: z.enum(["inbound", "outbound"]),
   appointmentMode: z.enum(["trailer", "container"]),
-});
+}).refine(
+  (data) => {
+    // Either carrierId or carrierName must be provided, unless carrierName is explicitly empty string
+    return data.carrierId !== undefined || data.carrierName !== undefined || data.carrierName === '';
+  },
+  {
+    message: "Either select a carrier or enter a custom carrier name",
+    path: ["carrierId"],
+  }
+);
 
 // Tab 2: Schedule Details
 const scheduleDetailsSchema = z.object({
@@ -49,8 +58,28 @@ const scheduleDetailsSchema = z.object({
 
 // Combine schemas
 const appointmentFormSchema = z.object({
-  ...truckInfoSchema.shape,
-  ...scheduleDetailsSchema.shape,
+  // Truck info fields
+  carrierId: z.coerce.number().optional(),
+  carrierName: z.string().optional(),
+  mcNumber: z.string().optional(),
+  truckNumber: z.string().min(1, "Truck number is required"),
+  trailerNumber: z.string().optional(),
+  driverName: z.string().min(1, "Driver name is required"),
+  driverPhone: z.string().min(6, "Valid phone number is required"),
+  type: z.enum(["inbound", "outbound"]),
+  appointmentMode: z.enum(["trailer", "container"]),
+  
+  // Schedule details fields
+  appointmentDate: z.string().min(1, "Date is required"),
+  appointmentTime: z.string().min(1, "Time is required"),
+  dockId: z.coerce.number().min(1, "Please select a dock"),
+  bolNumber: z.string().optional(),
+  poNumber: z.string().optional(),
+  palletCount: z.string().optional(),
+  weight: z.string().optional(),
+  notes: z.string().optional(),
+  
+  // Other fields
   createdBy: z.number(),
   status: z.string(),
 });
@@ -153,7 +182,7 @@ export default function AppointmentForm({
       : {
           appointmentDate: initialDate ? format(initialDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
           appointmentTime: initialDate ? format(initialDate, "HH:mm") : "09:00",
-          dockId: 0,
+          dockId: docks && docks.length > 0 ? docks[0].id : 1,
           bolNumber: "",
           poNumber: "",
           palletCount: "",
@@ -256,17 +285,15 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
     setIsSubmitting(true);
     
     try {
-      // Combine all data
-      const completeData = {...formData, ...data};
+      // Type assertion for combined form data
+      type CompleteFormData = AppointmentFormValues;
       
-      // Clean MC Number (remove phone numbers if any exist)
-      if (completeData.mcNumber && completeData.mcNumber.includes('-')) {
-        completeData.mcNumber = '';
-      }
+      // Combine all data (use type assertion to handle combined data structure)
+      const completeData = {...formData, ...data} as CompleteFormData;
       
       // Create date objects from form inputs
-      const appointmentDate = completeData.appointmentDate;
-      const appointmentTime = completeData.appointmentTime;
+      const appointmentDate = data.appointmentDate;
+      const appointmentTime = data.appointmentTime;
       
       // Create Date object from input
       const rawStartTime = new Date(`${appointmentDate}T${appointmentTime}`);
@@ -281,35 +308,39 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       const startTime = new Date(rawStartTime);
       startTime.setHours(newHours, newMinutes, 0, 0);
       
-      // Calculate endTime after rounding startTime
-      const endTime = getDefaultEndTime(startTime, completeData.appointmentMode as "trailer" | "container");
+      // Get appointment mode from step 1 form data and calculate end time
+      const appointmentMode = formData.appointmentMode as "trailer" | "container";
+      const endTime = getDefaultEndTime(startTime, appointmentMode);
       
       // Format for API
       const scheduleData: any = {
-        carrierId: completeData.carrierId,
-        dockId: completeData.dockId,
-        truckNumber: completeData.truckNumber,
-        trailerNumber: completeData.trailerNumber,
-        driverName: completeData.driverName,
-        driverPhone: completeData.driverPhone,
-        bolNumber: completeData.bolNumber,
-        poNumber: completeData.poNumber,
-        palletCount: completeData.palletCount,
-        weight: completeData.weight,
+        carrierId: formData.carrierId,
+        dockId: data.dockId,
+        truckNumber: formData.truckNumber,
+        trailerNumber: formData.trailerNumber,
+        driverName: formData.driverName,
+        driverPhone: formData.driverPhone,
+        bolNumber: data.bolNumber,
+        poNumber: data.poNumber,
+        palletCount: data.palletCount,
+        weight: data.weight,
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
-        type: completeData.type,
-        appointmentMode: completeData.appointmentMode,
+        type: formData.type,
+        appointmentMode: formData.appointmentMode,
         status: "scheduled",
-        notes: completeData.notes,
+        notes: data.notes,
         createdBy: user?.id || 0,
       };
       
       // If it's a custom carrier (no carrierId but has name), include carrier info
-      if (!completeData.carrierId && completeData.carrierName) {
+      const mcNumber = formData.mcNumber || '';
+      const carrierName = formData.carrierName || '';
+      
+      if (!formData.carrierId && carrierName) {
         scheduleData.newCarrier = {
-          name: completeData.carrierName,
-          mcNumber: completeData.mcNumber || ''
+          name: carrierName,
+          mcNumber: mcNumber.includes('-') ? '' : mcNumber
         };
       }
       
