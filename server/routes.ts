@@ -1309,7 +1309,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (file.mimetype.startsWith('image/')) {
         cb(null, true);
       } else {
-        cb(new Error('Only image files are allowed'), false);
+        cb(null, false);
+        return new Error('Only image files are allowed');
       }
     }
   });
@@ -1351,7 +1352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastModifiedAt: new Date(),
         // Store photo information in custom form data if available
         customFormData: photoInfo ? JSON.stringify({
-          ...JSON.parse(schedule.customFormData || '{}'),
+          ...(schedule.customFormData ? JSON.parse(schedule.customFormData) : {}),
           releasePhoto: photoInfo
         }) : schedule.customFormData
       };

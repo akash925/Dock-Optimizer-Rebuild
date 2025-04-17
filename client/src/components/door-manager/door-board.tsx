@@ -31,6 +31,8 @@ export default function DoorBoard({
 }: DoorBoardProps) {
   const [doorStatuses, setDoorStatuses] = useState<DoorStatusItem[]>([]);
   const [timeUpdate, setTimeUpdate] = useState(new Date());
+  const [releaseModalOpen, setReleaseModalOpen] = useState(false);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
   
   // Process door status data
   useEffect(() => {
@@ -119,102 +121,140 @@ export default function DoorBoard({
     }
   };
 
+  // Handle releasing a door
+  const handleReleaseDoor = (scheduleId: number) => {
+    setSelectedScheduleId(scheduleId);
+    setReleaseModalOpen(true);
+  };
+  
+  // Handle successful door release
+  const handleReleaseSuccess = () => {
+    setReleaseModalOpen(false);
+    setSelectedScheduleId(null);
+    // Wait a bit before updating data to ensure server has time to process the release
+    setTimeout(() => setTimeUpdate(new Date()), 500);
+  };
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {doorStatuses.map((door) => (
-        <div 
-          key={door.id} 
-          className="border rounded-md h-full bg-white shadow-sm flex flex-col"
-        >
-          <div className="p-4 border-b">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-medium text-lg">{door.name}</h3>
-              <Badge variant={getStatusBadgeVariant(door.status)}>
-                <span className={`h-2 w-2 rounded-full ${getStatusColor(door.status)} mr-1.5`}></span>
-                <span className="capitalize">{door.status}</span>
-              </Badge>
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {doorStatuses.map((door) => (
+          <div 
+            key={door.id} 
+            className="border rounded-md h-full bg-white shadow-sm flex flex-col"
+          >
+            <div className="p-4 border-b">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="font-medium text-lg">{door.name}</h3>
+                <Badge variant={getStatusBadgeVariant(door.status)}>
+                  <span className={`h-2 w-2 rounded-full ${getStatusColor(door.status)} mr-1.5`}></span>
+                  <span className="capitalize">{door.status}</span>
+                </Badge>
+              </div>
+              
+              {door.status === "occupied" && door.carrier && (
+                <div className="mb-2">
+                  <p className="text-sm font-medium">{door.carrier}</p>
+                  <div className="flex items-center text-xs text-gray-500 mt-1">
+                    <Clock className="h-3 w-3 mr-1" />
+                    <span>
+                      Elapsed: {door.elapsedTime ? formatDuration(door.elapsedTime) : "--:--:--"}
+                    </span>
+                  </div>
+                  {door.remainingTime && (
+                    <div className="text-xs text-gray-500 mt-1 ml-4">
+                      Remaining: {formatDuration(door.remainingTime)}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {door.status === "reserved" && door.carrier && door.currentSchedule && (
+                <div className="mb-2">
+                  <p className="text-sm font-medium">Reserved: {door.carrier}</p>
+                  <div className="flex items-center text-xs text-gray-500 mt-1">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    <span>
+                      {new Date(door.currentSchedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {" - "}
+                      {new Date(door.currentSchedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {door.status === "available" && (
+                <div className="mb-2">
+                  <p className="text-sm text-gray-500">Available for booking</p>
+                </div>
+              )}
+              
+              {door.status === "maintenance" && (
+                <div className="mb-2">
+                  <p className="text-sm text-gray-500">Under maintenance</p>
+                </div>
+              )}
             </div>
             
-            {door.status === "occupied" && door.carrier && (
-              <div className="mb-2">
-                <p className="text-sm font-medium">{door.carrier}</p>
-                <div className="flex items-center text-xs text-gray-500 mt-1">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>
-                    Elapsed: {door.elapsedTime ? formatDuration(door.elapsedTime) : "--:--:--"}
-                  </span>
+            <div className="p-3 mt-auto bg-gray-50 flex items-center justify-between">
+              <span className="text-xs text-gray-400">
+                Updated: {timeUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              
+              {door.status !== "maintenance" && (
+                <div className="flex space-x-1">
+                  {door.status === "occupied" && door.currentSchedule && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-xs text-red-500 border-red-200 hover:bg-red-50"
+                      onClick={() => handleReleaseDoor(door.currentSchedule!.id)}
+                    >
+                      <LogOut className="h-3 w-3 mr-1" />
+                      Release
+                    </Button>
+                  )}
+                  
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-xs"
+                    onClick={() => {
+                      if (door.status === "available") {
+                        // Create appointment starting now
+                        const start = new Date();
+                        const end = new Date();
+                        end.setHours(end.getHours() + 1);
+                        onCreateAppointment(door.id, { start, end });
+                      } else if (door.status === "occupied" && door.currentSchedule) {
+                        // Extend current appointment by 30 minutes
+                        const start = new Date(door.currentSchedule.endTime);
+                        const end = new Date(door.currentSchedule.endTime);
+                        end.setMinutes(end.getMinutes() + 30);
+                        onCreateAppointment(door.id, { start, end });
+                      } else {
+                        // Default appointment
+                        onCreateAppointment(door.id);
+                      }
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    {door.status === "available" ? "Book" : "Update"}
+                  </Button>
                 </div>
-                {door.remainingTime && (
-                  <div className="text-xs text-gray-500 mt-1 ml-4">
-                    Remaining: {formatDuration(door.remainingTime)}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {door.status === "reserved" && door.carrier && door.currentSchedule && (
-              <div className="mb-2">
-                <p className="text-sm font-medium">Reserved: {door.carrier}</p>
-                <div className="flex items-center text-xs text-gray-500 mt-1">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  <span>
-                    {new Date(door.currentSchedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    {" - "}
-                    {new Date(door.currentSchedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              </div>
-            )}
-            
-            {door.status === "available" && (
-              <div className="mb-2">
-                <p className="text-sm text-gray-500">Available for booking</p>
-              </div>
-            )}
-            
-            {door.status === "maintenance" && (
-              <div className="mb-2">
-                <p className="text-sm text-gray-500">Under maintenance</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-          
-          <div className="p-3 mt-auto bg-gray-50 flex items-center justify-between">
-            <span className="text-xs text-gray-400">
-              Updated: {timeUpdate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </span>
-            
-            {door.status !== "maintenance" && (
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="text-xs"
-                onClick={() => {
-                  if (door.status === "available") {
-                    // Create appointment starting now
-                    const start = new Date();
-                    const end = new Date();
-                    end.setHours(end.getHours() + 1);
-                    onCreateAppointment(door.id, { start, end });
-                  } else if (door.status === "occupied" && door.currentSchedule) {
-                    // Extend current appointment by 30 minutes
-                    const start = new Date(door.currentSchedule.endTime);
-                    const end = new Date(door.currentSchedule.endTime);
-                    end.setMinutes(end.getMinutes() + 30);
-                    onCreateAppointment(door.id, { start, end });
-                  } else {
-                    // Default appointment
-                    onCreateAppointment(door.id);
-                  }
-                }}
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                {door.status === "available" ? "Book" : "Update"}
-              </Button>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {/* Release Door Modal */}
+      <ReleaseDoorForm
+        isOpen={releaseModalOpen}
+        onClose={() => setReleaseModalOpen(false)}
+        scheduleId={selectedScheduleId || 0}
+        onSuccess={handleReleaseSuccess}
+      />
+    </>
   );
 }
