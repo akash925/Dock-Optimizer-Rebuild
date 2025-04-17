@@ -159,46 +159,46 @@ export default function ScheduleWeekCalendar({
   }, []);
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-6 relative w-full overflow-hidden">
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-4 items-center">
-        <div className="flex-1 min-w-[200px] relative">
+    <div className="bg-white rounded-lg shadow p-3 pb-0 mb-4 relative w-full overflow-hidden">
+      {/* Compact Filters */}
+      <div className="flex gap-2 mb-3 items-center">
+        <div className="relative w-[180px]">
           <input 
             type="text" 
             placeholder="Customer Name" 
-            className="w-full h-10 px-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary pr-8"
+            className="w-full h-9 px-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary pr-7 text-sm"
             value={customerSearch}
             onChange={(e) => setCustomerSearch(e.target.value)}
           />
           {customerSearch && (
             <button 
-              className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
+              className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
               onClick={() => setCustomerSearch("")}
             >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
-        <div className="flex-1 min-w-[200px] relative">
+        <div className="relative w-[180px]">
           <input 
             type="text" 
             placeholder="Carrier Name" 
-            className="w-full h-10 px-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary pr-8"
+            className="w-full h-9 px-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary pr-7 text-sm"
             value={carrierSearch}
             onChange={(e) => setCarrierSearch(e.target.value)}
           />
           {carrierSearch && (
             <button 
-              className="absolute right-2 top-2.5 text-gray-500 hover:text-gray-700"
+              className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
               onClick={() => setCarrierSearch("")}
             >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
-        <div className="flex-1 min-w-[200px]">
+        <div className="w-[180px]">
           <select 
-            className="w-full h-10 px-3 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full h-9 px-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary text-sm"
             value={selectedTimezone}
             onChange={(e) => setSelectedTimezone(e.target.value)}
           >
@@ -212,7 +212,7 @@ export default function ScheduleWeekCalendar({
         <Button 
           variant="secondary" 
           size="sm"
-          className="h-10 px-4"
+          className="h-9 px-3"
           onClick={clearFilters}
           disabled={!customerSearch && !carrierSearch && !selectedTimezone}
         >
@@ -220,44 +220,44 @@ export default function ScheduleWeekCalendar({
         </Button>
       </div>
 
-      {/* Calendar Header & Navigation */}
-      <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-        <div className="flex items-center space-x-2">
+      {/* Calendar Header & Navigation - More Compact */}
+      <div className="flex justify-between items-center mb-2 gap-1">
+        <div className="flex items-center space-x-1">
           <Button 
             variant="outline" 
             size="icon" 
             onClick={goToPreviousWeek}
-            className="h-8 w-8"
+            className="h-7 w-7"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3 w-3" />
           </Button>
           <Button 
             variant="outline" 
             size="icon" 
             onClick={goToNextWeek}
-            className="h-8 w-8"
+            className="h-7 w-7"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3 w-3" />
           </Button>
           <Button 
             variant="outline" 
             size="sm"
             onClick={goToToday}
-            className="h-8"
+            className="h-7 px-2 text-xs"
           >
             today
           </Button>
         </div>
         
-        <div className="text-xl font-semibold">
+        <div className="text-lg font-semibold">
           {dateRangeDisplay}
         </div>
         
-        <div className="flex items-center space-x-2 flex-wrap">
+        <div className="flex items-center space-x-1">
           <Button 
             variant={`outline`} 
             size="sm"
-            className="h-8"
+            className="h-7 px-2 text-xs"
             onClick={() => onViewChange("month")}
           >
             month
@@ -265,7 +265,7 @@ export default function ScheduleWeekCalendar({
           <Button 
             variant={`default`} 
             size="sm"
-            className="h-8 bg-primary"
+            className="h-7 px-2 text-xs bg-primary"
             onClick={() => onViewChange("week")}
           >
             week
@@ -273,7 +273,7 @@ export default function ScheduleWeekCalendar({
           <Button 
             variant={`outline`} 
             size="sm"
-            className="h-8"
+            className="h-7 px-2 text-xs"
             onClick={() => onViewChange("day")}
           >
             day
@@ -281,7 +281,7 @@ export default function ScheduleWeekCalendar({
           <Button 
             variant={`outline`} 
             size="sm"
-            className="h-8"
+            className="h-7 px-2 text-xs"
             onClick={() => onViewChange("list")}
           >
             list
@@ -323,7 +323,7 @@ export default function ScheduleWeekCalendar({
           <div 
             ref={timeHeadersRef}
             className="w-16 flex-shrink-0 overflow-hidden z-10"
-            style={{ height: 'calc(100vh - 300px)' }}
+            style={{ height: 'calc(100vh - 250px)' }}
           >
             {hours.map((hour, i) => (
               <div 
@@ -339,7 +339,7 @@ export default function ScheduleWeekCalendar({
           <div 
             ref={calendarGridRef}
             className="overflow-auto relative flex-grow"
-            style={{ height: 'calc(100vh - 300px)' }}
+            style={{ height: 'calc(100vh - 250px)' }}
           >
             <div 
               ref={calendarContentRef}
