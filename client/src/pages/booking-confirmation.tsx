@@ -102,7 +102,7 @@ export default function BookingConfirmation() {
           appointmentDate,
           appointmentTime,
           location: locationName,
-          companyName: schedule.customerName || "Not provided",
+          customerName: schedule.customerName || "Not provided",
           carrierName,
           contactName: schedule.driverName || "Not provided",
           truckNumber: schedule.truckNumber,
@@ -244,7 +244,7 @@ Hanzo Logistics
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-gray-500">Customer</span>
-                  <span>{bookingDetails.companyName}</span>
+                  <span>{bookingDetails.customerName}</span>
                 </div>
                 
                 <div className="flex flex-col">

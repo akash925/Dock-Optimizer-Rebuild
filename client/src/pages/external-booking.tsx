@@ -241,9 +241,9 @@ const initialSelectionSchema = z.object({
   bolUploaded: z.boolean().optional(),
 });
 
-// Step 2: Company Information
+// Step 2: Customer Information
 const companyInfoSchema = z.object({
-  companyName: z.string().min(2, "Company name is required"),
+  customerName: z.string().min(2, "Customer name is required"),
   contactName: z.string().min(2, "Contact name is required"),
   contactEmail: z.string().email("Please enter a valid email"),
   contactPhone: z.string().min(10, "Please enter a valid phone number"),
@@ -362,7 +362,7 @@ export default function ExternalBooking() {
   const companyInfoForm = useForm<CompanyInfoFormValues>({
     resolver: zodResolver(companyInfoSchema),
     defaultValues: {
-      companyName: "",
+      customerName: "",
       contactName: "",
       contactEmail: "",
       contactPhone: "",
@@ -897,12 +897,12 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
             <form onSubmit={companyInfoForm.handleSubmit(onCompanyInfoSubmit)} className="space-y-6">
               <FormField
                 control={companyInfoForm.control}
-                name="companyName"
+                name="customerName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Company Name*</FormLabel>
+                    <FormLabel>Customer Name*</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your Company" {...field} />
+                      <Input placeholder="Your Company Name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
