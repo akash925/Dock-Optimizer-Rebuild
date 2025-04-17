@@ -235,6 +235,9 @@ interface ParsedFacilities {
 const initialSelectionSchema = z.object({
   location: z.string().min(1, "Please select a location"),
   appointmentType: z.string().min(1, "Please select an appointment type"),
+  pickupOrDropoff: z.enum(["pickup", "dropoff"], {
+    required_error: "Please select whether this is a pickup or dropoff",
+  }),
   bolUploaded: z.boolean().optional(),
 });
 
@@ -349,6 +352,7 @@ export default function ExternalBooking() {
     defaultValues: {
       location: "",
       appointmentType: "",
+      pickupOrDropoff: "dropoff", // Default to dropoff
       bolUploaded: false,
     },
   });
@@ -625,38 +629,68 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                   />
                   
                   {watchLocation && (
-                    <FormField
-                      control={initialSelectionForm.control}
-                      name="appointmentType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Appointment Type*</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Appointment Type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {appointmentTypes
-                                .filter(type => type.facilityId === parseInt(watchLocation))
-                                .filter(type => {
-                                  // Check if this appointment type is excluded
-                                  const facilityInfo = parsedFacilities[parseInt(watchLocation)];
-                                  return facilityInfo && !facilityInfo.excludedAppointmentTypes.includes(type.id);
-                                })
-                                .map(type => (
-                                  <SelectItem key={type.id} value={type.id.toString()}>
-                                    {type.name}
-                                  </SelectItem>
-                                ))
-                              }
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <>
+                      <FormField
+                        control={initialSelectionForm.control}
+                        name="appointmentType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Appointment Type*</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Appointment Type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {appointmentTypes
+                                  .filter(type => type.facilityId === parseInt(watchLocation))
+                                  .filter(type => {
+                                    // Check if this appointment type is excluded
+                                    const facilityInfo = parsedFacilities[parseInt(watchLocation)];
+                                    return facilityInfo && !facilityInfo.excludedAppointmentTypes.includes(type.id);
+                                  })
+                                  .map(type => (
+                                    <SelectItem key={type.id} value={type.id.toString()}>
+                                      {type.name}
+                                    </SelectItem>
+                                  ))
+                                }
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    
+                      <FormField
+                        control={initialSelectionForm.control}
+                        name="pickupOrDropoff"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Appointment Direction*</FormLabel>
+                            <FormDescription>Select whether this is a pickup or dropoff appointment</FormDescription>
+                            <div className="flex space-x-4 pt-1">
+                              <RadioGroup 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value} 
+                                className="flex flex-row space-x-2"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="pickup" id="pickup" />
+                                  <Label htmlFor="pickup" className="cursor-pointer">Pickup</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <RadioGroupItem value="dropoff" id="dropoff" />
+                                  <Label htmlFor="dropoff" className="cursor-pointer">Dropoff</Label>
+                                </div>
+                              </RadioGroup>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
                   )}
 
                 </TabsContent>
@@ -776,38 +810,68 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
                       />
                       
                       {watchLocation && (
-                        <FormField
-                          control={initialSelectionForm.control}
-                          name="appointmentType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Confirm Appointment Type*</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select Appointment Type" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {appointmentTypes
-                                    .filter(type => type.facilityId === parseInt(watchLocation))
-                                    .filter(type => {
-                                      // Check if this appointment type is excluded
-                                      const facilityInfo = parsedFacilities[parseInt(watchLocation)];
-                                      return facilityInfo && !facilityInfo.excludedAppointmentTypes.includes(type.id);
-                                    })
-                                    .map(type => (
-                                      <SelectItem key={type.id} value={type.id.toString()}>
-                                        {type.name}
-                                      </SelectItem>
-                                    ))
-                                  }
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <>
+                          <FormField
+                            control={initialSelectionForm.control}
+                            name="appointmentType"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Confirm Appointment Type*</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select Appointment Type" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {appointmentTypes
+                                      .filter(type => type.facilityId === parseInt(watchLocation))
+                                      .filter(type => {
+                                        // Check if this appointment type is excluded
+                                        const facilityInfo = parsedFacilities[parseInt(watchLocation)];
+                                        return facilityInfo && !facilityInfo.excludedAppointmentTypes.includes(type.id);
+                                      })
+                                      .map(type => (
+                                        <SelectItem key={type.id} value={type.id.toString()}>
+                                          {type.name}
+                                        </SelectItem>
+                                      ))
+                                    }
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={initialSelectionForm.control}
+                            name="pickupOrDropoff"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Appointment Direction*</FormLabel>
+                                <FormDescription>Select whether this is a pickup or dropoff appointment</FormDescription>
+                                <div className="flex space-x-4 pt-1">
+                                  <RadioGroup 
+                                    onValueChange={field.onChange} 
+                                    defaultValue={field.value} 
+                                    className="flex flex-row space-x-2"
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="pickup" id="pickup-bol" />
+                                      <Label htmlFor="pickup-bol" className="cursor-pointer">Pickup</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <RadioGroupItem value="dropoff" id="dropoff-bol" />
+                                      <Label htmlFor="dropoff-bol" className="cursor-pointer">Dropoff</Label>
+                                    </div>
+                                  </RadioGroup>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </>
                       )}
                     </>
                   )}
