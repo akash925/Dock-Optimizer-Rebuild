@@ -487,6 +487,9 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
     // Make sure the MC number field is cleared when moving to step 3
     appointmentDetailsForm.setValue("mcNumber", "");
     
+    // Pre-fill the driver phone field with the contact phone from step 2
+    appointmentDetailsForm.setValue("driverPhone", data.contactPhone);
+    
     // Proceed to step 3
     setStep(3);
   };
@@ -1147,23 +1150,7 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
               {/* Using the new direct CarrierSelect component */}
               <CarrierSelect form={appointmentDetailsForm} />
 
-              {/* Customer Name field */}
-              <FormField
-                control={appointmentDetailsForm.control}
-                name="customerName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer Name*</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter customer name" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Enter the customer or client for this shipment
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
 
               {/* MC Number field */}
               <FormField
