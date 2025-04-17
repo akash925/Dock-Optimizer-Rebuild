@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Schedule } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, ClipboardList, Trash2, Pencil } from "lucide-react";
+import { Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, ClipboardList, Trash2, Pencil, QrCode } from "lucide-react";
 import { format } from "date-fns";
 import { 
   Popover,
@@ -16,6 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import AppointmentQRCode from "./appointment-qr-code";
 
 interface AppointmentDetailsDialogProps {
   appointment: Schedule | null;
@@ -411,6 +412,22 @@ export function AppointmentDetailsDialog({
             </div>
           </div>
         </div>
+
+        {/* QR Code for check-in - only show for scheduled appointments */}
+        {appointment.status === "scheduled" && (
+          <div className="border-t border-b py-4">
+            <h3 className="text-sm font-medium mb-3 flex items-center">
+              <QrCode className="h-4 w-4 mr-2 text-primary" />
+              Check-in QR Code
+            </h3>
+            <div className="flex justify-center">
+              <AppointmentQRCode 
+                schedule={appointment} 
+                confirmationCode={`HC${appointment.id.toString().padStart(6, '0')}`}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="py-2">
           <h3 className="text-sm font-medium mb-3">Question Answers:</h3>

@@ -9,6 +9,7 @@ import DoorManager from "@/pages/door-manager";
 import BasicDoorManager from "@/pages/basic-door-manager";
 import ExternalBooking from "@/pages/external-booking";
 import BookingConfirmation from "@/pages/booking-confirmation";
+import DriverCheckIn from "@/pages/driver-check-in";
 import Analytics from "@/pages/analytics";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
@@ -27,6 +28,7 @@ function App() {
         <Route path="/door-manager-demo" component={BasicDoorManager} />
         <Route path="/external/:slug" component={ExternalBooking} />
         <Route path="/booking-confirmation" component={BookingConfirmation} />
+        <Route path="/driver-check-in" component={DriverCheckIn} />
         <ProtectedRoute path="/" component={Dashboard} />
         <ProtectedRoute path="/schedules" component={Schedules} />
         <ProtectedRoute path="/appointments" component={Appointments} />
