@@ -447,21 +447,74 @@ export function AppointmentDetailsDialog({
         
         {/* QR Code for check-in */}
         <div className="border-t border-b py-4">
-          <h3 className="text-sm font-medium mb-3 flex items-center">
-            <QrCode className="h-4 w-4 mr-2 text-muted-foreground" />
-            Appointment Confirmation Code: HC{appointment.id.toString().padStart(6, '0')}
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium flex items-center">
+              <QrCode className="h-4 w-4 mr-2 text-primary" />
+              Appointment Confirmation Code
+            </h3>
+            <span className="bg-slate-100 px-3 py-1 rounded-md font-mono font-medium">
+              HC{appointment.id.toString().padStart(6, '0')}
+            </span>
+          </div>
           
           {appointment.status === "scheduled" && (
             <div className="flex flex-col items-center">
-              <p className="text-sm text-muted-foreground mb-2">
-                Scan this code at the facility to check in the driver
+              <p className="text-sm text-muted-foreground mb-3">
+                {appointment.carrierName 
+                  ? "Share this QR code with the driver for efficient check-in upon arrival"
+                  : "External appointment - ensure driver receives this QR code for check-in"}
               </p>
-              <div className="border p-2 rounded-md inline-block bg-white shadow-sm">
+              <div className={`border ${!appointment.carrierName ? "border-primary border-2" : ""} p-3 rounded-md inline-block bg-white shadow-sm`}>
                 <AppointmentQRCode 
                   schedule={appointment} 
                   confirmationCode={`HC${appointment.id.toString().padStart(6, '0')}`}
+                  isExternal={!appointment.carrierName}
                 />
+              </div>
+              <div className="mt-4 flex justify-center gap-3">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs flex items-center gap-1"
+                  onClick={() => {
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                      const startTime = new Date(appointment.startTime);
+                      const formattedStartTime = format(startTime, 'MMM dd, yyyy h:mm a');
+                      
+                      // Generate printable QR code page
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Appointment QR Code</title>
+                            <style>
+                              body { font-family: Arial; text-align: center; padding: 20px; }
+                              h1 { font-size: 22px; margin-bottom: 5px; }
+                              .code { font-size: 28px; font-weight: bold; margin: 15px 0; letter-spacing: 1px; }
+                              .details { margin: 20px 0; }
+                            </style>
+                          </head>
+                          <body>
+                            <h1>Dock Appointment Check-In</h1>
+                            <div>
+                              ${document.getElementById('appointment-qr-code')?.innerHTML || ''}
+                            </div>
+                            <div class="code">HC${appointment.id.toString().padStart(6, '0')}</div>
+                            <div class="details">
+                              <p><b>Date:</b> ${formattedStartTime}</p>
+                              <p><b>Type:</b> ${appointment.type === "inbound" ? "Inbound" : "Outbound"}</p>
+                              <p><b>Location:</b> ${facilityName || "Warehouse"}</p>
+                            </div>
+                            <button onclick="window.print(); window.close();">Print</button>
+                          </body>
+                        </html>
+                      `);
+                    }
+                  }}
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Print QR Code
+                </Button>
               </div>
             </div>
           )}

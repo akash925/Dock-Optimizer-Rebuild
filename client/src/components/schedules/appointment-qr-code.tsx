@@ -9,9 +9,10 @@ import { Printer, Download } from 'lucide-react';
 interface AppointmentQRCodeProps {
   schedule: Schedule;
   confirmationCode?: string;
+  isExternal?: boolean;
 }
 
-export default function AppointmentQRCode({ schedule, confirmationCode }: AppointmentQRCodeProps) {
+export default function AppointmentQRCode({ schedule, confirmationCode, isExternal = false }: AppointmentQRCodeProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   
   // Generate confirmation code if not provided (e.g. "ABC123")
