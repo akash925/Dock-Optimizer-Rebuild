@@ -1003,7 +1003,7 @@ export default function AppointmentMaster() {
         
         {/* New Appointment Type Dialog */}
         <Dialog open={showNewAppointmentTypeDialog} onOpenChange={setShowNewAppointmentTypeDialog}>
-          <DialogContent className="max-w-xl">
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {selectedAppointmentTypeId ? "Edit Appointment Type" : "Create Appointment Type"}

@@ -78,7 +78,15 @@ export function AppointmentDetailsDialog({
   const updateAppointmentMutation = useMutation({
     mutationFn: async (data: Partial<Schedule>) => {
       if (!appointment?.id) throw new Error("No appointment ID provided");
-      const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}`, data);
+      
+      // Remove any undefined or null values to prevent overwriting with nulls
+      const cleanedData = Object.entries(data)
+        .filter(([_, value]) => value !== undefined && value !== null && value !== '')
+        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+      
+      console.log("Updating appointment with data:", cleanedData);
+      
+      const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}`, cleanedData);
       return res.json();
     },
     onSuccess: () => {
@@ -90,6 +98,7 @@ export function AppointmentDetailsDialog({
       });
     },
     onError: (error) => {
+      console.error("Error updating appointment:", error);
       toast({
         title: "Error updating appointment",
         description: error.message,
@@ -243,7 +252,7 @@ export function AppointmentDetailsDialog({
   if (isRescheduling) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
               Reschedule Appointment
@@ -327,7 +336,7 @@ export function AppointmentDetailsDialog({
   // Render default view
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
             {appointmentTitle}
@@ -345,6 +354,10 @@ export function AppointmentDetailsDialog({
               </Badge>
             </div>
           </DialogTitle>
+          <DialogDescription>
+            Appointment details for {appointment.carrierName || "Unknown Carrier"}.
+            You can view, edit, or manage this appointment.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="border-t border-b py-4 grid grid-cols-2 gap-4">
