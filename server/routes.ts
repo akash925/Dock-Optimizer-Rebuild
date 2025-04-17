@@ -5,7 +5,7 @@ import { setupAuth } from "./auth";
 import { z } from "zod";
 import {
   insertDockSchema,
-  insertScheduleSchema,
+  // Removing insertScheduleSchema as we're handling date validation manually
   insertCarrierSchema,
   insertNotificationSchema,
   insertFacilitySchema,
@@ -257,8 +257,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/schedules", checkRole(["admin", "manager"]), async (req, res) => {
     try {
+      console.log("Raw request body:", JSON.stringify(req.body, null, 2));
+      
       // Add the current user to createdBy field
-      const scheduleData = {
+      let scheduleData = {
         ...req.body,
         createdBy: req.user!.id
       };
@@ -267,20 +269,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCarrierData = scheduleData.newCarrier;
       delete scheduleData.newCarrier;
       
-      // Log data for debugging
-      console.log("Schedule data before validation:", JSON.stringify(scheduleData, null, 2));
+      console.log("Schedule data (raw):", JSON.stringify(scheduleData, null, 2));
       
-      // Manual date conversion
-      if (typeof scheduleData.startTime === 'string') {
-        scheduleData.startTime = new Date(scheduleData.startTime);
+      // Convert Date strings to Date objects
+      try {
+        if (typeof scheduleData.startTime === 'string') {
+          scheduleData.startTime = new Date(scheduleData.startTime);
+        }
+        
+        if (typeof scheduleData.endTime === 'string') {
+          scheduleData.endTime = new Date(scheduleData.endTime);
+        }
+      } catch (dateErr) {
+        console.error("Date conversion error:", dateErr);
+        return res.status(400).json({ message: "Invalid date format" });
       }
       
-      if (typeof scheduleData.endTime === 'string') {
-        scheduleData.endTime = new Date(scheduleData.endTime);
-      }
+      console.log("Schedule data after date conversion:", 
+        JSON.stringify({
+          ...scheduleData,
+          startTime: scheduleData.startTime?.toISOString(),
+          endTime: scheduleData.endTime?.toISOString()
+        }, null, 2)
+      );
       
-      // Omit the schema validation and trust the data from the client
-      // We've already converted dates manually
+      // Skip zod validation entirely - use the converted data directly
       const validatedData = scheduleData;
       
       // Check if dock exists
