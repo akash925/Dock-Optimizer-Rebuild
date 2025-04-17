@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,20 +9,13 @@ import { Schedule } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, ClipboardList, Trash2, Pencil } from "lucide-react";
-import { format, addHours } from "date-fns";
+import { format } from "date-fns";
 import { 
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface AppointmentDetailsDialogProps {
   appointment: Schedule | null;
@@ -64,11 +57,11 @@ export function AppointmentDetailsDialog({
   }, [appointment]);
 
   // Initialize form data when appointment changes
-  useState(() => {
+  useEffect(() => {
     if (appointment) {
       setFormData(appointment);
     }
-  });
+  }, [appointment]);
 
   // Format dates with timezone handling
   const formatDate = (date: Date | string) => {
@@ -246,6 +239,92 @@ export function AppointmentDetailsDialog({
     return appointment.type === "inbound" ? "text-blue-700 border-blue-200 bg-blue-50" : "text-emerald-700 border-emerald-200 bg-emerald-50";
   };
 
+  // Render reschedule view
+  if (isRescheduling) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              Reschedule Appointment
+            </DialogTitle>
+            <DialogDescription>
+              Select a new date and time for this appointment
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-6 py-4">
+            <div className="flex flex-col space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal h-10"
+                  >
+                    <Calendar className="h-4 w-4 mr-2" />
+                    {rescheduleDate ? format(rescheduleDate, 'PPP') : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={rescheduleDate}
+                    onSelect={setRescheduleDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="time">Time</Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={rescheduleTime}
+                  onChange={(e) => setRescheduleTime(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="duration">Duration (minutes)</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  value={rescheduleDuration}
+                  onChange={(e) => setRescheduleDuration(parseInt(e.target.value, 10))}
+                  min={15}
+                  step={15}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex-col sm:flex-row sm:justify-end gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsRescheduling(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="default"
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => rescheduleAppointmentMutation.mutate()}
+              disabled={rescheduleAppointmentMutation.isPending || !rescheduleDate || !rescheduleTime}
+            >
+              {rescheduleAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              Reschedule Appointment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Render default view
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
@@ -258,8 +337,8 @@ export function AppointmentDetailsDialog({
               </Badge>
               <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
                 {appointment.status === "scheduled" ? "Scheduled" : 
-                 appointment.status === "in-progress" ? "In Progress" : 
-                 appointment.status === "completed" ? "Completed" : "Cancelled"}
+                appointment.status === "in-progress" ? "In Progress" : 
+                appointment.status === "completed" ? "Completed" : "Cancelled"}
               </Badge>
               <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
                 {appointment.appointmentMode || "Trailer"}
