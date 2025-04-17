@@ -51,19 +51,19 @@ export default function AppointmentMaster() {
   const [showAvailabilityDialog, setShowAvailabilityDialog] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   
-  // Event Type Management
-  const [showNewEventTypeDialog, setShowNewEventTypeDialog] = useState(false);
-  const [selectedEventTypeId, setSelectedEventTypeId] = useState<number | null>(null);
-  const [eventTypeFormStep, setEventTypeFormStep] = useState(1); // 1: Details, 2: Scheduling, 3: Questions
+  // Appointment Type Management
+  const [showNewAppointmentTypeDialog, setShowNewAppointmentTypeDialog] = useState(false);
+  const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState<number | null>(null);
+  const [appointmentTypeFormStep, setAppointmentTypeFormStep] = useState(1); // 1: Details, 2: Scheduling, 3: Questions
   
-  // Event Type Form Data
-  const [eventTypeForm, setEventTypeForm] = useState({
+  // Appointment Type Form Data
+  const [appointmentTypeForm, setAppointmentTypeForm] = useState({
     name: "",
     description: "",
     facilityId: 0,
     color: "#4CAF50",
     duration: 60,
-    type: "both", // Changed from "inbound" to "both" to support both operations by default
+    type: "both", // Default to "both" for inbound/outbound
     maxSlots: 1,
     timezone: "America/New_York",
     gracePeriod: 15,
@@ -72,7 +72,7 @@ export default function AppointmentMaster() {
     location: ""
   });
   
-  // Scheduling settings for event type
+  // Scheduling settings for appointment type
   const [schedulingSettings, setSchedulingSettings] = useState({
     maxDaysInAdvance: 90,
     availableDays: [1, 2, 3, 4, 5], // Monday to Friday
@@ -101,8 +101,8 @@ export default function AppointmentMaster() {
     appointmentType: "both"
   });
   
-  // Mock data for event types
-  const [eventTypes, setEventTypes] = useState([
+  // Mock data for appointment types
+  const [appointmentTypes, setAppointmentTypes] = useState([
     {
       id: 1,
       name: "Sam Pride - Floor Loaded Container Drop (4 Hour Unloading)",
@@ -191,10 +191,10 @@ export default function AppointmentMaster() {
     { id: 7, dayOfWeek: 0, maxAppointments: 0, startTime: "00:00", endTime: "00:00", appointmentType: "both" },
   ]);
   
-  // Mock save custom field mutation
+  // Helper functions and mutations
   const saveCustomFieldMutation = useMutation({
     mutationFn: async (field: Partial<QuestionFormField>) => {
-      // This would be replaced with an actual API call
+      // Mock API call
       return new Promise<QuestionFormField>((resolve) => {
         setTimeout(() => {
           const newField = {
@@ -235,10 +235,9 @@ export default function AppointmentMaster() {
     }
   });
   
-  // Mock save availability rule mutation
   const saveAvailabilityRuleMutation = useMutation({
     mutationFn: async (rule: Partial<AvailabilityRule>) => {
-      // This would be replaced with an actual API call
+      // Mock API call
       return new Promise<AvailabilityRule>((resolve) => {
         setTimeout(() => {
           const newRule = {
@@ -377,7 +376,7 @@ export default function AppointmentMaster() {
           <div>
             <h1 className="text-2xl font-bold">Appointment Master</h1>
             <p className="text-muted-foreground">
-              Configure appointment forms and availability
+              Configure appointment types, forms, and availability
             </p>
           </div>
         </div>
@@ -386,7 +385,7 @@ export default function AppointmentMaster() {
           <TabsList className="mb-4">
             <TabsTrigger value="types">
               <FilePlus className="h-4 w-4 mr-2" />
-              Event Types
+              Appointment Types
             </TabsTrigger>
             <TabsTrigger value="questions">
               <FilePlus className="h-4 w-4 mr-2" />
@@ -402,26 +401,26 @@ export default function AppointmentMaster() {
             </TabsTrigger>
           </TabsList>
           
-          {/* Event Types Tab */}
+          {/* Appointment Types Tab */}
           <TabsContent value="types">
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle>Event Types</CardTitle>
+                    <CardTitle>Appointment Types</CardTitle>
                     <CardDescription>
-                      Create and manage appointment event types
+                      Create and manage appointment types
                     </CardDescription>
                   </div>
                   <Button onClick={() => {
-                    setSelectedEventTypeId(null);
-                    setEventTypeForm({
+                    setSelectedAppointmentTypeId(null);
+                    setAppointmentTypeForm({
                       name: "",
                       description: "",
-                      facilityId: 1,
+                      facilityId: facilities.length > 0 ? facilities[0].id : 0,
                       color: "#4CAF50",
                       duration: 60,
-                      type: "both", // Default to "both" for inbound/outbound
+                      type: "both",
                       maxSlots: 1,
                       timezone: "America/New_York",
                       gracePeriod: 15,
@@ -429,36 +428,36 @@ export default function AppointmentMaster() {
                       showRemainingSlots: true,
                       location: ""
                     });
-                    setEventTypeFormStep(1);
-                    setShowNewEventTypeDialog(true);
+                    setAppointmentTypeFormStep(1);
+                    setShowNewAppointmentTypeDialog(true);
                   }}>
                     <PlusCircle className="h-4 w-4 mr-2" />
-                    New Event Type
+                    New Appointment Type
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                {eventTypes.length === 0 ? (
+                {appointmentTypes.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p>No event types have been created yet.</p>
-                    <p className="text-sm mt-2">Click "New Event Type" to create your first event type.</p>
+                    <p>No appointment types have been created yet.</p>
+                    <p className="text-sm mt-2">Click "New Appointment Type" to create your first appointment type.</p>
                   </div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Event Name</TableHead>
+                        <TableHead>Appointment Name</TableHead>
                         <TableHead>Facility</TableHead>
                         <TableHead>Created</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {eventTypes.map((eventType) => (
-                        <TableRow key={eventType.id}>
-                          <TableCell className="font-medium">{eventType.name}</TableCell>
-                          <TableCell>{eventType.facilityName}</TableCell>
-                          <TableCell>{eventType.createdDate}</TableCell>
+                      {appointmentTypes.map((appointmentType) => (
+                        <TableRow key={appointmentType.id}>
+                          <TableCell className="font-medium">{appointmentType.name}</TableCell>
+                          <TableCell>{appointmentType.facilityName}</TableCell>
+                          <TableCell>{appointmentType.createdDate}</TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -468,10 +467,10 @@ export default function AppointmentMaster() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => {
-                                  setSelectedEventTypeId(eventType.id);
-                                  // In a real app, we'd fetch the event type details here
-                                  setEventTypeFormStep(1);
-                                  setShowNewEventTypeDialog(true);
+                                  setSelectedAppointmentTypeId(appointmentType.id);
+                                  // In a real app, we'd fetch the appointment type details here
+                                  setAppointmentTypeFormStep(1);
+                                  setShowNewAppointmentTypeDialog(true);
                                 }}>
                                   <Pencil className="h-4 w-4 mr-2" />
                                   Edit
@@ -495,6 +494,10 @@ export default function AppointmentMaster() {
                 )}
               </CardContent>
             </Card>
+            
+            <div className="mt-6">
+              <SeedAppointmentTypes />
+            </div>
           </TabsContent>
           
           {/* Custom Questions Tab */}
@@ -642,113 +645,109 @@ export default function AppointmentMaster() {
           
           {/* General Settings Tab */}
           <TabsContent value="settings">
-            <div className="space-y-6">
-              <SeedAppointmentTypes />
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>General Appointment Settings</CardTitle>
-                  <CardDescription>
-                    Configure global appointment settings
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Advance Notice Requirements</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="inbound-advance">Inbound appointments (hours)</Label>
-                        <Input id="inbound-advance" type="number" defaultValue="24" />
-                        <p className="text-sm text-muted-foreground">
-                          Minimum hours in advance for scheduling inbound appointments
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="outbound-advance">Outbound appointments (hours)</Label>
-                        <Input id="outbound-advance" type="number" defaultValue="48" />
-                        <p className="text-sm text-muted-foreground">
-                          Minimum hours in advance for scheduling outbound appointments
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Scheduling Window</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="max-days">Maximum days in advance</Label>
-                        <Input id="max-days" type="number" defaultValue="30" />
-                        <p className="text-sm text-muted-foreground">
-                          Maximum number of days in advance appointments can be scheduled
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="booking-buffer">Booking buffer (minutes)</Label>
-                        <Input id="booking-buffer" type="number" defaultValue="15" />
-                        <p className="text-sm text-muted-foreground">
-                          Buffer time between appointments
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Notification Settings</h3>
+            <Card>
+              <CardHeader>
+                <CardTitle>General Appointment Settings</CardTitle>
+                <CardDescription>
+                  Configure global appointment settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Advance Notice Requirements</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Switch id="email-confirm" defaultChecked />
-                        <Label htmlFor="email-confirm">
-                          Send email confirmation to carriers
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch id="email-reminder" defaultChecked />
-                        <Label htmlFor="email-reminder">
-                          Send reminder 24 hours before appointment
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch id="sms-notification" />
-                        <Label htmlFor="sms-notification">
-                          Enable SMS notifications
-                        </Label>
-                      </div>
+                      <Label htmlFor="inbound-advance">Inbound appointments (hours)</Label>
+                      <Input id="inbound-advance" type="number" defaultValue="24" />
+                      <p className="text-sm text-muted-foreground">
+                        Minimum hours in advance for scheduling inbound appointments
+                      </p>
                     </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Approval Settings</h3>
                     <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Switch id="auto-approval" defaultChecked />
-                        <Label htmlFor="auto-approval">
-                          Automatically approve appointments
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch id="manual-approval" />
-                        <Label htmlFor="manual-approval">
-                          Require manual approval for outbound appointments
-                        </Label>
-                      </div>
+                      <Label htmlFor="outbound-advance">Outbound appointments (hours)</Label>
+                      <Input id="outbound-advance" type="number" defaultValue="48" />
+                      <p className="text-sm text-muted-foreground">
+                        Minimum hours in advance for scheduling outbound appointments
+                      </p>
                     </div>
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Button>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Settings
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Scheduling Window</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="max-days">Maximum days in advance</Label>
+                      <Input id="max-days" type="number" defaultValue="30" />
+                      <p className="text-sm text-muted-foreground">
+                        Maximum number of days in advance appointments can be scheduled
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="booking-buffer">Booking buffer (minutes)</Label>
+                      <Input id="booking-buffer" type="number" defaultValue="15" />
+                      <p className="text-sm text-muted-foreground">
+                        Buffer time between appointments
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Notification Settings</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="email-confirm" defaultChecked />
+                      <Label htmlFor="email-confirm">
+                        Send email confirmation to carriers
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="email-reminder" defaultChecked />
+                      <Label htmlFor="email-reminder">
+                        Send reminder 24 hours before appointment
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="sms-notification" />
+                      <Label htmlFor="sms-notification">
+                        Enable SMS notifications
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Approval Settings</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="auto-approval" defaultChecked />
+                      <Label htmlFor="auto-approval">
+                        Automatically approve appointments
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="manual-approval" />
+                      <Label htmlFor="manual-approval">
+                        Require manual approval for outbound appointments
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Settings
+                </Button>
+              </CardFooter>
+            </Card>
           </TabsContent>
         </Tabs>
         
@@ -987,15 +986,17 @@ export default function AppointmentMaster() {
           </DialogContent>
         </Dialog>
         
-        {/* New Event Type Dialog */}
-        <Dialog open={showNewEventTypeDialog} onOpenChange={setShowNewEventTypeDialog}>
+        {/* New Appointment Type Dialog */}
+        <Dialog open={showNewAppointmentTypeDialog} onOpenChange={setShowNewAppointmentTypeDialog}>
           <DialogContent className="max-w-xl">
             <DialogHeader>
-              <DialogTitle>{selectedEventTypeId ? "Edit Event Type" : "New Event Type"}</DialogTitle>
+              <DialogTitle>
+                {selectedAppointmentTypeId ? "Edit Appointment Type" : "Create Appointment Type"}
+              </DialogTitle>
               <DialogDescription>
-                {selectedEventTypeId 
-                  ? "Update the properties of this event type"
-                  : "Configure the details for your new appointment event type"
+                {selectedAppointmentTypeId 
+                  ? "Update the properties of this appointment type"
+                  : "Configure the details for your new appointment type"
                 }
               </DialogDescription>
             </DialogHeader>
@@ -1005,68 +1006,68 @@ export default function AppointmentMaster() {
               <div className="flex justify-between">
                 <div className="flex space-x-1">
                   <Button 
-                    variant={eventTypeFormStep === 1 ? "default" : "outline"}
+                    variant={appointmentTypeFormStep === 1 ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setEventTypeFormStep(1)}
+                    onClick={() => setAppointmentTypeFormStep(1)}
                     className="rounded-full w-8 h-8 p-0"
                   >1</Button>
                   <Button 
-                    variant={eventTypeFormStep === 2 ? "default" : "outline"}
+                    variant={appointmentTypeFormStep === 2 ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setEventTypeFormStep(2)}
+                    onClick={() => setAppointmentTypeFormStep(2)}
                     className="rounded-full w-8 h-8 p-0"
                   >2</Button>
                   <Button 
-                    variant={eventTypeFormStep === 3 ? "default" : "outline"}
+                    variant={appointmentTypeFormStep === 3 ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setEventTypeFormStep(3)}
+                    onClick={() => setAppointmentTypeFormStep(3)}
                     className="rounded-full w-8 h-8 p-0"
                   >3</Button>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Step {eventTypeFormStep} of 3: {
-                    eventTypeFormStep === 1 ? "Basic Details" : 
-                    eventTypeFormStep === 2 ? "Scheduling Options" : 
+                  Step {appointmentTypeFormStep} of 3: {
+                    appointmentTypeFormStep === 1 ? "Appointment Details" : 
+                    appointmentTypeFormStep === 2 ? "Scheduling Settings" : 
                     "Custom Questions"
                   }
                 </div>
               </div>
               
               {/* Step 1: Basic Details */}
-              {eventTypeFormStep === 1 && (
+              {appointmentTypeFormStep === 1 && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="event-name">Event Name</Label>
+                      <Label htmlFor="appointment-name">Appointment Type Name</Label>
                       <Input 
-                        id="event-name" 
-                        value={eventTypeForm.name} 
-                        onChange={(e) => setEventTypeForm({...eventTypeForm, name: e.target.value})}
+                        id="appointment-name" 
+                        value={appointmentTypeForm.name} 
+                        onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, name: e.target.value})}
                         placeholder="e.g., 1 Hour Trailer Appointment" 
                       />
                     </div>
                     
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="event-desc">Description (optional)</Label>
+                      <Label htmlFor="appointment-desc">Description (optional)</Label>
                       <Textarea 
-                        id="event-desc" 
-                        value={eventTypeForm.description || ""} 
-                        onChange={(e) => setEventTypeForm({...eventTypeForm, description: e.target.value})}
-                        placeholder="Add a description for this event type" 
+                        id="appointment-desc" 
+                        value={appointmentTypeForm.description || ""} 
+                        onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, description: e.target.value})}
+                        placeholder="Add a description for this appointment type" 
                         rows={3}
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="event-facility">Facility</Label>
+                      <Label htmlFor="appointment-facility">Facility</Label>
                       <Select 
-                        value={eventTypeForm.facilityId.toString()} 
-                        onValueChange={(value) => setEventTypeForm({
-                          ...eventTypeForm, 
+                        value={appointmentTypeForm.facilityId.toString()} 
+                        onValueChange={(value) => setAppointmentTypeForm({
+                          ...appointmentTypeForm, 
                           facilityId: parseInt(value)
                         })}
                       >
-                        <SelectTrigger id="event-facility">
+                        <SelectTrigger id="appointment-facility">
                           <SelectValue placeholder="Select a facility" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1080,57 +1081,57 @@ export default function AppointmentMaster() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="event-duration">Duration (minutes)</Label>
+                      <Label htmlFor="appointment-duration">Duration (minutes)</Label>
                       <Input 
-                        id="event-duration" 
+                        id="appointment-duration" 
                         type="number" 
                         min="15"
                         step="15"
-                        value={eventTypeForm.duration} 
-                        onChange={(e) => setEventTypeForm({
-                          ...eventTypeForm, 
+                        value={appointmentTypeForm.duration} 
+                        onChange={(e) => setAppointmentTypeForm({
+                          ...appointmentTypeForm, 
                           duration: parseInt(e.target.value)
                         })}
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="event-color">Event Color</Label>
+                      <Label htmlFor="appointment-color">Color</Label>
                       <div className="flex items-center space-x-2">
                         <div 
                           className="w-6 h-6 rounded-full border" 
-                          style={{ backgroundColor: eventTypeForm.color }}
+                          style={{ backgroundColor: appointmentTypeForm.color }}
                         />
                         <Input 
-                          id="event-color" 
+                          id="appointment-color" 
                           type="color" 
-                          value={eventTypeForm.color} 
-                          onChange={(e) => setEventTypeForm({...eventTypeForm, color: e.target.value})}
+                          value={appointmentTypeForm.color} 
+                          onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, color: e.target.value})}
                           className="w-full"
                         />
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="event-type">Appointment Type</Label>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="appointment-type">Appointment Operations</Label>
                       <RadioGroup 
-                        value={eventTypeForm.type} 
-                        onValueChange={(value) => setEventTypeForm({
-                          ...eventTypeForm, 
+                        value={appointmentTypeForm.type} 
+                        onValueChange={(value) => setAppointmentTypeForm({
+                          ...appointmentTypeForm, 
                           type: value as "inbound" | "outbound" | "both"
                         })}
                       >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="inbound" id="event-type-inbound" />
-                          <Label htmlFor="event-type-inbound">Inbound Only</Label>
+                        <div className="flex items-center space-x-2 py-2">
+                          <RadioGroupItem value="inbound" id="appointment-type-inbound" />
+                          <Label htmlFor="appointment-type-inbound">Inbound Only</Label>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="outbound" id="event-type-outbound" />
-                          <Label htmlFor="event-type-outbound">Outbound Only</Label>
+                        <div className="flex items-center space-x-2 py-2">
+                          <RadioGroupItem value="outbound" id="appointment-type-outbound" />
+                          <Label htmlFor="appointment-type-outbound">Outbound Only</Label>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="both" id="event-type-both" />
-                          <Label htmlFor="event-type-both">Both Inbound and Outbound</Label>
+                        <div className="flex items-center space-x-2 py-2">
+                          <RadioGroupItem value="both" id="appointment-type-both" />
+                          <Label htmlFor="appointment-type-both">Both Inbound and Outbound</Label>
                         </div>
                       </RadioGroup>
                     </div>
@@ -1138,13 +1139,179 @@ export default function AppointmentMaster() {
                 </div>
               )}
               
-              {/* Steps 2 & 3 content would go here, but we're simplifying for this example */}
-              {eventTypeFormStep > 1 && (
+              {/* Step 2: Scheduling Options */}
+              {appointmentTypeFormStep === 2 && (
                 <div className="space-y-4">
-                  <div className="text-center py-8 border rounded-md bg-slate-50 text-muted-foreground">
-                    <p>This is a simplified version of the appointment type editor.</p>
-                    <p className="text-sm mt-2">The key change is setting the default type to "both" for inbound/outbound operations.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="appointment-slots">Maximum concurrent appointments</Label>
+                      <Input 
+                        id="appointment-slots" 
+                        type="number" 
+                        min="1"
+                        value={appointmentTypeForm.maxSlots} 
+                        onChange={(e) => setAppointmentTypeForm({
+                          ...appointmentTypeForm, 
+                          maxSlots: parseInt(e.target.value)
+                        })}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Maximum number of appointments that can be scheduled at the same time
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="appointment-grace">Grace period (minutes)</Label>
+                      <Input 
+                        id="appointment-grace" 
+                        type="number" 
+                        min="0"
+                        step="5"
+                        value={appointmentTypeForm.gracePeriod} 
+                        onChange={(e) => setAppointmentTypeForm({
+                          ...appointmentTypeForm, 
+                          gracePeriod: parseInt(e.target.value)
+                        })}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Buffer time between appointments
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="appointment-reminder">Email reminder time (hours)</Label>
+                      <Input 
+                        id="appointment-reminder" 
+                        type="number" 
+                        min="1"
+                        value={appointmentTypeForm.emailReminderTime} 
+                        onChange={(e) => setAppointmentTypeForm({
+                          ...appointmentTypeForm, 
+                          emailReminderTime: parseInt(e.target.value)
+                        })}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Hours before appointment to send email reminder
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="appointment-tz">Timezone</Label>
+                      <Select 
+                        value={appointmentTypeForm.timezone} 
+                        onValueChange={(value) => setAppointmentTypeForm({...appointmentTypeForm, timezone: value})}
+                      >
+                        <SelectTrigger id="appointment-tz">
+                          <SelectValue placeholder="Select timezone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="America/New_York">Eastern (ET)</SelectItem>
+                          <SelectItem value="America/Chicago">Central (CT)</SelectItem>
+                          <SelectItem value="America/Denver">Mountain (MT)</SelectItem>
+                          <SelectItem value="America/Los_Angeles">Pacific (PT)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2 md:col-span-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          id="appointment-show-slots"
+                          checked={appointmentTypeForm.showRemainingSlots}
+                          onCheckedChange={(checked) => setAppointmentTypeForm({
+                            ...appointmentTypeForm, 
+                            showRemainingSlots: checked
+                          })}
+                        />
+                        <Label htmlFor="appointment-show-slots">
+                          Show remaining appointment slots
+                        </Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground ml-6">
+                        Display the number of remaining slots for each time slot on the booking page
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="appointment-days">Available Days</Label>
+                      <div className="space-y-2 mt-1">
+                        {weekDays.map((day, index) => (
+                          <div key={index} className="flex items-center space-x-2">
+                            <Checkbox 
+                              id={`appointment-day-${index}`}
+                              checked={schedulingSettings.availableDays.includes(index)}
+                              onCheckedChange={(checked) => {
+                                const updatedDays = checked 
+                                  ? [...schedulingSettings.availableDays, index].sort((a, b) => a - b)
+                                  : schedulingSettings.availableDays.filter(d => d !== index);
+                                
+                                setSchedulingSettings({
+                                  ...schedulingSettings,
+                                  availableDays: updatedDays
+                                });
+                              }}
+                            />
+                            <Label htmlFor={`appointment-day-${index}`}>{day}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
+                </div>
+              )}
+              
+              {/* Step 3: Custom Questions - Simplified for brevity */}
+              {appointmentTypeFormStep === 3 && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-medium">Custom Questions</h3>
+                    <Button variant="outline" size="sm" onClick={() => {
+                      setSelectedQuestionId(null);
+                      setQuestionForm({
+                        label: "",
+                        type: "text",
+                        required: false,
+                        options: [],
+                        placeholder: "",
+                        appointmentType: "both"
+                      });
+                      setShowQuestionDialog(true);
+                    }}>
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Question
+                    </Button>
+                  </div>
+                  
+                  {customFields.length === 0 ? (
+                    <div className="text-center py-8 border rounded-md bg-slate-50 text-muted-foreground">
+                      <p>No custom questions have been created yet.</p>
+                      <p className="text-sm mt-2">Custom questions will be displayed on the appointment booking form.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {customFields.map((field) => (
+                        <Card key={field.id}>
+                          <CardHeader className="py-3">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id={`include-field-${field.id}`}
+                                  // This would need actual state in a real app
+                                  defaultChecked={field.appointmentType === "both" || field.appointmentType === appointmentTypeForm.type}
+                                />
+                                <Label htmlFor={`include-field-${field.id}`} className="font-medium">
+                                  {field.label}
+                                </Label>
+                              </div>
+                              <Badge variant="outline" className="capitalize">
+                                {field.type}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1152,10 +1319,10 @@ export default function AppointmentMaster() {
             <DialogFooter>
               <div className="flex justify-between w-full">
                 <div>
-                  {eventTypeFormStep > 1 && (
+                  {appointmentTypeFormStep > 1 && (
                     <Button 
                       variant="outline" 
-                      onClick={() => setEventTypeFormStep(eventTypeFormStep - 1)}
+                      onClick={() => setAppointmentTypeFormStep(appointmentTypeFormStep - 1)}
                     >
                       <ArrowLeft className="h-4 w-4 mr-2" />
                       Back
@@ -1163,19 +1330,19 @@ export default function AppointmentMaster() {
                   )}
                 </div>
                 <div className="flex space-x-2">
-                  <Button variant="outline" onClick={() => setShowNewEventTypeDialog(false)}>
+                  <Button variant="outline" onClick={() => setShowNewAppointmentTypeDialog(false)}>
                     Cancel
                   </Button>
                   
-                  {eventTypeFormStep < 3 ? (
-                    <Button onClick={() => setEventTypeFormStep(eventTypeFormStep + 1)}>
+                  {appointmentTypeFormStep < 3 ? (
+                    <Button onClick={() => setAppointmentTypeFormStep(appointmentTypeFormStep + 1)}>
                       Next
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   ) : (
                     <Button>
                       <Save className="h-4 w-4 mr-2" />
-                      {selectedEventTypeId ? "Update Event Type" : "Create Event Type"}
+                      {selectedAppointmentTypeId ? "Update Appointment Type" : "Create Appointment Type"}
                     </Button>
                   )}
                 </div>
