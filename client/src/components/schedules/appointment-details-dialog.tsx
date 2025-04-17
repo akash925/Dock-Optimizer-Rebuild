@@ -8,14 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Schedule } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, ClipboardList, Trash2, Pencil, QrCode, Printer } from "lucide-react";
-import { format } from "date-fns";
+import { 
+  Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, 
+  ClipboardList, Trash2, Pencil, QrCode, Printer, History, ArrowRight,
+  AlertTriangle, Edit, Save
+} from "lucide-react";
+import { format, differenceInMinutes } from "date-fns";
 import { 
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import AppointmentQRCode from "./appointment-qr-code";
 
 interface AppointmentDetailsDialogProps {
@@ -362,54 +368,90 @@ export function AppointmentDetailsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="border-t border-b py-4 grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Event Start Time:</Label>
-            <div className="flex items-center">
-              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>{formatDate(appointment.startTime)}</span>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Event End Time:</Label>
-            <div className="flex items-center">
-              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>{formatDate(appointment.endTime)}</span>
-            </div>
+        {/* Schedule Times */}
+        <div className="border-t border-b py-4">
+          <div className="mb-3 flex items-center gap-2">
+            <h3 className="text-sm font-medium">Schedule Times</h3>
+            {appointment.actualStartTime && (
+              <Badge variant="outline" className={
+                appointment.status === "in-progress" 
+                  ? "bg-blue-50 text-blue-700 border-blue-200" 
+                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
+              }>
+                {appointment.status === "in-progress" ? "In Progress" : "Completed"}
+              </Badge>
+            )}
           </div>
           
-          {appointment.status === "in-progress" && (
-            <>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Actual Start Time:</Label>
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span>{appointment.actualStartTime ? formatDate(appointment.actualStartTime) : "Not started"}</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Scheduled Start:</Label>
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span>{formatDate(appointment.startTime)}</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Scheduled End:</Label>
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span>{formatDate(appointment.endTime)}</span>
+              </div>
+            </div>
+            
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Timezone:</Label>
+              <div className="flex items-center">
+                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span>UTC-05:00 (Eastern)</span>
+              </div>
+            </div>
+            
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Pickup or Dropoff:</Label>
+              <div className="flex items-center">
+                <ChevronsRight className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span>{appointment.type === "inbound" ? "Dropoff" : "Pickup"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Check-in/Check-out History */}
+        <div className="border-b py-4">
+          <h3 className="text-sm font-medium mb-3">Check-In/Check-Out History</h3>
+          
+          <div className="rounded-md border bg-slate-50 p-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${appointment.actualStartTime ? "bg-emerald-500" : "bg-slate-300"}`}></div>
+                <div className="flex-1">
+                  <h4 className="text-xs font-semibold">Check-In Time</h4>
+                  <p className="text-sm">
+                    {appointment.actualStartTime ? formatDate(appointment.actualStartTime) : "Not checked in yet"}
+                  </p>
+                  {appointment.actualStartTime && appointment.lastModifiedBy && (
+                    <p className="text-xs text-muted-foreground">
+                      By: User ID {appointment.lastModifiedBy}
+                    </p>
+                  )}
                 </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Actual End Time:</Label>
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span>{appointment.actualEndTime ? formatDate(appointment.actualEndTime) : "Not completed"}</span>
+              
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${appointment.actualEndTime ? "bg-emerald-500" : "bg-slate-300"}`}></div>
+                <div className="flex-1">
+                  <h4 className="text-xs font-semibold">Check-Out Time</h4>
+                  <p className="text-sm">
+                    {appointment.actualEndTime ? formatDate(appointment.actualEndTime) : "Not checked out yet"}
+                  </p>
+                  {appointment.actualEndTime && appointment.lastModifiedBy && (
+                    <p className="text-xs text-muted-foreground">
+                      By: User ID {appointment.lastModifiedBy}
+                    </p>
+                  )}
                 </div>
               </div>
-            </>
-          )}
-          
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Timezone:</Label>
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>UTC-05:00 (Eastern)</span>
-            </div>
-          </div>
-          
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Pickup or Dropoff:</Label>
-            <div className="flex items-center">
-              <ChevronsRight className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>{appointment.type === "inbound" ? "Dropoff" : "Pickup"}</span>
             </div>
           </div>
         </div>
