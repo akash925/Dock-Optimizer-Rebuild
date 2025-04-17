@@ -662,8 +662,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create schedule with the available information
       const scheduleData = {
-        // Convert appointmentType to number for the appointmentTypeId
-        appointmentTypeId: parseInt(validatedData.appointmentType),
         // Set type based on pickupOrDropoff (pickup -> outbound, dropoff -> inbound)
         type: validatedData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound',
         status: "scheduled",
@@ -673,10 +671,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trailerNumber: validatedData.trailerNumber || null,
         driverName: validatedData.driverName || null,
         driverPhone: validatedData.driverPhone || null,
-        bolNumber: validatedData.bolNumber || null, 
-        poNumber: validatedData.poNumber || null,
-        palletCount: validatedData.palletCount || null,
-        weight: validatedData.weight || null,
         startTime,
         endTime,
         notes: validatedData.additionalNotes || null,
