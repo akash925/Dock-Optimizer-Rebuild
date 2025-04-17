@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Schedule } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, ClipboardList, Trash2, Pencil, QrCode } from "lucide-react";
+import { Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, ClipboardList, Trash2, Pencil, QrCode, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { 
   Popover,

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useState } from 'react';
 import { Schedule } from '@shared/schema';
 import { format } from 'date-fns';
-import { Printer, Download } from 'lucide-react';
+import { Printer, Download, FileText } from 'lucide-react';
 
 interface AppointmentQRCodeProps {
   schedule: Schedule;
@@ -163,32 +163,43 @@ export default function AppointmentQRCode({ schedule, confirmationCode, isExtern
   };
   
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Appointment QR Code</CardTitle>
+    <Card className={`w-full max-w-md mx-auto ${isExternal ? 'border-2 border-primary shadow-lg' : ''}`}>
+      <CardHeader className={isExternal ? 'bg-primary/5' : ''}>
+        <CardTitle className="flex items-center">
+          {isExternal && <FileText className="w-5 h-5 mr-2 text-primary" />}
+          {isExternal ? 'External Appointment QR Code' : 'Appointment QR Code'}
+        </CardTitle>
         <CardDescription>
-          Scan this code for check-in at the facility
+          {isExternal 
+            ? 'For external appointments - ensure driver has this code for check-in'
+            : 'Scan this code for check-in at the facility'
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center">
-        <div id="appointment-qr-code" className="mb-4">
+        <div id="appointment-qr-code" className={`mb-4 ${isExternal ? 'p-3 border-2 border-primary/20 rounded-md bg-white' : ''}`}>
           <QRCodeSVG 
             value={checkInUrl}
             size={200}
             includeMargin={true}
             level="H"
+            bgColor={isExternal ? '#ffffff' : undefined}
+            fgColor={isExternal ? '#1d4ed8' : undefined}
           />
         </div>
-        <div className="text-2xl font-bold tracking-wider mb-4">
+        <div className={`text-2xl font-bold tracking-wider mb-4 ${isExternal ? 'text-primary' : ''}`}>
           {code}
         </div>
         <div className="text-sm text-muted-foreground text-center">
-          This QR code can be scanned on arrival for quick check-in
+          {isExternal 
+            ? 'Share this QR code with the driver before arrival for expedited check-in'
+            : 'This QR code can be scanned on arrival for quick check-in'
+          }
         </div>
       </CardContent>
       <CardFooter className="flex justify-center gap-4">
         <Button 
-          variant="outline" 
+          variant={isExternal ? "default" : "outline"}
           onClick={handlePrint}
           disabled={isGenerating}
           className="flex items-center gap-2"
@@ -199,7 +210,7 @@ export default function AppointmentQRCode({ schedule, confirmationCode, isExtern
         <Button 
           onClick={handleDownload}
           disabled={isGenerating}
-          className="flex items-center gap-2"
+          className={`flex items-center gap-2 ${isExternal ? 'bg-primary hover:bg-primary/90' : ''}`}
         >
           <Download className="w-4 h-4" />
           Download
