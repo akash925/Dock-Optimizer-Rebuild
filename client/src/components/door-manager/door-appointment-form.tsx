@@ -1,16 +1,28 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Dialog, 
   DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
   DialogDescription, 
-  DialogFooter 
+  DialogHeader, 
+  DialogTitle,
+  DialogFooter
 } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
 import { 
   Form, 
   FormControl, 
@@ -19,21 +31,24 @@ import {
   FormLabel, 
   FormMessage 
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarIcon, Clock } from "lucide-react";
-import { format } from "date-fns";
 import { 
-  insertScheduleSchema, 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarIcon, Clock, Plus, X } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { 
+  Carrier, 
   ScheduleType, 
   ScheduleStatus, 
-  Carrier, 
   Schedule 
 } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,13 +56,20 @@ import { useAuth } from "@/hooks/use-auth";
 // Create a schema for the appointment form with minimal validation
 const appointmentSchema = z.object({
   dockId: z.number(),
-  carrierId: z.number().optional(),
-  carrierName: z.string().optional(),
+  carrierId: z.number(),
   truckNumber: z.string().optional(),
   startTime: z.date(),
   endTime: z.date().optional(),
   type: z.enum([ScheduleType.INBOUND, ScheduleType.OUTBOUND]),
   notes: z.string().optional(),
+  // Add field for new carrier addition
+  newCarrier: z.object({
+    name: z.string(),
+    mcNumber: z.string().optional(),
+    contactName: z.string().optional(),
+    contactEmail: z.string().optional(),
+    contactPhone: z.string().optional()
+  }).optional(),
 }).refine(data => {
   // If endTime is provided, ensure it's after startTime
   if (data.endTime) {
@@ -57,11 +79,6 @@ const appointmentSchema = z.object({
 }, {
   message: "End time must be after start time",
   path: ["endTime"]
-})
-// Make sure either a carrier ID or carrier name is provided
-.refine(data => data.carrierId !== undefined || (data.carrierName !== undefined && data.carrierName.trim() !== ''), {
-  message: "Either select a carrier or enter a carrier name",
-  path: ["carrierName"]
 });
 
 type AppointmentValues = z.infer<typeof appointmentSchema>;
@@ -90,19 +107,23 @@ export default function DoorAppointmentForm({
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showEndTime, setShowEndTime] = useState(false);
+  const [carrierSearch, setCarrierSearch] = useState('');
+  const [openCarrierSelect, setOpenCarrierSelect] = useState(false);
+  const [newCarrierMode, setNewCarrierMode] = useState(false);
   
   // Form setup
   const form = useForm<AppointmentValues>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
       dockId,
-      carrierId: undefined,
-      carrierName: "",
+      carrierId: carriers.length > 0 ? carriers[0].id : 0,
       truckNumber: "",
       startTime: initialStartTime,
-      endTime: initialEndTime,
+      endTime: undefined,
       type: ScheduleType.INBOUND,
       notes: "",
+      newCarrier: undefined
     },
   });
   
@@ -118,7 +139,14 @@ export default function DoorAppointmentForm({
         createdBy: user?.id || 1,
       };
       
-      const res = await apiRequest("POST", "/api/schedules", appointmentData);
+      // Convert dates to ISO strings for proper JSON serialization
+      const serializedData = {
+        ...appointmentData,
+        startTime: appointmentData.startTime.toISOString(),
+        endTime: appointmentData.endTime.toISOString(),
+      };
+      
+      const res = await apiRequest("POST", "/api/schedules", serializedData);
       return await res.json();
     },
     onSuccess: () => {
@@ -131,6 +159,7 @@ export default function DoorAppointmentForm({
       onSuccess();
     },
     onError: (error: Error) => {
+      console.error("Appointment creation error:", error);
       toast({
         title: "Failed to create appointment",
         description: error.message,
@@ -142,11 +171,13 @@ export default function DoorAppointmentForm({
   // Update existing appointment mutation
   const updateAppointmentMutation = useMutation({
     mutationFn: async (scheduleId: number) => {
-      const res = await apiRequest("PATCH", `/api/schedules/${scheduleId}`, {
+      const updateData = {
         dockId,
         lastModifiedBy: user?.id || 1,
-        lastModifiedAt: new Date(),
-      });
+        lastModifiedAt: new Date().toISOString(),
+      };
+      
+      const res = await apiRequest("PATCH", `/api/schedules/${scheduleId}`, updateData);
       return await res.json();
     },
     onSuccess: () => {
@@ -178,6 +209,8 @@ export default function DoorAppointmentForm({
         // Create new appointment
         await createAppointmentMutation.mutateAsync(data);
       }
+    } catch (error) {
+      console.error("Form submission error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -224,6 +257,59 @@ export default function DoorAppointmentForm({
     if (appointment) {
       setSelectedExistingAppointment(appointment);
       // We don't update the form fields since we're just connecting the appointment to this dock
+    }
+  };
+  
+  // Handle adding end time
+  const handleAddEndTime = () => {
+    setShowEndTime(true);
+    // Set default end time to be 1 hour after start time
+    const startTime = form.getValues("startTime");
+    const defaultEndTime = new Date(startTime);
+    defaultEndTime.setHours(defaultEndTime.getHours() + 1);
+    form.setValue("endTime", defaultEndTime);
+  };
+  
+  // Handle removing end time
+  const handleRemoveEndTime = () => {
+    setShowEndTime(false);
+    form.setValue("endTime", undefined);
+  };
+  
+  // Filtered carriers based on search
+  const filteredCarriers = carriers.filter(carrier => 
+    carrier.name.toLowerCase().includes(carrierSearch.toLowerCase())
+  );
+  
+  // Handle selecting a carrier from dropdown
+  const handleSelectCarrier = (carrierId: number) => {
+    form.setValue("carrierId", carrierId);
+    setOpenCarrierSelect(false);
+  };
+  
+  // Handle new carrier creation
+  const handleNewCarrierMode = () => {
+    setNewCarrierMode(true);
+    setOpenCarrierSelect(false);
+    
+    // Set up default values for new carrier
+    form.setValue("newCarrier", {
+      name: carrierSearch,
+      mcNumber: "",
+      contactName: "",
+      contactEmail: "",
+      contactPhone: ""
+    });
+  };
+  
+  // Cancel new carrier creation
+  const handleCancelNewCarrier = () => {
+    setNewCarrierMode(false);
+    form.setValue("newCarrier", undefined);
+    
+    // Select first carrier if available
+    if (carriers.length > 0) {
+      form.setValue("carrierId", carriers[0].id);
     }
   };
   
@@ -300,88 +386,168 @@ export default function DoorAppointmentForm({
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 gap-4">
+                {/* Carrier Selection with Autocomplete */}
+                {newCarrierMode ? (
+                  <div className="grid grid-cols-1 gap-4 border p-4 rounded-md bg-slate-50">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-medium">Add New Carrier</h3>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleCancelNewCarrier}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <FormField
+                      control={form.control}
+                      name="newCarrier.name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Carrier Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="newCarrier.mcNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>MC Number (Optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="newCarrier.contactName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Name (Optional)</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="newCarrier.contactEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Contact Email (Optional)</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="newCarrier.contactPhone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Contact Phone (Optional)</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                ) : (
                   <FormField
                     control={form.control}
                     name="carrierId"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel>Carrier</FormLabel>
-                        <Select 
-                          value={field.value?.toString() || ""} 
-                          onValueChange={(value) => {
-                            field.onChange(value ? parseInt(value) : undefined);
-                            // Find the carrier name for the selected ID
-                            if (value) {
-                              const carrier = carriers.find(c => c.id.toString() === value);
-                              if (carrier) {
-                                form.setValue("carrierName", carrier.name);
-                              }
-                            } else {
-                              form.setValue("carrierName", "");
-                            }
-                          }}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a carrier (optional)" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <div className="p-2">
-                              <Input 
-                                placeholder="Search carriers..." 
-                                className="mb-2"
-                                onChange={(e) => {
-                                  // This would filter the carriers list in a real implementation
-                                  // For now, we'll just log the search term
-                                  console.log("Searching for carrier:", e.target.value);
-                                }}
+                        <Popover open={openCarrierSelect} onOpenChange={setOpenCarrierSelect}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openCarrierSelect}
+                              className="justify-between"
+                            >
+                              {field.value
+                                ? carriers.find((carrier) => carrier.id === field.value)?.name
+                                : "Select carrier..."}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[400px] p-0">
+                            <Command>
+                              <CommandInput
+                                placeholder="Search carriers..."
+                                value={carrierSearch}
+                                onValueChange={setCarrierSearch}
                               />
-                            </div>
-                            {carriers.map(carrier => (
-                              <SelectItem key={carrier.id} value={carrier.id.toString()}>
-                                {carrier.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                              <CommandEmpty>
+                                No carrier found. 
+                                <Button 
+                                  type="button" 
+                                  variant="link" 
+                                  onClick={handleNewCarrierMode}
+                                  size="sm"
+                                  className="p-0 ml-1"
+                                >
+                                  Add "{carrierSearch}"
+                                </Button>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {filteredCarriers.map((carrier) => (
+                                  <CommandItem
+                                    key={carrier.id}
+                                    value={carrier.name}
+                                    onSelect={() => handleSelectCarrier(carrier.id)}
+                                  >
+                                    {carrier.name}
+                                    {carrier.mcNumber && <span className="ml-2 text-xs text-muted-foreground">MC# {carrier.mcNumber}</span>}
+                                  </CommandItem>
+                                ))}
+                                {carrierSearch && (
+                                  <CommandItem
+                                    onSelect={handleNewCarrierMode}
+                                    className="text-primary"
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add new carrier: "{carrierSearch}"
+                                  </CommandItem>
+                                )}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
-                  <FormField
-                    control={form.control}
-                    name="carrierName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Custom Carrier Name</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Enter carrier name if not in list above" 
-                            {...field}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              // Clear carrier ID if custom name is entered
-                              if (e.target.value) {
-                                form.setValue("carrierId", undefined);
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                )}
                 
                 <FormField
                   control={form.control}
                   name="truckNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Truck Number</FormLabel>
+                      <FormLabel>Truck Number (Optional)</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter truck number" {...field} />
                       </FormControl>
@@ -458,91 +624,117 @@ export default function DoorAppointmentForm({
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="endTime"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>End Date (Optional)</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className="text-left font-normal"
-                              >
-                                <CalendarIcon className="h-4 w-4 mr-2" />
-                                {field.value ? format(field.value, "PPP") : "Not specified"}
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={field.value || undefined}
-                              onSelect={(date) => {
-                                if (date) {
-                                  // Preserve the time part or set default time
-                                  const newDate = new Date(date);
-                                  if (field.value) {
-                                    newDate.setHours(
-                                      field.value.getHours(),
-                                      field.value.getMinutes(),
-                                      0, 0
-                                    );
-                                  } else {
-                                    // If no existing time, set to an hour later than start time
-                                    const startTime = form.getValues("startTime");
-                                    newDate.setHours(
-                                      startTime.getHours() + 1,
-                                      startTime.getMinutes(),
-                                      0, 0
-                                    );
-                                  }
-                                  field.onChange(newDate);
-                                } else {
-                                  field.onChange(undefined);
-                                }
-                              }}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="endTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Time (Optional)</FormLabel>
-                        <div className="flex items-center">
-                          <FormControl>
-                            <Input
-                              type="time"
-                              value={field.value ? formatTimeForInput(field.value) : ""}
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  // If there's no date yet, use the start date
-                                  const baseDate = field.value || form.getValues("startTime");
-                                  field.onChange(parseTimeString(e.target.value, baseDate));
-                                } else {
-                                  field.onChange(undefined);
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <Clock className="ml-2 h-4 w-4 text-gray-400" />
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                {showEndTime ? (
+                  <div className="space-y-4 bg-gray-50 p-4 rounded-md">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-sm font-medium">End Date/Time</h3>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleRemoveEndTime}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="endTime"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel>End Date</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant="outline"
+                                    className="text-left font-normal"
+                                  >
+                                    <CalendarIcon className="h-4 w-4 mr-2" />
+                                    {field.value ? format(field.value, "PPP") : "Select date"}
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value || undefined}
+                                  onSelect={(date) => {
+                                    if (date) {
+                                      // Preserve the time part or set default time
+                                      const newDate = new Date(date);
+                                      if (field.value) {
+                                        newDate.setHours(
+                                          field.value.getHours(),
+                                          field.value.getMinutes(),
+                                          0, 0
+                                        );
+                                      } else {
+                                        // If no existing time, set to an hour later than start time
+                                        const startTime = form.getValues("startTime");
+                                        newDate.setHours(
+                                          startTime.getHours() + 1,
+                                          startTime.getMinutes(),
+                                          0, 0
+                                        );
+                                      }
+                                      field.onChange(newDate);
+                                    } else {
+                                      field.onChange(undefined);
+                                    }
+                                  }}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="endTime"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>End Time</FormLabel>
+                            <div className="flex items-center">
+                              <FormControl>
+                                <Input
+                                  type="time"
+                                  value={field.value ? formatTimeForInput(field.value) : ""}
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      // If there's no date yet, use the start date
+                                      const baseDate = field.value || form.getValues("startTime");
+                                      field.onChange(parseTimeString(e.target.value, baseDate));
+                                    } else {
+                                      field.onChange(undefined);
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <Clock className="ml-2 h-4 w-4 text-gray-400" />
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleAddEndTime}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add End Time
+                  </Button>
+                )}
                 
                 <FormField
                   control={form.control}
