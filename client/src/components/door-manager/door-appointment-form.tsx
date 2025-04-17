@@ -38,19 +38,30 @@ import {
 } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
-// Create a schema for the appointment form with time validation
+// Create a schema for the appointment form with minimal validation
 const appointmentSchema = z.object({
   dockId: z.number(),
   carrierId: z.number().optional(),
   carrierName: z.string().optional(),
-  truckNumber: z.string().min(1, "Truck number is required"),
+  truckNumber: z.string().optional(),
   startTime: z.date(),
-  endTime: z.date(),
+  endTime: z.date().optional(),
   type: z.enum([ScheduleType.INBOUND, ScheduleType.OUTBOUND]),
   notes: z.string().optional(),
-}).refine(data => data.endTime > data.startTime, {
+}).refine(data => {
+  // If endTime is provided, ensure it's after startTime
+  if (data.endTime) {
+    return data.endTime > data.startTime;
+  }
+  return true;
+}, {
   message: "End time must be after start time",
   path: ["endTime"]
+})
+// Make sure either a carrier ID or carrier name is provided
+.refine(data => data.carrierId !== undefined || (data.carrierName !== undefined && data.carrierName.trim() !== ''), {
+  message: "Either select a carrier or enter a carrier name",
+  path: ["carrierName"]
 });
 
 type AppointmentValues = z.infer<typeof appointmentSchema>;
@@ -98,9 +109,11 @@ export default function DoorAppointmentForm({
   // Create appointment mutation
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: AppointmentValues) => {
-      // Add userId and status to the data
+      // Add userId and status to the data, calculate endTime if not provided
       const appointmentData = {
         ...data,
+        // If endTime is not provided, set it to 1 hour after startTime by default
+        endTime: data.endTime || new Date(data.startTime.getTime() + 60 * 60 * 1000),
         status: ScheduleStatus.SCHEDULED,
         createdBy: user?.id || 1,
       };
@@ -451,7 +464,7 @@ export default function DoorAppointmentForm({
                     name="endTime"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>End Date</FormLabel>
+                        <FormLabel>End Date (Optional)</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -460,24 +473,36 @@ export default function DoorAppointmentForm({
                                 className="text-left font-normal"
                               >
                                 <CalendarIcon className="h-4 w-4 mr-2" />
-                                {field.value ? format(field.value, "PPP") : "Select date"}
+                                {field.value ? format(field.value, "PPP") : "Not specified"}
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0">
                             <Calendar
                               mode="single"
-                              selected={field.value}
+                              selected={field.value || undefined}
                               onSelect={(date) => {
                                 if (date) {
-                                  // Preserve the time part
+                                  // Preserve the time part or set default time
                                   const newDate = new Date(date);
-                                  newDate.setHours(
-                                    field.value.getHours(),
-                                    field.value.getMinutes(),
-                                    0, 0
-                                  );
+                                  if (field.value) {
+                                    newDate.setHours(
+                                      field.value.getHours(),
+                                      field.value.getMinutes(),
+                                      0, 0
+                                    );
+                                  } else {
+                                    // If no existing time, set to an hour later than start time
+                                    const startTime = form.getValues("startTime");
+                                    newDate.setHours(
+                                      startTime.getHours() + 1,
+                                      startTime.getMinutes(),
+                                      0, 0
+                                    );
+                                  }
                                   field.onChange(newDate);
+                                } else {
+                                  field.onChange(undefined);
                                 }
                               }}
                               initialFocus
@@ -494,14 +519,20 @@ export default function DoorAppointmentForm({
                     name="endTime"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>End Time</FormLabel>
+                        <FormLabel>End Time (Optional)</FormLabel>
                         <div className="flex items-center">
                           <FormControl>
                             <Input
                               type="time"
-                              value={formatTimeForInput(field.value)}
+                              value={field.value ? formatTimeForInput(field.value) : ""}
                               onChange={(e) => {
-                                field.onChange(parseTimeString(e.target.value, field.value));
+                                if (e.target.value) {
+                                  // If there's no date yet, use the start date
+                                  const baseDate = field.value || form.getValues("startTime");
+                                  field.onChange(parseTimeString(e.target.value, baseDate));
+                                } else {
+                                  field.onChange(undefined);
+                                }
                               }}
                             />
                           </FormControl>
