@@ -44,6 +44,7 @@ export interface IStorage {
   getSchedules(): Promise<Schedule[]>;
   getSchedulesByDock(dockId: number): Promise<Schedule[]>;
   getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]>;
+  getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined>;
   createSchedule(schedule: InsertSchedule): Promise<Schedule>;
   updateSchedule(id: number, schedule: Partial<Schedule>): Promise<Schedule | undefined>;
   deleteSchedule(id: number): Promise<boolean>;
@@ -303,6 +304,18 @@ export class MemStorage implements IStorage {
         new Date(schedule.startTime) >= startDate && 
         new Date(schedule.endTime) <= endDate
     );
+  }
+
+  async getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined> {
+    // Remove any HC prefix if present and convert to number
+    const cleanCode = code.replace(/^HC/, '');
+    const scheduleId = parseInt(cleanCode, 10);
+    
+    if (isNaN(scheduleId)) {
+      return undefined;
+    }
+    
+    return this.getSchedule(scheduleId);
   }
 
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
