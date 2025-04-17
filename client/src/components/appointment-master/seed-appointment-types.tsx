@@ -22,77 +22,22 @@ export default function SeedAppointmentTypes() {
     queryKey: ["/api/appointment-types"],
   });
 
-  // The appointment types from the screenshot
+  // Updated appointment types as requested - 1 Hour Trailer and 4 Hour Container for each facility
   const appointmentTypesToCreate = [
+    // Template for each facility
     {
-      name: "Sam Pride - Floor Loaded Container Drop (4 Hour Unloading)",
-      description: "For unloading floor loaded containers that require 4 hours",
+      name: "1 Hour Trailer Appointment",
+      description: "Standard 1 hour appointment for trailers",
+      duration: 60, // 1 hour in minutes
+      type: "both", // Can be used for both pickups and dropoffs
+      color: "#2196F3" // Blue
+    },
+    {
+      name: "4 Hour Container Appointment",
+      description: "Extended 4 hour appointment for containers",
       duration: 240, // 4 hours in minutes
-      type: "inbound",
-      color: "#4CAF50"
-    },
-    {
-      name: "450 Airtech Parkway - LTL Pickup or Dropoff",
-      description: "For less-than-truckload pickups or dropoffs at 450 Airtech Parkway",
-      duration: 60, // 1 hour in minutes
-      type: "both",
-      color: "#2196F3"
-    },
-    {
-      name: "TBA",
-      description: "To be announced appointment type",
-      duration: 60,
-      type: "both",
-      color: "#9E9E9E"
-    },
-    {
-      name: "HANZO Cold-Chain - Hand-Unload Appointment (4 Hour)",
-      description: "For hand unloading cold chain shipments that require 4 hours",
-      duration: 240, // 4 hours in minutes
-      type: "inbound",
-      color: "#00BCD4"
-    },
-    {
-      name: "HANZO Cold-Chain - Palletized Load Appointment (1 Hour)",
-      description: "For palletized cold chain loads that require 1 hour",
-      duration: 60, // 1 hour in minutes
-      type: "inbound",
-      color: "#00BCD4"
-    },
-    {
-      name: "Camby Rd - Hand-Unload Appointment (4 Hour)",
-      description: "For hand unloading at Camby Rd that require 4 hours",
-      duration: 240, // 4 hours in minutes
-      type: "inbound",
-      color: "#FF9800"
-    },
-    {
-      name: "Camby Rd - Palletized Load Appointment (1 Hour)",
-      description: "For palletized loads at Camby Rd that require 1 hour",
-      duration: 60, // 1 hour in minutes
-      type: "inbound",
-      color: "#FF9800"
-    },
-    {
-      name: "9915 Lacy Knot Dr (Hanzo Brownsburg) - Palletized Load Appointment (1 Hour)",
-      description: "For palletized loads at Brownsburg that require 1 hour",
-      duration: 60, // 1 hour in minutes
-      type: "inbound",
-      color: "#9C27B0"
-    },
-    {
-      name: "4334 Plainfield Road (Hanzo Metro) - MVP (1 Hour)",
-      description: "MVP appointments at Metro location",
-      duration: 60, // 1 hour in minutes
-      type: "both",
-      color: "#607D8B"
-    },
-    {
-      name: "4334 Plainfield Road (Hanzo Metro) - Palletized Load Appointment (1 Hour)",
-      description: "For palletized loads at Metro location that require 1 hour",
-      duration: 60, // 1 hour in minutes
-      type: "inbound",
-      color: "#607D8B"
+      type: "both", // Can be used for both pickups and dropoffs
+      color: "#4CAF50" // Green
     }
   ];
 
@@ -113,62 +58,60 @@ export default function SeedAppointmentTypes() {
         return;
       }
       
-      // Filter out any appointment types that already exist by name
-      const existingNames = existingTypes.map(type => type.name);
-      const typesToCreate = appointmentTypesToCreate.filter(type => !existingNames.includes(type.name));
+      // Get existing appointment types to avoid duplicates
+      const existingTypesMap = new Map<string, boolean>();
+      existingTypes.forEach(type => {
+        const key = `${type.name}-${type.facilityId}`;
+        existingTypesMap.set(key, true);
+      });
       
-      if (typesToCreate.length === 0) {
+      // Create an expanded list of appointment types (one of each type for each facility)
+      const allTypesToCreate: Array<{
+        name: string;
+        description: string;
+        facilityId: number;
+        duration: number;
+        color: string;
+        type: string;
+      }> = [];
+      
+      // Add each type for each facility
+      facilities.forEach(facility => {
+        appointmentTypesToCreate.forEach(typeTemplate => {
+          const key = `${typeTemplate.name}-${facility.id}`;
+          // Only add if this combination doesn't already exist
+          if (!existingTypesMap.has(key)) {
+            allTypesToCreate.push({
+              ...typeTemplate,
+              facilityId: facility.id
+            });
+          }
+        });
+      });
+      
+      if (allTypesToCreate.length === 0) {
         toast({
           title: "Info",
-          description: "All appointment types already exist.",
+          description: "All appointment types already exist for all facilities.",
         });
         setLoading(false);
         return;
       }
       
-      // Map facility names to IDs for better association
-      const facilityMap: Record<string, number> = {};
-      facilities.forEach(facility => {
-        const name = facility.name.toLowerCase();
-        
-        // Add mappings by name and partial matches
-        facilityMap[name] = facility.id;
-        
-        if (name.includes("airtech")) facilityMap["airtech"] = facility.id;
-        if (name.includes("camby")) facilityMap["camby"] = facility.id;
-        if (name.includes("lacy")) facilityMap["lacy"] = facility.id;
-        if (name.includes("brownsburg")) facilityMap["brownsburg"] = facility.id;
-        if (name.includes("plainfield")) facilityMap["plainfield"] = facility.id;
-        if (name.includes("metro")) facilityMap["metro"] = facility.id;
-      });
-      
-      // Default facility - use the first one if no match is found
-      const defaultFacilityId = facilities[0].id;
-      
       // Create each appointment type
-      for (const type of typesToCreate) {
-        let facilityId = defaultFacilityId;
-        
-        // Determine facility based on name
-        const typeName = type.name.toLowerCase();
-        
-        if (typeName.includes("airtech")) {
-          facilityId = facilityMap["airtech"] || defaultFacilityId;
-        } else if (typeName.includes("camby")) {
-          facilityId = facilityMap["camby"] || defaultFacilityId;
-        } else if (typeName.includes("lacy") || typeName.includes("brownsburg")) {
-          facilityId = facilityMap["brownsburg"] || defaultFacilityId;
-        } else if (typeName.includes("plainfield") || typeName.includes("metro")) {
-          facilityId = facilityMap["metro"] || defaultFacilityId;
-        }
+      let createdCount = 0;
+      for (const type of allTypesToCreate) {
+        // Generate a display name that includes the facility name
+        const facility = facilities.find(f => f.id === type.facilityId);
+        const facilityName = facility ? facility.name : "Unknown";
         
         const appointmentTypeData = {
-          name: type.name,
-          description: type.description,
-          facilityId: facilityId,
+          name: type.name, // Keep the base name
+          description: `${type.description} at ${facilityName}`,
+          facilityId: type.facilityId,
           duration: type.duration,
           color: type.color,
-          type: type.type as "inbound" | "outbound",
+          type: type.type as "inbound" | "outbound" | "both",
           showRemainingSlots: true,
           gracePeriod: 15,
           emailReminderTime: 24
@@ -178,6 +121,7 @@ export default function SeedAppointmentTypes() {
           const response = await apiRequest("POST", "/api/appointment-types", appointmentTypeData);
           const createdType = await response.json();
           setCompleted(prev => [...prev, createdType.id]);
+          createdCount++;
         } catch (error) {
           console.error("Error creating appointment type:", error);
         }
@@ -188,7 +132,7 @@ export default function SeedAppointmentTypes() {
       
       toast({
         title: "Success",
-        description: `Created ${typesToCreate.length} appointment types`,
+        description: `Created ${createdCount} appointment types for ${facilities.length} facilities`,
       });
     } catch (error) {
       console.error("Error creating appointment types:", error);
@@ -202,33 +146,62 @@ export default function SeedAppointmentTypes() {
     }
   };
 
+  // Calculate potential appointment types to create
+  const totalPotentialTypes = facilities.length * appointmentTypesToCreate.length;
+  
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Seed Appointment Types</CardTitle>
+        <CardTitle>Create Standard Appointment Types</CardTitle>
         <CardDescription>
-          Add predefined appointment types from the reference application
+          Add standard appointment types for each facility
         </CardDescription>
       </CardHeader>
       <CardContent>
         <p className="mb-4">
-          This will create {appointmentTypesToCreate.length} appointment types based on the reference 
-          application. Each type will be associated with the appropriate facility based on naming patterns.
+          This will create both a 1-hour and 4-hour appointment type for each facility in the system.
+          Each type can be used for both pickup and dropoff operations.
         </p>
         
-        <div className="font-medium mb-2">Appointment Types to Create:</div>
-        <ul className="text-sm space-y-1 mb-4">
-          {appointmentTypesToCreate.map((type, index) => (
-            <li key={index} className="flex items-center">
-              {completed.includes(index) && <CheckCircle className="h-4 w-4 mr-2 text-green-500" />}
-              <span>{type.name}</span>
-              <span className="ml-2 text-xs text-muted-foreground">({type.duration} mins)</span>
-            </li>
-          ))}
-        </ul>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <div className="font-medium mb-2">Appointment Types:</div>
+            <ul className="text-sm space-y-1 mb-4">
+              {appointmentTypesToCreate.map((type, index) => (
+                <li key={index} className="flex items-center">
+                  <span>{type.name}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">({type.duration} mins)</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          
+          <div>
+            <div className="font-medium mb-2">Available Facilities:</div>
+            <ul className="text-sm space-y-1 mb-4">
+              {facilities.map((facility, index) => (
+                <li key={index}>{facility.name}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        
+        <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-md mb-4">
+          <p className="text-sm text-muted-foreground">
+            Each appointment type will be created for every facility, resulting in up 
+            to {totalPotentialTypes} total appointment types. Any types that already exist will be skipped.
+          </p>
+        </div>
+        
+        {completed.length > 0 && (
+          <div className="mt-4">
+            <div className="font-medium mb-2">Created Types:</div>
+            <p className="text-sm text-green-600">Successfully created {completed.length} appointment types</p>
+          </div>
+        )}
       </CardContent>
       <CardFooter>
-        <Button onClick={createAppointmentTypes} disabled={loading || isLoadingFacilities}>
+        <Button onClick={createAppointmentTypes} disabled={loading || isLoadingFacilities || facilities.length === 0}>
           {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           {loading ? "Creating..." : "Create Appointment Types"}
         </Button>

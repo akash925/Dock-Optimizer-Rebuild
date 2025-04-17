@@ -881,45 +881,107 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
-    // Create a new object without appointmentTypeId to match the database schema
-    const { appointmentTypeId, ...scheduleWithoutAppointmentTypeId } = insertSchedule;
-    
-    const [schedule] = await db
-      .insert(schedules)
-      .values({
-        ...scheduleWithoutAppointmentTypeId,
-        trailerNumber: insertSchedule.trailerNumber || null,
-        driverName: insertSchedule.driverName || null,
-        driverPhone: insertSchedule.driverPhone || null,
-        bolNumber: insertSchedule.bolNumber || null,
-        poNumber: insertSchedule.poNumber || null,
-        palletCount: insertSchedule.palletCount || null,
-        weight: insertSchedule.weight || null,
-        appointmentMode: insertSchedule.appointmentMode || "trailer",
-        lastModifiedAt: new Date(),
-        lastModifiedBy: insertSchedule.createdBy
-      })
-      .returning();
-    
-    // Add the appointmentTypeId back to the returned object to match the TypeScript type
-    return { ...schedule, appointmentTypeId: appointmentTypeId || null } as Schedule;
+    // Instead of using the ORM, let's use a direct SQL query to avoid the schema mismatch
+    try {
+      // Extract values from insertSchedule that match the actual database columns
+      const values = {
+        dock_id: insertSchedule.dockId,
+        carrier_id: insertSchedule.carrierId,
+        truck_number: insertSchedule.truckNumber,
+        trailer_number: insertSchedule.trailerNumber || null,
+        driver_name: insertSchedule.driverName || null,
+        driver_phone: insertSchedule.driverPhone || null,
+        start_time: insertSchedule.startTime,
+        end_time: insertSchedule.endTime,
+        type: insertSchedule.type,
+        status: insertSchedule.status,
+        notes: insertSchedule.notes || null,
+        created_by: insertSchedule.createdBy,
+        created_at: new Date(),
+        last_modified_at: new Date(),
+        last_modified_by: insertSchedule.createdBy
+      };
+      
+      // Construct the SQL query
+      const fields = Object.keys(values).map(k => k).join(', ');
+      const placeholders = Object.keys(values).map((_, i) => `$${i + 1}`).join(', ');
+      
+      const query = `
+        INSERT INTO schedules (${fields})
+        VALUES (${placeholders})
+        RETURNING *
+      `;
+      
+      // Execute the query
+      const result = await pool.query(query, Object.values(values));
+      const schedule = result.rows[0];
+      
+      // Add the appointmentTypeId back to the returned object to match the TypeScript type
+      return { ...schedule, appointmentTypeId: insertSchedule.appointmentTypeId || null } as Schedule;
+    } catch (error) {
+      console.error("Error creating schedule:", error);
+      throw error;
+    }
   }
 
   async updateSchedule(id: number, scheduleUpdate: Partial<Schedule>): Promise<Schedule | undefined> {
-    // Extract appointmentTypeId and create a new object without it
-    const { appointmentTypeId, ...updateWithoutAppointmentTypeId } = scheduleUpdate;
-    
-    const [updatedSchedule] = await db
-      .update(schedules)
-      .set({
-        ...updateWithoutAppointmentTypeId,
-        lastModifiedAt: new Date()
-      })
-      .where(eq(schedules.id, id))
-      .returning();
+    try {
+      // Extract appointmentTypeId from the update object
+      const { appointmentTypeId, ...updateWithoutAppointmentTypeId } = scheduleUpdate;
       
-    // Add the appointmentTypeId back to the returned object to match the TypeScript type
-    return updatedSchedule ? { ...updatedSchedule, appointmentTypeId: appointmentTypeId || null } as Schedule : undefined;
+      // Create an object with all the valid database columns
+      const updateFields: Record<string, any> = {};
+      
+      // Add each field that exists in the database schema
+      if ('dockId' in updateWithoutAppointmentTypeId) updateFields.dock_id = updateWithoutAppointmentTypeId.dockId;
+      if ('carrierId' in updateWithoutAppointmentTypeId) updateFields.carrier_id = updateWithoutAppointmentTypeId.carrierId;
+      if ('truckNumber' in updateWithoutAppointmentTypeId) updateFields.truck_number = updateWithoutAppointmentTypeId.truckNumber;
+      if ('trailerNumber' in updateWithoutAppointmentTypeId) updateFields.trailer_number = updateWithoutAppointmentTypeId.trailerNumber;
+      if ('driverName' in updateWithoutAppointmentTypeId) updateFields.driver_name = updateWithoutAppointmentTypeId.driverName;
+      if ('driverPhone' in updateWithoutAppointmentTypeId) updateFields.driver_phone = updateWithoutAppointmentTypeId.driverPhone;
+      if ('startTime' in updateWithoutAppointmentTypeId) updateFields.start_time = updateWithoutAppointmentTypeId.startTime;
+      if ('endTime' in updateWithoutAppointmentTypeId) updateFields.end_time = updateWithoutAppointmentTypeId.endTime;
+      if ('type' in updateWithoutAppointmentTypeId) updateFields.type = updateWithoutAppointmentTypeId.type;
+      if ('status' in updateWithoutAppointmentTypeId) updateFields.status = updateWithoutAppointmentTypeId.status;
+      if ('notes' in updateWithoutAppointmentTypeId) updateFields.notes = updateWithoutAppointmentTypeId.notes;
+      
+      // Always update last_modified_at
+      updateFields.last_modified_at = new Date();
+      if ('lastModifiedBy' in updateWithoutAppointmentTypeId) updateFields.last_modified_by = updateWithoutAppointmentTypeId.lastModifiedBy;
+      
+      // Early return if no fields to update
+      if (Object.keys(updateFields).length === 0) {
+        return undefined;
+      }
+      
+      // Construct query parts
+      const setClause = Object.entries(updateFields)
+        .map(([key, _], index) => `${key} = $${index + 2}`)
+        .join(', ');
+      
+      // Build the query
+      const query = `
+        UPDATE schedules
+        SET ${setClause}
+        WHERE id = $1
+        RETURNING *
+      `;
+      
+      // Execute the query with parameters
+      const result = await pool.query(query, [id, ...Object.values(updateFields)]);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      const updatedSchedule = result.rows[0];
+      
+      // Add the appointmentTypeId back to match the TypeScript type
+      return { ...updatedSchedule, appointmentTypeId: appointmentTypeId || null } as Schedule;
+    } catch (error) {
+      console.error("Error updating schedule:", error);
+      throw error;
+    }
   }
 
   async deleteSchedule(id: number): Promise<boolean> {
