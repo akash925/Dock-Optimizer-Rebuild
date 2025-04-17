@@ -154,8 +154,18 @@ const baseInsertScheduleSchema = createInsertSchema(schedules).omit({
 
 // Enhance the schema to handle date strings for startTime and endTime
 export const insertScheduleSchema = baseInsertScheduleSchema.extend({
-  startTime: z.string().transform((str) => new Date(str)),
-  endTime: z.string().transform((str) => new Date(str)),
+  startTime: z.string().or(z.date()).transform((val) => {
+    if (typeof val === 'string') {
+      return new Date(val);
+    }
+    return val;
+  }),
+  endTime: z.string().or(z.date()).transform((val) => {
+    if (typeof val === 'string') {
+      return new Date(val);
+    } 
+    return val;
+  }),
 });
 
 // Notification Model

@@ -149,6 +149,8 @@ export default function DoorAppointmentForm({
         endTime: appointmentData.endTime.toISOString(),
       };
       
+      console.log("Sending appointment data:", serializedData);
+      
       const res = await apiRequest("POST", "/api/schedules", serializedData);
       return await res.json();
     },

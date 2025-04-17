@@ -267,6 +267,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCarrierData = scheduleData.newCarrier;
       delete scheduleData.newCarrier;
       
+      // Log data for debugging
+      console.log("Schedule data before validation:", JSON.stringify(scheduleData, null, 2));
+      
+      // Parse the data with our schema that handles date conversion
       const validatedData = insertScheduleSchema.parse(scheduleData);
       
       // Check if dock exists
