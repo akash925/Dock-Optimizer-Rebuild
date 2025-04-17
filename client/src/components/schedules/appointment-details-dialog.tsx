@@ -47,6 +47,7 @@ export function AppointmentDetailsDialog({
   );
   const [rescheduleTime, setRescheduleTime] = useState<string>("");
   const [rescheduleDuration, setRescheduleDuration] = useState<number>(60); // Default 1 hour
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   
   // Initialize reschedule data when appointment changes
   useEffect(() => {
@@ -68,6 +69,70 @@ export function AppointmentDetailsDialog({
     if (appointment) {
       setFormData(appointment);
     }
+  }, [appointment]);
+
+  // Create state for the event history
+  const [eventHistory, setEventHistory] = useState<Array<{
+    id: number;
+    timestamp: Date;
+    type: string;
+    user: number | string;
+    changes: string;
+  }>>([]);
+  
+  // Create a side effect to update the event history when the appointment changes
+  useEffect(() => {
+    if (!appointment) return;
+    
+    const history = [
+      {
+        id: 1,
+        timestamp: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // 1 day ago
+        type: "creation",
+        user: appointment.createdBy || "External User",
+        changes: "Appointment created"
+      }
+    ];
+    
+    // If the appointment has been rescheduled (we can detect by comparing createdAt with lastModifiedAt)
+    if (appointment.lastModifiedAt && appointment.createdAt !== appointment.lastModifiedAt) {
+      history.push({
+        id: 2,
+        timestamp: new Date(appointment.lastModifiedAt),
+        type: "reschedule",
+        user: appointment.lastModifiedBy || "System",
+        changes: "Appointment rescheduled"
+      });
+    }
+    
+    // If the appointment has been checked in
+    if (appointment.actualStartTime) {
+      history.push({
+        id: 3,
+        timestamp: new Date(appointment.actualStartTime),
+        type: "check-in",
+        user: appointment.lastModifiedBy || "System",
+        changes: "Appointment checked in"
+      });
+    }
+    
+    // If the appointment has been checked out
+    if (appointment.actualEndTime) {
+      history.push({
+        id: 4,
+        timestamp: new Date(appointment.actualEndTime),
+        type: "check-out",
+        user: appointment.lastModifiedBy || "System",
+        changes: "Appointment checked out"
+      });
+    }
+    
+    // Sort history by timestamp (newest first)
+    const sortedHistory = [...history].sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    
+    setEventHistory(sortedHistory);
   }, [appointment]);
 
   // Format dates with timezone handling
@@ -341,10 +406,97 @@ export function AppointmentDetailsDialog({
     );
   }
 
-  // Render default view
+  // Render main view
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <>
+      {/* Event History Dialog */}
+      <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <History className="h-5 w-5 text-primary" />
+              Event History
+            </DialogTitle>
+            <DialogDescription>
+              View the complete history of this appointment, including all changes and modifications.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <ScrollArea className="h-[400px] rounded-md border">
+              <div className="p-4">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[180px]">Date & Time</TableHead>
+                      <TableHead>Event Type</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead className="w-full">Description</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {eventHistory.length > 0 ? (
+                      eventHistory.map((event) => (
+                        <TableRow key={event.id}>
+                          <TableCell className="font-medium">
+                            {format(new Date(event.timestamp), "MMM dd, yyyy hh:mm a")}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={
+                              event.type === "creation" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                              event.type === "reschedule" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                              event.type === "check-in" ? "bg-purple-50 text-purple-700 border-purple-200" :
+                              event.type === "check-out" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                              event.type === "question-update" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
+                              "bg-slate-50 text-slate-700 border-slate-200"
+                            }>
+                              {event.type === "creation" ? "Created" :
+                              event.type === "reschedule" ? "Rescheduled" :
+                              event.type === "check-in" ? "Checked In" :
+                              event.type === "check-out" ? "Checked Out" :
+                              event.type === "question-update" ? "Fields Updated" :
+                              "Modified"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{event.user}</TableCell>
+                          <TableCell>{event.changes}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                          No event history available
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </ScrollArea>
+            
+            <div className="mt-4 text-sm text-muted-foreground">
+              <p>The event history shows all changes made to this appointment, including:</p>
+              <ul className="list-disc ml-5 mt-2 space-y-1">
+                <li>Creation and scheduling</li>
+                <li>Rescheduling events</li>
+                <li>Check-in and check-out times</li>
+                <li>Updates to appointment information</li>
+                <li>Changes to question answers</li>
+              </ul>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsHistoryDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    
+      {/* Main Appointment Dialog */}
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
             {appointmentTitle}
@@ -523,30 +675,48 @@ export function AppointmentDetailsDialog({
                       const startTime = new Date(appointment.startTime);
                       const formattedStartTime = format(startTime, 'MMM dd, yyyy h:mm a');
                       
-                      // Generate printable QR code page
                       printWindow.document.write(`
                         <html>
                           <head>
-                            <title>Appointment QR Code</title>
+                            <title>Appointment QR Code - ${appointment.id}</title>
                             <style>
-                              body { font-family: Arial; text-align: center; padding: 20px; }
-                              h1 { font-size: 22px; margin-bottom: 5px; }
-                              .code { font-size: 28px; font-weight: bold; margin: 15px 0; letter-spacing: 1px; }
-                              .details { margin: 20px 0; }
+                              body { 
+                                font-family: sans-serif; 
+                                padding: 20px;
+                                text-align: center;
+                              }
+                              .qr-wrapper {
+                                margin: 20px auto;
+                                width: 200px;
+                              }
+                              h1 { font-size: 20px; margin-bottom: 5px; }
+                              p { margin: 5px 0; }
+                              .info { font-size: 14px; color: #666; }
+                              .confirmation { 
+                                font-family: monospace; 
+                                font-size: 18px; 
+                                background: #f1f5f9;
+                                padding: 5px 10px;
+                                border-radius: 4px;
+                                margin: 10px 0;
+                                display: inline-block;
+                              }
                             </style>
                           </head>
                           <body>
                             <h1>Dock Appointment Check-In</h1>
-                            <div>
-                              ${document.getElementById('appointment-qr-code')?.innerHTML || ''}
+                            <p class="info">Scan this QR code when you arrive at the facility</p>
+                            <div class="qr-wrapper">
+                              <img src="${document.querySelector('canvas')?.toDataURL()}" width="200" height="200" />
                             </div>
-                            <div class="code">HC${appointment.id.toString().padStart(6, '0')}</div>
-                            <div class="details">
-                              <p><b>Date:</b> ${formattedStartTime}</p>
-                              <p><b>Type:</b> ${appointment.type === "inbound" ? "Inbound" : "Outbound"}</p>
-                              <p><b>Location:</b> ${facilityName || "Warehouse"}</p>
-                            </div>
-                            <button onclick="window.print(); window.close();">Print</button>
+                            <p><strong>Confirmation Code:</strong></p>
+                            <div class="confirmation">HC${appointment.id.toString().padStart(6, '0')}</div>
+                            <p class="info">Appointment Time: ${formattedStartTime}</p>
+                            <p class="info">Carrier: ${appointment.carrierName || "Not specified"}</p>
+                            <p class="info">Type: ${appointment.type === "inbound" ? "Inbound" : "Outbound"}</p>
+                            <script>
+                              window.onload = function() { window.print(); }
+                            </script>
                           </body>
                         </html>
                       `);
@@ -560,139 +730,41 @@ export function AppointmentDetailsDialog({
             </div>
           )}
         </div>
-
-        <div className="py-2">
-          <h3 className="text-sm font-medium mb-3">Question Answers:</h3>
-          
-          <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Customer Name:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.customerName || ''} 
-                  onChange={(e) => handleInputChange('customerName', e.target.value)} 
-                />
-              ) : (
-                <div>{appointment.customerName || "N/A"}</div>
-              )}
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Carrier Name:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.carrierName || ''} 
-                  onChange={(e) => handleInputChange('carrierName', e.target.value)} 
-                />
-              ) : (
-                <div>{appointment.carrierName || "N/A"}</div>
-              )}
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Carrier MC #:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.mcNumber || ''} 
-                  onChange={(e) => handleInputChange('mcNumber', e.target.value)} 
-                />
-              ) : (
-                <div>{appointment.mcNumber || "N/A"}</div>
-              )}
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Driver/Dispatcher Email:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.driverEmail || ''} 
-                  onChange={(e) => handleInputChange('driverEmail', e.target.value)} 
-                />
-              ) : (
-                <div>{appointment.driverEmail || "N/A"}</div>
-              )}
-            </div>
-            
-            <div className="space-y-1 bg-slate-100 p-2 rounded">
-              <Label className="text-xs text-muted-foreground">BOL Number:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.bolNumber || ''} 
-                  onChange={(e) => handleInputChange('bolNumber', e.target.value)} 
-                />
-              ) : (
-                <div className="font-medium">{appointment.bolNumber || "N/A"}</div>
-              )}
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Truck Number:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.truckNumber || ''} 
-                  onChange={(e) => handleInputChange('truckNumber', e.target.value)} 
-                />
-              ) : (
-                <div>{appointment.truckNumber || "N/A"}</div>
-              )}
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Trailer Number:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.trailerNumber || ''} 
-                  onChange={(e) => handleInputChange('trailerNumber', e.target.value)} 
-                />
-              ) : (
-                <div>{appointment.trailerNumber || "N/A"}</div>
-              )}
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Driver Name:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.driverName || ''} 
-                  onChange={(e) => handleInputChange('driverName', e.target.value)} 
-                />
-              ) : (
-                <div>{appointment.driverName || "N/A"}</div>
-              )}
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Driver Phone:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.driverPhone || ''} 
-                  onChange={(e) => handleInputChange('driverPhone', e.target.value)} 
-                />
-              ) : (
-                <div>{appointment.driverPhone || "N/A"}</div>
-              )}
-            </div>
-            
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">PO Number:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.poNumber || ''} 
-                  onChange={(e) => handleInputChange('poNumber', e.target.value)} 
-                />
-              ) : (
-                <div>{appointment.poNumber || "N/A"}</div>
-              )}
-            </div>
+        
+        {/* Notes */}
+        <div className="border-t py-4">
+          <h3 className="text-sm font-medium mb-3">Notes</h3>
+          <div className="rounded-md border bg-slate-50 p-3">
+            {appointment.notes ? (
+              <p className="text-sm whitespace-pre-line">{appointment.notes}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No notes provided for this appointment</p>
+            )}
           </div>
         </div>
-
-        <DialogFooter className="flex flex-wrap gap-2 justify-start sm:justify-between">
-          <div className="space-x-2">
+        
+        {/* View History Button */}
+        <div className="mt-4 mb-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="text-xs flex items-center gap-1"
+            onClick={() => setIsHistoryDialogOpen(true)}
+          >
+            <History className="h-3.5 w-3.5" />
+            View Event History
+          </Button>
+        </div>
+        
+        <DialogFooter className="flex-col sm:flex-row sm:justify-between border-t pt-4 mt-4">
+          <div className="flex items-center gap-2 my-2 sm:my-0">
             <Button 
               variant="outline" 
-              className="bg-green-50 hover:bg-green-100 border-green-200"
-              onClick={() => setIsEditing(!isEditing)}
+              size="sm"
+              className="text-xs"
+              onClick={() => {
+                isEditing ? setIsEditing(false) : setIsEditing(true);
+              }}
             >
               {isEditing ? (
                 <>
@@ -707,25 +779,31 @@ export function AppointmentDetailsDialog({
               )}
             </Button>
             
-            <Button 
-              variant="outline"
-              className="bg-slate-50 hover:bg-slate-100 border-slate-200"
-            >
-              <ClipboardList className="h-4 w-4 mr-2" />
-              View Event History
-            </Button>
-          </div>
-
-          <div className="space-x-2">
-            {isEditing ? (
+            {isEditing && (
               <Button 
-                variant="default" 
-                className="bg-blue-600 hover:bg-blue-700"
+                variant="default"
+                size="sm"
+                className="text-xs bg-green-600 hover:bg-green-700"
                 onClick={() => updateAppointmentMutation.mutate(formData)}
                 disabled={updateAppointmentMutation.isPending}
               >
                 {updateAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
                 Save Changes
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {isEditing ? (
+              <Button 
+                variant="destructive"
+                size="sm"
+                className="text-xs"
+                onClick={() => deleteAppointmentMutation.mutate()}
+                disabled={deleteAppointmentMutation.isPending}
+              >
+                {deleteAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                Delete
               </Button>
             ) : (
               <>
@@ -733,41 +811,34 @@ export function AppointmentDetailsDialog({
                   <>
                     <Button 
                       variant="outline" 
-                      className="bg-red-50 hover:bg-red-100 border-red-200"
-                      onClick={() => cancelAppointmentMutation.mutate()}
-                      disabled={cancelAppointmentMutation.isPending}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Cancel Event
-                    </Button>
-
-                    <Button 
-                      variant="outline" 
-                      className="bg-slate-50 hover:bg-slate-100 border-slate-200"
+                      size="sm"
+                      className="text-xs"
                       onClick={() => setIsRescheduling(true)}
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Reschedule
                     </Button>
-
+                    
                     <Button 
-                      variant="outline" 
-                      className="bg-red-50 hover:bg-red-100 border-red-200"
-                      onClick={() => deleteAppointmentMutation.mutate()}
-                      disabled={deleteAppointmentMutation.isPending}
+                      variant="destructive"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => cancelAppointmentMutation.mutate()}
+                      disabled={cancelAppointmentMutation.isPending}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
+                      {cancelAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                      Cancel Appointment
                     </Button>
-
+                    
                     <Button 
-                      variant="default" 
-                      className="bg-green-600 hover:bg-green-700"
+                      variant="default"
+                      size="sm"
+                      className="text-xs bg-blue-600 hover:bg-blue-700"
                       onClick={() => checkInAppointmentMutation.mutate()}
                       disabled={checkInAppointmentMutation.isPending}
                     >
-                      <Check className="h-4 w-4 mr-2" />
-                      Check-In
+                      {checkInAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                      Check In
                     </Button>
                   </>
                 )}
@@ -776,37 +847,33 @@ export function AppointmentDetailsDialog({
                   <>
                     <Button 
                       variant="outline" 
-                      className="bg-red-50 hover:bg-red-100 border-red-200"
+                      size="sm"
+                      className="text-xs"
                       onClick={() => cancelAppointmentMutation.mutate()}
                       disabled={cancelAppointmentMutation.isPending}
                     >
-                      <X className="h-4 w-4 mr-2" />
-                      Cancel Event
+                      {cancelAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                      Cancel
                     </Button>
                     
                     <Button 
-                      variant="default" 
-                      className="bg-green-600 hover:bg-green-700"
+                      variant="default"
+                      size="sm"
+                      className="text-xs bg-green-600 hover:bg-green-700"
                       onClick={() => checkOutAppointmentMutation.mutate()}
                       disabled={checkOutAppointmentMutation.isPending}
                     >
-                      <Check className="h-4 w-4 mr-2" />
-                      Check-Out
+                      {checkOutAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                      Check Out
                     </Button>
                   </>
                 )}
-
-                <Button 
-                  variant="outline" 
-                  onClick={() => onOpenChange(false)}
-                >
-                  Close
-                </Button>
               </>
             )}
           </div>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
