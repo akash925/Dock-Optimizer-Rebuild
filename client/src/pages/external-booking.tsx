@@ -256,7 +256,6 @@ const appointmentDetailsSchema = z.object({
   carrierName: z.string().min(1, "Carrier name is required"),
   // Make mcNumber completely optional, empty string is also valid
   mcNumber: z.string().optional().or(z.literal("")),
-  customerName: z.string().min(1, "Customer name is required"),  // Adding customer name field
   truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
@@ -377,7 +376,6 @@ export default function ExternalBooking() {
       appointmentTime: "",
       carrierName: "",
       mcNumber: "",
-      customerName: "",  // Added customer name default value
       truckNumber: "",
       trailerNumber: "",
       driverName: "",
