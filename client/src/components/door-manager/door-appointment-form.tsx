@@ -142,7 +142,7 @@ export default function DoorAppointmentForm({
         createdBy: user?.id || 1,
       };
       
-      // Convert dates to ISO strings for proper JSON serialization
+      // Convert dates to ISO strings for JSON serialization
       const serializedData = {
         ...appointmentData,
         startTime: appointmentData.startTime.toISOString(),
@@ -711,12 +711,15 @@ export default function DoorAppointmentForm({
                                   type="time"
                                   value={field.value ? formatTimeForInput(field.value) : ""}
                                   onChange={(e) => {
+                                    // Always use a valid date even if empty string is provided
+                                    const baseDate = field.value || form.getValues("startTime");
                                     if (e.target.value) {
-                                      // If there's no date yet, use the start date
-                                      const baseDate = field.value || form.getValues("startTime");
                                       field.onChange(parseTimeString(e.target.value, baseDate));
                                     } else {
-                                      field.onChange(undefined);
+                                      // Instead of undefined, use the base date but add 1 hour
+                                      const defaultEndTime = new Date(baseDate);
+                                      defaultEndTime.setHours(defaultEndTime.getHours() + 1);
+                                      field.onChange(defaultEndTime);
                                     }
                                   }}
                                 />
