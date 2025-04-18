@@ -199,6 +199,7 @@ export const facilities = pgTable("facilities", {
   latitude: text("latitude"),
   longitude: text("longitude"),
   company: text("company"),
+  timezone: text("timezone").default("America/New_York"), // Default to Eastern Time
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),
 });

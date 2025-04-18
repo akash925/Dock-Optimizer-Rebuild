@@ -64,6 +64,7 @@ const facilitySchema = z.object({
   state: z.string().min(2, "State is required"),
   pincode: z.string().min(5, "Postal code is required"),
   country: z.string().min(2, "Country is required"),
+  timezone: z.string().default("America/New_York"),
   latitude: z.string().optional(),
   longitude: z.string().optional(),
   company: z.string().optional(),
@@ -90,6 +91,7 @@ interface Facility {
   state: string;
   pincode: string;
   country: string;
+  timezone?: string;
   latitude?: string;
   longitude?: string;
   company?: string;
@@ -352,7 +354,8 @@ export default function FacilityMaster() {
       city: "",
       state: "",
       pincode: "",
-      country: "USA"
+      country: "USA",
+      timezone: "America/New_York" // Default to Eastern Time
     }
   });
 
@@ -402,7 +405,8 @@ export default function FacilityMaster() {
       city: "",
       state: "",
       pincode: "",
-      country: "USA"
+      country: "USA",
+      timezone: "America/New_York" // Default to Eastern Time
     }
   });
 
