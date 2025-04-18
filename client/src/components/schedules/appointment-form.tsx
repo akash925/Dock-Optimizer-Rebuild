@@ -161,11 +161,13 @@ export default function AppointmentForm({
         },
   });
   
-  // Force MC Number to be empty when the component mounts
+  // Set MC Number when a carrier is selected
   useEffect(() => {
-    // Clear MC Number field on component mount
-    truckInfoForm.setValue("mcNumber", "");
-  }, [truckInfoForm]);
+    // Don't clear MC Number field on component mount
+    if (initialData && initialData.mcNumber) {
+      truckInfoForm.setValue("mcNumber", initialData.mcNumber);
+    }
+  }, [truckInfoForm, initialData]);
   
   // Watch the appointment mode for duration changes
   const appointmentMode = truckInfoForm.watch("appointmentMode");
@@ -445,8 +447,6 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                               value={field.value?.toString() || ""} 
                               onValueChange={(value) => {
                                 field.onChange(value ? parseInt(value) : undefined);
-                                // First clear the MC Number field 
-                                truckInfoForm.setValue("mcNumber", "");
                                 
                                 // Find the carrier name for the selected ID
                                 if (value) {
@@ -454,19 +454,13 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                                   if (carrier) {
                                     truckInfoForm.setValue("carrierName", carrier.name);
                                     
-                                    // Use a timeout to ensure field updates in the correct order
-                                    setTimeout(() => {
-                                      if (carrier.mcNumber) {
-                                        console.log("Setting MC Number to:", carrier.mcNumber);
-                                        truckInfoForm.setValue("mcNumber", carrier.mcNumber);
-                                      } else {
-                                        console.log("No MC Number available for carrier, keeping field blank");
-                                      }
-                                    }, 100);
+                                    if (carrier.mcNumber) {
+                                      console.log("Setting MC Number to:", carrier.mcNumber);
+                                      truckInfoForm.setValue("mcNumber", carrier.mcNumber);
+                                    }
                                   }
                                 } else {
                                   truckInfoForm.setValue("carrierName", "");
-                                  truckInfoForm.setValue("mcNumber", "");
                                 }
                               }}
                             >
@@ -547,24 +541,13 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                       <FormField
                         control={truckInfoForm.control}
                         name="mcNumber"
-                        render={({ field }) => {
-                          // Allow MC numbers with hyphens
-                          const fieldValue = field.value;
-                          
-                          return (
+                        render={({ field }) => (
                             <FormItem>
                               <FormLabel>MC Number</FormLabel>
                               <FormControl>
                                 <Input 
                                   placeholder="Enter Motor Carrier number" 
-                                  value={fieldValue || ""}
-                                  onChange={(e) => {
-                                    // Allow direct editing of the field
-                                    field.onChange(e.target.value);
-                                  }}
-                                  onBlur={field.onBlur}
-                                  name={field.name}
-                                  ref={field.ref}
+                                  {...field}
                                 />
                               </FormControl>
                               <FormDescription>
@@ -572,8 +555,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
-                          );
-                        }}
+                        )}
                       />
                     </div>
                     
