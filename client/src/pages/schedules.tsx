@@ -93,6 +93,29 @@ export default function Schedules() {
     setIsDetailsDialogOpen(false);
   };
   
+  // Handle cell click from calendar views
+  const handleCellClick = (date: Date, dockId?: number) => {
+    setEditScheduleId(null);
+    // Ensure we're working with a valid Date object
+    if (date && !isNaN(date.getTime())) {
+      // Create a fresh copy to avoid any reference issues
+      const safeDateCopy = new Date(date.getTime());
+      setClickedCellDate(safeDateCopy);
+      
+      // If a dock ID was provided, pre-select it in the form
+      if (dockId) {
+        setSelectedDockId(dockId);
+      }
+      
+      setIsFormOpen(true);
+    } else {
+      console.error("Invalid date received from cell click:", date);
+      // Fallback to current date/time if we got an invalid date
+      setClickedCellDate(new Date());
+      setIsFormOpen(true);
+    }
+  };
+  
   // Columns for the data table
   const columns: ColumnDef<Schedule>[] = [
     {
@@ -334,21 +357,7 @@ export default function Schedules() {
             onScheduleClick={handleScheduleClick}
             onDateChange={setSelectedDate}
             onViewChange={setViewMode}
-            onCellClick={(date) => {
-              setEditScheduleId(null);
-              // Ensure we're working with a valid Date object
-              if (date && !isNaN(date.getTime())) {
-                // Create a fresh copy to avoid any reference issues
-                const safeDateCopy = new Date(date.getTime());
-                setClickedCellDate(safeDateCopy);
-                setIsFormOpen(true);
-              } else {
-                console.error("Invalid date received from cell click:", date);
-                // Fallback to current date/time if we got an invalid date
-                setClickedCellDate(new Date());
-                setIsFormOpen(true);
-              }
-            }}
+            onCellClick={handleCellClick}
           />
         )}
         
@@ -358,21 +367,7 @@ export default function Schedules() {
             docks={docks}
             date={selectedDate}
             onScheduleClick={handleScheduleClick}
-            onCellClick={(date) => {
-              setEditScheduleId(null);
-              // Ensure we're working with a valid Date object
-              if (date && !isNaN(date.getTime())) {
-                // Create a fresh copy to avoid any reference issues
-                const safeDateCopy = new Date(date.getTime());
-                setClickedCellDate(safeDateCopy);
-                setIsFormOpen(true);
-              } else {
-                console.error("Invalid date received from cell click:", date);
-                // Fallback to current date/time if we got an invalid date
-                setClickedCellDate(new Date());
-                setIsFormOpen(true);
-              }
-            }}
+            onCellClick={handleCellClick}
           />
         )}
         
@@ -406,10 +401,12 @@ export default function Schedules() {
         onClose={() => {
           setIsFormOpen(false);
           setClickedCellDate(undefined);
+          setSelectedDockId(undefined);  // Reset selected dock when closing form
         }}
         initialData={scheduleToEdit}
         mode={editScheduleId ? "edit" : "create"}
         initialDate={clickedCellDate || selectedDate}
+        initialDockId={selectedDockId}  // Pass the selected dock to the form
       />
       
       {/* Appointment Details Dialog */}

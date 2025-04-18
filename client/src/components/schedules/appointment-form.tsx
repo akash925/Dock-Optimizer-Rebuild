@@ -97,6 +97,7 @@ interface AppointmentFormProps {
   initialData?: Schedule;
   mode: "create" | "edit";
   initialDate?: Date;
+  initialDockId?: number;
 }
 
 export default function AppointmentForm({
@@ -105,6 +106,7 @@ export default function AppointmentForm({
   initialData,
   mode,
   initialDate,
+  initialDockId,
 }: AppointmentFormProps) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<Partial<AppointmentFormValues>>({});
