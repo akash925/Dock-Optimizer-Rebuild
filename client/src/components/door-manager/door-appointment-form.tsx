@@ -60,6 +60,7 @@ const appointmentSchema = z.object({
   dockId: z.number(),
   carrierId: z.number(),
   carrierName: z.string().optional(), // Used when creating a new carrier
+  customerName: z.string().optional(), // Added customer name
   truckNumber: z.string().optional(),
   startTime: z.date(),
   endTime: z.date().optional(),
@@ -119,6 +120,7 @@ export default function DoorAppointmentForm({
       dockId,
       carrierId: carriers.length > 0 ? carriers[0].id : 0,
       carrierName: "", // For new carriers
+      customerName: "", // For customer name
       truckNumber: "",
       startTime: initialStartTime,
       endTime: undefined,
