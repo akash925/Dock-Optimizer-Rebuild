@@ -174,6 +174,28 @@ export default function AppointmentMaster() {
   ]);
   
   // Helper functions and mutations
+  // Delete appointment type
+  const deleteAppointmentTypeMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("DELETE", `/api/appointment-types/${id}`);
+      return id;
+    },
+    onSuccess: (id) => {
+      toast({
+        title: "Appointment Type Deleted",
+        description: "The appointment type has been successfully deleted",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointment-types"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete appointment type: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
   const saveCustomFieldMutation = useMutation({
     mutationFn: async (field: Partial<QuestionFormField>) => {
       // Mock API call
@@ -360,31 +382,6 @@ export default function AppointmentMaster() {
           <div className="flex items-center space-x-2">
             <span className="text-muted-foreground">Configure appointment types, forms, and availability</span>
           </div>
-          
-          <Button 
-            onClick={() => {
-              setSelectedAppointmentTypeId(null);
-              setAppointmentTypeForm({
-                name: "",
-                description: "",
-                facilityId: facilities.length > 0 ? facilities[0].id : 0,
-                color: "#4CAF50",
-                duration: 60,
-                type: "both",
-                maxSlots: 1,
-                timezone: "America/New_York",
-                gracePeriod: 15,
-                emailReminderTime: 24,
-                showRemainingSlots: true,
-                location: ""
-              });
-              setAppointmentTypeFormStep(1);
-              setShowNewAppointmentTypeDialog(true);
-            }}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <PlusCircle className="mr-2 h-4 w-4" /> New Appointment Type
-          </Button>
         </div>
         
         <div className="border rounded-md">
@@ -494,7 +491,14 @@ export default function AppointmentMaster() {
                                   Duplicate
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-600">
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => {
+                                    if(confirm(`Are you sure you want to delete "${appointmentType.name}"?`)) {
+                                      deleteAppointmentTypeMutation.mutate(appointmentType.id);
+                                    }
+                                  }}
+                                >
                                   <Trash2 className="h-4 w-4 mr-2" />
                                   Delete
                                 </DropdownMenuItem>
