@@ -6,6 +6,7 @@ import { z } from "zod";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
+import { sendScheduleConfirmationEmail } from "./notifications";
 import {
   insertDockSchema,
   // Removing insertScheduleSchema as we're handling date validation manually
@@ -375,6 +376,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const schedule = await storage.createSchedule(validatedData);
+      
+      // Get dock and facility information for the email
+      try {
+        if (schedule.dockId) {
+          const dock = await storage.getDock(schedule.dockId);
+          if (dock && dock.facilityId) {
+            const facility = await storage.getFacility(dock.facilityId);
+            
+            // Try to send a confirmation email if we have contact information
+            // This will log but not fail if SendGrid is not configured
+            if (schedule.driverEmail) {
+              sendScheduleConfirmationEmail(
+                schedule.driverEmail,
+                {
+                  id: schedule.id,
+                  dockName: dock.name || `Dock ${schedule.dockId}`,
+                  facilityName: facility?.name || 'Main Facility',
+                  startTime: new Date(schedule.startTime),
+                  endTime: new Date(schedule.endTime),
+                  truckNumber: schedule.truckNumber || '',
+                  customerName: schedule.customerName || undefined,
+                  type: schedule.type
+                }
+              ).catch(err => {
+                // Just log errors, don't let email failures affect API response
+                console.error('Failed to send confirmation email:', err);
+              });
+            }
+          }
+        }
+      } catch (emailError) {
+        // Log the error but don't fail the API call
+        console.error('Error preparing confirmation email:', emailError);
+      }
+      
       res.status(201).json(schedule);
     } catch (err) {
       console.error("Failed to create schedule:", err);
