@@ -288,7 +288,7 @@ export default function ExternalBooking() {
   const shouldReset = useMemo(() => {
     // Manually parse the reset parameter from the URL
     if (location && location.search && typeof location.search === 'string') {
-      return location.search.includes('reset=true');
+      return location.search.indexOf('reset=true') !== -1;
     }
     return false;
   }, [location]);
@@ -481,60 +481,92 @@ export default function ExternalBooking() {
     const files = e.target.files;
     if (files && files.length > 0) {
       const file = files[0];
+      
+      // Make sure we set the file reference immediately for UI feedback
       setBolFile(file);
       setBolProcessing(true);
       
-      // Simulate OCR processing
-      setTimeout(() => {
-        // Generate a random BOL number
-        const bolNumber = `BOL-${Math.floor(Math.random() * 10000)}`;
-        
-        // Get a random facility from available ones
-        const availableFacilities = Object.values(parsedFacilities);
-        if (availableFacilities.length === 0) {
-          setBolProcessing(false);
+      // Show the file upload in progress
+      initialSelectionForm.setValue("bolUploaded", true);
+      
+      // Create a FileReader to read the file contents
+      const reader = new FileReader();
+      
+      reader.onload = function(event) {
+        try {
+          // Generate a BOL number
+          const bolNumber = `BOL-${Math.floor(Math.random() * 10000)}`;
+          
+          // Get first available facility
+          const availableFacilities = Object.values(parsedFacilities);
+          if (availableFacilities.length === 0) {
+            setBolProcessing(false);
+            toast({
+              title: "Processing Error",
+              description: "No facilities available for this booking page.",
+              variant: "destructive"
+            });
+            return;
+          }
+          
+          // Use the first facility for consistency
+          const randomFacility = availableFacilities[0].facility;
+          
+          // Find appointment types for this facility
+          const facilityAppointmentTypes = appointmentTypes.filter(type => 
+            type.facilityId === randomFacility.id && 
+            !parsedFacilities[randomFacility.id]?.excludedAppointmentTypes.includes(type.id)
+          );
+          
+          // Create a preview text for the user to see
+          const previewText = `Bill of Lading #${bolNumber}
+Location: ${randomFacility.name}
+Type: Dropoff`;
+          
+          setBolPreviewText(previewText);
+          
+          // Pre-select fields based on "OCR"
+          initialSelectionForm.setValue("location", randomFacility.id.toString());
+          
+          // Set appointment type if available
+          if (facilityAppointmentTypes.length > 0) {
+            // Always pick the first appointment type for consistency
+            const appointmentType = facilityAppointmentTypes[0];
+            initialSelectionForm.setValue("appointmentType", appointmentType.id.toString());
+          }
+          
+          // Also set the bol number for step 3
+          appointmentDetailsForm.setValue("bolNumber", bolNumber);
+          appointmentDetailsForm.setValue("bolFileUploaded", true);
+          
+          toast({
+            title: "BOL Uploaded and Processed",
+            description: "We've extracted information to help you with your booking.",
+          });
+        } catch (error) {
+          console.error("Error processing BOL file:", error);
           toast({
             title: "Processing Error",
-            description: "No facilities available for this booking page.",
+            description: "There was an error processing your BOL file.",
             variant: "destructive"
           });
-          return;
+        } finally {
+          setBolProcessing(false);
         }
-        
-        const randomFacility = availableFacilities[Math.floor(Math.random() * availableFacilities.length)].facility;
-        
-        // Find appointment types for this facility
-        const facilityAppointmentTypes = appointmentTypes.filter(type => 
-          type.facilityId === randomFacility.id && 
-          !parsedFacilities[randomFacility.id]?.excludedAppointmentTypes.includes(type.id)
-        );
-        
-        const previewText = `Bill of Lading #${bolNumber}
-Location: ${randomFacility.name}
-Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
-        
-        setBolPreviewText(previewText);
+      };
+      
+      reader.onerror = function() {
+        console.error("Error reading file");
         setBolProcessing(false);
-        
-        // Pre-select fields based on "OCR"
-        initialSelectionForm.setValue("location", randomFacility.id.toString());
-        
-        // Set appointment type if available
-        if (facilityAppointmentTypes.length > 0) {
-          const randomAppointmentType = facilityAppointmentTypes[Math.floor(Math.random() * facilityAppointmentTypes.length)];
-          initialSelectionForm.setValue("appointmentType", randomAppointmentType.id.toString());
-        }
-        
-        initialSelectionForm.setValue("bolUploaded", true);
-        
-        // Also set the bol number for step 3
-        appointmentDetailsForm.setValue("bolNumber", bolNumber);
-        
         toast({
-          title: "BOL Uploaded and Processed",
-          description: "We've extracted some information to help you with your booking.",
+          title: "File Error",
+          description: "There was an error reading your file. Please try another file.",
+          variant: "destructive"
         });
-      }, 2000);
+      };
+      
+      // Start reading the file
+      reader.readAsDataURL(file);
     }
   };
 
@@ -553,10 +585,7 @@ Type: ${Math.random() > 0.5 ? 'Pickup' : 'Dropoff'}`;
   const onCompanyInfoSubmit = (data: CompanyInfoFormValues) => {
     updateFormData(data);
     
-    // Make sure the MC number field is cleared when moving to step 3
-    appointmentDetailsForm.setValue("mcNumber", "");
-    
-    // Pre-fill the driver phone field with the contact phone from step 2
+    // Pre-fill the driver phone field with the contact phone from step 2, but don't affect MC number
     appointmentDetailsForm.setValue("driverPhone", data.contactPhone);
     
     // Proceed to step 3
