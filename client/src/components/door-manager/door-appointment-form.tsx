@@ -291,42 +291,8 @@ export default function DoorAppointmentForm({
     form.setValue("endTime", undefined);
   };
   
-  // Filtered carriers based on search
-  const filteredCarriers = carriers.filter(carrier => 
-    carrier.name.toLowerCase().includes(carrierSearch.toLowerCase())
-  );
-  
-  // Handle selecting a carrier from dropdown
-  const handleSelectCarrier = (carrierId: number) => {
-    form.setValue("carrierId", carrierId);
-    setOpenCarrierSelect(false);
-  };
-  
-  // Handle new carrier creation
-  const handleNewCarrierMode = () => {
-    setNewCarrierMode(true);
-    setOpenCarrierSelect(false);
-    
-    // Set up default values for new carrier
-    form.setValue("newCarrier", {
-      name: carrierSearch,
-      mcNumber: "",
-      contactName: "",
-      contactEmail: "",
-      contactPhone: ""
-    });
-  };
-  
-  // Cancel new carrier creation
-  const handleCancelNewCarrier = () => {
-    setNewCarrierMode(false);
-    form.setValue("newCarrier", undefined);
-    
-    // Select first carrier if available
-    if (carriers.length > 0) {
-      form.setValue("carrierId", carriers[0].id);
-    }
-  };
+  // We no longer need the carrier selection logic as it's handled by the CarrierSelector component.
+  // No more manual filtering or state management needed for carrier selection.
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
