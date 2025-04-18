@@ -34,6 +34,14 @@ export default function Dashboard() {
     queryKey: ["/api/carriers"],
   });
   
+  // Fetch facilities
+  const { data: facilities = [] } = useQuery<any[]>({
+    queryKey: ["/api/facilities"],
+  });
+  
+  // Selected facility filter
+  const [selectedFacilityId, setSelectedFacilityId] = useState<number | "all">("all");
+  
   // Calculate KPI metrics
   const [kpiMetrics, setKpiMetrics] = useState({
     todayTrucks: 0,
@@ -142,7 +150,7 @@ export default function Dashboard() {
           currentInfo: currentSchedule && currentCarrier 
             ? { 
                 carrier: currentCarrier, 
-                startTime: currentSchedule.startTime,
+                startTime: currentSchedule.startTime.toString(), // Convert to string to match the type
                 id: currentSchedule.id 
               } 
             : undefined,
@@ -267,7 +275,31 @@ export default function Dashboard() {
       {/* Current Dock Status */}
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Current Dock Status</h3>
+          <div className="flex items-center space-x-4">
+            <h3 className="text-lg font-medium">Current Dock Status</h3>
+            
+            {/* Facility filter */}
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <Select 
+                value={selectedFacilityId === "all" ? "all" : selectedFacilityId.toString()} 
+                onValueChange={(value) => setSelectedFacilityId(value === "all" ? "all" : parseInt(value))}
+              >
+                <SelectTrigger className="h-8 border-gray-200 text-sm font-normal w-[180px]">
+                  <SelectValue placeholder="Filter by facility" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Facilities</SelectItem>
+                  {facilities.map((facility: any) => (
+                    <SelectItem key={facility.id} value={facility.id.toString()}>
+                      {facility.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
           <Button variant="link" asChild>
             <Link href="/door-manager" className="text-primary flex items-center text-sm">
               Door Manager
@@ -277,14 +309,35 @@ export default function Dashboard() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {dockStatuses.slice(0, 8).map(dock => (
-            <DockStatusCard
-              key={dock.id}
-              dock={dock}
-              currentInfo={dock.currentInfo}
-              nextInfo={dock.nextInfo}
-            />
-          ))}
+          {dockStatuses
+            .filter(dock => {
+              // If "all facilities" is selected, show all docks
+              if (selectedFacilityId === "all") return true;
+              
+              // Otherwise, find the dock in the full docks array to get its facility ID
+              const fullDock = docks.find(d => d.id === dock.id);
+              return fullDock?.facilityId === selectedFacilityId;
+            })
+            .slice(0, 8)
+            .map(dock => (
+              <DockStatusCard
+                key={dock.id}
+                dock={dock}
+                currentInfo={dock.currentInfo}
+                nextInfo={dock.nextInfo}
+              />
+            ))}
+            
+          {/* Show message when no docks match the selected facility */}
+          {dockStatuses.filter(dock => {
+            if (selectedFacilityId === "all") return true;
+            const fullDock = docks.find(d => d.id === dock.id);
+            return fullDock?.facilityId === selectedFacilityId;
+          }).length === 0 && (
+            <div className="col-span-full text-center py-8 text-gray-500">
+              No dock doors found for the selected facility.
+            </div>
+          )}
         </div>
       </div>
       

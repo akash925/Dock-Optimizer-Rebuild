@@ -2,17 +2,23 @@ import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import MetricBar from "./metric-bar";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Filter } from "lucide-react";
 import { Link } from "wouter";
 
 interface PerformanceMetricsProps {
   period: string;
   onPeriodChange: (period: string) => void;
+  facilityId?: number | "all";
+  facilities?: any[];
+  onFacilityChange?: (facilityId: number | "all") => void;
 }
 
 export default function PerformanceMetrics({
   period,
-  onPeriodChange
+  onPeriodChange,
+  facilityId = "all",
+  facilities = [],
+  onFacilityChange
 }: PerformanceMetricsProps) {
   // Mock performance data (in a real app, this would come from API)
   const [metrics, setMetrics] = useState({
@@ -63,22 +69,53 @@ export default function PerformanceMetrics({
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium">Performance Metrics</h3>
-        <Select 
-          value={period} 
-          onValueChange={onPeriodChange}
-          className="text-sm text-neutral-500 min-w-[140px]"
-        >
-          <SelectTrigger className="h-9 text-sm border-0 bg-neutral-100 rounded-md px-3 py-1">
-            <SelectValue placeholder="Select period" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="last7Days">Last 7 Days</SelectItem>
-            <SelectItem value="last30Days">Last 30 Days</SelectItem>
-            <SelectItem value="lastQuarter">Last Quarter</SelectItem>
-            <SelectItem value="ytd">Year to Date</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center space-x-4">
+          <h3 className="text-lg font-medium">Performance Metrics</h3>
+          
+          {/* Only show facility filter if facilities are provided and the onChange handler exists */}
+          {facilities.length > 0 && onFacilityChange && (
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <Select 
+                value={facilityId === "all" ? "all" : facilityId.toString()} 
+                onValueChange={(value) => {
+                  if (onFacilityChange) {
+                    onFacilityChange(value === "all" ? "all" : parseInt(value));
+                  }
+                }}
+              >
+                <SelectTrigger className="h-8 border-gray-200 text-sm font-normal w-[180px]">
+                  <SelectValue placeholder="Filter by facility" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Facilities</SelectItem>
+                  {facilities.map((facility: any) => (
+                    <SelectItem key={facility.id} value={facility.id.toString()}>
+                      {facility.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+        
+        <div className="text-sm text-neutral-500 min-w-[140px]">
+          <Select 
+            value={period} 
+            onValueChange={onPeriodChange}
+          >
+            <SelectTrigger className="h-9 text-sm border-0 bg-neutral-100 rounded-md px-3 py-1">
+              <SelectValue placeholder="Select period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="last7Days">Last 7 Days</SelectItem>
+              <SelectItem value="last30Days">Last 30 Days</SelectItem>
+              <SelectItem value="lastQuarter">Last Quarter</SelectItem>
+              <SelectItem value="ytd">Year to Date</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       
       <div className="space-y-6">
