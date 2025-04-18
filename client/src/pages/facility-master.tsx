@@ -105,6 +105,16 @@ interface Holiday {
   scope: "facility" | "organization";
 }
 
+// Common US timezones
+const US_TIMEZONES = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" }
+];
+
 export default function FacilityMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -481,7 +491,8 @@ export default function FacilityMaster() {
       city: facility.city,
       state: facility.state,
       pincode: facility.pincode,
-      country: facility.country
+      country: facility.country,
+      timezone: facility.timezone || "America/New_York" // Use facility timezone or default
     });
     setIsEditDialogOpen(true);
   };
@@ -876,6 +887,35 @@ export default function FacilityMaster() {
                     </FormItem>
                   )}
                 />
+                
+                <FormField
+                  control={createForm.control}
+                  name="timezone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Timezone</FormLabel>
+                      <Select 
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a timezone" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {US_TIMEZONES.map((tz) => (
+                            <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Select the timezone for this facility
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
               
               <DialogFooter className="mt-6">
@@ -1023,6 +1063,35 @@ export default function FacilityMaster() {
                           <SelectItem value="Mexico">Mexico</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editForm.control}
+                  name="timezone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Timezone</FormLabel>
+                      <Select 
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a timezone" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {US_TIMEZONES.map((tz) => (
+                            <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Select the timezone for this facility
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
