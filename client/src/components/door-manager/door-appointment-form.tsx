@@ -381,6 +381,21 @@ export default function DoorAppointmentForm({
                   placeholder="Select or enter carrier name"
                 />
                 
+                {/* Customer Name field */}
+                <FormField
+                  control={form.control}
+                  name="customerName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Customer Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter customer name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
                 <FormField
                   control={form.control}
                   name="truckNumber"

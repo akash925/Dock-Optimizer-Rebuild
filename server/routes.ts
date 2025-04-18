@@ -1541,17 +1541,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update schedule with notes, photo, and mark as completed
       const scheduleData = {
-        status: "completed",
+        status: "completed", // Mark as completed instead of trying to clear dockId
         actualEndTime: new Date(),
         notes: notes || schedule.notes,
         lastModifiedBy: req.user?.id || null,
         lastModifiedAt: new Date(),
-        dock_id: null, // Clear the dock assignment when releasing the door
         // Store photo information in custom form data if available
         customFormData: photoInfo ? JSON.stringify({
-          ...(schedule.customFormData ? JSON.parse(schedule.customFormData) : {}),
+          ...(schedule.customFormData ? 
+              (typeof schedule.customFormData === 'string' ? 
+                JSON.parse(schedule.customFormData) : 
+                schedule.customFormData) 
+              : {}),
           releasePhoto: photoInfo
-        }) : typeof req.body.customFormData !== 'undefined' ? req.body.customFormData : schedule.customFormData
+        }) : schedule.customFormData
       };
       
       const updatedSchedule = await storage.updateSchedule(id, scheduleData);
