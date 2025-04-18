@@ -274,7 +274,7 @@ export default function Schedules() {
         <Button 
           onClick={() => {
             setEditScheduleId(null);
-            setIsFormOpen(true);
+            setIsAppointmentTypeDialogOpen(true);
           }}
           className="bg-primary text-white"
         >
@@ -419,11 +419,13 @@ export default function Schedules() {
           setIsFormOpen(false);
           setClickedCellDate(undefined);
           setSelectedDockId(undefined);  // Reset selected dock when closing form
+          setSelectedAppointmentTypeId(undefined); // Reset selected appointment type
         }}
         initialData={scheduleToEdit}
         mode={editScheduleId ? "edit" : "create"}
         initialDate={clickedCellDate || selectedDate}
         initialDockId={selectedDockId}  // Pass the selected dock to the form
+        appointmentTypeId={selectedAppointmentTypeId} // Pass the selected appointment type
       />
       
       {/* Appointment Details Dialog */}
