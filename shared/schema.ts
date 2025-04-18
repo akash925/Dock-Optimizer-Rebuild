@@ -115,7 +115,7 @@ export const insertCarrierSchema = createInsertSchema(carriers).omit({
 // Schedule Model
 export const schedules = pgTable("schedules", {
   id: serial("id").primaryKey(),
-  dockId: integer("dock_id").notNull(),
+  dockId: integer("dock_id"),
   carrierId: integer("carrier_id").notNull(),
   appointmentTypeId: integer("appointment_type_id"),
   truckNumber: text("truck_number").notNull(),

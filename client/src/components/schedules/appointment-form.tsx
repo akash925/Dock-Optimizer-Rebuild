@@ -422,7 +422,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         // Set default values to avoid undefined or null fields that cause server errors
         carrierId: formData.carrierId || null,
         customerName: formData.customerName || "",
-        dockId: data.dockId,
+        dockId: data.dockId || null, // Make the dockId field optional
         truckNumber: formData.truckNumber || "",
         trailerNumber: formData.trailerNumber || "",
         driverName: formData.driverName || "",
@@ -822,6 +822,9 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                       </SelectContent>
                     </Select>
                     <FormMessage />
+                    <FormDescription>
+                      Dock door selection is optional. You can leave it empty and assign it later.
+                    </FormDescription>
                   </FormItem>
                 )}
               />
