@@ -21,6 +21,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
+import { CarrierSelector } from "@/components/shared/carrier-selector";
 
 // Tab 1: Truck Information
 const truckInfoSchema = z.object({
@@ -437,87 +438,14 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                 <TabsContent value="standard" className="space-y-4 pt-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="grid grid-cols-1 gap-4">
-                      <FormField
-                        control={truckInfoForm.control}
-                        name="carrierId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Carrier</FormLabel>
-                            <Select 
-                              value={field.value?.toString() || ""} 
-                              onValueChange={(value) => {
-                                field.onChange(value ? parseInt(value) : undefined);
-                                
-                                // Find the carrier name for the selected ID
-                                if (value) {
-                                  const carrier = carriers.find(c => c.id.toString() === value);
-                                  if (carrier) {
-                                    truckInfoForm.setValue("carrierName", carrier.name);
-                                    
-                                    if (carrier.mcNumber) {
-                                      console.log("Setting MC Number to:", carrier.mcNumber);
-                                      truckInfoForm.setValue("mcNumber", carrier.mcNumber);
-                                    }
-                                  }
-                                } else {
-                                  truckInfoForm.setValue("carrierName", "");
-                                }
-                              }}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a carrier (optional)" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <div className="p-2">
-                                  <Input 
-                                    placeholder="Search carriers..." 
-                                    className="mb-2"
-                                    onChange={(e) => {
-                                      // This would filter the carriers list in a real implementation
-                                      // For now, we'll just log the search term
-                                      console.log("Searching for:", e.target.value);
-                                    }}
-                                  />
-                                </div>
-                                {carriers.map(carrier => (
-                                  <SelectItem key={carrier.id} value={carrier.id.toString()}>
-                                    {carrier.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormDescription>
-                              Optional: Select an existing carrier or enter a new one below
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={truckInfoForm.control}
-                        name="carrierName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Custom Carrier Name</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Enter carrier name if not in list above" 
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  // Clear carrier ID if custom name is entered
-                                  if (e.target.value) {
-                                    truckInfoForm.setValue("carrierId", undefined);
-                                  }
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                      {/* Using the standardized CarrierSelector component */}
+                      <CarrierSelector 
+                        form={truckInfoForm}
+                        nameFieldName="carrierName"
+                        idFieldName="carrierId"
+                        mcNumberFieldName="mcNumber"
+                        label="Carrier"
+                        placeholder="Select or enter carrier name"
                       />
 
                       <FormField
@@ -538,25 +466,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                         )}
                       />
                       
-                      <FormField
-                        control={truckInfoForm.control}
-                        name="mcNumber"
-                        render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>MC Number</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Enter Motor Carrier number" 
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                The MC Number is used for carrier verification with the FMCSA
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                        )}
-                      />
+
                     </div>
                     
                     <FormField
