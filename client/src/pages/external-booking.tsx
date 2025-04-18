@@ -49,9 +49,7 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
       }
     };
     
-    // Clear MC Number on mount
-    form.setValue("mcNumber", "");
-    
+    // Don't reset MC Number on mount
     fetchInitialCarriers();
   }, [form]);
   
@@ -287,8 +285,10 @@ export default function ExternalBooking() {
   // Check if the URL has a reset parameter
   const shouldReset = useMemo(() => {
     // Manually parse the reset parameter from the URL
-    if (location && location.search && typeof location.search === 'string') {
-      return location.search.indexOf('reset=true') !== -1;
+    if (location && location.search) {
+      // Use String prototype method to avoid TypeScript error
+      const searchStr = String(location.search);
+      return searchStr.indexOf('reset=true') !== -1;
     }
     return false;
   }, [location]);
@@ -803,7 +803,7 @@ Type: Dropoff`;
                 </TabsContent>
                 
                 <TabsContent value="bol" className="space-y-4">
-                  <div className="border-2 border-dashed rounded-md border-gray-300 p-6 flex flex-col items-center justify-center bg-gray-50">
+                  <div className="border-2 border-dashed rounded-md border-gray-300 p-6 flex flex-col items-center justify-center bg-gray-50 cursor-pointer" onClick={() => document.getElementById('bol-upload')?.click()}>
                     <input
                       type="file"
                       id="bol-upload"
@@ -811,7 +811,7 @@ Type: Dropoff`;
                       accept=".pdf,.jpg,.jpeg,.png"
                       onChange={handleFileUpload}
                     />
-                    <FileText className="h-10 w-10 text-gray-400 mb-2" />
+                    <FileText className="h-10 w-10 text-primary mb-2" />
                     {bolProcessing ? (
                       <div className="flex flex-col items-center">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -828,11 +828,13 @@ Type: Dropoff`;
                         </div>
                         <Button 
                           type="button" 
-                          variant="outline" 
+                          variant="default" 
                           size="sm" 
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent triggering the parent div's click
                             setBolFile(null);
                             setBolPreviewText(null);
+                            initialSelectionForm.setValue("bolUploaded", false);
                           }}
                           className="mt-3"
                         >
@@ -845,12 +847,10 @@ Type: Dropoff`;
                         <p className="text-xs text-gray-400 text-center max-w-xs mb-3">
                           We'll extract information to help pre-fill your booking details
                         </p>
-                        <label htmlFor="bol-upload">
-                          <Button type="button" variant="outline" size="sm">
-                            <Upload className="h-4 w-4 mr-2" />
-                            Choose File
-                          </Button>
-                        </label>
+                        <Button type="button" variant="default" size="sm">
+                          <Upload className="h-4 w-4 mr-2" />
+                          Click here to upload a file
+                        </Button>
                         <p className="mt-2 text-xs text-gray-400">Supported formats: PDF, JPG, PNG</p>
                       </>
                     )}
