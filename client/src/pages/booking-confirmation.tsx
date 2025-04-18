@@ -401,7 +401,7 @@ Hanzo Logistics`}
                 onClick={handleNewBooking}
               >
                 <CalendarCheck className="mr-2 h-4 w-4" />
-                New Booking
+                New Appointment
               </Button>
               <Button 
                 className="flex-1 flex items-center justify-center" 

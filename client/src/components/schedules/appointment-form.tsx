@@ -230,10 +230,10 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
   
   // Handle step 1 submission
   const onTruckInfoSubmit = (data: TruckInfoFormValues) => {
-    // Filter out any phone numbers in MC Number field
+    // Accept MC Number including hyphens
     const cleanedData = {
       ...data,
-      mcNumber: data.mcNumber && data.mcNumber.includes('-') ? '' : data.mcNumber
+      mcNumber: data.mcNumber || ''
     };
     setFormData(prev => ({...prev, ...cleanedData}));
     setStep(2);
@@ -346,7 +346,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       if (!formData.carrierId && carrierName) {
         scheduleData.newCarrier = {
           name: carrierName,
-          mcNumber: mcNumber.includes('-') ? '' : mcNumber
+          mcNumber: mcNumber
         };
       }
       
@@ -548,8 +548,8 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                         control={truckInfoForm.control}
                         name="mcNumber"
                         render={({ field }) => {
-                          // Replace any phone numbers with empty string to avoid showing that data
-                          const fieldValue = field.value && field.value.includes('-') ? '' : field.value;
+                          // Allow MC numbers with hyphens
+                          const fieldValue = field.value;
                           
                           return (
                             <FormItem>
