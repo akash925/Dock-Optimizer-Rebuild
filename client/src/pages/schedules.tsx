@@ -64,7 +64,8 @@ export default function Schedules() {
   });
   
   // Get facility name for a dock
-  const getFacilityNameForDock = (dockId: number): string => {
+  const getFacilityNameForDock = (dockId: number | null): string => {
+    if (!dockId) return "No dock assigned";
     const dock = docks.find(d => d.id === dockId);
     if (!dock) return "Unknown Facility";
     
