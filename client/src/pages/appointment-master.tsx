@@ -1377,7 +1377,6 @@ export default function AppointmentMaster() {
                                 <div className="flex items-center space-x-2">
                                   <Checkbox 
                                     id={`include-field-${field.id}`}
-                                    // This would need actual state in a real app
                                     defaultChecked={field.appointmentType === "both" || field.appointmentType === appointmentTypeForm.type}
                                   />
                                   <Label htmlFor={`include-field-${field.id}`} className="font-medium">
