@@ -6,6 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Schedule } from "@shared/schema";
+
+// Extended Schedule interface with derived properties that might be 
+// added after fetching from the server
+interface ExtendedSchedule extends Schedule {
+  dockName?: string;
+  appointmentTypeName?: string;
+}
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -516,7 +523,13 @@ export function AppointmentDetailsDialog({
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">
             {appointmentTitle}
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {/* Display appointment type prominently */}
+              {appointment.appointmentTypeId && (
+                <Badge className="bg-primary text-primary-foreground font-medium">
+                  {appointment.appointmentTypeName || `Type #${appointment.appointmentTypeId}`}
+                </Badge>
+              )}
               <Badge variant="outline" className={getTypeColor()}>
                 {appointment.type === "inbound" ? "Inbound" : "Outbound"}
               </Badge>
@@ -531,8 +544,11 @@ export function AppointmentDetailsDialog({
             </div>
           </DialogTitle>
           <DialogDescription>
-            {appointment.type === "inbound" ? "Inbound" : "Outbound"} appointment details. 
-            You can view, edit, or manage this appointment.
+            <div className="flex flex-col space-y-1 mt-1">
+              <span>{facilityName ? `Facility: ${facilityName}` : ""}</span>
+              <span>{appointment.dockId ? `Dock: ${appointment.dockName || "Unknown"}` : "No dock assigned"}</span>
+              <span>{appointment.type === "inbound" ? "Inbound" : "Outbound"} appointment</span>
+            </div>
           </DialogDescription>
         </DialogHeader>
 

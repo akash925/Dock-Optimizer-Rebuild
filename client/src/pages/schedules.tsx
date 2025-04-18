@@ -34,6 +34,7 @@ export default function Schedules() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
+  const [filterFacilityId, setFilterFacilityId] = useState<number | "all">("all");
   const [filterDockId, setFilterDockId] = useState<number | "all">("all");
   const [selectedDockId, setSelectedDockId] = useState<number | undefined>(undefined);
   const [isAppointmentTypeDialogOpen, setIsAppointmentTypeDialogOpen] = useState(false);
