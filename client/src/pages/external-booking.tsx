@@ -80,18 +80,16 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
     form.setValue("carrierId", carrier.id);
     form.setValue("carrierName", carrier.name);
     
-    // Then handle MC Number (with a batch of operations)
-    if (carrier.mcNumber) {
-      console.log("Setting MC Number to:", carrier.mcNumber);
-      form.setValue("mcNumber", carrier.mcNumber);
-    } else {
-      console.log("No MC Number available, keeping field blank");
-      // Don't reset MC number if user already entered one
-      const currentMcNumber = form.getValues("mcNumber");
-      if (!currentMcNumber) {
-        form.setValue("mcNumber", "");
+    // Create a timeout to allow proper batched state updates
+    setTimeout(() => {
+      // Then handle MC Number - always set it from carrier if available
+      if (carrier.mcNumber) {
+        console.log("Setting MC Number to:", carrier.mcNumber);
+        form.setValue("mcNumber", carrier.mcNumber);
+      } else {
+        console.log("No MC Number available for this carrier");
       }
-    }
+    }, 0);
     
     setOpen(false);
   }, [form]);
@@ -103,8 +101,15 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
       // Set the carrier name
       form.setValue("carrierName", searchQuery.trim());
       
-      // Explicitly clear MC Number for new carriers
-      form.setValue("mcNumber", "");
+      // Clear carrier ID for new carriers that don't exist in the system yet
+      form.setValue("carrierId", undefined);
+      
+      // Don't reset MC Number unless it's empty - allow users to enter MC number for new carriers
+      const currentMcNumber = form.getValues("mcNumber");
+      if (!currentMcNumber) {
+        // Only set to empty if the user hasn't already entered something
+        form.setValue("mcNumber", "");
+      }
       
       setOpen(false);
       setAddingNewCarrier(false);
