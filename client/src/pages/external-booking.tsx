@@ -257,6 +257,8 @@ const appointmentDetailsSchema = z.object({
   appointmentDate: z.string().min(1, "Please select a date"),
   appointmentTime: z.string().min(1, "Please select a time"),
   carrierName: z.string().min(1, "Carrier name is required"),
+  // Allow carrier ID for direct carrier selection
+  carrierId: z.number().optional(),
   // Make mcNumber completely optional, empty string is also valid
   mcNumber: z.string().optional().or(z.literal("")),
   truckNumber: z.string().min(1, "Truck number is required"),
@@ -391,6 +393,7 @@ export default function ExternalBooking() {
         appointmentDate: "",
         appointmentTime: "",
         carrierName: "",
+        carrierId: undefined, // Clear the carrier ID
         mcNumber: "",
         truckNumber: "",
         trailerNumber: "",
@@ -451,6 +454,7 @@ export default function ExternalBooking() {
       appointmentDate: "",
       appointmentTime: "",
       carrierName: "",
+      carrierId: undefined, // Add carrierId field with default undefined
       mcNumber: "",
       truckNumber: "",
       trailerNumber: "",
@@ -690,8 +694,9 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
         // Save the current MC number value
         const currentMcNumber = appointmentDetailsForm.getValues("mcNumber");
         
-        // Reset only carrier name
+        // Reset carrier name and ID
         appointmentDetailsForm.setValue("carrierName", "");
+        appointmentDetailsForm.setValue("carrierId", undefined);
         
         // Restore MC number immediately
         setTimeout(() => {

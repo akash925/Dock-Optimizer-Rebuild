@@ -135,11 +135,27 @@ export function AppointmentDetailsDialog({
     setEventHistory(sortedHistory);
   }, [appointment]);
 
-  // Format dates with timezone handling
+  // Format dates with consistent Eastern timezone handling
   const formatDate = (date: Date | string) => {
     if (!date) return "";
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    return format(dateObj, "MM/dd/yyyy hh:mm a");
+    
+    // Use Eastern Time (America/New_York) consistently
+    try {
+      return dateObj.toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (err) {
+      console.error("Error formatting date with timezone:", err);
+      // Fallback to format if toLocaleString with timeZone fails
+      return format(dateObj, "MM/dd/yyyy hh:mm a");
+    }
   };
 
   const handleInputChange = (field: string, value: any) => {
