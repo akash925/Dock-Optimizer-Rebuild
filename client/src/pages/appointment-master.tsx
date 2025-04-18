@@ -64,12 +64,15 @@ export default function AppointmentMaster() {
     color: "#4CAF50",
     duration: 60,
     type: "both", // Default to "both" for inbound/outbound
-    maxSlots: 1,
+    maxConcurrent: 1,
     timezone: "America/New_York",
-    gracePeriod: 15,
+    gracePeriod: 15, // Grace period before an appointment is marked late
+    bufferTime: 0, // Gap between appointments
+    maxAppointmentsPerDay: undefined as number | undefined, // Optional daily limit
     emailReminderTime: 24,
     showRemainingSlots: true,
-    location: ""
+    allowAppointmentsThroughBreaks: false,
+    allowAppointmentsPastBusinessHours: false
   });
   
   // Scheduling settings for appointment type
