@@ -26,211 +26,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Facility, BookingPage, AppointmentType, Carrier } from "@shared/schema";
 import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
-
-// Carrier Select Field Component - Direct implementation
-function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormValues> }) {
-  const [open, setOpen] = useState(false);
-  const [carriers, setCarriers] = useState<Carrier[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [addingNewCarrier, setAddingNewCarrier] = useState(false);
-  
-  // Load initial carriers when the component mounts
-  useEffect(() => {
-    const fetchInitialCarriers = async () => {
-      try {
-        const res = await fetch('/api/carriers/search?query=');
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setCarriers(data.slice(0, 5));
-        }
-      } catch (err) {
-        console.error("Error loading initial carriers:", err);
-      }
-    };
-    
-    // Don't reset MC Number on mount
-    fetchInitialCarriers();
-  }, [form]);
-  
-  // Search carriers when query changes
-  useEffect(() => {
-    if (!searchQuery.trim() || searchQuery.length < 2) return;
-    
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const res = await fetch(`/api/carriers/search?query=${encodeURIComponent(searchQuery)}`);
-        const data = await res.json();
-        setCarriers(data);
-      } catch (err) {
-        console.error("Error searching carriers:", err);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-  
-  const handleSelectCarrier = useCallback((carrier: Carrier) => {
-    console.log("Selecting carrier:", carrier);
-    
-    // Set carrier ID and name
-    form.setValue("carrierId", carrier.id);
-    form.setValue("carrierName", carrier.name);
-    
-    // Create a timeout to allow proper batched state updates
-    setTimeout(() => {
-      // Then handle MC Number - always set it from carrier if available
-      if (carrier.mcNumber) {
-        console.log("Setting MC Number to:", carrier.mcNumber);
-        form.setValue("mcNumber", carrier.mcNumber);
-      } else {
-        console.log("No MC Number available for this carrier");
-      }
-    }, 0);
-    
-    setOpen(false);
-  }, [form]);
-  
-  const handleAddCarrier = useCallback(() => {
-    if (searchQuery.trim()) {
-      console.log("Adding new carrier:", searchQuery);
-      
-      // Set the carrier name
-      form.setValue("carrierName", searchQuery.trim());
-      
-      // Clear carrier ID for new carriers that don't exist in the system yet
-      form.setValue("carrierId", undefined);
-      
-      // Don't reset MC Number unless it's empty - allow users to enter MC number for new carriers
-      const currentMcNumber = form.getValues("mcNumber");
-      if (!currentMcNumber) {
-        // Only set to empty if the user hasn't already entered something
-        form.setValue("mcNumber", "");
-      }
-      
-      setOpen(false);
-      setAddingNewCarrier(false);
-    }
-  }, [searchQuery, form, setOpen, setAddingNewCarrier]);
-  
-  const carrierNameValue = form.watch("carrierName");
-  
-  return (
-    <FormField
-      control={form.control}
-      name="carrierName"
-      render={({ field }) => (
-        <FormItem className="flex flex-col">
-          <FormLabel>Carrier Name*</FormLabel>
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <FormControl>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-between text-left font-normal"
-                >
-                  <span className="flex-grow truncate">
-                    {carrierNameValue || "Select or enter carrier name"}
-                  </span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </FormControl>
-            </PopoverTrigger>
-            <PopoverContent className="w-[400px] p-0" align="start">
-              <Command>
-                <CommandInput 
-                  placeholder="Search carriers..." 
-                  value={searchQuery}
-                  onValueChange={setSearchQuery}
-                />
-                {isSearching && (
-                  <div className="py-6 text-center text-sm">
-                    <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
-                    Searching carriers...
-                  </div>
-                )}
-                {!isSearching && carriers.length === 0 && (
-                  <CommandEmpty>
-                    <div className="py-3 px-2">
-                      <p className="text-sm text-muted-foreground mb-2">No carrier found with that name.</p>
-                      {!addingNewCarrier ? (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full" 
-                          onClick={() => setAddingNewCarrier(true)}
-                        >
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Add "{searchQuery}" as new carrier
-                        </Button>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-xs text-muted-foreground">
-                            Adding a new carrier? You can provide their MC Number in the next field if available.
-                          </p>
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              className="flex-1" 
-                              onClick={handleAddCarrier}
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Confirm new carrier
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => setAddingNewCarrier(false)}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CommandEmpty>
-                )}
-                {!isSearching && carriers.length > 0 && (
-                  <CommandGroup heading="Existing Carriers">
-                    {carriers.map(carrier => (
-                      <CommandItem
-                        key={carrier.id}
-                        value={carrier.name}
-                        onSelect={() => handleSelectCarrier(carrier)}
-                      >
-                        <div className="flex flex-col w-full">
-                          <div className="flex items-center">
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                carrierNameValue === carrier.name ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <span>{carrier.name}</span>
-                          </div>
-                          {carrier.mcNumber && (
-                            <span className="text-xs text-muted-foreground ml-6">
-                              MC: {carrier.mcNumber}
-                            </span>
-                          )}
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                )}
-              </Command>
-            </PopoverContent>
-          </Popover>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
-}
+import { CarrierSelector } from "@/components/shared/carrier-selector";
 
 interface ParsedFacilities {
   [facilityId: string]: {
@@ -1320,8 +1116,15 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
                 </p>
               </div>
               
-              {/* Using the new direct CarrierSelect component */}
-              <CarrierSelect form={appointmentDetailsForm} />
+              {/* Using the new standardized CarrierSelector component */}
+              <CarrierSelector 
+                form={appointmentDetailsForm} 
+                nameFieldName="carrierName"
+                idFieldName="carrierId"
+                mcNumberFieldName="mcNumber"
+                required={true}
+                placeholder="Select or enter carrier name"
+              />
 
 
 

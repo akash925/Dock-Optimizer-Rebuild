@@ -1,0 +1,256 @@
+import { useState, useEffect, useCallback } from "react";
+import { UseFormReturn } from "react-hook-form";
+import { Carrier } from "@shared/schema";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown, Loader2, Plus, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+
+interface CarrierSelectorProps {
+  form: UseFormReturn<any>;
+  nameFieldName: string;
+  idFieldName: string;
+  mcNumberFieldName?: string;
+  label?: string;
+  required?: boolean;
+  placeholder?: string;
+  className?: string;
+}
+
+export function CarrierSelector({
+  form,
+  nameFieldName,
+  idFieldName,
+  mcNumberFieldName,
+  label = "Carrier",
+  required = false,
+  placeholder = "Select carrier...",
+  className
+}: CarrierSelectorProps) {
+  const [open, setOpen] = useState(false);
+  const [carriers, setCarriers] = useState<Carrier[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [addingNewCarrier, setAddingNewCarrier] = useState(false);
+  
+  // Get current value from form
+  const carrierNameValue = form.watch(nameFieldName);
+  
+  // Load initial carriers when the component mounts
+  useEffect(() => {
+    const fetchInitialCarriers = async () => {
+      try {
+        const res = await fetch('/api/carriers/search?query=');
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setCarriers(data.slice(0, 5));
+        }
+      } catch (err) {
+        console.error("Error loading initial carriers:", err);
+      }
+    };
+    
+    fetchInitialCarriers();
+  }, []);
+  
+  // Search carriers when query changes
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.length < 2) return;
+    
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(`/api/carriers/search?query=${encodeURIComponent(searchQuery)}`);
+        const data = await res.json();
+        setCarriers(data);
+      } catch (err) {
+        console.error("Error searching carriers:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSelectCarrier = useCallback((carrier: Carrier) => {
+    console.log("Selecting carrier:", carrier);
+    
+    // Set carrier ID and name
+    form.setValue(idFieldName, carrier.id);
+    form.setValue(nameFieldName, carrier.name);
+    
+    // Set MC Number if field name provided and carrier has mcNumber
+    if (mcNumberFieldName && carrier.mcNumber) {
+      console.log("Setting MC Number to:", carrier.mcNumber);
+      setTimeout(() => {
+        form.setValue(mcNumberFieldName, carrier.mcNumber);
+      }, 0);
+    }
+    
+    setOpen(false);
+  }, [form, idFieldName, nameFieldName, mcNumberFieldName]);
+  
+  const handleAddCarrier = useCallback(() => {
+    if (searchQuery.trim()) {
+      console.log("Adding new carrier:", searchQuery);
+      
+      // Set the carrier name
+      form.setValue(nameFieldName, searchQuery.trim());
+      
+      // Clear carrier ID for new carriers that don't exist in the system yet
+      form.setValue(idFieldName, undefined);
+      
+      // Don't reset MC Number if mcNumberFieldName is provided
+      if (mcNumberFieldName) {
+        const currentMcNumber = form.getValues(mcNumberFieldName);
+        if (!currentMcNumber) {
+          // Only set to empty if the user hasn't already entered something
+          form.setValue(mcNumberFieldName, "");
+        }
+      }
+      
+      setOpen(false);
+      setAddingNewCarrier(false);
+    }
+  }, [searchQuery, form, idFieldName, nameFieldName, mcNumberFieldName]);
+  
+  return (
+    <FormItem className={cn("flex flex-col", className)}>
+      <FormLabel>{label}{required && "*"}</FormLabel>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <FormControl>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-between text-left font-normal"
+            >
+              <span className="flex-grow truncate">
+                {carrierNameValue || placeholder}
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </FormControl>
+        </PopoverTrigger>
+        <PopoverContent className="w-[400px] p-0" align="start">
+          <Command>
+            <CommandInput 
+              placeholder="Search carriers..." 
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+            />
+            {isSearching && (
+              <div className="py-6 text-center text-sm">
+                <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                Searching carriers...
+              </div>
+            )}
+            {!isSearching && carriers.length === 0 && (
+              <CommandEmpty>
+                <div className="py-3 text-center text-sm">
+                  No carriers found.
+                  
+                  {!addingNewCarrier ? (
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mx-auto"
+                        onClick={() => setAddingNewCarrier(true)}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add "{searchQuery}"
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mt-2 space-y-2 text-left p-2 border rounded-md">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Add New Carrier</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAddingNewCarrier(false)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        <Input
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Carrier name"
+                          className="w-full"
+                        />
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleAddCarrier}
+                          >
+                            Add Carrier
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setAddingNewCarrier(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CommandEmpty>
+            )}
+            {!isSearching && carriers.length > 0 && (
+              <CommandGroup heading="Existing Carriers">
+                {carriers.map(carrier => (
+                  <CommandItem
+                    key={carrier.id}
+                    value={carrier.name}
+                    onSelect={() => handleSelectCarrier(carrier)}
+                  >
+                    <div className="flex flex-col w-full">
+                      <div className="flex items-center">
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            carrierNameValue === carrier.name ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <span>{carrier.name}</span>
+                      </div>
+                      {carrier.mcNumber && (
+                        <span className="text-xs text-muted-foreground ml-6">
+                          MC: {carrier.mcNumber}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                ))}
+                {searchQuery && (
+                  <CommandItem
+                    onSelect={handleAddCarrier}
+                    className="text-primary"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add new carrier: "{searchQuery}"
+                  </CommandItem>
+                )}
+              </CommandGroup>
+            )}
+          </Command>
+        </PopoverContent>
+      </Popover>
+      <FormMessage />
+    </FormItem>
+  );
+}
