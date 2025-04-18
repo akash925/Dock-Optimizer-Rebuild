@@ -509,12 +509,16 @@ export default function AppointmentMaster() {
                       color: "#4CAF50",
                       duration: 60,
                       type: "both",
-                      maxSlots: 1,
+                      maxConcurrent: 1,
+                      bufferTime: 0,
+                      maxAppointmentsPerDay: undefined,
+                      allowAppointmentsThroughBreaks: false,
+                      allowAppointmentsPastBusinessHours: false,
                       timezone: "America/New_York",
                       gracePeriod: 15,
                       emailReminderTime: 24,
                       showRemainingSlots: true,
-                      location: ""
+
                     });
                     setAppointmentTypeFormStep(1);
                     setShowNewAppointmentTypeDialog(true);
@@ -571,12 +575,15 @@ export default function AppointmentMaster() {
                                     color: appointmentType.color || "#4CAF50",
                                     duration: appointmentType.duration || 60,
                                     type: appointmentType.type || "both",
-                                    maxSlots: appointmentType.maxSlots || 1,
+                                    maxConcurrent: appointmentType.maxConcurrent || 1,
+                                    bufferTime: appointmentType.bufferTime || 0,
+                                    maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay === null ? undefined : appointmentType.maxAppointmentsPerDay,
                                     timezone: appointmentType.timezone || "America/New_York",
                                     gracePeriod: appointmentType.gracePeriod || 15,
                                     emailReminderTime: appointmentType.emailReminderTime || 24,
                                     showRemainingSlots: appointmentType.showRemainingSlots ?? true,
-                                    location: appointmentType.location || ""
+                                    allowAppointmentsThroughBreaks: appointmentType.allowAppointmentsThroughBreaks || false,
+                                    allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false
                                   });
                                   setAppointmentTypeFormStep(1);
                                   setShowNewAppointmentTypeDialog(true);
@@ -1384,6 +1391,44 @@ export default function AppointmentMaster() {
                       </div>
                       <p className="text-sm text-muted-foreground ml-6">
                         Display the number of remaining slots for each time slot on the booking page
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2 md:col-span-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          id="appointment-allow-through-breaks"
+                          checked={appointmentTypeForm.allowAppointmentsThroughBreaks}
+                          onCheckedChange={(checked) => setAppointmentTypeForm({
+                            ...appointmentTypeForm, 
+                            allowAppointmentsThroughBreaks: checked
+                          })}
+                        />
+                        <Label htmlFor="appointment-allow-through-breaks">
+                          Allow appointments to span breaks
+                        </Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground ml-6">
+                        When enabled, appointments can be scheduled during break times
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2 md:col-span-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch 
+                          id="appointment-allow-past-hours"
+                          checked={appointmentTypeForm.allowAppointmentsPastBusinessHours}
+                          onCheckedChange={(checked) => setAppointmentTypeForm({
+                            ...appointmentTypeForm, 
+                            allowAppointmentsPastBusinessHours: checked
+                          })}
+                        />
+                        <Label htmlFor="appointment-allow-past-hours">
+                          Allow appointments past business hours
+                        </Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground ml-6">
+                        When enabled, appointments can be scheduled to start or end outside of regular business hours
                       </p>
                     </div>
                     
