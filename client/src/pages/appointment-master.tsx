@@ -1268,14 +1268,32 @@ export default function AppointmentMaster() {
                         id="appointment-slots" 
                         type="number" 
                         min="1"
-                        value={appointmentTypeForm.maxSlots} 
+                        value={appointmentTypeForm.maxConcurrent} 
                         onChange={(e) => setAppointmentTypeForm({
                           ...appointmentTypeForm, 
-                          maxSlots: parseInt(e.target.value)
+                          maxConcurrent: parseInt(e.target.value)
                         })}
                       />
                       <p className="text-sm text-muted-foreground">
                         Maximum number of appointments that can be scheduled at the same time
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="appointment-max-per-day">Maximum appointments per day</Label>
+                      <Input 
+                        id="appointment-max-per-day" 
+                        type="number" 
+                        min="0"
+                        placeholder="No limit"
+                        value={appointmentTypeForm.maxAppointmentsPerDay === undefined ? '' : appointmentTypeForm.maxAppointmentsPerDay} 
+                        onChange={(e) => setAppointmentTypeForm({
+                          ...appointmentTypeForm, 
+                          maxAppointmentsPerDay: e.target.value === '' ? undefined : parseInt(e.target.value)
+                        })}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Optional limit for total appointments per day (leave empty for no limit)
                       </p>
                     </div>
                     
@@ -1293,7 +1311,25 @@ export default function AppointmentMaster() {
                         })}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Buffer time between appointments
+                        Grace period before an appointment is marked late
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="appointment-buffer">Buffer time (minutes)</Label>
+                      <Input 
+                        id="appointment-buffer" 
+                        type="number" 
+                        min="0"
+                        step="5"
+                        value={appointmentTypeForm.bufferTime} 
+                        onChange={(e) => setAppointmentTypeForm({
+                          ...appointmentTypeForm, 
+                          bufferTime: parseInt(e.target.value)
+                        })}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Gap between appointments (e.g., for cleanup or preparation)
                       </p>
                     </div>
                     
