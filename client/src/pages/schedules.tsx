@@ -128,9 +128,21 @@ export default function Schedules() {
   
   // Handle appointment type selection
   const handleAppointmentTypeSelected = (appointmentTypeId: number) => {
+    console.log("Selected appointment type ID:", appointmentTypeId);
     setSelectedAppointmentTypeId(appointmentTypeId);
+    
+    // Close the appointment type dialog and open the appointment form
     setIsAppointmentTypeDialogOpen(false);
     setIsFormOpen(true);
+    
+    // Set appointment type in the schedule creation form
+    // The appointment form will use this ID to fetch the appointment type details
+    const appointmentType = appointmentTypes.find(type => type.id === appointmentTypeId);
+    
+    // Log for debugging
+    if (appointmentType) {
+      console.log("Selected appointment type:", appointmentType.name, "Duration:", appointmentType.duration, "minutes");
+    }
   };
   
   // Columns for the data table
@@ -438,47 +450,79 @@ export default function Schedules() {
       
       {/* Appointment Type Selection Dialog */}
       <Dialog open={isAppointmentTypeDialogOpen} onOpenChange={setIsAppointmentTypeDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Select Appointment Type</DialogTitle>
+        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto p-0">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle className="text-2xl font-semibold">Select Appointment Type</DialogTitle>
             <DialogDescription>
               Choose the type of appointment you'd like to schedule.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="py-2">
             {appointmentTypes.length > 0 ? (
-              <div className="grid grid-cols-1 gap-3">
-                {appointmentTypes.map((type) => (
-                  <Button
-                    key={type.id}
-                    variant="outline"
-                    className="flex items-center justify-between p-4 h-auto"
-                    onClick={() => handleAppointmentTypeSelected(type.id)}
-                    style={{ 
-                      borderLeftWidth: '4px',
-                      borderLeftColor: type.color || '#888' 
-                    }}
-                  >
-                    <div className="flex flex-col items-start text-left">
-                      <span className="font-medium mb-1">{type.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {type.description || 'No description'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-sm font-medium">
-                        <Clock className="h-4 w-4 inline-block mr-1" />
-                        {type.duration} min
-                      </span>
-                      <Badge variant="outline" className="mt-1">
-                        {type.type.toLowerCase() === 'inbound' ? 'Inbound' : 'Outbound'}
-                      </Badge>
-                    </div>
-                  </Button>
-                ))}
+              <div className="divide-y divide-gray-100">
+                {appointmentTypes.map((type) => {
+                  // Determine the facility name for this appointment type
+                  const facility = facilities.find(f => f.id === type.facilityId);
+                  const facilityName = facility?.name || "Unknown Location";
+                  
+                  // Create badge for inbound/outbound/both
+                  let typeLabel = "";
+                  let typeColor = "";
+                  if (type.type.toLowerCase() === 'inbound') {
+                    typeLabel = "Inbound";
+                    typeColor = "bg-blue-100 text-blue-800";
+                  } else if (type.type.toLowerCase() === 'outbound') {
+                    typeLabel = "Outbound";
+                    typeColor = "bg-purple-100 text-purple-800";
+                  } else {
+                    typeLabel = "Inbound/Outbound";
+                    typeColor = "bg-gray-100 text-gray-800";
+                  }
+                  
+                  return (
+                    <button
+                      key={type.id}
+                      className="w-full px-6 py-4 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors flex items-start justify-between group"
+                      onClick={() => handleAppointmentTypeSelected(type.id)}
+                    >
+                      <div className="flex items-start w-full">
+                        {/* Left color bar */}
+                        <div 
+                          className="w-1.5 self-stretch mr-4 rounded-full flex-shrink-0" 
+                          style={{ backgroundColor: type.color || '#888' }}
+                        />
+                        
+                        {/* Content */}
+                        <div className="flex-1">
+                          <div className="flex justify-between w-full">
+                            <h3 className="font-semibold text-lg">{type.name}</h3>
+                            <span className="text-sm text-gray-500 flex items-center">
+                              <Clock className="h-4 w-4 mr-1.5" />
+                              {type.duration} min
+                            </span>
+                          </div>
+                          
+                          <p className="text-sm text-gray-600 mt-1 mb-2">
+                            {type.description || 'No description available'}
+                          </p>
+                          
+                          <div className="flex items-center">
+                            <span className={`text-xs px-2 py-1 rounded-full ${typeColor}`}>
+                              {typeLabel}
+                            </span>
+                            <span className="mx-2 text-gray-300">•</span>
+                            <span className="text-xs text-gray-500">
+                              {facilityName}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
-              <div className="text-center p-4">
+              <div className="text-center p-8 border-t">
                 <p className="text-muted-foreground">No appointment types available.</p>
                 <p className="text-sm mt-2">
                   Please configure appointment types in the Appointment Master section.
@@ -486,11 +530,11 @@ export default function Schedules() {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsAppointmentTypeDialogOpen(false)}>
+          <div className="flex justify-end p-6 border-t">
+            <Button variant="outline" onClick={() => setIsAppointmentTypeDialogOpen(false)} className="px-4">
               Cancel
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
