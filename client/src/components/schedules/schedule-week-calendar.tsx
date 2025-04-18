@@ -45,9 +45,9 @@ export default function ScheduleWeekCalendar({
   // Generate days of the week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   
-  // Generate hours from 5AM to 11PM
-  const hours = Array.from({ length: 19 }, (_, i) => {
-    const hour = i + 5; // Starting from 5 AM
+  // Generate hours from 12AM to 11PM
+  const hours = Array.from({ length: 24 }, (_, i) => {
+    const hour = i; // Starting from 12 AM
     return {
       display: hour < 12 
         ? `${hour === 0 ? 12 : hour}am` 
@@ -134,11 +134,11 @@ export default function ScheduleWeekCalendar({
   const dayHeadersRef = useRef<HTMLDivElement>(null);
   const calendarContentRef = useRef<HTMLDivElement>(null);
   
-  // Auto-scroll to 8-9 AM when the component mounts or updates
+  // Auto-scroll to 8 AM when the component mounts or updates
   useEffect(() => {
     if (calendarGridRef.current) {
-      // Calculate position for 8 AM (3 hours from 5 AM start time)
-      const scrollToPosition = 3 * 50; // 3 hours * 50px per hour
+      // Calculate position for 8 AM (hour index 8) - 12AM is index 0
+      const scrollToPosition = 8 * 50; // 8 hours * 50px per hour
       calendarGridRef.current.scrollTop = scrollToPosition;
     }
   }, [date, schedules]); // Re-scroll when date or schedules change
@@ -160,68 +160,8 @@ export default function ScheduleWeekCalendar({
 
   return (
     <div className="bg-white rounded-lg shadow p-3 pb-0 mb-4 relative w-full overflow-hidden">
-      {/* Compact Filters */}
-      <div className="flex gap-2 mb-3 items-center">
-        <div className="relative w-[180px]">
-          <input 
-            type="text" 
-            placeholder="Customer Name" 
-            className="w-full h-9 px-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary pr-7 text-sm"
-            value={customerSearch}
-            onChange={(e) => setCustomerSearch(e.target.value)}
-          />
-          {customerSearch && (
-            <button 
-              className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
-              onClick={() => setCustomerSearch("")}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        <div className="relative w-[180px]">
-          <input 
-            type="text" 
-            placeholder="Carrier Name" 
-            className="w-full h-9 px-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary pr-7 text-sm"
-            value={carrierSearch}
-            onChange={(e) => setCarrierSearch(e.target.value)}
-          />
-          {carrierSearch && (
-            <button 
-              className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
-              onClick={() => setCarrierSearch("")}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-        <div className="w-[180px]">
-          <select 
-            className="w-full h-9 px-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary text-sm"
-            value={selectedTimezone}
-            onChange={(e) => setSelectedTimezone(e.target.value)}
-          >
-            <option value="">Select TimeZone</option>
-            <option value="EST">Eastern Time (ET)</option>
-            <option value="CST">Central Time (CT)</option>
-            <option value="MST">Mountain Time (MT)</option>
-            <option value="PST">Pacific Time (PT)</option>
-          </select>
-        </div>
-        <Button 
-          variant="secondary" 
-          size="sm"
-          className="h-9 px-3"
-          onClick={clearFilters}
-          disabled={!customerSearch && !carrierSearch && !selectedTimezone}
-        >
-          Clear
-        </Button>
-      </div>
-
-      {/* Calendar Header & Navigation - More Compact */}
-      <div className="flex justify-between items-center mb-2 gap-1">
+      {/* Ultra Compact Filters - Combined row with calendar navigation */}
+      <div className="flex justify-between items-center mb-1">
         <div className="flex items-center space-x-1">
           <Button 
             variant="outline" 
@@ -252,7 +192,67 @@ export default function ScheduleWeekCalendar({
         <div className="text-lg font-semibold">
           {dateRangeDisplay}
         </div>
-        
+
+        <div className="flex gap-1 items-center">
+          <div className="relative w-[150px]">
+            <input 
+              type="text" 
+              placeholder="Customer Name" 
+              className="w-full h-7 px-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary pr-6 text-xs"
+              value={customerSearch}
+              onChange={(e) => setCustomerSearch(e.target.value)}
+            />
+            {customerSearch && (
+              <button 
+                className="absolute right-1 top-1.5 text-gray-500 hover:text-gray-700"
+                onClick={() => setCustomerSearch("")}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+          <div className="relative w-[150px]">
+            <input 
+              type="text" 
+              placeholder="Carrier Name" 
+              className="w-full h-7 px-2 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary pr-6 text-xs"
+              value={carrierSearch}
+              onChange={(e) => setCarrierSearch(e.target.value)}
+            />
+            {carrierSearch && (
+              <button 
+                className="absolute right-1 top-1.5 text-gray-500 hover:text-gray-700"
+                onClick={() => setCarrierSearch("")}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+          <select 
+            className="h-7 px-1 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary text-xs w-[130px]"
+            value={selectedTimezone}
+            onChange={(e) => setSelectedTimezone(e.target.value)}
+          >
+            <option value="">TimeZone</option>
+            <option value="EST">Eastern (ET)</option>
+            <option value="CST">Central (CT)</option>
+            <option value="MST">Mountain (MT)</option>
+            <option value="PST">Pacific (PT)</option>
+          </select>
+          <Button 
+            variant="secondary" 
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={clearFilters}
+            disabled={!customerSearch && !carrierSearch && !selectedTimezone}
+          >
+            Clear
+          </Button>
+        </div>
+      </div>
+
+      {/* View Mode Buttons */}
+      <div className="flex justify-end items-center mb-1">
         <div className="flex items-center space-x-1">
           <Button 
             variant={`outline`} 
@@ -323,7 +323,7 @@ export default function ScheduleWeekCalendar({
           <div 
             ref={timeHeadersRef}
             className="w-16 flex-shrink-0 overflow-hidden z-10"
-            style={{ height: 'calc(100vh - 250px)' }}
+            style={{ height: 'calc(100vh - 210px)' }}
           >
             {hours.map((hour, i) => (
               <div 
@@ -339,7 +339,7 @@ export default function ScheduleWeekCalendar({
           <div 
             ref={calendarGridRef}
             className="overflow-auto relative flex-grow"
-            style={{ height: 'calc(100vh - 250px)' }}
+            style={{ height: 'calc(100vh - 210px)' }}
           >
             <div 
               ref={calendarContentRef}
@@ -398,12 +398,12 @@ export default function ScheduleWeekCalendar({
                 // For end time, round up to nearest 15-min slot
                 const roundedEndMinute = Math.ceil(endMinute / 15) * 15;
                 
-                // Calculate position relative to visible hours (starting from 5am)
-                const hourOffset = startHour - 5; // Hours since 5am
+                // Calculate position relative to hours (starting from 12am)
+                const hourOffset = startHour; // Hours since 12am
                 const minuteOffset = roundedStartMinute / 60; // Percentage of hour
                 
-                // Ensure calculations don't result in negative values
-                const topPosition = Math.max(0, (hourOffset + minuteOffset) * 50); // Each hour is 50px
+                // Calculate position
+                const topPosition = (hourOffset + minuteOffset) * 50; // Each hour is 50px
                 
                 // Calculate height using rounded minutes (clamp to minimum height for visibility)
                 const durationHours = Math.max(0.5, (endHour - startHour) + ((roundedEndMinute - roundedStartMinute) / 60));
