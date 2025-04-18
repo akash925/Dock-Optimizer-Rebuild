@@ -1258,7 +1258,15 @@ Type: Dropoff`;
                   <FormItem>
                     <FormLabel>MC Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter MC Number (if applicable)" {...field} />
+                      <Input 
+                        placeholder="Enter MC Number (if applicable)" 
+                        value={field.value} 
+                        onChange={(e) => {
+                          console.log("MC Number changed to:", e.target.value);
+                          field.onChange(e.target.value);
+                        }}
+                        className="bg-white"
+                      />
                     </FormControl>
                     <FormDescription>
                       Motor Carrier number for the transportation provider

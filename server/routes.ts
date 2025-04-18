@@ -887,6 +887,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appointmentDate: z.string().min(1),
         appointmentTime: z.string().min(1),
         location: z.string().min(1),
+        // Add carrier name to schema (it's optional, will fall back to customer name)
+        carrierName: z.string().optional(),
         // Make MC Number completely optional (empty string is also valid)
         mcNumber: z.string().optional().or(z.literal("")),
         truckNumber: z.string().min(1),
@@ -898,35 +900,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = externalBookingSchema.parse(req.body);
       
-      // Find carrier by name or create new one with provided carrier name
+      // Find carrier by name or create one if needed
       let carrier = null;
       
-      // If carrierName is provided, find or create that carrier
-      if (validatedData.carrierName) {
-        // Try to find existing carrier by name
-        carrier = (await storage.getCarriers()).find(
-          c => c.name.toLowerCase() === validatedData.carrierName.toLowerCase()
-        );
+      try {
+        // Get all carriers once to avoid multiple database calls
+        const allCarriers = await storage.getCarriers();
         
-        if (!carrier) {
-          // Create a new carrier with the carrier name, not customer name
-          carrier = await storage.createCarrier({
-            name: validatedData.carrierName,
-            mcNumber: validatedData.mcNumber,
-            contactName: validatedData.contactName,
-            contactEmail: validatedData.contactEmail,
-            contactPhone: validatedData.contactPhone,
-          });
+        // If carrierName is provided, find or create that carrier
+        if (validatedData.carrierName) {
+          // Try to find existing carrier by name - case insensitive search
+          carrier = allCarriers.find(
+            c => c.name.toLowerCase() === validatedData.carrierName.toLowerCase()
+          );
+          
+          if (!carrier) {
+            console.log(`Creating new carrier with name: ${validatedData.carrierName}`);
+            // Create a new carrier with the carrier name
+            carrier = await storage.createCarrier({
+              name: validatedData.carrierName,
+              mcNumber: validatedData.mcNumber || "",
+              contactName: validatedData.contactName || "",
+              contactEmail: validatedData.contactEmail || "",
+              contactPhone: validatedData.contactPhone || "",
+            });
+          } else {
+            console.log(`Using existing carrier: ${carrier.name}`);
+          }
+        } else {
+          // If no carrier name provided, try to use an existing carrier
+          // First check if there's a carrier with the customer name
+          carrier = allCarriers.find(
+            c => c.name.toLowerCase() === validatedData.customerName.toLowerCase()
+          );
+          
+          if (!carrier && allCarriers.length > 0) {
+            // If no matching carrier but we have some carriers, use the first one
+            carrier = allCarriers[0];
+            console.log(`Using existing carrier as fallback: ${carrier.name}`);
+          } else if (!carrier) {
+            // Last resort: create a new carrier from customer name
+            console.log(`Creating new carrier from customer name: ${validatedData.customerName}`);
+            carrier = await storage.createCarrier({
+              name: validatedData.customerName,
+              mcNumber: validatedData.mcNumber || "",
+              contactName: validatedData.contactName || "",
+              contactEmail: validatedData.contactEmail || "",
+              contactPhone: validatedData.contactPhone || "",
+            });
+          }
         }
-      } else {
-        // Fall back to creating carrier from customer name if no carrier name
-        carrier = await storage.createCarrier({
-          name: validatedData.customerName,
-          mcNumber: validatedData.mcNumber,
-          contactName: validatedData.contactName,
-          contactEmail: validatedData.contactEmail,
-          contactPhone: validatedData.contactPhone,
+      } catch (error) {
+        console.error("Error handling carrier:", error);
+        // In case of error, return a clear message to the client
+        return res.status(500).json({ 
+          message: "Failed to create booking - error with carrier processing", 
+          details: error.message
         });
+      }
+      
+      // Safety check - if we don't have a carrier by now, something went wrong
+      if (!carrier) {
+        return res.status(500).json({ message: "Failed to create or find a carrier" });
       }
       
       // Find the appropriate dock based on location
