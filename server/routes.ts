@@ -1195,9 +1195,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointment-types", async (req, res) => {
     try {
       const appointmentTypes = await storage.getAppointmentTypes();
+      console.log("Appointment types fetched:", appointmentTypes);
       res.json(appointmentTypes);
     } catch (err) {
-      res.status(500).json({ message: "Failed to fetch appointment types" });
+      console.error("Error fetching appointment types:", err);
+      res.status(500).json({ message: "Failed to fetch appointment types", error: err instanceof Error ? err.message : String(err) });
     }
   });
 

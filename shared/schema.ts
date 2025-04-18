@@ -318,6 +318,7 @@ export const appointmentTypes = pgTable("appointment_types", {
   bufferTime: integer("buffer_time").notNull().default(0), // in minutes - gap between appointments
   maxAppointmentsPerDay: integer("max_appointments_per_day"), // optional limit for total daily appointments
   maxConcurrent: integer("max_concurrent").notNull().default(1), // maximum parallel appointments of this type
+  emailReminderTime: integer("email_reminder_time").notNull().default(24), // hours before appointment
   allowAppointmentsThroughBreaks: boolean("allow_appointments_through_breaks").notNull().default(false),
   allowAppointmentsPastBusinessHours: boolean("allow_appointments_past_business_hours").notNull().default(false),
   emailReminderTime: integer("email_reminder_time").notNull().default(24), // in hours
