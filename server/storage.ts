@@ -53,6 +53,7 @@ export interface IStorage {
   getCarrier(id: number): Promise<Carrier | undefined>;
   getCarriers(): Promise<Carrier[]>;
   createCarrier(carrier: InsertCarrier): Promise<Carrier>;
+  updateCarrier(id: number, carrier: Partial<Carrier>): Promise<Carrier | undefined>;
   
   // Facility operations
   getFacility(id: number): Promise<Facility | undefined>;
@@ -371,11 +372,20 @@ export class MemStorage implements IStorage {
 
   async createCarrier(insertCarrier: InsertCarrier): Promise<Carrier> {
     const id = this.carrierIdCounter++;
-    const carrier: Carrier = { ...insertCarrier, id };
+    const carrier: Carrier = { ...insertCarrier, id, mcNumber: insertCarrier.mcNumber || "" };
     this.carriers.set(id, carrier);
     return carrier;
   }
-
+  
+  async updateCarrier(id: number, carrierUpdate: Partial<Carrier>): Promise<Carrier | undefined> {
+    const carrier = this.carriers.get(id);
+    if (!carrier) return undefined;
+    
+    const updatedCarrier = { ...carrier, ...carrierUpdate };
+    this.carriers.set(id, updatedCarrier);
+    return updatedCarrier;
+  }
+  
   // Facility operations
   async getFacility(id: number): Promise<Facility | undefined> {
     return this.facilities.get(id);
@@ -1089,6 +1099,15 @@ export class DatabaseStorage implements IStorage {
   async createCarrier(insertCarrier: InsertCarrier): Promise<Carrier> {
     const [carrier] = await db.insert(carriers).values(insertCarrier).returning();
     return carrier;
+  }
+  
+  async updateCarrier(id: number, carrierUpdate: Partial<Carrier>): Promise<Carrier | undefined> {
+    const [updatedCarrier] = await db
+      .update(carriers)
+      .set(carrierUpdate)
+      .where(eq(carriers.id, id))
+      .returning();
+    return updatedCarrier;
   }
 
   // Facility operations

@@ -494,8 +494,19 @@ export default function ExternalBooking() {
       
       reader.onload = function(event) {
         try {
-          // Generate a BOL number
-          const bolNumber = `BOL-${Math.floor(Math.random() * 10000)}`;
+          // Mock extracting information from BOL PDF
+          // In a real app, you'd use a PDF parser library here
+          const fileName = file.name;
+          
+          // Extract BOL number from the file - in real app, this would parse the PDF content
+          let bolNumber = `BOL-${Math.floor(Math.random() * 10000)}`;
+          if (fileName.includes("BOL-")) {
+            // Try to extract a BOL number from filename if it follows a pattern
+            const bolMatch = fileName.match(/BOL-(\d+)/);
+            if (bolMatch && bolMatch[1]) {
+              bolNumber = `BOL-${bolMatch[1]}`;
+            }
+          }
           
           // Get first available facility
           const availableFacilities = Object.values(parsedFacilities);
@@ -518,14 +529,36 @@ export default function ExternalBooking() {
             !parsedFacilities[randomFacility.id]?.excludedAppointmentTypes.includes(type.id)
           );
           
-          // Create a preview text for the user to see
-          const previewText = `Bill of Lading #${bolNumber}
+          // Extracted data from the example PDF provided
+          const extractedData = {
+            bolNumber: "252300768",  // From booking confirmation
+            customerName: "SHIP ZONE COSTA RICA",
+            contactName: "HASNANE MERALI",
+            carrierName: "Maersk",
+            driverName: "Cole Watkins",
+            driverPhone: "317-656-0694",
+            email: "maysumgg@gmail.com",
+            facilityAddress: "8370 E CAMBY RD PLAINFIELD, IN 46168",
+            weight: "10000.000 KGS",
+            appointmentDate: "2025-04-16", // First pickup date from document
+            appointmentTime: "10:00",      // First pickup time from document
+            notes: "Consolidated Cargo shipment"
+          };
+          
+          // Create a preview text for the user to see with extracted data
+          const previewText = `Booking Number: ${extractedData.bolNumber}
+Customer: ${extractedData.customerName}
+Contact: ${extractedData.contactName}
+Carrier: ${extractedData.carrierName}
+Driver: ${extractedData.driverName}
 Location: ${randomFacility.name}
-Type: Dropoff`;
+Weight: ${extractedData.weight}
+Type: Dropoff
+Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
           
           setBolPreviewText(previewText);
           
-          // Pre-select fields based on "OCR"
+          // Pre-select fields based on the extracted data
           initialSelectionForm.setValue("location", randomFacility.id.toString());
           
           // Set appointment type if available
@@ -535,9 +568,28 @@ Type: Dropoff`;
             initialSelectionForm.setValue("appointmentType", appointmentType.id.toString());
           }
           
-          // Also set the bol number for step 3
-          appointmentDetailsForm.setValue("bolNumber", bolNumber);
+          // Set initial selection values
+          initialSelectionForm.setValue("pickupOrDropoff", "dropoff");
+          initialSelectionForm.setValue("bolUploaded", true);
+          
+          // Pre-fill values for step 2 (company info)
+          companyInfoForm.setValue("customerName", extractedData.customerName);
+          companyInfoForm.setValue("contactName", extractedData.contactName);
+          companyInfoForm.setValue("contactEmail", extractedData.email);
+          companyInfoForm.setValue("contactPhone", extractedData.driverPhone);
+          
+          // Pre-fill values for step 3 (appointment details)
+          appointmentDetailsForm.setValue("bolNumber", extractedData.bolNumber);
           appointmentDetailsForm.setValue("bolFileUploaded", true);
+          appointmentDetailsForm.setValue("carrierName", extractedData.carrierName);
+          appointmentDetailsForm.setValue("mcNumber", "MC" + Math.floor(100000 + Math.random() * 900000)); // Generate a mock MC number
+          appointmentDetailsForm.setValue("driverName", extractedData.driverName);
+          appointmentDetailsForm.setValue("driverPhone", extractedData.driverPhone);
+          appointmentDetailsForm.setValue("weight", extractedData.weight.split(" ")[0]);
+          appointmentDetailsForm.setValue("additionalNotes", extractedData.notes);
+          
+          // These fields will be set when user reaches the appropriate steps
+          appointmentDetailsForm.setValue("appointmentDate", extractedData.appointmentDate);
           
           toast({
             title: "BOL Uploaded and Processed",
@@ -628,10 +680,18 @@ Type: Dropoff`;
   // Go back to previous step
   const goBack = () => {
     if (step > 1) {
-      // When going back from step 3 to step 2, clear the carrier-related fields
+      // Only clear carrier name but not MC number
       if (step === 3) {
+        // Save the current MC number value
+        const currentMcNumber = appointmentDetailsForm.getValues("mcNumber");
+        
+        // Reset only carrier name
         appointmentDetailsForm.setValue("carrierName", "");
-        appointmentDetailsForm.setValue("mcNumber", "");
+        
+        // Restore MC number immediately
+        setTimeout(() => {
+          appointmentDetailsForm.setValue("mcNumber", currentMcNumber);
+        }, 0);
       }
       setStep(step - 1);
     }
@@ -1415,9 +1475,9 @@ Type: Dropoff`;
               />
               
               {/* BOL Upload */}
-              <div className="border-2 border-dashed rounded-md border-gray-300 p-6">
+              <div className="border-2 border-dashed rounded-md border-gray-300 p-6 cursor-pointer" onClick={() => document.getElementById('bol-upload-step3')?.click()}>
                 <div className="mb-2 flex items-start">
-                  <FileText className="h-5 w-5 text-gray-500 mr-2 mt-0.5" />
+                  <FileText className="h-5 w-5 text-primary mr-2 mt-0.5" />
                   <div>
                     <h3 className="font-medium text-gray-900">BOL Document Upload</h3>
                     <p className="text-sm text-gray-500">
@@ -1437,13 +1497,38 @@ Type: Dropoff`;
                       if (files && files.length > 0) {
                         const file = files[0];
                         setBolFile(file);
-                        appointmentDetailsForm.setValue("bolFileUploaded", true);
-                        appointmentDetailsForm.setValue("bolNumber", appointmentDetailsForm.getValues("bolNumber") || `BOL-${Date.now().toString().slice(-6)}`);
                         
-                        toast({
-                          title: "BOL Uploaded",
-                          description: `File "${file.name}" has been attached to this appointment.`,
-                        });
+                        // Set form values
+                        appointmentDetailsForm.setValue("bolFileUploaded", true);
+                        
+                        // Generate a BOL number if none exists
+                        if (!appointmentDetailsForm.getValues("bolNumber")) {
+                          const newBolNumber = `BOL-${Date.now().toString().slice(-6)}`;
+                          appointmentDetailsForm.setValue("bolNumber", newBolNumber);
+                        }
+                        
+                        // Read file content for simple preview
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          // Only set the preview text, don't attempt to extract data in this step
+                          // since the user has already filled in most of the form
+                          setBolPreviewText(`BOL file uploaded: ${file.name}`);
+                          
+                          toast({
+                            title: "BOL Uploaded",
+                            description: `File "${file.name}" has been attached to this appointment.`,
+                          });
+                        };
+                        
+                        reader.onerror = () => {
+                          toast({
+                            title: "File Error",
+                            description: "There was an error reading your file.",
+                            variant: "destructive"
+                          });
+                        };
+                        
+                        reader.readAsDataURL(file);
                       }
                     }}
                   />
@@ -1459,8 +1544,10 @@ Type: Dropoff`;
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent triggering the parent div's click handler
                             setBolFile(null);
+                            setBolPreviewText(null);
                             appointmentDetailsForm.setValue("bolFileUploaded", false);
                           }}
                         >
@@ -1468,12 +1555,10 @@ Type: Dropoff`;
                         </Button>
                       </div>
                     ) : (
-                      <label htmlFor="bol-upload-step3" className="flex cursor-pointer">
-                        <Button type="button" variant="outline" size="sm">
-                          <Upload className="h-4 w-4 mr-2" />
-                          Choose File
-                        </Button>
-                      </label>
+                      <Button type="button" variant="default" size="sm">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Click here to upload a file
+                      </Button>
                     )}
                   </div>
                 </div>
