@@ -363,7 +363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check for schedule conflicts - only consider active appointments
       // Skip conflict check if no dock is assigned
-      let conflictingSchedules: Schedule[] = [];
+      let conflictingSchedules: any[] = [];
       if (validatedData.dockId) {
         conflictingSchedules = (await storage.getSchedulesByDock(validatedData.dockId))
           .filter(s => 
@@ -632,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endTime = endDate;
       
       // Check for schedule conflicts with new times (if a dock is assigned)
-      let conflictingSchedules: Schedule[] = [];
+      let conflictingSchedules: any[] = [];
       if (schedule.dockId) {
         conflictingSchedules = (await storage.getSchedulesByDock(schedule.dockId))
           .filter(s => 
@@ -990,13 +990,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // If we found a carrier and have an MC number, update the carrier if needed
-        if (carrier && validatedData.mcNumber && validatedData.mcNumber !== carrier.mcNumber) {
+        if (carrier && typeof carrier !== 'undefined' && validatedData.mcNumber && validatedData.mcNumber !== carrier.mcNumber) {
           try {
             carrier = await storage.updateCarrier(carrier.id, {
               ...carrier,
               mcNumber: validatedData.mcNumber
             });
-            console.log(`Updated carrier ${carrier.name} with MC number: ${validatedData.mcNumber}`);
+            console.log(`Updated carrier ${carrier?.name || 'Unknown'} with MC number: ${validatedData.mcNumber}`);
           } catch (error) {
             console.error(`Error updating carrier MC number:`, error);
             // Continue with existing carrier
