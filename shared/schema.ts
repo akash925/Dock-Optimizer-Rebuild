@@ -381,7 +381,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const docksRelations = relations(docks, ({ many, one }) => ({
-  schedules: many(schedules),
+  schedules: many(schedules, { relationName: "dock_schedules" }),
   facility: one(facilities, {
     fields: [docks.facilityId],
     references: [facilities.id],
@@ -396,6 +396,7 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
   dock: one(docks, {
     fields: [schedules.dockId],
     references: [docks.id],
+    relationName: "dock_schedules",
   }),
   carrier: one(carriers, {
     fields: [schedules.carrierId],

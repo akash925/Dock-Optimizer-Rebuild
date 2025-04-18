@@ -325,10 +325,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Just pass the raw data to storage and let it handle everything
       const validatedData = scheduleData;
       
-      // Check if dock exists
-      const dock = await storage.getDock(validatedData.dockId);
-      if (!dock) {
-        return res.status(400).json({ message: "Invalid dock ID" });
+      // Check if dock exists (if dockId is provided)
+      if (validatedData.dockId) {
+        const dock = await storage.getDock(validatedData.dockId);
+        if (!dock) {
+          return res.status(400).json({ message: "Invalid dock ID" });
+        }
       }
       
       // Handle custom carrier creation if needed
@@ -360,13 +362,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check for schedule conflicts - only consider active appointments
-      const conflictingSchedules = (await storage.getSchedulesByDock(validatedData.dockId))
-        .filter(s => 
-          // Only consider active schedules (not completed or cancelled)
-          s.status !== 'completed' && s.status !== 'cancelled' &&
-          (new Date(validatedData.startTime) < new Date(s.endTime)) && 
-          (new Date(validatedData.endTime) > new Date(s.startTime))
-        );
+      // Skip conflict check if no dock is assigned
+      let conflictingSchedules: Schedule[] = [];
+      if (validatedData.dockId) {
+        conflictingSchedules = (await storage.getSchedulesByDock(validatedData.dockId))
+          .filter(s => 
+            // Only consider active schedules (not completed or cancelled)
+            s.status !== 'completed' && s.status !== 'cancelled' &&
+            (new Date(validatedData.startTime) < new Date(s.endTime)) && 
+            (new Date(validatedData.endTime) > new Date(s.startTime))
+          );
+      }
       
       if (conflictingSchedules.length > 0) {
         return res.status(409).json({ 
@@ -625,14 +631,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startTime = startDate;
       const endTime = endDate;
       
-      // Check for schedule conflicts with new times
-      const conflictingSchedules = (await storage.getSchedulesByDock(schedule.dockId))
-        .filter(s => 
-          s.id !== id && // Ignore the current schedule
-          s.status !== 'completed' && s.status !== 'cancelled' && // Only consider active schedules
-          (new Date(startTime) < new Date(s.endTime)) && 
-          (new Date(endTime) > new Date(s.startTime))
-        );
+      // Check for schedule conflicts with new times (if a dock is assigned)
+      let conflictingSchedules: Schedule[] = [];
+      if (schedule.dockId) {
+        conflictingSchedules = (await storage.getSchedulesByDock(schedule.dockId))
+          .filter(s => 
+            s.id !== id && // Ignore the current schedule
+            s.status !== 'completed' && s.status !== 'cancelled' && // Only consider active schedules
+            (new Date(startTime) < new Date(s.endTime)) && 
+            (new Date(endTime) > new Date(s.startTime))
+          );
+      }
       
       if (conflictingSchedules.length > 0) {
         return res.status(409).json({ 
