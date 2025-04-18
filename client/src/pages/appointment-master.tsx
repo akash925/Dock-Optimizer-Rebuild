@@ -483,9 +483,9 @@ export default function AppointmentMaster() {
                 General Settings
               </TabsTrigger>
             </TabsList>
-          
-          {/* Appointment Types Tab */}
-          <TabsContent value="types">
+            
+            {/* Appointment Types Tab */}
+            <TabsContent value="types">
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
@@ -613,8 +613,8 @@ export default function AppointmentMaster() {
             </div>
           </TabsContent>
           
-          {/* Custom Questions Tab */}
-          <TabsContent value="questions">
+            {/* Custom Questions Tab */}
+            <TabsContent value="questions">
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
@@ -693,8 +693,8 @@ export default function AppointmentMaster() {
             </Card>
           </TabsContent>
           
-          {/* Availability Rules Tab */}
-          <TabsContent value="availability">
+            {/* Availability Rules Tab */}
+            <TabsContent value="availability">
             <Card>
               <CardHeader>
                 <CardTitle>Appointment Availability Rules</CardTitle>
@@ -756,8 +756,8 @@ export default function AppointmentMaster() {
             </Card>
           </TabsContent>
           
-          {/* General Settings Tab */}
-          <TabsContent value="settings">
+            {/* General Settings Tab */}
+            <TabsContent value="settings">
             <Card>
               <CardHeader>
                 <CardTitle>General Appointment Settings</CardTitle>
