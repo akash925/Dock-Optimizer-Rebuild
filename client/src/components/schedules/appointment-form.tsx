@@ -255,6 +255,14 @@ export default function AppointmentForm({
         },
   });
   
+  // Effect to update dock selection when initialDockId changes
+  useEffect(() => {
+    if (initialDockId && !initialData) {
+      console.log("Setting dockId from initialDockId:", initialDockId);
+      scheduleDetailsForm.setValue("dockId", initialDockId);
+    }
+  }, [initialDockId, scheduleDetailsForm, initialData]);
+  
   // Handle BOL file upload
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -289,13 +297,32 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
   
   // Handle step 1 submission
   const onTruckInfoSubmit = (data: TruckInfoFormValues) => {
-    // Accept MC Number including hyphens
-    const cleanedData = {
-      ...data,
-      mcNumber: data.mcNumber || ''
-    };
-    setFormData(prev => ({...prev, ...cleanedData}));
-    setStep(2);
+    try {
+      // Ensure data is properly formatted
+      console.log("Truck info form data:", data);
+      
+      // Create a properly cleaned version of the data with all required fields
+      const cleanedData = {
+        ...data,
+        carrierId: data.carrierId || undefined,
+        carrierName: data.carrierName || "",
+        mcNumber: data.mcNumber || '',
+        customerName: data.customerName || '',
+        type: data.type || 'inbound',
+        appointmentMode: data.appointmentMode || 'trailer'
+      };
+      
+      // Store the cleaned data in form state
+      setFormData(prev => ({...prev, ...cleanedData}));
+      setStep(2);
+    } catch (error) {
+      console.error("Error processing truck form data:", error);
+      toast({
+        title: "Form Error",
+        description: "There was a problem processing the form data. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Create mutation
@@ -349,73 +376,105 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
     setIsSubmitting(true);
     
     try {
-      // Type assertion for combined form data
-      type CompleteFormData = AppointmentFormValues;
-      
-      // Combine all data (use type assertion to handle combined data structure)
-      const completeData = {...formData, ...data} as CompleteFormData;
+      console.log("Schedule details form data:", data);
+      console.log("Previous truck info data:", formData);
       
       // Create date objects from form inputs
       const appointmentDate = data.appointmentDate;
       const appointmentTime = data.appointmentTime;
       
-      // Create Date object from input
-      const rawStartTime = new Date(`${appointmentDate}T${appointmentTime}`);
+      // Create Date object from input with validation
+      let startTime: Date;
+      try {
+        const rawStartTime = new Date(`${appointmentDate}T${appointmentTime}`);
+        
+        // Validate that we have a proper date
+        if (isNaN(rawStartTime.getTime())) {
+          throw new Error("Invalid date created from inputs");
+        }
+        
+        // Round to nearest 15-minute interval
+        const minutes = rawStartTime.getMinutes();
+        const roundedMinutes = Math.round(minutes / 15) * 15;
+        const newHours = roundedMinutes === 60 ? rawStartTime.getHours() + 1 : rawStartTime.getHours();
+        const newMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
+        
+        // Create final start time with rounded minutes
+        startTime = new Date(rawStartTime);
+        startTime.setHours(newHours, newMinutes, 0, 0);
+      } catch (dateError) {
+        console.error("Date creation error:", dateError);
+        toast({
+          title: "Date Error",
+          description: "There was a problem with the appointment date/time. Please try again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
       
-      // Round to nearest 15-minute interval
-      const minutes = rawStartTime.getMinutes();
-      const roundedMinutes = Math.round(minutes / 15) * 15;
-      const newHours = roundedMinutes === 60 ? rawStartTime.getHours() + 1 : rawStartTime.getHours();
-      const newMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
+      // Get appointment mode for duration calculation with fallback
+      const appointmentMode = formData.appointmentMode || "trailer";
+      const endTime = getDefaultEndTime(startTime, appointmentMode as "trailer" | "container");
       
-      // Create new date with rounded minutes
-      const startTime = new Date(rawStartTime);
-      startTime.setHours(newHours, newMinutes, 0, 0);
-      
-      // Get appointment mode from step 1 form data and calculate end time
-      const appointmentMode = formData.appointmentMode as "trailer" | "container";
-      const endTime = getDefaultEndTime(startTime, appointmentMode);
-      
-      // Format for API
+      // Prepare clean base data with all required fields
       const scheduleData: any = {
-        carrierId: formData.carrierId,
-        customerName: formData.customerName,
+        // Set default values to avoid undefined or null fields that cause server errors
+        carrierId: formData.carrierId || null,
+        customerName: formData.customerName || "",
         dockId: data.dockId,
-        truckNumber: formData.truckNumber,
-        trailerNumber: formData.trailerNumber,
-        driverName: formData.driverName,
-        driverPhone: formData.driverPhone,
-        bolNumber: data.bolNumber,
-        poNumber: data.poNumber,
-        palletCount: data.palletCount,
-        weight: data.weight,
+        truckNumber: formData.truckNumber || "",
+        trailerNumber: formData.trailerNumber || "",
+        driverName: formData.driverName || "",
+        driverPhone: formData.driverPhone || "",
+        bolNumber: data.bolNumber || "",
+        poNumber: data.poNumber || "",
+        palletCount: data.palletCount || "",
+        weight: data.weight || "",
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
-        type: formData.type,
-        appointmentMode: formData.appointmentMode,
+        type: formData.type || "inbound",
+        appointmentMode: appointmentMode,
         status: "scheduled",
-        notes: data.notes,
+        notes: data.notes || "",
         createdBy: user?.id || 0,
       };
       
-      // If it's a custom carrier (no carrierId but has name), include carrier info
-      const mcNumber = formData.mcNumber || '';
-      const carrierName = formData.carrierName || '';
+      console.log("Prepared schedule data:", scheduleData);
       
-      if (!formData.carrierId && carrierName) {
+      // Handle custom carrier creation if necessary
+      if (!formData.carrierId && formData.carrierName) {
         scheduleData.newCarrier = {
-          name: carrierName,
-          mcNumber: mcNumber
+          name: formData.carrierName,
+          mcNumber: formData.mcNumber || '',
+          // Add required fields for carrier creation that might be missing
+          contactName: "",
+          contactEmail: "",
+          contactPhone: ""
         };
+        console.log("Including new carrier data:", scheduleData.newCarrier);
       }
       
+      // Submit based on mode
       if (mode === "create") {
         await createScheduleMutation.mutateAsync(scheduleData);
       } else if (mode === "edit" && initialData) {
         await updateScheduleMutation.mutateAsync({ id: initialData.id, data: scheduleData });
+      } else {
+        console.error("Invalid form mode or missing initialData for edit");
+        toast({
+          title: "Form Error",
+          description: "There was a problem with the form configuration.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error submitting form:", error);
+      toast({
+        title: "Submission Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
