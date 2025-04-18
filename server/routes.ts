@@ -898,12 +898,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = externalBookingSchema.parse(req.body);
       
-      // Find or create the carrier based on customer name
-      let carrier = (await storage.getCarriers()).find(
-        c => c.name.toLowerCase() === validatedData.customerName.toLowerCase()
-      );
+      // Find carrier by name or create new one with provided carrier name
+      let carrier = null;
       
-      if (!carrier) {
+      // If carrierName is provided, find or create that carrier
+      if (validatedData.carrierName) {
+        // Try to find existing carrier by name
+        carrier = (await storage.getCarriers()).find(
+          c => c.name.toLowerCase() === validatedData.carrierName.toLowerCase()
+        );
+        
+        if (!carrier) {
+          // Create a new carrier with the carrier name, not customer name
+          carrier = await storage.createCarrier({
+            name: validatedData.carrierName,
+            mcNumber: validatedData.mcNumber,
+            contactName: validatedData.contactName,
+            contactEmail: validatedData.contactEmail,
+            contactPhone: validatedData.contactPhone,
+          });
+        }
+      } else {
+        // Fall back to creating carrier from customer name if no carrier name
         carrier = await storage.createCarrier({
           name: validatedData.customerName,
           mcNumber: validatedData.mcNumber,

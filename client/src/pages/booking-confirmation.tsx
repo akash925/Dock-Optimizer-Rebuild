@@ -102,13 +102,26 @@ export default function BookingConfirmation() {
           }
         }
         
-        // Format dates
+        // Format dates - manually adjust for facility timezone (Eastern Time)
         const startDate = new Date(schedule.startTime);
-        const appointmentDate = startDate.toLocaleDateString();
-        const appointmentTime = startDate.toLocaleTimeString([], {
+        
+        // Get the date in Eastern Time (facility timezone)
+        const options: Intl.DateTimeFormatOptions = { 
+          timeZone: 'America/New_York', // Eastern Time
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        };
+        const appointmentDate = startDate.toLocaleDateString('en-US', options);
+        
+        // Get the time in Eastern Time with AM/PM
+        const timeOptions: Intl.DateTimeFormatOptions = { 
+          timeZone: 'America/New_York', // Eastern Time
           hour: '2-digit',
-          minute: '2-digit'
-        });
+          minute: '2-digit',
+          hour12: true
+        };
+        const appointmentTime = startDate.toLocaleTimeString('en-US', timeOptions);
         
         // Set booking details
         setBookingDetails({
