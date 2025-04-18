@@ -178,8 +178,32 @@ export default function AppointmentForm({
     resolver: zodResolver(scheduleDetailsSchema),
     defaultValues: initialData
       ? {
-          appointmentDate: format(new Date(initialData.startTime), "yyyy-MM-dd"),
-          appointmentTime: format(new Date(initialData.startTime), "HH:mm"),
+          appointmentDate: (() => {
+            try {
+              // Ensure initialData.startTime is a valid date string
+              const dateObj = new Date(initialData.startTime);
+              if (!isNaN(dateObj.getTime())) {
+                return format(dateObj, "yyyy-MM-dd");
+              }
+            } catch (error) {
+              console.error("Error formatting initialData.startTime:", error);
+            }
+            // Default to today if there's an error
+            return format(new Date(), "yyyy-MM-dd");
+          })(),
+          appointmentTime: (() => {
+            try {
+              // Ensure initialData.startTime is a valid date string
+              const dateObj = new Date(initialData.startTime);
+              if (!isNaN(dateObj.getTime())) {
+                return format(dateObj, "HH:mm");
+              }
+            } catch (error) {
+              console.error("Error formatting initialData.startTime:", error);
+            }
+            // Default to 9:00 AM if there's an error
+            return "09:00";
+          })(),
           dockId: initialData.dockId,
           bolNumber: initialData.bolNumber || "",
           poNumber: initialData.poNumber || "",
@@ -188,8 +212,38 @@ export default function AppointmentForm({
           notes: initialData.notes || "",
         }
       : {
-          appointmentDate: initialDate && initialDate instanceof Date ? format(initialDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-          appointmentTime: initialDate && initialDate instanceof Date ? format(initialDate, "HH:mm") : "09:00",
+          appointmentDate: (() => {
+            if (initialDate) {
+              try {
+                // Ensure initialDate is a valid Date object
+                const dateObj = initialDate instanceof Date ? initialDate : new Date(initialDate);
+                // Check that dateObj is a valid date
+                if (!isNaN(dateObj.getTime())) {
+                  return format(dateObj, "yyyy-MM-dd");
+                }
+              } catch (error) {
+                console.error("Error formatting initialDate:", error);
+              }
+            }
+            // Default to today's date
+            return format(new Date(), "yyyy-MM-dd");
+          })(),
+          appointmentTime: (() => {
+            if (initialDate) {
+              try {
+                // Ensure initialDate is a valid Date object
+                const dateObj = initialDate instanceof Date ? initialDate : new Date(initialDate);
+                // Check that dateObj is a valid date
+                if (!isNaN(dateObj.getTime())) {
+                  return format(dateObj, "HH:mm");
+                }
+              } catch (error) {
+                console.error("Error formatting initialDate for time:", error);
+              }
+            }
+            // Default to 9:00 AM
+            return "09:00";
+          })(),
           dockId: docks && docks.length > 0 ? docks[0].id : undefined,
           bolNumber: "",
           poNumber: "",

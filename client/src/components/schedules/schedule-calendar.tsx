@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Schedule } from "@shared/schema";
 import { formatTime } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface ScheduleCalendarProps {
   schedules: Schedule[];
   docks: { id: number; name: string }[];
   date: Date;
   onScheduleClick: (scheduleId: number) => void;
+  onCellClick?: (date: Date) => void;
 }
 
 export default function ScheduleCalendar({
@@ -15,6 +17,7 @@ export default function ScheduleCalendar({
   docks,
   date,
   onScheduleClick,
+  onCellClick,
 }: ScheduleCalendarProps) {
   const [dailySchedules, setDailySchedules] = useState<Schedule[]>([]);
   

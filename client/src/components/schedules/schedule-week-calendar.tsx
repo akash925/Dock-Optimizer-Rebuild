@@ -350,9 +350,15 @@ export default function ScheduleWeekCalendar({
                 <div key={dayIndex} className="contents">
                   {hours.map((hour, hourIndex) => {
                     // Create date object for the current cell (day + time)
-                    const cellDate = new Date(day);
+                    // Create a fresh copy of the date to prevent any reference issues
+                    const cellDate = new Date(day.getFullYear(), day.getMonth(), day.getDate());
                     cellDate.setHours(hour.value);
                     cellDate.setMinutes(0);
+                    
+                    // Verify that this is a valid date object
+                    if (isNaN(cellDate.getTime())) {
+                      console.error("Invalid cellDate created:", { day, hour });
+                    }
 
                     return (
                       <div 

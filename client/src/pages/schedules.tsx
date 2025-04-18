@@ -335,8 +335,18 @@ export default function Schedules() {
             onViewChange={setViewMode}
             onCellClick={(date) => {
               setEditScheduleId(null);
-              setClickedCellDate(date);
-              setIsFormOpen(true);
+              // Ensure we're working with a valid Date object
+              if (date && !isNaN(date.getTime())) {
+                // Create a fresh copy to avoid any reference issues
+                const safeDateCopy = new Date(date.getTime());
+                setClickedCellDate(safeDateCopy);
+                setIsFormOpen(true);
+              } else {
+                console.error("Invalid date received from cell click:", date);
+                // Fallback to current date/time if we got an invalid date
+                setClickedCellDate(new Date());
+                setIsFormOpen(true);
+              }
             }}
           />
         )}
@@ -347,6 +357,21 @@ export default function Schedules() {
             docks={docks}
             date={selectedDate}
             onScheduleClick={handleScheduleClick}
+            onCellClick={(date) => {
+              setEditScheduleId(null);
+              // Ensure we're working with a valid Date object
+              if (date && !isNaN(date.getTime())) {
+                // Create a fresh copy to avoid any reference issues
+                const safeDateCopy = new Date(date.getTime());
+                setClickedCellDate(safeDateCopy);
+                setIsFormOpen(true);
+              } else {
+                console.error("Invalid date received from cell click:", date);
+                // Fallback to current date/time if we got an invalid date
+                setClickedCellDate(new Date());
+                setIsFormOpen(true);
+              }
+            }}
           />
         )}
         
