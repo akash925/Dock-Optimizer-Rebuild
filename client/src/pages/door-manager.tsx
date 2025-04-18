@@ -245,13 +245,14 @@ export default function DoorManager() {
                   }`}></div>
                 </div>
                 
-                {status === "occupied" && currentSchedule && (
+                {(status === "occupied" || status === "reserved") && currentSchedule && (
                   <div className="px-4 pt-2">
                     <p className="text-sm font-medium">{carrierName || "Unknown Carrier"}</p>
                     <p className="text-xs text-gray-500">
                       {new Date(currentSchedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
                       {new Date(currentSchedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
+                    {status === "reserved" && <p className="text-xs text-amber-600 font-medium">Reserved</p>}
                   </div>
                 )}
                 
