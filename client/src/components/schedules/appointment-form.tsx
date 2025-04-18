@@ -188,8 +188,8 @@ export default function AppointmentForm({
           notes: initialData.notes || "",
         }
       : {
-          appointmentDate: initialDate ? format(initialDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-          appointmentTime: initialDate ? format(initialDate, "HH:mm") : "09:00",
+          appointmentDate: initialDate && initialDate instanceof Date ? format(initialDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+          appointmentTime: initialDate && initialDate instanceof Date ? format(initialDate, "HH:mm") : "09:00",
           dockId: docks && docks.length > 0 ? docks[0].id : undefined,
           bolNumber: "",
           poNumber: "",
