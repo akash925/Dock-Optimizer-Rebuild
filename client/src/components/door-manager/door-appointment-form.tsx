@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarIcon, Clock, Plus, X } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
+import { CarrierSelector } from "@/components/shared/carrier-selector";
 import { 
   Carrier, 
   ScheduleType, 
@@ -110,9 +111,6 @@ export default function DoorAppointmentForm({
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEndTime, setShowEndTime] = useState(false);
-  const [carrierSearch, setCarrierSearch] = useState('');
-  const [openCarrierSelect, setOpenCarrierSelect] = useState(false);
-  const [newCarrierMode, setNewCarrierMode] = useState(false);
   
   // Form setup
   const form = useForm<AppointmentValues>({
@@ -126,7 +124,13 @@ export default function DoorAppointmentForm({
       endTime: undefined,
       type: ScheduleType.INBOUND,
       notes: "",
-      newCarrier: undefined
+      newCarrier: {
+        name: "",
+        mcNumber: "",
+        contactName: "",
+        contactEmail: "",
+        contactPhone: ""
+      }
     },
   });
   
@@ -398,162 +402,16 @@ export default function DoorAppointmentForm({
             ) : (
               <>
                 {/* Carrier Selection with Autocomplete */}
-                {newCarrierMode ? (
-                  <div className="grid grid-cols-1 gap-4 border p-4 rounded-md bg-slate-50">
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-medium">Add New Carrier</h3>
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={handleCancelNewCarrier}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    
-                    <FormField
-                      control={form.control}
-                      name="newCarrier.name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Carrier Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="newCarrier.mcNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>MC Number (Optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="newCarrier.contactName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Contact Name (Optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="newCarrier.contactEmail"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Contact Email (Optional)</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="newCarrier.contactPhone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Contact Phone (Optional)</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="carrierId"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Carrier</FormLabel>
-                        <Popover open={openCarrierSelect} onOpenChange={setOpenCarrierSelect}>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={openCarrierSelect}
-                              className="justify-between"
-                            >
-                              {field.value
-                                ? carriers.find((carrier) => carrier.id === field.value)?.name
-                                : "Select carrier..."}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[400px] p-0">
-                            <Command>
-                              <CommandInput
-                                placeholder="Search carriers..."
-                                value={carrierSearch}
-                                onValueChange={setCarrierSearch}
-                              />
-                              <CommandList>
-                                <CommandEmpty>
-                                  No carrier found. 
-                                  <Button 
-                                    type="button" 
-                                    variant="link" 
-                                    onClick={handleNewCarrierMode}
-                                    size="sm"
-                                    className="p-0 ml-1"
-                                  >
-                                    Add "{carrierSearch}"
-                                  </Button>
-                                </CommandEmpty>
-                                <CommandGroup>
-                                  {filteredCarriers.map((carrier) => (
-                                    <CommandItem
-                                      key={carrier.id}
-                                      value={carrier.name}
-                                      onSelect={() => handleSelectCarrier(carrier.id)}
-                                    >
-                                      {carrier.name}
-                                      {carrier.mcNumber && <span className="ml-2 text-xs text-muted-foreground">MC# {carrier.mcNumber}</span>}
-                                    </CommandItem>
-                                  ))}
-                                  {carrierSearch && (
-                                    <CommandItem
-                                      onSelect={handleNewCarrierMode}
-                                      className="text-primary"
-                                    >
-                                      <Plus className="h-4 w-4 mr-2" />
-                                      Add new carrier: "{carrierSearch}"
-                                    </CommandItem>
-                                  )}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+                {/* Using standardized CarrierSelector component */}
+                <CarrierSelector 
+                  form={form}
+                  nameFieldName="carrierName"
+                  idFieldName="carrierId"
+                  mcNumberFieldName="newCarrier.mcNumber"
+                  label="Carrier"
+                  required={true}
+                  placeholder="Select or enter carrier name"
+                />
                 
                 <FormField
                   control={form.control}
