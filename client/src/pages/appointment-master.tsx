@@ -195,6 +195,85 @@ export default function AppointmentMaster() {
       });
     }
   });
+  
+  // Update appointment type
+  const updateAppointmentTypeMutation = useMutation({
+    mutationFn: async (appointmentType: any) => {
+      const response = await apiRequest("PATCH", `/api/appointment-types/${appointmentType.id}`, appointmentType);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Appointment Type Updated",
+        description: "The appointment type has been successfully updated",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointment-types"] });
+      setShowNewAppointmentTypeDialog(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update appointment type: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Create appointment type
+  const createAppointmentTypeMutation = useMutation({
+    mutationFn: async (appointmentType: any) => {
+      const response = await apiRequest("POST", `/api/appointment-types`, appointmentType);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Appointment Type Created",
+        description: "The appointment type has been successfully created",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointment-types"] });
+      setShowNewAppointmentTypeDialog(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to create appointment type: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Duplicate appointment type
+  const duplicateAppointmentTypeMutation = useMutation({
+    mutationFn: async (id: number) => {
+      // First, get the original appointment type to duplicate
+      const selectedType = apiAppointmentTypes.find(type => type.id === id);
+      if (!selectedType) throw new Error("Appointment type not found");
+      
+      // Create a duplicate with a new name
+      const duplicateData = {
+        ...selectedType,
+        name: `${selectedType.name} (Copy)`,
+        id: undefined // Remove ID so the server creates a new one
+      };
+      
+      const response = await apiRequest("POST", `/api/appointment-types`, duplicateData);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Appointment Type Duplicated",
+        description: "The appointment type has been successfully duplicated",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointment-types"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to duplicate appointment type: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
 
   const saveCustomFieldMutation = useMutation({
     mutationFn: async (field: Partial<QuestionFormField>) => {
@@ -479,14 +558,30 @@ export default function AppointmentMaster() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem onClick={() => {
                                   setSelectedAppointmentTypeId(appointmentType.id);
-                                  // In a real app, we'd fetch the appointment type details here
+                                  // Set the form data from the selected appointment type
+                                  setAppointmentTypeForm({
+                                    name: appointmentType.name || "",
+                                    description: appointmentType.description || "",
+                                    facilityId: appointmentType.facilityId || (facilities.length > 0 ? facilities[0].id : 0),
+                                    color: appointmentType.color || "#4CAF50",
+                                    duration: appointmentType.duration || 60,
+                                    type: appointmentType.type || "both",
+                                    maxSlots: appointmentType.maxSlots || 1,
+                                    timezone: appointmentType.timezone || "America/New_York",
+                                    gracePeriod: appointmentType.gracePeriod || 15,
+                                    emailReminderTime: appointmentType.emailReminderTime || 24,
+                                    showRemainingSlots: appointmentType.showRemainingSlots ?? true,
+                                    location: appointmentType.location || ""
+                                  });
                                   setAppointmentTypeFormStep(1);
                                   setShowNewAppointmentTypeDialog(true);
                                 }}>
                                   <Pencil className="h-4 w-4 mr-2" />
                                   Edit
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  duplicateAppointmentTypeMutation.mutate(appointmentType.id);
+                                }}>
                                   <Copy className="h-4 w-4 mr-2" />
                                   Duplicate
                                 </DropdownMenuItem>
@@ -1421,8 +1516,26 @@ export default function AppointmentMaster() {
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   ) : (
-                    <Button>
-                      <Save className="h-4 w-4 mr-2" />
+                    <Button 
+                      onClick={() => {
+                        if (selectedAppointmentTypeId) {
+                          // Update existing appointment type
+                          updateAppointmentTypeMutation.mutate({
+                            ...appointmentTypeForm,
+                            id: selectedAppointmentTypeId
+                          });
+                        } else {
+                          // Create new appointment type
+                          createAppointmentTypeMutation.mutate(appointmentTypeForm);
+                        }
+                      }}
+                      disabled={updateAppointmentTypeMutation.isPending || createAppointmentTypeMutation.isPending}
+                    >
+                      {(updateAppointmentTypeMutation.isPending || createAppointmentTypeMutation.isPending) ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
                       {selectedAppointmentTypeId ? "Update Appointment Type" : "Create Appointment Type"}
                     </Button>
                   )}
