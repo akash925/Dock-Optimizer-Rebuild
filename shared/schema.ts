@@ -321,7 +321,6 @@ export const appointmentTypes = pgTable("appointment_types", {
   emailReminderTime: integer("email_reminder_time").notNull().default(24), // hours before appointment
   allowAppointmentsThroughBreaks: boolean("allow_appointments_through_breaks").notNull().default(false),
   allowAppointmentsPastBusinessHours: boolean("allow_appointments_past_business_hours").notNull().default(false),
-  emailReminderTime: integer("email_reminder_time").notNull().default(24), // in hours
   timezone: text("timezone").default("America/New_York"), // Default to Eastern Time
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),

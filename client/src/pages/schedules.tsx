@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Schedule, Dock, Carrier, Facility } from "@shared/schema";
+import { Schedule, Dock, Carrier, Facility, AppointmentType } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Calendar as CalendarIcon, ListFilter, Grid, List, Eye, Search, XCircle } from "lucide-react";
+import { PlusCircle, Calendar as CalendarIcon, ListFilter, Grid, List, Eye, Search, XCircle, Clock, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/ui/data-table";
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export default function Schedules() {
   const { toast } = useToast();
@@ -35,6 +36,8 @@ export default function Schedules() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterDockId, setFilterDockId] = useState<number | "all">("all");
   const [selectedDockId, setSelectedDockId] = useState<number | undefined>(undefined);
+  const [isAppointmentTypeDialogOpen, setIsAppointmentTypeDialogOpen] = useState(false);
+  const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState<number | undefined>(undefined);
   
   // Fetch schedules
   const { data: schedules = [] } = useQuery<Schedule[]>({
@@ -61,6 +64,19 @@ export default function Schedules() {
   // Fetch facilities
   const { data: facilities = [] } = useQuery<Facility[]>({
     queryKey: ["/api/facilities"],
+  });
+  
+  // Fetch appointment types
+  const { data: appointmentTypes = [], isError: appointmentTypesError } = useQuery<AppointmentType[]>({
+    queryKey: ["/api/appointment-types"],
+    onError: (error) => {
+      console.error("Failed to fetch appointment types:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load appointment types. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
   
   // Get facility name for a dock
@@ -108,13 +124,21 @@ export default function Schedules() {
         setSelectedDockId(dockId);
       }
       
-      setIsFormOpen(true);
+      // Open appointment type selection dialog first
+      setIsAppointmentTypeDialogOpen(true);
     } else {
       console.error("Invalid date received from cell click:", date);
       // Fallback to current date/time if we got an invalid date
       setClickedCellDate(new Date());
-      setIsFormOpen(true);
+      setIsAppointmentTypeDialogOpen(true);
     }
+  };
+  
+  // Handle appointment type selection
+  const handleAppointmentTypeSelected = (appointmentTypeId: number) => {
+    setSelectedAppointmentTypeId(appointmentTypeId);
+    setIsAppointmentTypeDialogOpen(false);
+    setIsFormOpen(true);
   };
   
   // Columns for the data table
