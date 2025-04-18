@@ -68,15 +68,7 @@ export default function Schedules() {
   
   // Fetch appointment types
   const { data: appointmentTypes = [], isError: appointmentTypesError } = useQuery<AppointmentType[]>({
-    queryKey: ["/api/appointment-types"],
-    onError: (error) => {
-      console.error("Failed to fetch appointment types:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load appointment types. Please try again.",
-        variant: "destructive",
-      });
-    }
+    queryKey: ["/api/appointment-types"]
   });
   
   // Get facility name for a dock
@@ -441,6 +433,64 @@ export default function Schedules() {
         onOpenChange={setIsDetailsDialogOpen}
         facilityName={selectedSchedule ? getFacilityNameForDock(selectedSchedule.dockId) : ""}
       />
+      
+      {/* Appointment Type Selection Dialog */}
+      <Dialog open={isAppointmentTypeDialogOpen} onOpenChange={setIsAppointmentTypeDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Select Appointment Type</DialogTitle>
+            <DialogDescription>
+              Choose the type of appointment you'd like to schedule.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {appointmentTypes.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3">
+                {appointmentTypes.map((type) => (
+                  <Button
+                    key={type.id}
+                    variant="outline"
+                    className="flex items-center justify-between p-4 h-auto"
+                    onClick={() => handleAppointmentTypeSelected(type.id)}
+                    style={{ 
+                      borderLeftWidth: '4px',
+                      borderLeftColor: type.color || '#888' 
+                    }}
+                  >
+                    <div className="flex flex-col items-start text-left">
+                      <span className="font-medium mb-1">{type.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {type.description || 'No description'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-medium">
+                        <Clock className="h-4 w-4 inline-block mr-1" />
+                        {type.duration} min
+                      </span>
+                      <Badge variant="outline" className="mt-1">
+                        {type.type.toLowerCase() === 'inbound' ? 'Inbound' : 'Outbound'}
+                      </Badge>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center p-4">
+                <p className="text-muted-foreground">No appointment types available.</p>
+                <p className="text-sm mt-2">
+                  Please configure appointment types in the Appointment Master section.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsAppointmentTypeDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

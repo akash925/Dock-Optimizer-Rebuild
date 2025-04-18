@@ -98,6 +98,7 @@ interface AppointmentFormProps {
   mode: "create" | "edit";
   initialDate?: Date;
   initialDockId?: number;
+  appointmentTypeId?: number;
 }
 
 export default function AppointmentForm({
@@ -107,6 +108,7 @@ export default function AppointmentForm({
   mode,
   initialDate,
   initialDockId,
+  appointmentTypeId,
 }: AppointmentFormProps) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<Partial<AppointmentFormValues>>({});
@@ -120,9 +122,16 @@ export default function AppointmentForm({
   
   // Set up default end time based on appointment type
   const getDefaultEndTime = (startDate: Date, type: "trailer" | "container") => {
-    // Trailer = 1 hour, Container = 4 hours
-    const hours = type === "trailer" ? 1 : 4;
-    return addHours(startDate, hours);
+    // If we have a selected appointment type, use its duration
+    if (selectedAppointmentType) {
+      // Convert minutes to hours for the addHours function
+      const hours = selectedAppointmentType.duration / 60;
+      return addHours(startDate, hours);
+    }
+    
+    // Fallback: Trailer = 1 hour, Container = 4 hours
+    const defaultHours = type === "trailer" ? 1 : 4;
+    return addHours(startDate, defaultHours);
   };
   
   // Fetch docks
@@ -133,6 +142,17 @@ export default function AppointmentForm({
   // Fetch carriers
   const { data: carriers = [] } = useQuery<Carrier[]>({
     queryKey: ["/api/carriers"],
+  });
+  
+  // Fetch appointment type if specified
+  const { data: selectedAppointmentType } = useQuery({
+    queryKey: ["/api/appointment-types", appointmentTypeId],
+    queryFn: async () => {
+      if (!appointmentTypeId) return null;
+      const res = await apiRequest("GET", `/api/appointment-types/${appointmentTypeId}`);
+      return await res.json();
+    },
+    enabled: !!appointmentTypeId,
   });
   
   // Step 1 Form: Truck Information
@@ -434,6 +454,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         type: formData.type || "inbound",
+        appointmentTypeId: appointmentTypeId || null, // Add the selected appointment type
         appointmentMode: appointmentMode,
         status: "scheduled",
         notes: data.notes || "",
