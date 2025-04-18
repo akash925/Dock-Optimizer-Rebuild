@@ -34,6 +34,7 @@ export default function Schedules() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterDockId, setFilterDockId] = useState<number | "all">("all");
+  const [selectedDockId, setSelectedDockId] = useState<number | undefined>(undefined);
   
   // Fetch schedules
   const { data: schedules = [] } = useQuery<Schedule[]>({

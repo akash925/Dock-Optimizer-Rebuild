@@ -9,7 +9,7 @@ interface ScheduleCalendarProps {
   docks: { id: number; name: string }[];
   date: Date;
   onScheduleClick: (scheduleId: number) => void;
-  onCellClick?: (date: Date) => void;
+  onCellClick?: (date: Date, dockId?: number) => void;
 }
 
 export default function ScheduleCalendar({
@@ -90,9 +90,18 @@ export default function ScheduleCalendar({
         {docks.map((dock) => (
           <div key={dock.id} className="door-group" style={{ display: "contents" }}>
             <div className="calendar-door">{dock.name}</div>
-            {Array.from({ length: 24 }, (_, i) => (
-              <div key={i} className="calendar-hour"></div>
-            ))}
+            {Array.from({ length: 24 }, (_, i) => {
+              // Create a date object for this hour cell
+              const cellDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), i, 0, 0);
+              
+              return (
+                <div 
+                  key={i} 
+                  className="calendar-hour cursor-pointer hover:bg-gray-100"
+                  onClick={() => onCellClick && onCellClick(cellDate, dock.id)}
+                ></div>
+              );
+            })}
           </div>
         ))}
         
