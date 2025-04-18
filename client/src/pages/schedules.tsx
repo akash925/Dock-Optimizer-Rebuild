@@ -91,7 +91,13 @@ export default function Schedules() {
   const handleScheduleClick = (scheduleId: number) => {
     const schedule = schedules.find((s: Schedule) => s.id === scheduleId);
     if (schedule) {
-      setSelectedSchedule(schedule);
+      // Enhance the schedule with derived properties
+      const enhancedSchedule = {
+        ...schedule,
+        dockName: schedule.dockId ? docks.find(d => d.id === schedule.dockId)?.name : undefined,
+        appointmentTypeName: schedule.appointmentTypeId ? appointmentTypes.find(t => t.id === schedule.appointmentTypeId)?.name : undefined
+      };
+      setSelectedSchedule(enhancedSchedule);
       setIsDetailsDialogOpen(true);
     }
   };
@@ -257,6 +263,19 @@ export default function Schedules() {
     
     // Type filter
     const typeMatches = filterType === "all" || schedule.type === filterType;
+
+    // Facility filter - this requires looking up the dock's facility
+    let facilityMatches = true;
+    if (filterFacilityId !== "all") {
+      if (!schedule.dockId) {
+        // If no dock assigned and filtering by facility, don't show
+        facilityMatches = false;
+      } else {
+        // Get dock and check if it belongs to the selected facility
+        const dock = docks.find(d => d.id === schedule.dockId);
+        facilityMatches = dock?.facilityId === filterFacilityId;
+      }
+    }
     
     // Dock filter
     const dockMatches = filterDockId === "all" || schedule.dockId === filterDockId;
@@ -277,7 +296,7 @@ export default function Schedules() {
         (carrier?.name.toLowerCase().includes(query) || false);
     }
     
-    return dateMatches && statusMatches && typeMatches && dockMatches && searchMatches;
+    return dateMatches && statusMatches && typeMatches && facilityMatches && dockMatches && searchMatches;
   });
 
   return (
@@ -316,6 +335,51 @@ export default function Schedules() {
           )}
         </div>
         
+        {/* Facility Filter - Primary filter that affects available docks */}
+        <Select 
+          value={filterFacilityId === "all" ? "all" : filterFacilityId.toString()} 
+          onValueChange={(value) => {
+            const newFacilityId = value === "all" ? "all" : parseInt(value);
+            setFilterFacilityId(newFacilityId);
+            
+            // Reset dock filter when facility changes
+            setFilterDockId("all");
+          }}
+        >
+          <SelectTrigger className="w-[180px] font-medium">
+            <SelectValue placeholder="Facility" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Facilities</SelectItem>
+            {facilities.map((facility) => (
+              <SelectItem key={facility.id} value={facility.id.toString()}>
+                {facility.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        {/* Dock Filter - Filtered by selected facility */}
+        <Select 
+          value={filterDockId === "all" ? "all" : filterDockId.toString()} 
+          onValueChange={(value) => setFilterDockId(value === "all" ? "all" : parseInt(value))}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Dock" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Docks</SelectItem>
+            {docks
+              .filter(dock => filterFacilityId === "all" || dock.facilityId === filterFacilityId)
+              .map((dock) => (
+                <SelectItem key={dock.id} value={dock.id.toString()}>
+                  {dock.name}
+                </SelectItem>
+              ))
+            }
+          </SelectContent>
+        </Select>
+        
         <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value)}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Status" />
@@ -340,24 +404,8 @@ export default function Schedules() {
           </SelectContent>
         </Select>
         
-        <Select 
-          value={filterDockId === "all" ? "all" : filterDockId.toString()} 
-          onValueChange={(value) => setFilterDockId(value === "all" ? "all" : parseInt(value))}
-        >
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Dock" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Docks</SelectItem>
-            {docks.map((dock) => (
-              <SelectItem key={dock.id} value={dock.id.toString()}>
-                {dock.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        {(searchQuery || filterStatus !== "all" || filterType !== "all" || filterDockId !== "all") && (
+        {(searchQuery || filterStatus !== "all" || filterType !== "all" || 
+          filterDockId !== "all" || filterFacilityId !== "all") && (
           <Button 
             variant="ghost" 
             size="sm" 
@@ -365,6 +413,7 @@ export default function Schedules() {
               setSearchQuery("");
               setFilterStatus("all");
               setFilterType("all");
+              setFilterFacilityId("all");
               setFilterDockId("all");
             }}
             className="text-xs"
@@ -378,10 +427,14 @@ export default function Schedules() {
       <div className="w-full">
         {viewMode === "week" && (
           <ScheduleWeekCalendar
-            schedules={(filterStatus !== "all" || filterType !== "all" || filterDockId !== "all" || searchQuery.trim() !== "") 
+            schedules={(filterStatus !== "all" || filterType !== "all" || 
+                      filterDockId !== "all" || filterFacilityId !== "all" || 
+                      searchQuery.trim() !== "") 
               ? filteredSchedules 
               : (schedules as Schedule[])}
-            docks={docks}
+            docks={filterFacilityId !== "all" 
+              ? docks.filter(dock => dock.facilityId === filterFacilityId)
+              : docks}
             carriers={carriers}
             date={selectedDate}
             onScheduleClick={handleScheduleClick}
@@ -394,7 +447,9 @@ export default function Schedules() {
         {viewMode === "calendar" && (
           <ScheduleCalendar 
             schedules={filteredSchedules}
-            docks={docks}
+            docks={filterFacilityId !== "all" 
+              ? docks.filter(dock => dock.facilityId === filterFacilityId)
+              : docks}
             date={selectedDate}
             onScheduleClick={handleScheduleClick}
             onCellClick={handleCellClick}
@@ -458,78 +513,123 @@ export default function Schedules() {
               Choose the type of appointment you'd like to schedule.
             </DialogDescription>
           </DialogHeader>
+          {/* Facility selector for appointment types */}
+          <div className="px-6 pb-2 pt-1">
+            <Select 
+              value={filterFacilityId === "all" ? "all" : filterFacilityId.toString()} 
+              onValueChange={(value) => {
+                const newFacilityId = value === "all" ? "all" : parseInt(value);
+                setFilterFacilityId(newFacilityId);
+                setFilterDockId("all");
+              }}
+            >
+              <SelectTrigger className="w-full font-medium">
+                <SelectValue placeholder="Select facility" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Facilities</SelectItem>
+                {facilities.map((facility) => (
+                  <SelectItem key={facility.id} value={facility.id.toString()}>
+                    {facility.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div className="py-2">
-            {appointmentTypes.length > 0 ? (
-              <div className="divide-y divide-gray-100">
-                {appointmentTypes.map((type) => {
-                  // Determine the facility name for this appointment type
-                  const facility = facilities.find(f => f.id === type.facilityId);
-                  const facilityName = facility?.name || "Unknown Location";
-                  
-                  // Create badge for inbound/outbound/both
-                  let typeLabel = "";
-                  let typeColor = "";
-                  if (type.type.toLowerCase() === 'inbound') {
-                    typeLabel = "Inbound";
-                    typeColor = "bg-blue-100 text-blue-800";
-                  } else if (type.type.toLowerCase() === 'outbound') {
-                    typeLabel = "Outbound";
-                    typeColor = "bg-purple-100 text-purple-800";
-                  } else {
-                    typeLabel = "Inbound/Outbound";
-                    typeColor = "bg-gray-100 text-gray-800";
-                  }
-                  
-                  return (
-                    <button
-                      key={type.id}
-                      className="w-full px-6 py-4 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors flex items-start justify-between group"
-                      onClick={() => handleAppointmentTypeSelected(type.id)}
-                    >
-                      <div className="flex items-start w-full">
-                        {/* Left color bar */}
-                        <div 
-                          className="w-1.5 self-stretch mr-4 rounded-full flex-shrink-0" 
-                          style={{ backgroundColor: type.color || '#888' }}
-                        />
-                        
-                        {/* Content */}
-                        <div className="flex-1">
-                          <div className="flex justify-between w-full">
-                            <h3 className="font-semibold text-lg">{type.name}</h3>
-                            <span className="text-sm text-gray-500 flex items-center">
-                              <Clock className="h-4 w-4 mr-1.5" />
-                              {type.duration} min
-                            </span>
+            {/* Filter appointment types by selected facility */}
+            {(() => {
+              // Get the filtered appointment types based on selected facility
+              const filteredTypes = filterFacilityId === "all" 
+                ? appointmentTypes 
+                : appointmentTypes.filter(type => type.facilityId === filterFacilityId);
+              
+              if (filteredTypes.length > 0) {
+                return (
+                  <div className="divide-y divide-gray-100">
+                    {filteredTypes.map((type) => {
+                      // Determine the facility name for this appointment type
+                      const facility = facilities.find(f => f.id === type.facilityId);
+                      const facilityName = facility?.name || "Unknown Location";
+                      
+                      // Create badge for inbound/outbound/both
+                      let typeLabel = "";
+                      let typeColor = "";
+                      if (type.type.toLowerCase() === 'inbound') {
+                        typeLabel = "Inbound";
+                        typeColor = "bg-blue-100 text-blue-800";
+                      } else if (type.type.toLowerCase() === 'outbound') {
+                        typeLabel = "Outbound";
+                        typeColor = "bg-purple-100 text-purple-800";
+                      } else {
+                        typeLabel = "Inbound/Outbound";
+                        typeColor = "bg-gray-100 text-gray-800";
+                      }
+                      
+                      return (
+                        <button
+                          key={type.id}
+                          className="w-full px-6 py-4 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors flex items-start justify-between group"
+                          onClick={() => handleAppointmentTypeSelected(type.id)}
+                        >
+                          <div className="flex items-start w-full">
+                            {/* Left color bar */}
+                            <div 
+                              className="w-1.5 self-stretch mr-4 rounded-full flex-shrink-0" 
+                              style={{ backgroundColor: type.color || '#888' }}
+                            />
+                            
+                            {/* Content */}
+                            <div className="flex-1">
+                              <div className="flex justify-between w-full">
+                                <h3 className="font-semibold text-lg">{type.name}</h3>
+                                <span className="text-sm text-gray-500 flex items-center">
+                                  <Clock className="h-4 w-4 mr-1.5" />
+                                  {type.duration} min
+                                </span>
+                              </div>
+                              
+                              <p className="text-sm text-gray-600 mt-1 mb-2">
+                                {type.description || 'No description available'}
+                              </p>
+                              
+                              <div className="flex items-center">
+                                <span className={`text-xs px-2 py-1 rounded-full ${typeColor}`}>
+                                  {typeLabel}
+                                </span>
+                                <span className="mx-2 text-gray-300">•</span>
+                                <span className="text-xs text-gray-500">
+                                  {facilityName}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          
-                          <p className="text-sm text-gray-600 mt-1 mb-2">
-                            {type.description || 'No description available'}
-                          </p>
-                          
-                          <div className="flex items-center">
-                            <span className={`text-xs px-2 py-1 rounded-full ${typeColor}`}>
-                              {typeLabel}
-                            </span>
-                            <span className="mx-2 text-gray-300">•</span>
-                            <span className="text-xs text-gray-500">
-                              {facilityName}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center p-8 border-t">
-                <p className="text-muted-foreground">No appointment types available.</p>
-                <p className="text-sm mt-2">
-                  Please configure appointment types in the Appointment Master section.
-                </p>
-              </div>
-            )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              } else if (filterFacilityId !== "all") {
+                return (
+                  <div className="text-center p-8 border-t">
+                    <p className="text-muted-foreground">No appointment types available for this facility.</p>
+                    <p className="text-sm mt-2">
+                      Please select a different facility or configure appointment types in the Appointment Master section.
+                    </p>
+                  </div>
+                );
+              } else {
+                return (
+                  <div className="text-center p-8 border-t">
+                    <p className="text-muted-foreground">No appointment types available.</p>
+                    <p className="text-sm mt-2">
+                      Please configure appointment types in the Appointment Master section.
+                    </p>
+                  </div>
+                );
+              }
+            })()}
           </div>
           <div className="flex justify-end p-6 border-t">
             <Button variant="outline" onClick={() => setIsAppointmentTypeDialogOpen(false)} className="px-4">

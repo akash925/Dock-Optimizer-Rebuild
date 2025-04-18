@@ -32,7 +32,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import AppointmentQRCode from "./appointment-qr-code";
 
 interface AppointmentDetailsDialogProps {
-  appointment: Schedule | null;
+  appointment: ExtendedSchedule | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   facilityName?: string;
