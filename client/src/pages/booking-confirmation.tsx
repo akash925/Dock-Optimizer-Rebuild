@@ -159,7 +159,8 @@ export default function BookingConfirmation() {
   };
 
   const handleNewBooking = () => {
-    navigate("/external-booking");
+    // Add a reset parameter to ensure the form is completely reset
+    navigate("/external-booking?reset=true");
   };
 
   const handleHome = () => {

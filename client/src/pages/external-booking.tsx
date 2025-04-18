@@ -281,8 +281,14 @@ export default function ExternalBooking() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<BookingFormValues>>({});
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
+  
+  // Check if the URL has a reset parameter
+  const shouldReset = useMemo(() => {
+    // Manually parse the reset parameter from the URL
+    return location.search?.includes('reset=true') === true;
+  }, [location.search]);
   const [bolFile, setBolFile] = useState<File | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [bolProcessing, setBolProcessing] = useState(false);
@@ -345,6 +351,64 @@ export default function ExternalBooking() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookingPage, facilities, appointmentTypes]);
+  
+  // Handle form reset when coming from booking confirmation page
+  useEffect(() => {
+    if (shouldReset) {
+      // Reset all forms to default values
+      console.log("Resetting all forms based on URL query parameter");
+      
+      // Reset step 1
+      initialSelectionForm.reset({
+        location: "",
+        appointmentType: "",
+        pickupOrDropoff: "dropoff",
+        bolUploaded: false,
+      });
+      
+      // Reset step 2
+      companyInfoForm.reset({
+        customerName: "",
+        contactName: "",
+        contactEmail: "",
+        contactPhone: "",
+      });
+      
+      // Reset step 3
+      appointmentDetailsForm.reset({
+        appointmentDate: "",
+        appointmentTime: "",
+        carrierName: "",
+        mcNumber: "",
+        truckNumber: "",
+        trailerNumber: "",
+        driverName: "",
+        driverPhone: "",
+        poNumber: "",
+        bolNumber: "",
+        palletCount: "",
+        weight: "",
+        additionalNotes: "",
+        bolFileUploaded: false,
+      });
+      
+      // Reset the state
+      setFormData({});
+      setStep(1);
+      setBolFile(null);
+      setBolPreviewText(null);
+      setSelectedLocation(null);
+      
+      // Clean up the URL by removing the reset parameter
+      navigate("/external-booking", { replace: true });
+      
+      toast({
+        title: "Form Reset",
+        description: "Starting a new appointment booking.",
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldReset]);
   
   // Step 1 Form
   const initialSelectionForm = useForm<InitialSelectionFormValues>({
