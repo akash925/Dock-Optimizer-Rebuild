@@ -50,7 +50,7 @@ const truckInfoSchema = z.object({
 const scheduleDetailsSchema = z.object({
   appointmentDate: z.string().min(1, "Date is required"),
   appointmentTime: z.string().min(1, "Time is required"),
-  dockId: z.coerce.number().min(1, "Please select a dock"),
+  dockId: z.coerce.number().optional(), // Make dock optional
   bolNumber: z.string().optional(),
   poNumber: z.string().optional(),
   palletCount: z.string().optional(),
@@ -75,7 +75,7 @@ const appointmentFormSchema = z.object({
   // Schedule details fields
   appointmentDate: z.string().min(1, "Date is required"),
   appointmentTime: z.string().min(1, "Time is required"),
-  dockId: z.coerce.number().min(1, "Please select a dock"),
+  dockId: z.coerce.number().optional(), // Make dock optional
   bolNumber: z.string().optional(),
   poNumber: z.string().optional(),
   palletCount: z.string().optional(),
@@ -803,7 +803,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                 name="dockId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Dock Door*</FormLabel>
+                    <FormLabel>Dock Door</FormLabel>
                     <Select 
                       value={field.value ? field.value.toString() : ''} 
                       onValueChange={field.onChange}
