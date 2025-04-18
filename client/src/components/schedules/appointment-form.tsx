@@ -206,7 +206,7 @@ export default function AppointmentForm({
             // Default to 9:00 AM if there's an error
             return "09:00";
           })(),
-          dockId: initialData.dockId,
+          dockId: initialData.dockId || undefined,
           bolNumber: initialData.bolNumber || "",
           poNumber: initialData.poNumber || "",
           palletCount: initialData.palletCount || "",
@@ -246,7 +246,7 @@ export default function AppointmentForm({
             // Default to 9:00 AM
             return "09:00";
           })(),
-          dockId: initialDockId || (docks && docks.length > 0 ? docks[0].id : undefined),
+          dockId: initialDockId || undefined,
           bolNumber: "",
           poNumber: "",
           palletCount: "",

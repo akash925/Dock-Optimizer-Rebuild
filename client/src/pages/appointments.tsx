@@ -195,7 +195,8 @@ export default function AppointmentsPage() {
   };
   
   // Get dock name from ID
-  const getDockName = (dockId: number) => {
+  const getDockName = (dockId: number | null) => {
+    if (!dockId) return "No dock assigned";
     if (!docks) return "Loading...";
     const dock = docks.find((d: any) => d.id === dockId);
     return dock ? dock.name : `Dock #${dockId}`;
