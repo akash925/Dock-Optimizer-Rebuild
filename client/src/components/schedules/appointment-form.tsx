@@ -7,7 +7,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Schedule, Dock, Carrier } from "@shared/schema";
+import { Schedule, Dock, Carrier, Facility } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
@@ -120,6 +120,17 @@ export default function AppointmentForm({
   const { toast } = useToast();
   const { user } = useAuth();
   
+  // Fetch appointment type if specified
+  const { data: selectedAppointmentType } = useQuery({
+    queryKey: ["/api/appointment-types", appointmentTypeId],
+    queryFn: async () => {
+      if (!appointmentTypeId) return null;
+      const res = await apiRequest("GET", `/api/appointment-types/${appointmentTypeId}`);
+      return await res.json();
+    },
+    enabled: !!appointmentTypeId,
+  });
+  
   // Set up default end time based on appointment type
   const getDefaultEndTime = (startDate: Date, type: "trailer" | "container") => {
     // If we have a selected appointment type, use its duration
@@ -134,25 +145,27 @@ export default function AppointmentForm({
     return addHours(startDate, defaultHours);
   };
   
+  // Fetch facilities
+  const { data: facilities = [] } = useQuery<Facility[]>({
+    queryKey: ["/api/facilities"],
+  });
+  
   // Fetch docks
-  const { data: docks = [] } = useQuery<Dock[]>({
+  const { data: allDocks = [] } = useQuery<Dock[]>({
     queryKey: ["/api/docks"],
   });
+  
+  // Get selected facility ID from the appointment type
+  const selectedFacilityId = selectedAppointmentType?.facilityId;
+  
+  // Filter docks by facility if a facility is selected via appointment type
+  const docks = selectedFacilityId 
+    ? allDocks.filter(dock => dock.facilityId === selectedFacilityId)
+    : allDocks;
   
   // Fetch carriers
   const { data: carriers = [] } = useQuery<Carrier[]>({
     queryKey: ["/api/carriers"],
-  });
-  
-  // Fetch appointment type if specified
-  const { data: selectedAppointmentType } = useQuery({
-    queryKey: ["/api/appointment-types", appointmentTypeId],
-    queryFn: async () => {
-      if (!appointmentTypeId) return null;
-      const res = await apiRequest("GET", `/api/appointment-types/${appointmentTypeId}`);
-      return await res.json();
-    },
-    enabled: !!appointmentTypeId,
   });
   
   // Step 1 Form: Truck Information
@@ -774,16 +787,40 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {/* Generate time slots from 5am to 7pm based on configured interval */}
+                          {/* Generate time slots based on appointment type and facility settings */}
                           {(() => {
-                            // Get facility settings or use defaults
-                            // In a real implementation, this would be fetched from the server
-                            // For example: const settings = await storage.getAppointmentSettings(facilityId);
-                            // And then: const timeInterval = settings.timeInterval;
-                            // For now, we use these defaults
+                            // Use appointment type settings if available
                             const timeInterval = 15; // Default to 15 minutes for finer time slot control
-                            const startHour = 5; // 5 AM
-                            const endHour = 19; // 7 PM
+                            
+                            // Use appointment type's facility business hours if available
+                            // If not, use default hours
+                            let startHour = 5; // Default: 5 AM
+                            let endHour = 19; // Default: 7 PM
+                            
+                            // Track availability checks
+                            let hasSpecialAvailability = false;
+                            
+                            // Apply appointment type settings if available
+                            if (selectedAppointmentType) {
+                              console.log("Using settings from appointment type:", selectedAppointmentType.name);
+                              
+                              // In the future, appointment types may override business hours
+                              // For now, use the type's rules for appointments past business hours
+                              if (!selectedAppointmentType.allowAppointmentsPastBusinessHours) {
+                                hasSpecialAvailability = true;
+                                // Set strict business hours (8am to 5pm) if appointments aren't allowed outside business hours
+                                startHour = 8;
+                                endHour = 17;
+                              }
+                              
+                              // Check if there is a buffer time setting
+                              if (selectedAppointmentType.bufferTime > 0) {
+                                console.log(`Using buffer time of ${selectedAppointmentType.bufferTime} minutes between appointments`);
+                                // We'll apply this buffer when calculating available slots
+                                // For now, just adjust the timeInterval to ensure proper spacing
+                                // In a real implementation, this would check existing appointments too
+                              }
+                            }
                             
                             // Calculate total minutes from start to end
                             const totalMinutes = (endHour - startHour) * 60;
