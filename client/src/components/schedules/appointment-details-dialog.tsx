@@ -568,14 +568,18 @@ export function AppointmentDetailsDialog({
                 appointment.status === "in-progress" ? "In Progress" : 
                 appointment.status === "completed" ? "Completed" : "Cancelled"}
               </Badge>
-              <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
-                {appointment.appointmentMode || "Trailer"}
+              <Badge variant="outline" className={
+                appointment.appointmentMode === "container" 
+                  ? "bg-orange-50 text-orange-700 border-orange-200" 
+                  : "bg-slate-50 text-slate-700 border-slate-200"
+              }>
+                {appointment.appointmentMode === "container" ? "Container" : "Trailer"}
               </Badge>
             </div>
           </DialogTitle>
           <DialogDescription>
             <div className="flex flex-col space-y-1 mt-1">
-              <span>{facilityName ? `Facility: ${facilityName}` : ""}</span>
+              <span>{displayFacilityName ? `Facility: ${displayFacilityName}` : ""}</span>
               <span>{appointment.dockId ? `Dock: ${appointment.dockName || "Unknown"}` : "No dock assigned"}</span>
               <span>{appointment.type === "inbound" ? "Inbound" : "Outbound"} appointment</span>
             </div>
@@ -683,7 +687,7 @@ export function AppointmentDetailsDialog({
                   className="h-8"
                 />
               ) : (
-                <div className="font-medium">{appointment.carrierName || "Unknown Carrier"}</div>
+                <div className="font-medium">{carrier?.name || appointment.carrierName || "Unknown Carrier"}</div>
               )}
             </div>
             <div className="space-y-1">
