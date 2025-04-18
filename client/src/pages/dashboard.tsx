@@ -80,19 +80,44 @@ export default function Dashboard() {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       
+      // Filter today's schedules
       const todaySchedules = schedules.filter(s => 
         new Date(s.startTime) >= today && new Date(s.startTime) < tomorrow
       );
       
-      const todayTrucks = todaySchedules.length;
+      // Filter by facility if specific facility is selected
+      const facilityTodaySchedules = selectedFacilityId === "all"
+        ? todaySchedules
+        : todaySchedules.filter(s => {
+            // Find the dock for this schedule to get its facility
+            const dock = docks.find(d => d.id === s.dockId);
+            return dock?.facilityId === selectedFacilityId;
+          });
       
-      const occupiedDocks = docks.filter(d => 
+      const todayTrucks = facilityTodaySchedules.length;
+      
+      // Filter docks by facility if a specific facility is selected
+      const filteredDocks = selectedFacilityId === "all" 
+        ? docks 
+        : docks.filter(d => d.facilityId === selectedFacilityId);
+      
+      const occupiedDocks = filteredDocks.filter(d => 
         getDockStatus(d.id, schedules) === "occupied"
       ).length;
       
-      const dockUtilization = docks.length > 0 ? Math.round((occupiedDocks / docks.length) * 100) : 0;
+      const dockUtilization = filteredDocks.length > 0 
+        ? Math.round((occupiedDocks / filteredDocks.length) * 100) 
+        : 0;
       
-      const completedSchedules = schedules.filter(s => s.status === "completed");
+      // Filter completed schedules by facility
+      const completedSchedules = selectedFacilityId === "all"
+        ? schedules.filter(s => s.status === "completed")
+        : schedules.filter(s => {
+            // Find the dock for this schedule to get its facility
+            const dock = docks.find(d => d.id === s.dockId);
+            return s.status === "completed" && dock?.facilityId === selectedFacilityId;
+          });
+      
       const totalTurnaround = completedSchedules.reduce((acc, schedule) => {
         const start = new Date(schedule.startTime);
         const end = new Date(schedule.endTime);
@@ -103,12 +128,12 @@ export default function Dashboard() {
         ? Math.round(totalTurnaround / completedSchedules.length) 
         : 0;
       
-      const onTimeSchedules = todaySchedules.filter(s => 
+      const onTimeSchedules = facilityTodaySchedules.filter(s => 
         new Date(s.startTime) >= now || s.status === "completed"
       ).length;
       
-      const onTimeArrivals = todaySchedules.length > 0 
-        ? Math.round((onTimeSchedules / todaySchedules.length) * 100) 
+      const onTimeArrivals = facilityTodaySchedules.length > 0 
+        ? Math.round((onTimeSchedules / facilityTodaySchedules.length) * 100) 
         : 0;
       
       setKpiMetrics({
@@ -167,7 +192,16 @@ export default function Dashboard() {
       setDockStatuses(statuses);
       
       // Calculate upcoming arrivals
-      const futureSchedules = schedules
+      // Filter schedules by facility if a specific facility is selected
+      const facilityFilteredSchedules = selectedFacilityId === "all"
+        ? schedules
+        : schedules.filter(s => {
+            // Find the dock for this schedule to get its facility
+            const dock = docks.find(d => d.id === s.dockId);
+            return dock?.facilityId === selectedFacilityId;
+          });
+          
+      const futureSchedules = facilityFilteredSchedules
         .filter(s => new Date(s.startTime) > now)
         .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
         .slice(0, 4);
@@ -200,7 +234,7 @@ export default function Dashboard() {
       
       setUpcomingArrivals(arrivals);
     }
-  }, [docks, schedules, carriers]);
+  }, [docks, schedules, carriers, selectedFacilityId]);
 
   return (
     <div className="mb-6">
@@ -356,14 +390,28 @@ export default function Dashboard() {
           </div>
           
           <div className="space-y-4">
-            {upcomingArrivals.map(arrival => (
-              <ArrivalCard key={arrival.id} arrival={arrival} />
-            ))}
+            {upcomingArrivals.length > 0 ? (
+              upcomingArrivals.map(arrival => (
+                <ArrivalCard key={arrival.id} arrival={arrival} />
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                {selectedFacilityId === "all" 
+                  ? "No upcoming arrivals scheduled."
+                  : "No upcoming arrivals scheduled for the selected facility."}
+              </div>
+            )}
           </div>
         </div>
         
         {/* Performance Metrics */}
-        <PerformanceMetrics period={performancePeriod} onPeriodChange={setPerformancePeriod} />
+        <PerformanceMetrics 
+          period={performancePeriod} 
+          onPeriodChange={setPerformancePeriod}
+          facilityId={selectedFacilityId}
+          facilities={facilities}
+          onFacilityChange={setSelectedFacilityId}
+        />
       </div>
     </div>
   );

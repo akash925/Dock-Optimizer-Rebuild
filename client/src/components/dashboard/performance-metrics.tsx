@@ -64,7 +64,7 @@ export default function PerformanceMetrics({
         dwellTimeAccuracy: Math.round(generateRandomVariation(81, 10))
       });
     }
-  }, [period]);
+  }, [period, facilityId]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
@@ -119,30 +119,70 @@ export default function PerformanceMetrics({
       </div>
       
       <div className="space-y-6">
-        <MetricBar 
-          label="Dock Utilization" 
-          value={metrics.dockUtilization} 
-          target={75}
-        />
+        {/* Show empty state message when facility is selected but no data is available */}
+        {facilityId !== "all" && facilities.some((f: any) => f.id === facilityId) && (
+          <div className="py-6">
+            <MetricBar 
+              label="Dock Utilization" 
+              value={metrics.dockUtilization} 
+              target={75}
+            />
+            
+            <MetricBar 
+              label="On-Time Arrivals" 
+              value={metrics.onTimeArrivals} 
+              target={90}
+            />
+            
+            <MetricBar 
+              label="Average Turnaround Time" 
+              value={metrics.avgTurnaround} 
+              target={35}
+              suffix=" min"
+            />
+            
+            <MetricBar 
+              label="Dwell Time Accuracy" 
+              value={metrics.dwellTimeAccuracy} 
+              target={85}
+            />
+          </div>
+        )}
         
-        <MetricBar 
-          label="On-Time Arrivals" 
-          value={metrics.onTimeArrivals} 
-          target={90}
-        />
+        {facilityId !== "all" && !facilities.some((f: any) => f.id === facilityId) && (
+          <div className="text-center py-8 text-gray-500">
+            No metrics available for the selected facility.
+          </div>
+        )}
         
-        <MetricBar 
-          label="Average Turnaround Time" 
-          value={metrics.avgTurnaround} 
-          target={35}
-          suffix=" min"
-        />
-        
-        <MetricBar 
-          label="Dwell Time Accuracy" 
-          value={metrics.dwellTimeAccuracy} 
-          target={85}
-        />
+        {facilityId === "all" && (
+          <>
+            <MetricBar 
+              label="Dock Utilization" 
+              value={metrics.dockUtilization} 
+              target={75}
+            />
+            
+            <MetricBar 
+              label="On-Time Arrivals" 
+              value={metrics.onTimeArrivals} 
+              target={90}
+            />
+            
+            <MetricBar 
+              label="Average Turnaround Time" 
+              value={metrics.avgTurnaround} 
+              target={35}
+              suffix=" min"
+            />
+            
+            <MetricBar 
+              label="Dwell Time Accuracy" 
+              value={metrics.dwellTimeAccuracy} 
+              target={85}
+            />
+          </>
+        )}
         
         <Button 
           className="w-full flex items-center justify-center bg-neutral-100 text-primary py-2 rounded-md hover:bg-neutral-200 transition-colors"
