@@ -1546,6 +1546,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         notes: notes || schedule.notes,
         lastModifiedBy: req.user?.id || null,
         lastModifiedAt: new Date(),
+        dock_id: null, // Clear the dock assignment when releasing the door
         // Store photo information in custom form data if available
         customFormData: photoInfo ? JSON.stringify({
           ...(schedule.customFormData ? JSON.parse(schedule.customFormData) : {}),
