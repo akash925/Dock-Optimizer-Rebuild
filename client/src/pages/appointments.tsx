@@ -277,39 +277,9 @@ export default function AppointmentsPage() {
                   <TableCell>{getAppointmentStatusBadge(schedule.status)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEditClick(schedule)}>
-                        <PenIcon className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" onClick={() => window.location.href = `/schedules?edit=${schedule.id}`}>
+                        View
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => handleDuplicateClick(schedule)}
-                        className="text-blue-500 border-blue-200 hover:bg-blue-50"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
-                            <TrashIcon className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the appointment
-                              scheduled for {formatDate(schedule.startTime)} at {formatTime(schedule.startTime)}.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteClick(schedule)}>
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
