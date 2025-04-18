@@ -371,7 +371,7 @@ export default function ScheduleWeekCalendar({
                             ? "bg-blue-50/30" 
                             : hour.value % 2 === 0 ? "bg-gray-50/30" : ""
                         )}
-                        onClick={() => onCellClick && onCellClick(cellDate)}
+                        onClick={() => onCellClick && onCellClick(cellDate, undefined)}
                       ></div>
                     );
                   })}

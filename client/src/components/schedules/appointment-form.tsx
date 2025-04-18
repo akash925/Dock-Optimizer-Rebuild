@@ -246,7 +246,7 @@ export default function AppointmentForm({
             // Default to 9:00 AM
             return "09:00";
           })(),
-          dockId: docks && docks.length > 0 ? docks[0].id : undefined,
+          dockId: initialDockId || (docks && docks.length > 0 ? docks[0].id : undefined),
           bolNumber: "",
           poNumber: "",
           palletCount: "",
