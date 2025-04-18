@@ -156,10 +156,15 @@ export default function TopNav() {
                   <span>Copy Link</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href={`/external/${selectedBookingPage}`} className="flex items-center cursor-pointer">
+                  <a 
+                    href={`/external/${selectedBookingPage}`} 
+                    className="flex items-center cursor-pointer"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <ExternalLink className="mr-2 h-4 w-4" />
                     <span>Visit Page</span>
-                  </Link>
+                  </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => {
                   if (navigator.share) {

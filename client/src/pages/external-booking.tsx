@@ -287,8 +287,11 @@ export default function ExternalBooking() {
   // Check if the URL has a reset parameter
   const shouldReset = useMemo(() => {
     // Manually parse the reset parameter from the URL
-    return location.search?.includes('reset=true') === true;
-  }, [location.search]);
+    if (location && location.search && typeof location.search === 'string') {
+      return location.search.includes('reset=true');
+    }
+    return false;
+  }, [location]);
   const [bolFile, setBolFile] = useState<File | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [bolProcessing, setBolProcessing] = useState(false);
@@ -325,8 +328,9 @@ export default function ExternalBooking() {
       console.log("DEBUG - Available facilities:", facilities.length);
       console.log("DEBUG - Booking page facilities data:", typeof bookingPage.facilities);
       
-      // Use all facilities by default if parsedFacilities is empty
-      if (Object.keys(parsedFacilities).length === 0) {
+      // Use all facilities by default if we haven't processed them yet
+      // Use the ref to track if we've already processed facilities
+      if (Object.keys(parsedFacilitiesRef.current).length === 0) {
         try {
           // Use all facilities by default - this ensures we always have locations
           const facilitiesMap: ParsedFacilities = {};
@@ -341,6 +345,9 @@ export default function ExternalBooking() {
           
           // Log the processed facilities
           console.log("Using all facilities for booking page:", Object.keys(facilitiesMap).length);
+          
+          // Store in ref to prevent infinite updates
+          parsedFacilitiesRef.current = facilitiesMap;
           
           // Set facilities state once
           setParsedFacilities(facilitiesMap);
