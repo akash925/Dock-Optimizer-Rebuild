@@ -36,7 +36,9 @@ export function getDockStatus(dockId: number, schedules: any[]): "available" | "
   const activeSchedule = schedules.find(schedule => 
     schedule.dockId === dockId && 
     new Date(schedule.startTime) <= now && 
-    new Date(schedule.endTime) >= now
+    new Date(schedule.endTime) >= now &&
+    schedule.status !== "completed" &&
+    schedule.status !== "cancelled"
   );
   
   if (activeSchedule) {
@@ -47,7 +49,9 @@ export function getDockStatus(dockId: number, schedules: any[]): "available" | "
   const upcomingSchedule = schedules.find(schedule => 
     schedule.dockId === dockId && 
     new Date(schedule.startTime) > now && 
-    new Date(schedule.startTime) <= new Date(now.getTime() + 60 * 60 * 1000)
+    new Date(schedule.startTime) <= new Date(now.getTime() + 60 * 60 * 1000) &&
+    schedule.status !== "completed" &&
+    schedule.status !== "cancelled"
   );
   
   if (upcomingSchedule) {
