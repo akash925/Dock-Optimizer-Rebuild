@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Schedule } from "@shared/schema";
+import { Schedule, Carrier, Facility } from "@shared/schema";
 
 // Extended Schedule interface with derived properties that might be 
 // added after fetching from the server
 interface ExtendedSchedule extends Schedule {
   dockName?: string;
   appointmentTypeName?: string;
+  facilityName?: string;
+  facilityId?: number;
 }
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -334,10 +336,38 @@ export function AppointmentDetailsDialog({
     }
   });
 
+  // Fetch additional carrier data if we have a carrierId
+  const { data: carrier } = useQuery({
+    queryKey: ["/api/carriers", appointment?.carrierId],
+    queryFn: async () => {
+      if (!appointment?.carrierId) return null;
+      const res = await fetch(`/api/carriers/${appointment.carrierId}`);
+      if (!res.ok) return null;
+      return res.json() as Promise<Carrier>;
+    },
+    enabled: !!appointment?.carrierId && open
+  });
+
+  // Fetch additional facility data if needed
+  const { data: facility } = useQuery({
+    queryKey: ["/api/facilities", appointment?.facilityId],
+    queryFn: async () => {
+      if (!appointment?.facilityId) return null;
+      const res = await fetch(`/api/facilities/${appointment.facilityId}`);
+      if (!res.ok) return null;
+      return res.json() as Promise<Facility>;
+    },
+    enabled: !!appointment?.facilityId && open
+  });
+
   if (!appointment) return null;
 
-  // Prioritize carrier name if available, then customer name, then use a default
-  const appointmentTitle = `${appointment.carrierName || appointment.customerName || "Appointment"} - ${facilityName || "Facility"}`;
+  // Get the appropriate facility name - either from facility query, prop, or appointment
+  const displayFacilityName = facility?.name || facilityName || appointment.facilityName || "";
+  
+  // Prioritize carrier name from the carrier query if available, then from appointment, then customer name, then default
+  const carrierDisplayName = carrier?.name || appointment.carrierName || appointment.customerName || "Appointment";
+  const appointmentTitle = `${carrierDisplayName} - ${displayFacilityName || "Facility"}`;
   
   // Determine appointment type badge color
   const getTypeColor = () => {
