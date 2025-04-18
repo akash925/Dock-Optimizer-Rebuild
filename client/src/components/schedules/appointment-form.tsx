@@ -764,7 +764,29 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                     <FormItem>
                       <FormLabel>Date*</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input 
+                          type="date" 
+                          {...field} 
+                          min={format(new Date(), "yyyy-MM-dd")} // Set minimum date to today
+                          onChange={(e) => {
+                            // Check if date is in the past
+                            const selectedDate = new Date(e.target.value);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            
+                            if (selectedDate < today) {
+                              // If date is in the past, set to today
+                              field.onChange(format(today, "yyyy-MM-dd"));
+                              toast({
+                                title: "Invalid date",
+                                description: "You cannot select dates in the past.",
+                                variant: "destructive",
+                              });
+                            } else {
+                              field.onChange(e.target.value);
+                            }
+                          }}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -826,24 +848,89 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                             const totalMinutes = (endHour - startHour) * 60;
                             const slots = Math.floor(totalMinutes / timeInterval);
                             
-                            return Array.from({ length: slots }).map((_, i) => {
+                            // Filter out past times if date is today
+                            const currentDate = new Date();
+                            const selectedDate = scheduleDetailsForm.getValues("appointmentDate") 
+                              ? new Date(scheduleDetailsForm.getValues("appointmentDate"))
+                              : null;
+                            
+                            const isToday = selectedDate && 
+                              selectedDate.getDate() === currentDate.getDate() &&
+                              selectedDate.getMonth() === currentDate.getMonth() &&
+                              selectedDate.getFullYear() === currentDate.getFullYear();
+                            
+                            // Split time slots into morning, afternoon, and evening sections
+                            const morningSlots: JSX.Element[] = [];
+                            const afternoonSlots: JSX.Element[] = [];
+                            const eveningSlots: JSX.Element[] = [];
+                            
+                            Array.from({ length: slots }).forEach((_, i) => {
                               // Calculate time for this slot
                               const minutesFromStart = i * timeInterval;
                               const hour = Math.floor(minutesFromStart / 60) + startHour;
                               const minute = minutesFromStart % 60;
                               
+                              // Skip if it's today and the time has already passed
+                              if (isToday) {
+                                const now = new Date();
+                                if (hour < now.getHours() || (hour === now.getHours() && minute < now.getMinutes())) {
+                                  return; // Skip this time slot
+                                }
+                              }
+                              
                               const formattedHour = hour.toString().padStart(2, '0');
                               const formattedMinute = minute.toString().padStart(2, '0');
                               const timeValue = `${formattedHour}:${formattedMinute}`;
-                              const displayHour = hour > 12 ? hour - 12 : hour;
+                              const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
                               const displayTime = `${displayHour}:${formattedMinute.padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
                               
-                              return (
+                              const timeSlot = (
                                 <SelectItem key={timeValue} value={timeValue}>
                                   {displayTime}
                                 </SelectItem>
                               );
+                              
+                              if (hour < 12) {
+                                morningSlots.push(timeSlot);
+                              } else if (hour < 17) {
+                                afternoonSlots.push(timeSlot);
+                              } else {
+                                eveningSlots.push(timeSlot);
+                              }
                             });
+                            
+                            // If all sections are empty, show a message
+                            if (morningSlots.length === 0 && afternoonSlots.length === 0 && eveningSlots.length === 0) {
+                              return [
+                                <SelectItem key="no-slots" value="" disabled>
+                                  No available time slots. Please select another date.
+                                </SelectItem>
+                              ];
+                            }
+                            
+                            // Return all sections with dividers
+                            return [
+                              ...(morningSlots.length > 0 ? [
+                                <SelectItem key="morning-header" value="" disabled>
+                                  Morning
+                                </SelectItem>,
+                                ...morningSlots
+                              ] : []),
+                              
+                              ...(afternoonSlots.length > 0 ? [
+                                <SelectItem key="afternoon-header" value="" disabled>
+                                  Afternoon
+                                </SelectItem>,
+                                ...afternoonSlots
+                              ] : []),
+                              
+                              ...(eveningSlots.length > 0 ? [
+                                <SelectItem key="evening-header" value="" disabled>
+                                  Evening
+                                </SelectItem>,
+                                ...eveningSlots
+                              ] : [])
+                            ];
                           })()}
                         </SelectContent>
                       </Select>
