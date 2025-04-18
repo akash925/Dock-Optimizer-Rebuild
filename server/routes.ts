@@ -904,104 +904,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validatedData = externalBookingSchema.parse(req.body);
       
-      // Handle carrier selection - don't try to create one, just use the selected carrier
+      // Initialize carrier variable
       let carrier = null;
       
       try {
-        // If carrierName and mcNumber were provided, find or use that carrier
-        if (validatedData.carrierName) {
-          console.log(`Looking for carrier by name: ${validatedData.carrierName}`);
-          
-          // Exact lookup by ID if coming from dropdown (where value is ID)
-          if (validatedData.carrierId) {
-            const carrierId = parseInt(validatedData.carrierId.toString(), 10);
-            if (!isNaN(carrierId)) {
+        // If we have a carrier ID, try to find the carrier by ID first
+        if (validatedData.carrierId) {
+          const carrierId = parseInt(validatedData.carrierId.toString(), 10);
+          if (!isNaN(carrierId) && carrierId > 0) {
+            try {
               carrier = await storage.getCarrier(carrierId);
               console.log(`Found carrier by ID ${carrierId}: ${carrier?.name || 'not found'}`);
+            } catch (error) {
+              console.error(`Error looking up carrier by ID ${carrierId}:`, error);
+              // Continue to next method
+            }
+          } else {
+            console.log(`Invalid carrier ID format: ${validatedData.carrierId}`);
+          }
+        }
+        
+        // If no carrier found by ID and we have a name, try to find by name
+        if (!carrier && validatedData.carrierName) {
+          const carrierName = validatedData.carrierName.trim();
+          if (carrierName) {
+            try {
+              const allCarriers = await storage.getCarriers();
+              carrier = allCarriers.find(c => 
+                c.name.toLowerCase() === carrierName.toLowerCase()
+              );
+              console.log(`Carrier found by name match: ${carrier?.name || 'not found'}`);
+            } catch (error) {
+              console.error(`Error finding carrier by name "${carrierName}":`, error);
+              // Continue to fallback
             }
           }
-          
-          // If not found by ID, look for exact name match
-          if (!carrier) {
-            const allCarriers = await storage.getCarriers();
-            carrier = allCarriers.find(c => 
-              c.name.toLowerCase() === validatedData.carrierName!.toLowerCase()
-            );
-            console.log(`Carrier found by name match: ${carrier?.name || 'not found'}`);
-          }
-          
-          // If we have a carrier and MC number was provided, update the carrier
-          if (carrier && validatedData.mcNumber && validatedData.mcNumber !== carrier.mcNumber) {
-            console.log(`Updating carrier ${carrier.name} with MC number: ${validatedData.mcNumber}`);
+        }
+        
+        // If we found a carrier and have an MC number, update the carrier if needed
+        if (carrier && validatedData.mcNumber && validatedData.mcNumber !== carrier.mcNumber) {
+          try {
             carrier = await storage.updateCarrier(carrier.id, {
               ...carrier,
               mcNumber: validatedData.mcNumber
             });
+            console.log(`Updated carrier ${carrier.name} with MC number: ${validatedData.mcNumber}`);
+          } catch (error) {
+            console.error(`Error updating carrier MC number:`, error);
+            // Continue with existing carrier
           }
-          
-          // If still no carrier, use the first available one but don't create a new one
-          if (!carrier) {
+        }
+        
+        // If still no carrier, use the first available or create a default one
+        if (!carrier) {
+          try {
             const allCarriers = await storage.getCarriers();
             if (allCarriers.length > 0) {
               carrier = allCarriers[0];
               console.log(`Using first available carrier: ${carrier.name}`);
             } else {
-              // This should almost never happen, but create a default carrier just in case
+              // Create a default carrier if none exist
               carrier = await storage.createCarrier({
-                name: "Default Carrier",
+                name: validatedData.carrierName || "Default Carrier",
                 mcNumber: validatedData.mcNumber || "",
-                contactName: "System",
-                contactEmail: "system@example.com",
-                contactPhone: "0000000000",
+                contactName: validatedData.contactName || "System",
+                contactEmail: validatedData.contactEmail || "system@example.com",
+                contactPhone: validatedData.contactPhone || "0000000000",
               });
-              console.log("Created default carrier as fallback");
+              console.log(`Created new carrier: ${carrier.name}`);
             }
-          }
-        } else {
-          // Get first available carrier if no name specified
-          const allCarriers = await storage.getCarriers();
-          if (allCarriers.length > 0) {
-            carrier = allCarriers[0];
-            console.log(`No carrier specified, using first available: ${carrier.name}`);
-          } else {
-            // Create a default carrier if none exist
-            carrier = await storage.createCarrier({
-              name: "Default Carrier",
-              mcNumber: validatedData.mcNumber || "",
-              contactName: "System",
-              contactEmail: "system@example.com",
-              contactPhone: "0000000000",
+          } catch (error) {
+            console.error("Error in carrier fallback handling:", error);
+            return res.status(500).json({ 
+              message: "Failed to process carrier information", 
+              details: error instanceof Error ? error.message : "Unknown error" 
             });
-            console.log("Created default carrier since none existed");
           }
         }
-      } catch (error: any) {
-        console.error("Error handling carrier:", error);
+      } catch (error) {
+        console.error("Error in carrier processing:", error);
         return res.status(500).json({ 
-          message: "Failed to create booking - error with carrier processing", 
-          details: error?.message || "Unknown error"
+          message: "Failed to process carrier information", 
+          details: error instanceof Error ? error.message : "Unknown error"
         });
       }
       
-      // Safety check - if we don't have a carrier by now, something went wrong
+      // Final safety check - if we don't have a carrier by now, something went wrong
       if (!carrier) {
         return res.status(500).json({ message: "Failed to create or find a carrier" });
       }
       
-      // Find the appropriate dock based on location
-      // Here we're simplifying by getting the first available dock
-      // In a real implementation, you'd have logic to find the right dock based on location
+      // Find an appropriate dock
       const docks = await storage.getDocks();
       if (docks.length === 0) {
         return res.status(400).json({ message: "No available docks" });
       }
       
-      // In a real implementation, you'd need to parse the appointmentDate and appointmentTime
-      // For now, we'll use a simple approach to create Date objects
+      // Parse date and time
       const [year, month, day] = validatedData.appointmentDate.split('-').map(Number);
       const [hour, minute] = validatedData.appointmentTime.split(':').map(Number);
       
-      // Round minutes to nearest 15-minute interval (0, 15, 30, 45)
+      // Round minutes to nearest 15-minute interval
       const roundedMinute = Math.round(minute / 15) * 15;
       const adjustedHour = roundedMinute === 60 ? hour + 1 : hour;
       const finalMinute = roundedMinute === 60 ? 0 : roundedMinute;
@@ -1009,14 +1012,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startTime = new Date(year, month - 1, day, adjustedHour, finalMinute);
       const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
       
-      // Create schedule with the available information
+      // Create schedule
       const scheduleData = {
-        // Set type based on pickupOrDropoff (pickup -> outbound, dropoff -> inbound)
         type: validatedData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound',
         status: "scheduled",
         dockId: docks[0].id,
         carrierId: carrier.id,
-        customerName: validatedData.customerName, // Include the customer name
+        customerName: validatedData.customerName,
         truckNumber: validatedData.truckNumber,
         trailerNumber: validatedData.trailerNumber || null,
         driverName: validatedData.driverName || null,
@@ -1024,15 +1026,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startTime,
         endTime,
         notes: validatedData.additionalNotes || null,
-        createdBy: 1, // System user ID - in a real app, you might have a designated system user
+        createdBy: 1, // System user ID
       };
       
       const schedule = await storage.createSchedule(scheduleData);
       
       // Create a confirmation number
       const confirmationNumber = `HZL-${Math.floor(100000 + Math.random() * 900000)}`;
-      
-      // In a real application, you'd send an email confirmation here
       
       // Return success response
       res.status(201).json({
