@@ -358,9 +358,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Check for schedule conflicts
+      // Check for schedule conflicts - only consider active appointments
       const conflictingSchedules = (await storage.getSchedulesByDock(validatedData.dockId))
         .filter(s => 
+          // Only consider active schedules (not completed or cancelled)
+          s.status !== 'completed' && s.status !== 'cancelled' &&
           (new Date(validatedData.startTime) < new Date(s.endTime)) && 
           (new Date(validatedData.endTime) > new Date(s.startTime))
         );
@@ -591,6 +593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const conflictingSchedules = (await storage.getSchedulesByDock(schedule.dockId))
         .filter(s => 
           s.id !== id && // Ignore the current schedule
+          s.status !== 'completed' && s.status !== 'cancelled' && // Only consider active schedules
           (new Date(startTime) < new Date(s.endTime)) && 
           (new Date(endTime) > new Date(s.startTime))
         );
