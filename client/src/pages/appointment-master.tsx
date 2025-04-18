@@ -199,7 +199,9 @@ export default function AppointmentMaster() {
   // Update appointment type
   const updateAppointmentTypeMutation = useMutation({
     mutationFn: async (appointmentType: any) => {
-      const response = await apiRequest("PATCH", `/api/appointment-types/${appointmentType.id}`, appointmentType);
+      // Remove any <!DOCTYPE> or HTML-like content that might be causing parsing issues
+      const cleanedData = JSON.parse(JSON.stringify(appointmentType));
+      const response = await apiRequest("PUT", `/api/appointment-types/${cleanedData.id}`, cleanedData);
       return await response.json();
     },
     onSuccess: (data) => {
