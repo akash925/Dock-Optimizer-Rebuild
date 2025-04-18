@@ -76,7 +76,8 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
   const handleSelectCarrier = useCallback((carrier: Carrier) => {
     console.log("Selecting carrier:", carrier);
     
-    // First set carrier name
+    // Set carrier ID and name
+    form.setValue("carrierId", carrier.id);
     form.setValue("carrierName", carrier.name);
     
     // Then handle MC Number (with a batch of operations)
@@ -85,7 +86,11 @@ function CarrierSelect({ form }: { form: UseFormReturn<AppointmentDetailsFormVal
       form.setValue("mcNumber", carrier.mcNumber);
     } else {
       console.log("No MC Number available, keeping field blank");
-      form.setValue("mcNumber", "");
+      // Don't reset MC number if user already entered one
+      const currentMcNumber = form.getValues("mcNumber");
+      if (!currentMcNumber) {
+        form.setValue("mcNumber", "");
+      }
     }
     
     setOpen(false);

@@ -887,7 +887,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appointmentDate: z.string().min(1),
         appointmentTime: z.string().min(1),
         location: z.string().min(1),
-        // Add carrier name to schema (it's optional, will fall back to customer name)
+        // Add carrier name and ID (if carrier is selected from dropdown)
+        carrierId: z.number().or(z.string()).optional(),
         carrierName: z.string().optional(),
         // Make MC Number completely optional (empty string is also valid)
         mcNumber: z.string().optional().or(z.literal("")),
@@ -896,84 +897,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         driverName: z.string().min(1),
         driverPhone: z.string().min(10),
         additionalNotes: z.string().optional(),
+        // For tracking which carrier data is selected vs typed
+        bolFileUploaded: z.boolean().optional(),
+        bolUploaded: z.boolean().optional(),
       });
       
       const validatedData = externalBookingSchema.parse(req.body);
       
-      // Always use an existing carrier to avoid creation errors
+      // Handle carrier selection - don't try to create one, just use the selected carrier
       let carrier = null;
       
       try {
-        // Get all carriers once to avoid multiple database calls
-        const allCarriers = await storage.getCarriers();
-        
-        // Make sure we have at least one carrier record
-        if (allCarriers.length === 0) {
-          // Create a default carrier if none exists
-          carrier = await storage.createCarrier({
-            name: "Default Carrier",
-            mcNumber: "",
-            contactName: "System",
-            contactEmail: "system@example.com",
-            contactPhone: "0000000000",
-          });
-          console.log("Created default carrier since none existed");
-        } else {
-          // Try to find carrier by name if provided
-          if (validatedData.carrierName) {
-            // First try exact match
-            carrier = allCarriers.find(c => 
-              c.name.toLowerCase() === validatedData.carrierName.toLowerCase()
-            );
-            
-            // If not found by exact match, try to find a similar carrier
-            if (!carrier) {
-              // Look for partial matches
-              const similarCarriers = allCarriers.filter(c => 
-                c.name.toLowerCase().includes(validatedData.carrierName!.toLowerCase().slice(0, 5))
-              );
-              
-              if (similarCarriers.length > 0) {
-                // Use the first similar carrier
-                carrier = similarCarriers[0];
-                console.log(`Using similar carrier: ${carrier.name} instead of ${validatedData.carrierName}`);
-              } else {
-                // Fall back to first carrier if no similar ones found
-                carrier = allCarriers[0];
-                console.log(`Using first available carrier: ${carrier.name}`);
-              }
-            } else {
-              console.log(`Using exact match carrier: ${carrier.name}`);
-            }
-          } else {
-            // If no carrier name, try matching by customer name
-            carrier = allCarriers.find(c => 
-              c.name.toLowerCase() === validatedData.customerName.toLowerCase()
-            );
-            
-            // If not found, use the first carrier
-            if (!carrier) {
-              carrier = allCarriers[0];
-              console.log(`No carrier specified, using first available: ${carrier.name}`);
+        // If carrierName and mcNumber were provided, find or use that carrier
+        if (validatedData.carrierName) {
+          console.log(`Looking for carrier by name: ${validatedData.carrierName}`);
+          
+          // Exact lookup by ID if coming from dropdown (where value is ID)
+          if (validatedData.carrierId) {
+            const carrierId = parseInt(validatedData.carrierId.toString(), 10);
+            if (!isNaN(carrierId)) {
+              carrier = await storage.getCarrier(carrierId);
+              console.log(`Found carrier by ID ${carrierId}: ${carrier?.name || 'not found'}`);
             }
           }
-        }
-        
-        // At this point we definitely have a carrier, update its MC number if provided
-        if (validatedData.mcNumber && !carrier.mcNumber) {
-          const updatedCarrier = await storage.updateCarrier(carrier.id, {
-            ...carrier,
-            mcNumber: validatedData.mcNumber
-          });
           
-          if (updatedCarrier) {
-            carrier = updatedCarrier;
-            console.log(`Updated carrier ${carrier.name} with MC number: ${carrier.mcNumber}`);
+          // If not found by ID, look for exact name match
+          if (!carrier) {
+            const allCarriers = await storage.getCarriers();
+            carrier = allCarriers.find(c => 
+              c.name.toLowerCase() === validatedData.carrierName!.toLowerCase()
+            );
+            console.log(`Carrier found by name match: ${carrier?.name || 'not found'}`);
+          }
+          
+          // If we have a carrier and MC number was provided, update the carrier
+          if (carrier && validatedData.mcNumber && validatedData.mcNumber !== carrier.mcNumber) {
+            console.log(`Updating carrier ${carrier.name} with MC number: ${validatedData.mcNumber}`);
+            carrier = await storage.updateCarrier(carrier.id, {
+              ...carrier,
+              mcNumber: validatedData.mcNumber
+            });
+          }
+          
+          // If still no carrier, use the first available one but don't create a new one
+          if (!carrier) {
+            const allCarriers = await storage.getCarriers();
+            if (allCarriers.length > 0) {
+              carrier = allCarriers[0];
+              console.log(`Using first available carrier: ${carrier.name}`);
+            } else {
+              // This should almost never happen, but create a default carrier just in case
+              carrier = await storage.createCarrier({
+                name: "Default Carrier",
+                mcNumber: validatedData.mcNumber || "",
+                contactName: "System",
+                contactEmail: "system@example.com",
+                contactPhone: "0000000000",
+              });
+              console.log("Created default carrier as fallback");
+            }
+          }
+        } else {
+          // Get first available carrier if no name specified
+          const allCarriers = await storage.getCarriers();
+          if (allCarriers.length > 0) {
+            carrier = allCarriers[0];
+            console.log(`No carrier specified, using first available: ${carrier.name}`);
+          } else {
+            // Create a default carrier if none exist
+            carrier = await storage.createCarrier({
+              name: "Default Carrier",
+              mcNumber: validatedData.mcNumber || "",
+              contactName: "System",
+              contactEmail: "system@example.com",
+              contactPhone: "0000000000",
+            });
+            console.log("Created default carrier since none existed");
           }
         }
       } catch (error: any) {
         console.error("Error handling carrier:", error);
-        // In case of error, return a clear message to the client
         return res.status(500).json({ 
           message: "Failed to create booking - error with carrier processing", 
           details: error?.message || "Unknown error"
