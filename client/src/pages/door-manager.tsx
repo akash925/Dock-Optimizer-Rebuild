@@ -64,12 +64,14 @@ export default function DoorManager() {
   } => {
     const now = new Date();
     
-    // Check if door is occupied (has active appointment)
+    // First check if door is occupied (has active appointment)
+    // An appointment is active if it's within its time window AND not cancelled or completed
     const currentSchedule = schedules.find(s => 
       s.dockId === dock.id && 
       new Date(s.startTime) <= now && 
       new Date(s.endTime) >= now &&
-      s.status !== "cancelled" && s.status !== "completed"
+      s.status !== "cancelled" && 
+      s.status !== "completed"
     );
     
     if (currentSchedule) {
@@ -81,7 +83,8 @@ export default function DoorManager() {
       s.dockId === dock.id && 
       new Date(s.startTime) > now &&
       new Date(s.startTime).getTime() - now.getTime() < 3600000 && // Within the next hour
-      s.status !== "cancelled"
+      s.status !== "cancelled" &&
+      s.status !== "completed"
     );
     
     if (upcomingSchedule) {
