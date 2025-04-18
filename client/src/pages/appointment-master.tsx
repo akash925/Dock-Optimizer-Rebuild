@@ -1279,58 +1279,121 @@ export default function AppointmentMaster() {
                 </div>
               )}
               
-              {/* Step 3: Custom Questions - Simplified for brevity */}
+              {/* Step 3: Required and Custom Questions */}
               {appointmentTypeFormStep === 3 && (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Custom Questions</h3>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      setSelectedQuestionId(null);
-                      setQuestionForm({
-                        label: "",
-                        type: "text",
-                        required: false,
-                        options: [],
-                        placeholder: "",
-                        appointmentType: "both"
-                      });
-                      setShowQuestionDialog(true);
-                    }}>
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Question
-                    </Button>
+                <div className="space-y-6">
+                  {/* Core Questions Section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Core Questions</h3>
+                    <p className="text-sm text-muted-foreground">These standard questions are required for all appointments.</p>
+                    
+                    <div className="space-y-3 bg-slate-50 p-4 rounded-md">
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox id="core-carrier-name" defaultChecked disabled />
+                          <Label htmlFor="core-carrier-name" className="font-medium">Carrier Name</Label>
+                        </div>
+                        <Badge>Required</Badge>
+                      </div>
+                      
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox id="core-mc-number" defaultChecked />
+                          <Label htmlFor="core-mc-number">MC Number</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch id="req-mc-number" defaultChecked />
+                          <Label htmlFor="req-mc-number" className="text-sm">Required</Label>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox id="core-driver-email" defaultChecked />
+                          <Label htmlFor="core-driver-email">Driver/Dispatcher Email</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch id="req-driver-email" defaultChecked />
+                          <Label htmlFor="req-driver-email" className="text-sm">Required</Label>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between py-2 border-b">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox id="core-driver-phone" defaultChecked />
+                          <Label htmlFor="core-driver-phone">Driver/Dispatcher Phone</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch id="req-driver-phone" defaultChecked />
+                          <Label htmlFor="req-driver-phone" className="text-sm">Required</Label>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between py-2">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox id="core-driver-license" defaultChecked />
+                          <Label htmlFor="core-driver-license">Driver's License Number</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch id="req-driver-license" defaultChecked />
+                          <Label htmlFor="req-driver-license" className="text-sm">Required</Label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
-                  {customFields.length === 0 ? (
-                    <div className="text-center py-8 border rounded-md bg-slate-50 text-muted-foreground">
-                      <p>No custom questions have been created yet.</p>
-                      <p className="text-sm mt-2">Custom questions will be displayed on the appointment booking form.</p>
+                  {/* Custom Questions Section */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-medium">Custom Questions</h3>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setSelectedQuestionId(null);
+                        setQuestionForm({
+                          label: "",
+                          type: "text",
+                          required: false,
+                          options: [],
+                          placeholder: "",
+                          appointmentType: "both"
+                        });
+                        setShowQuestionDialog(true);
+                      }}>
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Add Question
+                      </Button>
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {customFields.map((field) => (
-                        <Card key={field.id}>
-                          <CardHeader className="py-3">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id={`include-field-${field.id}`}
-                                  // This would need actual state in a real app
-                                  defaultChecked={field.appointmentType === "both" || field.appointmentType === appointmentTypeForm.type}
-                                />
-                                <Label htmlFor={`include-field-${field.id}`} className="font-medium">
-                                  {field.label}
-                                </Label>
+                    
+                    {customFields.length === 0 ? (
+                      <div className="text-center py-8 border rounded-md bg-slate-50 text-muted-foreground">
+                        <p>No custom questions have been created yet.</p>
+                        <p className="text-sm mt-2">Custom questions will be displayed on the appointment booking form.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {customFields.map((field) => (
+                          <Card key={field.id}>
+                            <CardHeader className="py-3">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox 
+                                    id={`include-field-${field.id}`}
+                                    // This would need actual state in a real app
+                                    defaultChecked={field.appointmentType === "both" || field.appointmentType === appointmentTypeForm.type}
+                                  />
+                                  <Label htmlFor={`include-field-${field.id}`} className="font-medium">
+                                    {field.label}
+                                  </Label>
+                                </div>
+                                <Badge variant="outline" className="capitalize">
+                                  {field.type}
+                                </Badge>
                               </div>
-                              <Badge variant="outline" className="capitalize">
-                                {field.type}
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
+                            </CardHeader>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
