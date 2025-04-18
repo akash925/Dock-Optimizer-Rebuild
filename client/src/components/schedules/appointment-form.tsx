@@ -416,6 +416,17 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       const appointmentDate = data.appointmentDate;
       const appointmentTime = data.appointmentTime;
       
+      // Add validation for required fields
+      if (!appointmentDate || !appointmentTime) {
+        toast({
+          title: "Missing Fields",
+          description: "Date and time are required for scheduling an appointment.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Create Date object from input with validation
       let startTime: Date;
       try {
@@ -424,6 +435,26 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         // Validate that we have a proper date
         if (isNaN(rawStartTime.getTime())) {
           throw new Error("Invalid date created from inputs");
+        }
+        
+        // Check if date is in the past
+        const now = new Date();
+        if (rawStartTime < now) {
+          // If it's today, check if the time has passed
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          if (rawStartTime.getDate() === today.getDate() && 
+              rawStartTime.getMonth() === today.getMonth() && 
+              rawStartTime.getFullYear() === today.getFullYear()) {
+            toast({
+              title: "Invalid Time",
+              description: "You cannot schedule an appointment in the past.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
         }
         
         // Round to nearest 15-minute interval
@@ -439,7 +470,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         console.error("Date creation error:", dateError);
         toast({
           title: "Date Error",
-          description: "There was a problem with the appointment date/time. Please try again.",
+          description: dateError instanceof Error ? dateError.message : "There was a problem with the appointment date/time. Please try again.",
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -450,20 +481,33 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       const appointmentMode = formData.appointmentMode || "trailer";
       const endTime = getDefaultEndTime(startTime, appointmentMode as "trailer" | "container");
       
+      // Handle dockId field - ensure it's a number or null
+      let dockId = null;
+      if (data.dockId) {
+        // Convert to number if a string, or keep as is if already a number
+        dockId = typeof data.dockId === 'string' ? parseInt(data.dockId, 10) : data.dockId;
+        
+        // Check if conversion resulted in NaN
+        if (isNaN(dockId)) {
+          dockId = null;
+        }
+      }
+      
       // Prepare clean base data with all required fields
       const scheduleData: any = {
         // Set default values to avoid undefined or null fields that cause server errors
         carrierId: formData.carrierId || null,
         customerName: formData.customerName || "",
-        dockId: data.dockId || null, // Make the dockId field optional
+        mcNumber: formData.mcNumber || "", // Include MC number
+        dockId: dockId, // Use our sanitized dockId
         truckNumber: formData.truckNumber || "",
         trailerNumber: formData.trailerNumber || "",
         driverName: formData.driverName || "",
         driverPhone: formData.driverPhone || "",
         bolNumber: data.bolNumber || "",
         poNumber: data.poNumber || "",
-        palletCount: data.palletCount || "",
-        weight: data.weight || "",
+        palletCount: data.palletCount ? parseInt(data.palletCount.toString(), 10) || 0 : 0,
+        weight: data.weight ? parseInt(data.weight.toString(), 10) || 0 : 0,
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         type: formData.type || "inbound",
