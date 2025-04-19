@@ -14,13 +14,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { format, addHours } from "date-fns";
+import { format, addHours, isBefore, startOfDay } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Upload, Loader2, ArrowLeft, ArrowRight, Truck, CalendarIcon } from "lucide-react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { CarrierSelector } from "@/components/shared/carrier-selector";
 
 // Tab 1: Truck Information
@@ -977,33 +980,57 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                   control={scheduleDetailsForm.control}
                   name="appointmentDate"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date*</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="date" 
-                          {...field} 
-                          min={format(new Date(), "yyyy-MM-dd")} // Set minimum date to today
-                          onChange={(e) => {
-                            // Check if date is in the past
-                            const selectedDate = new Date(e.target.value);
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            
-                            if (selectedDate < today) {
-                              // If date is in the past, set to today
-                              field.onChange(format(today, "yyyy-MM-dd"));
-                              toast({
-                                title: "Invalid date",
-                                description: "You cannot select dates in the past.",
-                                variant: "destructive",
-                              });
-                            } else {
-                              field.onChange(e.target.value);
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Appointment Date*</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(new Date(field.value), "MM/dd/yyyy")
+                              ) : (
+                                <span>Select a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value ? new Date(field.value) : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                // Format date as YYYY-MM-DD
+                                const dateString = format(date, "yyyy-MM-dd");
+                                console.log('Selected date:', dateString);
+                                
+                                // Reset time selection when date changes
+                                scheduleDetailsForm.setValue("appointmentTime", "");
+                                
+                                field.onChange(dateString);
+                              } else {
+                                field.onChange("");
+                              }
+                            }}
+                            disabled={(date) => 
+                              // Disable dates before today and weekends unless the appointment type allows them
+                              // For now, just disable dates before today
+                              isBefore(date, startOfDay(new Date())) ||
+                              // Also check if appointment type has available days setting
+                              (selectedAppointmentType?.availableDays && 
+                               !selectedAppointmentType.availableDays.includes(date.getDay()))
                             }
-                          }}
-                        />
-                      </FormControl>
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1012,161 +1039,200 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                 <FormField
                   control={scheduleDetailsForm.control}
                   name="appointmentTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Time*</FormLabel>
-                      <Select 
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an appointment time" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {/* Generate time slots based on appointment type and facility settings */}
-                          {(() => {
-                            // Use appointment type settings if available
-                            const timeInterval = 15; // Default to 15 minutes for finer time slot control
+                  render={({ field }) => {
+                    // Get the currently selected appointment date
+                    const selectedDate = scheduleDetailsForm.watch("appointmentDate");
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const currentMinute = now.getMinutes();
+                    
+                    // Only show future times if the selected date is today
+                    const isToday = selectedDate ? 
+                      format(new Date(selectedDate), "yyyy-MM-dd") === format(now, "yyyy-MM-dd") : 
+                      false;
+                    
+                    // Generate available time slots based on appointment type settings
+                    const generateTimeSlots = () => {
+                      // If no date is selected or no appointment type is selected, return empty array
+                      if (!selectedDate || !selectedAppointmentType) {
+                        return [];
+                      }
+                      
+                      // Start with business hours from appointment type if available
+                      let startHour = 8; // Default: 8 AM
+                      let endHour = 17; // Default: 5 PM
+                      
+                      if (selectedAppointmentType.allowAppointmentsPastBusinessHours) {
+                        // Extend business hours if allowed
+                        startHour = 6; // 6 AM
+                        endHour = 22; // 10 PM
+                      }
+                      
+                      // Time interval based on appointment type settings
+                      const timeInterval = 30; // Default to 30-minute intervals
+                      
+                      // Generate time slots
+                      const timeSlots = [];
+                      
+                      for (let hour = startHour; hour < endHour; hour++) {
+                        for (let minute = 0; minute < 60; minute += timeInterval) {
+                          // Skip slots in the past if today
+                          if (isToday && (hour < currentHour || (hour === currentHour && minute <= currentMinute))) {
+                            continue;
+                          }
+                          
+                          const formattedHour = hour.toString().padStart(2, '0');
+                          const formattedMinute = minute.toString().padStart(2, '0');
+                          const timeValue = `${formattedHour}:${formattedMinute}`;
+                          
+                          // Format display time (12-hour format)
+                          const displayHour = hour % 12 || 12;
+                          const amPm = hour >= 12 ? 'PM' : 'AM';
+                          const label = `${displayHour}:${formattedMinute} ${amPm}`;
+                          
+                          // Generate random availability count (1-3) for demo
+                          // In a real implementation, this would come from an API
+                          const available = Math.floor(Math.random() * 3) + 1;
+                          
+                          timeSlots.push({
+                            value: timeValue,
+                            label: label,
+                            available: available
+                          });
+                        }
+                      }
+                      
+                      return timeSlots;
+                    };
+                    
+                    const availableTimeSlots = generateTimeSlots();
+                    
+                    // Clear time selection when date changes
+                    if (!selectedDate && field.value) {
+                      setTimeout(() => {
+                        field.onChange("");
+                      }, 0);
+                    }
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Appointment Time*</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value}
+                          disabled={!selectedDate}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a time slot" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {!availableTimeSlots.length && (
+                              <div className="px-2 py-4 text-center">
+                                <p className="text-sm text-muted-foreground">
+                                  {!selectedDate 
+                                    ? "Please select a date first" 
+                                    : "No available time slots for the selected date"}
+                                </p>
+                              </div>
+                            )}
                             
-                            // Use appointment type's facility business hours if available
-                            // If not, use default hours
-                            let startHour = 5; // Default: 5 AM
-                            let endHour = 19; // Default: 7 PM
-                            
-                            // Track availability checks
-                            let hasSpecialAvailability = false;
-                            
-                            // Apply appointment type settings if available
-                            if (selectedAppointmentType) {
-                              console.log("Using settings from appointment type:", selectedAppointmentType.name);
-                              
-                              // In the future, appointment types may override business hours
-                              // For now, use the type's rules for appointments past business hours
-                              if (!selectedAppointmentType.allowAppointmentsPastBusinessHours) {
-                                hasSpecialAvailability = true;
-                                // Set strict business hours (8am to 5pm) if appointments aren't allowed outside business hours
-                                startHour = 8;
-                                endHour = 17;
-                              }
-                              
-                              // Check if there is a buffer time setting
-                              if (selectedAppointmentType.bufferTime > 0) {
-                                console.log(`Using buffer time of ${selectedAppointmentType.bufferTime} minutes between appointments`);
-                                // We'll apply this buffer when calculating available slots
-                                // For now, just adjust the timeInterval to ensure proper spacing
-                                // In a real implementation, this would check existing appointments too
-                              }
-                            }
-                            
-                            // Calculate total minutes from start to end
-                            const totalMinutes = (endHour - startHour) * 60;
-                            const slots = Math.floor(totalMinutes / timeInterval);
-                            
-                            // Filter out past times if date is today
-                            const currentDate = new Date();
-                            const selectedDate = scheduleDetailsForm.getValues("appointmentDate") 
-                              ? new Date(scheduleDetailsForm.getValues("appointmentDate"))
-                              : null;
-                            
-                            const isToday = selectedDate && 
-                              selectedDate.getDate() === currentDate.getDate() &&
-                              selectedDate.getMonth() === currentDate.getMonth() &&
-                              selectedDate.getFullYear() === currentDate.getFullYear();
-                            
-                            // Split time slots into morning, afternoon, and evening sections
-                            const morningSlots: JSX.Element[] = [];
-                            const afternoonSlots: JSX.Element[] = [];
-                            const eveningSlots: JSX.Element[] = [];
-                            
-                            Array.from({ length: slots }).forEach((_, i) => {
-                              // Calculate time for this slot
-                              const minutesFromStart = i * timeInterval;
-                              const hour = Math.floor(minutesFromStart / 60) + startHour;
-                              const minute = minutesFromStart % 60;
-                              
-                              // Skip if it's today and the time has already passed
-                              if (isToday) {
-                                const now = new Date();
-                                if (hour < now.getHours() || (hour === now.getHours() && minute < now.getMinutes())) {
-                                  return; // Skip this time slot
-                                }
-                              }
-                              
-                              const formattedHour = hour.toString().padStart(2, '0');
-                              const formattedMinute = minute.toString().padStart(2, '0');
-                              const timeValue = `${formattedHour}:${formattedMinute}`;
-                              const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-                              const displayTime = `${displayHour}:${formattedMinute.padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
-                              
-                              const timeSlot = (
-                                <SelectItem key={timeValue} value={timeValue}>
-                                  {displayTime}
-                                </SelectItem>
-                              );
-                              
-                              if (hour < 12) {
-                                morningSlots.push(timeSlot);
-                              } else if (hour < 17) {
-                                afternoonSlots.push(timeSlot);
-                              } else {
-                                eveningSlots.push(timeSlot);
-                              }
-                            });
-                            
-                            // If all sections are empty, show a message
-                            if (morningSlots.length === 0 && afternoonSlots.length === 0 && eveningSlots.length === 0) {
-                              return [
-                                <SelectItem key="no-slots" value="__no_slots__" disabled>
-                                  No available time slots. Please select another date.
-                                </SelectItem>
-                              ];
-                            }
-                            
-                            // Create a safe array of all time slots with headers
-                            const allTimeSlots = [];
-                            
-                            // Add morning slots if available
-                            if (morningSlots.length > 0) {
-                              allTimeSlots.push(
-                                <SelectItem key="morning-header" value="morning-header" disabled>
+                            {/* Morning slots */}
+                            {availableTimeSlots.filter(slot => {
+                              const [hour] = slot.value.split(':').map(Number);
+                              return hour < 12;
+                            }).length > 0 && (
+                              <>
+                                <SelectItem value="morning-header" disabled className="font-semibold text-primary">
                                   Morning
                                 </SelectItem>
-                              );
-                              allTimeSlots.push(...morningSlots);
-                            }
+                                {availableTimeSlots
+                                  .filter(slot => {
+                                    const [hour] = slot.value.split(':').map(Number);
+                                    return hour < 12;
+                                  })
+                                  .map(slot => (
+                                    <SelectItem key={slot.value} value={slot.value}>
+                                      <div className="flex justify-between items-center w-full">
+                                        <span>{slot.label}</span>
+                                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
+                                          {slot.available} {slot.available === 1 ? "slot" : "slots"}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                }
+                              </>
+                            )}
                             
-                            // Add afternoon slots if available
-                            if (afternoonSlots.length > 0) {
-                              allTimeSlots.push(
-                                <SelectItem key="afternoon-header" value="afternoon-header" disabled>
+                            {/* Afternoon slots */}
+                            {availableTimeSlots.filter(slot => {
+                              const [hour] = slot.value.split(':').map(Number);
+                              return hour >= 12 && hour < 17;
+                            }).length > 0 && (
+                              <>
+                                <SelectItem value="afternoon-header" disabled className="font-semibold text-primary">
                                   Afternoon
                                 </SelectItem>
-                              );
-                              allTimeSlots.push(...afternoonSlots);
-                            }
+                                {availableTimeSlots
+                                  .filter(slot => {
+                                    const [hour] = slot.value.split(':').map(Number);
+                                    return hour >= 12 && hour < 17;
+                                  })
+                                  .map(slot => (
+                                    <SelectItem key={slot.value} value={slot.value}>
+                                      <div className="flex justify-between items-center w-full">
+                                        <span>{slot.label}</span>
+                                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
+                                          {slot.available} {slot.available === 1 ? "slot" : "slots"}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                }
+                              </>
+                            )}
                             
-                            // Add evening slots if available
-                            if (eveningSlots.length > 0) {
-                              allTimeSlots.push(
-                                <SelectItem key="evening-header" value="evening-header" disabled>
+                            {/* Evening slots */}
+                            {availableTimeSlots.filter(slot => {
+                              const [hour] = slot.value.split(':').map(Number);
+                              return hour >= 17;
+                            }).length > 0 && (
+                              <>
+                                <SelectItem value="evening-header" disabled className="font-semibold text-primary">
                                   Evening
                                 </SelectItem>
-                              );
-                              allTimeSlots.push(...eveningSlots);
-                            }
-                            
-                            return allTimeSlots;
-                          })()}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                      <FormDescription>
-                        Duration: {appointmentMode === 'trailer' ? '1 hour' : '4 hours'}
-                      </FormDescription>
-                    </FormItem>
-                  )}
+                                {availableTimeSlots
+                                  .filter(slot => {
+                                    const [hour] = slot.value.split(':').map(Number);
+                                    return hour >= 17;
+                                  })
+                                  .map(slot => (
+                                    <SelectItem key={slot.value} value={slot.value}>
+                                      <div className="flex justify-between items-center w-full">
+                                        <span>{slot.label}</span>
+                                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
+                                          {slot.available} {slot.available === 1 ? "slot" : "slots"}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                }
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        <FormDescription>
+                          Duration: {appointmentMode === 'trailer' ? '1 hour' : '4 hours'}
+                          {selectedAppointmentType && (
+                            <> • Appointment Type: {selectedAppointmentType.name}</>
+                          )}
+                        </FormDescription>
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
               
