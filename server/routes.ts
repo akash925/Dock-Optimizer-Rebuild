@@ -1,4 +1,4 @@
-import type { Express, Request } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
@@ -21,14 +21,50 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Get storage instance
+  const storage = await getStorage();
+  
   // Setup authentication routes
   await setupAuth(app);
   
+  // Test login for development and debugging
+  app.post("/api/test-login", async (req, res) => {
+    try {
+      console.log("Test login requested");
+      const user = await storage.getUserByUsername("testadmin");
+      
+      if (!user) {
+        return res.status(404).json({ message: "Test user not found" });
+      }
+      
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Test login error:", err);
+          return res.status(500).json({ message: "Login failed", error: err.message });
+        }
+        console.log("Test login successful for user:", user.username);
+        return res.status(200).json({ message: "Test login successful", user });
+      });
+    } catch (error) {
+      console.error("Error in test login:", error);
+      res.status(500).json({ message: "Test login error", error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+  
+  // Auth status endpoint for debugging
+  app.get("/api/auth-status", (req, res) => {
+    const sessionId = req.sessionID;
+    
+    res.json({
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user || null,
+      sessionID: sessionId,
+      session: req.session
+    });
+  });
+  
   // Get the role check middleware
   const { checkRole } = app.locals;
-  
-  // Get storage instance
-  const storage = await getStorage();
 
   // API Routes
   // Dock routes
