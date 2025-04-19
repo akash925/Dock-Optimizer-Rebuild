@@ -1,6 +1,5 @@
-import { format, utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
-import { formatInTimeZone } from 'date-fns-tz';
-import { addMinutes, differenceInMinutes } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { addMinutes, differenceInMinutes, format } from 'date-fns';
 
 // Get the user's local time zone
 export const getUserTimeZone = (): string => {
@@ -12,21 +11,23 @@ export const utcToUserTime = (utcDate: Date | string): Date => {
   if (!utcDate) return new Date();
   const userTimeZone = getUserTimeZone();
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
-  return utcToZonedTime(date, userTimeZone);
+  return toZonedTime(date, userTimeZone);
 };
 
 // Convert UTC date to facility time zone
 export const utcToFacilityTime = (utcDate: Date | string, facilityTimeZone: string): Date => {
   if (!utcDate) return new Date();
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
-  return utcToZonedTime(date, facilityTimeZone);
+  return toZonedTime(date, facilityTimeZone);
 };
 
 // Convert date from facility time zone to UTC
 export const facilityTimeToUtc = (date: Date | string, facilityTimeZone: string): Date => {
   if (!date) return new Date();
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return zonedTimeToUtc(dateObj, facilityTimeZone);
+  // Use alternative approach since zonedTimeToUtc is not available
+  const isoStringWithOffset = formatInTimeZone(dateObj, facilityTimeZone, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+  return new Date(isoStringWithOffset);
 };
 
 // Convert date from user time zone to UTC
@@ -34,7 +35,9 @@ export const userTimeToUtc = (date: Date | string): Date => {
   if (!date) return new Date();
   const userTimeZone = getUserTimeZone();
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return zonedTimeToUtc(dateObj, userTimeZone);
+  // Use alternative approach since zonedTimeToUtc is not available
+  const isoStringWithOffset = formatInTimeZone(dateObj, userTimeZone, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+  return new Date(isoStringWithOffset);
 };
 
 // Format the date in the user's time zone

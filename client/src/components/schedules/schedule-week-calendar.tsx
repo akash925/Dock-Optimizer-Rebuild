@@ -8,9 +8,22 @@ import {
   ChevronLeft, 
   ChevronRight,
   Calendar as CalendarIcon,
-  X
+  X,
+  Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { 
+  utcToUserTime,
+  utcToFacilityTime,
+  formatTimeRangeForDualZones,
+  getUserTimeZone
+} from "@/lib/timezone-utils";
 
 interface ScheduleWeekCalendarProps {
   schedules: Schedule[];
@@ -387,12 +400,17 @@ export default function ScheduleWeekCalendar({
                 
                 const isInbound = schedule.type === "inbound";
                 const carrier = carriers.find(c => c.id === schedule.carrierId);
-                const startTimeStr = formatTime(schedule.startTime);
-                const endTimeStr = formatTime(schedule.endTime);
-
-                // Parse dates properly to handle timezone consistently
-                const startDate = new Date(schedule.startTime);
-                const endDate = new Date(schedule.endTime);
+                
+                // Get the facility timezone if available, or default to America/New_York
+                const facilityTimeZone = schedule.facilityTimeZone || "America/New_York";
+                
+                // Convert UTC times to user's timezone for display
+                const startDate = utcToUserTime(schedule.startTime);
+                const endDate = utcToUserTime(schedule.endTime);
+                
+                // Format times for display with timezone consideration
+                const startTimeStr = format(startDate, 'h:mm a');
+                const endTimeStr = format(endDate, 'h:mm a');
                 
                 // Calculate precise position based on hours and cell size
                 const startHour = startDate.getHours();
