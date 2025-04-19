@@ -145,19 +145,75 @@ export async function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
+    console.log("Login attempt:", req.body.username);
+    
     passport.authenticate("local", (err, user, info) => {
-      if (err) return next(err);
+      if (err) {
+        console.error("Login error:", err);
+        return next(err);
+      }
       if (!user) {
+        console.log("Authentication failed:", info?.message || "Unknown reason");
         return res.status(401).json({ message: info?.message || "Authentication failed" });
       }
       
+      console.log("User authenticated:", user.username);
       req.login(user, (loginErr) => {
-        if (loginErr) return next(loginErr);
+        if (loginErr) {
+          console.error("Login session error:", loginErr);
+          return next(loginErr);
+        }
+        
+        console.log("Login successful, session created:", req.sessionID);
         // Don't send password in response
         const { password, ...userWithoutPassword } = user;
         res.status(200).json(userWithoutPassword);
       });
     })(req, res, next);
+  });
+  
+  // Add a test route to create a user and auto-login (for development)
+  app.get("/api/test-login", async (req, res, next) => {
+    try {
+      // Check if we already have a test admin user
+      const storage = await getStorage();
+      const testUser = await storage.getUserByUsername("testadmin");
+      
+      if (testUser) {
+        // Log in with existing user
+        req.login(testUser, (loginErr) => {
+          if (loginErr) return next(loginErr);
+          const { password, ...userWithoutPassword } = testUser;
+          return res.status(200).json({
+            message: "Logged in with existing test user",
+            user: userWithoutPassword
+          });
+        });
+      } else {
+        // Create a test admin user
+        const hashedPassword = await hashPassword("testpassword");
+        const newUser = await storage.createUser({
+          username: "testadmin",
+          password: hashedPassword,
+          email: "testadmin@example.com",
+          firstName: "Test",
+          lastName: "Admin",
+          role: "admin"
+        });
+        
+        // Log in with the new user
+        req.login(newUser, (loginErr) => {
+          if (loginErr) return next(loginErr);
+          const { password, ...userWithoutPassword } = newUser;
+          return res.status(200).json({
+            message: "Created and logged in with new test user",
+            user: userWithoutPassword
+          });
+        });
+      }
+    } catch (err) {
+      next(err);
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -168,10 +224,26 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
+    console.log("GET /api/user - isAuthenticated:", req.isAuthenticated());
+    console.log("Session ID:", req.sessionID);
+    console.log("Session:", req.session);
+    
     if (!req.isAuthenticated()) return res.sendStatus(401);
     // Don't send password in response
     const { password, ...userWithoutPassword } = req.user as User;
     res.json(userWithoutPassword);
+  });
+  
+  // Debug route for auth status
+  app.get("/api/auth-status", (req, res) => {
+    res.json({
+      isAuthenticated: req.isAuthenticated(),
+      sessionID: req.sessionID,
+      hasSession: !!req.session,
+      hasSessionID: !!req.sessionID,
+      hasUser: !!req.user,
+      cookies: req.headers.cookie
+    });
   });
 
   // Make auth middleware available for routes
