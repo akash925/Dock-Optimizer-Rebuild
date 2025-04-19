@@ -688,28 +688,66 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                   <FormField
                     control={truckInfoForm.control}
                     name="appointmentMode"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Appointment Mode*</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex space-x-4"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="trailer" id="trailer" />
-                              <Label htmlFor="trailer">Trailer (1 hour)</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="container" id="container" />
-                              <Label htmlFor="container">Container (4 hours)</Label>
-                            </div>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // If we have a selected appointment type, set the appointmentMode based on duration
+                      if (selectedAppointmentType && !field.value) {
+                        // Set appropriate value based on appointment type's duration
+                        // 60 minutes (1 hour) -> trailer, 240 minutes (4 hours) -> container
+                        const suggestedMode = selectedAppointmentType.duration <= 60 ? "trailer" : "container";
+                        console.log(`Setting default appointment mode to ${suggestedMode} based on appointment type duration of ${selectedAppointmentType.duration} minutes`);
+                        
+                        // Update the field value
+                        setTimeout(() => {
+                          field.onChange(suggestedMode);
+                        }, 0);
+                      }
+                    
+                      return (
+                        <FormItem className="space-y-3">
+                          <FormLabel>Appointment Mode*</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              className="flex space-x-4"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem 
+                                  value="trailer" 
+                                  id="trailer" 
+                                  disabled={selectedAppointmentType && selectedAppointmentType.duration > 60}
+                                />
+                                <Label 
+                                  htmlFor="trailer" 
+                                  className={selectedAppointmentType && selectedAppointmentType.duration > 60 ? "text-gray-400" : ""}
+                                >
+                                  Trailer (1 hour)
+                                </Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem 
+                                  value="container" 
+                                  id="container" 
+                                  disabled={selectedAppointmentType && selectedAppointmentType.duration <= 60}
+                                />
+                                <Label 
+                                  htmlFor="container" 
+                                  className={selectedAppointmentType && selectedAppointmentType.duration <= 60 ? "text-gray-400" : ""}
+                                >
+                                  Container (4 hours)
+                                </Label>
+                              </div>
+                            </RadioGroup>
+                          </FormControl>
+                          {selectedAppointmentType && (
+                            <FormDescription>
+                              Mode selected based on the appointment type: {selectedAppointmentType.name} ({selectedAppointmentType.duration} minutes)
+                            </FormDescription>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -946,7 +984,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                             // If all sections are empty, show a message
                             if (morningSlots.length === 0 && afternoonSlots.length === 0 && eveningSlots.length === 0) {
                               return [
-                                <SelectItem key="no-slots" value="" disabled>
+                                <SelectItem key="no-slots" value="__no_slots__" disabled>
                                   No available time slots. Please select another date.
                                 </SelectItem>
                               ];
@@ -955,21 +993,21 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                             // Return all sections with dividers
                             return [
                               ...(morningSlots.length > 0 ? [
-                                <SelectItem key="morning-header" value="" disabled>
+                                <SelectItem key="morning-header" value="__header_morning__" disabled>
                                   Morning
                                 </SelectItem>,
                                 ...morningSlots
                               ] : []),
                               
                               ...(afternoonSlots.length > 0 ? [
-                                <SelectItem key="afternoon-header" value="" disabled>
+                                <SelectItem key="afternoon-header" value="__header_afternoon__" disabled>
                                   Afternoon
                                 </SelectItem>,
                                 ...afternoonSlots
                               ] : []),
                               
                               ...(eveningSlots.length > 0 ? [
-                                <SelectItem key="evening-header" value="" disabled>
+                                <SelectItem key="evening-header" value="__header_evening__" disabled>
                                   Evening
                                 </SelectItem>,
                                 ...eveningSlots
