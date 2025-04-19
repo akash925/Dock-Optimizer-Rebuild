@@ -301,109 +301,116 @@ export default function Schedules() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-medium">Calendar</h2>
-        <Button 
-          onClick={() => {
-            setEditScheduleId(null);
-            setIsAppointmentTypeDialogOpen(true);
-          }}
-          className="bg-primary text-white"
-        >
-          <PlusCircle className="h-4 w-4 mr-2" />
-          New Appointment
-        </Button>
-      </div>
-      
-      {/* Search and Filter Bar */}
-      <div className="flex flex-wrap gap-3 mb-6 items-center">
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search appointments..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          {searchQuery && (
-            <button 
-              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-              onClick={() => setSearchQuery("")}
-            >
-              <XCircle className="h-4 w-4" />
-            </button>
-          )}
+      {/* Consolidated Header Row */}
+      <div className="flex items-center mb-6 gap-3 flex-wrap">
+        {/* Title and Search */}
+        <div className="flex items-center gap-3 flex-grow">
+          <h2 className="text-xl font-medium whitespace-nowrap">Calendar</h2>
+          <div className="relative flex-grow max-w-md">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search appointments..."
+              className="pl-8 h-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button 
+                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                onClick={() => setSearchQuery("")}
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
         
-        {/* Facility Filter - Primary filter that affects available docks */}
-        <Select 
-          value={filterFacilityId === "all" ? "all" : filterFacilityId.toString()} 
-          onValueChange={(value) => {
-            const newFacilityId = value === "all" ? "all" : parseInt(value);
-            setFilterFacilityId(newFacilityId);
-            
-            // Reset dock filter when facility changes
-            setFilterDockId("all");
-          }}
-        >
-          <SelectTrigger className="w-[180px] font-medium">
-            <SelectValue placeholder="Facility" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Facilities</SelectItem>
-            {facilities.map((facility) => (
-              <SelectItem key={facility.id} value={facility.id.toString()}>
-                {facility.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        {/* Dock Filter - Filtered by selected facility */}
-        <Select 
-          value={filterDockId === "all" ? "all" : filterDockId.toString()} 
-          onValueChange={(value) => setFilterDockId(value === "all" ? "all" : parseInt(value))}
-        >
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Dock" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Docks</SelectItem>
-            {docks
-              .filter(dock => filterFacilityId === "all" || dock.facilityId === filterFacilityId)
-              .map((dock) => (
-                <SelectItem key={dock.id} value={dock.id.toString()}>
-                  {dock.name}
+        {/* Filters */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Facility Filter */}
+          <Select 
+            value={filterFacilityId === "all" ? "all" : filterFacilityId.toString()} 
+            onValueChange={(value) => {
+              const newFacilityId = value === "all" ? "all" : parseInt(value);
+              setFilterFacilityId(newFacilityId);
+              // Reset dock filter when facility changes
+              setFilterDockId("all");
+            }}
+          >
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="All Facilities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Facilities</SelectItem>
+              {facilities.map((facility) => (
+                <SelectItem key={facility.id} value={facility.id.toString()}>
+                  {facility.name}
                 </SelectItem>
-              ))
-            }
-          </SelectContent>
-        </Select>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {/* Dock Filter */}
+          <Select 
+            value={filterDockId === "all" ? "all" : filterDockId.toString()} 
+            onValueChange={(value) => setFilterDockId(value === "all" ? "all" : parseInt(value))}
+          >
+            <SelectTrigger className="w-[120px] h-9">
+              <SelectValue placeholder="All Docks" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Docks</SelectItem>
+              {docks
+                .filter(dock => filterFacilityId === "all" || dock.facilityId === filterFacilityId)
+                .map((dock) => (
+                  <SelectItem key={dock.id} value={dock.id.toString()}>
+                    {dock.name}
+                  </SelectItem>
+                ))
+              }
+            </SelectContent>
+          </Select>
+          
+          {/* Status Filter */}
+          <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value)}>
+            <SelectTrigger className="w-[120px] h-9">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {/* Type Filter */}
+          <Select value={filterType} onValueChange={(value) => setFilterType(value)}>
+            <SelectTrigger className="w-[120px] h-9">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="inbound">Inbound</SelectItem>
+              <SelectItem value="outbound">Outbound</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {/* New Appointment Button */}
+          <Button 
+            onClick={() => {
+              setEditScheduleId(null);
+              setIsAppointmentTypeDialogOpen(true);
+            }}
+            className="bg-primary text-white h-9"
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            New Appointment
+          </Button>
+        </div>
         
-        <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value)}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="scheduled">Scheduled</SelectItem>
-            <SelectItem value="in-progress">In Progress</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <Select value={filterType} onValueChange={(value) => setFilterType(value)}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="inbound">Inbound</SelectItem>
-            <SelectItem value="outbound">Outbound</SelectItem>
-          </SelectContent>
-        </Select>
-        
+        {/* Clear Filters */}
         {(searchQuery || filterStatus !== "all" || filterType !== "all" || 
           filterDockId !== "all" || filterFacilityId !== "all") && (
           <Button 
@@ -416,7 +423,7 @@ export default function Schedules() {
               setFilterFacilityId("all");
               setFilterDockId("all");
             }}
-            className="text-xs"
+            className="text-xs h-9"
           >
             Clear Filters
           </Button>

@@ -42,6 +42,9 @@ export default function ScheduleWeekCalendar({
   const weekStart = startOfWeek(date, { weekStartsOn: 0 }); // Sunday as start of week
   const weekEnd = endOfWeek(date, { weekStartsOn: 0 });
   
+  // Format date range display - more compact format
+  const dateRangeDisplay = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+  
   // Generate days of the week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   
@@ -105,8 +108,7 @@ export default function ScheduleWeekCalendar({
     return index;
   };
   
-  // Format the date range for display (e.g., "Apr 13 - 19, 2025")
-  const dateRangeDisplay = `${format(weekStart, 'MMM M/d')} - ${format(weekEnd, 'M/d, yyyy')}`;
+  // This declaration is moved to line 46
   
   // Move to previous/next week
   const goToPreviousWeek = () => {
