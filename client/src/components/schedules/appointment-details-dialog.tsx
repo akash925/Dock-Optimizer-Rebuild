@@ -1,20 +1,19 @@
+import * as React from "react";
 import { useState, useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Schedule, Carrier, Facility } from "@shared/schema";
-
-// Extended Schedule interface with derived properties that might be 
-// added after fetching from the server
-interface ExtendedSchedule extends Schedule {
-  dockName?: string;
-  appointmentTypeName?: string;
-  facilityName?: string;
-  facilityId?: number;
-}
+import { Schedule } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -45,6 +44,13 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import AppointmentQRCode from "./appointment-qr-code";
+
+interface ExtendedSchedule extends Schedule {
+  dockName?: string;
+  appointmentTypeName?: string;
+  facilityName?: string;
+  facilityId?: number;
+}
 
 interface AppointmentDetailsDialogProps {
   appointment: ExtendedSchedule | null;
@@ -156,29 +162,6 @@ export function AppointmentDetailsDialog({
     
     setEventHistory(sortedHistory);
   }, [appointment]);
-
-  // Format dates with consistent Eastern timezone handling
-  const formatDate = (date: Date | string) => {
-    if (!date) return "";
-    const dateObj = typeof date === "string" ? new Date(date) : date;
-    
-    // Use Eastern Time (America/New_York) consistently
-    try {
-      return dateObj.toLocaleString('en-US', {
-        timeZone: 'America/New_York',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-    } catch (err) {
-      console.error("Error formatting date with timezone:", err);
-      // Fallback to format if toLocaleString with timeZone fails
-      return format(dateObj, "MM/dd/yyyy hh:mm a");
-    }
-  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -369,110 +352,115 @@ export function AppointmentDetailsDialog({
     }
   });
 
-  // Fetch additional carrier data if we have a carrierId
-  const { data: carrier } = useQuery({
-    queryKey: ["/api/carriers", appointment?.carrierId],
-    queryFn: async () => {
-      if (!appointment?.carrierId) return null;
-      const res = await fetch(`/api/carriers/${appointment.carrierId}`);
-      if (!res.ok) return null;
-      return res.json() as Promise<Carrier>;
-    },
-    enabled: !!appointment?.carrierId && open
-  });
-
-  // Fetch additional facility data if needed
-  const { data: facility } = useQuery({
-    queryKey: ["/api/facilities", appointment?.facilityId],
-    queryFn: async () => {
-      if (!appointment?.facilityId) return null;
-      const res = await fetch(`/api/facilities/${appointment.facilityId}`);
-      if (!res.ok) return null;
-      const facilityData = await res.json();
-      console.log("Facility data fetched:", facilityData, "for facilityId:", appointment.facilityId);
-      return facilityData as Facility;
-    },
-    enabled: !!appointment?.facilityId && open
-  });
-
-  if (!appointment) return null;
-
-  // Get the appropriate facility name - either from facility query, prop, or appointment
-  const displayFacilityName = facility?.name || facilityName || appointment.facilityName || "";
+  // If appointment is null (loading state), return an empty div (to prevent errors)
+  if (!appointment) return <></>;
   
-  // Prioritize carrier name from the carrier query if available, then from appointment, then customer name, then default
-  const carrierDisplayName = carrier?.name || appointment.carrierName || appointment.customerName || "Appointment";
-  const appointmentTitle = `${appointment.customerName || ''} - ${carrierDisplayName}`;
+  const displayFacilityName = facilityName || appointment.facilityName;
   
-  // Determine appointment type badge color
+  // Set the appropriate title for the dialog
+  let appointmentTitle = "Appointment Details";
+  
+  if (appointment.customerName) {
+    appointmentTitle = `${appointment.customerName}`;
+  } else if (appointment.carrierName) {
+    appointmentTitle = `${appointment.carrierName}`;
+  }
+  
+  // Get appropriate badge color based on appointment type
   const getTypeColor = () => {
-    return appointment.type === "inbound" ? "text-blue-700 border-blue-200 bg-blue-50" : "text-emerald-700 border-emerald-200 bg-emerald-50";
+    if (appointment.type === "inbound") {
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    } else {
+      return "bg-purple-50 text-purple-700 border-purple-200";
+    }
   };
-
-  // Render reschedule view
-  if (isRescheduling) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+  
+  // Get the carrier details from the carrier ID
+  const carrier = { name: appointment.carrierName || "Unknown Carrier" };
+  
+  // Get the time remaining until the appointment (in minutes)
+  const getTimeRemaining = () => {
+    const now = new Date();
+    const appointmentTime = new Date(appointment.startTime);
+    const timeRemaining = differenceInMinutes(appointmentTime, now);
+    return timeRemaining;
+  };
+  
+  // Compute remaining time for imminent appointments
+  const timeRemaining = getTimeRemaining();
+  const isImminent = timeRemaining >= 0 && timeRemaining <= 30;
+  
+  return (
+    <>
+      {/* Reschedule Dialog */}
+      <Dialog open={isRescheduling} onOpenChange={(open) => setIsRescheduling(open)}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              Reschedule Appointment
-            </DialogTitle>
+            <DialogTitle>Reschedule Appointment</DialogTitle>
             <DialogDescription>
-              Select a new date and time for this appointment
+              Select a new date and time for this appointment.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-6 py-4">
-            <div className="flex flex-col space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal h-10"
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    {rescheduleDate ? format(rescheduleDate, 'PPP') : 'Select date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={rescheduleDate}
-                    onSelect={setRescheduleDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="reschedule-date" className="text-right">
+                Date
+              </Label>
+              <div className="col-span-3">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {rescheduleDate ? format(rescheduleDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={rescheduleDate}
+                      onSelect={setRescheduleDate}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col space-y-2">
-                <Label htmlFor="time">Time</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={rescheduleTime}
-                  onChange={(e) => setRescheduleTime(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex flex-col space-y-2">
-                <Label htmlFor="duration">Duration (minutes)</Label>
-                <Input
-                  id="duration"
-                  type="number"
-                  value={rescheduleDuration}
-                  onChange={(e) => setRescheduleDuration(parseInt(e.target.value, 10))}
-                  min={15}
-                  step={15}
-                />
-              </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="reschedule-time" className="text-right">
+                Time
+              </Label>
+              <Input
+                id="reschedule-time"
+                type="time"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="reschedule-duration" className="text-right">
+                Duration (min)
+              </Label>
+              <Input
+                id="reschedule-duration"
+                type="number"
+                min={15}
+                step={15}
+                value={rescheduleDuration}
+                onChange={(e) => setRescheduleDuration(Number(e.target.value))}
+                className="col-span-3"
+              />
             </div>
           </div>
           
-          <DialogFooter className="flex-col sm:flex-row sm:justify-end gap-2">
+          <DialogFooter>
             <Button 
               variant="outline" 
               onClick={() => setIsRescheduling(false)}
@@ -480,103 +468,11 @@ export function AppointmentDetailsDialog({
               Cancel
             </Button>
             <Button 
-              variant="default"
-              className="bg-blue-600 hover:bg-blue-700"
               onClick={() => rescheduleAppointmentMutation.mutate()}
-              disabled={rescheduleAppointmentMutation.isPending || !rescheduleDate || !rescheduleTime}
+              disabled={!rescheduleDate || !rescheduleTime || rescheduleAppointmentMutation.isPending}
             >
               {rescheduleAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-              Reschedule Appointment
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  // Render main view
-  return (
-    <>
-      {/* Event History Dialog */}
-      <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <History className="h-5 w-5 text-primary" />
-              Event History
-            </DialogTitle>
-            <DialogDescription>
-              View the complete history of this appointment, including all changes and modifications.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <ScrollArea className="h-[400px] rounded-md border">
-              <div className="p-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[180px]">Date & Time</TableHead>
-                      <TableHead>Event Type</TableHead>
-                      <TableHead>User</TableHead>
-                      <TableHead className="w-full">Description</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {eventHistory.length > 0 ? (
-                      eventHistory.map((event) => (
-                        <TableRow key={event.id}>
-                          <TableCell className="font-medium">
-                            {format(new Date(event.timestamp), "MMM dd, yyyy hh:mm a")}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={
-                              event.type === "creation" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                              event.type === "reschedule" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                              event.type === "check-in" ? "bg-purple-50 text-purple-700 border-purple-200" :
-                              event.type === "check-out" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                              event.type === "question-update" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
-                              "bg-slate-50 text-slate-700 border-slate-200"
-                            }>
-                              {event.type === "creation" ? "Created" :
-                              event.type === "reschedule" ? "Rescheduled" :
-                              event.type === "check-in" ? "Checked In" :
-                              event.type === "check-out" ? "Checked Out" :
-                              event.type === "question-update" ? "Fields Updated" :
-                              "Modified"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{event.user}</TableCell>
-                          <TableCell>{event.changes}</TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                          No event history available
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </ScrollArea>
-            
-            <div className="mt-4 text-sm text-muted-foreground">
-              <p>The event history shows all changes made to this appointment, including:</p>
-              <ul className="list-disc ml-5 mt-2 space-y-1">
-                <li>Creation and scheduling</li>
-                <li>Rescheduling events</li>
-                <li>Check-in and check-out times</li>
-                <li>Updates to appointment information</li>
-                <li>Changes to question answers</li>
-              </ul>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsHistoryDialogOpen(false)}>
-              Close
+              Reschedule
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -585,516 +481,560 @@ export function AppointmentDetailsDialog({
       {/* Main Appointment Dialog */}
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">
-            {appointmentTitle}
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {/* Display appointment type prominently */}
-              {appointment.appointmentTypeId && (
-                <Badge className="bg-primary text-primary-foreground font-medium">
-                  {appointment.appointmentTypeName || `Type #${appointment.appointmentTypeId}`}
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              {appointmentTitle}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {/* Display appointment type prominently */}
+                {appointment.appointmentTypeId && (
+                  <Badge className="bg-primary text-primary-foreground font-medium">
+                    {appointment.appointmentTypeName || `Type #${appointment.appointmentTypeId}`}
+                  </Badge>
+                )}
+                <Badge variant="outline" className={getTypeColor()}>
+                  {appointment.type === "inbound" ? "Inbound" : "Outbound"}
                 </Badge>
-              )}
-              <Badge variant="outline" className={getTypeColor()}>
-                {appointment.type === "inbound" ? "Inbound" : "Outbound"}
-              </Badge>
-              <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
-                {appointment.status === "scheduled" ? "Scheduled" : 
-                appointment.status === "in-progress" ? "In Progress" : 
-                appointment.status === "completed" ? "Completed" : "Cancelled"}
-              </Badge>
-              <Badge variant="outline" className={
-                appointment.appointmentMode === "container" 
-                  ? "bg-orange-50 text-orange-700 border-orange-200" 
-                  : "bg-slate-50 text-slate-700 border-slate-200"
-              }>
-                {appointment.appointmentMode === "container" ? "Container" : "Trailer"}
-              </Badge>
-            </div>
-          </DialogTitle>
-          <DialogDescription>
-            <div className="flex flex-col space-y-1 mt-1">
-              <span>{displayFacilityName ? `Facility: ${displayFacilityName}` : ""}</span>
-              <span>{appointment.dockId ? `Dock: ${appointment.dockName || "Unknown"}` : "No dock assigned"}</span>
-              <span>{appointment.type === "inbound" ? "Inbound" : "Outbound"} appointment</span>
-            </div>
-          </DialogDescription>
-        </DialogHeader>
+                <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
+                  {appointment.status === "scheduled" ? "Scheduled" : 
+                  appointment.status === "in-progress" ? "In Progress" : 
+                  appointment.status === "completed" ? "Completed" : "Cancelled"}
+                </Badge>
+                <Badge variant="outline" className={
+                  appointment.appointmentMode === "container" 
+                    ? "bg-orange-50 text-orange-700 border-orange-200" 
+                    : "bg-slate-50 text-slate-700 border-slate-200"
+                }>
+                  {appointment.appointmentMode === "container" ? "Container" : "Trailer"}
+                </Badge>
+              </div>
+            </DialogTitle>
+            <DialogDescription>
+              <div className="flex flex-col space-y-1 mt-1">
+                <span>{displayFacilityName ? `Facility: ${displayFacilityName}` : ""}</span>
+                <span>{appointment.dockId ? `Dock: ${appointment.dockName || "Unknown"}` : "No dock assigned"}</span>
+                <span>{appointment.type === "inbound" ? "Inbound" : "Outbound"} appointment</span>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* Schedule Times */}
-        <div className="border-t border-b py-4">
-          <h3 className="text-sm font-medium mb-3">
-            Schedule Times
-            {appointment.status === "completed" && 
-              <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded ml-2">Completed</span>
-            }
-            {appointment.status === "in-progress" && 
-              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded ml-2">In Progress</span>
-            }
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-muted-foreground">Scheduled Start:</Label>
-              <div className="flex items-center mt-1">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="font-medium">
-                  {appointment && appointment.startTime 
-                    ? format(new Date(appointment.startTime), 'MM/dd/yyyy, hh:mm a') 
-                    : ""}
-                </span>
-              </div>
-            </div>
+          {/* Schedule Times */}
+          <div className="border-t border-b py-4">
+            <h3 className="text-sm font-medium mb-3">
+              Schedule Times
+              {appointment.status === "completed" && 
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded ml-2">Completed</span>
+              }
+              {appointment.status === "in-progress" && 
+                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded ml-2">In Progress</span>
+              }
+            </h3>
             
-            <div>
-              <Label className="text-xs text-muted-foreground">Scheduled End:</Label>
-              <div className="flex items-center mt-1">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="font-medium">
-                  {appointment && appointment.endTime 
-                    ? format(new Date(appointment.endTime), 'MM/dd/yyyy, hh:mm a') 
-                    : ""}
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-4">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Time & Timezone:</Label>
-              <div className="flex items-center space-x-2">
-                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <div className="flex flex-col">
-                  <div className="flex items-center">
-                    <span className="text-xs font-medium">Your time:</span>
-                    <span className="text-xs ml-1">
-                      {appointment ? formatInUserTimeZone(appointment.startTime, 'MM/dd/yyyy hh:mm a') : ""} - {appointment ? formatInUserTimeZone(appointment.endTime, 'hh:mm a') : ""}
-                      {" "}{getTimeZoneAbbreviation(getUserTimeZone())}
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="text-xs font-medium">Facility time:</span>
-                    <span className="text-xs ml-1">
-                      {appointment && appointment.startTime ? format(new Date(appointment.startTime), 'MM/dd/yyyy hh:mm a') : ""} - {appointment && appointment.endTime ? format(new Date(appointment.endTime), 'hh:mm a') : ""}
-                      {" "}ET
-                    </span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-3 w-3 text-muted-foreground ml-1 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
-                          <p className="text-xs">Appointments are shown in your local timezone, but stored in the facility's timezone.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-1 mt-3">
-              <Label className="text-xs text-muted-foreground">Pickup or Dropoff:</Label>
-              <div className="flex items-center">
-                <ChevronsRight className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{appointment.type === "inbound" ? "Dropoff" : "Pickup"}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Check-in/Check-out History */}
-        <div className="border-b py-4">
-          <h3 className="text-sm font-medium mb-3">Check-In/Check-Out History</h3>
-          
-          <div className="rounded-md border bg-slate-50 p-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${appointment.actualStartTime ? "bg-emerald-500" : "bg-slate-300"}`}></div>
-                <div className="flex-1">
-                  <h4 className="text-xs font-semibold">Check-In Time</h4>
-                  {appointment.actualStartTime ? (
-                    <>
-                      <div className="text-sm font-medium">
-                        {format(new Date(appointment.actualStartTime), "MM/dd/yyyy, hh:mm a")}
-                      </div>
-                      <div className="flex flex-col mt-1">
-                        <div className="text-xs">
-                          <span className="font-medium">Your time:</span>{" "}
-                          {formatInUserTimeZone(appointment.actualStartTime, 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
-                        </div>
-                        <div className="text-xs">
-                          <span className="font-medium">Facility time:</span>{" "}
-                          {format(new Date(appointment.actualStartTime), 'MM/dd/yyyy hh:mm a')} ET
-                        </div>
-                      </div>
-                      {appointment.lastModifiedBy && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          By: User ID {appointment.lastModifiedBy}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-sm">Not checked in yet</div>
-                  )}
+              <div>
+                <Label className="text-xs text-muted-foreground">Scheduled Start:</Label>
+                <div className="flex items-center mt-1">
+                  <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="font-medium">
+                    {appointment && appointment.startTime 
+                      ? format(new Date(appointment.startTime), 'MM/dd/yyyy, hh:mm a') 
+                      : ""}
+                  </span>
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${appointment.actualEndTime ? "bg-emerald-500" : "bg-slate-300"}`}></div>
-                <div className="flex-1">
-                  <h4 className="text-xs font-semibold">Check-Out Time</h4>
-                  {appointment.actualEndTime ? (
-                    <>
-                      <div className="text-sm font-medium">
-                        {format(new Date(appointment.actualEndTime), "MM/dd/yyyy, hh:mm a")}
-                      </div>
-                      <div className="flex flex-col mt-1">
-                        <div className="text-xs">
-                          <span className="font-medium">Your time:</span>{" "}
-                          {formatInUserTimeZone(appointment.actualEndTime, 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
-                        </div>
-                        <div className="text-xs">
-                          <span className="font-medium">Facility time:</span>{" "}
-                          {format(new Date(appointment.actualEndTime), 'MM/dd/yyyy hh:mm a')} ET
-                        </div>
-                      </div>
-                      {appointment.lastModifiedBy && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          By: User ID {appointment.lastModifiedBy}
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-sm">Not checked out yet</div>
-                  )}
+              <div>
+                <Label className="text-xs text-muted-foreground">Scheduled End:</Label>
+                <div className="flex items-center mt-1">
+                  <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="font-medium">
+                    {appointment && appointment.endTime 
+                      ? format(new Date(appointment.endTime), 'MM/dd/yyyy, hh:mm a') 
+                      : ""}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Time & Timezone:</Label>
+                <div className="flex items-center space-x-2">
+                  <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <span className="text-xs font-medium">Your time:</span>
+                      <span className="text-xs ml-1">
+                        {appointment ? formatInUserTimeZone(appointment.startTime, 'MM/dd/yyyy hh:mm a') : ""} - {appointment ? formatInUserTimeZone(appointment.endTime, 'hh:mm a') : ""}
+                        {" "}{getTimeZoneAbbreviation(getUserTimeZone())}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-xs font-medium">Facility time:</span>
+                      <span className="text-xs ml-1">
+                        {appointment && appointment.startTime ? format(new Date(appointment.startTime), 'MM/dd/yyyy hh:mm a') : ""} - {appointment && appointment.endTime ? format(new Date(appointment.endTime), 'hh:mm a') : ""}
+                        {" "}ET
+                      </span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 text-muted-foreground ml-1 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-xs">Appointments are shown in your local timezone, but stored in the facility's timezone.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-1 mt-3">
+                <Label className="text-xs text-muted-foreground">Pickup or Dropoff:</Label>
+                <div className="flex items-center">
+                  <ChevronsRight className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span>{appointment.type === "inbound" ? "Dropoff" : "Pickup"}</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Carrier and Driver information */}
-        <div className="border-t py-4">
-          <h3 className="text-sm font-medium mb-3">Carrier & Driver Information</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Carrier Name:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.carrierName || ''} 
-                  onChange={(e) => handleInputChange('carrierName', e.target.value)}
-                  className="h-8"
-                />
-              ) : (
-                <div className="font-medium">{carrier?.name || appointment.carrierName || "Unknown Carrier"}</div>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">MC Number:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.mcNumber || ''} 
-                  onChange={(e) => handleInputChange('mcNumber', e.target.value)}
-                  className="h-8"
-                />
-              ) : (
-                <div className="font-medium">{appointment.mcNumber || "N/A"}</div>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Customer Name:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.customerName || ''} 
-                  onChange={(e) => handleInputChange('customerName', e.target.value)}
-                  className="h-8"
-                />
-              ) : (
-                <div className="font-medium">{appointment.customerName || "N/A"}</div>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Driver Name:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.driverName || ''} 
-                  onChange={(e) => handleInputChange('driverName', e.target.value)}
-                  className="h-8"
-                />
-              ) : (
-                <div className="font-medium">{appointment.driverName || "N/A"}</div>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Driver Phone:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.driverPhone || ''} 
-                  onChange={(e) => handleInputChange('driverPhone', e.target.value)}
-                  className="h-8"
-                />
-              ) : (
-                <div className="font-medium">{appointment.driverPhone || "N/A"}</div>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Truck Number:</Label>
-              {isEditing ? (
-                <Input 
-                  value={formData.truckNumber || ''} 
-                  onChange={(e) => handleInputChange('truckNumber', e.target.value)}
-                  className="h-8"
-                />
-              ) : (
-                <div className="font-medium">{appointment.truckNumber || "N/A"}</div>
-              )}
+          
+          {/* Check-in/Check-out History */}
+          <div className="border-b py-4">
+            <h3 className="text-sm font-medium mb-3">Check-In/Check-Out History</h3>
+            
+            <div className="rounded-md border bg-slate-50 p-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${appointment.actualStartTime ? "bg-emerald-500" : "bg-slate-300"}`}></div>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-semibold">Check-In Time</h4>
+                    {appointment.actualStartTime ? (
+                      <>
+                        <div className="text-sm font-medium">
+                          {format(new Date(appointment.actualStartTime), "MM/dd/yyyy, hh:mm a")}
+                        </div>
+                        <div className="flex flex-col mt-1">
+                          <div className="text-xs">
+                            <span className="font-medium">Your time:</span>{" "}
+                            {formatInUserTimeZone(appointment.actualStartTime, 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                          </div>
+                          <div className="text-xs">
+                            <span className="font-medium">Facility time:</span>{" "}
+                            {format(new Date(appointment.actualStartTime), 'MM/dd/yyyy hh:mm a')} ET
+                          </div>
+                        </div>
+                        {appointment.lastModifiedBy && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            By: User ID {appointment.lastModifiedBy}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm">Not checked in yet</div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${appointment.actualEndTime ? "bg-emerald-500" : "bg-slate-300"}`}></div>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-semibold">Check-Out Time</h4>
+                    {appointment.actualEndTime ? (
+                      <>
+                        <div className="text-sm font-medium">
+                          {format(new Date(appointment.actualEndTime), "MM/dd/yyyy, hh:mm a")}
+                        </div>
+                        <div className="flex flex-col mt-1">
+                          <div className="text-xs">
+                            <span className="font-medium">Your time:</span>{" "}
+                            {formatInUserTimeZone(appointment.actualEndTime, 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                          </div>
+                          <div className="text-xs">
+                            <span className="font-medium">Facility time:</span>{" "}
+                            {format(new Date(appointment.actualEndTime), 'MM/dd/yyyy hh:mm a')} ET
+                          </div>
+                        </div>
+                        {appointment.lastModifiedBy && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            By: User ID {appointment.lastModifiedBy}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm">Not checked out yet</div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* QR Code for check-in */}
-        <div className="border-t border-b py-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium flex items-center">
-              <QrCode className="h-4 w-4 mr-2 text-primary" />
-              Appointment Confirmation Code
-            </h3>
-            <span className="bg-slate-100 px-3 py-1 rounded-md font-mono font-medium">
-              HC{appointment.id.toString().padStart(6, '0')}
-            </span>
+
+          {/* Carrier and Driver information */}
+          <div className="border-t py-4">
+            <h3 className="text-sm font-medium mb-3">Carrier & Driver Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Carrier Name:</Label>
+                {isEditing ? (
+                  <Input 
+                    value={formData.carrierName || ''} 
+                    onChange={(e) => handleInputChange('carrierName', e.target.value)}
+                    className="h-8"
+                  />
+                ) : (
+                  <div className="font-medium">{carrier?.name || appointment.carrierName || "Unknown Carrier"}</div>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">MC Number:</Label>
+                {isEditing ? (
+                  <Input 
+                    value={formData.mcNumber || ''} 
+                    onChange={(e) => handleInputChange('mcNumber', e.target.value)}
+                    className="h-8"
+                  />
+                ) : (
+                  <div className="font-medium">{appointment.mcNumber || "N/A"}</div>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Customer Name:</Label>
+                {isEditing ? (
+                  <Input 
+                    value={formData.customerName || ''} 
+                    onChange={(e) => handleInputChange('customerName', e.target.value)}
+                    className="h-8"
+                  />
+                ) : (
+                  <div className="font-medium">{appointment.customerName || "N/A"}</div>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Driver Name:</Label>
+                {isEditing ? (
+                  <Input 
+                    value={formData.driverName || ''} 
+                    onChange={(e) => handleInputChange('driverName', e.target.value)}
+                    className="h-8"
+                  />
+                ) : (
+                  <div className="font-medium">{appointment.driverName || "N/A"}</div>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Driver Phone:</Label>
+                {isEditing ? (
+                  <Input 
+                    value={formData.driverPhone || ''} 
+                    onChange={(e) => handleInputChange('driverPhone', e.target.value)}
+                    className="h-8"
+                  />
+                ) : (
+                  <div className="font-medium">{appointment.driverPhone || "N/A"}</div>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Truck Number:</Label>
+                {isEditing ? (
+                  <Input 
+                    value={formData.truckNumber || ''} 
+                    onChange={(e) => handleInputChange('truckNumber', e.target.value)}
+                    className="h-8"
+                  />
+                ) : (
+                  <div className="font-medium">{appointment.truckNumber || "N/A"}</div>
+                )}
+              </div>
+            </div>
           </div>
           
-          {/* Only show QR code for external appointments (identified by having null createdBy or no carrier name) */}
-          {appointment.status === "scheduled" && (!appointment.createdBy || appointment.createdBy === 0) && (
-            <div className="flex flex-col items-center">
-              <p className="text-sm text-muted-foreground mb-3">
-                External appointment - ensure driver receives this QR code for check-in
-              </p>
-              <div className="border border-primary border-2 p-3 rounded-md inline-block bg-white shadow-sm">
-                <AppointmentQRCode 
-                  schedule={appointment} 
-                  confirmationCode={`HC${appointment.id.toString().padStart(6, '0')}`}
-                  isExternal={true}
-                />
-              </div>
-              <div className="mt-4 flex justify-center gap-3">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="text-xs flex items-center gap-1"
-                  onClick={() => {
-                    const printWindow = window.open('', '_blank');
-                    if (printWindow) {
-                      const startTime = new Date(appointment.startTime);
-                      const formattedStartTime = format(startTime, 'MMM dd, yyyy h:mm a');
-                      
-                      printWindow.document.write(`
-                        <html>
-                          <head>
-                            <title>Appointment QR Code - ${appointment.id}</title>
-                            <style>
-                              body { 
-                                font-family: sans-serif; 
-                                padding: 20px;
-                                text-align: center;
-                              }
-                              .qr-wrapper {
-                                margin: 20px auto;
-                                width: 200px;
-                              }
-                              h1 { font-size: 20px; margin-bottom: 5px; }
-                              p { margin: 5px 0; }
-                              .info { font-size: 14px; color: #666; }
-                              .confirmation { 
-                                font-family: monospace; 
-                                font-size: 18px; 
-                                background: #f1f5f9;
-                                padding: 5px 10px;
-                                border-radius: 4px;
-                                margin: 10px 0;
-                                display: inline-block;
-                              }
-                            </style>
-                          </head>
-                          <body>
-                            <h1>Dock Appointment Check-In</h1>
-                            <p class="info">Scan this QR code when you arrive at the facility</p>
-                            <div class="qr-wrapper">
-                              <img src="${document.querySelector('canvas')?.toDataURL()}" width="200" height="200" />
-                            </div>
-                            <p><strong>Confirmation Code:</strong></p>
-                            <div class="confirmation">HC${appointment.id.toString().padStart(6, '0')}</div>
-                            <p class="info">Appointment Time: ${formattedStartTime}</p>
-                            <p class="info">Carrier: ${appointment.carrierName || "Not specified"}</p>
-                            <p class="info">Type: ${appointment.type === "inbound" ? "Inbound" : "Outbound"}</p>
-                            <script>
-                              window.onload = function() { window.print(); }
-                            </script>
-                          </body>
-                        </html>
-                      `);
-                    }
-                  }}
-                >
-                  <Printer className="h-3.5 w-3.5" />
-                  Print QR Code
-                </Button>
-              </div>
+          {/* QR Code for check-in */}
+          <div className="border-t border-b py-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium flex items-center">
+                <QrCode className="h-4 w-4 mr-2 text-primary" />
+                Appointment Confirmation Code
+              </h3>
+              <span className="bg-slate-100 px-3 py-1 rounded-md font-mono font-medium">
+                HC{appointment.id.toString().padStart(6, '0')}
+              </span>
             </div>
-          )}
-        </div>
-        
-        {/* Notes */}
-        <div className="border-t py-4">
-          <h3 className="text-sm font-medium mb-3">Notes</h3>
-          <div className="rounded-md border bg-slate-50 p-3">
-            {isEditing ? (
-              <textarea 
-                value={formData.notes || ''}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
-                className="w-full h-24 p-2 text-sm border rounded"
-                placeholder="Add notes about this appointment..."
-              />
-            ) : (
-              appointment.notes ? (
-                <p className="text-sm whitespace-pre-line">{appointment.notes}</p>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">No notes provided for this appointment</p>
-              )
+            
+            {/* Only show QR code for external appointments (identified by having null createdBy or no carrier name) */}
+            {appointment.status === "scheduled" && (!appointment.createdBy || appointment.createdBy === 0) && (
+              <div className="flex flex-col items-center">
+                <p className="text-sm text-muted-foreground mb-3">
+                  External appointment - ensure driver receives this QR code for check-in
+                </p>
+                <div className="border border-primary border-2 p-3 rounded-md inline-block bg-white shadow-sm">
+                  <AppointmentQRCode 
+                    schedule={appointment} 
+                    confirmationCode={`HC${appointment.id.toString().padStart(6, '0')}`}
+                    isExternal={true}
+                  />
+                </div>
+                <div className="mt-4 flex justify-center gap-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs flex items-center gap-1"
+                    onClick={() => {
+                      const printWindow = window.open('', '_blank');
+                      if (printWindow) {
+                        const startTime = new Date(appointment.startTime);
+                        const formattedStartTime = format(startTime, 'MMM dd, yyyy h:mm a');
+                        
+                        printWindow.document.write(`
+                          <html>
+                            <head>
+                              <title>Appointment QR Code - ${appointment.id}</title>
+                              <style>
+                                body { 
+                                  font-family: sans-serif; 
+                                  padding: 20px;
+                                  text-align: center;
+                                }
+                                .qr-wrapper {
+                                  margin: 20px auto;
+                                  width: 200px;
+                                }
+                                h1 { font-size: 20px; margin-bottom: 5px; }
+                                p { margin: 5px 0; }
+                                .info { font-size: 14px; color: #666; }
+                                .confirmation { 
+                                  font-family: monospace; 
+                                  font-size: 18px; 
+                                  background: #f1f5f9;
+                                  padding: 5px 10px;
+                                  border-radius: 4px;
+                                  margin: 10px 0;
+                                  display: inline-block;
+                                }
+                              </style>
+                            </head>
+                            <body>
+                              <h1>Dock Appointment Check-In</h1>
+                              <p class="info">Scan this QR code when you arrive at the facility</p>
+                              <div class="qr-wrapper">
+                                <img src="${document.querySelector('canvas')?.toDataURL()}" width="200" height="200" />
+                              </div>
+                              <p><strong>Confirmation Code:</strong></p>
+                              <div class="confirmation">HC${appointment.id.toString().padStart(6, '0')}</div>
+                              <p class="info">Appointment Time: ${formattedStartTime}</p>
+                              <p class="info">Carrier: ${appointment.carrierName || "Not specified"}</p>
+                              <p class="info">Type: ${appointment.type === "inbound" ? "Inbound" : "Outbound"}</p>
+                              <script>
+                                window.onload = function() { window.print(); }
+                              </script>
+                            </body>
+                          </html>
+                        `);
+                      }
+                    }}
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    Print QR Code
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-        
-        {/* View History Button */}
-        <div className="mt-4 mb-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="text-xs flex items-center gap-1"
-            onClick={() => setIsHistoryDialogOpen(true)}
-          >
-            <History className="h-3.5 w-3.5" />
-            View Event History
-          </Button>
-        </div>
-        
-        <DialogFooter className="flex-col sm:flex-row sm:justify-between border-t pt-4 mt-4">
-          <div className="flex items-center gap-2 my-2 sm:my-0">
+          
+          {/* Notes */}
+          <div className="border-t py-4">
+            <h3 className="text-sm font-medium mb-3">Notes</h3>
+            <div className="rounded-md border bg-slate-50 p-3">
+              {isEditing ? (
+                <textarea 
+                  value={formData.notes || ''}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  className="w-full h-24 p-2 text-sm rounded border border-input"
+                  placeholder="Add notes about this appointment..."
+                />
+              ) : (
+                <p className="text-sm whitespace-pre-line">{appointment.notes}</p>
+              )}
+            </div>
+          </div>
+          
+          {/* History Button */}
+          <div className="border-t py-4">
             <Button 
               variant="outline" 
               size="sm"
-              className="text-xs"
-              onClick={() => {
-                isEditing ? setIsEditing(false) : setIsEditing(true);
-              }}
+              className="text-xs flex items-center gap-1"
+              onClick={() => setIsHistoryDialogOpen(true)}
             >
-              {isEditing ? (
-                <>
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel Edit
-                </>
-              ) : (
-                <>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit Event
-                </>
-              )}
+              <History className="h-3.5 w-3.5" />
+              View Appointment History
             </Button>
             
-            {isEditing && (
-              <Button 
-                variant="default"
-                size="sm"
-                className="text-xs bg-green-600 hover:bg-green-700"
-                onClick={() => updateAppointmentMutation.mutate(formData)}
-                disabled={updateAppointmentMutation.isPending}
-              >
-                {updateAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                Save Changes
-              </Button>
-            )}
+            {/* Appointment History Dialog */}
+            <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Appointment History</DialogTitle>
+                  <DialogDescription>
+                    View the full history and changes for this appointment.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <ScrollArea className="max-h-[300px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead>User</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {eventHistory.map((event) => (
+                        <TableRow key={event.id}>
+                          <TableCell className="font-medium capitalize">
+                            {event.type.replace('-', ' ')}
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(event.timestamp), "MM/dd/yyyy hh:mm a")}
+                          </TableCell>
+                          <TableCell>
+                            {typeof event.user === 'number' 
+                              ? `User #${event.user}` 
+                              : event.user}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+                
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsHistoryDialogOpen(false)}
+                  >
+                    Close
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
           
-          <div className="flex items-center gap-2">
-            {isEditing ? (
+          {/* Actions Footer */}
+          <DialogFooter className="flex justify-between pt-2 border-t">
+            <div className="flex items-center gap-2">
+              {/* Delete button (only for admin users) */}
               <Button 
-                variant="destructive"
+                variant="outline" 
                 size="sm"
-                className="text-xs"
-                onClick={() => deleteAppointmentMutation.mutate()}
+                className="text-xs text-destructive border-destructive hover:bg-destructive/10"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
+                    deleteAppointmentMutation.mutate();
+                  }
+                }}
                 disabled={deleteAppointmentMutation.isPending}
               >
                 {deleteAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
                 Delete
               </Button>
-            ) : (
-              <>
-                {appointment.status === "scheduled" && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => setIsRescheduling(true)}
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Reschedule
-                    </Button>
-                    
-                    <Button 
-                      variant="destructive"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => cancelAppointmentMutation.mutate()}
-                      disabled={cancelAppointmentMutation.isPending}
-                    >
-                      {cancelAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                      Cancel Appointment
-                    </Button>
-                    
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="text-xs bg-blue-600 hover:bg-blue-700"
-                      onClick={() => checkInAppointmentMutation.mutate()}
-                      disabled={checkInAppointmentMutation.isPending}
-                    >
-                      {checkInAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                      Check In
-                    </Button>
-                  </>
-                )}
-                
-                {appointment.status === "in-progress" && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => cancelAppointmentMutation.mutate()}
-                      disabled={cancelAppointmentMutation.isPending}
-                    >
-                      {cancelAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                      Cancel
-                    </Button>
-                    
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="text-xs bg-green-600 hover:bg-green-700"
-                      onClick={() => checkOutAppointmentMutation.mutate()}
-                      disabled={checkOutAppointmentMutation.isPending}
-                    >
-                      {checkOutAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                      Check Out
-                    </Button>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </DialogFooter>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {/* Edit or Save button */}
+              {isEditing ? (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => updateAppointmentMutation.mutate(formData)}
+                  disabled={updateAppointmentMutation.isPending}
+                >
+                  {updateAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                  <Save className="h-3.5 w-3.5 mr-1" />
+                  Save
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit className="h-3.5 w-3.5 mr-1" />
+                  Edit
+                </Button>
+              )}
+              
+              {/* Reschedule button (only if not completed or cancelled) */}
+              {!["completed", "cancelled"].includes(appointment.status) && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setIsRescheduling(true)}
+                >
+                  <Calendar className="h-3.5 w-3.5 mr-1" />
+                  Reschedule
+                </Button>
+              )}
+              
+              {/* Status-based action buttons */}
+              {appointment.status === "scheduled" && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => cancelAppointmentMutation.mutate()}
+                    disabled={cancelAppointmentMutation.isPending}
+                  >
+                    {cancelAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                    Cancel
+                  </Button>
+                  
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="text-xs bg-blue-600 hover:bg-blue-700"
+                    onClick={() => checkInAppointmentMutation.mutate()}
+                    disabled={checkInAppointmentMutation.isPending}
+                  >
+                    {checkInAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                    Check In
+                  </Button>
+                </>
+              )}
+              
+              {appointment.status === "in-progress" && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => cancelAppointmentMutation.mutate()}
+                    disabled={cancelAppointmentMutation.isPending}
+                  >
+                    {cancelAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                    Cancel
+                  </Button>
+                  
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="text-xs bg-green-600 hover:bg-green-700"
+                    onClick={() => checkOutAppointmentMutation.mutate()}
+                    disabled={checkOutAppointmentMutation.isPending}
+                  >
+                    {checkOutAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                    Check Out
+                  </Button>
+                </>
+              )}
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
