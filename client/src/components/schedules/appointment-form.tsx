@@ -111,7 +111,21 @@ export default function AppointmentForm({
   appointmentTypeId,
 }: AppointmentFormProps) {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<AppointmentFormValues>>({});
+  // Define a clear interface for our form data to avoid TypeScript confusion
+  interface TruckFormData {
+    carrierId?: number;
+    carrierName?: string;
+    mcNumber?: string;
+    customerName?: string;
+    truckNumber?: string;
+    trailerNumber?: string;
+    driverName?: string;
+    driverPhone?: string;
+    type?: "inbound" | "outbound";
+    appointmentMode?: "trailer" | "container";
+  }
+  
+  const [formData, setFormData] = useState<TruckFormData>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bolFile, setBolFile] = useState<File | null>(null);
   const [bolProcessing, setBolProcessing] = useState(false);
@@ -376,7 +390,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       // Create a properly cleaned version of the data with all required fields
       const cleanedData = {
         ...data,
-        carrierId: data.carrierId || null,
+        carrierId: data.carrierId || undefined, // Use undefined instead of null to avoid TypeScript errors
         carrierName: data.carrierName || "",
         mcNumber: data.mcNumber || '',
         customerName: data.customerName || '',
@@ -390,7 +404,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       }
       
       // Store the cleaned data in form state
-      setFormData(prev => ({...prev, ...cleanedData}));
+      setFormData({...formData, ...cleanedData});
       setStep(2);
     } catch (error) {
       console.error("Error processing truck form data:", error);
@@ -567,13 +581,47 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         }
       }
       
+      // Create a cleaned data type object with explicit types
+      interface NewCarrierDto {
+        name: string;
+        mcNumber: string;
+        contactName: string;
+        contactEmail: string;
+        contactPhone: string;
+      }
+      
+      interface ScheduleDataDto {
+        carrierId: number | null;
+        customerName: string;
+        mcNumber: string;
+        dockId: number | null;
+        truckNumber: string;
+        trailerNumber: string;
+        driverName: string;
+        driverPhone: string;
+        bolNumber: string;
+        poNumber: string;
+        palletCount: number;
+        weight: number;
+        startTime: string;
+        endTime: string;
+        type: "inbound" | "outbound";
+        appointmentTypeId: number | null;
+        appointmentMode: "trailer" | "container";
+        status: string;
+        notes: string;
+        createdBy: number;
+        facilityId: number | null;
+        newCarrier?: NewCarrierDto;
+      }
+      
       // Prepare clean base data with all required fields
-      const scheduleData: any = {
+      const scheduleData: ScheduleDataDto = {
         // Set default values to avoid undefined or null fields that cause server errors
         carrierId: formData.carrierId || null,
         customerName: formData.customerName || "",
-        mcNumber: formData.mcNumber || "", // Include MC number
-        dockId: dockId, // Use our sanitized dockId
+        mcNumber: formData.mcNumber || "", 
+        dockId: dockId, // Use our sanitized dockId that's already been validated
         truckNumber: formData.truckNumber || "",
         trailerNumber: formData.trailerNumber || "",
         driverName: formData.driverName || "",
@@ -588,10 +636,10 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         // Format dates properly to avoid timezone issues
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
-        type: formData.type || "inbound",
+        type: formData.type || "inbound" as "inbound",
         // Ensure appointment type is properly set
         appointmentTypeId: selectedAppointmentType ? selectedAppointmentType.id : (appointmentTypeId || null),
-        appointmentMode: appointmentMode,
+        appointmentMode: appointmentMode as "trailer" | "container" || "trailer" as "trailer",
         status: "scheduled",
         notes: data.notes || "",
         createdBy: user?.id || 0,
@@ -1071,29 +1119,40 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                               ];
                             }
                             
-                            // Return all sections with dividers
-                            return [
-                              ...(morningSlots.length > 0 ? [
-                                <SelectItem key="morning-header" value="__header_morning__" disabled>
+                            // Create a safe array of all time slots with headers
+                            const allTimeSlots = [];
+                            
+                            // Add morning slots if available
+                            if (morningSlots.length > 0) {
+                              allTimeSlots.push(
+                                <SelectItem key="morning-header" value="morning-header" disabled>
                                   Morning
-                                </SelectItem>,
-                                ...morningSlots
-                              ] : []),
-                              
-                              ...(afternoonSlots.length > 0 ? [
-                                <SelectItem key="afternoon-header" value="__header_afternoon__" disabled>
+                                </SelectItem>
+                              );
+                              allTimeSlots.push(...morningSlots);
+                            }
+                            
+                            // Add afternoon slots if available
+                            if (afternoonSlots.length > 0) {
+                              allTimeSlots.push(
+                                <SelectItem key="afternoon-header" value="afternoon-header" disabled>
                                   Afternoon
-                                </SelectItem>,
-                                ...afternoonSlots
-                              ] : []),
-                              
-                              ...(eveningSlots.length > 0 ? [
-                                <SelectItem key="evening-header" value="__header_evening__" disabled>
+                                </SelectItem>
+                              );
+                              allTimeSlots.push(...afternoonSlots);
+                            }
+                            
+                            // Add evening slots if available
+                            if (eveningSlots.length > 0) {
+                              allTimeSlots.push(
+                                <SelectItem key="evening-header" value="evening-header" disabled>
                                   Evening
-                                </SelectItem>,
-                                ...eveningSlots
-                              ] : [])
-                            ];
+                                </SelectItem>
+                              );
+                              allTimeSlots.push(...eveningSlots);
+                            }
+                            
+                            return allTimeSlots;
                           })()}
                         </SelectContent>
                       </Select>
