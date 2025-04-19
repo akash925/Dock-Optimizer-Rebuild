@@ -108,7 +108,7 @@ export default function ScheduleWeekCalendar({
     return index;
   };
   
-  // This declaration is moved to line 46
+
   
   // Move to previous/next week
   const goToPreviousWeek = () => {
@@ -191,7 +191,7 @@ export default function ScheduleWeekCalendar({
           </Button>
         </div>
         
-        <div className="text-lg font-semibold">
+        <div className="text-base font-medium bg-gray-50 py-1 px-3 rounded-md border border-gray-200">
           {dateRangeDisplay}
         </div>
 
