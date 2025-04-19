@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/ui/data-table";
 import ScheduleCalendar from "@/components/schedules/schedule-calendar";
 import ScheduleWeekCalendar from "@/components/schedules/schedule-week-calendar";
+import ScheduleDayCalendar from "@/components/schedules/schedule-day-calendar";
+import ScheduleMonthCalendar from "@/components/schedules/schedule-month-calendar";
 import AppointmentForm from "@/components/schedules/appointment-form";
 import { AppointmentDetailsDialog } from "@/components/schedules/appointment-details-dialog";
 import { ColumnDef } from "@tanstack/react-table";
@@ -322,7 +324,7 @@ export default function Schedules() {
                 );
                 
                 if (matchedAppointment) {
-                  handleScheduleClick(matchedAppointment);
+                  handleScheduleClick(matchedAppointment.id);
                 }
               }
             }}
@@ -459,6 +461,40 @@ export default function Schedules() {
             onScheduleClick={handleScheduleClick}
             onDateChange={setSelectedDate}
             onViewChange={setViewMode}
+            onCellClick={handleCellClick}
+          />
+        )}
+        
+        {viewMode === "day" && (
+          <ScheduleDayCalendar
+            schedules={(filterStatus !== "all" || filterType !== "all" || 
+                      filterDockId !== "all" || filterFacilityId !== "all" || 
+                      searchQuery.trim() !== "") 
+              ? filteredSchedules 
+              : (schedules as Schedule[])}
+            docks={filterFacilityId !== "all" 
+              ? docks.filter(dock => dock.facilityId === filterFacilityId)
+              : docks}
+            date={selectedDate}
+            onScheduleClick={handleScheduleClick}
+            onDateChange={setSelectedDate}
+            onCellClick={handleCellClick}
+          />
+        )}
+        
+        {viewMode === "month" && (
+          <ScheduleMonthCalendar
+            schedules={(filterStatus !== "all" || filterType !== "all" || 
+                      filterDockId !== "all" || filterFacilityId !== "all" || 
+                      searchQuery.trim() !== "") 
+              ? filteredSchedules 
+              : (schedules as Schedule[])}
+            docks={filterFacilityId !== "all" 
+              ? docks.filter(dock => dock.facilityId === filterFacilityId)
+              : docks}
+            date={selectedDate}
+            onScheduleClick={handleScheduleClick}
+            onDateChange={setSelectedDate}
             onCellClick={handleCellClick}
           />
         )}
