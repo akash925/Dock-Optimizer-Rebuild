@@ -44,6 +44,7 @@ export interface IStorage {
   getSchedules(): Promise<Schedule[]>;
   getSchedulesByDock(dockId: number): Promise<Schedule[]>;
   getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]>;
+  searchSchedules(query: string): Promise<Schedule[]>;
   getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined>;
   createSchedule(schedule: InsertSchedule): Promise<Schedule>;
   updateSchedule(id: number, schedule: Partial<Schedule>): Promise<Schedule | undefined>;
