@@ -205,6 +205,18 @@ export default function AppointmentForm({
     }
   }, [truckInfoForm, initialData]);
   
+  // Set appointment mode based on appointment type when it loads
+  useEffect(() => {
+    if (selectedAppointmentType) {
+      // Determine the appropriate mode based on duration
+      const recommendedMode = selectedAppointmentType.duration <= 60 ? "trailer" : "container";
+      console.log(`Setting appointment mode to ${recommendedMode} based on appointment type duration: ${selectedAppointmentType.duration} minutes`);
+      
+      // Update the form
+      truckInfoForm.setValue("appointmentMode", recommendedMode);
+    }
+  }, [selectedAppointmentType, truckInfoForm]);
+  
   // Watch the appointment mode for duration changes
   const appointmentMode = truckInfoForm.watch("appointmentMode");
   
