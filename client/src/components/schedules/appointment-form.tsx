@@ -343,19 +343,51 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
   // Handle step 1 submission
   const onTruckInfoSubmit = (data: TruckInfoFormValues) => {
     try {
+      // Track error warnings we will display to the user
+      const warnings = [];
+      
+      // Validate the appointment type is selected
+      if (!appointmentTypeId && !selectedAppointmentType) {
+        warnings.push("Please select an appointment type before continuing.");
+      }
+      
       // Ensure data is properly formatted
       console.log("Truck info form data:", data);
+      
+      // Validate required fields
+      if (!data.customerName) {
+        warnings.push("Customer name is required.");
+      }
+      
+      if (!data.appointmentMode) {
+        warnings.push("Please select an appointment mode (trailer or container).");
+      }
+      
+      // If we found issues, don't proceed
+      if (warnings.length > 0) {
+        toast({
+          title: "Missing Required Fields",
+          description: warnings.join(" "),
+          variant: "destructive",
+        });
+        return;
+      }
       
       // Create a properly cleaned version of the data with all required fields
       const cleanedData = {
         ...data,
-        carrierId: data.carrierId || undefined,
+        carrierId: data.carrierId || null,
         carrierName: data.carrierName || "",
         mcNumber: data.mcNumber || '',
         customerName: data.customerName || '',
         type: data.type || 'inbound',
         appointmentMode: data.appointmentMode || 'trailer'
       };
+      
+      // Log that we're using settings from the appointment type
+      if (selectedAppointmentType) {
+        console.log("Using settings from appointment type:", selectedAppointmentType.name);
+      }
       
       // Store the cleaned data in form state
       setFormData(prev => ({...prev, ...cleanedData}));
@@ -373,8 +405,21 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
   // Create mutation
   const createScheduleMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/schedules", data);
-      return await res.json();
+      try {
+        console.log("Sending appointment data to server:", JSON.stringify(data, null, 2));
+        const res = await apiRequest("POST", "/api/schedules", data);
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          console.error("Server error response:", errorData);
+          throw new Error(errorData?.message || `Server error: ${res.status}`);
+        }
+        
+        return await res.json();
+      } catch (err) {
+        console.error("Error in createScheduleMutation:", err);
+        throw err;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
@@ -385,19 +430,34 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       onClose();
     },
     onError: (error: Error) => {
+      console.error("Mutation error:", error);
       toast({
         title: "Failed to create appointment",
-        description: error.message,
+        description: error.message || "An unknown error occurred",
         variant: "destructive",
       });
+      setIsSubmitting(false);
     },
   });
   
   // Update mutation
   const updateScheduleMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<AppointmentFormValues> }) => {
-      const res = await apiRequest("PUT", `/api/schedules/${id}`, data);
-      return await res.json();
+      try {
+        console.log("Sending update data to server:", JSON.stringify(data, null, 2));
+        const res = await apiRequest("PUT", `/api/schedules/${id}`, data);
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          console.error("Server error response:", errorData);
+          throw new Error(errorData?.message || `Server error: ${res.status}`);
+        }
+        
+        return await res.json();
+      } catch (err) {
+        console.error("Error in updateScheduleMutation:", err);
+        throw err;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
@@ -408,11 +468,13 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       onClose();
     },
     onError: (error: Error) => {
+      console.error("Update mutation error:", error);
       toast({
         title: "Failed to update appointment",
-        description: error.message,
+        description: error.message || "An unknown error occurred",
         variant: "destructive",
       });
+      setIsSubmitting(false);
     },
   });
   
@@ -518,16 +580,23 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         driverPhone: formData.driverPhone || "",
         bolNumber: data.bolNumber || "",
         poNumber: data.poNumber || "",
-        palletCount: data.palletCount ? parseInt(data.palletCount.toString(), 10) || 0 : 0,
-        weight: data.weight ? parseInt(data.weight.toString(), 10) || 0 : 0,
+        // Handle numeric fields carefully
+        palletCount: data.palletCount ? 
+          (isNaN(Number(data.palletCount)) ? 0 : Number(data.palletCount)) : 0,
+        weight: data.weight ? 
+          (isNaN(Number(data.weight)) ? 0 : Number(data.weight)) : 0,
+        // Format dates properly to avoid timezone issues
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         type: formData.type || "inbound",
-        appointmentTypeId: appointmentTypeId || null, // Add the selected appointment type
+        // Ensure appointment type is properly set
+        appointmentTypeId: selectedAppointmentType ? selectedAppointmentType.id : (appointmentTypeId || null),
         appointmentMode: appointmentMode,
         status: "scheduled",
         notes: data.notes || "",
         createdBy: user?.id || 0,
+        // Add facility ID if selected appointment type has one
+        facilityId: selectedAppointmentType?.facilityId || null
       };
       
       console.log("Prepared schedule data:", scheduleData);
