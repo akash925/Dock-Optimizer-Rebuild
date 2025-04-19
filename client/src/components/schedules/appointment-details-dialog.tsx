@@ -623,35 +623,43 @@ export function AppointmentDetailsDialog({
 
         {/* Schedule Times */}
         <div className="border-t border-b py-4">
-          <div className="mb-3 flex items-center gap-2">
-            <h3 className="text-sm font-medium">Schedule Times</h3>
-            {appointment.actualStartTime && (
-              <Badge variant="outline" className={
-                appointment.status === "in-progress" 
-                  ? "bg-blue-50 text-blue-700 border-blue-200" 
-                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
-              }>
-                {appointment.status === "in-progress" ? "In Progress" : "Completed"}
-              </Badge>
-            )}
-          </div>
+          <h3 className="text-sm font-medium mb-3">
+            Schedule Times
+            {appointment.status === "completed" && 
+              <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded ml-2">Completed</span>
+            }
+            {appointment.status === "in-progress" && 
+              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded ml-2">In Progress</span>
+            }
+          </h3>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
               <Label className="text-xs text-muted-foreground">Scheduled Start:</Label>
-              <div className="flex items-center">
+              <div className="flex items-center mt-1">
                 <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{formatDate(appointment.startTime)}</span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Scheduled End:</Label>
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{formatDate(appointment.endTime)}</span>
+                <span className="font-medium">
+                  {appointment && appointment.startTime 
+                    ? format(new Date(appointment.startTime), 'MM/dd/yyyy, hh:mm a') 
+                    : ""}
+                </span>
               </div>
             </div>
             
+            <div>
+              <Label className="text-xs text-muted-foreground">Scheduled End:</Label>
+              <div className="flex items-center mt-1">
+                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span className="font-medium">
+                  {appointment && appointment.endTime 
+                    ? format(new Date(appointment.endTime), 'MM/dd/yyyy, hh:mm a') 
+                    : ""}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4">
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Time & Timezone:</Label>
               <div className="flex items-center space-x-2">
@@ -685,7 +693,7 @@ export function AppointmentDetailsDialog({
               </div>
             </div>
             
-            <div className="space-y-1">
+            <div className="space-y-1 mt-3">
               <Label className="text-xs text-muted-foreground">Pickup or Dropoff:</Label>
               <div className="flex items-center">
                 <ChevronsRight className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -705,13 +713,29 @@ export function AppointmentDetailsDialog({
                 <div className={`w-2 h-2 rounded-full ${appointment.actualStartTime ? "bg-emerald-500" : "bg-slate-300"}`}></div>
                 <div className="flex-1">
                   <h4 className="text-xs font-semibold">Check-In Time</h4>
-                  <p className="text-sm">
-                    {appointment.actualStartTime ? formatDate(appointment.actualStartTime) : "Not checked in yet"}
-                  </p>
-                  {appointment.actualStartTime && appointment.lastModifiedBy && (
-                    <p className="text-xs text-muted-foreground">
-                      By: User ID {appointment.lastModifiedBy}
-                    </p>
+                  {appointment.actualStartTime ? (
+                    <>
+                      <div className="text-sm font-medium">
+                        {format(new Date(appointment.actualStartTime), "MM/dd/yyyy, hh:mm a")}
+                      </div>
+                      <div className="flex flex-col mt-1">
+                        <div className="text-xs">
+                          <span className="font-medium">Your time:</span>{" "}
+                          {formatInUserTimeZone(appointment.actualStartTime, 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-medium">Facility time:</span>{" "}
+                          {format(new Date(appointment.actualStartTime), 'MM/dd/yyyy hh:mm a')} ET
+                        </div>
+                      </div>
+                      {appointment.lastModifiedBy && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          By: User ID {appointment.lastModifiedBy}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-sm">Not checked in yet</div>
                   )}
                 </div>
               </div>
@@ -720,13 +744,29 @@ export function AppointmentDetailsDialog({
                 <div className={`w-2 h-2 rounded-full ${appointment.actualEndTime ? "bg-emerald-500" : "bg-slate-300"}`}></div>
                 <div className="flex-1">
                   <h4 className="text-xs font-semibold">Check-Out Time</h4>
-                  <p className="text-sm">
-                    {appointment.actualEndTime ? formatDate(appointment.actualEndTime) : "Not checked out yet"}
-                  </p>
-                  {appointment.actualEndTime && appointment.lastModifiedBy && (
-                    <p className="text-xs text-muted-foreground">
-                      By: User ID {appointment.lastModifiedBy}
-                    </p>
+                  {appointment.actualEndTime ? (
+                    <>
+                      <div className="text-sm font-medium">
+                        {format(new Date(appointment.actualEndTime), "MM/dd/yyyy, hh:mm a")}
+                      </div>
+                      <div className="flex flex-col mt-1">
+                        <div className="text-xs">
+                          <span className="font-medium">Your time:</span>{" "}
+                          {formatInUserTimeZone(appointment.actualEndTime, 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-medium">Facility time:</span>{" "}
+                          {format(new Date(appointment.actualEndTime), 'MM/dd/yyyy hh:mm a')} ET
+                        </div>
+                      </div>
+                      {appointment.lastModifiedBy && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          By: User ID {appointment.lastModifiedBy}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-sm">Not checked out yet</div>
                   )}
                 </div>
               </div>
