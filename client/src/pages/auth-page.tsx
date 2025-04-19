@@ -72,11 +72,54 @@ export default function AuthPage() {
   
   // Handle login submission
   async function onLoginSubmit(data: LoginFormValues) {
-    loginMutation.mutate(data, {
-      onSuccess: () => {
+    try {
+      // Try direct login first
+      loginMutation.mutate(data, {
+        onSuccess: () => {
+          navigate("/");
+        },
+        onError: (error) => {
+          console.error("Login mutation error:", error);
+          // Show the error toast from the mutation
+        }
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: "An unexpected error occurred during login. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }
+  
+  // Handle test login for development/debugging 
+  async function handleTestLogin() {
+    try {
+      const res = await fetch('/api/test-login');
+      if (res.ok) {
+        const data = await res.json();
+        toast({
+          title: "Test login successful",
+          description: `Logged in as ${data.user.username}`,
+        });
+        // Redirect after successful login
         navigate("/");
+      } else {
+        const error = await res.text();
+        toast({
+          title: "Test login failed",
+          description: error,
+          variant: "destructive",
+        });
       }
-    });
+    } catch (err) {
+      toast({
+        title: "Error during test login",
+        description: String(err),
+        variant: "destructive",
+      });
+    }
   }
   
   // Handle registration submission
@@ -153,6 +196,16 @@ export default function AuthPage() {
                       >
                         {loginMutation.isPending ? "Logging in..." : "Login"}
                       </Button>
+                      <div className="pt-4">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="w-full"
+                          onClick={handleTestLogin}
+                        >
+                          Test Login (Development)
+                        </Button>
+                      </div>
                     </form>
                   </Form>
                 </TabsContent>

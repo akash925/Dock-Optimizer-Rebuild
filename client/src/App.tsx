@@ -17,6 +17,7 @@ import FacilityMaster from "@/pages/facility-master";
 import Appointments from "@/pages/appointments";
 import AppointmentMaster from "@/pages/appointment-master";
 import BookingPages from "@/pages/booking-pages";
+import AuthDebugPage from "@/pages/auth-debug-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 
@@ -29,6 +30,7 @@ function App() {
         <Route path="/external/:slug" component={ExternalBooking} />
         <Route path="/booking-confirmation" component={BookingConfirmation} />
         <Route path="/driver-check-in" component={DriverCheckIn} />
+        <Route path="/auth-debug" component={AuthDebugPage} />
         <ProtectedRoute path="/" component={Dashboard} />
         <ProtectedRoute path="/schedules" component={Schedules} />
         <ProtectedRoute path="/appointments" component={Appointments} />
