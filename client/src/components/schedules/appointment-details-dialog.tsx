@@ -355,7 +355,9 @@ export function AppointmentDetailsDialog({
       if (!appointment?.facilityId) return null;
       const res = await fetch(`/api/facilities/${appointment.facilityId}`);
       if (!res.ok) return null;
-      return res.json() as Promise<Facility>;
+      const facilityData = await res.json();
+      console.log("Facility data fetched:", facilityData, "for facilityId:", appointment.facilityId);
+      return facilityData as Facility;
     },
     enabled: !!appointment?.facilityId && open
   });
@@ -367,7 +369,7 @@ export function AppointmentDetailsDialog({
   
   // Prioritize carrier name from the carrier query if available, then from appointment, then customer name, then default
   const carrierDisplayName = carrier?.name || appointment.carrierName || appointment.customerName || "Appointment";
-  const appointmentTitle = `${carrierDisplayName} - ${displayFacilityName || "Facility"}`;
+  const appointmentTitle = `${appointment.customerName || ''} - ${carrierDisplayName}`;
   
   // Determine appointment type badge color
   const getTypeColor = () => {
