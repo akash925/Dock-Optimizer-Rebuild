@@ -302,31 +302,43 @@ export default function Schedules() {
   return (
     <div>
       {/* Consolidated Header Row */}
-      <div className="flex items-center mb-6 gap-3 flex-wrap">
-        {/* Title and Search */}
-        <div className="flex items-center gap-3 flex-grow">
-          <h2 className="text-xl font-medium whitespace-nowrap">Calendar</h2>
-          <div className="relative flex-grow max-w-md">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search appointments..."
-              className="pl-8 h-9"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button 
-                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                onClick={() => setSearchQuery("")}
-              >
-                <XCircle className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+      <div className="flex items-center mb-6 gap-3">
+        {/* Left side: Title and Search */}
+        <h2 className="text-xl font-medium whitespace-nowrap">Calendar</h2>
+        <div className="relative flex-grow max-w-xs">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search appointments..."
+            className="pl-8 h-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && searchQuery.trim()) {
+                // Find and navigate to the closest matching appointment
+                const matchedAppointment = schedules.find(s => 
+                  s.truckNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  s.carrierName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  s.customerName?.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+                
+                if (matchedAppointment) {
+                  handleScheduleClick(matchedAppointment);
+                }
+              }
+            }}
+          />
+          {searchQuery && (
+            <button 
+              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+              onClick={() => setSearchQuery("")}
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          )}
         </div>
         
-        {/* Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Middle: Filters in a single line */}
+        <div className="flex items-center gap-2">
           {/* Facility Filter */}
           <Select 
             value={filterFacilityId === "all" ? "all" : filterFacilityId.toString()} 
@@ -397,37 +409,37 @@ export default function Schedules() {
             </SelectContent>
           </Select>
           
-          {/* New Appointment Button */}
-          <Button 
-            onClick={() => {
-              setEditScheduleId(null);
-              setIsAppointmentTypeDialogOpen(true);
-            }}
-            className="bg-primary text-white h-9"
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            New Appointment
-          </Button>
+          {/* Clear Filters */}
+          {(searchQuery || filterStatus !== "all" || filterType !== "all" || 
+            filterDockId !== "all" || filterFacilityId !== "all") && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                setSearchQuery("");
+                setFilterStatus("all");
+                setFilterType("all");
+                setFilterFacilityId("all");
+                setFilterDockId("all");
+              }}
+              className="text-xs h-9"
+            >
+              Clear Filters
+            </Button>
+          )}
         </div>
         
-        {/* Clear Filters */}
-        {(searchQuery || filterStatus !== "all" || filterType !== "all" || 
-          filterDockId !== "all" || filterFacilityId !== "all") && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => {
-              setSearchQuery("");
-              setFilterStatus("all");
-              setFilterType("all");
-              setFilterFacilityId("all");
-              setFilterDockId("all");
-            }}
-            className="text-xs h-9"
-          >
-            Clear Filters
-          </Button>
-        )}
+        {/* Right side: New Button */}
+        <Button 
+          onClick={() => {
+            setEditScheduleId(null);
+            setIsAppointmentTypeDialogOpen(true);
+          }}
+          className="bg-primary text-white h-9 ml-auto"
+        >
+          <PlusCircle className="h-4 w-4 mr-2" />
+          New Appointment
+        </Button>
       </div>
       
       {/* Schedule View */}
