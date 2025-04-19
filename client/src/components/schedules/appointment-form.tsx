@@ -91,6 +91,40 @@ type TruckInfoFormValues = z.infer<typeof truckInfoSchema>;
 type ScheduleDetailsFormValues = z.infer<typeof scheduleDetailsSchema>;
 type AppointmentFormValues = z.infer<typeof appointmentFormSchema>;
 
+// Define data transfer objects
+interface NewCarrierDto {
+  name: string;
+  mcNumber: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+}
+
+interface ScheduleDataDto {
+  carrierId: number | null;
+  customerName: string;
+  mcNumber: string;
+  dockId: number | null;
+  truckNumber: string;
+  trailerNumber: string;
+  driverName: string;
+  driverPhone: string;
+  bolNumber: string;
+  poNumber: string;
+  palletCount: number;
+  weight: number;
+  startTime: string;
+  endTime: string;
+  type: "inbound" | "outbound";
+  appointmentTypeId: number | null;
+  appointmentMode: "trailer" | "container";
+  status: string;
+  notes: string;
+  createdBy: number;
+  facilityId: number | null;
+  newCarrier?: NewCarrierDto;
+}
+
 interface AppointmentFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -418,7 +452,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
   
   // Create mutation
   const createScheduleMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: ScheduleDataDto) => {
       try {
         console.log("Sending appointment data to server:", JSON.stringify(data, null, 2));
         const res = await apiRequest("POST", "/api/schedules", data);
@@ -456,7 +490,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
   
   // Update mutation
   const updateScheduleMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<AppointmentFormValues> }) => {
+    mutationFn: async ({ id, data }: { id: number; data: ScheduleDataDto }) => {
       try {
         console.log("Sending update data to server:", JSON.stringify(data, null, 2));
         const res = await apiRequest("PUT", `/api/schedules/${id}`, data);
@@ -581,39 +615,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         }
       }
       
-      // Create a cleaned data type object with explicit types
-      interface NewCarrierDto {
-        name: string;
-        mcNumber: string;
-        contactName: string;
-        contactEmail: string;
-        contactPhone: string;
-      }
-      
-      interface ScheduleDataDto {
-        carrierId: number | null;
-        customerName: string;
-        mcNumber: string;
-        dockId: number | null;
-        truckNumber: string;
-        trailerNumber: string;
-        driverName: string;
-        driverPhone: string;
-        bolNumber: string;
-        poNumber: string;
-        palletCount: number;
-        weight: number;
-        startTime: string;
-        endTime: string;
-        type: "inbound" | "outbound";
-        appointmentTypeId: number | null;
-        appointmentMode: "trailer" | "container";
-        status: string;
-        notes: string;
-        createdBy: number;
-        facilityId: number | null;
-        newCarrier?: NewCarrierDto;
-      }
+      // Using the ScheduleDataDto interface defined at the top of the file
       
       // Prepare clean base data with all required fields
       const scheduleData: ScheduleDataDto = {
@@ -651,7 +653,7 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       
       // Handle custom carrier creation if necessary
       if (!formData.carrierId && formData.carrierName) {
-        scheduleData.newCarrier = {
+        const newCarrier: NewCarrierDto = {
           name: formData.carrierName,
           mcNumber: formData.mcNumber || '',
           // Add required fields for carrier creation that might be missing
@@ -659,7 +661,10 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
           contactEmail: "",
           contactPhone: ""
         };
-        console.log("Including new carrier data:", scheduleData.newCarrier);
+        
+        // Add to the schedule data object
+        scheduleData.newCarrier = newCarrier;
+        console.log("Including new carrier data:", newCarrier);
       }
       
       // Submit based on mode
