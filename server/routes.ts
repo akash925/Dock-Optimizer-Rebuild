@@ -482,6 +482,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Schedule not found" });
       }
       
+      console.log("PATCH /api/schedules/:id - Received data:", req.body);
+      console.log("Notes field in request:", req.body.notes);
+      
       // Add the current user to lastModifiedBy field
       const rawData = { ...req.body };
       

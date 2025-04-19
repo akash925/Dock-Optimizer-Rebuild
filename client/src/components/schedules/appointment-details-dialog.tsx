@@ -177,14 +177,22 @@ export function AppointmentDetailsDialog({
       if (!appointment?.id) throw new Error("No appointment ID provided");
       
       // Remove any undefined values but allow empty strings and null values to be saved
-      const cleanedData = Object.entries(data)
+      const cleanedData: Partial<Schedule> = Object.entries(data)
         .filter(([_, value]) => value !== undefined)
-        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {} as Partial<Schedule>);
       
       console.log("Updating appointment with data:", cleanedData);
+      console.log("Form data at time of submission:", formData);
+      
+      // Add explicit notes field if it's present in the form data
+      if (formData && typeof formData === 'object' && formData !== null && 'notes' in formData) {
+        cleanedData.notes = (formData as Partial<Schedule>).notes;
+      }
       
       const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}`, cleanedData);
-      return res.json();
+      const result = await res.json();
+      console.log("Update response:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
@@ -211,7 +219,13 @@ export function AppointmentDetailsDialog({
       const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-in`);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Immediately update the local state to reflect check-in
+      if (appointment) {
+        // Update the appointment data with the server response
+        Object.assign(appointment, data);
+      }
+      // Then invalidate the queries to fetch fresh data
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({
         title: "Appointment checked in",
@@ -234,7 +248,13 @@ export function AppointmentDetailsDialog({
       const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-out`);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Immediately update the local state to reflect check-out
+      if (appointment) {
+        // Update the appointment data with the server response
+        Object.assign(appointment, data);
+      }
+      // Then invalidate the queries to fetch fresh data
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({
         title: "Appointment completed",
