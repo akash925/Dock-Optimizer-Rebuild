@@ -1071,8 +1071,28 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                       // Time interval based on appointment type settings
                       const timeInterval = 30; // Default to 30-minute intervals
                       
+                      // Get the user's local timezone and the appointment type's timezone
+                      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                      const appointmentTimezone = selectedAppointmentType.timezone || 'America/New_York';
+                      
+                      // Get the current date and time in the appointment timezone
+                      const now = new Date();
+                      
+                      // Calculate timezone offset between user and appointment location
+                      const userDate = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
+                      const appointmentDate = new Date(now.toLocaleString('en-US', { timeZone: appointmentTimezone }));
+                      const timezoneDiff = (userDate.getTime() - appointmentDate.getTime()) / (1000 * 60 * 60);
+                      
+                      // Adjust current hour based on timezone difference
+                      let adjustedCurrentHour = currentHour;
+                      
                       // Generate time slots
                       const timeSlots = [];
+                      
+                      // Group slots for better organization
+                      let morningSlots = [];
+                      let afternoonSlots = [];
+                      let eveningSlots = [];
                       
                       for (let hour = startHour; hour < endHour; hour++) {
                         for (let minute = 0; minute < 60; minute += timeInterval) {
@@ -1090,16 +1110,49 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                           const amPm = hour >= 12 ? 'PM' : 'AM';
                           const label = `${displayHour}:${formattedMinute} ${amPm}`;
                           
-                          // Generate random availability count (1-3) for demo
-                          // In a real implementation, this would come from an API
-                          const available = Math.floor(Math.random() * 3) + 1;
+                          // Generate availability count (1-3) that is consistent per time slot
+                          // Use a combination of date, hour, and minute to make it deterministic
+                          const dateString = selectedDate ? selectedDate : '2025-01-01';
+                          const hashInput = `${dateString}-${hour}-${minute}`;
+                          let hashCode = 0;
+                          for (let i = 0; i < hashInput.length; i++) {
+                            hashCode = ((hashCode << 5) - hashCode) + hashInput.charCodeAt(i);
+                            hashCode |= 0; // Convert to 32bit integer
+                          }
+                          const available = Math.abs(hashCode % 3) + 1; // 1-3 slots
                           
-                          timeSlots.push({
+                          const timeSlot = {
                             value: timeValue,
-                            label: label,
-                            available: available
-                          });
+                            label: `${label} - ${available} ${available === 1 ? 'slot' : 'slots'}`,
+                            available: available,
+                            group: hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening'
+                          };
+                          
+                          // Add to appropriate group
+                          if (hour < 12) {
+                            morningSlots.push(timeSlot);
+                          } else if (hour < 17) {
+                            afternoonSlots.push(timeSlot);
+                          } else {
+                            eveningSlots.push(timeSlot);
+                          }
                         }
+                      }
+                      
+                      // Add group labels and combine all slots
+                      if (morningSlots.length > 0) {
+                        timeSlots.push({ value: "morning-header", label: "Morning", available: 0, isHeader: true });
+                        timeSlots.push(...morningSlots);
+                      }
+                      
+                      if (afternoonSlots.length > 0) {
+                        timeSlots.push({ value: "afternoon-header", label: "Afternoon", available: 0, isHeader: true });
+                        timeSlots.push(...afternoonSlots);
+                      }
+                      
+                      if (eveningSlots.length > 0) {
+                        timeSlots.push({ value: "evening-header", label: "Evening", available: 0, isHeader: true });
+                        timeSlots.push(...eveningSlots);
                       }
                       
                       return timeSlots;
