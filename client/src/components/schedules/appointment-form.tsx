@@ -1019,14 +1019,21 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                                 field.onChange("");
                               }
                             }}
-                            disabled={(date) => 
-                              // Disable dates before today and weekends unless the appointment type allows them
-                              // For now, just disable dates before today
-                              isBefore(date, startOfDay(new Date())) ||
+                            disabled={(date) => {
+                              // Get the current date in the appointment type's timezone or user's timezone as fallback
+                              const appointmentTimezone = selectedAppointmentType?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+                              
+                              // Get the current date in the appropriate timezone
+                              const now = new Date();
+                              const todayInTimezone = new Date(now.toLocaleString('en-US', { timeZone: appointmentTimezone }));
+                              const startOfDayInTimezone = startOfDay(todayInTimezone);
+
+                              // Disable dates before today in the appropriate timezone
+                              return isBefore(date, startOfDayInTimezone) ||
                               // Also check if appointment type has available days setting
                               (selectedAppointmentType?.availableDays && 
-                               !selectedAppointmentType.availableDays.includes(date.getDay()))
-                            }
+                               !selectedAppointmentType.availableDays.includes(date.getDay()));
+                            }}
                             initialFocus
                           />
                         </PopoverContent>
@@ -1046,9 +1053,15 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                     const currentHour = now.getHours();
                     const currentMinute = now.getMinutes();
                     
-                    // Only show future times if the selected date is today
+                    // Get the appropriate timezone from the appointment type
+                    const appointmentTimezone = selectedAppointmentType?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    
+                    // Get the current date in the appointment type's timezone
+                    const nowInTimezone = new Date(now.toLocaleString('en-US', { timeZone: appointmentTimezone }));
+                    
+                    // Check if the selected date is today in the appointment timezone
                     const isToday = selectedDate ? 
-                      format(new Date(selectedDate), "yyyy-MM-dd") === format(now, "yyyy-MM-dd") : 
+                      format(new Date(selectedDate), "yyyy-MM-dd") === format(nowInTimezone, "yyyy-MM-dd") : 
                       false;
                     
                     // Generate available time slots based on appointment type settings
@@ -1077,14 +1090,11 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                       
                       // Get the current date and time in the appointment timezone
                       const now = new Date();
+                      const nowInAppointmentTimezone = new Date(now.toLocaleString('en-US', { timeZone: appointmentTimezone }));
                       
-                      // Calculate timezone offset between user and appointment location
-                      const userDate = new Date(now.toLocaleString('en-US', { timeZone: userTimezone }));
-                      const appointmentDate = new Date(now.toLocaleString('en-US', { timeZone: appointmentTimezone }));
-                      const timezoneDiff = (userDate.getTime() - appointmentDate.getTime()) / (1000 * 60 * 60);
-                      
-                      // Adjust current hour based on timezone difference
-                      let adjustedCurrentHour = currentHour;
+                      // Get current hour and minute in the appointment timezone
+                      const currentHourInTimezone = nowInAppointmentTimezone.getHours();
+                      const currentMinuteInTimezone = nowInAppointmentTimezone.getMinutes();
                       
                       // Generate time slots
                       const timeSlots = [];
@@ -1096,8 +1106,8 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
                       
                       for (let hour = startHour; hour < endHour; hour++) {
                         for (let minute = 0; minute < 60; minute += timeInterval) {
-                          // Skip slots in the past if today
-                          if (isToday && (hour < currentHour || (hour === currentHour && minute <= currentMinute))) {
+                          // Skip slots in the past if today using the appointment timezone values
+                          if (isToday && (hour < currentHourInTimezone || (hour === currentHourInTimezone && minute <= currentMinuteInTimezone))) {
                             continue;
                           }
                           
