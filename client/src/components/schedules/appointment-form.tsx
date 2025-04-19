@@ -231,8 +231,8 @@ export default function AppointmentForm({
           trailerNumber: initialData.trailerNumber || "",
           driverName: initialData.driverName || "",
           driverPhone: initialData.driverPhone || "",
-          type: initialData.type as "inbound" | "outbound",
-          appointmentMode: initialData.appointmentMode as "trailer" | "container" || "trailer"
+          type: initialData.type === "outbound" ? "outbound" : "inbound",
+          appointmentMode: initialData.appointmentMode === "container" ? "container" : "trailer"
         }
       : {
           carrierId: undefined,
@@ -425,14 +425,15 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       }
       
       // Create a properly cleaned version of the data with all required fields
-      const cleanedData = {
+      // Ensure the cleaned data matches the TruckFormData interface
+      const cleanedData: TruckFormData = {
         ...data,
         carrierId: data.carrierId || undefined, // Use undefined instead of null to avoid TypeScript errors
         carrierName: data.carrierName || "",
         mcNumber: data.mcNumber || '',
         customerName: data.customerName || '',
-        type: data.type || 'inbound',
-        appointmentMode: data.appointmentMode || 'trailer'
+        type: data.type === "outbound" ? "outbound" : "inbound",
+        appointmentMode: data.appointmentMode === "container" ? "container" : "trailer"
       };
       
       // Log that we're using settings from the appointment type
@@ -440,8 +441,13 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         console.log("Using settings from appointment type:", selectedAppointmentType.name);
       }
       
-      // Store the cleaned data in form state
-      setFormData({...formData, ...cleanedData});
+      // Store the cleaned data in form state with proper type safety
+      setFormData(prevData => {
+        return {
+          ...prevData,
+          ...cleanedData
+        } as TruckFormData;
+      });
       setStep(2);
     } catch (error) {
       console.error("Error processing truck form data:", error);
@@ -603,8 +609,8 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
       }
       
       // Get appointment mode for duration calculation with fallback
-      const appointmentMode = formData.appointmentMode || "trailer";
-      const endTime = getDefaultEndTime(startTime, appointmentMode as "trailer" | "container");
+      const appointmentMode = formData.appointmentMode === "container" ? "container" : "trailer";
+      const endTime = getDefaultEndTime(startTime, appointmentMode);
       
       // Handle dockId field - ensure it's a number or null
       let dockId = null;
