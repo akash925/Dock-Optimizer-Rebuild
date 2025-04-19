@@ -641,10 +641,10 @@ Carrier: ${carriers[Math.floor(Math.random() * carriers.length)]?.name || 'Unkno
         // Format dates properly to avoid timezone issues
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
-        type: formData.type || "inbound" as "inbound",
+        type: formData.type === "outbound" ? "outbound" : "inbound",
         // Ensure appointment type is properly set
         appointmentTypeId: selectedAppointmentType ? selectedAppointmentType.id : (appointmentTypeId || null),
-        appointmentMode: appointmentMode as "trailer" | "container" || "trailer" as "trailer",
+        appointmentMode: (appointmentMode === "container" ? "container" : "trailer"),
         status: "scheduled",
         notes: data.notes || "",
         createdBy: user?.id || 0,
