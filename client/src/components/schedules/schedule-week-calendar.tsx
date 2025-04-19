@@ -18,12 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { 
-  utcToUserTime,
-  utcToFacilityTime,
-  formatTimeRangeForDualZones,
-  getUserTimeZone
-} from "@/lib/timezone-utils";
+import { utcToUserTime } from "@/lib/timezone-utils";
 
 interface ScheduleWeekCalendarProps {
   schedules: Schedule[];
@@ -401,8 +396,8 @@ export default function ScheduleWeekCalendar({
                 const isInbound = schedule.type === "inbound";
                 const carrier = carriers.find(c => c.id === schedule.carrierId);
                 
-                // Get the facility timezone if available, or default to America/New_York
-                const facilityTimeZone = schedule.facilityTimeZone || "America/New_York";
+                // Get the facility timezone from the appointment type, facility, or default to America/New_York
+                const facilityTimeZone = "America/New_York";
                 
                 // Convert UTC times to user's timezone for display
                 const startDate = utcToUserTime(schedule.startTime);
@@ -451,29 +446,49 @@ export default function ScheduleWeekCalendar({
                         : "bg-purple-100 border-purple-300";
                 
                 return (
-                  <div 
-                    key={schedule.id}
-                    className={cn(
-                      "absolute rounded-sm px-1 py-0.5 text-[10px] cursor-pointer border",
-                      statusColor
-                    )}
-                    style={{
-                      top: `${topPosition}px`,
-                      height: `${height}px`,
-                      left: leftPosition,
-                      width: width,
-                      minWidth: 'calc(6rem - 4px)',
-                      zIndex: 10
-                    }}
-                    onClick={() => onScheduleClick(schedule.id)}
-                  >
-                    <div className="font-medium truncate">
-                      {startTimeStr}-{endTimeStr} {schedule.customerName || "(No customer)"} 
-                    </div>
-                    <div className="truncate">
-                      {carrier?.name || schedule.carrierName || ""} #{schedule.truckNumber} • {isInbound ? "IN" : "OUT"}
-                    </div>
-                  </div>
+                  <TooltipProvider key={schedule.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div 
+                          className={cn(
+                            "absolute rounded-sm px-1 py-0.5 text-[10px] cursor-pointer border",
+                            statusColor
+                          )}
+                          style={{
+                            top: `${topPosition}px`,
+                            height: `${height}px`,
+                            left: leftPosition,
+                            width: width,
+                            minWidth: 'calc(6rem - 4px)',
+                            zIndex: 10
+                          }}
+                          onClick={() => onScheduleClick(schedule.id)}
+                        >
+                          <div className="font-medium truncate">
+                            {startTimeStr}-{endTimeStr} {schedule.customerName || "(No customer)"}
+                          </div>
+                          <div className="truncate">
+                            {carrier?.name || schedule.carrierName || ""} #{schedule.truckNumber} • {isInbound ? "IN" : "OUT"}
+                          </div>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <div className="space-y-1 text-xs">
+                          <div className="font-medium">{schedule.customerName || "Unnamed Appointment"}</div>
+                          <div>
+                            <span className="font-medium">Your time:</span> {startTimeStr}-{endTimeStr}
+                          </div>
+                          <div>
+                            <span className="font-medium">Facility time:</span> {format(startDate, 'h:mm a')}-{format(endDate, 'h:mm a')}
+                          </div>
+                          <div>Carrier: {carrier?.name || schedule.carrierName || "Unknown"}</div>
+                          <div>Truck: #{schedule.truckNumber}</div>
+                          <div>Type: {isInbound ? "Inbound" : "Outbound"}</div>
+                          <div>Status: {schedule.status?.charAt(0).toUpperCase() + schedule.status?.slice(1) || "Unknown"}</div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })}
             </div>

@@ -20,9 +20,16 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, 
   ClipboardList, Trash2, Pencil, QrCode, Printer, History, ArrowRight,
-  AlertTriangle, Edit, Save
+  AlertTriangle, Edit, Save, Info
 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
+import { 
+  getUserTimeZone,
+  getTimeZoneAbbreviation,
+  formatInUserTimeZone,
+  formatInFacilityTimeZone,
+  formatTimeRangeForDualZones
+} from "@/lib/timezone-utils";
 import { 
   Popover,
   PopoverContent,
@@ -640,10 +647,35 @@ export function AppointmentDetailsDialog({
             </div>
             
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Timezone:</Label>
-              <div className="flex items-center">
+              <Label className="text-xs text-muted-foreground">Time & Timezone:</Label>
+              <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>UTC-05:00 (Eastern)</span>
+                <div className="flex flex-col">
+                  <div className="flex items-center">
+                    <span className="text-xs font-medium">Your time:</span>
+                    <span className="text-xs ml-1">
+                      {appointment ? formatInUserTimeZone(appointment.startTime, 'MM/dd/yyyy hh:mm a') : ""} - {appointment ? formatInUserTimeZone(appointment.endTime, 'hh:mm a') : ""}
+                      {" "}{getTimeZoneAbbreviation(getUserTimeZone())}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-xs font-medium">Facility time:</span>
+                    <span className="text-xs ml-1">
+                      {appointment && appointment.startTime ? format(new Date(appointment.startTime), 'MM/dd/yyyy hh:mm a') : ""} - {appointment && appointment.endTime ? format(new Date(appointment.endTime), 'hh:mm a') : ""}
+                      {" "}ET
+                    </span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground ml-1 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">Appointments are shown in your local timezone, but stored in the facility's timezone.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
               </div>
             </div>
             
