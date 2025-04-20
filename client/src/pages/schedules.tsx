@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
 import { Schedule, Dock, Carrier, Facility, AppointmentType } from "@shared/schema";
@@ -51,6 +51,16 @@ export default function Schedules() {
   // Set the most current schedule as selected on first load
   // Check for schedule ID in URL params
   const [, params] = useRoute<{ id: string }>("/schedules/:id");
+  const [, setLocation] = useLocation();
+  
+  // Handle closing the appointment details dialog
+  const handleDetailsDialogClose = useCallback((open: boolean) => {
+    setIsDetailsDialogOpen(open);
+    // If dialog is being closed and we're on a specific schedule URL, navigate back to main schedules page
+    if (!open && params && params.id) {
+      setLocation("/schedules");
+    }
+  }, [params, setLocation]);
   
   useEffect(() => {
     // First check if we have an ID in the URL parameters
@@ -569,7 +579,7 @@ export default function Schedules() {
       <AppointmentDetailsDialog 
         appointment={selectedSchedule}
         open={isDetailsDialogOpen}
-        onOpenChange={setIsDetailsDialogOpen}
+        onOpenChange={handleDetailsDialogClose}
         facilityName={selectedSchedule ? getFacilityNameForDock(selectedSchedule.dockId) : ""}
       />
       
