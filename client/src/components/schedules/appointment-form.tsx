@@ -1,148 +1,5 @@
-import { useState, ChangeEvent, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { insertScheduleSchema } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { Schedule, Dock, Carrier, Facility } from "@shared/schema";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { format, addHours, isBefore, startOfDay } from "date-fns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Upload, Loader2, ArrowLeft, ArrowRight, Truck, CalendarIcon } from "lucide-react";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Separator } from "@/components/ui/separator";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { CarrierSelector } from "@/components/shared/carrier-selector";
-
-// Tab 1: Truck Information
-const truckInfoSchema = z.object({
-  carrierId: z.coerce.number().optional(),
-  carrierName: z.string().optional(),
-  customerName: z.string().min(1, "Customer name is required"),
-  mcNumber: z.string().optional(), // MC Number field
-  truckNumber: z.string().min(1, "Truck number is required"),
-  trailerNumber: z.string().optional(),
-  driverName: z.string().min(1, "Driver name is required"),
-  driverPhone: z.string().min(6, "Valid phone number is required"),
-  type: z.enum(["inbound", "outbound"]),
-  appointmentMode: z.enum(["trailer", "container"]),
-}).refine(
-  (data) => {
-    // Either carrierId or carrierName must be provided, unless carrierName is explicitly empty string
-    return data.carrierId !== undefined || data.carrierName !== undefined || data.carrierName === '';
-  },
-  {
-    message: "Either select a carrier or enter a custom carrier name",
-    path: ["carrierId"],
-  }
-);
-
-// Tab 2: Schedule Details
-const scheduleDetailsSchema = z.object({
-  appointmentDate: z.string().min(1, "Date is required"),
-  appointmentTime: z.string().min(1, "Time is required"),
-  dockId: z.coerce.number().optional(), // Make dock optional
-  bolNumber: z.string().optional(),
-  poNumber: z.string().optional(),
-  palletCount: z.string().optional(),
-  weight: z.string().optional(),
-  notes: z.string().optional(),
-}).refine(
-  (data) => {
-    // Combine date and time into a single datetime object
-    const [year, month, day] = data.appointmentDate.split('-').map(Number);
-    const [hour, minute] = data.appointmentTime.split(':').map(Number);
-    
-    const appointmentDateTime = new Date(year, month - 1, day, hour, minute);
-    const now = new Date();
-    
-    // Check if the appointment is in the future
-    return appointmentDateTime > now;
-  },
-  {
-    message: "Appointment must be scheduled for a future date and time",
-    path: ["appointmentTime"], // Show the error on the time field
-  }
-);
-
-// Combine schemas
-const appointmentFormSchema = z.object({
-  // Truck info fields
-  carrierId: z.coerce.number().optional(),
-  carrierName: z.string().optional(),
-  customerName: z.string().min(1, "Customer name is required"),
-  mcNumber: z.string().optional(),
-  truckNumber: z.string().min(1, "Truck number is required"),
-  trailerNumber: z.string().optional(),
-  driverName: z.string().min(1, "Driver name is required"),
-  driverPhone: z.string().min(6, "Valid phone number is required"),
-  type: z.enum(["inbound", "outbound"]),
-  appointmentMode: z.enum(["trailer", "container"]),
-  
-  // Schedule details fields
-  appointmentDate: z.string().min(1, "Date is required"),
-  appointmentTime: z.string().min(1, "Time is required"),
-  dockId: z.coerce.number().optional(), // Make dock optional
-  bolNumber: z.string().optional(),
-  poNumber: z.string().optional(),
-  palletCount: z.string().optional(),
-  weight: z.string().optional(),
-  notes: z.string().optional(),
-  
-  // Other fields
-  createdBy: z.number(),
-  status: z.string(),
-});
-
-type TruckInfoFormValues = z.infer<typeof truckInfoSchema>;
-type ScheduleDetailsFormValues = z.infer<typeof scheduleDetailsSchema>;
-type AppointmentFormValues = z.infer<typeof appointmentFormSchema>;
-
-// Define data transfer objects
-interface NewCarrierDto {
-  name: string;
-  mcNumber: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string;
-}
-
-interface ScheduleDataDto {
-  carrierId: number | null;
-  customerName: string;
-  mcNumber: string;
-  dockId: number | null;
-  truckNumber: string;
-  trailerNumber: string;
-  driverName: string;
-  driverPhone: string;
-  bolNumber: string;
-  poNumber: string;
-  palletCount: number;
-  weight: number;
-  startTime: string;
-  endTime: string;
-  type: "inbound" | "outbound";
-  appointmentTypeId: number | null;
-  appointmentMode: "trailer" | "container";
-  status: string;
-  notes: string;
-  createdBy: number;
-  facilityId: number | null;
-  newCarrier?: NewCarrierDto;
-}
+import UnifiedAppointmentForm from "@/components/shared/unified-appointment-form";
+import { Schedule } from "@shared/schema";
 
 interface AppointmentFormProps {
   isOpen: boolean;
@@ -163,7 +20,19 @@ export default function AppointmentForm({
   initialDockId,
   appointmentTypeId,
 }: AppointmentFormProps) {
-  const [step, setStep] = useState(1);
+  // Use the unified component
+  return (
+    <UnifiedAppointmentForm
+      mode="internal"
+      isOpen={isOpen}
+      onClose={onClose}
+      initialData={initialData}
+      editMode={mode}
+      initialDate={initialDate}
+      initialDockId={initialDockId}
+      appointmentTypeId={appointmentTypeId}
+    />
+  );
   // Define a clear interface for our form data to avoid TypeScript confusion
   interface TruckFormData {
     carrierId?: number;
