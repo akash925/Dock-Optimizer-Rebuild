@@ -307,6 +307,45 @@ export class MemStorage implements IStorage {
         new Date(schedule.endTime) <= endDate
     );
   }
+  
+  async searchSchedules(query: string): Promise<Schedule[]> {
+    // Convert query to lowercase for case-insensitive comparison
+    const lowerQuery = query.toLowerCase();
+    
+    // Filter schedules based on the query
+    return Array.from(this.schedules.values())
+      .filter(schedule => {
+        // Search by ID as string match
+        if (schedule.id.toString() === query) return true;
+        
+        // Search by carrier name
+        if (schedule.carrierName?.toLowerCase().includes(lowerQuery)) return true;
+        
+        // Search by customer name
+        if (schedule.customerName?.toLowerCase().includes(lowerQuery)) return true;
+        
+        // Get facility for the dock if it exists
+        if (schedule.dockId) {
+          const dock = this.docks.get(schedule.dockId);
+          if (dock && dock.facilityId) {
+            const facility = this.facilities.get(dock.facilityId);
+            if (facility && facility.name.toLowerCase().includes(lowerQuery)) return true;
+          }
+        }
+        
+        // Search by appointment type if it exists
+        if (schedule.appointmentTypeId) {
+          const appointmentType = this.appointmentTypes.get(schedule.appointmentTypeId);
+          if (appointmentType && appointmentType.name.toLowerCase().includes(lowerQuery)) return true;
+        }
+        
+        return false;
+      })
+      // Sort by startTime in descending order (newest first)
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+      // Limit to 10 results
+      .slice(0, 10);
+  }
 
   async getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined> {
     // Remove any HC prefix if present and convert to number
@@ -871,11 +910,16 @@ export class DatabaseStorage implements IStorage {
 
   async getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]> {
     try {
-      // Use pool to query directly
-      const result = await pool.query(
-        `SELECT * FROM schedules WHERE start_time >= $1 AND end_time <= $2`,
-        [startDate, endDate]
-      );
+      // Use pool to query directly - join with facilities to get better data
+      const result = await pool.query(`
+        SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id, 
+               at.name as appointment_type_name
+        FROM schedules s
+        LEFT JOIN docks d ON s.dock_id = d.id
+        LEFT JOIN facilities f ON d.facility_id = f.id
+        LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+        WHERE s.start_time >= $1 AND s.end_time <= $2
+      `, [startDate, endDate]);
       
       // Transform to match our expected Schedule interface
       return result.rows.map((row: any) => {
@@ -884,8 +928,12 @@ export class DatabaseStorage implements IStorage {
           type: row.type,
           status: row.status,
           dockId: row.dock_id,
+          dockName: row.dock_name,
+          facilityId: row.facility_id,
+          facilityName: row.facility_name,
           carrierId: row.carrier_id,
           appointmentTypeId: row.appointment_type_id,
+          appointmentTypeName: row.appointment_type_name,
           truckNumber: row.truck_number,
           trailerNumber: row.trailer_number,
           driverName: row.driver_name,
@@ -913,6 +961,74 @@ export class DatabaseStorage implements IStorage {
       });
     } catch (error) {
       console.error("Error executing getSchedulesByDateRange:", error);
+      throw error;
+    }
+  }
+
+  async searchSchedules(query: string): Promise<Schedule[]> {
+    try {
+      // Create a sanitized version of the query for SQL
+      const searchPattern = `%${query}%`;
+      
+      // Use pool to query directly - join with facilities and appointment_types to get better data
+      // Search by ID (direct match), carrier name, customer name, facility name or appointment type
+      const result = await pool.query(`
+        SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id, 
+               at.name as appointment_type_name
+        FROM schedules s
+        LEFT JOIN docks d ON s.dock_id = d.id
+        LEFT JOIN facilities f ON d.facility_id = f.id
+        LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+        WHERE 
+          s.id::text = $1
+          OR LOWER(s.carrier_name) LIKE LOWER($2)
+          OR LOWER(s.customer_name) LIKE LOWER($2)
+          OR LOWER(f.name) LIKE LOWER($2)
+          OR LOWER(at.name) LIKE LOWER($2)
+        ORDER BY s.start_time DESC
+        LIMIT 10
+      `, [query, searchPattern]);
+      
+      // Transform to match our expected Schedule interface
+      return result.rows.map((row: any) => {
+        return {
+          id: row.id,
+          type: row.type,
+          status: row.status,
+          dockId: row.dock_id,
+          dockName: row.dock_name,
+          facilityId: row.facility_id,
+          facilityName: row.facility_name,
+          carrierId: row.carrier_id,
+          appointmentTypeId: row.appointment_type_id,
+          appointmentTypeName: row.appointment_type_name,
+          truckNumber: row.truck_number,
+          trailerNumber: row.trailer_number,
+          driverName: row.driver_name,
+          driverPhone: row.driver_phone,
+          driverEmail: row.driver_email,
+          customerName: row.customer_name,
+          carrierName: row.carrier_name,
+          mcNumber: row.mc_number,
+          bolNumber: row.bol_number,
+          poNumber: row.po_number,
+          palletCount: row.pallet_count,
+          weight: row.weight,
+          appointmentMode: row.appointment_mode || "trailer",
+          startTime: row.start_time,
+          endTime: row.end_time,
+          actualStartTime: row.actual_start_time,
+          actualEndTime: row.actual_end_time,
+          notes: row.notes,
+          customFormData: row.custom_form_data,
+          createdAt: row.created_at,
+          createdBy: row.created_by,
+          lastModifiedAt: row.last_modified_at,
+          lastModifiedBy: row.last_modified_by
+        };
+      });
+    } catch (error) {
+      console.error("Error executing searchSchedules:", error);
       throw error;
     }
   }
