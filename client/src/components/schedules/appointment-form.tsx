@@ -59,7 +59,23 @@ const scheduleDetailsSchema = z.object({
   palletCount: z.string().optional(),
   weight: z.string().optional(),
   notes: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    // Combine date and time into a single datetime object
+    const [year, month, day] = data.appointmentDate.split('-').map(Number);
+    const [hour, minute] = data.appointmentTime.split(':').map(Number);
+    
+    const appointmentDateTime = new Date(year, month - 1, day, hour, minute);
+    const now = new Date();
+    
+    // Check if the appointment is in the future
+    return appointmentDateTime > now;
+  },
+  {
+    message: "Appointment must be scheduled for a future date and time",
+    path: ["appointmentTime"], // Show the error on the time field
+  }
+);
 
 // Combine schemas
 const appointmentFormSchema = z.object({
