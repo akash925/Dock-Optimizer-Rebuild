@@ -50,7 +50,7 @@ export default function Schedules() {
   
   // Set the most current schedule as selected on first load
   // Check for schedule ID in URL params
-  const [match, params] = useRoute<{ id: string }>("/schedules/:id");
+  const [, params] = useRoute<{ id: string }>("/schedules/:id");
   
   useEffect(() => {
     // First check if we have an ID in the URL parameters
