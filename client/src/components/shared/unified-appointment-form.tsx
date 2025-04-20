@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { format, addHours, addMinutes, isBefore, startOfDay } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -775,8 +778,10 @@ export default function UnifiedAppointmentForm({
                       <FormItem>
                         <FormLabel>Carrier*</FormLabel>
                         <CarrierSelector 
-                          value={field.value} 
-                          onSelect={handleCarrierSelect} 
+                          form={truckInfoForm}
+                          idFieldName="carrierId"
+                          nameFieldName="carrierName"
+                          mcNumberFieldName="mcNumber"
                         />
                         <FormDescription>
                           Select a carrier from the list or enter a custom carrier name below.
