@@ -247,6 +247,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schedule routes
+  // Search schedules
+  app.get("/api/schedules/search", async (req, res) => {
+    try {
+      const { query } = req.query;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+      
+      const results = await storage.searchSchedules(query);
+      
+      res.json(results);
+    } catch (error) {
+      console.error("Error searching schedules:", error);
+      res.status(500).json({ error: "Failed to search schedules" });
+    }
+  });
+  
   // Lookup schedule by confirmation code
   app.get("/api/schedules/confirmation/:code", async (req, res) => {
     try {

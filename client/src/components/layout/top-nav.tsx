@@ -4,8 +4,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Bell, 
-  Search, 
-  Menu, 
   LogOut, 
   User as UserIcon, 
   Settings,
@@ -19,7 +17,7 @@ import {
 } from "lucide-react";
 import organizationLogo from "@/assets/organization_logo.jpeg";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import SearchBar from "@/components/search/search-bar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +44,6 @@ export default function TopNav() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [orgLogo, setOrgLogo] = useState<string | null>(null);
   const [selectedBookingPage, setSelectedBookingPage] = useState<string | null>(null);
 
@@ -103,16 +100,7 @@ export default function TopNav() {
       </div>
       
       <div className="flex-1 max-w-md mx-auto px-4">
-        <div className="relative w-full">
-          <Input
-            type="text"
-            placeholder="Search appointments..."
-            className="w-full pl-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <Search className="h-4 w-4 text-neutral-500 absolute left-3 top-1/2 transform -translate-y-1/2" />
-        </div>
+        <SearchBar />
       </div>
       
       <div className="flex items-center gap-2">
