@@ -1,0 +1,52 @@
+Below are a few likely causes of your runtime‐overlay error, followed by a ready‐to‐go Replit AI prompt to standardize and unify the two creation flows:
+
+---
+
+### Possible Causes
+1. **Divergent Components**  
+   You may have two separate form components (one for external partners, one for internal admins), and the internal one hasn’t received recent bug‑fixes or prop changes—so it’s throwing an unhandled exception in render or submit logic.
+
+2. **Inconsistent Service Calls**  
+   If the internal flow calls a different API helper (or doesn’t wrap it in try/catch), any unexpected response can bubble up as an uncaught error that HMR catches and displays.
+
+3. **Missing Context or Provider**  
+   The internal form might be rendered outside of a context/provider (e.g. auth, timezone, error‑boundary) that the external form relies on, leading to a null‐reference or hook mismatch.
+
+4. **Time‑Zone or State Mismatch**  
+   If the internal form reuses the calendar component but doesn’t pass the same `facilityTimeZone` or doesn’t normalize to UTC first, you can get invalid date objects that crash the component.
+
+---
+
+### Prompt for Replit AI
+
+```
+Context:
+  In our Replit “dockoptimizer” monorepo, we have two appointment‐creation flows:
+    • External partner form (stable, tested)
+    • Internal admin form (breaking with a plugin:runtime-error-plugin overlay)
+
+Goal:
+  Standardize both flows so they share a single, robust AppointmentForm component and the same API/service logic, eliminating duplication and uncaught runtime errors.
+
+Tasks:
+1. **Extract** a shared `AppointmentForm` component:
+   - Accept props: { mode: 'internal'|'external', initialValues, onSubmitSuccess }
+   - Render identical fields, validation, and timezone logic.
+2. **Unify API calls**:
+   - Both flows must call `AppointmentService.createAppointment(…)` inside a `try/catch`.
+   - On error, show a UI message instead of letting an exception bubble up.
+3. **Ensure context/providers**:
+   - Wrap the form in the same Auth, Timezone, and ErrorBoundary providers.
+   - Pass `facilityTimeZone` and convert to/from UTC consistently.
+4. **Update routes/UI**:
+   - Point both `/appointments/new` (external) and `/admin/appointments/new` (internal) to use the shared form.
+   - Remove legacy internal form code.
+5. **Add tests**:
+   - Unit tests for the shared form’s validation and submit logic.
+   - Integration tests simulating both flows end‑to‑end.
+6. **Verify**:
+   - No plugin overlay errors on form render or submit.
+   - Both flows create appointments with correct timestamps and appear in the calendar.
+
+Please implement these changes, refactor the code accordingly, and commit as a single checkpoint.
+```
