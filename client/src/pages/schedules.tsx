@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useParams } from "wouter";
 import { Schedule, Dock, Carrier, Facility, AppointmentType } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -48,11 +49,24 @@ export default function Schedules() {
   });
   
   // Set the most current schedule as selected on first load
+  // Check for schedule ID in URL params
+  const [, params] = useParams();
+  
   useEffect(() => {
-    if (schedules.length > 0 && !selectedSchedule) {
+    // First check if we have an ID in the URL parameters
+    if (params && params.id && schedules.length > 0) {
+      const scheduleId = parseInt(params.id);
+      const schedule = schedules.find(s => s.id === scheduleId);
+      if (schedule) {
+        setSelectedSchedule(schedule);
+        setIsDetailsDialogOpen(true);
+      }
+    }
+    // Otherwise set the first schedule as selected if none is selected
+    else if (schedules.length > 0 && !selectedSchedule) {
       setSelectedSchedule(schedules[0]);
     }
-  }, [schedules, selectedSchedule]);
+  }, [schedules, selectedSchedule, params]);
   
   // Fetch docks
   const { data: docks = [] } = useQuery<Dock[]>({

@@ -33,6 +33,7 @@ function App() {
         <Route path="/auth-debug" component={AuthDebugPage} />
         <ProtectedRoute path="/" component={Dashboard} />
         <ProtectedRoute path="/schedules" component={Schedules} />
+        <ProtectedRoute path="/schedules/:id" component={Schedules} />
         <ProtectedRoute path="/appointments" component={Appointments} />
         <ProtectedRoute path="/facility-master" component={FacilityMaster} roles={["admin", "manager"]} />
         <ProtectedRoute path="/appointment-master" component={AppointmentMaster} roles={["admin", "manager"]} />
