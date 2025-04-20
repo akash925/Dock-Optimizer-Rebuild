@@ -35,7 +35,15 @@ export default function SearchBar() {
 
   // Fetch search results
   const { data: searchResults = [], isLoading } = useQuery<SearchResult[]>({
-    queryKey: ["/api/schedules/search", { query: searchQuery }],
+    queryKey: ["/api/schedules/search", searchQuery],
+    queryFn: ({ queryKey }) => {
+      const query = queryKey[1] as string;
+      return fetch(`/api/schedules/search?query=${encodeURIComponent(query)}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Network response was not ok');
+          return res.json();
+        });
+    },
     enabled: searchQuery.length >= 2,
   });
 
