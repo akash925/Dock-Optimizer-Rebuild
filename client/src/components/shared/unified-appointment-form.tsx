@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CarrierSelector } from "@/components/shared/carrier-selector";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, ArrowLeft, ArrowRight, Calendar as CalendarIcon, Clock, Loader2, Upload } from "lucide-react";
-import { utcToFacilityTime, facilityTimeToUtc, utcToLocalTime } from "@/lib/timezone-utils";
+import { AlertCircle, ArrowLeft, ArrowRight, Calendar as CalendarIcon, CheckCircle, Clock, Loader2, Upload } from "lucide-react";
+import { utcToFacilityTime, facilityTimeToUtc, utcToUserTime, formatInFacilityTimeZone } from "@/lib/timezone-utils";
 
 // Types that will be common to both internal and external flows
 type AppointmentFormMode = "internal" | "external";
