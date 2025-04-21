@@ -1,0 +1,34 @@
+We’re still seeing two classes of failures:
+
+1. **400 from `/api/appointment-master/availability-rules`**  
+   - Client is calling either `?typeId=…` or `?appointmentTypeId=…` but the route only accepts `typeId` & `facilityId`.  
+   - You need to update the Express handler so that it:  
+     • Accepts **both** `appointmentTypeId` **and** `facilityId` query keys (with exact spelling),  
+     • Falls back if someone passes `typeId` → `appointmentTypeId`, and vice versa,  
+     • Returns a clear error message listing *both* missing params when one is absent.  
+   - Make sure the client code (both internal and external booking) now always calls  
+     ```
+     GET /api/appointment-master/availability-rules?facilityId=<id>&appointmentTypeId=<id>
+     ```
+     and remove any stray calls using `typeId` alone.
+
+2. **401 from `/api/user`**  
+   - The external booking flow is hitting `/api/user` with no credentials. For public‐booking you don’t need an authenticated user lookup—drop that call altogether or wrap it in a try/catch and default to an anonymous “guest” context.  
+   - If it must stay, include the same session cookie or Bearer token header that your internal flow sends.
+
+3. **Timezone & Hours enforcement**  
+   - Verify that the server’s `generateAvailableTimeSlots` is reading the facility’s timezone from the DB (`facility.timezone`) and honoring its `openingHour`/`closingHour` before applying appointment‑type rules.  
+   - On the client, send dates in `YYYY-MM-DD` *in the facility’s timezone*, not UTC, and let the server do the conversion via `date-fns-tz`.  
+   - Confirm in Network → Response that the JSON slots object only covers the facility’s open window.
+
+4. **Field mappings**  
+   - Ensure both booking forms (internal & external) use the **same** field names coming back from the API.  
+   - Step 1 external: `location↔facilityId`, `appointmentType↔appointmentTypeId` plus optional BOL upload.  
+   - Step 2: date/time pushed to `/api/availability` (or your merged endpoint).  
+   - Drop any old “dock” vs. “facility” confusion—always call it `facilityId`.
+
+Please implement these changes, redeploy, then re‑test exactly:
+1. Call `/api/appointment-master/availability-rules?facilityId=F&typeId=T` → JSON with full slot objects.
+2. No more 401 on `/api/user`.
+3. Slots only within the facility’s hours, with correct remaining badges.
+4. Booking flows complete end‑to‑end without errors.

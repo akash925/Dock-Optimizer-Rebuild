@@ -1363,17 +1363,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Availability rules endpoint
   app.get("/api/appointment-master/availability-rules", async (req, res) => {
     try {
-      const { typeId, facilityId } = req.query;
+      const { typeId, appointmentTypeId, facilityId } = req.query;
       
-      if (!typeId || !facilityId) {
-        return res.status(400).json({ message: "Both typeId and facilityId are required query parameters" });
+      // Support both parameter naming conventions for backward compatibility
+      const finalTypeId = typeId || appointmentTypeId;
+      
+      if (!finalTypeId || !facilityId) {
+        return res.status(400).json({ 
+          message: "Both appointment type ID (typeId or appointmentTypeId) and facilityId are required query parameters" 
+        });
       }
       
-      const appointmentTypeId = Number(typeId);
+      const appointmentTypeIdNum = Number(finalTypeId);
       const facilityIdNum = Number(facilityId);
       
+      console.log(`GET /api/appointment-master/availability-rules - Query params:`, {
+        originalTypeId: typeId,
+        originalAppointmentTypeId: appointmentTypeId,
+        resolvedTypeId: finalTypeId,
+        facilityId
+      });
+      
       // Check if appointment type exists
-      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      const appointmentType = await storage.getAppointmentType(appointmentTypeIdNum);
       if (!appointmentType) {
         return res.status(404).json({ message: "Appointment type not found" });
       }
@@ -1386,7 +1398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get availability rules for this appointment type
-      const dailyRules = await storage.getDailyAvailabilityByAppointmentType(appointmentTypeId);
+      const dailyRules = await storage.getDailyAvailabilityByAppointmentType(appointmentTypeIdNum);
       
       // Transform daily availability into the format expected by the client
       const availabilityRules = dailyRules.map(rule => {
@@ -1746,23 +1758,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Check availability for booking appointments
   app.get("/api/availability", async (req, res) => {
     try {
-      const { date, facilityId, appointmentTypeId } = req.query;
+      const { date, facilityId, appointmentTypeId, typeId } = req.query;
+      
+      // Support both parameter naming conventions for backward compatibility
+      const finalTypeId = typeId || appointmentTypeId;
       
       // INSTRUMENTATION: Log the incoming request parameters
       console.log("===== /api/availability ENDPOINT INSTRUMENTATION =====");
-      console.log("REQUEST PARAMETERS:", { date, facilityId, appointmentTypeId });
+      console.log("REQUEST PARAMETERS:", { date, facilityId, appointmentTypeId, typeId, finalTypeId });
       
-      if (!date || !facilityId || !appointmentTypeId) {
+      if (!date || !facilityId || !finalTypeId) {
         console.log("VALIDATION ERROR: Missing required parameters");
         return res.status(400).json({ 
-          message: "Missing required parameters: date, facilityId, and appointmentTypeId are required" 
+          message: "Missing required parameters: date, facilityId, and appointment type ID (typeId or appointmentTypeId) are required" 
         });
       }
       
       // Parse parameters
       const parsedDate = String(date); // YYYY-MM-DD format
       const parsedFacilityId = Number(facilityId);
-      const parsedAppointmentTypeId = Number(appointmentTypeId);
+      const parsedAppointmentTypeId = Number(finalTypeId);
       
       // Get the appointment type to determine duration and other settings
       const appointmentType = await storage.getAppointmentType(parsedAppointmentTypeId);
