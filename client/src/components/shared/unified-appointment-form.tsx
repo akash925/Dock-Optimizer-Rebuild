@@ -1238,8 +1238,9 @@ export default function UnifiedAppointmentForm({
                                     }
                                     timeDate.setHours(h, m, 0, 0);
                                     const timeDisplay = format(timeDate, 'h:mm a');
+                                    // Use timeValue as key which is guaranteed to be unique
                                     return (
-                                      <SelectItem key={`${h}-${m}`} value={timeValue}>
+                                      <SelectItem key={timeValue} value={timeValue}>
                                         {timeDisplay}
                                       </SelectItem>
                                     );

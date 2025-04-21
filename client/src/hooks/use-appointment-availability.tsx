@@ -277,13 +277,24 @@ export function useAppointmentAvailability({
       
       // Count concurrent bookings for this slot time
       const concurrentBookings = bookedAppointments.filter(apt => {
-        const aptStart = new Date(apt.startTime);
-        const aptEnd = new Date(apt.endTime);
-        
-        // Check for overlap - the appointment overlaps with the slot if:
-        // 1. The appointment starts before the slot ends AND
-        // 2. The appointment ends after the slot starts
-        return aptStart < slotEndTime && aptEnd > slotStartTime;
+        try {
+          const aptStart = new Date(apt.startTime);
+          const aptEnd = new Date(apt.endTime);
+          
+          // Validate that dates are valid before comparing
+          if (isNaN(aptStart.getTime()) || isNaN(aptEnd.getTime())) {
+            console.warn('Invalid appointment date:', apt);
+            return false;
+          }
+          
+          // Check for overlap - the appointment overlaps with the slot if:
+          // 1. The appointment starts before the slot ends AND
+          // 2. The appointment ends after the slot starts
+          return aptStart < slotEndTime && aptEnd > slotStartTime;
+        } catch (err) {
+          console.error('Error checking appointment overlap:', err);
+          return false;
+        }
       }).length;
       
       // Check if we still have capacity
@@ -298,19 +309,30 @@ export function useAppointmentAvailability({
       if (bufferMinutes > 0) {
         // For each existing appointment, check if this slot is within buffer time
         withinBuffer = bookedAppointments.some(apt => {
-          const aptStart = new Date(apt.startTime);
-          const aptEnd = new Date(apt.endTime);
-          
-          // Create buffer windows before and after appointment
-          const bufferBefore = new Date(aptStart);
-          bufferBefore.setMinutes(bufferBefore.getMinutes() - bufferMinutes);
-          
-          const bufferAfter = new Date(aptEnd);
-          bufferAfter.setMinutes(bufferAfter.getMinutes() + bufferMinutes);
-          
-          // Check if slot starts within buffer window
-          return (slotStartTime >= bufferBefore && slotStartTime <= aptStart) ||
-                 (slotStartTime >= aptEnd && slotStartTime <= bufferAfter);
+          try {
+            const aptStart = new Date(apt.startTime);
+            const aptEnd = new Date(apt.endTime);
+            
+            // Validate that dates are valid before comparing
+            if (isNaN(aptStart.getTime()) || isNaN(aptEnd.getTime())) {
+              console.warn('Invalid appointment date for buffer check:', apt);
+              return false;
+            }
+            
+            // Create buffer windows before and after appointment
+            const bufferBefore = new Date(aptStart);
+            bufferBefore.setMinutes(bufferBefore.getMinutes() - bufferMinutes);
+            
+            const bufferAfter = new Date(aptEnd);
+            bufferAfter.setMinutes(bufferAfter.getMinutes() + bufferMinutes);
+            
+            // Check if slot starts within buffer window
+            return (slotStartTime >= bufferBefore && slotStartTime <= aptStart) ||
+                   (slotStartTime >= aptEnd && slotStartTime <= bufferAfter);
+          } catch (err) {
+            console.error('Error checking buffer overlap:', err);
+            return false;
+          }
         });
       }
       
