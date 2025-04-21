@@ -1,4 +1,4 @@
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect, useCallback, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,6 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppointmentAvailability } from "@/hooks/use-appointment-availability";
+import { AvailabilitySlot } from "@/lib/appointment-availability";
 import { Schedule, Dock, Carrier, Facility, AppointmentType } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -400,10 +401,26 @@ export default function UnifiedAppointmentForm({
     }
   }, [initialDockId, scheduleDetailsForm, initialData]);
   
+  // Callback for when time slots are generated
+  const handleTimeSlotGenerated = useCallback((slots: AvailabilitySlot[], firstSlot: string | null) => {
+    // Default-initialize appointmentTime to first available slot if not already set
+    const currentSelectedTime = scheduleDetailsForm.getValues().appointmentTime;
+    
+    if (firstSlot && (!currentSelectedTime || currentSelectedTime === '')) {
+      console.log('Setting default time slot from callback:', firstSlot);
+      scheduleDetailsForm.setValue('appointmentTime', firstSlot, {
+        shouldDirty: true, 
+        shouldValidate: true,
+        shouldTouch: true
+      });
+    }
+  }, [scheduleDetailsForm]);
+
   // Use our shared hook for appointment availability
   const {
     availabilityRules: hookRules,
     availableTimeSlots: hookTimeSlots,
+    firstAvailableSlot,
     isLoading: isLoadingAvailabilityFromHook,
     error: availabilityHookError
   } = useAppointmentAvailability({
@@ -411,7 +428,8 @@ export default function UnifiedAppointmentForm({
     appointmentTypeId: appointmentTypeId || selectedAppointmentType?.id,
     facilityTimezone,
     date: scheduleDetailsForm.watch("appointmentDate"),
-    duration: selectedAppointmentType?.duration || 60
+    duration: selectedAppointmentType?.duration || 60,
+    onTimeSlotGenerated: handleTimeSlotGenerated
   });
 
   // Update local state from hook
