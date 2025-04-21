@@ -444,7 +444,7 @@ export default function UnifiedAppointmentForm({
     setIsLoadingAvailability(isLoadingAvailabilityFromHook);
   }, [isLoadingAvailabilityFromHook]);
 
-  // Update time slots and handle default selection
+  // Update time slots from the hook
   useEffect(() => {
     setAvailableTimeSlots(hookTimeSlots);
     
@@ -453,32 +453,38 @@ export default function UnifiedAppointmentForm({
       hookTimeSlots.length > 0 ? 
       `${hookTimeSlots.length} slots, ${hookTimeSlots.filter(s => s.available).length} available` : 
       'no slots');
-    
-    // Default-initialize appointmentTime to first available slot if not already set
-    const currentSelectedTime = scheduleDetailsForm.getValues().appointmentTime;
-    if (!currentSelectedTime && hookTimeSlots.length > 0) {
-      const firstAvailableSlot = hookTimeSlots.find(s => s.available);
-      if (firstAvailableSlot) {
-        console.log('Setting default time slot:', firstAvailableSlot.time);
-        scheduleDetailsForm.setValue('appointmentTime', firstAvailableSlot.time, {
-          shouldDirty: true, 
-          shouldValidate: true
-        });
-      }
-    }
-    
+      
     // If the currently selected time is not available, reset the time field
+    const currentSelectedTime = scheduleDetailsForm.getValues().appointmentTime;
     if (currentSelectedTime && hookTimeSlots.length > 0) {
       const currentSlot = hookTimeSlots.find(slot => slot.time === currentSelectedTime);
       if (currentSlot && !currentSlot.available) {
-        scheduleDetailsForm.setValue("appointmentTime", "", {
-          shouldValidate: true,
-          shouldDirty: true
-        });
+        // If there's a first available slot from the hook, use that instead of clearing
+        if (firstAvailableSlot) {
+          console.log('Replacing unavailable time with first available slot:', firstAvailableSlot);
+          scheduleDetailsForm.setValue("appointmentTime", firstAvailableSlot, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+          });
+        } else {
+          // If no available slots, clear the field
+          scheduleDetailsForm.setValue("appointmentTime", "", {
+            shouldValidate: true,
+            shouldDirty: true
+          });
+        }
       }
     }
-  }, [hookTimeSlots, scheduleDetailsForm]);
+  }, [hookTimeSlots, scheduleDetailsForm, firstAvailableSlot]);
 
+  // Log when first available slot changes for debugging
+  useEffect(() => {
+    if (firstAvailableSlot) {
+      console.log('First available slot changed:', firstAvailableSlot);
+    }
+  }, [firstAvailableSlot]);
+  
   // Update error state from hook
   useEffect(() => {
     if (availabilityHookError) {
