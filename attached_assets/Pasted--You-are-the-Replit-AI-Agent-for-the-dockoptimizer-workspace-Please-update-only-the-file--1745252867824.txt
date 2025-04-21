@@ -1,0 +1,85 @@
+```
+You are the Replit AI Agent for the `dockoptimizer` workspace. Please update **only** the file:
+
+```
+client/src/components/shared/unified-appointment-form.tsx
+```
+
+so that both internal and external flows stop crashing on invalid or empty times and correctly fetch and display availability slots.
+
+---
+
+**Context:**  
+- The component uses React Hook Form (`useForm`) and renders a `<Select>` with:
+  ```js
+  format(new Date(`2000-01-01T${field.value}`), 'h:mm a')
+  ```
+  which throws “Invalid time value” when `field.value` is `''` or `undefined`.  
+- Both flows share this same component, so the bug appears everywhere.  
+- We also need to ensure the availability lookup (`/api/appointment-master/availability-rules`) is hooked into the public wizard exactly as in the internal flow.
+
+---
+
+**Goal:**  
+1. **Times never crash**: render a placeholder (“—”) when `appointmentTime` is empty or malformed.  
+2. **Defaults**: initialize `appointmentTime` to `"00:00"` (or the earliest slot) so it’s never undefined.  
+3. **Availability binding**: call the same internal availability service and populate `availableTimeSlots` properly.
+
+---
+
+**Tasks:**
+
+1. **Guard the formatter**  
+   In the JSX where you render the selected time:
+   ```diff
+   - {format(
+   -    new Date(`2000-01-01T${field.value}`),
+   -    'h:mm a'
+   - )}
+   + {field.value && /^\d{2}:\d{2}$/.test(field.value)
+   +   ? format(
+   +       new Date(`2000-01-01T${field.value}`),
+   +       'h:mm a'
+   +     )
+   +   : '—'}
+   ```
+
+2. **Initialize default appointmentTime**  
+   In the `useForm<ScheduleDetailsFormValues>({...})` call, add or modify `defaultValues` so:
+   ```ts
+   defaultValues: {
+     ...,
+     appointmentTime: initialData
+       ? format(new Date(initialData.startTime), 'HH:mm')
+       : '00:00',
+     ...
+   }
+   ```
+
+3. **Consolidate availability logic**  
+   - Replace any custom fetch in the external flow with the internal helper:
+     ```ts
+     import { fetchAvailabilitySlots } from '@/lib/appointment-availability';
+     ```
+   - On `scheduleDetailsForm.watch('appointmentDate')` or `appointmentTypeId` change, call:
+     ```ts
+     const slots = await fetchAvailabilitySlots(
+       scheduleDetailsForm.getValues('appointmentDate'),
+       appointmentTypeId,
+       facilityId,
+       facilityTimezone
+     );
+     setAvailableTimeSlots(slots);
+     ```
+   - Filter your `<SelectContent>` to only `slots.filter(s => s.available)`.
+
+4. **Remove stray local state**  
+   - Ensure `appointmentTime` is sourced *only* from `scheduleDetailsForm`—remove any other `useState` or prop overrides.
+
+5. **Add tests**  
+   - **Unit**: mount `unified-appointment-form`, render without initial time, assert the rendered time cell shows “—”.  
+   - **Integration**: simulate picking a date with known slots, assert the Select options match those slots.
+
+---
+
+Please implement these changes, commit as one checkpoint, and confirm the external and internal wizards no longer crash and correctly show availability.
