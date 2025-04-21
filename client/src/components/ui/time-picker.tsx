@@ -1,4 +1,5 @@
 import * as React from "react";
+import { format, parse } from "date-fns";
 import { ClockIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,8 @@ export interface TimePickerProps {
   onChange: (value: string) => void;
   availableTimes?: string[];
   disabled?: boolean;
+  loading?: boolean;
+  noOptionsMessage?: string;
 }
 
 export function TimePicker({
@@ -22,29 +25,49 @@ export function TimePicker({
   onChange,
   availableTimes,
   disabled = false,
+  loading = false,
+  noOptionsMessage = "No available times"
 }: TimePickerProps) {
   // Generate times in 15-minute intervals if no available times are provided
   const times = availableTimes || generateTimeIntervals(15);
+
+  // Format the display of the time
+  const formatTimeDisplay = (timeString: string) => {
+    try {
+      const timeObj = parse(timeString, 'HH:mm', new Date());
+      return format(timeObj, 'h:mm a'); // e.g., "9:30 AM"
+    } catch (e) {
+      return timeString; // Fallback to the original string
+    }
+  };
 
   return (
     <Select
       value={value}
       onValueChange={onChange}
-      disabled={disabled}
+      disabled={disabled || loading}
     >
       <SelectTrigger className={cn(
         "w-full",
         !value && "text-muted-foreground"
       )}>
         <ClockIcon className="mr-2 h-4 w-4" />
-        <SelectValue placeholder="Select a time" />
+        <SelectValue placeholder={loading ? "Loading times..." : "Select a time"}>
+          {value && formatTimeDisplay(value)}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {times.map((time) => (
-          <SelectItem key={time} value={time}>
-            {time}
-          </SelectItem>
-        ))}
+        {loading ? (
+          <div className="py-2 px-4 text-sm text-center">Loading available time slots...</div>
+        ) : times.length > 0 ? (
+          times.map((time) => (
+            <SelectItem key={time} value={time}>
+              {formatTimeDisplay(time)}
+            </SelectItem>
+          ))
+        ) : (
+          <div className="py-2 px-4 text-sm text-center">{noOptionsMessage}</div>
+        )}
       </SelectContent>
     </Select>
   );

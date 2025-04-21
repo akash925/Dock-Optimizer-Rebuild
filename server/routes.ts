@@ -1742,6 +1742,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Pass the request to the controller
     await getBookingStyles(req, res);
   });
+  
+  // Check availability for booking appointments
+  app.get("/api/availability", async (req, res) => {
+    try {
+      const { date, facilityId, appointmentTypeId } = req.query;
+      
+      if (!date || !facilityId || !appointmentTypeId) {
+        return res.status(400).json({ 
+          message: "Missing required parameters: date, facilityId, and appointmentTypeId are required" 
+        });
+      }
+      
+      // Parse parameters
+      const parsedDate = String(date); // YYYY-MM-DD format
+      const parsedFacilityId = Number(facilityId);
+      const parsedAppointmentTypeId = Number(appointmentTypeId);
+      
+      // Get the appointment type to determine duration and other settings
+      const appointmentType = await storage.getAppointmentType(parsedAppointmentTypeId);
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Check if appointment type belongs to the requested facility
+      if (appointmentType.facilityId !== parsedFacilityId) {
+        return res.status(400).json({ 
+          message: "The appointment type does not belong to the specified facility" 
+        });
+      }
+      
+      // Get facility to determine timezone
+      const facility = await storage.getFacility(parsedFacilityId);
+      if (!facility) {
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      // Get availability rules for this appointment type
+      const rules = await storage.getDailyAvailabilityByAppointmentType(parsedAppointmentTypeId);
+      
+      // Format rules for the availability checker
+      const formattedRules = rules.map(rule => ({
+        id: rule.id,
+        appointmentTypeId: rule.appointmentTypeId,
+        dayOfWeek: rule.dayOfWeek,
+        startDate: null,
+        endDate: null,
+        startTime: rule.startTime,
+        endTime: rule.endTime,
+        isActive: rule.isAvailable,
+        facilityId: appointmentType.facilityId,
+        maxConcurrent: rule.maxAppointments || appointmentType.maxConcurrent || 1
+      }));
+      
+      // Use appointment-availability.ts logic by importing it directly
+      const { generateAvailableTimeSlots } = await import('../client/src/lib/appointment-availability');
+      
+      // Generate available time slots
+      const timeSlots = generateAvailableTimeSlots(
+        parsedDate,
+        formattedRules,
+        appointmentType.duration || 60,
+        appointmentType.timezone || 'America/New_York',
+        15 // 15-minute intervals
+      );
+      
+      // Extract times from slots that are available
+      const availableTimes = timeSlots
+        .filter(slot => slot.available)
+        .map(slot => slot.time);
+      
+      res.json({ 
+        availableTimes,
+        date: parsedDate,
+        facilityId: parsedFacilityId,
+        appointmentTypeId: parsedAppointmentTypeId,
+        appointmentTypeDuration: appointmentType.duration,
+        timezone: appointmentType.timezone || facility.timezone || 'America/New_York'
+      });
+    } catch (err) {
+      console.error("Error calculating availability:", err);
+      res.status(500).json({ 
+        message: "Failed to calculate availability", 
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
 
   const httpServer = createServer(app);
   
