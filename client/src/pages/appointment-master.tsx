@@ -15,7 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarDays, Clock, FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight } from "lucide-react";
+import { CalendarDays, Clock, FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -584,7 +585,8 @@ export default function AppointmentMaster() {
                                     emailReminderTime: appointmentType.emailReminderTime || 24,
                                     showRemainingSlots: appointmentType.showRemainingSlots ?? true,
                                     allowAppointmentsThroughBreaks: appointmentType.allowAppointmentsThroughBreaks || false,
-                                    allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false
+                                    allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false,
+                                    overrideFacilityHours: appointmentType.overrideFacilityHours || false
                                   });
                                   setAppointmentTypeFormStep(1);
                                   setShowNewAppointmentTypeDialog(true);
@@ -1417,45 +1419,31 @@ export default function AppointmentMaster() {
                     <div className="space-y-2 md:col-span-2">
                       <div className="flex items-center space-x-2">
                         <Switch 
-                          id="appointment-allow-past-hours"
-                          checked={appointmentTypeForm.allowAppointmentsPastBusinessHours}
+                          id="appointment-override-facility-hours"
+                          checked={appointmentTypeForm.overrideFacilityHours}
                           onCheckedChange={(checked) => setAppointmentTypeForm({
                             ...appointmentTypeForm, 
-                            allowAppointmentsPastBusinessHours: checked
+                            overrideFacilityHours: checked
                           })}
                         />
-                        <Label htmlFor="appointment-allow-past-hours">
-                          Allow appointments past business hours
+                        <Label htmlFor="appointment-override-facility-hours">
+                          Override facility hours
                         </Label>
                       </div>
                       <p className="text-sm text-muted-foreground ml-6">
-                        When enabled, appointments can be scheduled to start or end outside of regular business hours
+                        When enabled, this appointment type will be available 24/7, ignoring facility business hours entirely
                       </p>
                     </div>
                     
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="appointment-days">Available Days</Label>
-                      <div className="space-y-2 mt-1">
-                        {weekDays.map((day, index) => (
-                          <div key={index} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`appointment-day-${index}`}
-                              checked={schedulingSettings.availableDays.includes(index)}
-                              onCheckedChange={(checked) => {
-                                const updatedDays = checked 
-                                  ? [...schedulingSettings.availableDays, index].sort((a, b) => a - b)
-                                  : schedulingSettings.availableDays.filter(d => d !== index);
-                                
-                                setSchedulingSettings({
-                                  ...schedulingSettings,
-                                  availableDays: updatedDays
-                                });
-                              }}
-                            />
-                            <Label htmlFor={`appointment-day-${index}`}>{day}</Label>
-                          </div>
-                        ))}
-                      </div>
+                      <Alert>
+                        <InfoIcon className="h-4 w-4" />
+                        <AlertTitle>Facility Hours</AlertTitle>
+                        <AlertDescription>
+                          Appointment availability is now managed at the facility level. Use the "Override facility hours" toggle 
+                          above to make this appointment type available at all times.
+                        </AlertDescription>
+                      </Alert>
                     </div>
                   </div>
                 </div>
