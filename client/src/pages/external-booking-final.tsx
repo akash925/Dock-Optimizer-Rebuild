@@ -473,113 +473,75 @@ function BookingWizardContent({
       });
       
       // Navigate to confirmation page with booking ID and confirmation number
-      if (result.schedule && result.confirmationNumber) {
-        navigate(`/booking-confirmation?bookingId=${result.schedule.id}&confirmationNumber=${result.confirmationNumber}`);
-      } else {
-        navigate("/booking-confirmation");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Booking Failed",
-        description: error.message || "There was an error scheduling your appointment. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
+      navigate(`/booking-confirmation?id=${result.id}&reference=${result.reference}`);
+      
+    } catch (error) {
+      console.error("Error scheduling appointment:", error);
       setIsSubmitting(false);
+      
+      toast({
+        title: "Scheduling Failed",
+        description: "There was an error scheduling your appointment. Please try again.",
+        variant: "destructive"
+      });
     }
   };
   
-  // Go back to previous step
-  const goBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
-  };
+  // Calculate available facility IDs
+  const availableFacilityIds = Object.keys(parsedFacilities);
   
-  // Render the appropriate form based on current step
-  const renderForm = () => {
-    // No slug provided
-    if (!slug) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12">
-          <img src={dockOptimizerLogo} alt="Dock Optimizer" className="h-16 mb-4" />
-          <Alert variant="destructive" className="max-w-lg">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Invalid URL</AlertTitle>
-            <AlertDescription>
-              No booking page slug provided. Please check the URL and try again.
-            </AlertDescription>
-          </Alert>
-        </div>
-      );
-    }
+  // Calculate filtered appointment types based on selected location
+  const filteredAppointmentTypes = useMemo(() => {
+    if (!selectedLocation || !appointmentTypes) return [];
     
-    // Loading booking page
-    if (isLoadingBookingPage) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="h-12 w-12 animate-spin mb-4" />
-          <p>Loading booking page...</p>
-        </div>
-      );
-    }
+    // Get the facility's excluded appointment types
+    const facilityExcludedTypes = selectedLocation && parsedFacilities[selectedLocation]?.excludedAppointmentTypes || [];
     
-    // Error loading booking page
-    if (bookingPageError) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12">
-          <img src={dockOptimizerLogo} alt="Dock Optimizer" className="h-16 mb-4" />
-          <Alert variant="destructive" className="max-w-lg">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              {bookingPageError.message || "Failed to load booking page. Please try again."}
-            </AlertDescription>
-          </Alert>
-        </div>
-      );
-    }
-    
-    // Booking page not found
-    if (!bookingPage) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12">
-          <img src={dockOptimizerLogo} alt="Dock Optimizer" className="h-16 mb-4" />
-          <Alert variant="destructive" className="max-w-lg">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Booking Page Not Found</AlertTitle>
-            <AlertDescription>
-              The booking page "{slug}" does not exist. Please check the URL and try again.
-            </AlertDescription>
-          </Alert>
-        </div>
-      );
-    }
-    
-    // Get available facility IDs
-    const availableFacilityIds = Object.keys(parsedFacilities).map(Number);
-    
-    // Get filtered appointment types for selected location
-    const filteredAppointmentTypes = selectedLocation ? 
-      appointmentTypes.filter(type => 
-        type.facilityId === parseInt(selectedLocation) && 
-        !parsedFacilities[selectedLocation]?.excludedAppointmentTypes.includes(type.id)
-      ) : [];
-    
-    // Step 1: Initial Selection
-    if (step === 1) {
-      return (
-        <Card className="w-full md:max-w-3xl mx-auto mb-8">
-          <CardHeader className="pb-6">
-            <div className="flex justify-center mb-4">
-              <img src={bookingPage?.customLogo || hanzoLogo} alt="Company Logo" className="h-12" />
-            </div>
-            <CardTitle className="text-center">{bookingPage.title || "Schedule an Appointment"}</CardTitle>
-            <CardDescription className="text-center">{bookingPage.description || "Please select your preferences to begin."}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormProvider {...initialSelectionForm}>
-              <form onSubmit={initialSelectionForm.handleSubmit(onInitialSelectionSubmit)} className="space-y-6">
+    // Filter out the excluded appointment types
+    return appointmentTypes.filter(type => !facilityExcludedTypes.includes(type.id));
+  }, [selectedLocation, appointmentTypes, parsedFacilities]);
+  
+  // Loading and error states
+  if (isLoadingBookingPage) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Loader2 className="h-8 w-8 animate-spin mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Loading Booking Page</h2>
+        <p className="text-muted-foreground">Please wait while we set things up...</p>
+      </div>
+    );
+  }
+  
+  if (bookingPageError || !bookingPage) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Booking Page Not Found</h2>
+        <p className="text-muted-foreground mb-6">The booking page you're looking for doesn't exist or is no longer active.</p>
+        <Button 
+          variant="outline" 
+          onClick={() => window.location.href = '/'}
+        >
+          Return to Homepage
+        </Button>
+      </div>
+    );
+  }
+  
+  // Render the appropriate step
+  if (step === 1) {
+    return (
+      <Card className="w-full md:max-w-3xl mx-auto mb-8">
+        <CardHeader className="pb-6">
+          <div className="flex justify-center mb-4">
+            <img src={bookingPage?.customLogo || hanzoLogo} alt="Company Logo" className="h-12" />
+          </div>
+          <CardTitle className="text-center">{bookingPage.title || "Schedule an Appointment"}</CardTitle>
+          <CardDescription className="text-center">{bookingPage.description || "Please select your preferences to begin."}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormProvider {...initialSelectionForm}>
+            <form onSubmit={initialSelectionForm.handleSubmit(onInitialSelectionSubmit)} className="space-y-6">
               <div className="flex items-center gap-4 mb-6">
                 <div className="bg-primary text-primary-foreground rounded-full h-8 w-8 flex items-center justify-center font-bold">1</div>
                 <h3 className="text-lg font-medium">Basic Details</h3>
@@ -782,23 +744,25 @@ function BookingWizardContent({
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
-      );
-    }
-    
-    // Step 2: Company Information
-    if (step === 2) {
-      return (
-        <Card className="w-full md:max-w-3xl mx-auto mb-8">
-          <CardHeader className="pb-6">
-            <div className="flex justify-center mb-4">
-              <img src={bookingPage?.customLogo || hanzoLogo} alt="Company Logo" className="h-12" />
-            </div>
-            <CardTitle className="text-center">{bookingPage.title || "Schedule an Appointment"}</CardTitle>
-            <CardDescription className="text-center">{bookingPage.description || "Please provide your company and contact information."}</CardDescription>
-          </CardHeader>
-          <CardContent>
+          </FormProvider>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Step 2: Company Information
+  if (step === 2) {
+    return (
+      <Card className="w-full md:max-w-3xl mx-auto mb-8">
+        <CardHeader className="pb-6">
+          <div className="flex justify-center mb-4">
+            <img src={bookingPage?.customLogo || hanzoLogo} alt="Company Logo" className="h-12" />
+          </div>
+          <CardTitle className="text-center">{bookingPage.title || "Schedule an Appointment"}</CardTitle>
+          <CardDescription className="text-center">{bookingPage.description || "Please provide your company and contact information."}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormProvider {...companyInfoForm}>
             <form onSubmit={companyInfoForm.handleSubmit(onCompanyInfoSubmit)} className="space-y-6">
               <div className="flex items-center gap-4 mb-6">
                 <div className="bg-muted text-muted-foreground rounded-full h-8 w-8 flex items-center justify-center font-bold">1</div>
@@ -857,6 +821,9 @@ function BookingWizardContent({
                         {...field}
                       />
                     </FormControl>
+                    <FormDescription>
+                      We'll send a confirmation email to this address.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -871,6 +838,7 @@ function BookingWizardContent({
                     <FormLabel>Phone Number*</FormLabel>
                     <FormControl>
                       <Input
+                        type="tel"
                         placeholder="Enter phone number"
                         {...field}
                       />
@@ -880,8 +848,13 @@ function BookingWizardContent({
                 )}
               />
               
-              <div className="pt-4 flex justify-between">
-                <Button type="button" variant="outline" onClick={goBack}>
+              {/* Navigation Buttons */}
+              <div className="flex justify-between pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => setStep(1)}
+                >
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
                 <Button type="submit">
@@ -889,23 +862,25 @@ function BookingWizardContent({
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
-      );
-    }
-    
-    // Step 3: Appointment Details
-    if (step === 3) {
-      return (
-        <Card className="w-full md:max-w-3xl mx-auto mb-8">
-          <CardHeader className="pb-6">
-            <div className="flex justify-center mb-4">
-              <img src={bookingPage?.customLogo || hanzoLogo} alt="Company Logo" className="h-12" />
-            </div>
-            <CardTitle className="text-center">{bookingPage.title || "Schedule an Appointment"}</CardTitle>
-            <CardDescription className="text-center">{bookingPage.description || "Please provide appointment details."}</CardDescription>
-          </CardHeader>
-          <CardContent>
+          </FormProvider>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Step 3: Appointment Details
+  if (step === 3) {
+    return (
+      <Card className="w-full md:max-w-3xl mx-auto mb-8">
+        <CardHeader className="pb-6">
+          <div className="flex justify-center mb-4">
+            <img src={bookingPage?.customLogo || hanzoLogo} alt="Company Logo" className="h-12" />
+          </div>
+          <CardTitle className="text-center">{bookingPage.title || "Schedule an Appointment"}</CardTitle>
+          <CardDescription className="text-center">{bookingPage.description || "Fill in the final details to complete your appointment scheduling."}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormProvider {...appointmentDetailsForm}>
             <form onSubmit={appointmentDetailsForm.handleSubmit(onAppointmentDetailsSubmit)} className="space-y-6">
               <div className="flex items-center gap-4 mb-6">
                 <div className="bg-muted text-muted-foreground rounded-full h-8 w-8 flex items-center justify-center font-bold">1</div>
@@ -915,18 +890,19 @@ function BookingWizardContent({
                 <Separator className="flex-1" />
               </div>
               
-              {/* Date and Time Selection */}
+              {/* Appointment Date & Time */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={appointmentDetailsForm.control}
                   name="appointmentDate"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel>Appointment Date*</FormLabel>
                       <FormControl>
                         <Input
                           type="date"
-                          placeholder="Select date"
+                          placeholder="Select a date"
+                          min={format(new Date(), 'yyyy-MM-dd')}
                           {...field}
                         />
                       </FormControl>
@@ -942,11 +918,25 @@ function BookingWizardContent({
                     <FormItem>
                       <FormLabel>Appointment Time*</FormLabel>
                       <FormControl>
-                        <Input
-                          type="time"
-                          placeholder="Select time"
-                          {...field}
-                        />
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a time" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="08:00">8:00 AM</SelectItem>
+                            <SelectItem value="09:00">9:00 AM</SelectItem>
+                            <SelectItem value="10:00">10:00 AM</SelectItem>
+                            <SelectItem value="11:00">11:00 AM</SelectItem>
+                            <SelectItem value="12:00">12:00 PM</SelectItem>
+                            <SelectItem value="13:00">1:00 PM</SelectItem>
+                            <SelectItem value="14:00">2:00 PM</SelectItem>
+                            <SelectItem value="15:00">3:00 PM</SelectItem>
+                            <SelectItem value="16:00">4:00 PM</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -954,126 +944,75 @@ function BookingWizardContent({
                 />
               </div>
               
-              {/* Carrier Selection */}
+              {/* Carrier Information */}
               <div className="space-y-6">
-                <CarrierSelector
-                  form={appointmentDetailsForm}
-                  nameFieldName="carrierName"
-                  idFieldName="carrierId"
-                  mcNumberFieldName="mcNumber"
-                  label="Carrier Name*"
-                  required
-                />
+                <div className="flex items-center gap-2 mb-2">
+                  <TruckIcon className="h-5 w-5" />
+                  <h4 className="font-medium">Carrier Information</h4>
+                </div>
                 
-                {/* MC Number */}
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="mcNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>MC Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="XXX-XXX-XXXX"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Motor Carrier Number in format XXX-XXX-XXXX
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {/* Truck/Trailer Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="truckNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Truck Number*</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter truck number"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="trailerNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Trailer Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter trailer number"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {/* Driver Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="driverName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Driver Name*</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter driver name"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="driverPhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Driver Phone*</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter driver phone"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {/* Shipment Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* BOL Number */}
-                {(bookingData.bolFile || initialSelectionForm.getValues("pickupOrDropoff") === "dropoff") && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Carrier Selector */}
                   <FormField
                     control={appointmentDetailsForm.control}
-                    name="bolNumber"
+                    name="carrierName"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Carrier*</FormLabel>
+                        <CarrierSelector 
+                          onSelect={(carrier) => {
+                            appointmentDetailsForm.setValue("carrierName", carrier.name);
+                            appointmentDetailsForm.setValue("carrierId", carrier.id);
+                            
+                            // Format MC Number if available
+                            if (carrier.mcNumber) {
+                              appointmentDetailsForm.setValue("mcNumber", carrier.mcNumber);
+                            }
+                          }}
+                          {...field}
+                        />
+                        <FormDescription>
+                          Select or type your carrier name
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* MC Number */}
+                  <FormField
+                    control={appointmentDetailsForm.control}
+                    name="mcNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>BOL Number</FormLabel>
+                        <FormLabel>MC Number</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="Enter BOL number"
+                            placeholder="XXX-XXX-XXXX"
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Format: XXX-XXX-XXXX
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Truck Number */}
+                  <FormField
+                    control={appointmentDetailsForm.control}
+                    name="truckNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Truck Number*</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter truck number"
                             {...field}
                           />
                         </FormControl>
@@ -1081,10 +1020,76 @@ function BookingWizardContent({
                       </FormItem>
                     )}
                   />
-                )}
+                  
+                  {/* Trailer Number */}
+                  <FormField
+                    control={appointmentDetailsForm.control}
+                    name="trailerNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Trailer Number</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter trailer number (optional)"
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
-                {/* PO Number */}
-                {(initialSelectionForm.getValues("pickupOrDropoff") === "pickup") && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Driver Name */}
+                  <FormField
+                    control={appointmentDetailsForm.control}
+                    name="driverName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Driver Name*</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter driver name"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Driver Phone */}
+                  <FormField
+                    control={appointmentDetailsForm.control}
+                    name="driverPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Driver Phone*</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="tel"
+                            placeholder="Enter driver phone"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+              {/* Shipment Information */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="h-5 w-5" />
+                  <h4 className="font-medium">Shipment Information (Optional)</h4>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* PO Number */}
                   <FormField
                     control={appointmentDetailsForm.control}
                     name="poNumber"
@@ -1095,43 +1100,89 @@ function BookingWizardContent({
                           <Input
                             placeholder="Enter PO number"
                             {...field}
+                            value={field.value || ''}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                )}
+                  
+                  {/* BOL Number */}
+                  <FormField
+                    control={appointmentDetailsForm.control}
+                    name="bolNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>BOL Number</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter BOL number"
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 
-                {/* Pallet Count */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Pallet Count */}
+                  <FormField
+                    control={appointmentDetailsForm.control}
+                    name="palletCount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Pallet Count</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Enter number of pallets"
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Weight */}
+                  <FormField
+                    control={appointmentDetailsForm.control}
+                    name="weight"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Weight (lbs)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="Enter shipment weight"
+                            {...field}
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                {/* Additional Notes */}
                 <FormField
                   control={appointmentDetailsForm.control}
-                  name="palletCount"
+                  name="additionalNotes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pallet Count</FormLabel>
+                      <FormLabel>Additional Notes</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Enter pallet count"
+                        <Textarea
+                          placeholder="Enter any additional information"
+                          className="min-h-[100px]"
                           {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Weight */}
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="weight"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Weight</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter weight"
-                          {...field}
+                          value={field.value || ''}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1140,79 +1191,52 @@ function BookingWizardContent({
                 />
               </div>
               
-              {/* Additional Notes */}
-              <FormField
-                control={appointmentDetailsForm.control}
-                name="additionalNotes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Additional Notes</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Enter any additional notes or special instructions"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Terms & Conditions */}
+              <div className="bg-muted/50 p-4 rounded-md">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <CheckCircle className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    <p>
+                      By scheduling this appointment, you agree to the facility's policies, including our driver 
+                      conduct requirements and yard safety procedures. Please ensure your driver arrives 15 minutes
+                      before the scheduled time.
+                    </p>
+                  </div>
+                </div>
+              </div>
               
-              {/* Submission */}
-              <div className="pt-4 flex justify-between">
-                <Button type="button" variant="outline" onClick={goBack}>
+              {/* Navigation Buttons */}
+              <div className="flex justify-between pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => setStep(2)}
+                >
                   <ArrowLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button 
+                  type="submit"
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Submitting...
                     </>
                   ) : (
-                    <>
-                      Schedule Appointment <CheckCircle className="ml-2 h-4 w-4" />
-                    </>
+                    <>Schedule Appointment</>
                   )}
                 </Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
-      );
-    }
-  };
+          </FormProvider>
+        </CardContent>
+      </Card>
+    );
+  }
   
-  // Booking Wizard Layout
-  return (
-    <div className="p-4 md:p-8 container">
-      <div className="flex flex-col space-y-4">
-        {/* Step Indicator */}
-        <div className="w-full max-w-3xl mx-auto mb-4">
-          <div className="flex items-center">
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-              1
-            </div>
-            <div className={`flex-1 h-1 mx-2 ${step >= 2 ? 'bg-primary' : 'bg-muted'}`}></div>
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-              2
-            </div>
-            <div className={`flex-1 h-1 mx-2 ${step >= 3 ? 'bg-primary' : 'bg-muted'}`}></div>
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-              3
-            </div>
-          </div>
-          <div className="flex justify-between mt-2 text-sm">
-            <span className={step >= 1 ? 'text-primary font-medium' : 'text-muted-foreground'}>Basic Details</span>
-            <span className={step >= 2 ? 'text-primary font-medium' : 'text-muted-foreground'}>Company Info</span>
-            <span className={step >= 3 ? 'text-primary font-medium' : 'text-muted-foreground'}>Schedule</span>
-          </div>
-        </div>
-        
-        {/* Form Content */}
-        {renderForm()}
-      </div>
-    </div>
-  );
+  // Default return (shouldn't reach here if steps are working correctly)
+  return null;
 }
