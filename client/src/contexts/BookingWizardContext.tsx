@@ -3,9 +3,25 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 // Define the booking data interface
 interface BookingFormData {
   // Step 1: Select Service
-  appointmentTypeId: number | null;
   facilityId: number | null;
-  type: string; // Pickup or Dropoff
+  appointmentTypeId: number | null;
+  pickupOrDropoff: string; // "pickup" or "dropoff"
+  
+  // BOL Data
+  bolFile?: File | null;
+  bolFileUploaded: boolean;
+  bolPreviewText?: string;
+  bolExtractedData?: {
+    bolNumber?: string;
+    customerName?: string;
+    carrierName?: string;
+    mcNumber?: string;
+    driverName?: string;
+    driverPhone?: string;
+    appointmentDate?: Date;
+    weight?: string;
+    notes?: string;
+  };
   
   // Step 2: Select Date and Time
   startTime: Date | null; 
@@ -30,19 +46,16 @@ interface BookingFormData {
   // Additional Information
   notes: string;
   
-  // File attachments
-  bolFile?: File | null;
-  bolPreviewText?: string;
-  
   // Custom Questions answers
   customFields: Record<string, string>;
 }
 
 // Default empty state
 const defaultBookingData: BookingFormData = {
-  appointmentTypeId: null,
   facilityId: null,
-  type: '',
+  appointmentTypeId: null,
+  pickupOrDropoff: '',
+  bolFileUploaded: false,
   startTime: null,
   endTime: null,
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -58,6 +71,16 @@ const defaultBookingData: BookingFormData = {
   trailerNumber: '',
   notes: '',
   customFields: {},
+  bolExtractedData: {
+    bolNumber: '',
+    customerName: '',
+    carrierName: '',
+    mcNumber: '',
+    driverName: '',
+    driverPhone: '',
+    weight: '',
+    notes: ''
+  }
 };
 
 // Define the context type

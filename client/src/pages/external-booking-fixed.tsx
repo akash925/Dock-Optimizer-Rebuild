@@ -209,34 +209,120 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
 
 // Step 1: Service Selection
 function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
-  const { bookingData, updateBookingData, setCurrentStep } = useBookingWizard();
+  const { bookingData, updateBookingData, setCurrentStep, setIsLoading } = useBookingWizard();
+  const [bolPreviewText, setBolPreviewText] = useState<string | null>(null);
+  const [bolProcessing, setBolProcessing] = useState(false);
   
   // Fetch facilities data
   const { 
-    data: facilities, 
+    data: facilities = [], 
     isLoading: facilitiesLoading 
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: ['/api/facilities'],
   });
   
   // Fetch appointment types
   const { 
-    data: appointmentTypes, 
+    data: appointmentTypes = [], 
     isLoading: typesLoading 
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: ['/api/appointment-types'],
   });
   
+  // Filter facilities based on booking page configuration
+  const availableFacilities = useMemo(() => {
+    if (!facilities || !bookingPage?.facilities) return [];
+    
+    return bookingPage.facilities && Array.isArray(bookingPage.facilities)
+      ? facilities.filter((f) => bookingPage.facilities.includes(f.id))
+      : facilities;
+  }, [facilities, bookingPage]);
+  
+  // Get appointment types for the selected facility
+  const facilityAppointmentTypes = useMemo(() => {
+    if (!appointmentTypes || !bookingData.facilityId) return [];
+    
+    // Filter for the selected facility and sort alphabetically by name
+    return appointmentTypes
+      .filter((type) => type.facilityId === bookingData.facilityId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [appointmentTypes, bookingData.facilityId]);
+  
+  // Handle BOL file upload
+  const handleFileUpload = (file: File | null) => {
+    if (!file) return;
+    
+    // Update state to show processing
+    setBolProcessing(true);
+    updateBookingData({ 
+      bolFile: file,
+      bolFileUploaded: true 
+    });
+    
+    // Create a FileReader to read the file contents
+    const reader = new FileReader();
+    
+    reader.onload = function(event) {
+      try {
+        // Mock OCR processing (in a real app, this would call an OCR service)
+        // For now we'll just simulate extracting some data from the file
+        
+        // Generate some mock extracted data (in a real implementation, this would come from OCR)
+        const extractedData = {
+          bolNumber: `BOL-${Math.floor(100000 + Math.random() * 900000)}`,
+          customerName: "Sample Customer Inc.",
+          carrierName: "ABC Transport",
+          mcNumber: `MC${Math.floor(100000 + Math.random() * 900000)}`,
+          driverName: "John Driver",
+          driverPhone: "555-123-4567",
+          appointmentDate: new Date(),
+          weight: "1500 lbs",
+          notes: "Handle with care. Fragile contents."
+        };
+        
+        // Create preview text from the extracted data
+        const preview = `
+BOL Number: ${extractedData.bolNumber}
+Customer: ${extractedData.customerName}
+Carrier: ${extractedData.carrierName} (${extractedData.mcNumber})
+Driver: ${extractedData.driverName}
+Weight: ${extractedData.weight}
+Notes: ${extractedData.notes}
+        `.trim();
+        
+        // Update state with extracted data
+        setBolPreviewText(preview);
+        updateBookingData({
+          bolExtractedData: extractedData
+        });
+        
+      } catch (error) {
+        console.error("Error processing BOL file:", error);
+      } finally {
+        setBolProcessing(false);
+      }
+    };
+    
+    reader.onerror = function() {
+      console.error("Error reading file");
+      setBolProcessing(false);
+    };
+    
+    // Read the file content
+    reader.readAsText(file);
+  };
+  
   // Handle next button click
   const handleNext = () => {
-    if (!bookingData.facilityId || !bookingData.appointmentTypeId) {
-      alert('Please select both a facility and appointment type.');
+    if (!bookingData.facilityId || !bookingData.appointmentTypeId || !bookingData.pickupOrDropoff) {
+      alert('Please complete all required fields before continuing.');
       return;
     }
     
     setCurrentStep(2);
   };
   
+  // Loading state
   if (facilitiesLoading || typesLoading) {
     return (
       <div className="flex justify-center my-8">
@@ -245,130 +331,178 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
     );
   }
   
-  // Filter facilities based on booking page configuration
-  const availableFacilities = bookingPage.facilities
-    ? facilities?.filter((f: any) => 
-        (bookingPage.facilities as number[]).includes(f.id)
-      )
-    : facilities;
-  
-  // Group appointment types by facility for easier selection
-  const getFacilityAppointmentTypes = (facilityId: number) => {
-    return appointmentTypes?.filter((type: any) => 
-      type.facilityId === facilityId
-    ) || [];
-  };
+  // Check if Next button should be enabled
+  const isNextDisabled = !bookingData.facilityId || 
+                         !bookingData.appointmentTypeId || 
+                         !bookingData.pickupOrDropoff;
   
   return (
-    <div className="booking-form-section">
-      <div className="prose max-w-none mb-6">
-        <p className="text-sm">
-          Please use this form to pick the type of Dock Appointment that
-          you need at Hanzo Logistics. For support using this page,
-          please <a href="#" className="text-blue-600 hover:underline">check out this video</a>.
-        </p>
-        
-        <p className="text-sm mt-4 font-semibold">
-          Effective August 1st, 2023, MC Numbers are required for all
-          incoming and outgoing shipments. This is to protect the
-          security of our customer's shipments and reduce the risk of
-          fraud.
-        </p>
+    <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+      {/* Left side - Information panel */}
+      <div className="md:col-span-1 space-y-6">
+        <div className="prose max-w-none">
+          <h2 className="text-xl font-bold">Schedule Your Appointment</h2>
+          <p className="text-sm">
+            Please use this form to schedule a dock appointment at Hanzo Logistics. 
+            For support using this page, please <a href="#" className="text-blue-600 hover:underline">check out this video</a>.
+          </p>
+          
+          <p className="text-sm mt-4 font-semibold">
+            Effective August 1st, 2023, MC Numbers are required for all
+            incoming and outgoing shipments. This is to protect the
+            security of our customer's shipments and reduce the risk of
+            fraud.
+          </p>
+        </div>
       </div>
       
-      <div className="booking-form-field">
-        <Label className="booking-label font-semibold" htmlFor="facilitySelect">
-          Dock Appointment Type<span className="text-red-500">*</span>
-        </Label>
-        <Select
-          value={bookingData.appointmentTypeId?.toString() || ''}
-          onValueChange={(value) => {
-            const typeId = parseInt(value, 10);
-            const selectedType = appointmentTypes?.find(t => t.id === typeId);
-            
-            if (selectedType) {
-              updateBookingData({ 
-                appointmentTypeId: typeId,
-                facilityId: selectedType.facilityId
-              });
-            }
-          }}
-        >
-          <SelectTrigger id="facilitySelect">
-            <SelectValue placeholder="Select Dock Appointment Type" />
-          </SelectTrigger>
-          <SelectContent>
-            {appointmentTypes && Array.isArray(appointmentTypes) && appointmentTypes.map((type: any) => {
-              // Find the facility for this appointment type
-              const facility = facilities?.find((f: any) => f.id === type.facilityId);
-              
-              if (!facility) return null;
-              
-              return (
-                <SelectItem 
-                  key={type.id} 
-                  value={type.id.toString()}
+      {/* Right side - Form Card */}
+      <div className="md:col-span-2">
+        <Card className="w-full">
+          <CardContent className="pt-6">
+            <div className="space-y-6">
+              {/* Step 1: Location */}
+              <div className="space-y-2">
+                <Label htmlFor="facilityId" className="font-medium">
+                  Location<span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={bookingData.facilityId?.toString() || ''}
+                  onValueChange={(value) => {
+                    const facilityId = parseInt(value, 10);
+                    updateBookingData({ 
+                      facilityId,
+                      // Clear appointment type when facility changes
+                      appointmentTypeId: null 
+                    });
+                  }}
                 >
-                  {type.name} ({type.duration} min) - {facility.name}
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <div className="booking-form-field">
-        <Label className="booking-label font-semibold" htmlFor="pickupDropoff">
-          Pickup or Dropoff<span className="text-red-500">*</span>
-        </Label>
-        <Select
-          value={bookingData.type || ''}
-          onValueChange={(value) => updateBookingData({ type: value })}
-          disabled={!bookingData.appointmentTypeId}
-        >
-          <SelectTrigger id="pickupDropoff">
-            <SelectValue placeholder="Select Pickup or Dropoff" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="pickup">Pickup</SelectItem>
-            <SelectItem value="dropoff">Dropoff</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      {/* Facility information display */}
-      {bookingData.facilityId && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg border text-sm">
-          <h3 className="font-semibold mb-2">HANZO LOGISTICS INC.</h3>
-          <p className="mb-2">Select from the following locations:</p>
-          <div className="space-y-1">
-            {facilities && Array.isArray(facilities) && facilities.map((facility: any) => (
-              <div 
-                key={facility.id} 
-                className={`flex ${facility.id === bookingData.facilityId ? 'font-semibold' : ''}`}
-              >
-                {facility.id === bookingData.facilityId && (
-                  <div className="mr-2">✓</div>
-                )}
-                <div className={facility.id === bookingData.facilityId ? '' : 'ml-6'}>
-                  {facility.name} {facility.address}
+                  <SelectTrigger id="facilityId">
+                    <SelectValue placeholder="Select a location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableFacilities.map((facility) => (
+                      <SelectItem 
+                        key={facility.id} 
+                        value={facility.id.toString()}
+                      >
+                        {facility.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Step 2: Dock Appointment Type */}
+              <div className="space-y-2">
+                <Label htmlFor="appointmentTypeId" className="font-medium">
+                  Dock Appointment Type<span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={bookingData.appointmentTypeId?.toString() || ''}
+                  onValueChange={(value) => {
+                    const typeId = parseInt(value, 10);
+                    updateBookingData({ appointmentTypeId: typeId });
+                  }}
+                  disabled={!bookingData.facilityId}
+                >
+                  <SelectTrigger id="appointmentTypeId">
+                    <SelectValue placeholder={
+                      !bookingData.facilityId 
+                        ? "Select a location first" 
+                        : "Select appointment type"
+                    } />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {facilityAppointmentTypes.map((type) => (
+                      <SelectItem 
+                        key={type.id} 
+                        value={type.id.toString()}
+                      >
+                        {type.name} ({type.duration} min)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Step 3: Pickup/Dropoff */}
+              <div className="space-y-2">
+                <Label className="font-medium">
+                  Pickup or Dropoff<span className="text-red-500">*</span>
+                </Label>
+                <div className="flex gap-4">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="pickup"
+                      name="pickupOrDropoff"
+                      value="pickup"
+                      className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                      checked={bookingData.pickupOrDropoff === 'pickup'}
+                      onChange={() => updateBookingData({ pickupOrDropoff: 'pickup' })}
+                    />
+                    <Label htmlFor="pickup" className="cursor-pointer">Pickup</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      id="dropoff"
+                      name="pickupOrDropoff"
+                      value="dropoff"
+                      className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                      checked={bookingData.pickupOrDropoff === 'dropoff'}
+                      onChange={() => updateBookingData({ pickupOrDropoff: 'dropoff' })}
+                    />
+                    <Label htmlFor="dropoff" className="cursor-pointer">Dropoff</Label>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-          <p className="mt-4">Please arrive 15 minutes before your appointment and check in at the office.</p>
-        </div>
-      )}
-      
-      <div className="booking-nav-buttons">
-        <div></div> {/* Empty div for spacing */}
-        <Button 
-          className="booking-button" 
-          onClick={handleNext}
-          disabled={!bookingData.facilityId || !bookingData.appointmentTypeId || !bookingData.type}
-        >
-          Next
-        </Button>
+              
+              {/* Step 4: Bill of Lading Upload */}
+              <div className="space-y-2">
+                <Label className="font-medium">
+                  Bill of Lading Upload (optional)
+                </Label>
+                <FileUpload 
+                  onFileChange={handleFileUpload}
+                  acceptedFileTypes="application/pdf,image/*,.doc,.docx"
+                  maxSizeMB={5}
+                  currentFileName={bookingData.bolFile?.name}
+                />
+                
+                {/* BOL Preview Section - only shown when a file is uploaded and processed */}
+                {bolProcessing && (
+                  <div className="p-4 border rounded-md mt-3 animate-pulse flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    <p className="text-sm text-gray-600">Processing Bill of Lading...</p>
+                  </div>
+                )}
+                
+                {/* Display the BOL preview if available */}
+                {!bolProcessing && bolPreviewText && (
+                  <div className="p-4 border rounded-md mt-3 bg-gray-50">
+                    <h3 className="text-sm font-semibold mb-2">Extracted Information:</h3>
+                    <pre className="text-xs whitespace-pre-wrap bg-white p-2 rounded border">
+                      {bolPreviewText}
+                    </pre>
+                  </div>
+                )}
+              </div>
+              
+              {/* Navigation buttons */}
+              <div className="flex justify-end pt-4">
+                <Button 
+                  className="booking-button" 
+                  onClick={handleNext}
+                  disabled={isNextDisabled}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
