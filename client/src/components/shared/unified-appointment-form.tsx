@@ -6,6 +6,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useAppointmentAvailability } from "@/hooks/use-appointment-availability";
 import { Schedule, Dock, Carrier, Facility, AppointmentType } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -507,6 +508,19 @@ export default function UnifiedAppointmentForm({
           slots.filter((s: any) => s.available).length, 'available');
         
         setAvailableTimeSlots(slots);
+        
+        // Default-initialize appointmentTime to first available slot if not already set
+        const currentSelectedTime = scheduleDetailsForm.getValues().appointmentTime;
+        if (!currentSelectedTime) {
+          const firstAvailableSlot = slots.find((s: any) => s.available);
+          if (firstAvailableSlot) {
+            console.log('Setting default time slot:', firstAvailableSlot.time);
+            scheduleDetailsForm.setValue('appointmentTime', firstAvailableSlot.time, {
+              shouldDirty: true, 
+              shouldValidate: true
+            });
+          }
+        }
       } catch (err: any) {
         console.error('Error generating time slots:', err);
         setAvailabilityError(`Error loading time slots: ${err.message || 'Unknown error'}`);

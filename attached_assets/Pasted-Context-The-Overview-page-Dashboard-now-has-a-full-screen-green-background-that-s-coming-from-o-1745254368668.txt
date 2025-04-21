@@ -1,0 +1,34 @@
+Context:
+  The Overview page (Dashboard) now has a full‐screen green background—that’s coming from our external booking container wrapper (containerClass) being mounted there. Also, the “New Schedule” button still points at the old route instead of opening the internal New Appointment modal.
+
+Goal:
+  1. Remove or disable the external containerClass wrapper on all admin pages (Dashboard, Settings, etc.). Only use it for our public booking routes.  
+  2. Refactor the Overview’s “New Schedule” button so it uses the shared internal appointment launcher (opens `UnifiedAppointmentForm` in `mode="internal"`), identical to the Calendar’s “New Appointment” button.
+
+Tasks:
+1. **Scope `containerClass` to external only**  
+   - In `UnifiedAppointmentForm`, wrap the `className={containerClass}` usage inside `if (mode === 'external')`.  
+   - Ensure that when `mode==='internal'` you render with no extra background classes.
+
+2. **Fix Overview button**  
+   - Open `pages/Dashboard.tsx` (or wherever Overview lives).  
+   - Remove the `<Button label="New Schedule" …>` and import the same `AppointmentLauncher` (or `OpenAppointmentModalButton`) used on the Calendar page.  
+   - Replace the button with:
+     ```jsx
+     <AppointmentLauncher mode="internal">
+       New Appointment
+     </AppointmentLauncher>
+     ```
+   - Ensure it opens the internal modal, not the external flow.
+
+3. **Clean up Layout**  
+   - Confirm that no other pages accidentally mount `UnifiedAppointmentForm` in external mode.  
+   - Run a search for `containerClass` prop usage and audit each instance.
+
+4. **Verify & Test**  
+   - Navigate to Dashboard – you should see your normal grey/white background again.  
+   - Click New Appointment on Overview and confirm the internal modal opens.  
+   - Navigate to the public booking URL and confirm the green background returns there only.  
+   - Add a quick unit test: render the Overview page and assert there’s no element with the external container’s green class present.
+
+Commit all these changes in one checkpoint so the green UI goes away on admin pages and “New Schedule” behaves like “New Appointment” everywhere.

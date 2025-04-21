@@ -1,0 +1,53 @@
+Context:
+  - Our single `UnifiedAppointmentForm` is used by both the internal “New Appointment” dialog and the external booking wizard.
+  - Two blocking bugs remain:
+    1. **Internal**: Rendering the time label blows up with  
+       `[plugin:runtime-error-plugin] Invalid time value`  
+       because we blindly do  
+       ```js
+       format(new Date(`2000-01-01T${field.value}`), 'h:mm a')
+       ```  
+       even when `field.value` is empty or malformed.
+    2. **External**: The “Available Times” dropdown never shows any real slots—our legacy hard‑coded array is still in place and we never wire up the rules from `generateAvailableTimeSlots`.
+
+Goal:
+  - **Guard** all time formatting so that if `appointmentTime` is falsy or invalid it renders “—” instead of crashing.
+  - **Default‑initialize** the form’s `appointmentTime` to the first valid slot as soon as slots are loaded.
+  - **Wire up** the external booking wizard’s time dropdown to use the same `availableTimeSlots` you already compute in the unified form.
+  - **Remove** any leftover hard‑coded slot arrays in `external-booking.tsx`.
+
+Tasks:
+1. **Time‑format guard**  
+   In `src/components/shared/unified-appointment-form.tsx`, around the `format(new Date(\`2000-01-01T${field.value}\`), 'h:mm a')` call, replace it with something like:
+   ```jsx
+   { /^\d{2}:\d{2}$/.test(field.value || '')
+     ? format(new Date(`2000-01-01T${field.value}`), 'h:mm a')
+     : '—' }
+Default slot on mount
+After you call setAvailableTimeSlots(slots), if scheduleDetailsForm.getValues().appointmentTime is empty and slots[0].available is true, do:
+
+ts
+Copy
+Edit
+scheduleDetailsForm.setValue('appointmentTime', slots[0].time, {
+  shouldDirty: true, shouldValidate: true
+});
+External wizard hookup
+In src/pages/booking/external-booking.tsx, in your Step 3 appointmentTime field, remove the hard‑coded timeSlots array and instead read from a new availableTimeSlots state (populated exactly the same way as in UnifiedAppointmentForm via generateAvailableTimeSlots and your availability API). Ensure you wait for that data before rendering the dropdown.
+
+Clean up
+Delete any fallback arrays or sample data in both places. Make both internal and external use one shared hook/context that fetches and stores availableTimeSlots.
+
+Tests
+
+Unit: Render UnifiedAppointmentForm with no initial time → assert you see “—” not a crash.
+
+Unit: Mock generateAvailableTimeSlots to return two slots → assert scheduleDetailsForm.getValues().appointmentTime === slots[0].time.
+
+Integration (Cypress):
+
+Internal: open “New Appointment,” see no runtime error, dropdown lists real slots.
+
+External: go through Step 1→2→3, select date, see real availability.
+
+Please bundle all code changes, shared hook extraction, and tests into a single cohesive PR so we can restore full scheduling stability across both flows.
