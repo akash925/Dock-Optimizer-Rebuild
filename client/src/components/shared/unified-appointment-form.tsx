@@ -999,8 +999,13 @@ export default function UnifiedAppointmentForm({
                             <Input 
                               type="date" 
                               value={field.value || ''} 
-                              onChange={(e) => field.onChange(e.target.value)}
+                              onChange={(e) => {
+                                console.log("Date changed to:", e.target.value);
+                                field.onChange(e.target.value);
+                              }}
                               min={format(new Date(), "yyyy-MM-dd")}
+                              className="w-full"
+                              placeholder="mm/dd/yyyy"
                             />
                           </FormControl>
                         </div>
@@ -1015,45 +1020,44 @@ export default function UnifiedAppointmentForm({
                   <FormField
                     control={scheduleDetailsForm.control}
                     name="appointmentTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Appointment Time*</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select time">
-                                {field.value && (
-                                  <div className="flex items-center">
-                                    <Clock className="mr-2 h-4 w-4" />
-                                    {field.value}
-                                  </div>
-                                )}
-                              </SelectValue>
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {/* Generate time slots */}
-                            {Array.from({ length: 24 }).map((_, hour) => (
-                              Array.from({ length: 4 }).map((_, quarterHour) => {
-                                const h = hour;
-                                const m = quarterHour * 15;
-                                const timeValue = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                                const timeDisplay = format(new Date().setHours(h, m), 'h:mm a');
-                                return (
-                                  <SelectItem key={timeValue} value={timeValue}>
-                                    {timeDisplay}
-                                  </SelectItem>
-                                );
-                              })
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      console.log("Appointment time field value:", field.value);
+                      return (
+                        <FormItem>
+                          <FormLabel>Appointment Time*</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                              console.log("Setting time to:", value);
+                              field.onChange(value);
+                            }}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select time" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {/* Generate time slots */}
+                              {Array.from({ length: 24 }).map((_, hour) => 
+                                Array.from({ length: 4 }).map((_, quarterHour) => {
+                                  const h = hour;
+                                  const m = quarterHour * 15;
+                                  const timeValue = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                                  const timeDisplay = format(new Date().setHours(h, m), 'h:mm a');
+                                  return (
+                                    <SelectItem key={`${h}-${m}`} value={timeValue}>
+                                      {timeDisplay}
+                                    </SelectItem>
+                                  );
+                                })
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
                 
@@ -1064,10 +1068,20 @@ export default function UnifiedAppointmentForm({
                     name="dockId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Dock</FormLabel>
+                        <FormLabel className="flex items-center gap-1">
+                          Dock 
+                          <span className="text-muted-foreground text-xs font-normal">(optional)</span>
+                        </FormLabel>
                         <Select 
-                          onValueChange={(value) => field.onChange(parseInt(value))} 
-                          defaultValue={field.value?.toString()}
+                          onValueChange={(value) => {
+                            // Handle the 'none' case
+                            if (value === 'none') {
+                              field.onChange(undefined);
+                            } else {
+                              field.onChange(parseInt(value));
+                            }
+                          }}
+                          value={field.value ? field.value.toString() : undefined}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -1075,6 +1089,7 @@ export default function UnifiedAppointmentForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="none">No dock selected</SelectItem>
                             {docks.length > 0 ? (
                               docks.map((dock) => (
                                 <SelectItem key={dock.id} value={dock.id.toString()}>
@@ -1086,6 +1101,9 @@ export default function UnifiedAppointmentForm({
                             )}
                           </SelectContent>
                         </Select>
+                        <FormDescription>
+                          You can leave this field empty if no specific dock is needed
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
