@@ -411,34 +411,50 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
     const fetchAvailableTimes = async () => {
       try {
         setLoading(true);
+        setAvailableTimes([]); // Clear previous times while loading
         
         // Format the date for the API
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
+        
+        console.log(`Fetching available times for date=${dateStr}, facilityId=${bookingData.facilityId}, appointmentTypeId=${bookingData.appointmentTypeId}`);
         
         // Call the API to get available times
         const response = await fetch(`/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&appointmentTypeId=${bookingData.appointmentTypeId}`);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch available times');
+          const errorText = await response.text();
+          console.error(`API Error (${response.status}):`, errorText);
+          throw new Error(`Failed to fetch available times: ${response.status} ${errorText}`);
         }
         
         const data = await response.json();
+        console.log("Available times response:", data);
         
         // Set the available times
-        setAvailableTimes(data.availableTimes || []);
+        const sortedTimes = [...(data.availableTimes || [])].sort();
+        setAvailableTimes(sortedTimes);
         
         // If we previously had a selected time on this date, check if it's still available
         if (bookingData.startTime) {
           const existingTimeString = format(new Date(bookingData.startTime), 'HH:mm');
-          if (!data.availableTimes.includes(existingTimeString)) {
+          if (!sortedTimes.includes(existingTimeString)) {
+            // Previous time is no longer available
             setSelectedTime('');
           } else {
             setSelectedTime(existingTimeString);
           }
+        } else {
+          // No time was previously selected
+          setSelectedTime('');
+        }
+        
+        if (sortedTimes.length === 0) {
+          console.log("No available times for selected date");
         }
       } catch (error) {
         console.error('Error fetching available times:', error);
         setAvailableTimes([]);
+        setSelectedTime('');
       } finally {
         setLoading(false);
       }
@@ -519,17 +535,27 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         ) : selectedDate ? (
           availableTimes.length > 0 ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {availableTimes.map((time) => (
-                <Button
-                  key={time}
-                  type="button"
-                  variant={selectedTime === time ? "default" : "outline"}
-                  className={selectedTime === time ? "booking-button" : "booking-button-secondary"}
-                  onClick={() => handleTimeChange(time)}
-                >
-                  {time}
-                </Button>
-              ))}
+              {availableTimes.map((time) => {
+                // Create a date object from the time string for display formatting
+                const [hours, minutes] = time.split(':').map(Number);
+                const timeObj = new Date();
+                timeObj.setHours(hours, minutes, 0, 0);
+                
+                // Format for display (e.g., "9:30 AM")
+                const displayTime = format(timeObj, 'h:mm a');
+                
+                return (
+                  <Button
+                    key={time}
+                    type="button"
+                    variant={selectedTime === time ? "default" : "outline"}
+                    className={selectedTime === time ? "booking-button" : "booking-button-secondary"}
+                    onClick={() => handleTimeChange(time)}
+                  >
+                    {displayTime}
+                  </Button>
+                );
+              })}
             </div>
           ) : (
             <Alert>
