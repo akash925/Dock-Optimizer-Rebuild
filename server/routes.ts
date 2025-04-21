@@ -1748,7 +1748,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { date, facilityId, appointmentTypeId } = req.query;
       
+      // INSTRUMENTATION: Log the incoming request parameters
+      console.log("===== /api/availability ENDPOINT INSTRUMENTATION =====");
+      console.log("REQUEST PARAMETERS:", { date, facilityId, appointmentTypeId });
+      
       if (!date || !facilityId || !appointmentTypeId) {
+        console.log("VALIDATION ERROR: Missing required parameters");
         return res.status(400).json({ 
           message: "Missing required parameters: date, facilityId, and appointmentTypeId are required" 
         });
@@ -1762,11 +1767,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the appointment type to determine duration and other settings
       const appointmentType = await storage.getAppointmentType(parsedAppointmentTypeId);
       if (!appointmentType) {
+        console.log("VALIDATION ERROR: Appointment type not found");
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
+      // INSTRUMENTATION: Log the appointment type with override flag
+      console.log("APPOINTMENT TYPE:", {
+        id: appointmentType.id,
+        name: appointmentType.name,
+        facilityId: appointmentType.facilityId,
+        duration: appointmentType.duration,
+        overrideFacilityHours: appointmentType.overrideFacilityHours
+      });
+      
       // Check if appointment type belongs to the requested facility
       if (appointmentType.facilityId !== parsedFacilityId) {
+        console.log("VALIDATION ERROR: Appointment type does not belong to facility");
         return res.status(400).json({ 
           message: "The appointment type does not belong to the specified facility" 
         });
@@ -1775,13 +1791,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get facility to determine timezone
       const facility = await storage.getFacility(parsedFacilityId);
       if (!facility) {
+        console.log("VALIDATION ERROR: Facility not found");
         return res.status(404).json({ message: "Facility not found" });
       }
+      
+      // INSTRUMENTATION: Log the facility info
+      console.log("FACILITY:", {
+        id: facility.id,
+        name: facility.name,
+        timezone: facility.timezone
+      });
       
       // Get facility appointment settings
       const facilitySettings = await storage.getAppointmentSettings(parsedFacilityId);
       if (!facilitySettings && !appointmentType.overrideFacilityHours) {
+        console.log("VALIDATION ERROR: Facility appointment settings not found");
         return res.status(404).json({ message: "Facility appointment settings not found" });
+      }
+      
+      // INSTRUMENTATION: Log facility settings (hours)
+      if (facilitySettings) {
+        console.log("FACILITY HOURS:", {
+          monday: facilitySettings.monday ? `${facilitySettings.mondayStartTime}-${facilitySettings.mondayEndTime}` : "Closed",
+          tuesday: facilitySettings.tuesday ? `${facilitySettings.tuesdayStartTime}-${facilitySettings.tuesdayEndTime}` : "Closed",
+          wednesday: facilitySettings.wednesday ? `${facilitySettings.wednesdayStartTime}-${facilitySettings.wednesdayEndTime}` : "Closed",
+          thursday: facilitySettings.thursday ? `${facilitySettings.thursdayStartTime}-${facilitySettings.thursdayEndTime}` : "Closed",
+          friday: facilitySettings.friday ? `${facilitySettings.fridayStartTime}-${facilitySettings.fridayEndTime}` : "Closed",
+          saturday: facilitySettings.saturday ? `${facilitySettings.saturdayStartTime}-${facilitySettings.saturdayEndTime}` : "Closed",
+          sunday: facilitySettings.sunday ? `${facilitySettings.sundayStartTime}-${facilitySettings.sundayEndTime}` : "Closed"
+        });
+      } else {
+        console.log("FACILITY HOURS: None configured");
       }
       
       // Use appointment-availability.ts logic by importing it directly
@@ -1791,7 +1831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if this appointment type overrides facility hours
       if (appointmentType.overrideFacilityHours) {
-        console.log(`Appointment type ${appointmentType.id} overrides facility hours, allowing all time slots`);
+        console.log(`AVAILABILITY STRATEGY: Appointment type ${appointmentType.id} overrides facility hours, allowing all time slots`);
         
         // Generate all slots as available since this type ignores facility hours
         timeSlots = generateAvailableTimeSlots(
@@ -1802,13 +1842,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           15 // 15-minute intervals
         );
       } else {
-        console.log(`Using facility hours for appointment type ${appointmentType.id}`);
+        console.log(`AVAILABILITY STRATEGY: Using facility hours for appointment type ${appointmentType.id}`);
         
         // If facility settings exist, create availability rules from them
         if (facilitySettings) {
           // Parse the day of week from the date
           const dateObj = new Date(parsedDate);
           const dayOfWeek = dateObj.getDay(); // 0-6, Sunday-Saturday
+          console.log(`AVAILABILITY CONTEXT: Checking for day ${dayOfWeek} (${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek]})`);
           
           // Get the appropriate day's hours from facility settings
           let isAvailable = false;
@@ -1879,6 +1920,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               break;
           }
           
+          // INSTRUMENTATION: Log the specific day's rule
+          console.log(`DAY AVAILABILITY:`, {
+            day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek],
+            isAvailable,
+            hours: isAvailable ? `${startTime}-${endTime}` : "Closed",
+            breakTime: isAvailable ? `${breakStartTime}-${breakEndTime}` : "N/A",
+            maxAppointments
+          });
+          
           // Create a facility rule for this specific day
           const facilityRule = {
             id: 0, // Placeholder ID
@@ -1907,6 +1957,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
         } else {
           // If no facility settings, generate slots with no restrictions
+          console.log("AVAILABILITY STRATEGY: No facility settings found, generating all slots as available");
           timeSlots = generateAvailableTimeSlots(
             parsedDate,
             [],
@@ -1917,13 +1968,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // INSTRUMENTATION: Log the generated time slots (sample of first 5)
+      console.log("GENERATED TIME SLOTS (sample):", timeSlots.slice(0, 5));
+      
+      // Count available slots
+      const availableSlotCount = timeSlots.filter(slot => slot.available).length;
+      console.log(`AVAILABILITY SUMMARY: Generated ${timeSlots.length} total slots, ${availableSlotCount} available`);
+      
       // Include all time slots with their full details (including remaining capacity)
       // For backward compatibility, also include the original availableTimes array
       const availableTimes = timeSlots
         .filter(slot => slot.available)
         .map(slot => slot.time);
       
-      res.json({ 
+      // Create response object
+      const responseData = { 
         slots: timeSlots, // Full slot objects with remaining capacity information
         availableTimes,   // Original format for backward compatibility
         date: parsedDate,
@@ -1931,7 +1990,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appointmentTypeId: parsedAppointmentTypeId,
         appointmentTypeDuration: appointmentType.duration,
         timezone: appointmentType.timezone || facility.timezone || 'America/New_York'
+      };
+      
+      // INSTRUMENTATION: Log the response structure
+      console.log("RESPONSE STRUCTURE:", {
+        hasSlots: !!responseData.slots,
+        slotCount: responseData.slots?.length,
+        hasAvailableTimes: !!responseData.availableTimes,
+        availableTimesCount: responseData.availableTimes?.length,
+        firstAvailableSlot: responseData.availableTimes?.[0] || null
       });
+      console.log("===== END /api/availability INSTRUMENTATION =====");
+      
+      // Send the response
+      res.json(responseData);
     } catch (err) {
       console.error("Error calculating availability:", err);
       res.status(500).json({ 
