@@ -6,7 +6,7 @@ import { Schedule } from '@shared/schema';
 
 export interface UseAppointmentAvailabilityProps {
   facilityId?: number | null;
-  appointmentTypeId?: number | null;
+  typeId?: number | null;  // Changed from appointmentTypeId to typeId to match server API expectations
   facilityTimezone?: string;
   date?: string | Date | null;
   duration?: number;
@@ -22,7 +22,7 @@ interface BookedAppointment {
 
 export function useAppointmentAvailability({
   facilityId,
-  appointmentTypeId,
+  typeId,  // Changed from appointmentTypeId to typeId
   facilityTimezone = 'America/New_York',
   date,
   duration = 60,
@@ -44,7 +44,7 @@ export function useAppointmentAvailability({
       const params = new URLSearchParams();
       params.append('date', dateStr);
       params.append('facilityId', facilityId.toString());
-      if (appointmentTypeId) params.append('typeId', appointmentTypeId.toString());
+      if (typeId) params.append('typeId', typeId.toString());  // Changed from appointmentTypeId to typeId
       
       const endpoint = `/api/schedules?${params.toString()}`;
       console.log('Fetching existing appointments for:', endpoint);
@@ -70,11 +70,11 @@ export function useAppointmentAvailability({
       console.error('Error fetching existing appointments:', err);
       return [];
     }
-  }, [facilityId, appointmentTypeId]);
+  }, [facilityId, typeId]);  // Changed from appointmentTypeId to typeId
   
   // Fetch availability rules
   const fetchAvailabilityRules = useCallback(async () => {
-    if (!facilityId && !appointmentTypeId) return;
+    if (!facilityId && !typeId) return;  // Changed from appointmentTypeId to typeId
 
     setIsLoading(true);
     setError(null);
@@ -83,7 +83,7 @@ export function useAppointmentAvailability({
       // Construct query parameters
       const params = new URLSearchParams();
       if (facilityId) params.append('facilityId', facilityId.toString());
-      if (appointmentTypeId) params.append('typeId', appointmentTypeId.toString()); // Changed from appointmentTypeId to typeId
+      if (typeId) params.append('typeId', typeId.toString()); // Using typeId parameter to match server expectations
 
       const endpoint = `/api/appointment-master/availability-rules?${params.toString()}`;
       const res = await apiRequest('GET', endpoint);
@@ -102,7 +102,7 @@ export function useAppointmentAvailability({
     } finally {
       setIsLoading(false);
     }
-  }, [facilityId, appointmentTypeId]);
+  }, [facilityId, typeId]);
 
   // Generate available time slots based on rules and date
   const generateTimeSlots = useCallback(async () => {
@@ -359,7 +359,7 @@ export function useAppointmentAvailability({
     });
   };
 
-  // When facilityId or appointmentTypeId changes, fetch rules
+  // When facilityId or typeId changes, fetch rules
   useEffect(() => {
     fetchAvailabilityRules();
   }, [fetchAvailabilityRules]);

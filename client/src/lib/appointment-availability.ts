@@ -33,8 +33,9 @@ interface ValidationResult {
 /**
  * Fetch availability rules from the server
  */
-export async function fetchAvailabilityRules(appointmentTypeId: number, facilityId: number): Promise<AvailabilityRule[]> {
-  const response = await fetch(`/api/appointment-master/availability-rules?typeId=${appointmentTypeId}&facilityId=${facilityId}`);
+export async function fetchAvailabilityRules(typeId: number, facilityId: number): Promise<AvailabilityRule[]> {
+  // Using typeId as parameter name to match server API expectations
+  const response = await fetch(`/api/appointment-master/availability-rules?typeId=${typeId}&facilityId=${facilityId}`);
   
   if (!response.ok) {
     throw new Error('Failed to fetch availability rules');

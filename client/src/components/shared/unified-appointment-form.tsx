@@ -425,7 +425,7 @@ export default function UnifiedAppointmentForm({
     error: availabilityHookError
   } = useAppointmentAvailability({
     facilityId: selectedFacilityId,
-    appointmentTypeId: appointmentTypeId || selectedAppointmentType?.id,
+    typeId: appointmentTypeId || selectedAppointmentType?.id,  // Changed from appointmentTypeId to typeId to match hook interface
     facilityTimezone,
     date: scheduleDetailsForm.watch("appointmentDate"),
     duration: selectedAppointmentType?.duration || 60,
