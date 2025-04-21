@@ -47,12 +47,6 @@ const bookingPageFormSchema = insertBookingPageSchema.extend({
   title: z.string().min(3, "Title must be at least 3 characters"),
 });
 
-type BookingPageFormProps = {
-  bookingPage?: BookingPage;
-  onSuccess: () => void;
-  onCancel: () => void;
-};
-
 // Type definitions for facilities and appointment types
 type Facility = {
   id: number;
@@ -72,6 +66,33 @@ type AppointmentType = {
   color: string;
   type: string;
   [key: string]: any;
+};
+
+// Full booking page type definition
+type BookingPage = {
+  id: number;
+  name: string;
+  slug: string;
+  title: string;
+  description?: string;
+  welcomeMessage?: string;
+  confirmationMessage?: string;
+  isActive: boolean;
+  facilities: number[] | Record<string, any>; // Can be array or object
+  excludedAppointmentTypes?: number[];
+  useOrganizationLogo: boolean;
+  customLogo?: string | null;
+  primaryColor?: string;
+  createdBy: number;
+  createdAt: string | Date;
+  lastModifiedAt?: string | Date | null;
+  lastModifiedBy?: number | null;
+};
+
+type BookingPageFormProps = {
+  bookingPage?: BookingPage;
+  onSuccess: () => void;
+  onCancel: () => void;
 };
 
 export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: BookingPageFormProps) {
@@ -131,38 +152,55 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
   // Initialize selected facilities and appointment types if editing
   useEffect(() => {
     if (bookingPage && bookingPage.facilities) {
-      if (typeof bookingPage.facilities === 'object' && bookingPage.facilities !== null) {
-        // Extract facility IDs
-        const facilityIds = Object.keys(bookingPage.facilities).map(id => Number(id));
+      // Type checking for facilities
+      let facilityIds: number[] = [];
+
+      // Handle different formats of facilities data
+      if (Array.isArray(bookingPage.facilities)) {
+        // Direct array of facility IDs
+        facilityIds = bookingPage.facilities as number[];
         setSelectedFacilities(facilityIds);
+      } else if (typeof bookingPage.facilities === 'object' && bookingPage.facilities !== null) {
+        // Legacy format - object with facility IDs as keys
+        facilityIds = Object.keys(bookingPage.facilities).map(id => Number(id));
+        setSelectedFacilities(facilityIds);
+      }
+      
+      // If we have facilities and appointment types data, set up the appointment types
+      if (facilityIds.length > 0 && facilities && appointmentTypes) {
+        const typesMap: Record<number, number[]> = {};
         
-        // Extract appointment types for each facility
-        const appointmentTypesMap: Record<number, number[]> = {};
+        // Initialize with empty arrays for each selected facility
+        facilityIds.forEach(facilityId => {
+          typesMap[facilityId] = [];
+        });
         
-        Object.entries(bookingPage.facilities).forEach(([facilityId, facilityData]) => {
-          const facilityIdNum = Number(facilityId);
+        // Get all excluded appointment types
+        const excludedTypes = bookingPage.excludedAppointmentTypes 
+          ? (bookingPage.excludedAppointmentTypes as number[]) 
+          : [];
+        
+        // For each facility, add all appointment types for that facility that are not excluded
+        Object.values(appointmentTypes).forEach(type => {
+          const facilityId = type.facilityId;
           
-          if (facilityData && facilityData.appointmentTypes) {
-            const appointmentTypeIds = Object.keys(facilityData.appointmentTypes)
-              .filter(typeId => facilityData.appointmentTypes[typeId]?.selected)
-              .map(id => Number(id));
-              
-            appointmentTypesMap[facilityIdNum] = appointmentTypeIds;
-          } else {
-            appointmentTypesMap[facilityIdNum] = [];
+          // Only process if this facility is selected
+          if (facilityIds.includes(facilityId)) {
+            // Add the appointment type if it's not excluded
+            if (!excludedTypes.includes(type.id)) {
+              typesMap[facilityId] = [...(typesMap[facilityId] || []), type.id];
+            }
           }
         });
         
-        setSelectedAppointmentTypes(appointmentTypesMap);
-        
-        // Set initial open accordion items for facilities with selections
-        const openItems = facilityIds.map(id => `facility-${id}`);
-        setOpenAccordionItems(openItems);
-      } else if (Array.isArray(bookingPage.facilities)) {
-        setSelectedFacilities(bookingPage.facilities);
+        setSelectedAppointmentTypes(typesMap);
       }
+      
+      // Set initial open accordion items for facilities with selections
+      const openItems = facilityIds.map(id => `facility-${id}`);
+      setOpenAccordionItems(openItems);
     }
-  }, [bookingPage]);
+  }, [bookingPage, facilities, appointmentTypes]);
   
   // Filtered appointment types based on search term
   const filteredAppointmentTypes = useMemo(() => {
@@ -210,32 +248,24 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     if (!bookingPage) return;
     
     try {
-      // Convert to the expected format
-      const facilitiesData: Record<string, any> = {};
+      // Set up the appointment types to exclude (inverse of included types)
+      const allAppointmentTypeIds = Object.values(appointmentTypes).map(t => t.id);
+      const includedAppointmentTypes: number[] = [];
       
-      selectedFacilities.forEach(facilityId => {
-        facilitiesData[facilityId] = {
-          selected: true,
-          appointmentTypes: {}
-        };
-        
-        const selectedTypes = appointmentTypesMap[facilityId] || [];
-        
-        if (appointmentTypes) {
-          Object.keys(appointmentTypes)
-            .map(Number)
-            .filter(typeId => appointmentTypes[typeId].facilityId === facilityId)
-            .forEach(typeId => {
-              facilitiesData[facilityId].appointmentTypes[typeId] = {
-                selected: selectedTypes.includes(typeId)
-              };
-            });
-        }
+      // Gather all selected appointment types across facilities
+      Object.entries(appointmentTypesMap).forEach(([facilityId, typeIds]) => {
+        includedAppointmentTypes.push(...typeIds);
       });
+      
+      // Find appointment types to exclude
+      const excludedAppointmentTypes = allAppointmentTypeIds.filter(
+        id => !includedAppointmentTypes.includes(id)
+      );
       
       const payload = {
         ...form.getValues(),
-        facilities: facilitiesData
+        facilities: selectedFacilities,
+        excludedAppointmentTypes: excludedAppointmentTypes
       };
       
       await apiRequest('PUT', `/api/booking-pages/${bookingPage.id}`, payload);
@@ -248,35 +278,25 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
   // Create mutation
   const createMutation = useMutation({
     mutationFn: async (data: z.infer<typeof bookingPageFormSchema>) => {
-      // Convert selected facilities to the expected format (JSON object)
-      const facilitiesData: Record<string, any> = {};
+      // Set up the appointment types to exclude (inverse of included types)
+      const allAppointmentTypeIds = Object.values(appointmentTypes).map(t => t.id);
+      const includedAppointmentTypes: number[] = [];
       
-      selectedFacilities.forEach(facilityId => {
-        facilitiesData[facilityId] = {
-          selected: true,
-          appointmentTypes: {}
-        };
-        
-        const selectedTypes = selectedAppointmentTypes[facilityId] || [];
-        
-        if (appointmentTypes) {
-          Object.keys(appointmentTypes)
-            .map(Number)
-            .filter(typeId => appointmentTypes[typeId].facilityId === facilityId)
-            .forEach(typeId => {
-              if (!facilitiesData[facilityId].appointmentTypes) {
-                facilitiesData[facilityId].appointmentTypes = {};
-              }
-              facilitiesData[facilityId].appointmentTypes[typeId] = {
-                selected: selectedTypes.includes(typeId)
-              };
-            });
-        }
+      // Gather all selected appointment types across facilities
+      Object.entries(selectedAppointmentTypes).forEach(([facilityId, typeIds]) => {
+        includedAppointmentTypes.push(...typeIds);
       });
+      
+      // Find appointment types to exclude
+      const excludedAppointmentTypes = allAppointmentTypeIds.filter(
+        id => !includedAppointmentTypes.includes(id)
+      );
 
+      // Create the payload with the proper structure expected by the API
       const payload = {
         ...data,
-        facilities: facilitiesData
+        facilities: selectedFacilities,
+        excludedAppointmentTypes: excludedAppointmentTypes
       };
 
       const response = await apiRequest('POST', '/api/booking-pages', payload);
@@ -306,35 +326,25 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     mutationFn: async (data: z.infer<typeof bookingPageFormSchema>) => {
       if (!bookingPage) return null;
 
-      // Convert selected facilities to the expected format (JSON object)
-      const facilitiesData: Record<string, any> = {};
+      // Set up the appointment types to exclude (inverse of included types)
+      const allAppointmentTypeIds = Object.values(appointmentTypes).map(t => t.id);
+      const includedAppointmentTypes: number[] = [];
       
-      selectedFacilities.forEach(facilityId => {
-        facilitiesData[facilityId] = {
-          selected: true,
-          appointmentTypes: {}
-        };
-        
-        const selectedTypes = selectedAppointmentTypes[facilityId] || [];
-        
-        if (appointmentTypes) {
-          Object.keys(appointmentTypes)
-            .map(Number)
-            .filter(typeId => appointmentTypes[typeId].facilityId === facilityId)
-            .forEach(typeId => {
-              if (!facilitiesData[facilityId].appointmentTypes) {
-                facilitiesData[facilityId].appointmentTypes = {};
-              }
-              facilitiesData[facilityId].appointmentTypes[typeId] = {
-                selected: selectedTypes.includes(typeId)
-              };
-            });
-        }
+      // Gather all selected appointment types across facilities
+      Object.entries(selectedAppointmentTypes).forEach(([facilityId, typeIds]) => {
+        includedAppointmentTypes.push(...typeIds);
       });
+      
+      // Find appointment types to exclude
+      const excludedAppointmentTypes = allAppointmentTypeIds.filter(
+        id => !includedAppointmentTypes.includes(id)
+      );
 
+      // Create the payload with the proper structure expected by the API
       const payload = {
         ...data,
-        facilities: facilitiesData
+        facilities: selectedFacilities,
+        excludedAppointmentTypes: excludedAppointmentTypes
       };
 
       const response = await apiRequest('PUT', `/api/booking-pages/${bookingPage.id}`, payload);
@@ -382,7 +392,21 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     if (checked) {
       setSelectedFacilities(prev => [...prev, facilityId]);
     } else {
+      // Remove the facility
       setSelectedFacilities(prev => prev.filter(id => id !== facilityId));
+      
+      // Also remove associated appointment types
+      setSelectedAppointmentTypes(prev => {
+        const updated = { ...prev };
+        delete updated[facilityId];
+        
+        // Update booking page in real-time if we're editing
+        if (bookingPage) {
+          updateAppointmentTypesInBookingPage(updated);
+        }
+        
+        return updated;
+      });
     }
   };
 
