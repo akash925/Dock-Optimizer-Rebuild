@@ -572,7 +572,7 @@ function BookingWizardContent({
         <Card className="w-full md:max-w-3xl mx-auto mb-8">
           <CardHeader className="pb-6">
             <div className="flex justify-center mb-4">
-              <img src={bookingPage.logoUrl || hanzoLogo} alt="Company Logo" className="h-12" />
+              <img src={bookingPage?.customLogo || hanzoLogo} alt="Company Logo" className="h-12" />
             </div>
             <CardTitle className="text-center">{bookingPage.title || "Schedule an Appointment"}</CardTitle>
             <CardDescription className="text-center">{bookingPage.description || "Please select your preferences to begin."}</CardDescription>
@@ -792,7 +792,7 @@ function BookingWizardContent({
         <Card className="w-full md:max-w-3xl mx-auto mb-8">
           <CardHeader className="pb-6">
             <div className="flex justify-center mb-4">
-              <img src={bookingPage.logoUrl || hanzoLogo} alt="Company Logo" className="h-12" />
+              <img src={bookingPage?.customLogo || hanzoLogo} alt="Company Logo" className="h-12" />
             </div>
             <CardTitle className="text-center">{bookingPage.title || "Schedule an Appointment"}</CardTitle>
             <CardDescription className="text-center">{bookingPage.description || "Please provide your company and contact information."}</CardDescription>
@@ -899,7 +899,7 @@ function BookingWizardContent({
         <Card className="w-full md:max-w-3xl mx-auto mb-8">
           <CardHeader className="pb-6">
             <div className="flex justify-center mb-4">
-              <img src={bookingPage.logoUrl || hanzoLogo} alt="Company Logo" className="h-12" />
+              <img src={bookingPage?.customLogo || hanzoLogo} alt="Company Logo" className="h-12" />
             </div>
             <CardTitle className="text-center">{bookingPage.title || "Schedule an Appointment"}</CardTitle>
             <CardDescription className="text-center">{bookingPage.description || "Please provide appointment details."}</CardDescription>

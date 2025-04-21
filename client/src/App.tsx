@@ -7,7 +7,7 @@ import Schedules from "@/pages/schedules";
 import DockStatus from "@/pages/dock-status";
 import DoorManager from "@/pages/door-manager";
 import BasicDoorManager from "@/pages/basic-door-manager";
-import ExternalBooking from "@/pages/external-booking-refactored";
+import ExternalBooking from "@/pages/external-booking-fixed";
 import BookingConfirmation from "@/pages/booking-confirmation";
 import DriverCheckIn from "@/pages/driver-check-in";
 import Analytics from "@/pages/analytics";
