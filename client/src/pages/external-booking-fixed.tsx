@@ -17,6 +17,7 @@ import { FileUpload } from '@/components/ui/file-upload';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider, useBookingTheme } from '@/contexts/BookingThemeContext';
 import '../styles/booking-wizard.css';
+import hanzoLogo from '@assets/hanzo logo.jpeg';
 
 // Main component
 export default function ExternalBooking() {
@@ -297,25 +298,20 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
             <SelectValue placeholder="Select Dock Appointment Type" />
           </SelectTrigger>
           <SelectContent>
-            {availableFacilities?.map((facility: any) => {
-              const facilityTypes = getFacilityAppointmentTypes(facility.id);
+            {appointmentTypes && Array.isArray(appointmentTypes) && appointmentTypes.map((type: any) => {
+              // Find the facility for this appointment type
+              const facility = facilities?.find((f: any) => f.id === type.facilityId);
               
-              if (facilityTypes.length === 0) return null;
+              if (!facility) return null;
               
-              return [
-                <SelectItem key={`group-${facility.id}`} value={`group-${facility.id}`} disabled>
-                  {facility.name}
-                </SelectItem>,
-                ...facilityTypes.map((type: any) => (
-                  <SelectItem 
-                    key={type.id} 
-                    value={type.id.toString()}
-                    className="ml-2"
-                  >
-                    {type.name} ({type.duration} min)
-                  </SelectItem>
-                ))
-              ];
+              return (
+                <SelectItem 
+                  key={type.id} 
+                  value={type.id.toString()}
+                >
+                  {type.name} ({type.duration} min) - {facility.name}
+                </SelectItem>
+              );
             })}
           </SelectContent>
         </Select>
@@ -339,6 +335,30 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
           </SelectContent>
         </Select>
       </div>
+      
+      {/* Facility information display */}
+      {bookingData.facilityId && (
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg border text-sm">
+          <h3 className="font-semibold mb-2">HANZO LOGISTICS INC.</h3>
+          <p className="mb-2">Select from the following locations:</p>
+          <div className="space-y-1">
+            {facilities && Array.isArray(facilities) && facilities.map((facility: any) => (
+              <div 
+                key={facility.id} 
+                className={`flex ${facility.id === bookingData.facilityId ? 'font-semibold' : ''}`}
+              >
+                {facility.id === bookingData.facilityId && (
+                  <div className="mr-2">✓</div>
+                )}
+                <div className={facility.id === bookingData.facilityId ? '' : 'ml-6'}>
+                  {facility.name} {facility.address}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4">Please arrive 15 minutes before your appointment and check in at the office.</p>
+        </div>
+      )}
       
       <div className="booking-nav-buttons">
         <div></div> {/* Empty div for spacing */}

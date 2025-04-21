@@ -5,6 +5,7 @@ interface BookingFormData {
   // Step 1: Select Service
   appointmentTypeId: number | null;
   facilityId: number | null;
+  type: string; // Pickup or Dropoff
   
   // Step 2: Select Date and Time
   startTime: Date | null; 
@@ -41,6 +42,7 @@ interface BookingFormData {
 const defaultBookingData: BookingFormData = {
   appointmentTypeId: null,
   facilityId: null,
+  type: '',
   startTime: null,
   endTime: null,
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
