@@ -196,6 +196,12 @@ export default function UnifiedAppointmentForm({
   const [bolProcessing, setBolProcessing] = useState(false);
   const [bolPreviewText, setBolPreviewText] = useState<string | null>(null);
   
+  // State for availability rules
+  const [availabilityRules, setAvailabilityRules] = useState<any[]>([]);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<{ time: string; available: boolean; reason?: string }[]>([]);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -393,6 +399,92 @@ export default function UnifiedAppointmentForm({
     }
   }, [initialDockId, scheduleDetailsForm, initialData]);
   
+  // Fetch availability rules when appointment type and facility are known
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      if (!appointmentTypeId || !selectedFacilityId) return;
+      
+      setIsLoadingAvailability(true);
+      setAvailabilityError(null);
+      
+      try {
+        const response = await apiRequest(
+          "GET", 
+          `/api/appointment-master/availability-rules?typeId=${appointmentTypeId}&facilityId=${selectedFacilityId}`
+        );
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch availability rules");
+        }
+        
+        const data = await response.json();
+        setAvailabilityRules(data);
+        
+        // Generate available slots for the selected date if we have one
+        if (scheduleDetailsForm.getValues().appointmentDate) {
+          const date = scheduleDetailsForm.getValues().appointmentDate;
+          const duration = selectedAppointmentType?.duration || 60;
+          
+          // Import functions from appointment-availability.ts
+          import("@/lib/appointment-availability").then(({ generateAvailableTimeSlots }) => {
+            const slots = generateAvailableTimeSlots(
+              date,
+              data,
+              duration,
+              facilityTimezone,
+              15 // 15-minute intervals
+            );
+            setAvailableTimeSlots(slots);
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch availability rules:", error);
+        setAvailabilityError("Failed to fetch availability rules. Please try again.");
+      } finally {
+        setIsLoadingAvailability(false);
+      }
+    };
+    
+    fetchAvailability();
+  }, [appointmentTypeId, selectedFacilityId, facilityTimezone, selectedAppointmentType?.duration]);
+  
+  // Update available time slots when date changes
+  useEffect(() => {
+    const updateAvailableSlots = async () => {
+      if (!scheduleDetailsForm.watch("appointmentDate") || !availabilityRules.length) return;
+      
+      const date = scheduleDetailsForm.watch("appointmentDate");
+      const duration = selectedAppointmentType?.duration || 60;
+      
+      // Import functions from appointment-availability.ts
+      const { generateAvailableTimeSlots } = await import("@/lib/appointment-availability");
+      
+      const slots = generateAvailableTimeSlots(
+        date,
+        availabilityRules,
+        duration,
+        facilityTimezone,
+        15 // 15-minute intervals
+      );
+      
+      setAvailableTimeSlots(slots);
+      
+      // If the currently selected time is not available, reset the time field
+      const currentTime = scheduleDetailsForm.getValues().appointmentTime;
+      if (currentTime) {
+        const currentSlot = slots.find(slot => slot.time === currentTime);
+        if (currentSlot && !currentSlot.available) {
+          scheduleDetailsForm.setValue("appointmentTime", "", {
+            shouldValidate: true,
+            shouldDirty: true
+          });
+        }
+      }
+    };
+    
+    updateAvailableSlots();
+  }, [scheduleDetailsForm.watch("appointmentDate"), availabilityRules, selectedAppointmentType?.duration, facilityTimezone]);
+  
   // Callbacks for form submission
   // Handler for carrier selection
   const handleCarrierSelect = (carrier: Carrier) => {
@@ -522,45 +614,64 @@ export default function UnifiedAppointmentForm({
         return;
       }
       
-      // Create Date object from input with validation
-      let startTime: Date;
-      try {
-        const rawStartTime = new Date(`${appointmentDate}T${appointmentTime}`);
-        
-        // Validate that we have a proper date
-        if (isNaN(rawStartTime.getTime())) {
-          throw new Error("Invalid date created from inputs");
-        }
-        
-        // Check if date is in the past
-        const now = new Date();
-        if (rawStartTime < now) {
-          // If it's today, check if the time has passed
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
+      // Validate against availability rules if they exist
+      if (availabilityRules && availabilityRules.length > 0) {
+        try {
+          // Dynamically import validation function
+          const { validateAppointmentDateTime } = await import("@/lib/appointment-availability");
           
-          if (rawStartTime.getDate() === today.getDate() && 
-              rawStartTime.getMonth() === today.getMonth() && 
-              rawStartTime.getFullYear() === today.getFullYear()) {
+          // Get duration from selected appointment type or use default based on mode
+          const duration = selectedAppointmentType?.duration || 
+            (formData.appointmentMode === "container" ? 240 : 60);
+            
+          // Validate against rules
+          const validationResult = validateAppointmentDateTime(
+            appointmentDate,
+            appointmentTime,
+            availabilityRules,
+            duration,
+            facilityTimezone
+          );
+          
+          if (!validationResult.valid) {
             toast({
-              title: "Invalid Time",
-              description: "You cannot schedule an appointment in the past.",
+              title: "Time Slot Not Available",
+              description: validationResult.message || "The selected time slot is not available. Please choose another time.",
               variant: "destructive",
             });
             setIsSubmitting(false);
             return;
           }
+        } catch (validationError) {
+          console.error("Availability validation error:", validationError);
+          // Continue with submission but log the error
+        }
+      }
+      
+      // Create Date object from input with validation
+      let startTime: Date;
+      try {
+        // Use facility timezone to properly convert to UTC
+        const { dateTimeToUtcIso } = await import("@/lib/appointment-availability");
+        const utcIsoString = dateTimeToUtcIso(appointmentDate, appointmentTime, facilityTimezone);
+        startTime = new Date(utcIsoString);
+        
+        // Validate that we have a proper date
+        if (isNaN(startTime.getTime())) {
+          throw new Error("Invalid date created from inputs");
         }
         
-        // Round to nearest 15-minute interval
-        const minutes = rawStartTime.getMinutes();
-        const roundedMinutes = Math.round(minutes / 15) * 15;
-        const newHours = roundedMinutes === 60 ? rawStartTime.getHours() + 1 : rawStartTime.getHours();
-        const newMinutes = roundedMinutes === 60 ? 0 : roundedMinutes;
-        
-        // Create final start time with rounded minutes
-        startTime = new Date(rawStartTime);
-        startTime.setHours(newHours, newMinutes, 0, 0);
+        // Check if date is in the past
+        const now = new Date();
+        if (startTime < now) {
+          toast({
+            title: "Invalid Time",
+            description: "You cannot schedule an appointment in the past.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
       } catch (dateError) {
         console.error("Date creation error:", dateError);
         toast({
@@ -574,7 +685,8 @@ export default function UnifiedAppointmentForm({
       
       // Get appointment mode for duration calculation with fallback
       const appointmentMode = formData.appointmentMode === "container" ? "container" : "trailer";
-      const endTime = getDefaultEndTime(startTime, appointmentMode);
+      const duration = selectedAppointmentType?.duration || (appointmentMode === "container" ? 240 : 60);
+      const endTime = addMinutes(startTime, duration);
       
       // Handle dockId field - ensure it's a number or null
       let dockId = null;
@@ -1039,36 +1151,80 @@ export default function UnifiedAppointmentForm({
                               });
                             }}
                             value={field.value}
+                            disabled={isLoadingAvailability}
                           >
                             <FormControl>
                               <SelectTrigger>
+                                {isLoadingAvailability && (
+                                  <div className="flex items-center">
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Loading available times...
+                                  </div>
+                                )}
                                 <SelectValue placeholder="Select time">
                                   {field.value && (
                                     <div className="flex items-center">
                                       <Clock className="mr-2 h-4 w-4" />
-                                      {field.value.substring(0, 2) + ":" + field.value.substring(3, 5)}
+                                      {format(
+                                        new Date(`2000-01-01T${field.value}`),
+                                        'h:mm a'
+                                      )}
                                     </div>
                                   )}
                                 </SelectValue>
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {/* Generate time slots */}
-                              {Array.from({ length: 24 }).map((_, hour) => 
-                                Array.from({ length: 4 }).map((_, quarterHour) => {
-                                  const h = hour;
-                                  const m = quarterHour * 15;
-                                  const timeValue = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                                  const timeDisplay = format(new Date().setHours(h, m), 'h:mm a');
-                                  return (
-                                    <SelectItem key={`${h}-${m}`} value={timeValue}>
-                                      {timeDisplay}
-                                    </SelectItem>
-                                  );
-                                })
+                              {/* Show either available slots or all slots */}
+                              {availabilityRules && availabilityRules.length > 0 && availableTimeSlots.length > 0 ? (
+                                // Show only available time slots based on rules
+                                availableTimeSlots
+                                  .filter(slot => slot.available)
+                                  .map(slot => {
+                                    const [hour, minute] = slot.time.split(':').map(Number);
+                                    const timeDisplay = format(
+                                      new Date().setHours(hour, minute), 
+                                      'h:mm a'
+                                    );
+                                    return (
+                                      <SelectItem key={slot.time} value={slot.time}>
+                                        {timeDisplay}
+                                      </SelectItem>
+                                    );
+                                  })
+                              ) : (
+                                // Fallback to all time slots if no rules or slots available
+                                Array.from({ length: 24 }).flatMap((_, hour) => 
+                                  Array.from({ length: 4 }).map((_, quarterHour) => {
+                                    const h = hour;
+                                    const m = quarterHour * 15;
+                                    const timeValue = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                                    const timeDisplay = format(new Date().setHours(h, m), 'h:mm a');
+                                    return (
+                                      <SelectItem key={`${h}-${m}`} value={timeValue}>
+                                        {timeDisplay}
+                                      </SelectItem>
+                                    );
+                                  })
+                                )
+                              )}
+                              {availabilityRules && availabilityRules.length > 0 && 
+                               availableTimeSlots.filter(slot => slot.available).length === 0 && (
+                                <div className="p-2 text-center text-sm text-gray-500">
+                                  No available time slots for this date.
+                                  Please select a different date.
+                                </div>
                               )}
                             </SelectContent>
                           </Select>
+                          {availabilityError && (
+                            <div className="mt-1 text-sm text-red-500">
+                              {availabilityError}
+                            </div>
+                          )}
+                          <FormDescription>
+                            Select an available time slot for your appointment
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       );

@@ -1,0 +1,35 @@
+Context:  
+In our Replit “dockoptimizer” workspace we have two appointment‑creation flows (external and internal) both using the shared `AppointmentForm`. The form’s date and time fields are not persisting and we’re not validating against the availability slots defined in the Appointment Master module.
+
+Goal:  
+1. Fix the date picker and time dropdown so they correctly bind to form state, serialize to UTC with the facility’s timezone, and send to the backend in the createAppointment API call.  
+2. Enforce the Appointment Master’s availability rules on the frontend and backend so users can only pick valid slots for each appointment type.  
+3. Add thorough tests verifying that:  
+   - Valid slot selections succeed and create an appointment with the correct date/time.  
+   - Invalid selections (outside availability) produce a clear validation error and do not call the API.  
+
+Please:
+
+1. **Form Fixes**  
+   - In `AppointmentForm`, ensure the date picker’s `value` and `onChange` update the form library (e.g. React Hook Form or Formik) field for `appointmentDate`.  
+   - Ensure the time dropdown binds to `appointmentTime` and that both fields are included in the `onSubmit` payload in ISO/UTC format with the facility’s timezone metadata.  
+   - Wrap the form submit in a `try/catch` and show validation errors in-line if the API rejects.
+
+2. **Availability Validation**  
+   - Fetch availability rules from `/api/appointment-master/availability-rules?typeId=…&facilityId=…` when the form loads.  
+   - On date change, filter the time dropdown options to only show slots allowed on that date and appointment type.  
+   - On submit, before calling the API, re-validate the chosen slot against the fetched rules and throw a validation error if it’s outside those slots.
+
+3. **Backend Enforcement**  
+   - In `createAppointment` route, re-validate the submitted `appointmentDate`/`appointmentTime` against the same availability rules. Return a 400 with a descriptive message if invalid.
+
+4. **Tests**  
+   - Write unit tests for `AppointmentForm` to assert:  
+     • Form state updates when a date/time is selected.  
+     • Dropdown only shows valid slots for a sample availability rule set.  
+   - Write integration tests (using your existing test framework) that:  
+     • Mock availability rules allowing only “9–10 AM” on 4/21, then simulate a form submit at 9:30 AM on 4/21 and assert success.  
+     • Attempt booking at 8 AM or on a disallowed date and assert validation error.  
+   - Add a CI check to run these tests on each checkpoint.
+
+Commit as one checkpoint once all fixes and tests pass.  
