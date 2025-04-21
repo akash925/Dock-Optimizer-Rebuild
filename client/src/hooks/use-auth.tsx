@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useMemo } from "react";
 import {
   useQuery,
   useMutation,
@@ -19,10 +19,24 @@ type AuthContextType = {
 
 type LoginData = Pick<InsertUser, "username" | "password">;
 
+// Helper function to determine if we're on a public route
+// Extracted to avoid duplicating logic
+function isPublicRoute(): boolean {
+  const path = window.location.pathname;
+  return path.startsWith('/external/') || 
+         path.startsWith('/booking-confirmation') || 
+         path.startsWith('/driver-check-in') ||
+         path.startsWith('/auth');
+}
+
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  
+  // Use the isPublicRoute function to determine if we should skip auth
+  const skipAuth = isPublicRoute();
+  
   const {
     data: user,
     error,
@@ -30,6 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<Omit<User, "password"> | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    // Skip the authentication API call entirely for public routes
+    enabled: !skipAuth,
+    retry: false,
+    // Don't refetch when window gets focus on public routes
+    refetchOnWindowFocus: !skipAuth
   });
 
   const loginMutation = useMutation({
@@ -98,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user: user ?? null,
-        isLoading,
+        isLoading: skipAuth ? false : isLoading,
         error,
         loginMutation,
         logoutMutation,
@@ -112,8 +131,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
+  
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+  
   return context;
 }
