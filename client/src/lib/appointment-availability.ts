@@ -1,5 +1,5 @@
 import { format, parse, addMinutes, isWithinInterval, setHours, setMinutes, isBefore, isAfter } from 'date-fns';
-import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
 export interface AvailabilityRule {
   id: number;
@@ -63,8 +63,8 @@ export function isTimeSlotAvailable(
   const appointmentEndTime = addMinutes(appointmentStartTime, durationMinutes);
   
   // Convert to facility timezone for proper comparison
-  const zonedStartTime = timezone ? utcToZonedTime(appointmentStartTime, timezone) : appointmentStartTime;
-  const zonedEndTime = timezone ? utcToZonedTime(appointmentEndTime, timezone) : appointmentEndTime;
+  const zonedStartTime = timezone ? toZonedTime(appointmentStartTime, timezone) : appointmentStartTime;
+  const zonedEndTime = timezone ? toZonedTime(appointmentEndTime, timezone) : appointmentEndTime;
   
   // Filter to active rules that apply to this day and date
   const applicableRules = rules.filter(rule => {
@@ -197,8 +197,12 @@ export function dateTimeToUtcIso(
   // Parse the date and time
   const localDateTime = parse(`${date}T${time}`, 'yyyy-MM-ddTHH:mm', new Date());
   
-  // Convert to UTC
-  const utcDateTime = timezone ? zonedTimeToUtc(localDateTime, timezone) : localDateTime;
+  // Format in the target timezone, then parse as UTC
+  const utcString = timezone 
+    ? formatInTimeZone(localDateTime, timezone, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") 
+    : localDateTime.toISOString();
+    
+  const utcDateTime = new Date(utcString);
   
   // Return as ISO string
   return utcDateTime.toISOString();

@@ -1369,7 +1369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const appointmentTypeId = Number(typeId);
-      const facility = Number(facilityId);
+      const facilityIdNum = Number(facilityId);
       
       // Check if appointment type exists
       const appointmentType = await storage.getAppointmentType(appointmentTypeId);
@@ -1377,14 +1377,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
-      // Get availability rules for this appointment type
-      const availabilityRules = await storage.getDailyAvailabilityByAppointmentType(appointmentTypeId);
+      // Verify that the appointment type belongs to the specified facility
+      if (appointmentType.facilityId !== facilityIdNum) {
+        return res.status(400).json({ 
+          message: "The specified appointment type does not belong to the specified facility" 
+        });
+      }
       
-      // Filter for rules that apply to this facility
-      const facilityRules = availabilityRules.filter(rule => rule.facilityId === facility);
+      // Get availability rules for this appointment type
+      const dailyRules = await storage.getDailyAvailabilityByAppointmentType(appointmentTypeId);
+      
+      // Transform daily availability into the format expected by the client
+      const availabilityRules = dailyRules.map(rule => {
+        return {
+          id: rule.id,
+          appointmentTypeId: rule.appointmentTypeId,
+          dayOfWeek: rule.dayOfWeek,
+          startDate: null, // Not using date ranges in this implementation
+          endDate: null,   // Not using date ranges in this implementation
+          startTime: rule.startTime,
+          endTime: rule.endTime,
+          isActive: rule.isAvailable,
+          facilityId: appointmentType.facilityId, // Use the facility from appointment type
+          maxConcurrent: rule.maxAppointments || appointmentType.maxConcurrent || 1
+        };
+      });
       
       // Return the rules
-      res.json(facilityRules);
+      res.json(availabilityRules);
     } catch (err) {
       console.error("Failed to fetch availability rules:", err);
       res.status(500).json({ 
