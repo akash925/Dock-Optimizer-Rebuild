@@ -72,7 +72,8 @@ export default function AppointmentMaster() {
     emailReminderTime: 24,
     showRemainingSlots: true,
     allowAppointmentsThroughBreaks: false,
-    allowAppointmentsPastBusinessHours: false
+    allowAppointmentsPastBusinessHours: false,
+    overrideFacilityHours: false // When true, this appointment type can be scheduled outside facility hours
   });
   
   // Scheduling settings for appointment type

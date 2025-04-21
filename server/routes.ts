@@ -1778,34 +1778,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Facility not found" });
       }
       
-      // Get availability rules for this appointment type
-      const rules = await storage.getDailyAvailabilityByAppointmentType(parsedAppointmentTypeId);
-      
-      // Format rules for the availability checker
-      const formattedRules = rules.map(rule => ({
-        id: rule.id,
-        appointmentTypeId: rule.appointmentTypeId,
-        dayOfWeek: rule.dayOfWeek,
-        startDate: null,
-        endDate: null,
-        startTime: rule.startTime,
-        endTime: rule.endTime,
-        isActive: rule.isAvailable,
-        facilityId: appointmentType.facilityId,
-        maxConcurrent: rule.maxAppointments || appointmentType.maxConcurrent || 1
-      }));
+      // Get facility appointment settings
+      const facilitySettings = await storage.getAppointmentSettings(parsedFacilityId);
+      if (!facilitySettings && !appointmentType.overrideFacilityHours) {
+        return res.status(404).json({ message: "Facility appointment settings not found" });
+      }
       
       // Use appointment-availability.ts logic by importing it directly
       const { generateAvailableTimeSlots } = await import('../client/src/lib/appointment-availability');
       
-      // Generate available time slots
-      const timeSlots = generateAvailableTimeSlots(
-        parsedDate,
-        formattedRules,
-        appointmentType.duration || 60,
-        appointmentType.timezone || 'America/New_York',
-        15 // 15-minute intervals
-      );
+      let timeSlots;
+      
+      // Check if this appointment type overrides facility hours
+      if (appointmentType.overrideFacilityHours) {
+        console.log(`Appointment type ${appointmentType.id} overrides facility hours, allowing all time slots`);
+        
+        // Generate all slots as available since this type ignores facility hours
+        timeSlots = generateAvailableTimeSlots(
+          parsedDate,
+          [], // Empty rules means all time slots are available
+          appointmentType.duration || 60,
+          appointmentType.timezone || facility.timezone || 'America/New_York',
+          15 // 15-minute intervals
+        );
+      } else {
+        console.log(`Using facility hours for appointment type ${appointmentType.id}`);
+        
+        // If facility settings exist, create availability rules from them
+        if (facilitySettings) {
+          // Parse the day of week from the date
+          const dateObj = new Date(parsedDate);
+          const dayOfWeek = dateObj.getDay(); // 0-6, Sunday-Saturday
+          
+          // Get the appropriate day's hours from facility settings
+          let isAvailable = false;
+          let startTime = "";
+          let endTime = "";
+          let breakStartTime = "";
+          let breakEndTime = "";
+          let maxAppointments = 0;
+          
+          switch(dayOfWeek) {
+            case 0: // Sunday
+              isAvailable = facilitySettings.sunday;
+              startTime = facilitySettings.sundayStartTime || "08:00";
+              endTime = facilitySettings.sundayEndTime || "17:00";
+              breakStartTime = facilitySettings.sundayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.sundayBreakEndTime || "13:00";
+              maxAppointments = facilitySettings.sundayMaxAppointments || 0;
+              break;
+            case 1: // Monday
+              isAvailable = facilitySettings.monday;
+              startTime = facilitySettings.mondayStartTime || "08:00";
+              endTime = facilitySettings.mondayEndTime || "17:00";
+              breakStartTime = facilitySettings.mondayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.mondayBreakEndTime || "13:00";
+              maxAppointments = facilitySettings.mondayMaxAppointments || 0;
+              break;
+            case 2: // Tuesday
+              isAvailable = facilitySettings.tuesday;
+              startTime = facilitySettings.tuesdayStartTime || "08:00";
+              endTime = facilitySettings.tuesdayEndTime || "17:00";
+              breakStartTime = facilitySettings.tuesdayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.tuesdayBreakEndTime || "13:00";
+              maxAppointments = facilitySettings.tuesdayMaxAppointments || 0;
+              break;
+            case 3: // Wednesday
+              isAvailable = facilitySettings.wednesday;
+              startTime = facilitySettings.wednesdayStartTime || "08:00";
+              endTime = facilitySettings.wednesdayEndTime || "17:00";
+              breakStartTime = facilitySettings.wednesdayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.wednesdayBreakEndTime || "13:00";
+              maxAppointments = facilitySettings.wednesdayMaxAppointments || 0;
+              break;
+            case 4: // Thursday
+              isAvailable = facilitySettings.thursday;
+              startTime = facilitySettings.thursdayStartTime || "08:00";
+              endTime = facilitySettings.thursdayEndTime || "17:00";
+              breakStartTime = facilitySettings.thursdayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.thursdayBreakEndTime || "13:00";
+              maxAppointments = facilitySettings.thursdayMaxAppointments || 0;
+              break;
+            case 5: // Friday
+              isAvailable = facilitySettings.friday;
+              startTime = facilitySettings.fridayStartTime || "08:00";
+              endTime = facilitySettings.fridayEndTime || "17:00";
+              breakStartTime = facilitySettings.fridayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.fridayBreakEndTime || "13:00";
+              maxAppointments = facilitySettings.fridayMaxAppointments || 0;
+              break;
+            case 6: // Saturday
+              isAvailable = facilitySettings.saturday;
+              startTime = facilitySettings.saturdayStartTime || "08:00";
+              endTime = facilitySettings.saturdayEndTime || "17:00";
+              breakStartTime = facilitySettings.saturdayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.saturdayBreakEndTime || "13:00";
+              maxAppointments = facilitySettings.saturdayMaxAppointments || 0;
+              break;
+            default:
+              break;
+          }
+          
+          // Create a facility rule for this specific day
+          const facilityRule = {
+            id: 0, // Placeholder ID
+            appointmentTypeId: parsedAppointmentTypeId,
+            dayOfWeek,
+            startDate: null,
+            endDate: null,
+            startTime,
+            endTime,
+            isActive: isAvailable,
+            facilityId: parsedFacilityId,
+            maxConcurrent: appointmentType.maxConcurrent || 1,
+            maxAppointmentsPerDay: maxAppointments || appointmentType.maxAppointmentsPerDay,
+            bufferTime: appointmentType.bufferTime,
+            gracePeriod: appointmentType.gracePeriod,
+            showRemainingSlots: appointmentType.showRemainingSlots
+          };
+          
+          // Generate time slots based on facility hours
+          timeSlots = generateAvailableTimeSlots(
+            parsedDate,
+            [facilityRule],
+            appointmentType.duration || 60,
+            appointmentType.timezone || facility.timezone || 'America/New_York',
+            15 // 15-minute intervals
+          );
+        } else {
+          // If no facility settings, generate slots with no restrictions
+          timeSlots = generateAvailableTimeSlots(
+            parsedDate,
+            [],
+            appointmentType.duration || 60,
+            appointmentType.timezone || facility.timezone || 'America/New_York',
+            15 // 15-minute intervals
+          );
+        }
+      }
       
       // Include all time slots with their full details (including remaining capacity)
       // For backward compatibility, also include the original availableTimes array
