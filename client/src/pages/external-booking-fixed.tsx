@@ -82,11 +82,21 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
   } = useBookingWizard();
   
   const { theme, isLoading: themeLoading } = useBookingTheme();
+  const [hanzoLogo, setHanzoLogo] = useState<string>("/assets/hanzo_logo.png");
   
   useEffect(() => {
     // Set the document title with the booking page name
-    document.title = `Book Appointment - ${bookingPage.title || bookingPage.name}`;
-  }, [bookingPage]);
+    document.title = `Book Appointment - Hanzo Logistics Dock Appointment Scheduler`;
+    
+    // Attempt to load the Hanzo logo
+    import("@assets/hanzo logo.jpeg")
+      .then(logoModule => {
+        setHanzoLogo(logoModule.default);
+      })
+      .catch(err => {
+        console.error("Could not load Hanzo logo:", err);
+      });
+  }, []);
   
   // Show loading state when loading theme
   if (themeLoading) {
@@ -164,17 +174,15 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
   return (
     <div className="booking-wizard-container">
       <div className="booking-wizard-header">
-        {bookingPage?.customLogo && (
-          <img 
-            src={bookingPage.customLogo} 
-            alt={`${bookingPage.name} Logo`} 
-            className="booking-wizard-logo"
-          />
-        )}
-        <h1 className="booking-wizard-title">{bookingPage.title || bookingPage.name}</h1>
-        {bookingPage.description && (
-          <p className="booking-wizard-subtitle">{bookingPage.description}</p>
-        )}
+        <img 
+          src={hanzoLogo} 
+          alt="Hanzo Logistics Logo" 
+          className="booking-wizard-logo"
+        />
+        <h1 className="booking-wizard-title">Hanzo Logistics Dock Appointment Scheduler</h1>
+        <p className="booking-wizard-subtitle">
+          Please use this form to pick the type of Dock Appointment that you need at Hanzo Logistics.
+        </p>
       </div>
       
       {/* Step indicator/progress bar - only show for steps 1-3 */}
@@ -242,47 +250,92 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
         (bookingPage.facilities as number[]).includes(f.id)
       )
     : facilities;
-    
+  
+  // Group appointment types by facility for easier selection
+  const getFacilityAppointmentTypes = (facilityId: number) => {
+    return appointmentTypes?.filter((type: any) => 
+      type.facilityId === facilityId
+    ) || [];
+  };
+  
   return (
     <div className="booking-form-section">
-      <h2 className="booking-form-section-title">Select Service</h2>
+      <div className="prose max-w-none mb-6">
+        <p className="text-sm">
+          Please use this form to pick the type of Dock Appointment that
+          you need at Hanzo Logistics. For support using this page,
+          please <a href="#" className="text-blue-600 hover:underline">check out this video</a>.
+        </p>
+        
+        <p className="text-sm mt-4 font-semibold">
+          Effective August 1st, 2023, MC Numbers are required for all
+          incoming and outgoing shipments. This is to protect the
+          security of our customer's shipments and reduce the risk of
+          fraud.
+        </p>
+      </div>
       
       <div className="booking-form-field">
-        <Label className="booking-label">Facility</Label>
+        <Label className="booking-label font-semibold" htmlFor="facilitySelect">
+          Dock Appointment Type<span className="text-red-500">*</span>
+        </Label>
         <Select
-          value={bookingData.facilityId?.toString() || ''}
-          onValueChange={(value) => updateBookingData({ facilityId: parseInt(value, 10) })}
+          value={bookingData.appointmentTypeId?.toString() || ''}
+          onValueChange={(value) => {
+            const typeId = parseInt(value, 10);
+            const selectedType = appointmentTypes?.find(t => t.id === typeId);
+            
+            if (selectedType) {
+              updateBookingData({ 
+                appointmentTypeId: typeId,
+                facilityId: selectedType.facilityId
+              });
+            }
+          }}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a facility" />
+          <SelectTrigger id="facilitySelect">
+            <SelectValue placeholder="Select Dock Appointment Type" />
           </SelectTrigger>
           <SelectContent>
-            {availableFacilities?.map((facility: any) => (
-              <SelectItem key={facility.id} value={facility.id.toString()}>
-                {facility.name}
-              </SelectItem>
-            ))}
+            {availableFacilities?.map((facility: any) => {
+              const facilityTypes = getFacilityAppointmentTypes(facility.id);
+              
+              if (facilityTypes.length === 0) return null;
+              
+              return [
+                <SelectItem key={`group-${facility.id}`} value={`group-${facility.id}`} disabled>
+                  {facility.name}
+                </SelectItem>,
+                ...facilityTypes.map((type: any) => (
+                  <SelectItem 
+                    key={type.id} 
+                    value={type.id.toString()}
+                    className="ml-2"
+                  >
+                    {type.name} ({type.duration} min)
+                  </SelectItem>
+                ))
+              ];
+            })}
           </SelectContent>
         </Select>
       </div>
       
       <div className="booking-form-field">
-        <Label className="booking-label">Appointment Type</Label>
+        <Label className="booking-label font-semibold" htmlFor="pickupDropoff">
+          Pickup or Dropoff<span className="text-red-500">*</span>
+        </Label>
         <Select
-          value={bookingData.appointmentTypeId?.toString() || ''}
-          onValueChange={(value) => updateBookingData({ appointmentTypeId: parseInt(value, 10) })}
-          disabled={!bookingData.facilityId}
+          value={bookingData.type || ''}
+          onValueChange={(value) => updateBookingData({ type: value })}
+          disabled={!bookingData.appointmentTypeId}
         >
-          <SelectTrigger>
-            <SelectValue placeholder={bookingData.facilityId ? "Select an appointment type" : "Please select a facility first"} />
+          <SelectTrigger id="pickupDropoff">
+            <SelectValue placeholder="Select Pickup or Dropoff" />
           </SelectTrigger>
           <SelectContent>
-            {appointmentTypes?.filter((type: any) => !bookingData.facilityId || type.facilityId === bookingData.facilityId)
-              .map((type: any) => (
-                <SelectItem key={type.id} value={type.id.toString()}>
-                  {type.name} ({type.duration} min)
-                </SelectItem>
-              ))}
+            <SelectItem value="pickup">Pickup</SelectItem>
+            <SelectItem value="dropoff">Dropoff</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -292,7 +345,7 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
         <Button 
           className="booking-button" 
           onClick={handleNext}
-          disabled={!bookingData.facilityId || !bookingData.appointmentTypeId}
+          disabled={!bookingData.facilityId || !bookingData.appointmentTypeId || !bookingData.type}
         >
           Next
         </Button>

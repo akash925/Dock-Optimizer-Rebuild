@@ -1,12 +1,35 @@
 /* Booking Wizard Themed Styles */
 
+body {
+  background: linear-gradient(135deg, #4CAF50, #2E7D32);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  margin: 0;
+}
+
 .booking-wizard-container {
-  max-width: var(--booking-page-max-width, 600px);
+  max-width: var(--booking-page-max-width, 800px);
   margin: 0 auto;
   padding: var(--booking-page-padding, 2rem);
   font-family: var(--booking-font-family, system-ui, -apple-system, sans-serif);
   color: var(--booking-text-color, #333333);
   background-color: var(--booking-background-color, #ffffff);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.booking-wizard-container::after {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background-color: rgba(76, 175, 80, 0.1);
+  border-radius: 50%;
+  z-index: 0;
 }
 
 .booking-wizard-header {
