@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -35,8 +35,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { BookingPage, insertBookingPageSchema } from "@shared/schema";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 // Extend the schema for frontend validation
 const bookingPageFormSchema = insertBookingPageSchema.extend({
@@ -52,22 +53,50 @@ type BookingPageFormProps = {
   onCancel: () => void;
 };
 
+// Type definitions for facilities and appointment types
+type Facility = {
+  id: number;
+  name: string;
+  address1: string;
+  city: string;
+  state: string;
+  [key: string]: any;
+};
+
+type AppointmentType = {
+  id: number;
+  name: string;
+  description: string;
+  facilityId: number;
+  duration: number;
+  color: string;
+  type: string;
+  [key: string]: any;
+};
+
 export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: BookingPageFormProps) {
   const { toast } = useToast();
   const [selectedFacilities, setSelectedFacilities] = useState<number[]>([]);
+  const [selectedAppointmentTypes, setSelectedAppointmentTypes] = useState<Record<number, number[]>>({});
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [openAccordionItems, setOpenAccordionItems] = useState<string[]>([]);
 
-  // Facilities query for dropdown
-  const { data: facilities, isLoading: isLoadingFacilities } = useQuery({
+  // Queries for data
+  const { data: facilitiesData = [], isLoading: isLoadingFacilities } = useQuery<Facility[]>({
     queryKey: ['/api/facilities'],
     retry: false
   });
 
   // Get appointment types query for each facility
-  const { data: appointmentTypes, isLoading: isLoadingAppointmentTypes } = useQuery({
+  const { data: appointmentTypesData, isLoading: isLoadingAppointmentTypes } = useQuery<Record<string, AppointmentType>>({
     queryKey: ['/api/appointment-types'],
-    enabled: !!facilities,
+    enabled: !!facilitiesData,
     retry: false
   });
+  
+  // Type safe references to the data
+  const facilities = facilitiesData;
+  const appointmentTypes = appointmentTypesData || {};
 
   // Initialize form with default values or existing booking page
   const form = useForm<z.infer<typeof bookingPageFormSchema>>({
@@ -99,29 +128,152 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         }
   });
 
-  // Initialize selected facilities if editing
+  // Initialize selected facilities and appointment types if editing
   useEffect(() => {
     if (bookingPage && bookingPage.facilities) {
-      const facilityIds = Array.isArray(bookingPage.facilities) 
-        ? bookingPage.facilities
-        : typeof bookingPage.facilities === 'object' && bookingPage.facilities !== null
-          ? Object.keys(bookingPage.facilities).map(id => Number(id))
-          : [];
-      
-      setSelectedFacilities(facilityIds);
+      if (typeof bookingPage.facilities === 'object' && bookingPage.facilities !== null) {
+        // Extract facility IDs
+        const facilityIds = Object.keys(bookingPage.facilities).map(id => Number(id));
+        setSelectedFacilities(facilityIds);
+        
+        // Extract appointment types for each facility
+        const appointmentTypesMap: Record<number, number[]> = {};
+        
+        Object.entries(bookingPage.facilities).forEach(([facilityId, facilityData]) => {
+          const facilityIdNum = Number(facilityId);
+          
+          if (facilityData && facilityData.appointmentTypes) {
+            const appointmentTypeIds = Object.keys(facilityData.appointmentTypes)
+              .filter(typeId => facilityData.appointmentTypes[typeId]?.selected)
+              .map(id => Number(id));
+              
+            appointmentTypesMap[facilityIdNum] = appointmentTypeIds;
+          } else {
+            appointmentTypesMap[facilityIdNum] = [];
+          }
+        });
+        
+        setSelectedAppointmentTypes(appointmentTypesMap);
+        
+        // Set initial open accordion items for facilities with selections
+        const openItems = facilityIds.map(id => `facility-${id}`);
+        setOpenAccordionItems(openItems);
+      } else if (Array.isArray(bookingPage.facilities)) {
+        setSelectedFacilities(bookingPage.facilities);
+      }
     }
   }, [bookingPage]);
-
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof bookingPageFormSchema>) => {
-      // Convert selected facilities to the expected format (JSON object)
-      const facilitiesData = {};
+  
+  // Filtered appointment types based on search term
+  const filteredAppointmentTypes = useMemo(() => {
+    if (!appointmentTypes) return {};
+    
+    if (!searchTerm.trim()) return appointmentTypes;
+    
+    const filtered = {};
+    for (const typeId in appointmentTypes) {
+      const appointmentType = appointmentTypes[typeId];
+      if (appointmentType.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+        filtered[typeId] = appointmentType;
+      }
+    }
+    
+    return filtered;
+  }, [appointmentTypes, searchTerm]);
+  
+  // Toggle appointment type selection
+  const toggleAppointmentType = (facilityId: number, appointmentTypeId: number, checked: boolean) => {
+    setSelectedAppointmentTypes(prev => {
+      const updatedMap = { ...prev };
+      
+      if (!updatedMap[facilityId]) {
+        updatedMap[facilityId] = [];
+      }
+      
+      if (checked) {
+        if (!updatedMap[facilityId].includes(appointmentTypeId)) {
+          updatedMap[facilityId] = [...updatedMap[facilityId], appointmentTypeId];
+        }
+      } else {
+        updatedMap[facilityId] = updatedMap[facilityId].filter(id => id !== appointmentTypeId);
+      }
+      
+      // Update booking page in real-time
+      if (bookingPage) {
+        updateAppointmentTypesInBookingPage(updatedMap);
+      }
+      
+      return updatedMap;
+    });
+  };
+  
+  // Real-time update of appointment types in the booking page
+  const updateAppointmentTypesInBookingPage = async (appointmentTypesMap: Record<number, number[]>) => {
+    if (!bookingPage) return;
+    
+    try {
+      // Convert to the expected format
+      const facilitiesData: Record<string, any> = {};
+      
       selectedFacilities.forEach(facilityId => {
         facilitiesData[facilityId] = {
           selected: true,
           appointmentTypes: {}
         };
+        
+        const selectedTypes = appointmentTypesMap[facilityId] || [];
+        
+        if (appointmentTypes) {
+          Object.keys(appointmentTypes)
+            .map(Number)
+            .filter(typeId => appointmentTypes[typeId].facilityId === facilityId)
+            .forEach(typeId => {
+              facilitiesData[facilityId].appointmentTypes[typeId] = {
+                selected: selectedTypes.includes(typeId)
+              };
+            });
+        }
+      });
+      
+      const payload = {
+        ...form.getValues(),
+        facilities: facilitiesData
+      };
+      
+      await apiRequest('PUT', `/api/booking-pages/${bookingPage.id}`, payload);
+      queryClient.invalidateQueries({ queryKey: ['/api/booking-pages'] });
+    } catch (error) {
+      console.error("Error updating appointment types:", error);
+    }
+  };
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof bookingPageFormSchema>) => {
+      // Convert selected facilities to the expected format (JSON object)
+      const facilitiesData: Record<string, any> = {};
+      
+      selectedFacilities.forEach(facilityId => {
+        facilitiesData[facilityId] = {
+          selected: true,
+          appointmentTypes: {}
+        };
+        
+        const selectedTypes = selectedAppointmentTypes[facilityId] || [];
+        
+        if (appointmentTypes) {
+          Object.keys(appointmentTypes)
+            .map(Number)
+            .filter(typeId => appointmentTypes[typeId].facilityId === facilityId)
+            .forEach(typeId => {
+              if (!facilitiesData[facilityId].appointmentTypes) {
+                facilitiesData[facilityId].appointmentTypes = {};
+              }
+              facilitiesData[facilityId].appointmentTypes[typeId] = {
+                selected: selectedTypes.includes(typeId)
+              };
+            });
+        }
       });
 
       const payload = {
@@ -157,12 +309,29 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       if (!bookingPage) return null;
 
       // Convert selected facilities to the expected format (JSON object)
-      const facilitiesData = {};
+      const facilitiesData: Record<string, any> = {};
+      
       selectedFacilities.forEach(facilityId => {
         facilitiesData[facilityId] = {
           selected: true,
           appointmentTypes: {}
         };
+        
+        const selectedTypes = selectedAppointmentTypes[facilityId] || [];
+        
+        if (appointmentTypes) {
+          Object.keys(appointmentTypes)
+            .map(Number)
+            .filter(typeId => appointmentTypes[typeId].facilityId === facilityId)
+            .forEach(typeId => {
+              if (!facilitiesData[facilityId].appointmentTypes) {
+                facilitiesData[facilityId].appointmentTypes = {};
+              }
+              facilitiesData[facilityId].appointmentTypes[typeId] = {
+                selected: selectedTypes.includes(typeId)
+              };
+            });
+        }
       });
 
       const payload = {
@@ -468,50 +637,164 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           )}
         />
 
-        <Accordion type="single" collapsible defaultValue="facilities" className="w-full">
-          <AccordionItem value="facilities">
+        <Accordion 
+          type="multiple" 
+          value={openAccordionItems}
+          onValueChange={setOpenAccordionItems}
+          className="w-full"
+        >
+          <AccordionItem value="facilities" className="border-b">
             <AccordionTrigger>Facilities & Appointment Types</AccordionTrigger>
             <AccordionContent>
-              <div className="space-y-4">
-                <div className="font-medium">Select Facilities</div>
-                <div className="text-sm text-muted-foreground mb-2">
-                  Choose which facilities should be available for booking on this page.
-                </div>
-
-                {isLoading ? (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <div className="space-y-6">
+                <div>
+                  <div className="font-medium">Select Facilities</div>
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Choose which facilities should be available for booking on this page.
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    {facilities && facilities.length > 0 ? (
-                      facilities.map((facility) => (
-                        <div key={facility.id} className="flex items-start space-x-2 p-2 border rounded-md">
-                          <Checkbox
-                            id={`facility-${facility.id}`}
-                            checked={selectedFacilities.includes(facility.id)}
-                            onCheckedChange={(checked) => 
-                              toggleFacility(facility.id, checked as boolean)
-                            }
-                          />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label
-                              htmlFor={`facility-${facility.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {facility.name}
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              {facility.address1}, {facility.city}, {facility.state}
-                            </p>
+
+                  {isLoading ? (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {facilities && facilities.length > 0 ? (
+                        facilities.map((facility) => (
+                          <div key={facility.id} className="flex items-start space-x-2 p-2 border rounded-md">
+                            <Checkbox
+                              id={`facility-${facility.id}`}
+                              checked={selectedFacilities.includes(facility.id)}
+                              onCheckedChange={(checked) => 
+                                toggleFacility(facility.id, checked as boolean)
+                              }
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <Label
+                                htmlFor={`facility-${facility.id}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {facility.name}
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                {facility.address1}, {facility.city}, {facility.state}
+                              </p>
+                            </div>
                           </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-4 text-muted-foreground">
+                          No facilities found. Please create facilities first.
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-4 text-muted-foreground">
-                        No facilities found. Please create facilities first.
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {selectedFacilities.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">Select Appointment Types</div>
+                        <div className="text-sm text-muted-foreground">
+                          Choose which appointment types should be available on this booking page.
+                        </div>
                       </div>
-                    )}
+                      <div className="relative w-[200px]">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search appointment types"
+                          className="pl-8"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    
+                    <Accordion
+                      type="multiple"
+                      className="space-y-2"
+                      value={openAccordionItems}
+                      onValueChange={setOpenAccordionItems}
+                    >
+                      {facilities
+                        .filter(facility => selectedFacilities.includes(facility.id))
+                        .map(facility => {
+                          // Filter appointment types for this facility
+                          const facilityAppointmentTypes = appointmentTypes
+                            ? Object.values(appointmentTypes)
+                                .filter(type => type.facilityId === facility.id)
+                            : [];
+                            
+                          // Apply search filter if there's a search term
+                          const filteredTypes = searchTerm
+                            ? facilityAppointmentTypes.filter(type => 
+                                type.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                            : facilityAppointmentTypes;
+                          
+                          // Count how many are selected
+                          const selectedCount = selectedAppointmentTypes[facility.id]?.length || 0;
+                          
+                          return (
+                            <AccordionItem 
+                              key={`facility-types-${facility.id}`} 
+                              value={`facility-${facility.id}`}
+                              className="border rounded-md overflow-hidden"
+                            >
+                              <AccordionTrigger className="px-4 py-2 hover:no-underline hover:bg-muted/50">
+                                <div className="flex justify-between w-full items-center">
+                                  <span>{facility.name}</span>
+                                  <Badge variant="outline" className="ml-2 font-mono">
+                                    {selectedCount}/{filteredTypes.length}
+                                  </Badge>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent className="p-0">
+                                <div className="border-t px-4 py-2 space-y-2">
+                                  {filteredTypes.length > 0 ? (
+                                    filteredTypes.map(type => (
+                                      <div key={type.id} className="flex items-start space-x-2 p-2">
+                                        <Checkbox
+                                          id={`type-${facility.id}-${type.id}`}
+                                          checked={(selectedAppointmentTypes[facility.id] || []).includes(type.id)}
+                                          onCheckedChange={(checked) => 
+                                            toggleAppointmentType(facility.id, type.id, checked as boolean)
+                                          }
+                                        />
+                                        <div className="grid gap-1 leading-none">
+                                          <Label
+                                            htmlFor={`type-${facility.id}-${type.id}`}
+                                            className="text-sm font-medium leading-none"
+                                          >
+                                            {type.name}
+                                          </Label>
+                                          <div className="flex items-center mt-1 space-x-2">
+                                            <div 
+                                              className="w-3 h-3 rounded-full" 
+                                              style={{ backgroundColor: type.color }}
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                              {type.type.charAt(0).toUpperCase() + type.type.slice(1)} • {type.duration} min
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : searchTerm ? (
+                                    <div className="text-center py-2 text-sm text-muted-foreground">
+                                      No appointment types match "{searchTerm}".
+                                    </div>
+                                  ) : (
+                                    <div className="text-center py-2 text-sm text-muted-foreground">
+                                      No appointment types available for this facility.
+                                    </div>
+                                  )}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          );
+                        })}
+                    </Accordion>
                   </div>
                 )}
               </div>
