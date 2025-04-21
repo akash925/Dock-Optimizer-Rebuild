@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
+import { getBookingStyles } from "./controllers/admin-controller";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
@@ -1736,6 +1737,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create HTTP server
+  // Admin routes
+  app.get("/api/admin/booking-styles", async (req, res) => {
+    // Pass the request to the controller
+    await getBookingStyles(req, res);
+  });
+
   const httpServer = createServer(app);
   
   return httpServer;
