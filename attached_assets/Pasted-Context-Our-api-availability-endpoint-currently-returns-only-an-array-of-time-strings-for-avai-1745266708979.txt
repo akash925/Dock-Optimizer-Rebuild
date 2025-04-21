@@ -1,0 +1,36 @@
+Context:
+  Our `/api/availability` endpoint currently returns only an array of time strings for available slots. Internally we use `generateAvailableTimeSlots()` to compute full slot objects `{ time, available, reason?, remaining }` but the server strips off everything except the `time`.
+
+Goal:
+  Refactor the server’s `/api/availability` handler so it returns the full `AvailabilitySlot` objects—complete with `available`, `reason`, and `remaining` fields—so both external and internal clients can render capacity badges without bypassing the API.
+
+Tasks:
+1. **Update Types**  
+   - In `server/src/types/availability.ts` (or equivalent), change the response type from `string[]` to `AvailabilitySlot[]`, where:
+     ```ts
+     interface AvailabilitySlot {
+       time: string;
+       available: boolean;
+       reason?: string;
+       remaining: number;
+     }
+     ```
+2. **Modify the Controller**  
+   - In `server/src/routes/availability.ts` (or wherever `/api/availability` is defined), import `generateAvailableTimeSlots` from the shared or server‑side util.
+   - Instead of mapping slots to strings (`slots.map(s => s.time)`), return the full slot objects:
+     ```ts
+     const slots = generateAvailableTimeSlots(date, rules, duration, timezone, interval);
+     res.json(slots);
+     ```
+3. **Remove Legacy Mapping**  
+   - Delete any code that transforms `AvailabilitySlot[]` into `string[]`.
+4. **Tests**  
+   - Add or update unit tests for the `/api/availability` endpoint:
+     - Mock `rules` and `existingBookings` to produce a known set of slots.
+     - Assert that the JSON response includes `remaining` counts and `available` flags.
+5. **Documentation**  
+   - In `docs/api.md` (or Swagger/OpenAPI spec), update the `/api/availability` response schema to reflect the full object.
+6. **Client Verification**  
+   - Ensure the external booking flow no longer needs its hook workaround and simply displays `remaining` from the API.
+
+Please implement these changes, run the server tests, and commit as a single checkpoint so the `/api/availability` endpoint becomes the single truth for slot capacity data.  
