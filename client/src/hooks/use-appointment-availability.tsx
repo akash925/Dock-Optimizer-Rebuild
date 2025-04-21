@@ -9,6 +9,7 @@ export interface UseAppointmentAvailabilityProps {
   facilityTimezone?: string;
   date?: string | Date | null;
   duration?: number;
+  onTimeSlotGenerated?: (slots: AvailabilitySlot[], firstAvailableSlot: string | null) => void;
 }
 
 export function useAppointmentAvailability({
@@ -16,12 +17,14 @@ export function useAppointmentAvailability({
   appointmentTypeId,
   facilityTimezone = 'America/New_York',
   date,
-  duration = 60
+  duration = 60,
+  onTimeSlotGenerated
 }: UseAppointmentAvailabilityProps) {
   const [availabilityRules, setAvailabilityRules] = useState<AvailabilityRule[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [firstAvailableSlot, setFirstAvailableSlot] = useState<string | null>(null);
 
   // Fetch availability rules
   const fetchAvailabilityRules = useCallback(async () => {
@@ -59,17 +62,26 @@ export function useAppointmentAvailability({
   const generateTimeSlots = useCallback(async () => {
     if (!date) {
       console.log('No date provided for time slot generation');
+      setAvailableTimeSlots([]);
+      setFirstAvailableSlot(null);
       return;
     }
 
     setIsLoading(true);
     setError(null);
 
-    // Convert Date object to string format if it's a Date
-    const dateString = date instanceof Date ? format(date, 'yyyy-MM-dd') : date;
-    const selectedDate = new Date(dateString);
-    
     try {
+      // Convert Date object to string format if it's a Date
+      const dateString = date instanceof Date ? format(date, 'yyyy-MM-dd') : date;
+      
+      // Validate date format - should be YYYY-MM-DD
+      if (!dateString || typeof dateString !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        console.error('Invalid date format for availability generation:', dateString);
+        throw new Error('Invalid date format. Expected YYYY-MM-DD');
+      }
+      
+      const selectedDate = new Date(dateString);
+      
       // Import the helper function dynamically
       const { generateAvailableTimeSlots } = await import('@/lib/appointment-availability');
       
@@ -82,6 +94,7 @@ export function useAppointmentAvailability({
       
       let slots: AvailabilitySlot[] = [];
       
+      // Generate slots based on whether we have rules or not
       if (!availabilityRules.length) {
         console.log('No availability rules found, generating all slots as available');
         
@@ -108,7 +121,22 @@ export function useAppointmentAvailability({
         );
       }
       
+      // Find the first available slot
+      const availableSlot = slots.find(slot => slot.available);
+      const firstSlot = availableSlot ? availableSlot.time : null;
+      
+      // Set first available slot
+      setFirstAvailableSlot(firstSlot);
+      
+      // Notify caller about generated slots and first available time
+      if (onTimeSlotGenerated) {
+        onTimeSlotGenerated(slots, firstSlot);
+      }
+      
       console.log(`Generated ${slots.length} time slots, ${slots.filter(s => s.available).length} available`);
+      console.log('First available slot:', firstSlot);
+      
+      // Store all slots
       setAvailableTimeSlots(slots);
     } catch (err: any) {
       console.error('Error generating time slots:', err);
@@ -121,17 +149,23 @@ export function useAppointmentAvailability({
           const m = quarterHour * 15;
           return {
             time: `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`,
-            available: true,
-            reason: 'Fallback slot (error occurred)'
+            available: false,
+            reason: 'Error occurred'
           };
         })
       );
       
       setAvailableTimeSlots(fallbackSlots);
+      setFirstAvailableSlot(null);
+      
+      // Notify caller about generated slots and no available time
+      if (onTimeSlotGenerated) {
+        onTimeSlotGenerated(fallbackSlots, null);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [date, availabilityRules, duration, facilityTimezone]);
+  }, [date, availabilityRules, duration, facilityTimezone, onTimeSlotGenerated]);
 
   // When facilityId or appointmentTypeId changes, fetch rules
   useEffect(() => {
@@ -142,12 +176,21 @@ export function useAppointmentAvailability({
   useEffect(() => {
     if (date) {
       generateTimeSlots();
+    } else {
+      // Reset slots when date is cleared
+      setAvailableTimeSlots([]);
+      setFirstAvailableSlot(null);
+      
+      if (onTimeSlotGenerated) {
+        onTimeSlotGenerated([], null);
+      }
     }
-  }, [date, availabilityRules, generateTimeSlots]);
+  }, [date, availabilityRules, generateTimeSlots, onTimeSlotGenerated]);
 
   return {
     availabilityRules,
     availableTimeSlots,
+    firstAvailableSlot,
     isLoading,
     error,
     refreshRules: fetchAvailabilityRules,
