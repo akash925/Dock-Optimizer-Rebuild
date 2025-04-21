@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRoute } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -234,7 +234,7 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
     if (!facilities || !bookingPage?.facilities) return [];
     
     return bookingPage.facilities && Array.isArray(bookingPage.facilities)
-      ? facilities.filter((f) => bookingPage.facilities.includes(f.id))
+      ? facilities.filter((f: any) => bookingPage.facilities.includes(f.id))
       : facilities;
   }, [facilities, bookingPage]);
   
@@ -244,8 +244,8 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
     
     // Filter for the selected facility and sort alphabetically by name
     return appointmentTypes
-      .filter((type) => type.facilityId === bookingData.facilityId)
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .filter((type: any) => type.facilityId === bookingData.facilityId)
+      .sort((a: any, b: any) => a.name.localeCompare(b.name));
   }, [appointmentTypes, bookingData.facilityId]);
   
   // Handle BOL file upload
@@ -381,7 +381,7 @@ Notes: ${extractedData.notes}
                     <SelectValue placeholder="Select a location" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableFacilities.map((facility) => (
+                    {availableFacilities.map((facility: any) => (
                       <SelectItem 
                         key={facility.id} 
                         value={facility.id.toString()}
@@ -414,7 +414,7 @@ Notes: ${extractedData.notes}
                     } />
                   </SelectTrigger>
                   <SelectContent>
-                    {facilityAppointmentTypes.map((type) => (
+                    {facilityAppointmentTypes.map((type: any) => (
                       <SelectItem 
                         key={type.id} 
                         value={type.id.toString()}
@@ -538,14 +538,14 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   });
   
   // Get the selected appointment type
-  const selectedAppointmentType = appointmentTypes?.find(
-    (type: any) => type.id === bookingData.appointmentTypeId
-  );
+  const selectedAppointmentType = Array.isArray(appointmentTypes) 
+    ? appointmentTypes.find((type: any) => type.id === bookingData.appointmentTypeId)
+    : undefined;
   
   // Get the selected facility
-  const selectedFacility = facilities?.find(
-    (facility: any) => facility.id === bookingData.facilityId
-  );
+  const selectedFacility = Array.isArray(facilities)
+    ? facilities.find((facility: any) => facility.id === bookingData.facilityId)
+    : undefined;
   
   // When date changes, fetch available times
   useEffect(() => {
@@ -583,12 +583,12 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
           console.log('[EXTERNAL FLOW] Using enhanced slot data with capacity information');
           // Filter for available slots and sort by time
           const availableSlots = data.slots
-            .filter(slot => slot.available)
-            .sort((a, b) => a.time.localeCompare(b.time));
+            .filter((slot: any) => slot.available)
+            .sort((a: any, b: any) => a.time.localeCompare(b.time));
           setAvailabilitySlots(availableSlots);
           
           // Set the available times for backward compatibility
-          const times = availableSlots.map(slot => slot.time);
+          const times = availableSlots.map((slot: any) => slot.time);
           setAvailableTimes(times);
         } else {
           // Fallback to old format if slots aren't available
@@ -719,9 +719,9 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                 console.log('[EXTERNAL FLOW] rendering time slot:', slot.time, 'display:', displayTime, 'capacity:', slot.remaining);
                 
                 // Get the selected appointment type to check if we should show remaining slots
-                const selectedType = appointmentTypes?.find(
-                  (type: any) => type.id === bookingData.appointmentTypeId
-                );
+                const selectedType = Array.isArray(appointmentTypes)
+                  ? appointmentTypes.find((type: any) => type.id === bookingData.appointmentTypeId)
+                  : undefined;
                 
                 // Display slots with remaining capacity indicator if the appointment type is configured to show them
                 return (
@@ -975,7 +975,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
       </div>
       
       {/* Custom questions if any */}
-      {customQuestions && customQuestions.length > 0 && (
+      {Array.isArray(customQuestions) && customQuestions.length > 0 && (
         <>
           <h2 className="booking-form-section-title mt-8">Additional Information</h2>
           
