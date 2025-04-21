@@ -166,20 +166,18 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
   
   // Filtered appointment types based on search term
   const filteredAppointmentTypes = useMemo(() => {
-    if (!appointmentTypes) return {};
+    if (!appointmentTypesData) return {} as Record<string, AppointmentType>;
     
-    if (!searchTerm.trim()) return appointmentTypes;
+    if (!searchTerm.trim()) return appointmentTypesData;
     
-    const filtered = {};
-    for (const typeId in appointmentTypes) {
-      const appointmentType = appointmentTypes[typeId];
-      if (appointmentType.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-        filtered[typeId] = appointmentType;
-      }
-    }
-    
-    return filtered;
-  }, [appointmentTypes, searchTerm]);
+    return Object.entries(appointmentTypesData).reduce<Record<string, AppointmentType>>(
+      (filtered, [typeId, appointmentType]) => {
+        if (appointmentType.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+          filtered[typeId] = appointmentType;
+        }
+        return filtered;
+      }, {});
+  }, [appointmentTypesData, searchTerm]);
   
   // Toggle appointment type selection
   const toggleAppointmentType = (facilityId: number, appointmentTypeId: number, checked: boolean) => {
