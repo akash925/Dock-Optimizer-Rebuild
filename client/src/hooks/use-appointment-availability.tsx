@@ -83,7 +83,7 @@ export function useAppointmentAvailability({
       // Construct query parameters
       const params = new URLSearchParams();
       if (facilityId) params.append('facilityId', facilityId.toString());
-      if (appointmentTypeId) params.append('appointmentTypeId', appointmentTypeId.toString());
+      if (appointmentTypeId) params.append('typeId', appointmentTypeId.toString()); // Changed from appointmentTypeId to typeId
 
       const endpoint = `/api/appointment-master/availability-rules?${params.toString()}`;
       const res = await apiRequest('GET', endpoint);
