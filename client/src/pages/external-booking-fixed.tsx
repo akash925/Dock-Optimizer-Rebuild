@@ -375,9 +375,18 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
 }
 
 // Step 2: Date and Time Selection
+// Define the AvailabilitySlot interface
+interface AvailabilitySlot {
+  time: string;
+  available: boolean;
+  reason?: string;
+  remaining: number;
+}
+
 function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   const { bookingData, updateBookingData, setCurrentStep } = useBookingWizard();
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     bookingData.startTime ? new Date(bookingData.startTime) : undefined
   );
@@ -435,14 +444,38 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         console.log('[EXTERNAL FLOW] Checking for remaining slots in response:', 
           data.slots ? 'has slots array with details' : 'only has simple availableTimes array');
           
-        // Set the available times
-        const sortedTimes = [...(data.availableTimes || [])].sort();
-        setAvailableTimes(sortedTimes);
+        // Store all availability slot data if available
+        if (data.slots && Array.isArray(data.slots)) {
+          console.log('[EXTERNAL FLOW] Using enhanced slot data with capacity information');
+          // Filter for available slots and sort by time
+          const availableSlots = data.slots
+            .filter(slot => slot.available)
+            .sort((a, b) => a.time.localeCompare(b.time));
+          setAvailabilitySlots(availableSlots);
+          
+          // Set the available times for backward compatibility
+          const times = availableSlots.map(slot => slot.time);
+          setAvailableTimes(times);
+        } else {
+          // Fallback to old format if slots aren't available
+          console.log('[EXTERNAL FLOW] Using backward compatible simple time array');
+          const sortedTimes = [...(data.availableTimes || [])].sort();
+          setAvailableTimes(sortedTimes);
+          
+          // Create basic slots with default remaining = 1
+          const basicSlots = sortedTimes.map(time => ({
+            time,
+            available: true,
+            remaining: 1
+          }));
+          setAvailabilitySlots(basicSlots);
+        }
         
         // If we previously had a selected time on this date, check if it's still available
         if (bookingData.startTime) {
           const existingTimeString = format(new Date(bookingData.startTime), 'HH:mm');
-          if (!sortedTimes.includes(existingTimeString)) {
+          const times = availabilitySlots.map(slot => slot.time);
+          if (!times.includes(existingTimeString)) {
             // Previous time is no longer available
             setSelectedTime('');
           } else {
@@ -453,7 +486,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
           setSelectedTime('');
         }
         
-        if (sortedTimes.length === 0) {
+        if (availabilitySlots.length === 0) {
           console.log("No available times for selected date");
         }
       } catch (error) {
@@ -540,26 +573,39 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         ) : selectedDate ? (
           availableTimes.length > 0 ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {availableTimes.map((time) => {
+              {availabilitySlots.map((slot) => {
                 // Create a date object from the time string for display formatting
-                const [hours, minutes] = time.split(':').map(Number);
+                const [hours, minutes] = slot.time.split(':').map(Number);
                 const timeObj = new Date();
                 timeObj.setHours(hours, minutes, 0, 0);
                 
                 // Format for display (e.g., "9:30 AM")
                 const displayTime = format(timeObj, 'h:mm a');
                 
-                console.log('[EXTERNAL FLOW] rendering time slot:', time, 'display:', displayTime);
+                console.log('[EXTERNAL FLOW] rendering time slot:', slot.time, 'display:', displayTime, 'capacity:', slot.remaining);
                 
+                // Get the selected appointment type to check if we should show remaining slots
+                const selectedType = appointmentTypes?.find(
+                  (type: any) => type.id === bookingData.appointmentTypeId
+                );
+                
+                // Display slots with remaining capacity indicator if the appointment type is configured to show them
                 return (
                   <Button
-                    key={time}
+                    key={slot.time}
                     type="button"
-                    variant={selectedTime === time ? "default" : "outline"}
-                    className={selectedTime === time ? "booking-button" : "booking-button-secondary"}
-                    onClick={() => handleTimeChange(time)}
+                    variant={selectedTime === slot.time ? "default" : "outline"}
+                    className={`relative ${selectedTime === slot.time ? "booking-button" : "booking-button-secondary"}`}
+                    onClick={() => handleTimeChange(slot.time)}
                   >
                     {displayTime}
+                    
+                    {/* Show capacity badge if appointment type is configured to show remaining slots */}
+                    {selectedType?.showRemainingSlots && (
+                      <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
+                        {slot.remaining}
+                      </span>
+                    )}
                   </Button>
                 );
               })}

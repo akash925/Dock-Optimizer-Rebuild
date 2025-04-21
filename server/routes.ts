@@ -1807,13 +1807,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         15 // 15-minute intervals
       );
       
-      // Extract times from slots that are available
+      // Include all time slots with their full details (including remaining capacity)
+      // For backward compatibility, also include the original availableTimes array
       const availableTimes = timeSlots
         .filter(slot => slot.available)
         .map(slot => slot.time);
       
       res.json({ 
-        availableTimes,
+        slots: timeSlots, // Full slot objects with remaining capacity information
+        availableTimes,   // Original format for backward compatibility
         date: parsedDate,
         facilityId: parsedFacilityId,
         appointmentTypeId: parsedAppointmentTypeId,
