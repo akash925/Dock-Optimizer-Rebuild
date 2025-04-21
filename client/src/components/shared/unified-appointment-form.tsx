@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { format, addHours, addMinutes, isBefore, startOfDay } from "date-fns";
+import { format, addHours, addMinutes, isBefore, startOfDay, parse } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -994,14 +994,18 @@ export default function UnifiedAppointmentForm({
                       <FormItem className="flex flex-col">
                         <FormLabel>Appointment Date*</FormLabel>
                         <div className="flex flex-col space-y-2">
-                          {/* Standard date input for better accessibility and to ensure it works */}
+                          {/* Use Input instead of Popover for more reliable date selection */}
                           <FormControl>
                             <Input 
                               type="date" 
                               value={field.value || ''} 
                               onChange={(e) => {
                                 console.log("Date changed to:", e.target.value);
-                                field.onChange(e.target.value);
+                                scheduleDetailsForm.setValue("appointmentDate", e.target.value, { 
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                  shouldTouch: true
+                                });
                               }}
                               min={format(new Date(), "yyyy-MM-dd")}
                               className="w-full"
@@ -1028,13 +1032,24 @@ export default function UnifiedAppointmentForm({
                           <Select 
                             onValueChange={(value) => {
                               console.log("Setting time to:", value);
-                              field.onChange(value);
+                              scheduleDetailsForm.setValue("appointmentTime", value, {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                                shouldTouch: true
+                              });
                             }}
                             value={field.value}
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select time" />
+                                <SelectValue placeholder="Select time">
+                                  {field.value && (
+                                    <div className="flex items-center">
+                                      <Clock className="mr-2 h-4 w-4" />
+                                      {field.value.substring(0, 2) + ":" + field.value.substring(3, 5)}
+                                    </div>
+                                  )}
+                                </SelectValue>
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -1102,7 +1117,7 @@ export default function UnifiedAppointmentForm({
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          You can leave this field empty if no specific dock is needed
+                          Can be defined now, or closer to time of appointment
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
