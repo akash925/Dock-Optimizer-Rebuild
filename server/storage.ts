@@ -1297,11 +1297,92 @@ export class DatabaseStorage implements IStorage {
 
   // Appointment Settings operations
   async getAppointmentSettings(facilityId: number): Promise<AppointmentSettings | undefined> {
-    const [settings] = await db
-      .select()
-      .from(appointmentSettings)
-      .where(eq(appointmentSettings.facilityId, facilityId));
-    return settings;
+    try {
+      // Note: There's a mismatch between the schema definition and the actual DB.
+      // Some columns like sunday, monday, etc. are defined in schema.ts but not in DB.
+      // Get only the columns that exist in the database
+      const [dbSettings] = await db
+        .select({
+          id: appointmentSettings.id,
+          facilityId: appointmentSettings.facilityId,
+          timeInterval: appointmentSettings.timeInterval,
+          maxConcurrentInbound: appointmentSettings.maxConcurrentInbound,
+          maxConcurrentOutbound: appointmentSettings.maxConcurrentOutbound,
+          shareAvailabilityInfo: appointmentSettings.shareAvailabilityInfo,
+          createdAt: appointmentSettings.createdAt,
+          lastModifiedAt: appointmentSettings.lastModifiedAt
+        })
+        .from(appointmentSettings)
+        .where(eq(appointmentSettings.facilityId, facilityId));
+        
+      if (!dbSettings) return undefined;
+      
+      // Synthesize the full settings object with default values for missing columns
+      const fullSettings: any = {
+        ...dbSettings,
+        // Default day availability (weekdays open, weekends closed)
+        sunday: false,
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: false,
+        
+        // Default time windows (8am-5pm for all days)
+        sundayStartTime: "08:00",
+        sundayEndTime: "17:00",
+        mondayStartTime: "08:00",
+        mondayEndTime: "17:00",
+        tuesdayStartTime: "08:00",
+        tuesdayEndTime: "17:00",
+        wednesdayStartTime: "08:00",
+        wednesdayEndTime: "17:00",
+        thursdayStartTime: "08:00",
+        thursdayEndTime: "17:00",
+        fridayStartTime: "08:00",
+        fridayEndTime: "17:00",
+        saturdayStartTime: "08:00",
+        saturdayEndTime: "17:00",
+        
+        // Default breaks (12pm-1pm for all days)
+        sundayBreakStartTime: "12:00",
+        sundayBreakEndTime: "13:00",
+        mondayBreakStartTime: "12:00",
+        mondayBreakEndTime: "13:00",
+        tuesdayBreakStartTime: "12:00",
+        tuesdayBreakEndTime: "13:00",
+        wednesdayBreakStartTime: "12:00",
+        wednesdayBreakEndTime: "13:00",
+        thursdayBreakStartTime: "12:00",
+        thursdayBreakEndTime: "13:00",
+        fridayBreakStartTime: "12:00",
+        fridayBreakEndTime: "13:00",
+        saturdayBreakStartTime: "12:00",
+        saturdayBreakEndTime: "13:00",
+        
+        // Default max appointments
+        sundayMaxAppointments: 0,
+        mondayMaxAppointments: 0,
+        tuesdayMaxAppointments: 0,
+        wednesdayMaxAppointments: 0,
+        thursdayMaxAppointments: 0,
+        fridayMaxAppointments: 0,
+        saturdayMaxAppointments: 0,
+        
+        // Other defaults
+        defaultBufferTime: 0,
+        defaultGracePeriod: 15,
+        defaultEmailReminderTime: 24,
+        allowAppointmentsThroughBreaks: false,
+        allowAppointmentsPastBusinessHours: false
+      };
+      
+      return fullSettings as AppointmentSettings;
+    } catch (error) {
+      console.error("Error fetching appointment settings:", error);
+      return undefined;
+    }
   }
 
   async createAppointmentSettings(insertSettings: InsertAppointmentSettings): Promise<AppointmentSettings> {
