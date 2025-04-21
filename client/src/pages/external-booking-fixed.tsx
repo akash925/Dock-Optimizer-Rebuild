@@ -425,10 +425,10 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         // Format the date for the API
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
         
-        console.log(`Fetching available times for date=${dateStr}, facilityId=${bookingData.facilityId}, appointmentTypeId=${bookingData.appointmentTypeId}`);
+        console.log(`Fetching available times for date=${dateStr}, facilityId=${bookingData.facilityId}, typeId=${bookingData.appointmentTypeId}`);
         
-        // Call the API to get available times
-        const response = await fetch(`/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&appointmentTypeId=${bookingData.appointmentTypeId}`);
+        // Call the API to get available times using the standardized parameter name (typeId)
+        const response = await fetch(`/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}`);
         
         if (!response.ok) {
           const errorText = await response.text();
