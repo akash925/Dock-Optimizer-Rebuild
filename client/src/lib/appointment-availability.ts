@@ -12,12 +12,17 @@ export interface AvailabilityRule {
   isActive: boolean;
   facilityId: number;
   maxConcurrent: number;
+  maxAppointmentsPerDay?: number | null; // daily capacity
+  bufferTime?: number | null; // buffer in minutes between appointments
+  gracePeriod?: number | null; // grace period in minutes
+  showRemainingSlots?: boolean; // whether to show remaining slot count in UI
 }
 
 export interface AvailabilitySlot {
   time: string; // "HH:MM" format
   available: boolean;
   reason?: string;
+  remaining?: number; // number of remaining slots available
 }
 
 interface ValidationResult {
