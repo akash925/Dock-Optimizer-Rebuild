@@ -44,7 +44,7 @@ export function useAppointmentAvailability({
       const params = new URLSearchParams();
       params.append('date', dateStr);
       params.append('facilityId', facilityId.toString());
-      if (typeId) params.append('typeId', typeId.toString());  // Changed from appointmentTypeId to typeId
+      if (typeId) params.append('typeId', typeId.toString());  // Using typeId parameter to match server expectations
       
       const endpoint = `/api/schedules?${params.toString()}`;
       console.log('Fetching existing appointments for:', endpoint);
@@ -70,7 +70,7 @@ export function useAppointmentAvailability({
       console.error('Error fetching existing appointments:', err);
       return [];
     }
-  }, [facilityId, typeId]);  // Changed from appointmentTypeId to typeId
+  }, [facilityId, typeId]);
   
   // Fetch availability rules
   const fetchAvailabilityRules = useCallback(async () => {
