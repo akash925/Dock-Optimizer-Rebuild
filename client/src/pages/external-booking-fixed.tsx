@@ -430,6 +430,11 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         const data = await response.json();
         console.log("Available times response:", data);
         
+        // Log the response data structure in detail
+        console.log('[EXTERNAL FLOW] API response data structure:', JSON.stringify(data, null, 2));
+        console.log('[EXTERNAL FLOW] Checking for remaining slots in response:', 
+          data.slots ? 'has slots array with details' : 'only has simple availableTimes array');
+          
         // Set the available times
         const sortedTimes = [...(data.availableTimes || [])].sort();
         setAvailableTimes(sortedTimes);
@@ -543,6 +548,8 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                 
                 // Format for display (e.g., "9:30 AM")
                 const displayTime = format(timeObj, 'h:mm a');
+                
+                console.log('[EXTERNAL FLOW] rendering time slot:', time, 'display:', displayTime);
                 
                 return (
                   <Button
