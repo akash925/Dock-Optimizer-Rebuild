@@ -14,7 +14,7 @@ export interface AvailabilityRule {
   maxConcurrent: number;
 }
 
-interface AvailabilitySlot {
+export interface AvailabilitySlot {
   time: string; // "HH:MM" format
   available: boolean;
   reason?: string;

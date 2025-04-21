@@ -400,147 +400,75 @@ export default function UnifiedAppointmentForm({
     }
   }, [initialDockId, scheduleDetailsForm, initialData]);
   
-  // Fetch availability rules when appointment type and facility are known
-  useEffect(() => {
-    const fetchAvailability = async () => {
-      if (!appointmentTypeId || !selectedFacilityId) return;
-      
-      setIsLoadingAvailability(true);
-      setAvailabilityError(null);
-      
-      try {
-        const response = await apiRequest(
-          "GET", 
-          `/api/appointment-master/availability-rules?typeId=${appointmentTypeId}&facilityId=${selectedFacilityId}`
-        );
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch availability rules");
-        }
-        
-        const data = await response.json();
-        setAvailabilityRules(data);
-        
-        // Generate available slots for the selected date if we have one
-        if (scheduleDetailsForm.getValues().appointmentDate) {
-          const date = scheduleDetailsForm.getValues().appointmentDate;
-          const duration = selectedAppointmentType?.duration || 60;
-          
-          // Import functions from appointment-availability.ts
-          import("@/lib/appointment-availability").then(({ generateAvailableTimeSlots }) => {
-            const slots = generateAvailableTimeSlots(
-              date,
-              data,
-              duration,
-              facilityTimezone,
-              15 // 15-minute intervals
-            );
-            setAvailableTimeSlots(slots);
-          });
-        }
-      } catch (error) {
-        console.error("Failed to fetch availability rules:", error);
-        setAvailabilityError("Failed to fetch availability rules. Please try again.");
-      } finally {
-        setIsLoadingAvailability(false);
-      }
-    };
-    
-    fetchAvailability();
-  }, [appointmentTypeId, selectedFacilityId, facilityTimezone, selectedAppointmentType?.duration]);
-  
-  // Update available time slots when date changes
-  useEffect(() => {
-    const updateAvailableSlots = async () => {
-      const date = scheduleDetailsForm.watch("appointmentDate");
-      const defaultDuration = 60;
-      const duration = selectedAppointmentType?.duration || defaultDuration;
-      
-      // Log parameters for debugging
-      console.log('Fetching slots for', {
-        date,
-        typeId: appointmentTypeId,
-        facilityId: selectedFacilityId,
-        timezone: facilityTimezone,
-        appointmentType: selectedAppointmentType?.name,
-        duration
-      });
+  // Use our shared hook for appointment availability
+  const {
+    availabilityRules: hookRules,
+    availableTimeSlots: hookTimeSlots,
+    isLoading: isLoadingAvailabilityFromHook,
+    error: availabilityHookError
+  } = useAppointmentAvailability({
+    facilityId: selectedFacilityId,
+    appointmentTypeId: appointmentTypeId || selectedAppointmentType?.id,
+    facilityTimezone,
+    date: scheduleDetailsForm.watch("appointmentDate"),
+    duration: selectedAppointmentType?.duration || 60
+  });
 
-      try {
-        // Import functions from appointment-availability.ts
-        const { generateAvailableTimeSlots } = await import("@/lib/appointment-availability");
-        
-        // If there are no rules, or date is not selected, show all time slots as a fallback
-        if (!date) {
-          console.log('No date selected, not generating time slots');
-          return;
-        }
-        
-        let slots = [];
-        
-        if (!availabilityRules.length) {
-          console.log('No availability rules found, generating all slots');
-          // Generate all slots but mark them as unavailable
-          slots = Array.from({ length: 24 }).flatMap((_, hour) => 
-            Array.from({ length: 4 }).map((_, quarterHour) => {
-              const h = hour;
-              const m = quarterHour * 15;
-              return {
-                time: `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`,
-                available: true, // Mark as available for now, until we have rules
-                reason: 'No rules configured'
-              };
-            })
-          );
-        } else {
-          // Use actual availability rules
-          console.log('Generating slots with', availabilityRules.length, 'availability rules');
-          slots = generateAvailableTimeSlots(
-            date,
-            availabilityRules,
-            duration,
-            facilityTimezone,
-            15 // 15-minute intervals
-          );
-        }
-        
-        console.log('Generated', slots.length, 'time slots,', 
-          slots.filter((s: any) => s.available).length, 'available');
-        
-        setAvailableTimeSlots(slots);
-        
-        // Default-initialize appointmentTime to first available slot if not already set
-        const currentSelectedTime = scheduleDetailsForm.getValues().appointmentTime;
-        if (!currentSelectedTime) {
-          const firstAvailableSlot = slots.find((s: any) => s.available);
-          if (firstAvailableSlot) {
-            console.log('Setting default time slot:', firstAvailableSlot.time);
-            scheduleDetailsForm.setValue('appointmentTime', firstAvailableSlot.time, {
-              shouldDirty: true, 
-              shouldValidate: true
-            });
-          }
-        }
-      } catch (err: any) {
-        console.error('Error generating time slots:', err);
-        setAvailabilityError(`Error loading time slots: ${err.message || 'Unknown error'}`);
-      }
-      
-      // If the currently selected time is not available, reset the time field
-      const currentTime = scheduleDetailsForm.getValues().appointmentTime;
-      if (currentTime && availableTimeSlots.length > 0) {
-        const currentSlot = availableTimeSlots.find(slot => slot.time === currentTime);
-        if (currentSlot && !currentSlot.available) {
-          scheduleDetailsForm.setValue("appointmentTime", "", {
-            shouldValidate: true,
-            shouldDirty: true
-          });
-        }
-      }
-    };
+  // Update local state from hook
+  useEffect(() => {
+    if (hookRules && hookRules.length > 0) {
+      setAvailabilityRules(hookRules);
+    }
+  }, [hookRules]);
+
+  // Update loading state
+  useEffect(() => {
+    setIsLoadingAvailability(isLoadingAvailabilityFromHook);
+  }, [isLoadingAvailabilityFromHook]);
+
+  // Update time slots and handle default selection
+  useEffect(() => {
+    setAvailableTimeSlots(hookTimeSlots);
     
-    updateAvailableSlots();
-  }, [scheduleDetailsForm.watch("appointmentDate"), availabilityRules, selectedAppointmentType?.duration, facilityTimezone]);
+    // Log for debugging
+    console.log('Time slots updated from hook:', 
+      hookTimeSlots.length > 0 ? 
+      `${hookTimeSlots.length} slots, ${hookTimeSlots.filter(s => s.available).length} available` : 
+      'no slots');
+    
+    // Default-initialize appointmentTime to first available slot if not already set
+    const currentSelectedTime = scheduleDetailsForm.getValues().appointmentTime;
+    if (!currentSelectedTime && hookTimeSlots.length > 0) {
+      const firstAvailableSlot = hookTimeSlots.find(s => s.available);
+      if (firstAvailableSlot) {
+        console.log('Setting default time slot:', firstAvailableSlot.time);
+        scheduleDetailsForm.setValue('appointmentTime', firstAvailableSlot.time, {
+          shouldDirty: true, 
+          shouldValidate: true
+        });
+      }
+    }
+    
+    // If the currently selected time is not available, reset the time field
+    if (currentSelectedTime && hookTimeSlots.length > 0) {
+      const currentSlot = hookTimeSlots.find(slot => slot.time === currentSelectedTime);
+      if (currentSlot && !currentSlot.available) {
+        scheduleDetailsForm.setValue("appointmentTime", "", {
+          shouldValidate: true,
+          shouldDirty: true
+        });
+      }
+    }
+  }, [hookTimeSlots, scheduleDetailsForm]);
+
+  // Update error state from hook
+  useEffect(() => {
+    if (availabilityHookError) {
+      setAvailabilityError(availabilityHookError);
+    } else {
+      setAvailabilityError(null);
+    }
+  }, [availabilityHookError]);
   
   // Callbacks for form submission
   // Handler for carrier selection

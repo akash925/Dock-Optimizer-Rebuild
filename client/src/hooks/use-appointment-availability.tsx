@@ -1,22 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
-
-export interface AvailabilityRule {
-  id: number;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  isActive: boolean;
-  appointmentTypeId?: number;
-  facilityId?: number;
-}
-
-export interface TimeSlot {
-  time: string;
-  available: boolean;
-  reason?: string;
-}
+import { AvailabilityRule, AvailabilitySlot } from '@/lib/appointment-availability';
 
 export interface UseAppointmentAvailabilityProps {
   facilityId?: number | null;
@@ -34,7 +19,7 @@ export function useAppointmentAvailability({
   duration = 60
 }: UseAppointmentAvailabilityProps) {
   const [availabilityRules, setAvailabilityRules] = useState<AvailabilityRule[]>([]);
-  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,7 +80,7 @@ export function useAppointmentAvailability({
         timezone: facilityTimezone
       });
       
-      let slots: TimeSlot[] = [];
+      let slots: AvailabilitySlot[] = [];
       
       if (!availabilityRules.length) {
         console.log('No availability rules found, generating all slots as available');
@@ -115,7 +100,7 @@ export function useAppointmentAvailability({
       } else {
         // Use our availability logic to generate slots based on rules
         slots = generateAvailableTimeSlots(
-          selectedDate,
+          dateString, // Use the dateString instead of Date object
           availabilityRules,
           duration,
           facilityTimezone,
