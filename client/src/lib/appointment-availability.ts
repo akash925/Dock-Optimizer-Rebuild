@@ -183,7 +183,8 @@ export function generateAvailableTimeSlots(
           slots.push({
             time: timeString,
             available: true,
-            reason: 'No rules configured'
+            reason: 'No rules configured',
+            remaining: 1 // Default when no rules provided
           });
         }
       }
@@ -204,10 +205,15 @@ export function generateAvailableTimeSlots(
         // Check availability for this slot
         const validation = isTimeSlotAvailable(date, timeString, rules, durationMinutes, timezone);
         
+        // Get the first matching rule to determine max concurrent capacity
+        const rule = rules.find(r => r.isActive);
+        const maxConcurrent = rule?.maxConcurrent || 1;
+        
         slots.push({
           time: timeString,
           available: validation.valid,
-          reason: validation.valid ? undefined : validation.message
+          reason: validation.valid ? undefined : validation.message,
+          remaining: validation.valid ? maxConcurrent : 0 // Set capacity if slot is available
         });
       }
     }
@@ -223,7 +229,8 @@ export function generateAvailableTimeSlots(
         slots.push({
           time: timeString,
           available: false,
-          reason: 'Error generating slots'
+          reason: 'Error generating slots',
+          remaining: 0
         });
       }
     }
