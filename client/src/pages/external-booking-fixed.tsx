@@ -1,5 +1,5 @@
 import React, { useState, ChangeEvent, useEffect, useMemo } from "react";
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
@@ -578,8 +578,7 @@ function BookingWizardContent({
             <CardDescription className="text-center">{bookingPage.description || "Please select your preferences to begin."}</CardDescription>
           </CardHeader>
           <CardContent>
-            <FormProvider {...initialSelectionForm}>
-              <form onSubmit={initialSelectionForm.handleSubmit(onInitialSelectionSubmit)} className="space-y-6">
+            <form onSubmit={initialSelectionForm.handleSubmit(onInitialSelectionSubmit)} className="space-y-6">
               <div className="flex items-center gap-4 mb-6">
                 <div className="bg-primary text-primary-foreground rounded-full h-8 w-8 flex items-center justify-center font-bold">1</div>
                 <h3 className="text-lg font-medium">Basic Details</h3>
