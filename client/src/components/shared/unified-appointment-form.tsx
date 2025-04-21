@@ -1147,6 +1147,8 @@ export default function UnifiedAppointmentForm({
                     name="appointmentTime"
                     render={({ field }) => {
                       console.log("Appointment time field value:", field.value);
+                      console.log('[UNIFIED FORM] appointmentDate:', scheduleDetailsForm.getValues('appointmentDate'));
+                      console.log('[UNIFIED FORM] availableTimeSlots:', availableTimeSlots);
                       return (
                         <FormItem>
                           <FormLabel>Appointment Time*</FormLabel>

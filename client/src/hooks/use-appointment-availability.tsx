@@ -198,6 +198,10 @@ export function useAppointmentAvailability({
       console.log(`Generated ${slots.length} time slots, ${slots.filter(s => s.available).length} available`);
       console.log('First available slot:', firstSlot);
       
+      // Debug - check if slots have remaining property
+      console.log('[AVAIL HOOK] fetched rules:', availabilityRules);
+      console.log('[AVAIL HOOK] generated slots (sample):', slots.slice(0, 5));
+      
       // Store all slots
       setAvailableTimeSlots(slots);
     } catch (err: any) {
