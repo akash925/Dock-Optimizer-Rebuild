@@ -1205,9 +1205,21 @@ export default function UnifiedAppointmentForm({
                                     const timeDate = new Date();
                                     timeDate.setHours(hour, minute, 0, 0);
                                     const timeDisplay = format(timeDate, 'h:mm a');
+                                    
+                                    // Get appointment type to check if we should show remaining slots
+                                    const showRemaining = selectedAppointmentType?.showRemainingSlots;
+                                    const remaining = slot.remaining;
+                                    
                                     return (
                                       <SelectItem key={slot.time} value={slot.time}>
-                                        {timeDisplay}
+                                        <div className="flex justify-between items-center w-full">
+                                          <span>{timeDisplay}</span>
+                                          {showRemaining && typeof remaining === 'number' && (
+                                            <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
+                                              {remaining} {remaining === 1 ? "slot" : "slots"} left
+                                            </span>
+                                          )}
+                                        </div>
                                       </SelectItem>
                                     );
                                   })
