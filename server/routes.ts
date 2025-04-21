@@ -1358,6 +1358,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch daily availability" });
     }
   });
+  
+  // Availability rules endpoint
+  app.get("/api/appointment-master/availability-rules", async (req, res) => {
+    try {
+      const { typeId, facilityId } = req.query;
+      
+      if (!typeId || !facilityId) {
+        return res.status(400).json({ message: "Both typeId and facilityId are required query parameters" });
+      }
+      
+      const appointmentTypeId = Number(typeId);
+      const facility = Number(facilityId);
+      
+      // Check if appointment type exists
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Get availability rules for this appointment type
+      const availabilityRules = await storage.getDailyAvailabilityByAppointmentType(appointmentTypeId);
+      
+      // Filter for rules that apply to this facility
+      const facilityRules = availabilityRules.filter(rule => rule.facilityId === facility);
+      
+      // Return the rules
+      res.json(facilityRules);
+    } catch (err) {
+      console.error("Failed to fetch availability rules:", err);
+      res.status(500).json({ 
+        message: "Failed to fetch availability rules",
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
 
   app.post("/api/daily-availability", checkRole(["admin", "manager"]), async (req, res) => {
     try {

@@ -1,8 +1,6 @@
-import { apiRequest } from "@/lib/queryClient";
-import { format, parse, isWithinInterval, startOfDay, endOfDay, setHours, setMinutes, addMinutes } from "date-fns";
-import { utcToFacilityTime, facilityTimeToUtc } from "./timezone-utils";
+import { format, parse, addMinutes, isWithinInterval, setHours, setMinutes, isBefore, isAfter } from 'date-fns';
+import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 
-// Types for availability rules
 export interface AvailabilityRule {
   id: number;
   appointmentTypeId: number;
@@ -22,152 +20,140 @@ interface AvailabilitySlot {
   reason?: string;
 }
 
-// Fetch availability rules for a specific appointment type and facility
-export async function fetchAvailabilityRules(appointmentTypeId: number, facilityId: number): Promise<AvailabilityRule[]> {
-  try {
-    const response = await apiRequest(
-      "GET", 
-      `/api/appointment-master/availability-rules?typeId=${appointmentTypeId}&facilityId=${facilityId}`
-    );
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Failed to fetch availability rules:", error);
-    return [];
-  }
+interface ValidationResult {
+  valid: boolean;
+  message?: string;
 }
 
-// Check if a specific date and time falls within any availability rule
-export function isTimeSlotAvailable(
-  date: Date | string,
-  time: string,
-  rules: AvailabilityRule[],
-  facilityTimezone: string
-): { available: boolean; reason?: string } {
-  // Convert to date object if string
-  const dateObj = typeof date === "string" ? new Date(date) : date;
+/**
+ * Fetch availability rules from the server
+ */
+export async function fetchAvailabilityRules(appointmentTypeId: number, facilityId: number): Promise<AvailabilityRule[]> {
+  const response = await fetch(`/api/appointment-master/availability-rules?typeId=${appointmentTypeId}&facilityId=${facilityId}`);
   
-  // Only consider active rules
-  const activeRules = rules.filter(rule => rule.isActive);
-  
-  if (activeRules.length === 0) {
-    return { available: false, reason: "No active availability rules found" };
+  if (!response.ok) {
+    throw new Error('Failed to fetch availability rules');
   }
   
-  // Get day of week (0-6, Sunday is 0)
-  const dayOfWeek = dateObj.getDay();
+  return await response.json();
+}
+
+/**
+ * Check if a specific time slot is available
+ */
+export function isTimeSlotAvailable(
+  date: string, // "YYYY-MM-DD"
+  time: string, // "HH:MM"
+  rules: AvailabilityRule[],
+  durationMinutes: number,
+  timezone: string = 'UTC'
+): ValidationResult {
+  // If no rules, assume available
+  if (!rules || rules.length === 0) {
+    return { valid: true };
+  }
+
+  // Parse the date
+  const appointmentDate = parse(date, 'yyyy-MM-dd', new Date());
+  const dayOfWeek = appointmentDate.getDay();
   
-  // Parse the time string to hours and minutes
-  const [hours, minutes] = time.split(":").map(Number);
+  // Parse the time
+  const [hours, minutes] = time.split(':').map(Number);
+  const appointmentStartTime = setHours(setMinutes(appointmentDate, minutes), hours);
+  const appointmentEndTime = addMinutes(appointmentStartTime, durationMinutes);
   
-  // Create a full datetime by combining the date and time
-  const targetDateTime = new Date(dateObj);
-  targetDateTime.setHours(hours, minutes, 0, 0);
+  // Convert to facility timezone for proper comparison
+  const zonedStartTime = timezone ? utcToZonedTime(appointmentStartTime, timezone) : appointmentStartTime;
+  const zonedEndTime = timezone ? utcToZonedTime(appointmentEndTime, timezone) : appointmentEndTime;
   
-  // Convert to facility timezone for comparison with rules
-  const facilityDateTime = utcToFacilityTime(targetDateTime, facilityTimezone);
-  
-  // Check against each rule
-  for (const rule of activeRules) {
-    // Check day of week constraint if specified
-    if (rule.dayOfWeek !== null && rule.dayOfWeek !== dayOfWeek) {
-      continue;
-    }
+  // Filter to active rules that apply to this day and date
+  const applicableRules = rules.filter(rule => {
+    // Filter by active status
+    if (!rule.isActive) return false;
     
-    // Check date range constraint if specified
+    // Filter by day of week if specified
+    if (rule.dayOfWeek !== null && rule.dayOfWeek !== dayOfWeek) return false;
+    
+    // Filter by date range if specified
     if (rule.startDate && rule.endDate) {
-      const startDate = new Date(rule.startDate);
-      const endDate = new Date(rule.endDate);
+      const ruleStartDate = new Date(rule.startDate);
+      const ruleEndDate = new Date(rule.endDate);
       
-      if (!isWithinInterval(dateObj, { start: startOfDay(startDate), end: endOfDay(endDate) })) {
-        continue;
+      if (!isWithinInterval(appointmentDate, { start: ruleStartDate, end: ruleEndDate })) {
+        return false;
       }
     }
     
+    return true;
+  });
+  
+  // If no applicable rules, assume timeslot is not available
+  if (applicableRules.length === 0) {
+    return { 
+      valid: false, 
+      message: 'No availability rules found for this date' 
+    };
+  }
+  
+  // Check each applicable rule
+  for (const rule of applicableRules) {
     // Parse rule times
-    const ruleStartTime = rule.startTime.split(":");
-    const ruleEndTime = rule.endTime.split(":");
+    const ruleStart = parse(rule.startTime, 'HH:mm', appointmentDate);
+    const ruleEnd = parse(rule.endTime, 'HH:mm', appointmentDate);
     
-    const ruleStartHour = parseInt(ruleStartTime[0], 10);
-    const ruleStartMinute = parseInt(ruleStartTime[1], 10);
-    const ruleEndHour = parseInt(ruleEndTime[0], 10);
-    const ruleEndMinute = parseInt(ruleEndTime[1], 10);
-    
-    // Create rule timeframe for today
-    const ruleStart = new Date(dateObj);
-    ruleStart.setHours(ruleStartHour, ruleStartMinute, 0, 0);
-    
-    const ruleEnd = new Date(dateObj);
-    ruleEnd.setHours(ruleEndHour, ruleEndMinute, 0, 0);
-    
-    // Check if target time is within rule timeframe
-    if (facilityDateTime >= ruleStart && facilityDateTime <= ruleEnd) {
-      // Check concurrent appointment limit logic here (would need to fetch existing appointments)
-      // This is a simplified version
-      return { available: true };
+    // Check if the appointment time falls within the rule hours
+    if (isWithinInterval(zonedStartTime, { start: ruleStart, end: ruleEnd }) && 
+        isWithinInterval(zonedEndTime, { start: ruleStart, end: ruleEnd })) {
+      return { valid: true };
     }
   }
   
   return { 
-    available: false, 
-    reason: "The selected time is outside available booking hours" 
+    valid: false, 
+    message: 'The selected time is outside of available hours' 
   };
 }
 
-// Generate available time slots for a specific date based on rules
+/**
+ * Generate available time slots based on rules
+ */
 export function generateAvailableTimeSlots(
-  date: Date | string,
+  date: string, // "YYYY-MM-DD"
   rules: AvailabilityRule[],
-  appointmentDuration: number,
-  facilityTimezone: string,
+  durationMinutes: number,
+  timezone: string = 'UTC',
   intervalMinutes: number = 15
 ): AvailabilitySlot[] {
   const slots: AvailabilitySlot[] = [];
-  const dateObj = typeof date === "string" ? new Date(date) : date;
   
-  // Loop through all possible time slots in the day (every 15 mins by default)
+  // If no rules, return empty array
+  if (!rules || rules.length === 0) {
+    // Generate all time slots without availability
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += intervalMinutes) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        slots.push({
+          time: timeString,
+          available: false,
+          reason: 'No availability rules configured'
+        });
+      }
+    }
+    return slots;
+  }
+  
+  // Generate all possible time slots for the day
   for (let hour = 0; hour < 24; hour++) {
     for (let minute = 0; minute < 60; minute += intervalMinutes) {
       const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       
-      // Check if this slot is available
-      const availability = isTimeSlotAvailable(dateObj, timeString, rules, facilityTimezone);
-      
-      // For multi-hour appointments, we need to check if the entire duration is available
-      if (availability.available && appointmentDuration > intervalMinutes) {
-        // Create a slot end time
-        const slotStart = new Date(dateObj);
-        slotStart.setHours(hour, minute, 0, 0);
-        const slotEnd = addMinutes(slotStart, appointmentDuration);
-        
-        // Check every 15-min increment within the appointment duration
-        let allIncrementAvailable = true;
-        let currentTime = addMinutes(slotStart, intervalMinutes);
-        
-        while (currentTime < slotEnd) {
-          const incrementTimeString = format(currentTime, "HH:mm");
-          const incrementAvailability = isTimeSlotAvailable(
-            dateObj, 
-            incrementTimeString, 
-            rules, 
-            facilityTimezone
-          );
-          
-          if (!incrementAvailability.available) {
-            allIncrementAvailable = false;
-            availability.available = false;
-            availability.reason = incrementAvailability.reason;
-            break;
-          }
-          
-          currentTime = addMinutes(currentTime, intervalMinutes);
-        }
-      }
+      // Check availability for this slot
+      const validation = isTimeSlotAvailable(date, timeString, rules, durationMinutes, timezone);
       
       slots.push({
         time: timeString,
-        available: availability.available,
-        reason: availability.reason
+        available: validation.valid,
+        reason: validation.valid ? undefined : validation.message
       });
     }
   }
@@ -175,82 +161,45 @@ export function generateAvailableTimeSlots(
   return slots;
 }
 
-// Validate a selected date and time against availability rules before form submission
+/**
+ * Validate a specific date and time against availability rules
+ */
 export function validateAppointmentDateTime(
-  date: string,
-  time: string, 
+  date: string, // "YYYY-MM-DD"
+  time: string, // "HH:MM"
   rules: AvailabilityRule[],
-  appointmentDuration: number,
-  facilityTimezone: string
-): { valid: boolean; message?: string } {
-  // First check if the simple time slot is available
-  const availability = isTimeSlotAvailable(date, time, rules, facilityTimezone);
+  durationMinutes: number,
+  timezone: string = 'UTC'
+): ValidationResult {
+  // Check if date is in the past
+  const now = new Date();
+  const appointmentDate = parse(`${date}T${time}`, 'yyyy-MM-ddTHH:mm', new Date());
   
-  if (!availability.available) {
-    return { 
-      valid: false, 
-      message: availability.reason || "The selected time is not available for booking"
-    };
-  }
-  
-  // Then check if the entire appointment duration is available
-  const dateObj = new Date(date);
-  const [hours, minutes] = time.split(":").map(Number);
-  dateObj.setHours(hours, minutes, 0, 0);
-  
-  const endDateTime = addMinutes(dateObj, appointmentDuration);
-  const endTimeString = format(endDateTime, "HH:mm");
-  
-  const endAvailability = isTimeSlotAvailable(date, endTimeString, rules, facilityTimezone);
-  
-  if (!endAvailability.available) {
+  if (isBefore(appointmentDate, now)) {
     return {
       valid: false,
-      message: "The appointment duration extends beyond available booking hours"
+      message: 'Cannot schedule appointments in the past'
     };
   }
   
-  // Check every 15 minutes during the appointment
-  for (let i = 15; i < appointmentDuration; i += 15) {
-    const incrementDateTime = addMinutes(dateObj, i);
-    const incrementTimeString = format(incrementDateTime, "HH:mm");
-    
-    const incrementAvailability = isTimeSlotAvailable(
-      date, 
-      incrementTimeString, 
-      rules, 
-      facilityTimezone
-    );
-    
-    if (!incrementAvailability.available) {
-      return {
-        valid: false,
-        message: "The appointment overlaps with unavailable time periods"
-      };
-    }
-  }
-  
-  return { valid: true };
+  // Check against availability rules
+  return isTimeSlotAvailable(date, time, rules, durationMinutes, timezone);
 }
 
-// Convert date and time strings to UTC ISO string with timezone consideration
+/**
+ * Convert a local date and time to UTC ISO string
+ */
 export function dateTimeToUtcIso(
-  dateString: string, 
-  timeString: string, 
-  facilityTimezone: string
+  date: string, // "YYYY-MM-DD"
+  time: string, // "HH:MM"
+  timezone: string = 'UTC'
 ): string {
-  // Parse the date string (expected format: YYYY-MM-DD)
-  const [year, month, day] = dateString.split('-').map(Number);
-  
-  // Parse the time string (expected format: HH:MM)
-  const [hours, minutes] = timeString.split(':').map(Number);
-  
-  // Create a date object in the facility's timezone
-  const facilityTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+  // Parse the date and time
+  const localDateTime = parse(`${date}T${time}`, 'yyyy-MM-ddTHH:mm', new Date());
   
   // Convert to UTC
-  const utcTime = facilityTimeToUtc(facilityTime, facilityTimezone);
+  const utcDateTime = timezone ? zonedTimeToUtc(localDateTime, timezone) : localDateTime;
   
-  // Return ISO string
-  return utcTime.toISOString();
+  // Return as ISO string
+  return utcDateTime.toISOString();
 }
