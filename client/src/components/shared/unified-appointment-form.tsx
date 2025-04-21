@@ -1165,10 +1165,12 @@ export default function UnifiedAppointmentForm({
                                   {field.value && (
                                     <div className="flex items-center">
                                       <Clock className="mr-2 h-4 w-4" />
-                                      {format(
-                                        new Date(`2000-01-01T${field.value}`),
-                                        'h:mm a'
-                                      )}
+                                      {(() => {
+                                        const [hour, minute] = field.value.split(':').map(Number);
+                                        const timeDate = new Date();
+                                        timeDate.setHours(hour, minute, 0, 0);
+                                        return format(timeDate, 'h:mm a');
+                                      })()}
                                     </div>
                                   )}
                                 </SelectValue>
@@ -1182,10 +1184,10 @@ export default function UnifiedAppointmentForm({
                                   .filter(slot => slot.available)
                                   .map(slot => {
                                     const [hour, minute] = slot.time.split(':').map(Number);
-                                    const timeDisplay = format(
-                                      new Date().setHours(hour, minute), 
-                                      'h:mm a'
-                                    );
+                                    // Create a proper date object instead of using timestamp
+                                    const timeDate = new Date();
+                                    timeDate.setHours(hour, minute, 0, 0);
+                                    const timeDisplay = format(timeDate, 'h:mm a');
                                     return (
                                       <SelectItem key={slot.time} value={slot.time}>
                                         {timeDisplay}
@@ -1199,7 +1201,10 @@ export default function UnifiedAppointmentForm({
                                     const h = hour;
                                     const m = quarterHour * 15;
                                     const timeValue = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                                    const timeDisplay = format(new Date().setHours(h, m), 'h:mm a');
+                                    // Create a proper date object instead of using timestamp
+                                    const timeDate = new Date();
+                                    timeDate.setHours(h, m, 0, 0);
+                                    const timeDisplay = format(timeDate, 'h:mm a');
                                     return (
                                       <SelectItem key={`${h}-${m}`} value={timeValue}>
                                         {timeDisplay}
@@ -1447,7 +1452,12 @@ export default function UnifiedAppointmentForm({
                   <p className="text-sm text-gray-500">Appointment Time</p>
                   <p className="font-medium">
                     {scheduleDetailsForm.getValues().appointmentTime
-                      ? format(new Date(`2000-01-01T${scheduleDetailsForm.getValues().appointmentTime}`), "h:mm a")
+                      ? (() => {
+                          const [hour, minute] = scheduleDetailsForm.getValues().appointmentTime.split(':').map(Number);
+                          const timeDate = new Date();
+                          timeDate.setHours(hour, minute, 0, 0);
+                          return format(timeDate, "h:mm a");
+                        })()
                       : "N/A"}
                   </p>
                 </div>
