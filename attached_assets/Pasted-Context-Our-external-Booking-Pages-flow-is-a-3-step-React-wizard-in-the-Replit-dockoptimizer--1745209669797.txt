@@ -1,0 +1,42 @@
+Context:  
+Our external “Booking Pages” flow is a 3‑step React wizard in the Replit “dockoptimizer” workspace. We’re seeing stale data bleed between steps:  
+- The BOL file‐upload component sometimes shows the previous booking’s file.  
+- The MC Number field is pre‑filled with the phone number from Step 2.  
+- The final confirmation page shows the wrong date/time (it displays 04/22 05:00 AM instead of the 04/21 09:00 AM the user selected).
+
+Goal:  
+“Harden” the external booking wizard so that each step only reads/writes its own fields into a single, consistent booking context, and so the confirmation reflects exactly what the user entered.
+
+Please:
+
+1. **Centralize Booking State**  
+   - Create or refactor a `BookingWizardContext` (or similar) that holds one object with all booking fields.  
+   - Ensure each step’s form reads/writes *only* its own subset of fields to that context.  
+
+2. **Fix File‐Upload Reset**  
+   - In Step 2 (BOL Upload), bind the file‐upload component to `bookingContext.bolFile`.  
+   - On wizard start, explicitly clear `bolFile`.  
+   - Remove any internal file preview state that isn’t in the shared context.
+
+3. **Correct MC Number Binding**  
+   - In Step 2, bind the MC Number input to `bookingContext.mcNumber`.  
+   - Remove any cross‑binding or prop that assigns `bookingContext.driverPhone` (or other field) into the MC Number input.  
+   - Add validation: MC Number must match `/^\d{3}-\d{3}-\d{4}$/` (or your format).
+
+4. **Persist & Pass Appointment Date/Time**  
+   - In Step 1, when the user selects date & time, serialize them into UTC with the facility’s timezone and save to `bookingContext.appointmentDateTime`.  
+   - Ensure Step 3 and the Confirmation page read from that single `appointmentDateTime` field.  
+   - Remove any secondary local state or re‑parsing that could introduce off‑by‑one‑day or time‑zone shifts.
+
+5. **Confirmation Page Rendering**  
+   - Refactor Confirmation to pull all values from `BookingWizardContext`—no intermediate props or stale variables.  
+   - Format `appointmentDateTime` back into the facility’s local date/time for display.  
+   - Display the loaded BOL file name and MC Number exactly as stored in context.
+
+6. **Tests & Verification**  
+   - Add unit tests for the wizard context reducer or hook to assert that each step’s state updates independently.  
+   - Write an end‑to‑end test:  
+     • Start a fresh booking, select 04/21 at 09:00, upload a dummy BOL, enter MC # 123‑456‑7890, driver phone 555‑111‑2222.  
+     • On Confirmation, assert: date=04/21, time=09:00, MC #=123‑456‑7890, driver phone=555‑111‑2222, and BOL filename matches.  
+
+Commit these changes as one checkpoint so we can immediately verify the hardened flow.  
