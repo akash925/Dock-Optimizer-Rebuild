@@ -451,28 +451,71 @@ export default function UnifiedAppointmentForm({
   // Update available time slots when date changes
   useEffect(() => {
     const updateAvailableSlots = async () => {
-      if (!scheduleDetailsForm.watch("appointmentDate") || !availabilityRules.length) return;
-      
       const date = scheduleDetailsForm.watch("appointmentDate");
-      const duration = selectedAppointmentType?.duration || 60;
+      const defaultDuration = 60;
+      const duration = selectedAppointmentType?.duration || defaultDuration;
       
-      // Import functions from appointment-availability.ts
-      const { generateAvailableTimeSlots } = await import("@/lib/appointment-availability");
-      
-      const slots = generateAvailableTimeSlots(
+      // Log parameters for debugging
+      console.log('Fetching slots for', {
         date,
-        availabilityRules,
-        duration,
-        facilityTimezone,
-        15 // 15-minute intervals
-      );
-      
-      setAvailableTimeSlots(slots);
+        typeId: appointmentTypeId,
+        facilityId: selectedFacilityId,
+        timezone: facilityTimezone,
+        appointmentType: selectedAppointmentType?.name,
+        duration
+      });
+
+      try {
+        // Import functions from appointment-availability.ts
+        const { generateAvailableTimeSlots } = await import("@/lib/appointment-availability");
+        
+        // If there are no rules, or date is not selected, show all time slots as a fallback
+        if (!date) {
+          console.log('No date selected, not generating time slots');
+          return;
+        }
+        
+        let slots = [];
+        
+        if (!availabilityRules.length) {
+          console.log('No availability rules found, generating all slots');
+          // Generate all slots but mark them as unavailable
+          slots = Array.from({ length: 24 }).flatMap((_, hour) => 
+            Array.from({ length: 4 }).map((_, quarterHour) => {
+              const h = hour;
+              const m = quarterHour * 15;
+              return {
+                time: `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`,
+                available: true, // Mark as available for now, until we have rules
+                reason: 'No rules configured'
+              };
+            })
+          );
+        } else {
+          // Use actual availability rules
+          console.log('Generating slots with', availabilityRules.length, 'availability rules');
+          slots = generateAvailableTimeSlots(
+            date,
+            availabilityRules,
+            duration,
+            facilityTimezone,
+            15 // 15-minute intervals
+          );
+        }
+        
+        console.log('Generated', slots.length, 'time slots,', 
+          slots.filter((s: any) => s.available).length, 'available');
+        
+        setAvailableTimeSlots(slots);
+      } catch (err: any) {
+        console.error('Error generating time slots:', err);
+        setAvailabilityError(`Error loading time slots: ${err.message || 'Unknown error'}`);
+      }
       
       // If the currently selected time is not available, reset the time field
       const currentTime = scheduleDetailsForm.getValues().appointmentTime;
-      if (currentTime) {
-        const currentSlot = slots.find(slot => slot.time === currentTime);
+      if (currentTime && availableTimeSlots.length > 0) {
+        const currentSlot = availableTimeSlots.find(slot => slot.time === currentTime);
         if (currentSlot && !currentSlot.available) {
           scheduleDetailsForm.setValue("appointmentTime", "", {
             shouldValidate: true,
@@ -1166,7 +1209,11 @@ export default function UnifiedAppointmentForm({
                                     <div className="flex items-center">
                                       <Clock className="mr-2 h-4 w-4" />
                                       {(() => {
-                                        const [hour, minute] = field.value.split(':').map(Number);
+                                        const t = field.value;
+                                        if (!t || typeof t !== 'string' || !/^\d{2}:\d{2}$/.test(t)) {
+                                          return '—';
+                                        }
+                                        const [hour, minute] = t.split(':').map(Number);
                                         const timeDate = new Date();
                                         timeDate.setHours(hour, minute, 0, 0);
                                         return format(timeDate, 'h:mm a');
@@ -1181,10 +1228,14 @@ export default function UnifiedAppointmentForm({
                               {availabilityRules && availabilityRules.length > 0 && availableTimeSlots.length > 0 ? (
                                 // Show only available time slots based on rules
                                 availableTimeSlots
-                                  .filter(slot => slot.available)
-                                  .map(slot => {
-                                    const [hour, minute] = slot.time.split(':').map(Number);
-                                    // Create a proper date object instead of using timestamp
+                                  .filter((slot: any) => slot.available)
+                                  .map((slot: any) => {
+                                    // Add validation for time format
+                                    const t = slot.time;
+                                    if (!t || typeof t !== 'string' || !/^\d{2}:\d{2}$/.test(t)) {
+                                      return null; // Skip invalid time values
+                                    }
+                                    const [hour, minute] = t.split(':').map(Number);
                                     const timeDate = new Date();
                                     timeDate.setHours(hour, minute, 0, 0);
                                     const timeDisplay = format(timeDate, 'h:mm a');
@@ -1203,6 +1254,10 @@ export default function UnifiedAppointmentForm({
                                     const timeValue = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                                     // Create a proper date object instead of using timestamp
                                     const timeDate = new Date();
+                                    // Ensure h and m are valid numbers
+                                    if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+                                      return null; // Skip invalid values
+                                    }
                                     timeDate.setHours(h, m, 0, 0);
                                     const timeDisplay = format(timeDate, 'h:mm a');
                                     return (
@@ -1451,14 +1506,16 @@ export default function UnifiedAppointmentForm({
                 <div>
                   <p className="text-sm text-gray-500">Appointment Time</p>
                   <p className="font-medium">
-                    {scheduleDetailsForm.getValues().appointmentTime
-                      ? (() => {
-                          const [hour, minute] = scheduleDetailsForm.getValues().appointmentTime.split(':').map(Number);
-                          const timeDate = new Date();
-                          timeDate.setHours(hour, minute, 0, 0);
-                          return format(timeDate, "h:mm a");
-                        })()
-                      : "N/A"}
+                    {(() => {
+                        const t = scheduleDetailsForm.getValues().appointmentTime;
+                        if (!t || typeof t !== 'string' || !/^\d{2}:\d{2}$/.test(t)) {
+                          return 'N/A';
+                        }
+                        const [hour, minute] = t.split(':').map(Number);
+                        const timeDate = new Date();
+                        timeDate.setHours(hour, minute, 0, 0);
+                        return format(timeDate, "h:mm a");
+                      })()}
                   </p>
                 </div>
                 <div>
