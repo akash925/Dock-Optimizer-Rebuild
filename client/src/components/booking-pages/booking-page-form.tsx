@@ -36,7 +36,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { BookingPage, insertBookingPageSchema } from "@shared/schema";
+import { BookingPage as BookingPageSchema, insertBookingPageSchema } from "@shared/schema";
 import { Loader2, Search } from "lucide-react";
 
 // Extend the schema for frontend validation
@@ -68,8 +68,8 @@ type AppointmentType = {
   [key: string]: any;
 };
 
-// Full booking page type definition
-type BookingPage = {
+// Full booking page type definition - extend the schema one
+type BookingPageExtended = {
   id: number;
   name: string;
   slug: string;
@@ -90,7 +90,7 @@ type BookingPage = {
 };
 
 type BookingPageFormProps = {
-  bookingPage?: BookingPage;
+  bookingPage?: BookingPageSchema;
   onSuccess: () => void;
   onCancel: () => void;
 };
