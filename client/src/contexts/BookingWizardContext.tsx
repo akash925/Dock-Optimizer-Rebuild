@@ -10,6 +10,7 @@ interface BookingFormData {
   startTime: Date | null; 
   endTime: Date | null;
   timezone: string;
+  facilityTimezone?: string; // Facility timezone if different from user timezone
   
   // Step 3: Customer Information
   companyName: string;
@@ -27,6 +28,10 @@ interface BookingFormData {
   
   // Additional Information
   notes: string;
+  
+  // File attachments
+  bolFile?: File | null;
+  bolPreviewText?: string;
   
   // Custom Questions answers
   customFields: Record<string, string>;

@@ -1,0 +1,171 @@
+/* Booking Wizard Themed Styles */
+
+.booking-wizard-container {
+  max-width: var(--booking-page-max-width, 600px);
+  margin: 0 auto;
+  padding: var(--booking-page-padding, 2rem);
+  font-family: var(--booking-font-family, system-ui, -apple-system, sans-serif);
+  color: var(--booking-text-color, #333333);
+  background-color: var(--booking-background-color, #ffffff);
+}
+
+.booking-wizard-header {
+  margin-bottom: var(--booking-section-margin-bottom, 2rem);
+}
+
+.booking-wizard-logo {
+  max-width: 200px;
+  max-height: 80px;
+  margin-bottom: 1rem;
+}
+
+.booking-wizard-title {
+  font-size: var(--booking-header-font-size, 24px);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--booking-text-color, #333333);
+}
+
+.booking-wizard-subtitle {
+  font-size: var(--booking-subheader-font-size, 18px);
+  font-weight: 500;
+  color: var(--booking-text-color, #333333);
+  opacity: 0.8;
+}
+
+/* Step Indicator */
+.booking-step-indicator {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--booking-section-margin-bottom, 2rem);
+}
+
+.booking-step-text {
+  font-size: calc(var(--booking-body-font-size, 16px) - 2px);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  color: var(--booking-text-color, #333333);
+}
+
+.booking-progress-container {
+  width: 100%;
+  height: var(--booking-progress-height, 6px);
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.booking-progress-bar {
+  height: 100%;
+  background-color: var(--booking-primary-color, #4CAF50);
+  transition: width 0.3s ease;
+}
+
+/* Form Styling */
+.booking-form-section {
+  margin-bottom: var(--booking-section-margin-bottom, 2rem);
+}
+
+.booking-form-section-title {
+  font-size: var(--booking-subheader-font-size, 18px);
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--booking-text-color, #333333);
+}
+
+.booking-form-field {
+  margin-bottom: var(--booking-field-margin-bottom, 1.5rem);
+}
+
+/* Themed Button */
+.booking-button {
+  background-color: var(--booking-primary-color, #4CAF50);
+  color: white;
+  border: none;
+  border-radius: var(--booking-button-radius, 8px);
+  padding: 0.75rem 1.5rem;
+  font-size: var(--booking-body-font-size, 16px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.booking-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.booking-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.booking-button-secondary {
+  background-color: transparent;
+  color: var(--booking-primary-color, #4CAF50);
+  border: 1px solid var(--booking-primary-color, #4CAF50);
+}
+
+.booking-button-secondary:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Navigation buttons container */
+.booking-nav-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+/* Date and Time picker custom styling */
+.booking-date-picker .rdp {
+  --rdp-accent-color: var(--booking-primary-color, #4CAF50);
+  --rdp-background-color: var(--booking-background-color, #ffffff);
+}
+
+.booking-time-select {
+  border-color: var(--booking-primary-color, #4CAF50);
+}
+
+/* Styled inputs */
+.booking-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--booking-border-radius, 8px);
+  font-size: var(--booking-body-font-size, 16px);
+  transition: border-color 0.2s ease;
+}
+
+.booking-input:focus {
+  outline: none;
+  border-color: var(--booking-primary-color, #4CAF50);
+  box-shadow: 0 0 0 2px rgba(var(--booking-primary-color-rgb, 76, 175, 80), 0.1);
+}
+
+.booking-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: calc(var(--booking-body-font-size, 16px) - 1px);
+  color: var(--booking-text-color, #333333);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .booking-wizard-container {
+    padding: 1.5rem;
+  }
+  
+  .booking-nav-buttons {
+    flex-direction: column-reverse;
+    gap: 1rem;
+  }
+  
+  .booking-nav-buttons button {
+    width: 100%;
+  }
+}

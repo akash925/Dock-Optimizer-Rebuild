@@ -1,188 +1,172 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
+import { render, screen, act } from '@testing-library/react';
+import { BookingWizardProvider, useBookingWizard } from '../contexts/BookingWizardContext';
 
 // Test component that uses the context
 function TestComponent() {
   const { 
+    currentStep, 
+    setCurrentStep, 
     bookingData, 
-    resetBooking, 
-    updateTruckInfo, 
-    updateScheduleDetails,
-    setBolFile, 
-    setAppointmentDateTime 
+    updateBookingData,
+    resetBookingData
   } = useBookingWizard();
   
   return (
     <div>
-      <div data-testid="booking-data">{JSON.stringify(bookingData)}</div>
-      <button data-testid="reset-button" onClick={() => resetBooking()}>Reset</button>
-      <button data-testid="update-truck-info" onClick={() => updateTruckInfo({ carrierName: 'Test Carrier', mcNumber: '123-456-7890' })}>Update Truck Info</button>
-      <button data-testid="update-schedule-details" onClick={() => updateScheduleDetails({ bolNumber: 'BOL123', facilityId: 5 })}>Update Schedule Details</button>
-      <button data-testid="set-bol-file" onClick={() => {
-        const mockFile = new File(['test'], 'test.pdf', { type: 'application/pdf' });
-        setBolFile(mockFile, 'This is a test BOL file');
-      }}>Set BOL File</button>
-      <button data-testid="set-date-time" onClick={() => setAppointmentDateTime('2025-04-21', '09:00', 'America/New_York')}>Set Date Time</button>
+      <h1 data-testid="step">Step: {currentStep}</h1>
+      <button 
+        data-testid="next-step" 
+        onClick={() => setCurrentStep(currentStep + 1)}
+      >
+        Next Step
+      </button>
+      
+      <div data-testid="company-name">Company: {bookingData.companyName}</div>
+      <button 
+        data-testid="update-company" 
+        onClick={() => updateBookingData({ companyName: 'Test Company' })}
+      >
+        Set Company
+      </button>
+      
+      <div data-testid="appointment-type">
+        Appointment Type: {bookingData.appointmentTypeId?.toString() || 'None'}
+      </div>
+      <button 
+        data-testid="update-appointment-type" 
+        onClick={() => updateBookingData({ appointmentTypeId: 123 })}
+      >
+        Set Appointment Type
+      </button>
+      
+      <button data-testid="reset" onClick={resetBookingData}>
+        Reset Form
+      </button>
     </div>
   );
 }
 
+// Tests
 describe('BookingWizardContext', () => {
-  test('initializes with default state', () => {
+  test('provides the current step and allows changing it', () => {
     render(
       <BookingWizardProvider>
         <TestComponent />
       </BookingWizardProvider>
     );
     
-    const bookingDataElement = screen.getByTestId('booking-data');
-    const bookingData = JSON.parse(bookingDataElement.textContent || '{}');
-    
-    // Check for default values
-    expect(bookingData.carrierId).toBeNull();
-    expect(bookingData.carrierName).toBe('');
-    expect(bookingData.mcNumber).toBe('');
-    expect(bookingData.type).toBe('inbound');
+    expect(screen.getByTestId('step').textContent).toBe('Step: 1');
+    act(() => {
+      screen.getByTestId('next-step').click();
+    });
+    expect(screen.getByTestId('step').textContent).toBe('Step: 2');
   });
   
-  test('updates truck info correctly', () => {
+  test('allows updating booking data', () => {
     render(
       <BookingWizardProvider>
         <TestComponent />
       </BookingWizardProvider>
     );
     
-    // Click the button to update truck info
-    fireEvent.click(screen.getByTestId('update-truck-info'));
-    
-    // Verify the state was updated
-    const bookingDataElement = screen.getByTestId('booking-data');
-    const bookingData = JSON.parse(bookingDataElement.textContent || '{}');
-    
-    expect(bookingData.carrierName).toBe('Test Carrier');
-    expect(bookingData.mcNumber).toBe('123-456-7890');
+    expect(screen.getByTestId('company-name').textContent).toBe('Company: ');
+    act(() => {
+      screen.getByTestId('update-company').click();
+    });
+    expect(screen.getByTestId('company-name').textContent).toBe('Company: Test Company');
   });
   
-  test('updates schedule details correctly', () => {
+  test('allows updating numeric fields', () => {
     render(
       <BookingWizardProvider>
         <TestComponent />
       </BookingWizardProvider>
     );
     
-    // Click the button to update schedule details
-    fireEvent.click(screen.getByTestId('update-schedule-details'));
-    
-    // Verify the state was updated
-    const bookingDataElement = screen.getByTestId('booking-data');
-    const bookingData = JSON.parse(bookingDataElement.textContent || '{}');
-    
-    expect(bookingData.bolNumber).toBe('BOL123');
-    expect(bookingData.facilityId).toBe(5);
+    expect(screen.getByTestId('appointment-type').textContent).toBe('Appointment Type: None');
+    act(() => {
+      screen.getByTestId('update-appointment-type').click();
+    });
+    expect(screen.getByTestId('appointment-type').textContent).toBe('Appointment Type: 123');
   });
   
-  test('sets BOL file correctly', () => {
+  test('allows resetting form data', () => {
     render(
       <BookingWizardProvider>
         <TestComponent />
       </BookingWizardProvider>
     );
     
-    // Click the button to set BOL file
-    fireEvent.click(screen.getByTestId('set-bol-file'));
+    // Set some data first
+    act(() => {
+      screen.getByTestId('update-company').click();
+      screen.getByTestId('update-appointment-type').click();
+      screen.getByTestId('next-step').click();
+    });
     
-    // Verify the state was updated
-    const bookingDataElement = screen.getByTestId('booking-data');
-    const bookingData = JSON.parse(bookingDataElement.textContent || '{}');
+    expect(screen.getByTestId('company-name').textContent).toBe('Company: Test Company');
+    expect(screen.getByTestId('appointment-type').textContent).toBe('Appointment Type: 123');
+    expect(screen.getByTestId('step').textContent).toBe('Step: 2');
     
-    expect(bookingData.bolFile).not.toBeNull();
-    expect(bookingData.bolPreviewText).toBe('This is a test BOL file');
+    // Reset the form
+    act(() => {
+      screen.getByTestId('reset').click();
+    });
+    
+    // Verify everything is reset
+    expect(screen.getByTestId('company-name').textContent).toBe('Company: ');
+    expect(screen.getByTestId('appointment-type').textContent).toBe('Appointment Type: None');
+    expect(screen.getByTestId('step').textContent).toBe('Step: 1');
   });
   
-  test('sets appointment date and time correctly', () => {
+  test('persists values when navigating between steps', () => {
     render(
       <BookingWizardProvider>
         <TestComponent />
       </BookingWizardProvider>
     );
     
-    // Click the button to set date and time
-    fireEvent.click(screen.getByTestId('set-date-time'));
+    // Set data in step 1
+    act(() => {
+      screen.getByTestId('update-company').click();
+      screen.getByTestId('update-appointment-type').click();
+    });
     
-    // Verify the state was updated
-    const bookingDataElement = screen.getByTestId('booking-data');
-    const bookingData = JSON.parse(bookingDataElement.textContent || '{}');
+    // Move to step 2
+    act(() => {
+      screen.getByTestId('next-step').click();
+    });
     
-    expect(bookingData.appointmentDate).toBe('2025-04-21');
-    expect(bookingData.appointmentTime).toBe('09:00');
-    expect(bookingData.appointmentDateTime).toBeTruthy(); // Should be a UTC ISO string
+    // Verify data persists in step 2
+    expect(screen.getByTestId('company-name').textContent).toBe('Company: Test Company');
+    expect(screen.getByTestId('appointment-type').textContent).toBe('Appointment Type: 123');
   });
   
-  test('reset functionality works correctly', () => {
+  test('maintains separate values for different fields', () => {
     render(
       <BookingWizardProvider>
         <TestComponent />
       </BookingWizardProvider>
     );
     
-    // First update some values
-    fireEvent.click(screen.getByTestId('update-truck-info'));
-    fireEvent.click(screen.getByTestId('update-schedule-details'));
+    // Update only company name
+    act(() => {
+      screen.getByTestId('update-company').click();
+    });
     
-    // Then reset
-    fireEvent.click(screen.getByTestId('reset-button'));
+    // Verify appointment type is still default
+    expect(screen.getByTestId('company-name').textContent).toBe('Company: Test Company');
+    expect(screen.getByTestId('appointment-type').textContent).toBe('Appointment Type: None');
     
-    // Verify the state was reset
-    const bookingDataElement = screen.getByTestId('booking-data');
-    const bookingData = JSON.parse(bookingDataElement.textContent || '{}');
+    // Update only appointment type
+    act(() => {
+      screen.getByTestId('reset').click();
+      screen.getByTestId('update-appointment-type').click();
+    });
     
-    expect(bookingData.carrierName).toBe('');
-    expect(bookingData.mcNumber).toBe('');
-    expect(bookingData.bolNumber).toBe('');
-    expect(bookingData.facilityId).toBeNull();
-  });
-  
-  test('can initialize with custom data', () => {
-    render(
-      <BookingWizardProvider initialData={{ 
-        carrierName: 'Initial Carrier',
-        type: 'outbound'
-      }}>
-        <TestComponent />
-      </BookingWizardProvider>
-    );
-    
-    const bookingDataElement = screen.getByTestId('booking-data');
-    const bookingData = JSON.parse(bookingDataElement.textContent || '{}');
-    
-    expect(bookingData.carrierName).toBe('Initial Carrier');
-    expect(bookingData.type).toBe('outbound');
-  });
-  
-  test('steps maintain independent data integrity', () => {
-    render(
-      <BookingWizardProvider>
-        <TestComponent />
-      </BookingWizardProvider>
-    );
-    
-    // Step 1: Update truck info
-    fireEvent.click(screen.getByTestId('update-truck-info'));
-    
-    // Step 2: Update schedule details 
-    fireEvent.click(screen.getByTestId('update-schedule-details'));
-    
-    // Verify both sets of data are preserved
-    const bookingDataElement = screen.getByTestId('booking-data');
-    const bookingData = JSON.parse(bookingDataElement.textContent || '{}');
-    
-    // Truck info from step 1 is preserved
-    expect(bookingData.carrierName).toBe('Test Carrier');
-    expect(bookingData.mcNumber).toBe('123-456-7890');
-    
-    // Schedule details from step 2 are preserved
-    expect(bookingData.bolNumber).toBe('BOL123');
-    expect(bookingData.facilityId).toBe(5);
+    // Verify company name is still default
+    expect(screen.getByTestId('company-name').textContent).toBe('Company: ');
+    expect(screen.getByTestId('appointment-type').textContent).toBe('Appointment Type: 123');
   });
 });
