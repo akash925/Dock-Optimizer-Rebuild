@@ -993,43 +993,20 @@ export default function UnifiedAppointmentForm({
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Appointment Date*</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(new Date(field.value), "PPP")
-                                ) : (
-                                  <span>Pick a date</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => {
-                                if (date) {
-                                  field.onChange(format(date, "yyyy-MM-dd"));
-                                }
-                              }}
-                              disabled={(date) => {
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-                                return date < today;
-                              }}
-                              initialFocus
+                        <div className="flex flex-col space-y-2">
+                          {/* Standard date input for better accessibility and to ensure it works */}
+                          <FormControl>
+                            <Input 
+                              type="date" 
+                              value={field.value || ''} 
+                              onChange={(e) => field.onChange(e.target.value)}
+                              min={format(new Date(), "yyyy-MM-dd")}
                             />
-                          </PopoverContent>
-                        </Popover>
+                          </FormControl>
+                        </div>
+                        <FormDescription>
+                          Select a date for your appointment (must be in the future)
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
