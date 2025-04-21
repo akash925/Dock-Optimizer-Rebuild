@@ -96,6 +96,14 @@ type BookingPageFormProps = {
 };
 
 export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: BookingPageFormProps) {
+  // Make the form dialog scrollable with a max height
+  useEffect(() => {
+    // Add scrollable class to the closest dialog container
+    const dialogContent = document.querySelector('.booking-page-form-dialog-content');
+    if (dialogContent) {
+      dialogContent.classList.add('max-h-[80vh]', 'overflow-y-auto');
+    }
+  }, []);
   const { toast } = useToast();
   const [selectedFacilities, setSelectedFacilities] = useState<number[]>([]);
   const [selectedAppointmentTypes, setSelectedAppointmentTypes] = useState<Record<number, number[]>>({});
@@ -424,7 +432,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 booking-page-form-dialog-content max-h-[80vh] overflow-y-auto pr-1">
         {/* Basic Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
@@ -659,170 +667,190 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           )}
         />
 
-        <Accordion 
-          type="multiple" 
-          value={openAccordionItems}
-          onValueChange={setOpenAccordionItems}
-          className="w-full"
-        >
-          <AccordionItem value="facilities" className="border-b">
-            <AccordionTrigger>Facilities & Appointment Types</AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-6">
-                <div>
-                  <div className="font-medium">Select Facilities</div>
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Choose which facilities should be available for booking on this page.
-                  </div>
-
-                  {isLoading ? (
-                    <div className="flex justify-center py-4">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {facilities && facilities.length > 0 ? (
-                        facilities.map((facility) => (
-                          <div key={facility.id} className="flex items-start space-x-2 p-2 border rounded-md">
-                            <Checkbox
-                              id={`facility-${facility.id}`}
-                              checked={selectedFacilities.includes(facility.id)}
-                              onCheckedChange={(checked) => 
-                                toggleFacility(facility.id, checked as boolean)
-                              }
-                            />
-                            <div className="grid gap-1.5 leading-none">
-                              <Label
-                                htmlFor={`facility-${facility.id}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                {facility.name}
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                {facility.address1}, {facility.city}, {facility.state}
-                              </p>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-4 text-muted-foreground">
-                          No facilities found. Please create facilities first.
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                
-                {selectedFacilities.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">Select Appointment Types</div>
-                        <div className="text-sm text-muted-foreground">
-                          Choose which appointment types should be available on this booking page.
-                        </div>
-                      </div>
-                      <div className="relative w-[200px]">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search appointment types"
-                          className="pl-8"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
+        {/* Facilities & Appointment Types Section */}
+        <div className="border rounded-lg p-5 shadow-sm">
+          <h3 className="text-lg font-medium mb-4">Facilities & Appointment Types</h3>
+          
+          {/* Search box for appointment types */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search facilities or appointment types..."
+              className="pl-9"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          {/* Facilities section */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-base">Select Facilities</h4>
+              {selectedFacilities.length > 0 && (
+                <Badge variant="outline" className="bg-primary/10 text-primary">
+                  {selectedFacilities.length} selected
+                </Badge>
+              )}
+            </div>
+            
+            {isLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+                {facilities && facilities.length > 0 ? (
+                  facilities
+                    .filter(facility => 
+                      !searchTerm || 
+                      facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      facility.city.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((facility) => (
+                      <div 
+                        key={facility.id} 
+                        className={`flex items-start space-x-2 p-3 border rounded-md hover:bg-muted/30 transition-colors cursor-pointer ${
+                          selectedFacilities.includes(facility.id) ? 'border-primary/50 bg-primary/5' : ''
+                        }`}
+                        onClick={() => toggleFacility(facility.id, !selectedFacilities.includes(facility.id))}
+                      >
+                        <Checkbox
+                          id={`facility-${facility.id}`}
+                          checked={selectedFacilities.includes(facility.id)}
+                          onCheckedChange={(checked) => 
+                            toggleFacility(facility.id, checked as boolean)
+                          }
+                          className="mt-1"
                         />
+                        <div className="grid gap-1 leading-none">
+                          <Label
+                            htmlFor={`facility-${facility.id}`}
+                            className="text-sm font-medium leading-none cursor-pointer"
+                          >
+                            {facility.name}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {facility.address1}, {facility.city}, {facility.state}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <Accordion
-                      type="multiple"
-                      className="space-y-2"
-                      value={openAccordionItems}
-                      onValueChange={setOpenAccordionItems}
-                    >
-                      {facilities
-                        .filter(facility => selectedFacilities.includes(facility.id))
-                        .map(facility => {
-                          // Filter appointment types for this facility
-                          const facilityAppointmentTypes = appointmentTypes
-                            ? Object.values(appointmentTypes)
-                                .filter(type => type.facilityId === facility.id)
-                            : [];
-                            
-                          // Apply search filter if there's a search term
-                          const filteredTypes = searchTerm
-                            ? facilityAppointmentTypes.filter(type => 
-                                type.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                            : facilityAppointmentTypes;
-                          
-                          // Count how many are selected
-                          const selectedCount = selectedAppointmentTypes[facility.id]?.length || 0;
-                          
-                          return (
-                            <AccordionItem 
-                              key={`facility-types-${facility.id}`} 
-                              value={`facility-${facility.id}`}
-                              className="border rounded-md overflow-hidden"
-                            >
-                              <AccordionTrigger className="px-4 py-2 hover:no-underline hover:bg-muted/50">
-                                <div className="flex justify-between w-full items-center">
-                                  <span>{facility.name}</span>
-                                  <Badge variant="outline" className="ml-2 font-mono">
-                                    {selectedCount}/{filteredTypes.length}
-                                  </Badge>
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent className="p-0">
-                                <div className="border-t px-4 py-2 space-y-2">
-                                  {filteredTypes.length > 0 ? (
-                                    filteredTypes.map(type => (
-                                      <div key={type.id} className="flex items-start space-x-2 p-2">
-                                        <Checkbox
-                                          id={`type-${facility.id}-${type.id}`}
-                                          checked={(selectedAppointmentTypes[facility.id] || []).includes(type.id)}
-                                          onCheckedChange={(checked) => 
-                                            toggleAppointmentType(facility.id, type.id, checked as boolean)
-                                          }
-                                        />
-                                        <div className="grid gap-1 leading-none">
-                                          <Label
-                                            htmlFor={`type-${facility.id}-${type.id}`}
-                                            className="text-sm font-medium leading-none"
-                                          >
-                                            {type.name}
-                                          </Label>
-                                          <div className="flex items-center mt-1 space-x-2">
-                                            <div 
-                                              className="w-3 h-3 rounded-full" 
-                                              style={{ backgroundColor: type.color }}
-                                            />
-                                            <p className="text-xs text-muted-foreground">
-                                              {type.type.charAt(0).toUpperCase() + type.type.slice(1)} • {type.duration} min
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ))
-                                  ) : searchTerm ? (
-                                    <div className="text-center py-2 text-sm text-muted-foreground">
-                                      No appointment types match "{searchTerm}".
-                                    </div>
-                                  ) : (
-                                    <div className="text-center py-2 text-sm text-muted-foreground">
-                                      No appointment types available for this facility.
-                                    </div>
-                                  )}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          );
-                        })}
-                    </Accordion>
+                    ))
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground col-span-2">
+                    No facilities found. Please create facilities first.
                   </div>
                 )}
               </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+            )}
+          </div>
+          
+          {/* Appointment Types Section */}
+          {selectedFacilities.length > 0 && (
+            <div>
+              <h4 className="font-medium text-base mb-3">Appointment Types</h4>
+              <div className="max-h-[300px] overflow-y-auto pr-1 space-y-3">
+                {facilities
+                  .filter(facility => selectedFacilities.includes(facility.id))
+                  .map(facility => {
+                    // Filter appointment types for this facility
+                    const facilityAppointmentTypes = appointmentTypes
+                      ? Object.values(appointmentTypes)
+                          .filter(type => type.facilityId === facility.id)
+                      : [];
+                      
+                    // Apply search filter if there's a search term
+                    const filteredTypes = searchTerm
+                      ? facilityAppointmentTypes.filter(type => 
+                          type.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                      : facilityAppointmentTypes;
+                    
+                    // Skip rendering if no types match search
+                    if (filteredTypes.length === 0 && searchTerm) {
+                      return null;
+                    }
+                    
+                    // Count how many are selected
+                    const selectedCount = selectedAppointmentTypes[facility.id]?.length || 0;
+                    
+                    return (
+                      <Accordion
+                        key={`facility-types-${facility.id}`}
+                        type="multiple"
+                        value={openAccordionItems}
+                        onValueChange={setOpenAccordionItems}
+                        className="rounded-md border"
+                      >
+                        <AccordionItem value={`facility-${facility.id}`} className="border-none">
+                          <div className="px-3 py-2 flex justify-between items-center bg-muted/20">
+                            <div className="flex items-center space-x-2">
+                              <AccordionTrigger className="py-0 hover:no-underline">
+                                <span className="font-medium">{facility.name}</span>
+                              </AccordionTrigger>
+                            </div>
+                            {facilityAppointmentTypes.length > 0 && (
+                              <Badge variant="outline" className="bg-primary/10 text-primary text-xs">
+                                {selectedCount}/{facilityAppointmentTypes.length} Types
+                              </Badge>
+                            )}
+                          </div>
+                          <AccordionContent className="pt-2 pb-0">
+                            {filteredTypes.length > 0 ? (
+                              <div className="divide-y">
+                                {filteredTypes.map(type => (
+                                  <div 
+                                    key={type.id} 
+                                    className={`px-3 py-2 flex items-start space-x-2 hover:bg-muted/20 transition-colors cursor-pointer ${
+                                      (selectedAppointmentTypes[facility.id] || []).includes(type.id) 
+                                        ? 'bg-primary/5' 
+                                        : ''
+                                    }`}
+                                    onClick={() => {
+                                      const isCurrentlySelected = (selectedAppointmentTypes[facility.id] || []).includes(type.id);
+                                      toggleAppointmentType(facility.id, type.id, !isCurrentlySelected);
+                                    }}
+                                  >
+                                    <Checkbox
+                                      id={`type-${facility.id}-${type.id}`}
+                                      checked={(selectedAppointmentTypes[facility.id] || []).includes(type.id)}
+                                      onCheckedChange={(checked) => 
+                                        toggleAppointmentType(facility.id, type.id, checked as boolean)
+                                      }
+                                      className="mt-1"
+                                    />
+                                    <div>
+                                      <Label
+                                        htmlFor={`type-${facility.id}-${type.id}`}
+                                        className="text-sm font-medium cursor-pointer"
+                                      >
+                                        {type.name}
+                                      </Label>
+                                      <div className="flex items-center mt-1">
+                                        <div 
+                                          className="w-3 h-3 rounded-full mr-2" 
+                                          style={{ backgroundColor: type.color }}
+                                        />
+                                        <span className="text-xs text-muted-foreground">
+                                          {type.duration} minutes
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-2 px-3 text-muted-foreground">
+                                No appointment types match your search.
+                              </div>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>
