@@ -960,12 +960,16 @@ function BookingWizardContent({
                       <FormItem className="flex flex-col">
                         <FormLabel>Carrier*</FormLabel>
                         <CarrierSelector 
-                          form={appointmentDetailsForm}
-                          nameFieldName="carrierName"
-                          idFieldName="carrierId"
-                          mcNumberFieldName="mcNumber"
-                          required={true}
-                          placeholder="Select or enter carrier name"
+                          onSelect={(carrier) => {
+                            appointmentDetailsForm.setValue("carrierName", carrier.name);
+                            appointmentDetailsForm.setValue("carrierId", carrier.id);
+                            
+                            // Format MC Number if available
+                            if (carrier.mcNumber) {
+                              appointmentDetailsForm.setValue("mcNumber", carrier.mcNumber);
+                            }
+                          }}
+                          {...field}
                         />
                         <FormDescription>
                           Select or type your carrier name
