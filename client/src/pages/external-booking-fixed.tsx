@@ -17,6 +17,10 @@ import BolUpload from '@/components/shared/bol-upload';
 import { ParsedBolData } from '@/lib/ocr-service';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider, useBookingTheme } from '@/contexts/BookingThemeContext';
+import { Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import '../styles/booking-wizard.css';
 import hanzoLogo from '@assets/hanzo logo.jpeg';
 
@@ -208,9 +212,30 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
   );
 }
 
+// Define the step 1 form schema
+const serviceSelectionSchema = z.object({
+  facilityId: z.string().min(1, { message: "Location is required" }),
+  appointmentTypeId: z.string().min(1, { message: "Appointment type is required" }),
+  pickupOrDropoff: z.enum(["pickup", "dropoff"], { 
+    required_error: "Please select if this is a pickup or dropoff" 
+  })
+});
+
+type ServiceSelectionFormValues = z.infer<typeof serviceSelectionSchema>;
+
 // Step 1: Service Selection
 function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
-  const { bookingData, updateBookingData, setCurrentStep, setIsLoading } = useBookingWizard();
+  const { bookingData, updateBookingData, setCurrentStep } = useBookingWizard();
+  
+  // Set up react-hook-form
+  const form = useForm<ServiceSelectionFormValues>({
+    resolver: zodResolver(serviceSelectionSchema),
+    defaultValues: {
+      facilityId: bookingData.facilityId?.toString() || "",
+      appointmentTypeId: bookingData.appointmentTypeId?.toString() || "",
+      pickupOrDropoff: bookingData.pickupOrDropoff as "pickup" | "dropoff" || undefined
+    }
+  });
   const [bolPreviewText, setBolPreviewText] = useState<string | null>(null);
   const [bolProcessing, setBolProcessing] = useState(false);
   
