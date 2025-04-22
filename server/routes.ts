@@ -1568,22 +1568,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/booking-pages", checkRole(["admin", "manager"]), async (req, res) => {
     try {
+      // Validate facilities and appointment types
+      const { facilities, appointmentTypes } = req.body;
+      
+      if (!facilities || !Array.isArray(facilities) || facilities.length === 0) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Please select at least one facility"
+        });
+      }
+      
+      if (!appointmentTypes || !Array.isArray(appointmentTypes) || appointmentTypes.length === 0) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Please select at least one appointment type"
+        });
+      }
+      
       // Add the current user to createdBy field
       const bookingPageData = {
         ...req.body,
         createdBy: req.user!.id
       };
       
-      const validatedData = insertBookingPageSchema.parse(bookingPageData);
-      
       // Check if slug already exists
-      const existingBookingPage = await storage.getBookingPageBySlug(validatedData.slug);
+      const existingBookingPage = await storage.getBookingPageBySlug(bookingPageData.slug);
       if (existingBookingPage) {
         return res.status(400).json({ message: "Slug already in use" });
       }
       
-      const bookingPage = await storage.createBookingPage(validatedData);
-      res.status(201).json(bookingPage);
+      // We need to calculate excludedAppointmentTypes for backward compatibility
+      const allAppointmentTypes = await storage.getAppointmentTypes();
+      const allAppointmentTypeIds = allAppointmentTypes.map(type => type.id);
+      
+      // Find appointment types to exclude (inverse of included types)
+      const excludedAppointmentTypes = allAppointmentTypeIds.filter(
+        id => !appointmentTypes.includes(id)
+      );
+      
+      // Prepare the data to save with correct structure
+      const dataToSave = {
+        ...bookingPageData,
+        facilities: facilities, // Array of facility IDs
+        excludedAppointmentTypes: excludedAppointmentTypes // For backward compatibility
+      };
+      
+      console.log(`Creating booking page with:`, {
+        facilities: facilities.length,
+        appointmentTypes: appointmentTypes.length,
+        excludedAppointmentTypes: excludedAppointmentTypes.length
+      });
+      
+      try {
+        const validatedData = insertBookingPageSchema.parse(dataToSave);
+        const bookingPage = await storage.createBookingPage(validatedData);
+        
+        res.status(201).json({
+          bookingPage: bookingPage,
+          success: true
+        });
+      } catch (validationError) {
+        console.error("Validation error:", validationError);
+        if (validationError instanceof z.ZodError) {
+          return res.status(400).json({ 
+            message: "Invalid booking page data", 
+            errors: validationError.errors 
+          });
+        }
+        throw validationError;
+      }
     } catch (err) {
       console.error("Error creating booking page:", err);
       if (err instanceof z.ZodError) {

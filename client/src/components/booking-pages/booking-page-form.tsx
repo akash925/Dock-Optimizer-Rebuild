@@ -94,9 +94,14 @@ interface FacilityItemProps {
   facility: Facility;
   isSelected: boolean;
   onToggle: (id: number, checked: boolean) => void;
+  selectedTypes?: number[];
+  facilityTypes?: number;
 }
 
-function FacilityItem({ facility, isSelected, onToggle }: FacilityItemProps) {
+function FacilityItem({ facility, isSelected, onToggle, selectedTypes = [], facilityTypes = 0 }: FacilityItemProps) {
+  // Count of selected types for this facility
+  const selectedCount = selectedTypes.length;
+  
   return (
     <div 
       className={`flex items-start space-x-2 p-3 border rounded-md hover:bg-muted/30 transition-colors cursor-pointer ${
@@ -112,19 +117,25 @@ function FacilityItem({ facility, isSelected, onToggle }: FacilityItemProps) {
         className="mt-1"
       />
       <div 
-        className="grid gap-1 leading-none" 
+        className="grid gap-1 leading-none flex-grow" 
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           onToggle(facility.id, !isSelected);
         }}
       >
-        <Label
-          htmlFor={`facility-${facility.id}`}
-          className="text-sm font-medium leading-none cursor-pointer"
-        >
-          {facility.name}
-        </Label>
+        <div className="flex justify-between items-center w-full">
+          <Label
+            htmlFor={`facility-${facility.id}`}
+            className="text-sm font-medium leading-none cursor-pointer"
+          >
+            {facility.name}
+          </Label>
+          
+          <Badge variant={selectedCount > 0 ? "default" : "outline"} className="ml-2">
+            {selectedCount}/{facilityTypes} Types
+          </Badge>
+        </div>
         <p className="text-xs text-muted-foreground">
           {facility.address1}, {facility.city}, {facility.state}
         </p>
@@ -329,6 +340,8 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
   
   // Toggle appointment type selection without real-time updates or nested state changes
   const toggleAppointmentType = (facilityId: number, appointmentTypeId: number, checked: boolean) => {
+    console.log(`Toggling appointment type ${appointmentTypeId} for facility ${facilityId} to ${checked ? 'selected' : 'unselected'}`);
+    
     // Create a local copy of state to avoid multiple renders
     const newAppointmentTypes = {...selectedAppointmentTypes};
     
@@ -341,18 +354,23 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       // Only add if not already selected
       if (!newAppointmentTypes[facilityId].includes(appointmentTypeId)) {
         newAppointmentTypes[facilityId] = [...newAppointmentTypes[facilityId], appointmentTypeId];
+        console.log(`Added type ${appointmentTypeId} to facility ${facilityId}`);
       }
     } else {
       // Only remove if currently selected
       if (newAppointmentTypes[facilityId].includes(appointmentTypeId)) {
         newAppointmentTypes[facilityId] = newAppointmentTypes[facilityId].filter(id => id !== appointmentTypeId);
+        console.log(`Removed type ${appointmentTypeId} from facility ${facilityId}`);
       }
     }
     
-    // Update state in the next animation frame to avoid render loops
-    requestAnimationFrame(() => {
-      setSelectedAppointmentTypes(newAppointmentTypes);
-    });
+    // Execute the state update immediately for better responsiveness
+    setSelectedAppointmentTypes(newAppointmentTypes);
+    
+    // Log the updated counts for debugging
+    console.log("Updated appointment type counts:", Object.entries(newAppointmentTypes).map(
+      ([facId, types]) => `Facility ${facId}: ${types.length} types`
+    ));
   };
 
   // Create mutation with improved error handling and consistent payload structure
@@ -871,14 +889,26 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
                       facility.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
                       facility.city.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
                     )
-                    .map((facility) => (
-                      <FacilityItem
-                        key={facility.id}
-                        facility={facility}
-                        isSelected={selectedFacilities.includes(facility.id)}
-                        onToggle={toggleFacility}
-                      />
-                    ))
+                    .map((facility) => {
+                      // Get all appointment types for this facility
+                      const facilityTypes = Object.values(appointmentTypes)
+                        .filter(type => type.facilityId === facility.id)
+                        .length;
+                      
+                      // Get the selected appointment types for this facility
+                      const selectedTypes = selectedAppointmentTypes[facility.id] || [];
+                      
+                      return (
+                        <FacilityItem
+                          key={facility.id}
+                          facility={facility}
+                          isSelected={selectedFacilities.includes(facility.id)}
+                          onToggle={toggleFacility}
+                          selectedTypes={selectedTypes}
+                          facilityTypes={facilityTypes}
+                        />
+                      );
+                    })
                 ) : (
                   <div className="text-center py-4 text-muted-foreground col-span-2">
                     No facilities found. Please create facilities first.
