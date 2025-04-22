@@ -415,31 +415,16 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
 
   // Create mutation with improved error handling and consistent payload structure
   const createMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof bookingPageFormSchema>) => {
-      // Get all selected appointment type IDs from selectedAppointmentTypes
-      const appointmentTypes: number[] = [];
-      
-      // Gather all selected appointment types across facilities
-      Object.entries(selectedAppointmentTypes).forEach(([facilityId, typeIds]) => {
-        appointmentTypes.push(...typeIds);
-      });
-
-      // Create the payload with the exact structure expected by the API
-      const payload = {
-        ...data,
-        facilities: selectedFacilities,
-        appointmentTypes: appointmentTypes
-      };
-
-      console.log("Creating booking page with payload:", payload);
+    mutationFn: async (formData: any) => {
+      console.log("Creating booking page with payload:", formData);
       
       try {
         // Enhanced debugging - log all request details
         console.log("Making API request with method:", 'POST');
         console.log("Request URL:", '/api/booking-pages');
-        console.log("Request payload:", JSON.stringify(payload, null, 2));
+        console.log("Request payload:", JSON.stringify(formData, null, 2));
         
-        const response = await apiRequest('POST', '/api/booking-pages', payload);
+        const response = await apiRequest('POST', '/api/booking-pages', formData);
         console.log("Response status:", response.status);
         console.log("Response status text:", response.statusText);
         console.log("Response headers:", getHeadersObject(response.headers));
@@ -498,42 +483,26 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
 
   // Update mutation with enhanced reliability and fixed payload structure
   const updateMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof bookingPageFormSchema>) => {
+    mutationFn: async (formData: any) => {
       if (!bookingPage) {
         console.error("No booking page provided to update");
         throw new Error("Cannot update non-existent booking page");
       }
 
       console.log("Starting booking page update process with ID:", bookingPage.id);
-      
-      // Get all selected appointment type IDs from selectedAppointmentTypes
-      const appointmentTypes: number[] = [];
-      
-      // Gather all selected appointment types across facilities
-      Object.entries(selectedAppointmentTypes).forEach(([facilityId, typeIds]) => {
-        appointmentTypes.push(...typeIds);
-      });
-      
-      // Create the payload with the exact structure expected by the API
-      const payload = {
-        ...data,
-        facilities: selectedFacilities,
-        appointmentTypes: appointmentTypes
-      };
-
-      console.log("Sending update API request with payload:", payload);
+      console.log("Sending update API request with payload:", formData);
       console.log("Sending to URL:", `/api/booking-pages/${bookingPage.id}`);
       
       try {
         // Enhanced debugging - log all request details
         console.log("Making API request with method:", 'PUT');
         console.log("Request URL:", `/api/booking-pages/${bookingPage.id}`);
-        console.log("Request payload:", JSON.stringify(payload, null, 2));
+        console.log("Request payload:", JSON.stringify(formData, null, 2));
         
-        const response = await apiRequest('PUT', `/api/booking-pages/${bookingPage.id}`, payload);
+        const response = await apiRequest('PUT', `/api/booking-pages/${bookingPage.id}`, formData);
         console.log("Response status:", response.status);
         console.log("Response status text:", response.statusText);
-        console.log("Response headers:", [...response.headers.entries()]);
+        console.log("Response headers:", getHeadersObject(response.headers));
         
         if (!response.ok) {
           // Try to get the error message from the response
@@ -616,14 +585,34 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       });
       return;
     }
-
+    
+    // Convert the selectedAppointmentTypes object to a flat array of type IDs for the API
+    const appointmentTypes: number[] = [];
+    Object.values(selectedAppointmentTypes).forEach(typeIds => {
+      appointmentTypes.push(...typeIds);
+    });
+    
+    console.log("Flattened appointment types array:", appointmentTypes);
+    
     try {
       if (bookingPage) {
         console.log("Updating existing booking page with ID:", bookingPage.id);
-        updateMutation.mutate(data);
+        // Pass both the form data and the appointment types to the API
+        const enrichedData = {
+          ...data,
+          facilities: selectedFacilities,
+          appointmentTypes: appointmentTypes
+        };
+        updateMutation.mutate(enrichedData);
       } else {
         console.log("Creating new booking page");
-        createMutation.mutate(data);
+        // Pass both the form data and the appointment types to the API
+        const enrichedData = {
+          ...data,
+          facilities: selectedFacilities,
+          appointmentTypes: appointmentTypes
+        };
+        createMutation.mutate(enrichedData);
       }
     } catch (error) {
       console.error("Error in form submission:", error);
