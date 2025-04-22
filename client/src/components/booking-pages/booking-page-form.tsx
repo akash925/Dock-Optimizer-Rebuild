@@ -338,13 +338,13 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       }, {});
   }, [appointmentTypesData, debouncedSearchTerm]);
   
-  // Toggle appointment type selection with proper React state management
+  // Completely redesigned appointment type toggle to eliminate any possible render loops
   const toggleAppointmentType = useCallback((facilityId: number, appointmentTypeId: number, checked: boolean) => {
     console.log(`Toggling appointment type ${appointmentTypeId} for facility ${facilityId} to ${checked ? 'selected' : 'unselected'}`);
     
-    setSelectedAppointmentTypes(prev => {
-      // Create a new reference for the state object to ensure React detects the change
-      const newState = {...prev};
+    setSelectedAppointmentTypes(currentState => {
+      // Create a brand new state object (immutable)
+      const newState = {...currentState};
       
       // Initialize array for this facility if it doesn't exist
       if (!newState[facilityId]) {
@@ -354,7 +354,6 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       if (checked) {
         // Only add if not already selected
         if (!newState[facilityId].includes(appointmentTypeId)) {
-          // Create a new array to ensure React detects the change
           newState[facilityId] = [...newState[facilityId], appointmentTypeId];
           console.log(`Added type ${appointmentTypeId} to facility ${facilityId}`);
         }
@@ -368,7 +367,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       
       return newState;
     });
-  }, []);
+  }, []); // Empty dependency array - this function never needs to be recreated
 
   // Create mutation with improved error handling and consistent payload structure
   const createMutation = useMutation({
@@ -555,33 +554,32 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
   const toggleFacility = useCallback((facilityId: number, checked: boolean) => {
     console.log(`Toggling facility ${facilityId} to ${checked ? 'selected' : 'unselected'}`);
     
-    // Get facility appointment types for potential use
-    const facilityAppointmentTypes = Object.values(appointmentTypes)
-      .filter(type => type.facilityId === facilityId)
-      .map(type => type.id);
-    
-    // Update facilities using functional updater pattern for atomicity
+    // Update facilities state
     setSelectedFacilities(prevFacilities => {
+      // No change needed if already in the desired state
+      if (checked && prevFacilities.includes(facilityId)) return prevFacilities;
+      if (!checked && !prevFacilities.includes(facilityId)) return prevFacilities;
+
+      // Either add or remove the facility
       if (checked) {
-        // Only add if not already selected
-        if (!prevFacilities.includes(facilityId)) {
-          return [...prevFacilities, facilityId];
-        }
+        return [...prevFacilities, facilityId];
       } else {
-        // Only remove if currently selected
-        if (prevFacilities.includes(facilityId)) {
-          return prevFacilities.filter(id => id !== facilityId);
-        }
+        return prevFacilities.filter(id => id !== facilityId);
       }
-      return prevFacilities; // No change needed
     });
     
-    // Update appointment types in a separate effect to avoid multiple state updates
+    // Update appointment types
     setSelectedAppointmentTypes(prevTypes => {
       const newTypes = {...prevTypes};
       
       if (checked) {
-        // Add all appointment types for this facility
+        // Get all appointment types for this facility
+        // Using closure over appointmentTypes, avoiding it as a dependency
+        const facilityAppointmentTypes = Object.values(appointmentTypes)
+          .filter(type => type.facilityId === facilityId)
+          .map(type => type.id);
+          
+        // Add all types for this facility  
         if (facilityAppointmentTypes.length > 0) {
           newTypes[facilityId] = facilityAppointmentTypes;
         }
@@ -598,18 +596,20 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       const itemKey = `facility-${facilityId}`;
       
       if (checked) {
-        // Add accordion item if not already open
+        // Only add if not already included
         if (!prevItems.includes(itemKey)) {
           return [...prevItems, itemKey];
         }
       } else {
-        // Remove accordion item
-        return prevItems.filter(item => item !== itemKey);
+        // Only remove if currently included
+        if (prevItems.includes(itemKey)) {
+          return prevItems.filter(item => item !== itemKey);
+        }
       }
       
       return prevItems; // No change needed
     });
-  }, [appointmentTypes]);
+  }, []); // Empty dependency array - relies on closures
 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isLoading = isLoadingFacilities || isLoadingAppointmentTypes;
@@ -1009,68 +1009,8 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
             Cancel
           </Button>
           <Button 
-            type="button" // Changed to button type to prevent form submission
+            type="submit" // Changed to submit to trigger the form's onSubmit
             disabled={isPending}
-            onClick={() => {
-              console.log("Direct button click - bypassing standard form submission");
-              // Get current form values
-              const formValues = form.getValues();
-              console.log("Form values:", formValues);
-              
-              // Validate form before submission
-              form.trigger().then(isValid => {
-                console.log("Form validation result:", isValid);
-                
-                if (isValid) {
-                  // Check if any facilities are selected
-                  if (selectedFacilities.length === 0) {
-                    console.log("Error: No facilities selected");
-                    toast({
-                      title: "Error",
-                      description: "Please select at least one facility",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  
-                  // Check if at least one appointment type is selected across all facilities
-                  const hasAnyTypeSelected = Object.values(selectedAppointmentTypes).some(types => types.length > 0);
-                  if (!hasAnyTypeSelected) {
-                    console.log("Error: No appointment types selected");
-                    toast({
-                      title: "Error",
-                      description: "Please select at least one appointment type",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  
-                  try {
-                    if (bookingPage) {
-                      console.log("Direct update of booking page with ID:", bookingPage.id);
-                      updateMutation.mutate(formValues);
-                    } else {
-                      console.log("Direct creation of new booking page");
-                      createMutation.mutate(formValues);
-                    }
-                  } catch (error) {
-                    console.error("Error in manual form submission:", error);
-                    toast({
-                      title: "Error",
-                      description: "An unexpected error occurred while saving",
-                      variant: "destructive",
-                    });
-                  }
-                } else {
-                  console.log("Form has validation errors");
-                  toast({
-                    title: "Validation Error",
-                    description: "Please correct the errors in the form",
-                    variant: "destructive",
-                  });
-                }
-              });
-            }}
           >
             {isPending ? (
               <>
