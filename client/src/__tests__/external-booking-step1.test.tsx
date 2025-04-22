@@ -179,4 +179,28 @@ describe('External Booking Step 1', () => {
     // Snapshot the container
     expect(container).toMatchSnapshot('external-booking-step1-mobile');
   });
+  
+  // Test form validation and FormContext
+  test('form validation works with FormContext', () => {
+    const { container, getByText, queryByText } = render(
+      <QueryClientProvider client={queryClient}>
+        <BookingThemeProvider slug="test-booking-page">
+          <BookingWizardProvider>
+            <ExternalBooking />
+          </BookingWizardProvider>
+        </BookingThemeProvider>
+      </QueryClientProvider>
+    );
+    
+    // Verify FormContext is working - we should not see any errors about useFormContext() being null
+    expect(container).toBeTruthy();
+    expect(queryByText(/Cannot destructure/i)).toBeNull();
+    expect(queryByText(/cannot read property/i)).toBeNull();
+    expect(queryByText(/null is not an object/i)).toBeNull();
+    
+    // Verify form components are rendered
+    expect(getByText(/Location/i)).toBeInTheDocument();
+    expect(getByText(/Dock Appointment Type/i)).toBeInTheDocument();
+    expect(getByText(/Pickup or Dropoff/i)).toBeInTheDocument();
+  });
 });

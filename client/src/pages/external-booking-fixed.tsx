@@ -164,7 +164,7 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
   let stepContent;
   
   if (currentStep === 1) {
-    stepContent = <ServiceSelectionStep bookingPage={bookingPage} />;
+    stepContent = <ServiceSelectionStepForm bookingPage={bookingPage} />;
   } else if (currentStep === 2) {
     stepContent = <DateTimeSelectionStep bookingPage={bookingPage} />;
   } else if (currentStep === 3) {
@@ -223,8 +223,11 @@ const serviceSelectionSchema = z.object({
 
 type ServiceSelectionFormValues = z.infer<typeof serviceSelectionSchema>;
 
-// Step 1: Service Selection
-function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
+// Import the new ServiceSelectionStep component
+import ServiceSelectionStepForm from './service-selection-step';
+
+// Renamed to avoid collision with imported component
+function ServiceSelectionStepOld({ bookingPage }: { bookingPage: any }) {
   const { bookingData, updateBookingData, setCurrentStep } = useBookingWizard();
   
   // Set up react-hook-form
@@ -330,6 +333,30 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
                          !bookingData.appointmentTypeId || 
                          !bookingData.pickupOrDropoff;
   
+  // When facilityId changes, reset appointmentTypeId
+  const handleFacilityChange = (value: string) => {
+    form.setValue("facilityId", value);
+    form.setValue("appointmentTypeId", "");
+    // Update the main booking data context as well
+    updateBookingData({
+      facilityId: parseInt(value, 10),
+      appointmentTypeId: null
+    });
+  };
+  
+  // Handle form submission
+  const onSubmit = (values: ServiceSelectionFormValues) => {
+    // Update the booking wizard state
+    updateBookingData({
+      facilityId: parseInt(values.facilityId, 10),
+      appointmentTypeId: parseInt(values.appointmentTypeId, 10),
+      pickupOrDropoff: values.pickupOrDropoff
+    });
+    
+    // Move to the next step
+    setCurrentStep(2);
+  };
+
   return (
     <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
       {/* Left side - Information panel */}
@@ -354,142 +381,186 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
       <div className="md:col-span-2">
         <Card className="w-full">
           <CardContent className="pt-6">
-            <div className="space-y-6">
-              {/* Step 1: Location */}
-              <div className="space-y-2">
-                <Label htmlFor="facilityId" className="font-medium">
-                  Location<span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={bookingData.facilityId?.toString() || ''}
-                  onValueChange={(value) => {
-                    const facilityId = parseInt(value, 10);
-                    updateBookingData({ 
-                      facilityId,
-                      // Clear appointment type when facility changes
-                      appointmentTypeId: null 
-                    });
-                  }}
-                >
-                  <SelectTrigger id="facilityId">
-                    <SelectValue placeholder="Select a location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableFacilities.map((facility: any) => (
-                      <SelectItem 
-                        key={facility.id} 
-                        value={facility.id.toString()}
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Step 1: Location */}
+                <FormField
+                  control={form.control}
+                  name="facilityId"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="font-medium">
+                        Location<span className="text-red-500">*</span>
+                      </FormLabel>
+                      <Select
+                        onValueChange={(value) => handleFacilityChange(value)}
+                        defaultValue={field.value}
                       >
-                        {facility.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Step 2: Dock Appointment Type */}
-              <div className="space-y-2">
-                <Label htmlFor="appointmentTypeId" className="font-medium">
-                  Dock Appointment Type<span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={bookingData.appointmentTypeId?.toString() || ''}
-                  onValueChange={(value) => {
-                    const typeId = parseInt(value, 10);
-                    updateBookingData({ appointmentTypeId: typeId });
-                  }}
-                  disabled={!bookingData.facilityId}
-                >
-                  <SelectTrigger id="appointmentTypeId">
-                    <SelectValue placeholder={
-                      !bookingData.facilityId 
-                        ? "Select a location first" 
-                        : "Select appointment type"
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {facilityAppointmentTypes.map((type: any) => (
-                      <SelectItem 
-                        key={type.id} 
-                        value={type.id.toString()}
-                      >
-                        {type.name} ({type.duration} min)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Step 3: Pickup/Dropoff */}
-              <div className="space-y-2">
-                <Label className="font-medium">
-                  Pickup or Dropoff<span className="text-red-500">*</span>
-                </Label>
-                <div className="flex gap-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="pickup"
-                      name="pickupOrDropoff"
-                      value="pickup"
-                      className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
-                      checked={bookingData.pickupOrDropoff === 'pickup'}
-                      onChange={() => updateBookingData({ pickupOrDropoff: 'pickup' })}
-                    />
-                    <Label htmlFor="pickup" className="cursor-pointer">Pickup</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="dropoff"
-                      name="pickupOrDropoff"
-                      value="dropoff"
-                      className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
-                      checked={bookingData.pickupOrDropoff === 'dropoff'}
-                      onChange={() => updateBookingData({ pickupOrDropoff: 'dropoff' })}
-                    />
-                    <Label htmlFor="dropoff" className="cursor-pointer">Dropoff</Label>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Step 4: Bill of Lading Upload */}
-              <div className="space-y-2">
-                <Label className="font-medium">
-                  Bill of Lading Upload (optional)
-                </Label>
-                
-                <BolUpload 
-                  onBolProcessed={handleBolProcessed}
-                  onProcessingStateChange={handleProcessingStateChange}
+                        <FormControl>
+                          <SelectTrigger id="facilityId">
+                            <SelectValue placeholder="Select a location" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {availableFacilities.map((facility: any) => (
+                            <SelectItem 
+                              key={facility.id} 
+                              value={facility.id.toString()}
+                            >
+                              {facility.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
                 
-                {/* BOL Preview shown when file uploaded but not while processing */}
-                {bolProcessing && (
-                  <div className="p-4 border rounded-md mt-3 animate-pulse flex items-center justify-center">
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    <p className="text-sm text-gray-600">Processing Bill of Lading...</p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Navigation buttons */}
-              <div className="flex justify-end pt-4">
-                <Button 
-                  className="booking-button" 
-                  onClick={handleNext}
-                  disabled={isNextDisabled}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+                {/* Step 2: Dock Appointment Type */}
+                <FormField
+                  control={form.control}
+                  name="appointmentTypeId"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="font-medium">
+                        Dock Appointment Type<span className="text-red-500">*</span>
+                      </FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          updateBookingData({ appointmentTypeId: parseInt(value, 10) });
+                        }}
+                        defaultValue={field.value}
+                        disabled={!form.watch("facilityId")}
+                      >
+                        <FormControl>
+                          <SelectTrigger id="appointmentTypeId">
+                            <SelectValue placeholder={
+                              !form.watch("facilityId") 
+                                ? "Please select a location first" 
+                                : "Select an appointment type"
+                            } />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {facilityAppointmentTypes.map((type: any) => (
+                            <SelectItem 
+                              key={type.id} 
+                              value={type.id.toString()}
+                            >
+                              {type.name} ({type.duration} min)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      
+                      {facilityAppointmentTypes.length === 0 && form.watch("facilityId") && (
+                        <p className="text-sm text-orange-600 mt-1">
+                          No appointment types are available for this location.
+                        </p>
+                      )}
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Step 3: Pickup or Dropoff */}
+                <FormField
+                  control={form.control}
+                  name="pickupOrDropoff"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel className="font-medium">
+                        Pickup or Dropoff<span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div
+                            className={`border rounded-md p-4 cursor-pointer transition-colors ${
+                              field.value === 'pickup'
+                                ? 'border-primary bg-primary/10'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            onClick={() => {
+                              form.setValue("pickupOrDropoff", "pickup");
+                              updateBookingData({ pickupOrDropoff: 'pickup' });
+                            }}
+                          >
+                            <div className="font-medium">Pickup</div>
+                            <div className="text-sm text-gray-500">I'm picking up goods from the facility</div>
+                          </div>
+                          
+                          <div
+                            className={`border rounded-md p-4 cursor-pointer transition-colors ${
+                              field.value === 'dropoff'
+                                ? 'border-primary bg-primary/10'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            onClick={() => {
+                              form.setValue("pickupOrDropoff", "dropoff");
+                              updateBookingData({ pickupOrDropoff: 'dropoff' });
+                            }}
+                          >
+                            <div className="font-medium">Dropoff</div>
+                            <div className="text-sm text-gray-500">I'm delivering goods to the facility</div>
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Step 4: Bill of Lading Upload */}
+                <div className="space-y-2">
+                  <Label className="font-medium">
+                    Bill of Lading Upload (optional)
+                  </Label>
+                  
+                  <BolUpload 
+                    onBolProcessed={handleBolProcessed}
+                    onProcessingStateChange={handleProcessingStateChange}
+                  />
+                  
+                  {/* BOL Preview shown when file uploaded but not while processing */}
+                  {bolProcessing && (
+                    <div className="p-4 border rounded-md mt-3 animate-pulse flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      <p className="text-sm text-gray-600">Processing Bill of Lading...</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Navigation buttons */}
+                <div className="flex justify-end pt-4">
+                  <Button 
+                    type="submit"
+                    className="booking-button"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
+
+// Define the DateTimeForm schema
+const dateTimeSelectionSchema = z.object({
+  selectedDate: z.date({
+    required_error: "Please select a date"
+  }),
+  selectedTime: z.string({
+    required_error: "Please select a time"
+  })
+});
+
+type DateTimeFormValues = z.infer<typeof dateTimeSelectionSchema>;
 
 // Step 2: Date and Time Selection
 // Define the AvailabilitySlot interface
@@ -502,6 +573,15 @@ interface AvailabilitySlot {
 
 function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   const { bookingData, updateBookingData, setCurrentStep } = useBookingWizard();
+  
+  // Set up react-hook-form
+  const form = useForm<DateTimeFormValues>({
+    resolver: zodResolver(dateTimeSelectionSchema),
+    defaultValues: {
+      selectedDate: bookingData.startTime ? new Date(bookingData.startTime) : undefined,
+      selectedTime: ""
+    }
+  });
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
@@ -666,103 +746,195 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
     setCurrentStep(3);
   };
   
+  // Handle form submission
+  const onSubmit = (values: DateTimeFormValues) => {
+    if (!values.selectedDate || !values.selectedTime || !selectedAppointmentType) {
+      return;
+    }
+    
+    // Parse the selected time
+    const [hours, minutes] = values.selectedTime.split(':').map(Number);
+    
+    // Create a new date with the selected date and time
+    const startDate = new Date(values.selectedDate);
+    startDate.setHours(hours, minutes, 0, 0);
+    
+    // Calculate the end time based on appointment duration
+    const endDate = addHours(startDate, selectedAppointmentType.duration / 60);
+    
+    // Update the booking data
+    updateBookingData({
+      startTime: startDate,
+      endTime: endDate,
+      timezone: selectedFacility?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+    
+    // Move to the next step
+    setCurrentStep(3);
+  };
+
   return (
     <div className="booking-form-section">
       <h2 className="booking-form-section-title">Select Date and Time</h2>
       
-      <div className="booking-form-field">
-        <Label className="booking-label">Date</Label>
-        <div className="booking-date-picker">
-          <DatePicker
-            date={selectedDate}
-            onDateChange={handleDateChange}
-            disablePastDates
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="selectedDate"
+            render={({ field }) => (
+              <FormItem className="booking-form-field">
+                <FormLabel className="booking-label">Date</FormLabel>
+                <FormControl>
+                  <div className="booking-date-picker">
+                    <DatePicker
+                      date={field.value}
+                      onDateChange={(date) => {
+                        field.onChange(date);
+                        handleDateChange(date);
+                      }}
+                      disablePastDates
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-      </div>
-      
-      <div className="booking-form-field">
-        <Label className="booking-label">Available Times</Label>
-        {loading ? (
-          <div className="flex justify-center my-4">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        ) : selectedDate ? (
-          availableTimes.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {availabilitySlots.map((slot) => {
-                // Create a date object from the time string for display formatting
-                const [hours, minutes] = slot.time.split(':').map(Number);
-                const timeObj = new Date();
-                timeObj.setHours(hours, minutes, 0, 0);
-                
-                // Format for display (e.g., "9:30 AM")
-                const displayTime = format(timeObj, 'h:mm a');
-                
-                console.log('[EXTERNAL FLOW] rendering time slot:', slot.time, 'display:', displayTime, 'capacity:', slot.remaining);
-                
-                // Get the selected appointment type to check if we should show remaining slots
-                const selectedType = Array.isArray(appointmentTypes)
-                  ? appointmentTypes.find((type: any) => type.id === bookingData.appointmentTypeId)
-                  : undefined;
-                
-                // Display slots with remaining capacity indicator if the appointment type is configured to show them
-                return (
-                  <Button
-                    key={slot.time}
-                    type="button"
-                    variant={selectedTime === slot.time ? "default" : "outline"}
-                    className={`relative ${selectedTime === slot.time ? "booking-button" : "booking-button-secondary"}`}
-                    onClick={() => handleTimeChange(slot.time)}
-                  >
-                    {displayTime}
-                    
-                    {/* Show capacity badge if appointment type is configured to show remaining slots */}
-                    {selectedType?.showRemainingSlots && (
-                      <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
-                        {slot.remaining}
-                      </span>
+          
+          <FormField
+            control={form.control}
+            name="selectedTime"
+            render={({ field }) => (
+              <FormItem className="booking-form-field">
+                <FormLabel className="booking-label">Available Times</FormLabel>
+                <FormControl>
+                  <>
+                    {loading ? (
+                      <div className="flex justify-center my-4">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                    ) : selectedDate ? (
+                      availableTimes.length > 0 ? (
+                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                          {availabilitySlots.map((slot) => {
+                            // Create a date object from the time string for display formatting
+                            const [hours, minutes] = slot.time.split(':').map(Number);
+                            const timeObj = new Date();
+                            timeObj.setHours(hours, minutes, 0, 0);
+                            
+                            // Format for display (e.g., "9:30 AM")
+                            const displayTime = format(timeObj, 'h:mm a');
+                            
+                            // Get the selected appointment type to check if we should show remaining slots
+                            const selectedType = Array.isArray(appointmentTypes)
+                              ? appointmentTypes.find((type: any) => type.id === bookingData.appointmentTypeId)
+                              : undefined;
+                            
+                            // Display slots with remaining capacity indicator if the appointment type is configured to show them
+                            return (
+                              <Button
+                                key={slot.time}
+                                type="button"
+                                variant={field.value === slot.time ? "default" : "outline"}
+                                className={`relative ${field.value === slot.time ? "booking-button" : "booking-button-secondary"}`}
+                                onClick={() => {
+                                  field.onChange(slot.time);
+                                  handleTimeChange(slot.time);
+                                }}
+                              >
+                                {displayTime}
+                                
+                                {/* Show capacity badge if appointment type is configured to show remaining slots */}
+                                {selectedType?.showRemainingSlots && (
+                                  <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
+                                    {slot.remaining}
+                                  </span>
+                                )}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <Alert>
+                          <AlertTitle>No Available Times</AlertTitle>
+                          <AlertDescription>
+                            There are no available times for the selected date. Please choose another date.
+                          </AlertDescription>
+                        </Alert>
+                      )
+                    ) : (
+                      <Alert>
+                        <AlertDescription>
+                          Please select a date to see available times.
+                        </AlertDescription>
+                      </Alert>
                     )}
-                  </Button>
-                );
-              })}
-            </div>
-          ) : (
-            <Alert>
-              <AlertTitle>No Available Times</AlertTitle>
-              <AlertDescription>
-                There are no available times for the selected date. Please choose another date.
-              </AlertDescription>
-            </Alert>
-          )
-        ) : (
-          <Alert>
-            <AlertDescription>
-              Please select a date to see available times.
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
-      
-      <div className="booking-nav-buttons">
-        <Button className="booking-button-secondary" onClick={handleBack}>
-          Back
-        </Button>
-        <Button 
-          className="booking-button" 
-          onClick={handleNext}
-          disabled={!bookingData.startTime || !bookingData.endTime}
-        >
-          Next
-        </Button>
-      </div>
+                  </>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="booking-nav-buttons">
+            <Button type="button" className="booking-button-secondary" onClick={handleBack}>
+              Back
+            </Button>
+            <Button 
+              type="submit"
+              className="booking-button" 
+              disabled={!selectedDate || !selectedTime}
+            >
+              Next
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }
 
+// Define the customer info form schema
+const customerInfoSchema = z.object({
+  companyName: z.string().min(1, { message: "Company name is required" }),
+  contactName: z.string().min(1, { message: "Contact name is required" }),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  phone: z.string().min(5, { message: "Phone number is required" }),
+  customerRef: z.string().optional(),
+  carrierName: z.string().optional(),
+  driverName: z.string().optional(),
+  driverPhone: z.string().optional(),
+  mcNumber: z.string().optional(),
+  truckNumber: z.string().optional(),
+  trailerNumber: z.string().optional(),
+  notes: z.string().optional()
+});
+
+type CustomerInfoFormValues = z.infer<typeof customerInfoSchema>;
+
 // Step 3: Customer Information
 function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmit: () => Promise<void> }) {
   const { bookingData, updateBookingData, setCurrentStep, isLoading } = useBookingWizard();
+  
+  // Setup react-hook-form
+  const form = useForm<CustomerInfoFormValues>({
+    resolver: zodResolver(customerInfoSchema),
+    defaultValues: {
+      companyName: bookingData.companyName || '',
+      contactName: bookingData.contactName || '',
+      email: bookingData.email || '',
+      phone: bookingData.phone || '',
+      customerRef: bookingData.customerRef || '',
+      carrierName: bookingData.carrierName || '',
+      driverName: bookingData.driverName || '',
+      driverPhone: bookingData.driverPhone || '',
+      mcNumber: bookingData.mcNumber || '',
+      truckNumber: bookingData.truckNumber || '',
+      trailerNumber: bookingData.trailerNumber || '',
+      notes: bookingData.notes || ''
+    }
+  });
   
   // Get the custom questions if any
   const { data: customQuestions } = useQuery({
@@ -825,230 +997,362 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
     console.log('BOL processing state:', isProcessing);
   };
   
+  // Handle form submission
+  const handleFormSubmit = async (values: CustomerInfoFormValues) => {
+    // Update the booking data with form values
+    updateBookingData({
+      ...values
+    });
+    
+    // Submit the form
+    await onSubmit();
+  };
+
   return (
     <div className="booking-form-section">
       <h2 className="booking-form-section-title">Customer Information</h2>
       
-      <div className="booking-form-field">
-        <Label className="booking-label" htmlFor="companyName">Company Name</Label>
-        <Input
-          id="companyName"
-          name="companyName"
-          className="booking-input"
-          value={bookingData.companyName || ''}
-          onChange={handleChange}
-          required
-        />
-      </div>
-      
-      <div className="booking-form-field">
-        <Label className="booking-label" htmlFor="contactName">Contact Name</Label>
-        <Input
-          id="contactName"
-          name="contactName"
-          className="booking-input"
-          value={bookingData.contactName || ''}
-          onChange={handleChange}
-          required
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="booking-form-field">
-          <Label className="booking-label" htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            className="booking-input"
-            value={bookingData.email || ''}
-            onChange={handleChange}
-            required
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="companyName"
+            render={({ field }) => (
+              <FormItem className="booking-form-field">
+                <FormLabel className="booking-label">Company Name</FormLabel>
+                <FormControl>
+                  <Input
+                    id="companyName"
+                    className="booking-input"
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      updateBookingData({ companyName: e.target.value });
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        
-        <div className="booking-form-field">
-          <Label className="booking-label" htmlFor="phone">Phone</Label>
-          <Input
-            id="phone"
-            name="phone"
-            type="tel"
-            className="booking-input"
-            value={bookingData.phone || ''}
-            onChange={handleChange}
-            required
-          />
-        </div>
-      </div>
-      
-      <div className="booking-form-field">
-        <Label className="booking-label" htmlFor="customerRef">Order/Reference Number</Label>
-        <Input
-          id="customerRef"
-          name="customerRef"
-          className="booking-input"
-          value={bookingData.customerRef || ''}
-          onChange={handleChange}
-        />
-      </div>
-      
-      <h2 className="booking-form-section-title mt-8">Vehicle Information</h2>
-      
-      <div className="booking-form-field">
-        <Label className="booking-label" htmlFor="carrierName">Carrier Name</Label>
-        <Input
-          id="carrierName"
-          name="carrierName"
-          className="booking-input"
-          value={bookingData.carrierName || ''}
-          onChange={handleChange}
-        />
-      </div>
-      
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="booking-form-field">
-          <Label className="booking-label" htmlFor="driverName">Driver Name</Label>
-          <Input
-            id="driverName"
-            name="driverName"
-            className="booking-input"
-            value={bookingData.driverName || ''}
-            onChange={handleChange}
-          />
-        </div>
-        
-        <div className="booking-form-field">
-          <Label className="booking-label" htmlFor="driverPhone">Driver Phone</Label>
-          <Input
-            id="driverPhone"
-            name="driverPhone"
-            type="tel"
-            className="booking-input"
-            value={bookingData.driverPhone || ''}
-            onChange={handleChange}
-          />
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="booking-form-field">
-          <Label className="booking-label" htmlFor="truckNumber">Truck Number</Label>
-          <Input
-            id="truckNumber"
-            name="truckNumber"
-            className="booking-input"
-            value={bookingData.truckNumber || ''}
-            onChange={handleChange}
-          />
-        </div>
-        
-        <div className="booking-form-field">
-          <Label className="booking-label" htmlFor="trailerNumber">Trailer Number</Label>
-          <Input
-            id="trailerNumber"
-            name="trailerNumber"
-            className="booking-input"
-            value={bookingData.trailerNumber || ''}
-            onChange={handleChange}
-          />
-        </div>
-      </div>
-      
-      {/* Bill of Lading Upload */}
-      <div className="booking-form-field">
-        <Label className="booking-label">Bill of Lading (Optional)</Label>
-        <BolUpload
-          onBolProcessed={handleBolProcessed}
-          onProcessingStateChange={handleProcessingStateChange}
-        />
-      </div>
-      
-      <div className="booking-form-field">
-        <Label className="booking-label" htmlFor="notes">Notes</Label>
-        <Textarea
-          id="notes"
-          name="notes"
-          className="booking-input"
-          value={bookingData.notes || ''}
-          onChange={handleChange}
-        />
-      </div>
-      
-      {/* Custom questions if any */}
-      {Array.isArray(customQuestions) && customQuestions.length > 0 && (
-        <>
-          <h2 className="booking-form-section-title mt-8">Additional Information</h2>
           
-          {customQuestions.map((question: any) => (
-            <div key={question.id} className="booking-form-field">
-              <Label className="booking-label" htmlFor={`custom-${question.id}`}>
-                {question.questionText} {question.isRequired && <span className="text-red-500">*</span>}
-              </Label>
-              
-              {question.fieldType === 'text' ? (
-                <Input
-                  id={`custom-${question.id}`}
-                  className="booking-input"
-                  value={bookingData.customFields[question.id] || ''}
-                  onChange={(e) => handleCustomFieldChange(e, question.id)}
-                  required={question.isRequired}
-                />
-              ) : question.fieldType === 'textarea' ? (
-                <Textarea
-                  id={`custom-${question.id}`}
-                  className="booking-input"
-                  value={bookingData.customFields[question.id] || ''}
-                  onChange={(e) => handleCustomFieldChange(e, question.id)}
-                  required={question.isRequired}
-                />
-              ) : question.fieldType === 'select' ? (
-                <Select
-                  value={bookingData.customFields[question.id] || ''}
-                  onValueChange={(value) => {
-                    updateBookingData({
-                      customFields: {
-                        ...bookingData.customFields,
-                        [question.id]: value
-                      }
-                    })
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {question.options?.split(',').map((option: string) => (
-                      <SelectItem key={option.trim()} value={option.trim()}>
-                        {option.trim()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : null}
-            </div>
-          ))}
-        </>
-      )}
-      
-      <div className="booking-nav-buttons">
-        <Button className="booking-button-secondary" onClick={handleBack} disabled={isLoading}>
-          Back
-        </Button>
-        <Button 
-          className="booking-button" 
-          onClick={onSubmit}
-          disabled={isLoading}
-        >
-          {isLoading ? (
+          <FormField
+            control={form.control}
+            name="contactName"
+            render={({ field }) => (
+              <FormItem className="booking-form-field">
+                <FormLabel className="booking-label">Contact Name</FormLabel>
+                <FormControl>
+                  <Input
+                    id="contactName"
+                    className="booking-input"
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      updateBookingData({ contactName: e.target.value });
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem className="booking-form-field">
+                  <FormLabel className="booking-label">Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="email"
+                      type="email"
+                      className="booking-input"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        updateBookingData({ email: e.target.value });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem className="booking-form-field">
+                  <FormLabel className="booking-label">Phone</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      className="booking-input"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        updateBookingData({ phone: e.target.value });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="customerRef"
+            render={({ field }) => (
+              <FormItem className="booking-form-field">
+                <FormLabel className="booking-label">Order/Reference Number</FormLabel>
+                <FormControl>
+                  <Input
+                    id="customerRef"
+                    className="booking-input"
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      updateBookingData({ customerRef: e.target.value });
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <h2 className="booking-form-section-title mt-8">Vehicle Information</h2>
+          
+          <FormField
+            control={form.control}
+            name="carrierName"
+            render={({ field }) => (
+              <FormItem className="booking-form-field">
+                <FormLabel className="booking-label">Carrier Name</FormLabel>
+                <FormControl>
+                  <Input
+                    id="carrierName"
+                    className="booking-input"
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      updateBookingData({ carrierName: e.target.value });
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="driverName"
+              render={({ field }) => (
+                <FormItem className="booking-form-field">
+                  <FormLabel className="booking-label">Driver Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="driverName"
+                      className="booking-input"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        updateBookingData({ driverName: e.target.value });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="driverPhone"
+              render={({ field }) => (
+                <FormItem className="booking-form-field">
+                  <FormLabel className="booking-label">Driver Phone</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="driverPhone"
+                      type="tel"
+                      className="booking-input"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        updateBookingData({ driverPhone: e.target.value });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="truckNumber"
+              render={({ field }) => (
+                <FormItem className="booking-form-field">
+                  <FormLabel className="booking-label">Truck Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="truckNumber"
+                      className="booking-input"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        updateBookingData({ truckNumber: e.target.value });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="trailerNumber"
+              render={({ field }) => (
+                <FormItem className="booking-form-field">
+                  <FormLabel className="booking-label">Trailer Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="trailerNumber"
+                      className="booking-input"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        updateBookingData({ trailerNumber: e.target.value });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          {/* Bill of Lading Upload */}
+          <div className="booking-form-field">
+            <Label className="booking-label">Bill of Lading (Optional)</Label>
+            <BolUpload
+              onBolProcessed={handleBolProcessed}
+              onProcessingStateChange={handleProcessingStateChange}
+            />
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem className="booking-form-field">
+                <FormLabel className="booking-label">Notes</FormLabel>
+                <FormControl>
+                  <Textarea
+                    id="notes"
+                    className="booking-input"
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      updateBookingData({ notes: e.target.value });
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {/* Custom questions if any */}
+          {Array.isArray(customQuestions) && customQuestions.length > 0 && (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
+              <h2 className="booking-form-section-title mt-8">Additional Information</h2>
+              
+              {customQuestions.map((question: any) => (
+                <div key={question.id} className="booking-form-field">
+                  <Label className="booking-label" htmlFor={`custom-${question.id}`}>
+                    {question.questionText} {question.isRequired && <span className="text-red-500">*</span>}
+                  </Label>
+                  
+                  {question.fieldType === 'text' ? (
+                    <Input
+                      id={`custom-${question.id}`}
+                      className="booking-input"
+                      value={bookingData.customFields?.[question.id] || ''}
+                      onChange={(e) => handleCustomFieldChange(e, question.id)}
+                      required={question.isRequired}
+                    />
+                  ) : question.fieldType === 'textarea' ? (
+                    <Textarea
+                      id={`custom-${question.id}`}
+                      className="booking-input"
+                      value={bookingData.customFields?.[question.id] || ''}
+                      onChange={(e) => handleCustomFieldChange(e, question.id)}
+                      required={question.isRequired}
+                    />
+                  ) : question.fieldType === 'select' ? (
+                    <Select
+                      value={bookingData.customFields?.[question.id] || ''}
+                      onValueChange={(value) => {
+                        updateBookingData({
+                          customFields: {
+                            ...bookingData.customFields,
+                            [question.id]: value
+                          }
+                        })
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {question.options?.split(',').map((option: string) => (
+                          <SelectItem key={option.trim()} value={option.trim()}>
+                            {option.trim()}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+                </div>
+              ))}
             </>
-          ) : (
-            'Book Appointment'
           )}
-        </Button>
-      </div>
+          
+          <div className="booking-nav-buttons">
+            <Button type="button" className="booking-button-secondary" onClick={handleBack} disabled={isLoading}>
+              Back
+            </Button>
+            <Button 
+              type="submit"
+              className="booking-button" 
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Book Appointment'
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }
