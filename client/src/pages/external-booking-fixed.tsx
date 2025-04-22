@@ -767,19 +767,37 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
     });
   };
   
-  // Handle file upload
-  const handleFileChange = (file: File | null) => {
-    if (!file) return;
+  // Handle BOL processing
+  const handleBolProcessed = (data: ParsedBolData, fileUrl: string) => {
+    console.log('BOL Processed:', data);
     
-    // Here you would typically upload the file to your server
-    // and store the reference in the booking data
-    console.log('File selected:', file.name);
-    
-    // For demonstration, we're just storing the file object
-    // In a real implementation, you'd use something like FormData to upload it
+    // Update booking data with the parsed BOL information
     updateBookingData({
-      bolFile: file
+      bolExtractedData: {
+        bolNumber: data.bolNumber || '',
+        customerName: data.customerName || '',
+        carrierName: data.carrierName || '',
+        mcNumber: data.mcNumber || '',
+        weight: data.weight || '',
+        notes: data.notes || ''
+      },
+      bolFileUploaded: true
     });
+    
+    // Pre-fill form fields if they're empty and we have BOL data
+    if (data.customerName && !bookingData.companyName) {
+      updateBookingData({ companyName: data.customerName });
+    }
+    
+    if (data.carrierName && !bookingData.carrierName) {
+      updateBookingData({ carrierName: data.carrierName });
+    }
+  };
+  
+  // Handle BOL processing state changes
+  const handleProcessingStateChange = (isProcessing: boolean) => {
+    // You can use this to show a loading indicator
+    console.log('BOL processing state:', isProcessing);
   };
   
   return (
@@ -911,13 +929,12 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
         </div>
       </div>
       
-      {/* File Upload */}
+      {/* Bill of Lading Upload */}
       <div className="booking-form-field">
         <Label className="booking-label">Bill of Lading (Optional)</Label>
-        <FileUpload
-          onFileChange={handleFileChange}
-          acceptedFileTypes="application/pdf,image/*"
-          maxSizeMB={5}
+        <BolUpload
+          onBolProcessed={handleBolProcessed}
+          onProcessingStateChange={handleProcessingStateChange}
         />
       </div>
       

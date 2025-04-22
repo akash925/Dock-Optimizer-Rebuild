@@ -12,6 +12,7 @@ export interface ParsedBolData {
   mcNumber?: string;
   weight?: string;
   palletCount?: string;
+  notes?: string;  // Added notes field for BOL comments or special instructions
 }
 
 /**
@@ -53,6 +54,7 @@ export async function parseBol(file: File): Promise<ParsedBolData> {
           mcNumber: `MC-${Math.floor(Math.random() * 1000000)}`,
           weight: `${Math.floor(Math.random() * 10000)}`,
           palletCount: `${Math.floor(Math.random() * 20) + 1}`,
+          notes: 'Handle with care. Fragile contents.'
         };
         
         resolve(parsedData);
