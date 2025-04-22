@@ -469,17 +469,30 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     }
   });
 
-  // Handle form submission with enhanced debugging
+  // Handle form submission with enhanced debugging and improved validation
   const onSubmit = (data: z.infer<typeof bookingPageFormSchema>) => {
     console.log("Form submission triggered with data:", data);
     console.log("Selected facilities:", selectedFacilities);
     console.log("Selected appointment types:", selectedAppointmentTypes);
     
+    // Check if any facilities are selected
     if (selectedFacilities.length === 0) {
       console.log("Error: No facilities selected");
       toast({
         title: "Error",
         description: "Please select at least one facility",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if at least one appointment type is selected across all facilities
+    const hasAnyTypeSelected = Object.values(selectedAppointmentTypes).some(types => types.length > 0);
+    if (!hasAnyTypeSelected) {
+      console.log("Error: No appointment types selected");
+      toast({
+        title: "Error",
+        description: "Please select at least one appointment type",
         variant: "destructive",
       });
       return;
@@ -503,7 +516,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     }
   };
 
-  // Toggle facility selection without real-time updates or nested state changes
+  // Toggle facility selection with immediate accordion expansion
   const toggleFacility = (facilityId: number, checked: boolean) => {
     // Create local copies of state to work with
     let newFacilities = [...selectedFacilities];
@@ -525,7 +538,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           newAppointmentTypes[facilityId] = facilityAppointmentTypes;
         }
         
-        // Open the accordion for this facility
+        // ALWAYS open the accordion for this facility when selecting it
         if (!newAccordionItems.includes(`facility-${facilityId}`)) {
           newAccordionItems.push(`facility-${facilityId}`);
         }
@@ -544,12 +557,10 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       }
     }
     
-    // Update all states at once to minimize render cycles
-    requestAnimationFrame(() => {
-      setSelectedFacilities(newFacilities);
-      setSelectedAppointmentTypes(newAppointmentTypes);
-      setOpenAccordionItems(newAccordionItems);
-    });
+    // Update all states immediately to ensure accordion opens as soon as facility is checked
+    setSelectedFacilities(newFacilities);
+    setSelectedAppointmentTypes(newAppointmentTypes);
+    setOpenAccordionItems(newAccordionItems);
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -951,11 +962,24 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
                 console.log("Form validation result:", isValid);
                 
                 if (isValid) {
+                  // Check if any facilities are selected
                   if (selectedFacilities.length === 0) {
                     console.log("Error: No facilities selected");
                     toast({
                       title: "Error",
                       description: "Please select at least one facility",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  // Check if at least one appointment type is selected across all facilities
+                  const hasAnyTypeSelected = Object.values(selectedAppointmentTypes).some(types => types.length > 0);
+                  if (!hasAnyTypeSelected) {
+                    console.log("Error: No appointment types selected");
+                    toast({
+                      title: "Error",
+                      description: "Please select at least one appointment type",
                       variant: "destructive",
                     });
                     return;
