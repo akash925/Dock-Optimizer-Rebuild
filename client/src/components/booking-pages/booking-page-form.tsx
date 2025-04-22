@@ -232,6 +232,15 @@ type BookingPageFormProps = {
   onCancel: () => void;
 };
 
+// Helper function to extract headers into an object
+function getHeadersObject(headers: Headers): Record<string, string> {
+  const result: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
+}
+
 export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: BookingPageFormProps) {
   // Make the form dialog scrollable with a max height
   useEffect(() => {
@@ -425,21 +434,41 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       console.log("Creating booking page with payload:", payload);
       
       try {
+        // Enhanced debugging - log all request details
+        console.log("Making API request with method:", 'POST');
+        console.log("Request URL:", '/api/booking-pages');
+        console.log("Request payload:", JSON.stringify(payload, null, 2));
+        
         const response = await apiRequest('POST', '/api/booking-pages', payload);
+        console.log("Response status:", response.status);
+        console.log("Response status text:", response.statusText);
+        console.log("Response headers:", getHeadersObject(response.headers));
+        
         if (!response.ok) {
           // Try to get the error message from the response
           let errorMessage = "Failed to create booking page";
+          let errorDetails = null;
+          
           try {
             const errorJson = await response.json();
+            console.log("Error response JSON:", errorJson);
             errorMessage = errorJson.message || errorJson.error || errorMessage;
-          } catch {
+            errorDetails = errorJson;
+          } catch (parseError) {
             // If we can't parse the JSON, try text
-            const errorText = await response.text();
-            errorMessage = errorText || errorMessage;
+            try {
+              const errorText = await response.text();
+              console.log("Error response text:", errorText);
+              errorMessage = errorText || errorMessage;
+            } catch (textError) {
+              console.error("Could not parse error response:", textError);
+            }
           }
-          console.error("API error:", response.status, errorMessage);
-          throw new Error(errorMessage);
+          
+          console.error("API error:", response.status, errorMessage, errorDetails);
+          throw new Error(`API Error (${response.status}): ${errorMessage}`);
         }
+        
         const responseData = await response.json();
         console.log("Create successful, received response:", responseData);
         return responseData;
@@ -493,26 +522,47 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       };
 
       console.log("Sending update API request with payload:", payload);
+      console.log("Sending to URL:", `/api/booking-pages/${bookingPage.id}`);
       
       try {
+        // Enhanced debugging - log all request details
+        console.log("Making API request with method:", 'PUT');
+        console.log("Request URL:", `/api/booking-pages/${bookingPage.id}`);
+        console.log("Request payload:", JSON.stringify(payload, null, 2));
+        
         const response = await apiRequest('PUT', `/api/booking-pages/${bookingPage.id}`, payload);
+        console.log("Response status:", response.status);
+        console.log("Response status text:", response.statusText);
+        console.log("Response headers:", [...response.headers.entries()]);
+        
         if (!response.ok) {
           // Try to get the error message from the response
           let errorMessage = "Failed to update booking page";
+          let errorDetails = null;
+          
           try {
             const errorJson = await response.json();
+            console.log("Error response JSON:", errorJson);
             errorMessage = errorJson.message || errorJson.error || errorMessage;
-          } catch {
+            errorDetails = errorJson;
+          } catch (parseError) {
             // If we can't parse the JSON, try text
-            const errorText = await response.text();
-            errorMessage = errorText || errorMessage;
+            try {
+              const errorText = await response.text();
+              console.log("Error response text:", errorText);
+              errorMessage = errorText || errorMessage;
+            } catch (textError) {
+              console.error("Could not parse error response:", textError);
+            }
           }
-          console.error("API error:", response.status, errorMessage);
-          throw new Error(errorMessage);
+          
+          console.error("API error:", response.status, errorMessage, errorDetails);
+          throw new Error(`API Error (${response.status}): ${errorMessage}`);
         }
-        const data = await response.json();
-        console.log("Update successful, received response:", data);
-        return data;
+        
+        const responseData = await response.json();
+        console.log("Update successful, received response:", responseData);
+        return responseData;
       } catch (error) {
         console.error("Error in updateMutation:", error);
         throw error;
