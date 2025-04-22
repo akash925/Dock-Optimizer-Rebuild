@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -98,32 +98,47 @@ interface FacilityItemProps {
   facilityTypes?: number;
 }
 
-function FacilityItem({ facility, isSelected, onToggle, selectedTypes = [], facilityTypes = 0 }: FacilityItemProps) {
+// Isolated FacilityItem with its own state management to prevent re-render loops
+function FacilityItem({ facility, isSelected: initialIsSelected, onToggle, selectedTypes = [], facilityTypes = 0 }: FacilityItemProps) {
+  // Local component state to prevent propagation of render cycles
+  const [isSelected, setIsSelected] = useState(initialIsSelected);
+  
+  // Effect to sync with parent state when it changes externally
+  useEffect(() => {
+    if (isSelected !== initialIsSelected) {
+      setIsSelected(initialIsSelected);
+    }
+  }, [initialIsSelected]);
+  
   // Count of selected types for this facility
   const selectedCount = selectedTypes.length;
+  
+  // Local handler that updates local state first to avoid cascading updates
+  const handleToggle = () => {
+    const newState = !isSelected;
+    setIsSelected(newState);
+    // Then notify parent
+    onToggle(facility.id, newState);
+  };
   
   return (
     <div 
       className={`flex items-start space-x-2 p-3 border rounded-md hover:bg-muted/30 transition-colors cursor-pointer ${
         isSelected ? 'border-primary/50 bg-primary/5' : ''
       }`}
+      onClick={handleToggle}
     >
-      <Checkbox
-        id={`facility-${facility.id}`}
-        checked={isSelected}
-        onCheckedChange={(checked) => {
-          onToggle(facility.id, checked as boolean);
-        }}
-        className="mt-1"
-      />
-      <div 
-        className="grid gap-1 leading-none flex-grow" 
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onToggle(facility.id, !isSelected);
-        }}
-      >
+      <div className="mt-1">
+        <input
+          type="checkbox"
+          id={`facility-${facility.id}`}
+          checked={isSelected}
+          onChange={handleToggle}
+          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+      <div className="grid gap-1 leading-none flex-grow">
         <div className="flex justify-between items-center w-full">
           <Label
             htmlFor={`facility-${facility.id}`}
@@ -150,27 +165,47 @@ interface AppointmentTypeItemProps {
   onToggle: (facilityId: number, typeId: number, checked: boolean) => void;
 }
 
-function AppointmentTypeItem({ type, isSelected, onToggle }: AppointmentTypeItemProps) {
+// Completely rebuilt appointment type item with its own local state
+// This isolates state management to prevent recursive rendering issues
+function AppointmentTypeItem({ type, isSelected: initialIsSelected, onToggle }: AppointmentTypeItemProps) {
+  // Internal component state that mirrors the parent state
+  const [isSelected, setIsSelected] = useState(initialIsSelected);
+  
+  // Effect to sync with parent state when it changes externally
+  useEffect(() => {
+    if (isSelected !== initialIsSelected) {
+      setIsSelected(initialIsSelected);
+    }
+  }, [initialIsSelected]);
+  
+  // Local handler that updates local state first
+  const handleToggle = () => {
+    const newState = !isSelected;
+    setIsSelected(newState);
+    // Then propagate the change to parent
+    onToggle(type.facilityId, type.id, newState);
+  };
+  
+  // Updated UI to avoid any potential circular updates
   return (
     <div 
       className={`px-3 py-2 flex items-start space-x-2 hover:bg-muted/20 transition-colors cursor-pointer ${
         isSelected ? 'bg-primary/5' : ''
       }`}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onToggle(type.facilityId, type.id, !isSelected);
-      }}
     >
-      <Checkbox
-        id={`type-${type.facilityId}-${type.id}`}
-        checked={isSelected}
-        onCheckedChange={(checked) => 
-          onToggle(type.facilityId, type.id, checked as boolean)
-        }
-        className="mt-1"
-      />
-      <div>
+      <div className="mt-1">
+        <input 
+          type="checkbox"
+          id={`type-${type.facilityId}-${type.id}`}
+          checked={isSelected}
+          onChange={handleToggle}
+          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+        />
+      </div>
+      <div 
+        onClick={handleToggle} 
+        className="flex-grow"
+      >
         <Label
           htmlFor={`type-${type.facilityId}-${type.id}`}
           className="text-sm font-medium cursor-pointer"
