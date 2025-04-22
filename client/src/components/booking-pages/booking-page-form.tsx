@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -338,40 +338,37 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       }, {});
   }, [appointmentTypesData, debouncedSearchTerm]);
   
-  // Toggle appointment type selection without real-time updates or nested state changes
-  const toggleAppointmentType = (facilityId: number, appointmentTypeId: number, checked: boolean) => {
+  // Toggle appointment type selection with proper React state management
+  const toggleAppointmentType = useCallback((facilityId: number, appointmentTypeId: number, checked: boolean) => {
     console.log(`Toggling appointment type ${appointmentTypeId} for facility ${facilityId} to ${checked ? 'selected' : 'unselected'}`);
     
-    // Create a local copy of state to avoid multiple renders
-    const newAppointmentTypes = {...selectedAppointmentTypes};
-    
-    // Initialize array for this facility if it doesn't exist
-    if (!newAppointmentTypes[facilityId]) {
-      newAppointmentTypes[facilityId] = [];
-    }
-    
-    if (checked) {
-      // Only add if not already selected
-      if (!newAppointmentTypes[facilityId].includes(appointmentTypeId)) {
-        newAppointmentTypes[facilityId] = [...newAppointmentTypes[facilityId], appointmentTypeId];
-        console.log(`Added type ${appointmentTypeId} to facility ${facilityId}`);
+    setSelectedAppointmentTypes(prev => {
+      // Create a new reference for the state object to ensure React detects the change
+      const newState = {...prev};
+      
+      // Initialize array for this facility if it doesn't exist
+      if (!newState[facilityId]) {
+        newState[facilityId] = [];
       }
-    } else {
-      // Only remove if currently selected
-      if (newAppointmentTypes[facilityId].includes(appointmentTypeId)) {
-        newAppointmentTypes[facilityId] = newAppointmentTypes[facilityId].filter(id => id !== appointmentTypeId);
-        console.log(`Removed type ${appointmentTypeId} from facility ${facilityId}`);
+      
+      if (checked) {
+        // Only add if not already selected
+        if (!newState[facilityId].includes(appointmentTypeId)) {
+          // Create a new array to ensure React detects the change
+          newState[facilityId] = [...newState[facilityId], appointmentTypeId];
+          console.log(`Added type ${appointmentTypeId} to facility ${facilityId}`);
+        }
+      } else {
+        // Only remove if currently selected
+        if (newState[facilityId].includes(appointmentTypeId)) {
+          newState[facilityId] = newState[facilityId].filter(id => id !== appointmentTypeId);
+          console.log(`Removed type ${appointmentTypeId} from facility ${facilityId}`);
+        }
       }
-    }
-    
-    // Execute the state update immediately for better responsiveness
-    setSelectedAppointmentTypes(newAppointmentTypes);
-    
-    // Log the updated counts for debugging
-    console.log("Updated appointment type counts:", Object.entries(newAppointmentTypes).map(
-      ([facId, types]) => `Facility ${facId}: ${types.length} types`
-    ));
-  };
+      
+      return newState;
+    });
+  }, []);
 
   // Create mutation with improved error handling and consistent payload structure
   const createMutation = useMutation({
@@ -554,52 +551,65 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     }
   };
 
-  // Toggle facility selection with immediate accordion expansion
-  const toggleFacility = (facilityId: number, checked: boolean) => {
-    // Create local copies of state to work with
-    let newFacilities = [...selectedFacilities];
-    let newAppointmentTypes = {...selectedAppointmentTypes};
-    let newAccordionItems = [...openAccordionItems];
+  // Toggle facility selection with immediate accordion expansion - using useCallback
+  const toggleFacility = useCallback((facilityId: number, checked: boolean) => {
+    console.log(`Toggling facility ${facilityId} to ${checked ? 'selected' : 'unselected'}`);
     
-    if (checked) {
-      // Only add if not already selected to prevent duplicate renders
-      if (!selectedFacilities.includes(facilityId)) {
-        // Add to selected facilities
-        newFacilities.push(facilityId);
-        
+    // Get facility appointment types for potential use
+    const facilityAppointmentTypes = Object.values(appointmentTypes)
+      .filter(type => type.facilityId === facilityId)
+      .map(type => type.id);
+    
+    // Update facilities using functional updater pattern for atomicity
+    setSelectedFacilities(prevFacilities => {
+      if (checked) {
+        // Only add if not already selected
+        if (!prevFacilities.includes(facilityId)) {
+          return [...prevFacilities, facilityId];
+        }
+      } else {
+        // Only remove if currently selected
+        if (prevFacilities.includes(facilityId)) {
+          return prevFacilities.filter(id => id !== facilityId);
+        }
+      }
+      return prevFacilities; // No change needed
+    });
+    
+    // Update appointment types in a separate effect to avoid multiple state updates
+    setSelectedAppointmentTypes(prevTypes => {
+      const newTypes = {...prevTypes};
+      
+      if (checked) {
         // Add all appointment types for this facility
-        const facilityAppointmentTypes = Object.values(appointmentTypes)
-          .filter(type => type.facilityId === facilityId)
-          .map(type => type.id);
-          
         if (facilityAppointmentTypes.length > 0) {
-          newAppointmentTypes[facilityId] = facilityAppointmentTypes;
+          newTypes[facilityId] = facilityAppointmentTypes;
         }
-        
-        // ALWAYS open the accordion for this facility when selecting it
-        if (!newAccordionItems.includes(`facility-${facilityId}`)) {
-          newAccordionItems.push(`facility-${facilityId}`);
-        }
-      }
-    } else {
-      // Only process if currently selected to prevent unnecessary renders
-      if (selectedFacilities.includes(facilityId)) {
-        // Remove from selected facilities
-        newFacilities = newFacilities.filter(id => id !== facilityId);
-        
+      } else {
         // Remove appointment types for this facility
-        delete newAppointmentTypes[facilityId];
-        
-        // Close the accordion for this facility
-        newAccordionItems = newAccordionItems.filter(item => item !== `facility-${facilityId}`);
+        delete newTypes[facilityId];
       }
-    }
+      
+      return newTypes;
+    });
     
-    // Update all states immediately to ensure accordion opens as soon as facility is checked
-    setSelectedFacilities(newFacilities);
-    setSelectedAppointmentTypes(newAppointmentTypes);
-    setOpenAccordionItems(newAccordionItems);
-  };
+    // Update accordion state
+    setOpenAccordionItems(prevItems => {
+      const itemKey = `facility-${facilityId}`;
+      
+      if (checked) {
+        // Add accordion item if not already open
+        if (!prevItems.includes(itemKey)) {
+          return [...prevItems, itemKey];
+        }
+      } else {
+        // Remove accordion item
+        return prevItems.filter(item => item !== itemKey);
+      }
+      
+      return prevItems; // No change needed
+    });
+  }, [appointmentTypes]);
 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isLoading = isLoadingFacilities || isLoadingAppointmentTypes;
