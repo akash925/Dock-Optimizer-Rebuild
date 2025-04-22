@@ -89,6 +89,97 @@ type BookingPageExtended = {
   lastModifiedBy?: number | null;
 };
 
+// Create separate components to isolate state updates
+interface FacilityItemProps {
+  facility: Facility;
+  isSelected: boolean;
+  onToggle: (id: number, checked: boolean) => void;
+}
+
+function FacilityItem({ facility, isSelected, onToggle }: FacilityItemProps) {
+  return (
+    <div 
+      className={`flex items-start space-x-2 p-3 border rounded-md hover:bg-muted/30 transition-colors cursor-pointer ${
+        isSelected ? 'border-primary/50 bg-primary/5' : ''
+      }`}
+    >
+      <Checkbox
+        id={`facility-${facility.id}`}
+        checked={isSelected}
+        onCheckedChange={(checked) => {
+          onToggle(facility.id, checked as boolean);
+        }}
+        className="mt-1"
+      />
+      <div 
+        className="grid gap-1 leading-none" 
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle(facility.id, !isSelected);
+        }}
+      >
+        <Label
+          htmlFor={`facility-${facility.id}`}
+          className="text-sm font-medium leading-none cursor-pointer"
+        >
+          {facility.name}
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          {facility.address1}, {facility.city}, {facility.state}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+interface AppointmentTypeItemProps {
+  type: AppointmentType;
+  isSelected: boolean;
+  onToggle: (facilityId: number, typeId: number, checked: boolean) => void;
+}
+
+function AppointmentTypeItem({ type, isSelected, onToggle }: AppointmentTypeItemProps) {
+  return (
+    <div 
+      className={`px-3 py-2 flex items-start space-x-2 hover:bg-muted/20 transition-colors cursor-pointer ${
+        isSelected ? 'bg-primary/5' : ''
+      }`}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle(type.facilityId, type.id, !isSelected);
+      }}
+    >
+      <Checkbox
+        id={`type-${type.facilityId}-${type.id}`}
+        checked={isSelected}
+        onCheckedChange={(checked) => 
+          onToggle(type.facilityId, type.id, checked as boolean)
+        }
+        className="mt-1"
+      />
+      <div>
+        <Label
+          htmlFor={`type-${type.facilityId}-${type.id}`}
+          className="text-sm font-medium cursor-pointer"
+        >
+          {type.name}
+        </Label>
+        <div className="flex items-center mt-1">
+          <div 
+            className="w-3 h-3 rounded-full mr-2" 
+            style={{ backgroundColor: type.color }}
+          />
+          <span className="text-xs text-muted-foreground">
+            {type.duration} minutes
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type BookingPageFormProps = {
   bookingPage?: BookingPageSchema;
   onSuccess: () => void;
@@ -675,33 +766,12 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
                       facility.city.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
                     )
                     .map((facility) => (
-                      <div 
-                        key={facility.id} 
-                        className={`flex items-start space-x-2 p-3 border rounded-md hover:bg-muted/30 transition-colors cursor-pointer ${
-                          selectedFacilities.includes(facility.id) ? 'border-primary/50 bg-primary/5' : ''
-                        }`}
-                        onClick={() => toggleFacility(facility.id, !selectedFacilities.includes(facility.id))}
-                      >
-                        <Checkbox
-                          id={`facility-${facility.id}`}
-                          checked={selectedFacilities.includes(facility.id)}
-                          onCheckedChange={(checked) => 
-                            toggleFacility(facility.id, checked as boolean)
-                          }
-                          className="mt-1"
-                        />
-                        <div className="grid gap-1 leading-none">
-                          <Label
-                            htmlFor={`facility-${facility.id}`}
-                            className="text-sm font-medium leading-none cursor-pointer"
-                          >
-                            {facility.name}
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            {facility.address1}, {facility.city}, {facility.state}
-                          </p>
-                        </div>
-                      </div>
+                      <FacilityItem
+                        key={facility.id}
+                        facility={facility}
+                        isSelected={selectedFacilities.includes(facility.id)}
+                        onToggle={toggleFacility}
+                      />
                     ))
                 ) : (
                   <div className="text-center py-4 text-muted-foreground col-span-2">
@@ -765,44 +835,12 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
                             {filteredTypes.length > 0 ? (
                               <div className="divide-y">
                                 {filteredTypes.map(type => (
-                                  <div 
-                                    key={type.id} 
-                                    className={`px-3 py-2 flex items-start space-x-2 hover:bg-muted/20 transition-colors cursor-pointer ${
-                                      (selectedAppointmentTypes[facility.id] || []).includes(type.id) 
-                                        ? 'bg-primary/5' 
-                                        : ''
-                                    }`}
-                                    onClick={() => {
-                                      const isCurrentlySelected = (selectedAppointmentTypes[facility.id] || []).includes(type.id);
-                                      toggleAppointmentType(facility.id, type.id, !isCurrentlySelected);
-                                    }}
-                                  >
-                                    <Checkbox
-                                      id={`type-${facility.id}-${type.id}`}
-                                      checked={(selectedAppointmentTypes[facility.id] || []).includes(type.id)}
-                                      onCheckedChange={(checked) => 
-                                        toggleAppointmentType(facility.id, type.id, checked as boolean)
-                                      }
-                                      className="mt-1"
-                                    />
-                                    <div>
-                                      <Label
-                                        htmlFor={`type-${facility.id}-${type.id}`}
-                                        className="text-sm font-medium cursor-pointer"
-                                      >
-                                        {type.name}
-                                      </Label>
-                                      <div className="flex items-center mt-1">
-                                        <div 
-                                          className="w-3 h-3 rounded-full mr-2" 
-                                          style={{ backgroundColor: type.color }}
-                                        />
-                                        <span className="text-xs text-muted-foreground">
-                                          {type.duration} minutes
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
+                                  <AppointmentTypeItem
+                                    key={type.id}
+                                    type={type}
+                                    isSelected={(selectedAppointmentTypes[facility.id] || []).includes(type.id)}
+                                    onToggle={toggleAppointmentType}
+                                  />
                                 ))}
                               </div>
                             ) : (
