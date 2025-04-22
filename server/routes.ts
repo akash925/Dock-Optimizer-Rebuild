@@ -1687,6 +1687,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Release door endpoint (with optional notes and photo)
+  // Upload BOL endpoint
+  app.post("/api/upload-bol", upload.single('bolFile'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file provided' });
+      }
+
+      // Generate a URL for the uploaded file
+      const fileUrl = `/uploads/${req.file.filename}`;
+      
+      // Return success with the file URL
+      return res.status(200).json({ 
+        fileUrl,
+        filename: req.file.filename,
+        size: req.file.size,
+        message: 'BOL file uploaded successfully' 
+      });
+    } catch (error) {
+      console.error('Error uploading BOL file:', error);
+      return res.status(500).json({ error: 'Failed to upload BOL file' });
+    }
+  });
+
   app.post("/api/schedules/:id/release", upload.single('photo'), async (req, res) => {
     try {
       console.log("=== RELEASE DOOR START ===");

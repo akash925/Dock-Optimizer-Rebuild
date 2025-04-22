@@ -1,170 +1,149 @@
-import * as React from "react";
-import { useState, useRef } from "react";
-import { UploadCloud, X, FileIcon, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { FilePenLine, X, FileIcon, Paperclip } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-export interface FileUploadProps {
+interface FileUploadProps {
   onFileChange: (file: File | null) => void;
   acceptedFileTypes?: string;
   maxSizeMB?: number;
-  currentFileName?: string;
+  initialFile?: File | null;
+  className?: string;
 }
 
 export function FileUpload({
   onFileChange,
-  acceptedFileTypes = "*",
+  acceptedFileTypes = ".pdf,.jpg,.jpeg,.png",
   maxSizeMB = 10,
-  currentFileName,
+  initialFile = null,
+  className = "",
 }: FileUploadProps) {
-  const [isDragging, setIsDragging] = useState(false);
-  const [fileName, setFileName] = useState<string | undefined>(currentFileName);
+  const [file, setFile] = useState<File | null>(initialFile);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const maxSizeBytes = maxSizeMB * 1024 * 1024;
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      validateAndProcessFile(file);
-    }
-  };
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      validateAndProcessFile(file);
-    }
-  };
-
-  const validateAndProcessFile = (file: File) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
-
-    // Validate file type if acceptedFileTypes is specified
-    if (
-      acceptedFileTypes !== "*" &&
-      !isFileTypeAccepted(file.type, acceptedFileTypes)
-    ) {
-      setError(`File type not accepted. Please upload ${acceptedFileTypes}.`);
+    const selectedFile = e.target.files?.[0] || null;
+    
+    if (!selectedFile) {
+      setFile(null);
+      onFileChange(null);
       return;
     }
-
-    // Validate file size
-    if (file.size > maxSizeBytes) {
-      setError(`File size exceeds ${maxSizeMB}MB limit.`);
+    
+    // Check file size (convert MB to bytes)
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    if (selectedFile.size > maxSizeBytes) {
+      setError(`File size exceeds maximum allowed size (${maxSizeMB}MB)`);
       return;
     }
-
-    setFileName(file.name);
-    onFileChange(file);
+    
+    // Check file type if acceptedFileTypes is provided
+    if (acceptedFileTypes) {
+      const fileExtension = `.${selectedFile.name.split('.').pop()?.toLowerCase()}`;
+      const acceptedTypes = acceptedFileTypes.split(',');
+      
+      // Allow if extension matches or mime type matches
+      const isAcceptedExtension = acceptedTypes.some(type => 
+        type.trim().toLowerCase() === fileExtension ||
+        type.trim().includes('/*') && selectedFile.type.startsWith(type.trim().replace('/*', '/'))
+      );
+      
+      if (!isAcceptedExtension) {
+        setError(`File type not supported. Please upload ${acceptedFileTypes.replace(/\./g, '')} files`);
+        return;
+      }
+    }
+    
+    setFile(selectedFile);
+    onFileChange(selectedFile);
   };
 
-  const handleRemove = () => {
-    setFileName(undefined);
+  const handleClearFile = () => {
+    setFile(null);
     setError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
     onFileChange(null);
+    
+    // Reset the input field
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
 
-  const handleButtonClick = () => {
-    fileInputRef.current?.click();
+  const triggerFileInput = () => {
+    if (inputRef.current) {
+      inputRef.current.click();
+    }
+  };
+
+  const getFileIcon = () => {
+    if (!file) return <FileIcon className="h-5 w-5" />;
+    
+    const fileType = file.type.split('/')[0];
+    switch (fileType) {
+      case 'image':
+        return <FilePenLine className="h-5 w-5" />;
+      default:
+        return <FileIcon className="h-5 w-5" />;
+    }
   };
 
   return (
-    <div className="w-full">
-      <input
-        ref={fileInputRef}
+    <div className={`space-y-2 ${className}`}>
+      <Input
         type="file"
-        className="hidden"
+        ref={inputRef}
+        onChange={handleFileChange}
         accept={acceptedFileTypes}
-        onChange={handleFileInputChange}
+        className="hidden"
+        aria-hidden="true"
       />
-
-      {error && (
-        <Alert variant="destructive" className="mb-3">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {!fileName ? (
-        <div
-          className={cn(
-            "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
-            isDragging
-              ? "border-primary bg-primary/5"
-              : "border-border hover:border-primary hover:bg-primary/5"
-          )}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={handleButtonClick}
-        >
-          <UploadCloud className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-          <p className="text-sm font-medium mb-1">
-            Drag & drop or click to upload
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {acceptedFileTypes !== "*"
-              ? `Accepted file types: ${acceptedFileTypes}`
-              : "All file types accepted"}
-            {" · "}
-            Max size: {maxSizeMB}MB
-          </p>
-        </div>
-      ) : (
-        <div className="flex items-center p-3 border rounded-lg">
-          <FileIcon className="h-6 w-6 mr-2 text-primary" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{fileName}</p>
+      
+      {file ? (
+        <div className="flex items-center justify-between p-2 border rounded-md bg-muted/30">
+          <div className="flex items-center space-x-2 overflow-hidden">
+            {getFileIcon()}
+            <span className="truncate text-sm">{file.name}</span>
+            <span className="text-xs text-muted-foreground">
+              ({(file.size / 1024 / 1024).toFixed(2)} MB)
+            </span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="ml-2"
-            onClick={handleRemove}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleClearFile} 
+            className="h-8 w-8"
+            type="button"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full border-dashed h-20 flex flex-col justify-center space-y-2"
+          onClick={triggerFileInput}
+        >
+          <Paperclip className="h-5 w-5 mx-auto" />
+          <span className="text-sm">
+            Click to upload or drag & drop
+          </span>
+        </Button>
       )}
+      
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="text-xs text-muted-foreground">
+        {maxSizeMB && `Maximum file size: ${maxSizeMB}MB. `}
+        {acceptedFileTypes && `Accepted file types: ${acceptedFileTypes.replace(/\./g, '')}`}
+      </div>
     </div>
   );
-}
-
-// Helper function to check if file type is in the list of accepted types
-function isFileTypeAccepted(fileType: string, acceptedTypes: string): boolean {
-  const acceptedTypesArray = acceptedTypes.split(",");
-  
-  return acceptedTypesArray.some((type) => {
-    // Exact match
-    if (fileType === type.trim()) {
-      return true;
-    }
-    
-    // Wildcard match (e.g., 'image/*')
-    if (type.trim().endsWith("/*")) {
-      const category = type.trim().split("/")[0];
-      return fileType.startsWith(`${category}/`);
-    }
-    
-    return false;
-  });
 }

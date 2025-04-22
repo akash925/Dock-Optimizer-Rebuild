@@ -1,0 +1,55 @@
+We need to deliver three incremental improvements—fully aligned with our current live UI/UX patterns—so the new features feel native, responsive, and accessible.
+
+---
+
+## Checkpoint 1: Bill of Lading Upload (Step 1)
+
+**UI/UX Goals**  
+- **Consistent Layout**: Use our existing Card + Form grid (two‑column on desktop, stacked on mobile).  
+- **Visual Hierarchy**: Place “Upload BOL (Optional)” as the final form item in Step 1, styled identically to other file‑upload controls (dashed border, centered icon, hover state).  
+- **Accessibility**: Add `aria-label`, proper `<label>` elements, and focus rings.  
+- **Preview Panel**: Show parsed data in a light‑gray box beneath the upload, using our standard `<Alert>` component style for info panels.
+
+**Tasks:**  
+1. **Insert** the file input in Step 1 of both `UnifiedAppointmentForm` (internal) and `external-booking.tsx` (external) using our `<Button variant="outline">` + hidden `<input type="file">` pattern.  
+2. **On upload**: call `OCRService.parseBol(file)` → compress → POST `/api/upload-bol` → get `fileUrl`.  
+3. **Prefill** form fields (`bolNumber`, `customerName`, etc.) below the upload in input rows, but keep them standard `<FormField>` controls so users can edit.  
+4. **Validation**: only block “Next” if `questionsSchema` marks BOL required (we’ll fetch that in Checkpoint 2).  
+5. **Tests**: unit test the OCR/upload logic; snapshot test the Step 1 form with and without a BOL uploaded.
+
+---
+
+## Checkpoint 2: Dynamic Questions Hardening
+
+**UI/UX Goals**  
+- **Form Consistency**: Render dynamic questions using our `<FormField>` + `<Input>`/`<Select>`/`<Textarea>` components, matching spacing and typography of static fields.  
+- **Progressive Disclosure**: Show questions only when their `step` matches the current page (Step 1, 2 or 3).  
+- **Error States**: Display validation errors inline, using our `<FormMessage>` style.  
+- **Mobile‑First**: Ensure two‑column grids collapse to one column gracefully.
+
+**Tasks:**  
+1. **Fetch** `/api/appointment-master/:typeId/questions` on mount.  
+2. **Render** each question in the appropriate Step panel, mapping `fieldType` to the correct UI component.  
+3. **Validate** with Zod: required questions block Next with an inline error.  
+4. **Payload**: include `answers: { questionId: value }` in the final POST.  
+5. **Tests**: unit test that required questions block progression; snapshot tests for dynamic form variations.
+
+---
+
+## Checkpoint 3: Facility‑Level Availability & Hours
+
+**UI/UX Goals**  
+- **Slot Grid**: Use our existing `<Select>` dropdown on mobile, but on desktop render a responsive grid of `<button>` slots (4 columns, 15‐min increments).  
+- **Badges**: Display remaining‐capacity badges in the same pill style we use for notifications (`bg-green-100`, `text-green-800`).  
+- **Disabled State**: Grey out off‑hours or full slots with `opacity-50` and `cursor-not-allowed`.  
+- **Timezone Clarity**: Show facility local time with a small “(EST)” label next to the picker.
+
+**Tasks:**  
+1. **API**: Update `/api/appointment-master/availability-rules` to consume only `facility_hours` + `overrideFacilityHours`, returning full `{ time, available, remaining }` objects.  
+2. **Client**: In both flows, call that endpoint with `?facilityId=…&appointmentTypeId=…`; render slots in a `<Select>` on mobile and a grid on desktop using our `<TimeSlotButton>` component.  
+3. **Filtering**: Filter out-of-hours slots; if `overrideFacilityHours=true`, show full day.  
+4. **Tests**: unit test `generateAvailableTimeSlots` with facility hours; integration test that the slot grid matches expectations.
+
+---
+
+Please deliver each checkpoint as a self‑contained PR, following our design system’s components, styles, and accessibility standards. Once Checkpoint 1 is live, we’ll move immediately to Checkpoint 2, then 3.  

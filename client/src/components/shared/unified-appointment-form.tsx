@@ -197,6 +197,7 @@ export default function UnifiedAppointmentForm({
   const [bolFile, setBolFile] = useState<File | null>(null);
   const [bolProcessing, setBolProcessing] = useState(false);
   const [bolPreviewText, setBolPreviewText] = useState<string | null>(null);
+  const [bolFileUrl, setBolFileUrl] = useState<string | null>(null);
   
   // State for availability rules
   const [availabilityRules, setAvailabilityRules] = useState<any[]>([]);
