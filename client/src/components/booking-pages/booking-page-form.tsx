@@ -327,24 +327,31 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       }, {});
   }, [appointmentTypesData, debouncedSearchTerm]);
   
-  // Toggle appointment type selection without real-time updates
+  // Toggle appointment type selection without real-time updates or nested state changes
   const toggleAppointmentType = (facilityId: number, appointmentTypeId: number, checked: boolean) => {
-    setSelectedAppointmentTypes(prev => {
-      const updatedMap = { ...prev };
-      
-      if (!updatedMap[facilityId]) {
-        updatedMap[facilityId] = [];
+    // Create a local copy of state to avoid multiple renders
+    const newAppointmentTypes = {...selectedAppointmentTypes};
+    
+    // Initialize array for this facility if it doesn't exist
+    if (!newAppointmentTypes[facilityId]) {
+      newAppointmentTypes[facilityId] = [];
+    }
+    
+    if (checked) {
+      // Only add if not already selected
+      if (!newAppointmentTypes[facilityId].includes(appointmentTypeId)) {
+        newAppointmentTypes[facilityId] = [...newAppointmentTypes[facilityId], appointmentTypeId];
       }
-      
-      if (checked) {
-        if (!updatedMap[facilityId].includes(appointmentTypeId)) {
-          updatedMap[facilityId] = [...updatedMap[facilityId], appointmentTypeId];
-        }
-      } else {
-        updatedMap[facilityId] = updatedMap[facilityId].filter(id => id !== appointmentTypeId);
+    } else {
+      // Only remove if currently selected
+      if (newAppointmentTypes[facilityId].includes(appointmentTypeId)) {
+        newAppointmentTypes[facilityId] = newAppointmentTypes[facilityId].filter(id => id !== appointmentTypeId);
       }
-      
-      return updatedMap;
+    }
+    
+    // Update state in the next animation frame to avoid render loops
+    requestAnimationFrame(() => {
+      setSelectedAppointmentTypes(newAppointmentTypes);
     });
   };
 
@@ -460,21 +467,53 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     }
   };
 
-  // Toggle facility selection without real-time updates
+  // Toggle facility selection without real-time updates or nested state changes
   const toggleFacility = (facilityId: number, checked: boolean) => {
+    // Create local copies of state to work with
+    let newFacilities = [...selectedFacilities];
+    let newAppointmentTypes = {...selectedAppointmentTypes};
+    let newAccordionItems = [...openAccordionItems];
+    
     if (checked) {
-      setSelectedFacilities(prev => [...prev, facilityId]);
+      // Only add if not already selected to prevent duplicate renders
+      if (!selectedFacilities.includes(facilityId)) {
+        // Add to selected facilities
+        newFacilities.push(facilityId);
+        
+        // Add all appointment types for this facility
+        const facilityAppointmentTypes = Object.values(appointmentTypes)
+          .filter(type => type.facilityId === facilityId)
+          .map(type => type.id);
+          
+        if (facilityAppointmentTypes.length > 0) {
+          newAppointmentTypes[facilityId] = facilityAppointmentTypes;
+        }
+        
+        // Open the accordion for this facility
+        if (!newAccordionItems.includes(`facility-${facilityId}`)) {
+          newAccordionItems.push(`facility-${facilityId}`);
+        }
+      }
     } else {
-      // Remove the facility
-      setSelectedFacilities(prev => prev.filter(id => id !== facilityId));
-      
-      // Also remove associated appointment types
-      setSelectedAppointmentTypes(prev => {
-        const updated = { ...prev };
-        delete updated[facilityId];
-        return updated;
-      });
+      // Only process if currently selected to prevent unnecessary renders
+      if (selectedFacilities.includes(facilityId)) {
+        // Remove from selected facilities
+        newFacilities = newFacilities.filter(id => id !== facilityId);
+        
+        // Remove appointment types for this facility
+        delete newAppointmentTypes[facilityId];
+        
+        // Close the accordion for this facility
+        newAccordionItems = newAccordionItems.filter(item => item !== `facility-${facilityId}`);
+      }
     }
+    
+    // Update all states at once to minimize render cycles
+    requestAnimationFrame(() => {
+      setSelectedFacilities(newFacilities);
+      setSelectedAppointmentTypes(newAppointmentTypes);
+      setOpenAccordionItems(newAccordionItems);
+    });
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
