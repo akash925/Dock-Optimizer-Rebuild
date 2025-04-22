@@ -272,16 +272,23 @@ export default function FixedAppointmentForm({
   
   // Availability API functions
   const { 
-    fetchAvailability, 
+    fetchAvailabilityForDate, 
     availableTimeSlots, 
-    isLoadingAvailability, 
-    availabilityError 
+    isLoading: isLoadingAvailability, 
+    error: availabilityError 
   } = useAppointmentAvailability({
     facilityId: selectedFacilityId,
-    appointmentTypeId,
-    appointmentMode,
-    facilityTimezone
+    appointmentTypeId: appointmentTypeId,
+    mode: appointmentMode,
+    timezone: facilityTimezone
   });
+  
+  // Wrapper function for availability
+  const fetchAvailability = useCallback((dateString: string) => {
+    if (dateString && selectedFacilityId) {
+      fetchAvailabilityForDate(dateString);
+    }
+  }, [fetchAvailabilityForDate, selectedFacilityId]);
   
   // Effect to fetch availability when date changes
   useEffect(() => {
@@ -289,7 +296,7 @@ export default function FixedAppointmentForm({
     if (appointmentDate && selectedFacilityId) {
       fetchAvailability(appointmentDate);
     }
-  }, [form.watch("appointmentDate"), selectedFacilityId]);
+  }, [form.watch("appointmentDate"), selectedFacilityId, fetchAvailability]);
   
   // Handle BOL processing
   const handleBolProcessed = (data: ParsedBolData, fileUrl: string) => {
@@ -306,8 +313,7 @@ export default function FixedAppointmentForm({
     setBolPreviewText(
       `Bill of Lading #${data.bolNumber || "N/A"}
       Pallet Count: ${data.palletCount || "N/A"}
-      Weight: ${data.weight || "N/A"}
-      Carrier: ${data.carrier || "N/A"}`
+      Weight: ${data.weight || "N/A"}`
     );
     
     toast({

@@ -379,6 +379,15 @@ export function useAppointmentAvailability({
     }
   }, [date, availabilityRules, generateTimeSlots, onTimeSlotGenerated]);
 
+  // Function to fetch availability for a specific date - used by appointment forms
+  const fetchAvailabilityForDate = useCallback((dateStr: string) => {
+    // Set the date and trigger the generateTimeSlots effect
+    if (dateStr) {
+      setDate(dateStr);
+      generateTimeSlots();
+    }
+  }, [generateTimeSlots]);
+
   return {
     availabilityRules,
     availableTimeSlots,
@@ -388,6 +397,7 @@ export function useAppointmentAvailability({
     error,
     refreshRules: fetchAvailabilityRules,
     refreshSlots: generateTimeSlots,
-    fetchAppointments: fetchExistingAppointments
+    fetchAppointments: fetchExistingAppointments,
+    fetchAvailabilityForDate // Export the new function
   };
 }
