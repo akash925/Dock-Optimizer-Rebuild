@@ -1,0 +1,66 @@
+Context
+We have three related features powering our dock‑appointment UX:
+
+External Booking Wizard (the 3‑step, public “Test Booking Page”)
+
+Internal “New Appointment” Modal (the in‑app admin form)
+
+Booking‑Page Master (the admin screen that selects which facilities & appointment‑types are live)
+
+What’s broken right now
+
+External wizard still errors out on submit and never posts the new appointment. Time/date dropdown never populates (you can’t pick a slot).
+
+Internal modal now shows the form but its “Appointment Type” dropdown is empty or mis‑wired, and date/time never respects availability rules. Also the dock‑door field is being forced required, even when the Appointment‑Master says “optional.”
+
+Booking‑Page Master (server & client) lets me toggle facilities and types visually, but the “Update Booking Page” button never actually issues a PUT to /api/booking‑pages/:id—the Express route file server/routes/bookingPages.js is blank. As a result external bookers see stale choices.
+
+What I need you to do, in this order
+
+Wire up the back‑end
+
+Create server/routes/bookingPages.js with GET /api/booking-pages, POST /api/booking-pages, and PUT /api/booking-pages/:id handlers that validate against our Zod schema (insertBookingPageSchema), persist changes to our database, and return the fully populated booking‑page object (including facilities[] and appointmentTypes[]).
+
+Ensure CORS/credentials are correctly forwarded so our front‑end apiRequest() can succeed without 401 or “no response.”
+
+Fix the Booking‑Page Master UI
+
+On the client in booking_page_form.tsx, hook up the update form to call the new PUT endpoint.
+
+After a successful update, invalidate and re‑fetch the React‑Query key '/api/booking-pages' so that “Test Booking Page” immediately reflects the new facility & type selections.
+
+Remove any infinite‑loop or “maximum update depth” by lifting out local state in each FacilityItem/AppointmentTypeItem into a single parent state object.
+
+Patch the External Booking Wizard
+
+Ensure the first step loads the live facilities & appointment types from /api/booking-pages/:slug (or /api/booking-pages filtered by slug).
+
+Populate “Location → Appointment Type → Pickup/Dropoff → BOL Upload → Date/Time” in that exact order inside one <FormProvider>…</FormProvider> so useFormContext() works.
+
+Hook your date picker to call /api/availability?typeId={…}&facilityId={…}&date=YYYY‑MM‑DD and render returned slots into the time‑dropdown (with no timezone offsets).
+
+On “Next” of step three, POST to /api/appointments with the complete payload (including the uploaded BOL via FormData if provided). Surface any API error message in a user‑friendly banner instead of silent failure.
+
+Patch the Internal “New Appointment” Modal
+
+Mirror the external wizard’s form structure exactly (single FormProvider, same field order).
+
+Respect the same availability API so date/time pickers render real slots.
+
+Make “Dock Door” optional unless the appointment‑type master question flags it required.
+
+On submit, either call your new /api/appointments or reuse the external API internally. After success, reset form state and refresh the calendar view.
+
+Checkpoints & Testing
+
+After each major step (backend routes, booking‑page master, external wizard, internal modal), load your React app, walk through the flows manually, and ensure no console errors.
+
+Add one new Cypress/E2E spec that:
+
+Creates/updates a booking page via the master UI,
+
+Immediately uses “Test Booking Page” to schedule a slot,
+
+Asserts the appointment appears in the in‑app calendar.
+
+Please group changes into logical commits (e.g. feat: booking-pages API routes, fix: external booking wizard form wiring, etc.), and let me know once all four areas are green so we can ship this in the next 48 hours.
