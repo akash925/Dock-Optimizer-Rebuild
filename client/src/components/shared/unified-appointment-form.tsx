@@ -24,7 +24,9 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CarrierSelector } from "@/components/shared/carrier-selector";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, ArrowLeft, ArrowRight, Calendar as CalendarIcon, CheckCircle, Clock, Loader2, Upload } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Calendar as CalendarIcon, CheckCircle, Clock, Loader2, Upload, FileText } from "lucide-react";
+import BolUpload from "./bol-upload";
+import { ParsedBolData } from "@/lib/ocr-service";
 import { utcToFacilityTime, facilityTimeToUtc, utcToUserTime, formatInFacilityTimeZone } from "@/lib/timezone-utils";
 
 // Types that will be common to both internal and external flows
@@ -486,6 +488,50 @@ export default function UnifiedAppointmentForm({
     }
   }, [firstAvailableSlot]);
   
+  // Handler for BOL file upload processing
+  const handleBolProcessed = (data: ParsedBolData, fileUrl: string) => {
+    console.log('BOL processed:', data);
+    
+    // Store the BOL file URL
+    setBolFileUrl(fileUrl);
+    
+    // Update form fields with extracted data
+    if (data.bolNumber) {
+      scheduleDetailsForm.setValue('bolNumber', data.bolNumber);
+    }
+    
+    if (data.weight) {
+      scheduleDetailsForm.setValue('weight', data.weight);
+    }
+    
+    if (data.palletCount) {
+      scheduleDetailsForm.setValue('palletCount', data.palletCount);
+    }
+    
+    if (data.customerName) {
+      truckInfoForm.setValue('customerName', data.customerName);
+    }
+    
+    if (data.carrierName) {
+      // Don't override if carrier was already selected
+      const currentCarrierId = truckInfoForm.getValues('carrierId');
+      if (!currentCarrierId) {
+        truckInfoForm.setValue('carrierName', data.carrierName);
+      }
+    }
+    
+    if (data.mcNumber) {
+      truckInfoForm.setValue('mcNumber', data.mcNumber);
+    }
+    
+    // Display success toast
+    toast({
+      title: "BOL Processed Successfully",
+      description: "The information has been extracted and applied to the form.",
+      variant: "default",
+    });
+  };
+  
   // Update error state from hook
   useEffect(() => {
     if (availabilityHookError) {
@@ -509,42 +555,9 @@ export default function UnifiedAppointmentForm({
     }
   };
   
-  // Handle BOL file upload
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      setBolFile(file);
-      setBolProcessing(true);
-      
-      // Here we would integrate with a real document processing service
-      // For now, simulate processing with setTimeout
-      try {
-        setTimeout(() => {
-          // Create a realistic extraction example (but still simulated)
-          const extractedBolNumber = `BOL-${Math.floor(Math.random() * 10000)}`;
-          
-          setBolPreviewText(`Bill of Lading #${extractedBolNumber} uploaded successfully`);
-          setBolProcessing(false);
-          
-          // Set the BOL number
-          scheduleDetailsForm.setValue("bolNumber", extractedBolNumber);
-          
-          toast({
-            title: "BOL Uploaded and Processed",
-            description: "We've extracted information to help you with your appointment.",
-          });
-        }, 1500);
-      } catch (error) {
-        // Handle any error with BOL processing
-        setBolProcessing(false);
-        toast({
-          title: "BOL Processing Error",
-          description: "There was an error processing your document. Please enter information manually.",
-          variant: "destructive",
-        });
-      }
-    }
+  // Handler for BOL processing state changes
+  const handleBolProcessingStateChange = (isProcessing: boolean) => {
+    setBolProcessing(isProcessing);
   };
   
   // Step 1 submission handler
