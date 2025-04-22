@@ -938,14 +938,54 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
             Cancel
           </Button>
           <Button 
-            type="submit" 
+            type="button" // Changed to button type to prevent form submission
             disabled={isPending}
             onClick={() => {
-              // Manual form submission as a backup in case the normal form submission doesn't work
-              if (!form.formState.isSubmitting) {
-                console.log("Manual form submission triggered");
-                form.handleSubmit(onSubmit)();
-              }
+              console.log("Direct button click - bypassing standard form submission");
+              // Get current form values
+              const formValues = form.getValues();
+              console.log("Form values:", formValues);
+              
+              // Validate form before submission
+              form.trigger().then(isValid => {
+                console.log("Form validation result:", isValid);
+                
+                if (isValid) {
+                  if (selectedFacilities.length === 0) {
+                    console.log("Error: No facilities selected");
+                    toast({
+                      title: "Error",
+                      description: "Please select at least one facility",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  try {
+                    if (bookingPage) {
+                      console.log("Direct update of booking page with ID:", bookingPage.id);
+                      updateMutation.mutate(formValues);
+                    } else {
+                      console.log("Direct creation of new booking page");
+                      createMutation.mutate(formValues);
+                    }
+                  } catch (error) {
+                    console.error("Error in manual form submission:", error);
+                    toast({
+                      title: "Error",
+                      description: "An unexpected error occurred while saving",
+                      variant: "destructive",
+                    });
+                  }
+                } else {
+                  console.log("Form has validation errors");
+                  toast({
+                    title: "Validation Error",
+                    description: "Please correct the errors in the form",
+                    variant: "destructive",
+                  });
+                }
+              });
             }}
           >
             {isPending ? (
