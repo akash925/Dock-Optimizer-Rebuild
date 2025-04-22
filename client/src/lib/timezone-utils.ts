@@ -1,12 +1,26 @@
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { addMinutes, differenceInMinutes, format } from 'date-fns';
 
-// Get the user's local time zone
+/**
+ * Retrieves the user's local time zone from the browser.
+ * 
+ * @returns {string} The IANA time zone identifier (e.g., 'America/New_York')
+ * @example
+ * const userTz = getUserTimeZone(); // 'America/Los_Angeles'
+ */
 export const getUserTimeZone = (): string => {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 };
 
-// Convert UTC date to user's local time zone
+/**
+ * Converts a UTC date to the user's local time zone.
+ * 
+ * @param {Date | string} utcDate - The UTC date to convert (Date object or ISO string)
+ * @returns {Date} A new Date object representing the same moment in the user's time zone
+ * @throws Will return current date if utcDate is falsy
+ * @example
+ * const localTime = utcToUserTime('2025-04-22T12:00:00Z');
+ */
 export const utcToUserTime = (utcDate: Date | string): Date => {
   if (!utcDate) return new Date();
   const userTimeZone = getUserTimeZone();
@@ -14,14 +28,32 @@ export const utcToUserTime = (utcDate: Date | string): Date => {
   return toZonedTime(date, userTimeZone);
 };
 
-// Convert UTC date to facility time zone
+/**
+ * Converts a UTC date to a specific facility's time zone.
+ * 
+ * @param {Date | string} utcDate - The UTC date to convert (Date object or ISO string)
+ * @param {string} facilityTimeZone - The IANA time zone identifier for the facility
+ * @returns {Date} A new Date object representing the same moment in the facility's time zone
+ * @throws Will return current date if utcDate is falsy
+ * @example
+ * const facilityTime = utcToFacilityTime('2025-04-22T12:00:00Z', 'America/Chicago');
+ */
 export const utcToFacilityTime = (utcDate: Date | string, facilityTimeZone: string): Date => {
   if (!utcDate) return new Date();
   const date = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
   return toZonedTime(date, facilityTimeZone);
 };
 
-// Convert date from facility time zone to UTC
+/**
+ * Converts a date from a facility's time zone to UTC.
+ * 
+ * @param {Date | string} date - The date in facility time zone to convert
+ * @param {string} facilityTimeZone - The IANA time zone identifier for the facility
+ * @returns {Date} A new Date object representing the same moment in UTC
+ * @throws Will return current date if date is falsy
+ * @example
+ * const utcDate = facilityTimeToUtc(facilityDate, 'America/Chicago');
+ */
 export const facilityTimeToUtc = (date: Date | string, facilityTimeZone: string): Date => {
   if (!date) return new Date();
   const dateObj = typeof date === 'string' ? new Date(date) : date;
@@ -30,7 +62,15 @@ export const facilityTimeToUtc = (date: Date | string, facilityTimeZone: string)
   return new Date(isoStringWithOffset);
 };
 
-// Convert date from user time zone to UTC
+/**
+ * Converts a date from the user's time zone to UTC.
+ * 
+ * @param {Date | string} date - The date in user's time zone to convert
+ * @returns {Date} A new Date object representing the same moment in UTC
+ * @throws Will return current date if date is falsy
+ * @example
+ * const utcDate = userTimeToUtc(localDate);
+ */
 export const userTimeToUtc = (date: Date | string): Date => {
   if (!date) return new Date();
   const userTimeZone = getUserTimeZone();
@@ -40,7 +80,16 @@ export const userTimeToUtc = (date: Date | string): Date => {
   return new Date(isoStringWithOffset);
 };
 
-// Format the date in the user's time zone
+/**
+ * Formats a date in the user's local time zone according to the specified format string.
+ * 
+ * @param {Date | string} date - The date to format (Date object or ISO string)
+ * @param {string} formatStr - The date-fns format string
+ * @returns {string} The formatted date string in the user's time zone
+ * @throws Will return empty string if date is falsy
+ * @example
+ * const formattedDate = formatInUserTimeZone(date, 'yyyy-MM-dd HH:mm');
+ */
 export const formatInUserTimeZone = (date: Date | string, formatStr: string): string => {
   if (!date) return '';
   const userTimeZone = getUserTimeZone();
@@ -48,14 +97,37 @@ export const formatInUserTimeZone = (date: Date | string, formatStr: string): st
   return formatInTimeZone(dateObj, userTimeZone, formatStr);
 };
 
-// Format the date in the facility's time zone
+/**
+ * Formats a date in a specific facility's time zone according to the specified format string.
+ * 
+ * @param {Date | string} date - The date to format (Date object or ISO string)
+ * @param {string} facilityTimeZone - The IANA time zone identifier for the facility
+ * @param {string} formatStr - The date-fns format string
+ * @returns {string} The formatted date string in the facility's time zone
+ * @throws Will return empty string if date is falsy
+ * @example
+ * const formattedDate = formatInFacilityTimeZone(date, 'America/Chicago', 'yyyy-MM-dd HH:mm');
+ */
 export const formatInFacilityTimeZone = (date: Date | string, facilityTimeZone: string, formatStr: string): string => {
   if (!date) return '';
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   return formatInTimeZone(dateObj, facilityTimeZone, formatStr);
 };
 
-// Format the date for display in both time zones
+/**
+ * Formats a date for display in both the user's and facility's time zones.
+ * 
+ * @param {Date | string} date - The date to format (Date object or ISO string)
+ * @param {string} facilityTimeZone - The IANA time zone identifier for the facility
+ * @param {string} [formatStr='h:mm a'] - The date-fns format string (defaults to time format)
+ * @returns {Object} An object containing formatted strings for both time zones and zone identifiers
+ * @returns {string} .userTime - The date formatted in the user's time zone
+ * @returns {string} .facilityTime - The date formatted in the facility's time zone
+ * @returns {string} .userZone - The user's time zone identifier
+ * @returns {string} .facilityZone - The facility's time zone identifier
+ * @example
+ * const { userTime, facilityTime } = formatForDualTimeZoneDisplay(date, 'America/Chicago');
+ */
 export const formatForDualTimeZoneDisplay = (
   date: Date | string,
   facilityTimeZone: string,
@@ -72,7 +144,15 @@ export const formatForDualTimeZoneDisplay = (
   };
 };
 
-// Get time zone abbreviation (e.g., EST, PDT)
+/**
+ * Gets the abbreviated name of a time zone (e.g., EST, PDT) for the given date.
+ * 
+ * @param {string} timeZone - The IANA time zone identifier
+ * @param {Date} [date=new Date()] - The date for which to get the abbreviation (to account for DST)
+ * @returns {string} The time zone abbreviation
+ * @example
+ * const tzAbbr = getTimeZoneAbbreviation('America/New_York'); // 'EDT' (during daylight saving time)
+ */
 export const getTimeZoneAbbreviation = (timeZone: string, date: Date = new Date()): string => {
   // Extract abbreviation from formatted date
   const formatter = new Intl.DateTimeFormat('en-US', {
@@ -86,20 +166,50 @@ export const getTimeZoneAbbreviation = (timeZone: string, date: Date = new Date(
   return parts[parts.length - 1] || timeZone;
 };
 
-// Calculate the duration in minutes from a UTC start to end time
+/**
+ * Calculates the duration in minutes between two UTC timestamps.
+ * 
+ * @param {Date | string} start - The start time (Date object or ISO string)
+ * @param {Date | string} end - The end time (Date object or ISO string)
+ * @returns {number} The duration in minutes
+ * @throws Will throw error if start or end dates are invalid
+ * @example
+ * const durationInMinutes = getDurationFromUtcTimes(startDate, endDate);
+ */
 export const getDurationFromUtcTimes = (start: Date | string, end: Date | string): number => {
   const startDate = typeof start === 'string' ? new Date(start) : start;
   const endDate = typeof end === 'string' ? new Date(end) : end;
   return differenceInMinutes(endDate, startDate);
 };
 
-// Calculate the end time based on a UTC start time and duration in minutes
+/**
+ * Calculates the end time by adding a duration to a start time.
+ * 
+ * @param {Date | string} start - The start time (Date object or ISO string)
+ * @param {number} durationMinutes - The duration in minutes to add
+ * @returns {Date} A new Date object representing the calculated end time
+ * @throws Will throw error if start date is invalid
+ * @example
+ * const endTime = calculateEndTimeFromDuration(startDate, 60); // 1 hour later
+ */
 export const calculateEndTimeFromDuration = (start: Date | string, durationMinutes: number): Date => {
   const startDate = typeof start === 'string' ? new Date(start) : start;
   return addMinutes(startDate, durationMinutes);
 };
 
-// Format a date range for display in a single time zone
+/**
+ * Formats a date range for display in a single time zone.
+ * 
+ * @param {Date | string} start - The start time (Date object or ISO string)
+ * @param {Date | string} end - The end time (Date object or ISO string)
+ * @param {string} timeZone - The IANA time zone identifier
+ * @param {string} [dateFormat='MMM d, yyyy'] - The date-fns format string for the date part
+ * @param {string} [timeFormat='h:mm a'] - The date-fns format string for the time part
+ * @returns {string} A formatted string representing the date range with time zone abbreviation
+ * @example
+ * const rangeStr = formatDateRangeInTimeZone(start, end, 'America/Chicago');
+ * // "Apr 22, 2025, 9:00 AM - 10:00 AM CDT"
+ */
 export const formatDateRangeInTimeZone = (
   start: Date | string,
   end: Date | string,
@@ -117,7 +227,21 @@ export const formatDateRangeInTimeZone = (
   return `${startDateStr}, ${startTimeStr} - ${endTimeStr} ${getTimeZoneAbbreviation(timeZone, startDate)}`;
 };
 
-// Format a time-only range for display in both time zones
+/**
+ * Formats a time range for display in both user's and facility's time zones.
+ * 
+ * @param {Date | string} start - The start time (Date object or ISO string)
+ * @param {Date | string} end - The end time (Date object or ISO string)
+ * @param {string} facilityTimeZone - The IANA time zone identifier for the facility
+ * @returns {Object} An object containing formatted time ranges and time zone abbreviations
+ * @returns {string} .userTimeRange - The time range formatted in the user's time zone (e.g., "9:00 AM - 10:00 AM")
+ * @returns {string} .facilityTimeRange - The time range formatted in the facility's time zone
+ * @returns {string} .userZoneAbbr - The user's time zone abbreviation (e.g., "EDT")
+ * @returns {string} .facilityZoneAbbr - The facility's time zone abbreviation
+ * @example
+ * const { userTimeRange, facilityTimeRange, userZoneAbbr, facilityZoneAbbr } = 
+ *   formatTimeRangeForDualZones(start, end, 'America/Chicago');
+ */
 export const formatTimeRangeForDualZones = (
   start: Date | string,
   end: Date | string,
