@@ -1604,6 +1604,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking page not found" });
       }
       
+      // Validate facilities and appointment types
+      const { facilities, appointmentTypes } = req.body;
+      
+      if (!facilities || !Array.isArray(facilities) || facilities.length === 0) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Please select at least one facility"
+        });
+      }
+      
+      if (!appointmentTypes || !Array.isArray(appointmentTypes) || appointmentTypes.length === 0) {
+        return res.status(400).json({
+          error: "Validation error",
+          message: "Please select at least one appointment type"
+        });
+      }
+      
       // Add the current user to lastModifiedBy field
       const bookingPageData = {
         ...req.body,
@@ -1618,8 +1635,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const updatedBookingPage = await storage.updateBookingPage(id, bookingPageData);
-      res.json(updatedBookingPage);
+      // We need to calculate excludedAppointmentTypes for backward compatibility
+      const allAppointmentTypes = await storage.getAppointmentTypes();
+      const allAppointmentTypeIds = allAppointmentTypes.map(type => type.id);
+      
+      // Find appointment types to exclude (inverse of included types)
+      const excludedAppointmentTypes = allAppointmentTypeIds.filter(
+        id => !appointmentTypes.includes(id)
+      );
+      
+      // Prepare the data to save with correct structure
+      const dataToSave = {
+        ...bookingPageData,
+        facilities: facilities, // Array of facility IDs
+        excludedAppointmentTypes: excludedAppointmentTypes // For backward compatibility
+      };
+      
+      console.log(`Updating booking page ${id} with:`, {
+        facilities: facilities.length,
+        appointmentTypes: appointmentTypes.length,
+        excludedAppointmentTypes: excludedAppointmentTypes.length
+      });
+      
+      const updatedBookingPage = await storage.updateBookingPage(id, dataToSave);
+      
+      res.status(200).json({
+        bookingPage: updatedBookingPage,
+        success: true
+      });
     } catch (err) {
       console.error("Error updating booking page:", err);
       if (err instanceof z.ZodError) {

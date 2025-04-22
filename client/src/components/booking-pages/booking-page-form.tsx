@@ -355,32 +355,49 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     });
   };
 
-  // Create mutation
+  // Create mutation with improved error handling and consistent payload structure
   const createMutation = useMutation({
     mutationFn: async (data: z.infer<typeof bookingPageFormSchema>) => {
-      // Set up the appointment types to exclude (inverse of included types)
-      const allAppointmentTypeIds = Object.values(appointmentTypes).map(t => t.id);
-      const includedAppointmentTypes: number[] = [];
+      // Get all selected appointment type IDs from selectedAppointmentTypes
+      const appointmentTypes: number[] = [];
       
       // Gather all selected appointment types across facilities
       Object.entries(selectedAppointmentTypes).forEach(([facilityId, typeIds]) => {
-        includedAppointmentTypes.push(...typeIds);
+        appointmentTypes.push(...typeIds);
       });
-      
-      // Find appointment types to exclude
-      const excludedAppointmentTypes = allAppointmentTypeIds.filter(
-        id => !includedAppointmentTypes.includes(id)
-      );
 
-      // Create the payload with the proper structure expected by the API
+      // Create the payload with the exact structure expected by the API
       const payload = {
         ...data,
         facilities: selectedFacilities,
-        excludedAppointmentTypes: excludedAppointmentTypes
+        appointmentTypes: appointmentTypes
       };
 
-      const response = await apiRequest('POST', '/api/booking-pages', payload);
-      return await response.json();
+      console.log("Creating booking page with payload:", payload);
+      
+      try {
+        const response = await apiRequest('POST', '/api/booking-pages', payload);
+        if (!response.ok) {
+          // Try to get the error message from the response
+          let errorMessage = "Failed to create booking page";
+          try {
+            const errorJson = await response.json();
+            errorMessage = errorJson.message || errorJson.error || errorMessage;
+          } catch {
+            // If we can't parse the JSON, try text
+            const errorText = await response.text();
+            errorMessage = errorText || errorMessage;
+          }
+          console.error("API error:", response.status, errorMessage);
+          throw new Error(errorMessage);
+        }
+        const responseData = await response.json();
+        console.log("Create successful, received response:", responseData);
+        return responseData;
+      } catch (error) {
+        console.error("Error in createMutation:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -395,13 +412,13 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       console.error("Error creating booking page:", error);
       toast({
         title: "Error",
-        description: "Failed to create booking page",
+        description: error instanceof Error ? error.message : "Failed to create booking page",
         variant: "destructive",
       });
     }
   });
 
-  // Update mutation with enhanced reliability
+  // Update mutation with enhanced reliability and fixed payload structure
   const updateMutation = useMutation({
     mutationFn: async (data: z.infer<typeof bookingPageFormSchema>) => {
       if (!bookingPage) {
@@ -411,25 +428,19 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
 
       console.log("Starting booking page update process with ID:", bookingPage.id);
       
-      // Set up the appointment types to exclude (inverse of included types)
-      const allAppointmentTypeIds = Object.values(appointmentTypes).map(t => t.id);
-      const includedAppointmentTypes: number[] = [];
+      // Get all selected appointment type IDs from selectedAppointmentTypes
+      const appointmentTypes: number[] = [];
       
       // Gather all selected appointment types across facilities
       Object.entries(selectedAppointmentTypes).forEach(([facilityId, typeIds]) => {
-        includedAppointmentTypes.push(...typeIds);
+        appointmentTypes.push(...typeIds);
       });
       
-      // Find appointment types to exclude
-      const excludedAppointmentTypes = allAppointmentTypeIds.filter(
-        id => !includedAppointmentTypes.includes(id)
-      );
-
-      // Create the payload with the proper structure expected by the API
+      // Create the payload with the exact structure expected by the API
       const payload = {
         ...data,
         facilities: selectedFacilities,
-        excludedAppointmentTypes: excludedAppointmentTypes
+        appointmentTypes: appointmentTypes
       };
 
       console.log("Sending update API request with payload:", payload);
@@ -437,9 +448,18 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       try {
         const response = await apiRequest('PUT', `/api/booking-pages/${bookingPage.id}`, payload);
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error("API error:", response.status, errorText);
-          throw new Error(`API error: ${response.status} ${errorText}`);
+          // Try to get the error message from the response
+          let errorMessage = "Failed to update booking page";
+          try {
+            const errorJson = await response.json();
+            errorMessage = errorJson.message || errorJson.error || errorMessage;
+          } catch {
+            // If we can't parse the JSON, try text
+            const errorText = await response.text();
+            errorMessage = errorText || errorMessage;
+          }
+          console.error("API error:", response.status, errorMessage);
+          throw new Error(errorMessage);
         }
         const data = await response.json();
         console.log("Update successful, received response:", data);
@@ -463,7 +483,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       console.error("Error updating booking page:", error);
       toast({
         title: "Error",
-        description: "Failed to update booking page. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to update booking page. Please try again.",
         variant: "destructive",
       });
     }
