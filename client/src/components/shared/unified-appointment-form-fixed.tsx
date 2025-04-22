@@ -7,7 +7,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { format, addMinutes } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { useAppointmentAvailability } from '@/hooks/use-appointment-availability';
+import { useAppointmentAvailability } from '@/hooks/use-appointment-availability-patch';
 import { Facility, AppointmentType } from '@shared/schema';
 
 // UI Components

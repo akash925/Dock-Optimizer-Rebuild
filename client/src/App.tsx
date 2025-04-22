@@ -19,6 +19,8 @@ import AppointmentMaster from "@/pages/appointment-master";
 import BookingPages from "@/pages/booking-pages";
 import AuthDebugPage from "@/pages/auth-debug-page";
 import TestFixedAppointment from "@/pages/test-fixed-appointment";
+import TestFixedAppointmentV2 from "@/pages/test-fixed-appointment-v2";
+import TestAppointmentPatchedPage from "@/pages/test-appointment-patched";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 
@@ -33,6 +35,8 @@ function App() {
         <Route path="/driver-check-in" component={DriverCheckIn} />
         <Route path="/auth-debug" component={AuthDebugPage} />
         <Route path="/test-fixed-appointment" component={TestFixedAppointment} />
+        <Route path="/test-fixed-appointment-v2" component={TestFixedAppointmentV2} />
+        <Route path="/test-appointment-patched" component={TestAppointmentPatchedPage} />
         <ProtectedRoute path="/" component={Dashboard} />
         <ProtectedRoute path="/schedules" component={Schedules} />
         <ProtectedRoute path="/schedules/:id" component={Schedules} />

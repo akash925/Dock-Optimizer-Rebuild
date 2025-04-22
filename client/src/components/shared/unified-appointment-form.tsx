@@ -6,7 +6,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { useAppointmentAvailability } from "@/hooks/use-appointment-availability";
+import { useAppointmentAvailability } from "@/hooks/use-appointment-availability-fixed";
 import { AvailabilitySlot } from "@/lib/appointment-availability";
 import { Schedule, Dock, Carrier, Facility, AppointmentType } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
