@@ -210,22 +210,33 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     }
   }, [bookingPage, facilities, appointmentTypes]);
   
+  // Debounce search input to prevent too many re-renders
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
   // Filtered appointment types based on search term
   const filteredAppointmentTypes = useMemo(() => {
     if (!appointmentTypesData) return {} as Record<string, AppointmentType>;
     
-    if (!searchTerm.trim()) return appointmentTypesData;
+    if (!debouncedSearchTerm.trim()) return appointmentTypesData;
     
     return Object.entries(appointmentTypesData).reduce<Record<string, AppointmentType>>(
       (filtered, [typeId, appointmentType]) => {
-        if (appointmentType.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+        if (appointmentType.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) {
           filtered[typeId] = appointmentType;
         }
         return filtered;
       }, {});
-  }, [appointmentTypesData, searchTerm]);
+  }, [appointmentTypesData, debouncedSearchTerm]);
   
-  // Toggle appointment type selection
+  // Toggle appointment type selection without real-time updates
   const toggleAppointmentType = (facilityId: number, appointmentTypeId: number, checked: boolean) => {
     setSelectedAppointmentTypes(prev => {
       const updatedMap = { ...prev };
@@ -242,45 +253,8 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         updatedMap[facilityId] = updatedMap[facilityId].filter(id => id !== appointmentTypeId);
       }
       
-      // Update booking page in real-time
-      if (bookingPage) {
-        updateAppointmentTypesInBookingPage(updatedMap);
-      }
-      
       return updatedMap;
     });
-  };
-  
-  // Real-time update of appointment types in the booking page
-  const updateAppointmentTypesInBookingPage = async (appointmentTypesMap: Record<number, number[]>) => {
-    if (!bookingPage) return;
-    
-    try {
-      // Set up the appointment types to exclude (inverse of included types)
-      const allAppointmentTypeIds = Object.values(appointmentTypes).map(t => t.id);
-      const includedAppointmentTypes: number[] = [];
-      
-      // Gather all selected appointment types across facilities
-      Object.entries(appointmentTypesMap).forEach(([facilityId, typeIds]) => {
-        includedAppointmentTypes.push(...typeIds);
-      });
-      
-      // Find appointment types to exclude
-      const excludedAppointmentTypes = allAppointmentTypeIds.filter(
-        id => !includedAppointmentTypes.includes(id)
-      );
-      
-      const payload = {
-        ...form.getValues(),
-        facilities: selectedFacilities,
-        excludedAppointmentTypes: excludedAppointmentTypes
-      };
-      
-      await apiRequest('PUT', `/api/booking-pages/${bookingPage.id}`, payload);
-      queryClient.invalidateQueries({ queryKey: ['/api/booking-pages'] });
-    } catch (error) {
-      console.error("Error updating appointment types:", error);
-    }
   };
 
   // Create mutation
@@ -395,7 +369,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     }
   };
 
-  // Toggle facility selection
+  // Toggle facility selection without real-time updates
   const toggleFacility = (facilityId: number, checked: boolean) => {
     if (checked) {
       setSelectedFacilities(prev => [...prev, facilityId]);
@@ -407,12 +381,6 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       setSelectedAppointmentTypes(prev => {
         const updated = { ...prev };
         delete updated[facilityId];
-        
-        // Update booking page in real-time if we're editing
-        if (bookingPage) {
-          updateAppointmentTypesInBookingPage(updated);
-        }
-        
         return updated;
       });
     }
@@ -702,9 +670,9 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
                 {facilities && facilities.length > 0 ? (
                   facilities
                     .filter(facility => 
-                      !searchTerm || 
-                      facility.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      facility.city.toLowerCase().includes(searchTerm.toLowerCase())
+                      !debouncedSearchTerm || 
+                      facility.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+                      facility.city.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
                     )
                     .map((facility) => (
                       <div 
@@ -759,13 +727,13 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
                       : [];
                       
                     // Apply search filter if there's a search term
-                    const filteredTypes = searchTerm
+                    const filteredTypes = debouncedSearchTerm
                       ? facilityAppointmentTypes.filter(type => 
-                          type.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                          type.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
                       : facilityAppointmentTypes;
                     
                     // Skip rendering if no types match search
-                    if (filteredTypes.length === 0 && searchTerm) {
+                    if (filteredTypes.length === 0 && debouncedSearchTerm) {
                       return null;
                     }
                     
