@@ -401,11 +401,16 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     }
   });
 
-  // Update mutation
+  // Update mutation with enhanced reliability
   const updateMutation = useMutation({
     mutationFn: async (data: z.infer<typeof bookingPageFormSchema>) => {
-      if (!bookingPage) return null;
+      if (!bookingPage) {
+        console.error("No booking page provided to update");
+        throw new Error("Cannot update non-existent booking page");
+      }
 
+      console.log("Starting booking page update process with ID:", bookingPage.id);
+      
       // Set up the appointment types to exclude (inverse of included types)
       const allAppointmentTypeIds = Object.values(appointmentTypes).map(t => t.id);
       const includedAppointmentTypes: number[] = [];
@@ -427,10 +432,25 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         excludedAppointmentTypes: excludedAppointmentTypes
       };
 
-      const response = await apiRequest('PUT', `/api/booking-pages/${bookingPage.id}`, payload);
-      return await response.json();
+      console.log("Sending update API request with payload:", payload);
+      
+      try {
+        const response = await apiRequest('PUT', `/api/booking-pages/${bookingPage.id}`, payload);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API error:", response.status, errorText);
+          throw new Error(`API error: ${response.status} ${errorText}`);
+        }
+        const data = await response.json();
+        console.log("Update successful, received response:", data);
+        return data;
+      } catch (error) {
+        console.error("Error in updateMutation:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Update mutation succeeded with data:", data);
       toast({
         title: "Success",
         description: "Booking page updated successfully",
@@ -443,15 +463,20 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       console.error("Error updating booking page:", error);
       toast({
         title: "Error",
-        description: "Failed to update booking page",
+        description: "Failed to update booking page. Please try again.",
         variant: "destructive",
       });
     }
   });
 
-  // Handle form submission
+  // Handle form submission with enhanced debugging
   const onSubmit = (data: z.infer<typeof bookingPageFormSchema>) => {
+    console.log("Form submission triggered with data:", data);
+    console.log("Selected facilities:", selectedFacilities);
+    console.log("Selected appointment types:", selectedAppointmentTypes);
+    
     if (selectedFacilities.length === 0) {
+      console.log("Error: No facilities selected");
       toast({
         title: "Error",
         description: "Please select at least one facility",
@@ -460,10 +485,21 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       return;
     }
 
-    if (bookingPage) {
-      updateMutation.mutate(data);
-    } else {
-      createMutation.mutate(data);
+    try {
+      if (bookingPage) {
+        console.log("Updating existing booking page with ID:", bookingPage.id);
+        updateMutation.mutate(data);
+      } else {
+        console.log("Creating new booking page");
+        createMutation.mutate(data);
+      }
+    } catch (error) {
+      console.error("Error in form submission:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while saving the booking page",
+        variant: "destructive",
+      });
     }
   };
 
@@ -901,7 +937,17 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending}>
+          <Button 
+            type="submit" 
+            disabled={isPending}
+            onClick={() => {
+              // Manual form submission as a backup in case the normal form submission doesn't work
+              if (!form.formState.isSubmitting) {
+                console.log("Manual form submission triggered");
+                form.handleSubmit(onSubmit)();
+              }
+            }}
+          >
             {isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
