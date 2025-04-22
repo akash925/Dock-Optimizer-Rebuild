@@ -854,7 +854,7 @@ export default function UnifiedAppointmentForm({
                               ) : (
                                 <span>Pick a date</span>
                               )}
-                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -1010,7 +1010,7 @@ export default function UnifiedAppointmentForm({
               <div className="border rounded-lg p-4 bg-gray-50 max-w-md mx-auto">
                 <div className="text-left space-y-3">
                   <div className="flex items-start">
-                    <Calendar className="h-5 w-5 mr-2 text-gray-500" />
+                    <CalendarIcon className="h-5 w-5 mr-2 text-gray-500" />
                     <div>
                       <div className="text-sm text-gray-500">Date & Time</div>
                       <div className="font-medium">
