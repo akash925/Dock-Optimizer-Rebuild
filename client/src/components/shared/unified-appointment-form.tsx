@@ -1345,23 +1345,11 @@ export default function UnifiedAppointmentForm({
                       <FormItem>
                         <FormLabel>Bill of Lading Number</FormLabel>
                         <FormControl>
-                          <div className="flex">
-                            <Input className="flex-grow" placeholder="Enter BOL number" {...field} />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="ml-2 whitespace-nowrap"
-                              onClick={() => document.getElementById('bolUpload')?.click()}
-                            >
-                              <Upload className="h-4 w-4 mr-2" />
-                              Upload
-                            </Button>
-                            <input
-                              id="bolUpload"
-                              type="file"
-                              className="hidden"
-                              accept=".pdf,.jpg,.jpeg,.png"
-                              onChange={handleFileUpload}
+                          <div className="flex flex-col">
+                            <Input className="flex-grow mb-2" placeholder="Enter BOL number" {...field} />
+                            <BolUpload
+                              onBolProcessed={handleBolProcessed}
+                              onProcessingStateChange={handleBolProcessingStateChange}
                             />
                           </div>
                         </FormControl>
