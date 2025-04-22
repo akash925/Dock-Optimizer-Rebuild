@@ -43,15 +43,44 @@ export function FileUpload({
     // Check file type if acceptedFileTypes is provided
     if (acceptedFileTypes) {
       const fileExtension = `.${selectedFile.name.split('.').pop()?.toLowerCase()}`;
+      const fileMimeType = selectedFile.type.toLowerCase();
       const acceptedTypes = acceptedFileTypes.split(',');
       
-      // Allow if extension matches or mime type matches
-      const isAcceptedExtension = acceptedTypes.some(type => 
-        type.trim().toLowerCase() === fileExtension ||
-        type.trim().includes('/*') && selectedFile.type.startsWith(type.trim().replace('/*', '/'))
-      );
+      // Improved extension and MIME type checking
+      const isAccepted = acceptedTypes.some(type => {
+        const trimmedType = type.trim().toLowerCase();
+        
+        // Check if it's an extension match (e.g., .pdf, .doc)
+        if (trimmedType.startsWith('.')) {
+          return trimmedType === fileExtension;
+        }
+        
+        // Check if it's a MIME type with wildcard (e.g., image/*)
+        if (trimmedType.includes('/*')) {
+          const mimePrefix = trimmedType.replace('/*', '/');
+          return fileMimeType.startsWith(mimePrefix);
+        }
+        
+        // Check specific MIME types and handle common cases
+        if (trimmedType === 'application/pdf' && 
+           (fileMimeType === 'application/pdf' || 
+            fileExtension === '.pdf')) {
+          return true;
+        }
+        
+        if ((trimmedType === '.doc' || trimmedType === '.docx') && 
+           (fileExtension === '.doc' || 
+            fileExtension === '.docx' || 
+            fileMimeType.includes('word') || 
+            fileMimeType.includes('document'))) {
+          return true;
+        }
+        
+        // Check for exact MIME type match
+        return trimmedType === fileMimeType;
+      });
       
-      if (!isAcceptedExtension) {
+      if (!isAccepted) {
         setError(`File type not supported. Please upload ${acceptedFileTypes.replace(/\./g, '')} files`);
         return;
       }

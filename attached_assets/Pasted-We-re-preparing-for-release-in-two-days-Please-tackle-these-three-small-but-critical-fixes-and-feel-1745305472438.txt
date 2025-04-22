@@ -1,0 +1,50 @@
+We’re preparing for release in two days. Please tackle these three small but critical fixes—and feel free to add any similarly low‑stakes polish you spot—then ship as a self‑contained PR:
+
+1. Fix BOL file upload validation
+Symptoms: On the external booking page (Step 1 & Step 3) PDF uploads are rejected with “File type not supported,” even though accept="application/pdf, image/*, .doc, .docx" is set.
+
+Action:
+
+Audit the <input type="file"> accept attribute and any custom client‑side MIME/type checks.
+
+Normalize MIME strings (e.g. allow application/PDF, uppercase extensions).
+
+Update validation logic to accept .pdf, .doc, .docx, and any common image types.
+
+Add a unit test (or jest snapshot) for upload of a PDF file to confirm it passes.
+
+Ensure the red error banner only appears on truly unsupported files, and that a successful upload shows the standard “BOL Uploaded” preview.
+
+2. Simplify “Visit Booking Page” link behavior
+Symptoms: In the top‑nav → Booking Pages menu, clicking “Test Booking Page” opens the dropdown menu rather than taking the user directly to the live scheduler.
+
+Action:
+
+In the BookingPagesMenu (or wherever that dropdown lives), change the “Test Booking Page” item from a menu‑trigger to a direct <Link to="/external/test‑booking‑page"> (or window.location.href = ...) so it navigates immediately.
+
+Remove any extra click handler that pops open the submenu on that first item.
+
+Add an E2E or integration test (Cypress/playwright) to confirm that clickUserMenu → “Test Booking Page” takes you straight to /external/test-booking-page.
+
+3. Restore first‑step form layout & flow
+Symptoms: External booking Step 1 now looks different, missing the location → appointment‑type chaining and BOL upload we had working.
+
+Action:
+
+Revert or re‑implement the “Location” dropdown at the top, then the filtered “Dock Appointment Type” select, then the “Pickup/Dropoff” radios, then the “BOL Upload” panel exactly as in our stable design.
+
+Ensure selecting a location immediately repopulates the appointment‑type list.
+
+Confirm the “Next” button only enables when those three are valid (plus BOL if required by questions).
+
+Add snapshot tests for Step 1 in both mobile & desktop widths.
+
+👍 Bonus low‑stakes polish (if time allows):
+
+Autofocus the first field (Location) on Step 1.
+
+Show a loading spinner on the upload button while OCR/compression is running.
+
+Tighten up spacing under the Step progress bar to exactly match our Card margins.
+
+Please group these into a single PR with clear commit messages (“fix: pdf upload validation,” “chore: booking‑page nav link,” “refactor: external booking step1 layout”) and include at least one regression test for each fix. Thank you!

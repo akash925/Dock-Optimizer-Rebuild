@@ -80,7 +80,7 @@ Pallet Count: ${parsedData.palletCount || 'N/A'}`);
       
       <FileUpload
         onFileChange={handleFileChange}
-        acceptedFileTypes=".pdf,.jpg,.jpeg,.png,.tiff,.docx"
+        acceptedFileTypes=".pdf,.jpg,.jpeg,.png,.tiff,.doc,.docx,application/pdf,image/*,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         maxSizeMB={10}
       />
       
