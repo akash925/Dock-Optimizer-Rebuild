@@ -13,7 +13,8 @@ import { Loader2 } from 'lucide-react';
 import { format, addHours, isValid, parseISO } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { FileUpload } from '@/components/ui/file-upload';
+import BolUpload from '@/components/shared/bol-upload';
+import { ParsedBolData } from '@/lib/ocr-service';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider, useBookingTheme } from '@/contexts/BookingThemeContext';
 import '../styles/booking-wizard.css';
@@ -248,68 +249,36 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
       .sort((a: any, b: any) => a.name.localeCompare(b.name));
   }, [appointmentTypes, bookingData.facilityId]);
   
-  // Handle BOL file upload
-  const handleFileUpload = (file: File | null) => {
-    if (!file) return;
-    
-    // Update state to show processing
-    setBolProcessing(true);
-    updateBookingData({ 
-      bolFile: file,
-      bolFileUploaded: true 
+  // Handle BOL processing from the BolUpload component
+  const handleBolProcessed = (data: ParsedBolData, fileUrl: string) => {
+    // Update booking data with the parsed BOL information
+    updateBookingData({
+      bolExtractedData: {
+        bolNumber: data.bolNumber || '',
+        customerName: data.customerName || '',
+        carrierName: data.carrierName || '',
+        mcNumber: data.mcNumber || '',
+        weight: data.weight || '',
+        notes: data.notes || ''
+      },
+      bolFileUploaded: true
     });
     
-    // Create a FileReader to read the file contents
-    const reader = new FileReader();
+    // Create preview text from the extracted data for display
+    const preview = `
+BOL Number: ${data.bolNumber || ''}
+Customer: ${data.customerName || ''}
+Carrier: ${data.carrierName || ''} ${data.mcNumber ? `(${data.mcNumber})` : ''}
+${data.weight ? `Weight: ${data.weight}` : ''}
+${data.notes ? `Notes: ${data.notes}` : ''}
+    `.trim();
     
-    reader.onload = function(event) {
-      try {
-        // Mock OCR processing (in a real app, this would call an OCR service)
-        // For now we'll just simulate extracting some data from the file
-        
-        // Generate some mock extracted data (in a real implementation, this would come from OCR)
-        const extractedData = {
-          bolNumber: `BOL-${Math.floor(100000 + Math.random() * 900000)}`,
-          customerName: "Sample Customer Inc.",
-          carrierName: "ABC Transport",
-          mcNumber: `MC${Math.floor(100000 + Math.random() * 900000)}`,
-          driverName: "John Driver",
-          driverPhone: "555-123-4567",
-          appointmentDate: new Date(),
-          weight: "1500 lbs",
-          notes: "Handle with care. Fragile contents."
-        };
-        
-        // Create preview text from the extracted data
-        const preview = `
-BOL Number: ${extractedData.bolNumber}
-Customer: ${extractedData.customerName}
-Carrier: ${extractedData.carrierName} (${extractedData.mcNumber})
-Driver: ${extractedData.driverName}
-Weight: ${extractedData.weight}
-Notes: ${extractedData.notes}
-        `.trim();
-        
-        // Update state with extracted data
-        setBolPreviewText(preview);
-        updateBookingData({
-          bolExtractedData: extractedData
-        });
-        
-      } catch (error) {
-        console.error("Error processing BOL file:", error);
-      } finally {
-        setBolProcessing(false);
-      }
-    };
-    
-    reader.onerror = function() {
-      console.error("Error reading file");
-      setBolProcessing(false);
-    };
-    
-    // Read the file content
-    reader.readAsText(file);
+    setBolPreviewText(preview);
+  };
+  
+  // Handle BOL processing state changes
+  const handleProcessingStateChange = (isProcessing: boolean) => {
+    setBolProcessing(isProcessing);
   };
   
   // Handle next button click
@@ -464,28 +433,17 @@ Notes: ${extractedData.notes}
                 <Label className="font-medium">
                   Bill of Lading Upload (optional)
                 </Label>
-                <FileUpload 
-                  onFileChange={handleFileUpload}
-                  acceptedFileTypes="application/pdf,image/*,.doc,.docx"
-                  maxSizeMB={5}
-                  currentFileName={bookingData.bolFile?.name}
+                
+                <BolUpload 
+                  onBolProcessed={handleBolProcessed}
+                  onProcessingStateChange={handleProcessingStateChange}
                 />
                 
-                {/* BOL Preview Section - only shown when a file is uploaded and processed */}
+                {/* BOL Preview shown when file uploaded but not while processing */}
                 {bolProcessing && (
                   <div className="p-4 border rounded-md mt-3 animate-pulse flex items-center justify-center">
                     <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                     <p className="text-sm text-gray-600">Processing Bill of Lading...</p>
-                  </div>
-                )}
-                
-                {/* Display the BOL preview if available */}
-                {!bolProcessing && bolPreviewText && (
-                  <div className="p-4 border rounded-md mt-3 bg-gray-50">
-                    <h3 className="text-sm font-semibold mb-2">Extracted Information:</h3>
-                    <pre className="text-xs whitespace-pre-wrap bg-white p-2 rounded border">
-                      {bolPreviewText}
-                    </pre>
                   </div>
                 )}
               </div>
