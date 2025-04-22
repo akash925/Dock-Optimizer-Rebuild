@@ -904,7 +904,7 @@ export default function UnifiedAppointmentForm({
           onSubmit={
             step === 1 
               ? truckInfoForm.handleSubmit(onTruckInfoSubmit) 
-              : truckInfoForm.handleSubmit(onFinalSubmit)
+              : truckInfoForm.handleSubmit(onSubmit)
           } 
           className="space-y-4"
         >
