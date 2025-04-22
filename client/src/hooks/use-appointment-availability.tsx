@@ -7,6 +7,9 @@ import { Schedule } from '@shared/schema';
 export interface UseAppointmentAvailabilityProps {
   facilityId?: number | null;
   typeId?: number | null;  // Changed from appointmentTypeId to typeId to match server API expectations
+  mode?: 'trailer' | 'container'; // We'll allow both typeId and appointmentTypeId for backward compatibility
+  appointmentTypeId?: number | null; // For compatibility with older code
+  timezone?: string; // For compatibility with older field name
   facilityTimezone?: string;
   date?: string | Date | null;
   duration?: number;
@@ -381,12 +384,64 @@ export function useAppointmentAvailability({
 
   // Function to fetch availability for a specific date - used by appointment forms
   const fetchAvailabilityForDate = useCallback((dateStr: string) => {
-    // Set the date and trigger the generateTimeSlots effect
+    // Directly pass the date to generateTimeSlots through a custom call
     if (dateStr) {
-      setDate(dateStr);
-      generateTimeSlots();
+      // We don't need to set state, as generateTimeSlots will use the dateStr directly
+      const generateForDate = async () => {
+        setIsLoading(true);
+        try {
+          // Follow same pattern as generateTimeSlots but using the provided dateStr
+          const bookedAppointments = await fetchExistingAppointments(dateStr);
+          
+          // Import the helper function dynamically
+          const { generateAvailableTimeSlots } = await import('@/lib/appointment-availability');
+          
+          let slots: AvailabilitySlot[] = [];
+          
+          // Generate slots based on rules
+          if (availabilityRules.length > 0) {
+            slots = generateAvailableTimeSlots(
+              dateStr,
+              availabilityRules,
+              duration,
+              facilityTimezone,
+              15
+            );
+            
+            // Process availability if we have rules with concurrent limits
+            if (availabilityRules[0]?.maxConcurrent) {
+              slots = await processSlotAvailability(
+                slots,
+                bookedAppointments,
+                availabilityRules,
+                dateStr,
+                duration
+              );
+            }
+          }
+          
+          // Find first available slot
+          const availableSlot = slots.find(slot => slot.available);
+          const firstSlot = availableSlot ? availableSlot.time : null;
+          
+          // Set state
+          setAvailableTimeSlots(slots);
+          setFirstAvailableSlot(firstSlot);
+          
+          // Notify caller
+          if (onTimeSlotGenerated) {
+            onTimeSlotGenerated(slots, firstSlot);
+          }
+        } catch (error) {
+          console.error("Error fetching availability for date:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      generateForDate();
     }
-  }, [generateTimeSlots]);
+  }, [availabilityRules, duration, facilityTimezone, fetchExistingAppointments, onTimeSlotGenerated, processSlotAvailability]);
 
   return {
     availabilityRules,

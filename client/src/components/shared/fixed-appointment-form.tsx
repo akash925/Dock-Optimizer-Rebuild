@@ -278,9 +278,10 @@ export default function FixedAppointmentForm({
     error: availabilityError 
   } = useAppointmentAvailability({
     facilityId: selectedFacilityId,
-    appointmentTypeId: appointmentTypeId,
+    typeId: appointmentTypeId,  // Use typeId as expected by the hook's API
+    appointmentTypeId: appointmentTypeId,  // Also include for backward compatibility
     mode: appointmentMode,
-    timezone: facilityTimezone
+    facilityTimezone: facilityTimezone
   });
   
   // Wrapper function for availability
