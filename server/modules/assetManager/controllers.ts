@@ -4,7 +4,11 @@ import { insertAssetSchema } from '@shared/schema';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 
-export const getAssets = async (req: Request, res: Response) => {
+/**
+ * List all assets or filter by user ID
+ * Used by both /api/assets and /api/asset-manager/assets
+ */
+export const listAssets = async (req: Request, res: Response) => {
   try {
     // If userId query param is present, filter by user
     if (req.query.userId && !isNaN(Number(req.query.userId))) {
@@ -14,7 +18,7 @@ export const getAssets = async (req: Request, res: Response) => {
     }
     
     // Otherwise return all assets
-    const assets = await assetManagerService.getAllAssets();
+    const assets = await assetManagerService.list();
     return res.json(assets);
   } catch (error) {
     console.error('Error fetching assets:', error);
@@ -22,6 +26,10 @@ export const getAssets = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get asset by ID
+ * Used by /api/assets/:id
+ */
 export const getAssetById = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
@@ -29,7 +37,7 @@ export const getAssetById = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid asset ID' });
     }
     
-    const asset = await assetManagerService.getAssetById(id);
+    const asset = await assetManagerService.getById(id);
     if (!asset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
@@ -41,7 +49,11 @@ export const getAssetById = async (req: Request, res: Response) => {
   }
 };
 
-export const createAsset = async (req: Request, res: Response) => {
+/**
+ * Upload a new asset
+ * Used by both /api/assets and /api/asset-manager/assets
+ */
+export const uploadAsset = async (req: Request, res: Response) => {
   try {
     // Check if file was uploaded
     if (!req.file) {
@@ -74,7 +86,7 @@ export const createAsset = async (req: Request, res: Response) => {
     }
     
     // Create the asset
-    const asset = await assetManagerService.createAsset(assetData, buffer);
+    const asset = await assetManagerService.create(assetData, buffer);
     return res.status(201).json(asset);
   } catch (error) {
     console.error('Error creating asset:', error);
@@ -82,6 +94,10 @@ export const createAsset = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Update an existing asset
+ * Used by /api/assets/:id
+ */
 export const updateAsset = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
@@ -90,7 +106,7 @@ export const updateAsset = async (req: Request, res: Response) => {
     }
     
     // Get the current asset to check ownership
-    const existingAsset = await assetManagerService.getAssetById(id);
+    const existingAsset = await assetManagerService.getById(id);
     if (!existingAsset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
@@ -118,7 +134,7 @@ export const updateAsset = async (req: Request, res: Response) => {
       updateData.lastAccessedAt = new Date();
     }
     
-    const updatedAsset = await assetManagerService.updateAsset(id, updateData);
+    const updatedAsset = await assetManagerService.update(id, updateData);
     return res.json(updatedAsset);
   } catch (error) {
     console.error('Error updating asset:', error);
@@ -126,6 +142,10 @@ export const updateAsset = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Delete an asset
+ * Used by both /api/assets/:id and /api/asset-manager/assets/:id
+ */
 export const deleteAsset = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
@@ -134,7 +154,7 @@ export const deleteAsset = async (req: Request, res: Response) => {
     }
     
     // Get the current asset to check ownership
-    const existingAsset = await assetManagerService.getAssetById(id);
+    const existingAsset = await assetManagerService.getById(id);
     if (!existingAsset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
@@ -147,7 +167,7 @@ export const deleteAsset = async (req: Request, res: Response) => {
     }
     
     // Delete the asset
-    const success = await assetManagerService.deleteAsset(id);
+    const success = await assetManagerService.remove(id);
     if (!success) {
       return res.status(500).json({ error: 'Failed to delete asset' });
     }
@@ -158,3 +178,7 @@ export const deleteAsset = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to delete asset' });
   }
 };
+
+// For backwards compatibility
+export const getAssets = listAssets;
+export const createAsset = uploadAsset;

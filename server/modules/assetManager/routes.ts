@@ -1,7 +1,13 @@
 import express from 'express';
 import multer from 'multer';
 import * as controllers from './controllers';
-import { isAuthenticated } from '../../auth';
+// Add this check to avoid auth errors
+const isAuthenticated = (req: any, res: any, next: any) => {
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    return next();
+  }
+  return res.status(401).json({ error: 'Unauthorized' });
+};
 
 const router = express.Router();
 
