@@ -453,17 +453,9 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
           }
         }
         
-        // Validate required fields
+        // Validate required fields - only Asset Name is required
         if (!assetData.name) {
           throw new Error('Asset name is required');
-        }
-        
-        if (!assetData.manufacturer) {
-          throw new Error('Manufacturer is required');
-        }
-        
-        if (!assetData.owner) {
-          throw new Error('Owner is required');
         }
         
         // Create the company asset data object

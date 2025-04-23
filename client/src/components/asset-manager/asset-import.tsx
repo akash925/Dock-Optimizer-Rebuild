@@ -40,26 +40,50 @@ import { Badge } from '@/components/ui/badge';
 
 // Sample template for downloading
 const TEMPLATE_HEADERS = [
-  'Name',
+  // Basic information
+  'Asset Name',
   'Category',
   'Manufacturer', 
   'Model',
   'Owner',
+  'Department',
   'Serial Number',
   'Barcode',
+  
+  // Financial information
   'Purchase Price',
   'Currency',
   'Purchase Date',
+  'Asset Value',
+  'Depreciation',
+  
+  // Procurement information
+  'Manufacturer Part Number',
+  'Supplier Name',
+  'PO Number',
+  'Vendor Information',
+  
+  // Maintenance information
   'Implementation Date',
   'Warranty Expiration',
+  'Last Maintenance Date',
+  'Next Maintenance Date',
+  'Maintenance Schedule',
+  'Maintenance Contact',
+  'Maintenance Notes',
+  'Expected Lifetime',
+  'Certification Date',
+  'Certification Expiry',
+  
+  // Location and status
   'Location',
   'Status',
   'Template',
+  
+  // Metadata
   'Tags',
   'Condition',
-  'Notes',
-  'Last Service Date',
-  'Next Service Date'
+  'Notes'
 ];
 
 interface RowError {
@@ -102,26 +126,50 @@ export function AssetImport() {
 
   // Field to column mapping
   const TARGET_FIELDS = [
+    // Basic information
     { value: 'name', label: 'Asset Name' },
     { value: 'category', label: 'Category' },
     { value: 'manufacturer', label: 'Manufacturer' },
     { value: 'model', label: 'Model' },
-    { value: 'owner', label: 'Owner/Department' },
+    { value: 'owner', label: 'Owner' },
+    { value: 'department', label: 'Department' },
     { value: 'serialNumber', label: 'Serial Number' },
     { value: 'barcode', label: 'Barcode' },
+    
+    // Financial information
     { value: 'purchasePrice', label: 'Purchase Price' },
     { value: 'currency', label: 'Currency' },
     { value: 'purchaseDate', label: 'Purchase Date' },
-    { value: 'implementedDate', label: 'Implementation Date' },
+    { value: 'assetValue', label: 'Asset Value' },
+    { value: 'depreciation', label: 'Depreciation' },
+    
+    // Procurement information
+    { value: 'manufacturerPartNumber', label: 'Manufacturer Part Number' },
+    { value: 'supplierName', label: 'Supplier Name' },
+    { value: 'poNumber', label: 'PO Number' },
+    { value: 'vendorInformation', label: 'Vendor Information' },
+    
+    // Maintenance information
+    { value: 'implementationDate', label: 'Implementation Date' },
     { value: 'warrantyExpiration', label: 'Warranty Expiration' },
+    { value: 'lastMaintenanceDate', label: 'Last Maintenance Date' },
+    { value: 'nextMaintenanceDate', label: 'Next Maintenance Date' },
+    { value: 'maintenanceSchedule', label: 'Maintenance Schedule' },
+    { value: 'maintenanceContact', label: 'Maintenance Contact' },
+    { value: 'maintenanceNotes', label: 'Maintenance Notes' },
+    { value: 'expectedLifetime', label: 'Expected Lifetime' },
+    { value: 'certificationDate', label: 'Certification Date' },
+    { value: 'certificationExpiry', label: 'Certification Expiry' },
+    
+    // Location and status
     { value: 'location', label: 'Location' },
     { value: 'status', label: 'Status' },
     { value: 'template', label: 'Template' },
+    
+    // Metadata
     { value: 'tags', label: 'Tags' },
     { value: 'assetCondition', label: 'Condition' },
     { value: 'notes', label: 'Notes' },
-    { value: 'lastServiceDate', label: 'Last Service Date' },
-    { value: 'nextServiceDate', label: 'Next Service Date' },
   ];
 
   // Auto-map columns based on names
@@ -302,17 +350,9 @@ export function AssetImport() {
       const rowNum = row.__rowNum || index + 1;
       const rowErrors: string[] = [];
       
-      // Check required fields
+      // Check required fields - only Asset Name is required
       if (!getMappedValue(row, 'name')) {
         rowErrors.push('Asset Name is required');
-      }
-      
-      if (!getMappedValue(row, 'manufacturer')) {
-        rowErrors.push('Manufacturer is required');
-      }
-      
-      if (!getMappedValue(row, 'owner')) {
-        rowErrors.push('Owner/Department is required');
       }
       
       // If errors found, add to errors list
@@ -359,7 +399,15 @@ export function AssetImport() {
     });
     
     // Format dates if present
-    ['purchaseDate', 'implementedDate', 'warrantyExpiration', 'lastServiceDate', 'nextServiceDate'].forEach(dateField => {
+    [
+      'purchaseDate', 
+      'implementationDate', 
+      'warrantyExpiration', 
+      'lastMaintenanceDate', 
+      'nextMaintenanceDate',
+      'certificationDate',
+      'certificationExpiry'
+    ].forEach(dateField => {
       if (transformed[dateField]) {
         try {
           // Try to parse the date
@@ -587,7 +635,7 @@ export function AssetImport() {
                                 value={field.value}
                                 disabled={columnMappings.some(m => m.targetField === field.value && m.sourceColumn !== column)}
                               >
-                                {field.label} {field.value === 'name' || field.value === 'manufacturer' || field.value === 'owner' ? '*' : ''}
+                                {field.label} {field.value === 'name' ? '*' : ''}
                               </option>
                             ))}
                           </select>
