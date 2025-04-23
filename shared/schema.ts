@@ -554,3 +554,27 @@ export type InsertBookingPage = z.infer<typeof insertBookingPageSchema>;
 
 export type CustomQuestion = typeof customQuestions.$inferSelect;
 export type InsertCustomQuestion = z.infer<typeof insertCustomQuestionSchema>;
+
+// Asset Manager Module - for storing uploaded files and their metadata
+export const assets = pgTable("assets", {
+  id: serial("id").primaryKey(),
+  filename: text("filename").notNull(), // Original filename
+  url: text("url").notNull(), // Path to the file on disk or URL
+  uploadedBy: integer("uploaded_by").notNull(), // User who uploaded the file
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const assetsRelations = relations(assets, ({ one }) => ({
+  uploader: one(users, {
+    fields: [assets.uploadedBy],
+    references: [users.id],
+  }),
+}));
+
+export const insertAssetSchema = createInsertSchema(assets).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type Asset = typeof assets.$inferSelect;
+export type InsertAsset = z.infer<typeof insertAssetSchema>;

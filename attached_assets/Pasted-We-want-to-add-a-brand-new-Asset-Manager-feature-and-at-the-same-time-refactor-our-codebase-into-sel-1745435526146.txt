@@ -1,0 +1,57 @@
+We want to add a brand-new Asset Manager feature and at the same time refactor our codebase into self-contained “modules” that can be toggled on/off via configuration.
+
+Part A: Asset Manager Module
+
+Create a new folder server/modules/assetManager containing:
+
+A database migration (or Drizzle schema) for an assets table (id, filename, url, uploadedBy, createdAt).
+
+A router (routes.ts) exposing:
+
+GET /api/asset-manager/assets → list assets
+
+POST /api/asset-manager/assets → upload a new asset (accept multipart/form-data, store file in /uploads/assets, save record).
+
+DELETE /api/asset-manager/assets/:id → remove an asset record + file.
+
+A controller (controllers.ts) with stubbed functions for each route.
+
+(Optional) a service (service.ts) to abstract file‐storage logic.
+
+Hook the new router into server/index.ts under a feature‐flag ENABLE_ASSET_MANAGER (read from process.env).
+
+Write a minimal React page under src/modules/AssetManagerPage.tsx that:
+
+Shows a file-input, “Upload” button, and list of existing assets (call your new API).
+
+Allows deleting an asset.
+
+Add a NavLink in your main layout that only appears when import.meta.env.VITE_ENABLE_ASSET_MANAGER === 'true'.
+
+Part B: Modularization Architecture
+
+Move all existing feature routers (booking-pages, docks, schedules, etc.) into server/modules/<FeatureName> alongside the new asset manager.
+
+In server/index.ts, dynamically discover and mount only those modules whose names appear in an array process.env.ENABLED_MODULES.split(','). e.g.:
+
+ts
+Copy
+Edit
+const enabled = (process.env.ENABLED_MODULES || '').split(',');
+for (const modName of enabled) {
+  const { router } = await import(`./modules/${modName}/routes.ts`);
+  app.use(`/api/${modName}`, router);
+}
+Mirror on the client: in src/App.tsx or your router config, load only those modules listed in import.meta.env.VITE_ENABLED_MODULES.split(',').
+
+Functional Checkpoints
+
+CP1: With no flags set, npm run dev starts, and only your current pages (booking-pages, docks, schedules…) work exactly as before.
+
+CP2: Set ENABLE_ASSET_MANAGER=true & VITE_ENABLE_ASSET_MANAGER=true → verify the Asset Manager nav link appears; you can upload, list, and delete assets via UI and the server logs requests.
+
+CP3: Set ENABLED_MODULES=booking-pages,docks,asset-manager and VITE_ENABLED_MODULES=booking-pages,docks,asset-manager → all three feature sets work; others return 404.
+
+CP4: Turn off asset-manager in both envs → Asset Manager UI and API 404/hidden again; booking-pages and docks still work.
+
+For each step, generate complete code snippets for new files and diffs for existing ones, and remind me to test each CP in isolation before moving on.
