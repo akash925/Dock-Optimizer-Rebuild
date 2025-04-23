@@ -72,6 +72,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       name: assetToEdit?.name || '',
       manufacturer: assetToEdit?.manufacturer || '',
       owner: assetToEdit?.owner || '',
+      department: assetToEdit?.department || '',
       category: assetToEdit?.category || AssetCategory.EQUIPMENT,
       barcode: assetToEdit?.barcode || '',
       serialNumber: assetToEdit?.serialNumber || '',
@@ -83,6 +84,8 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       purchaseDate: assetToEdit?.purchaseDate ? formatDate(assetToEdit.purchaseDate) : undefined,
       implementedDate: assetToEdit?.implementedDate ? formatDate(assetToEdit.implementedDate) : undefined,
       warrantyExpiration: assetToEdit?.warrantyExpiration ? formatDate(assetToEdit.warrantyExpiration) : undefined,
+      depreciation: assetToEdit?.depreciation || '',
+      assetValue: assetToEdit?.assetValue || '',
       
       // Location and status
       location: assetToEdit?.location || AssetLocation.WAREHOUSE,
@@ -95,10 +98,17 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       model: assetToEdit?.model || '',
       assetCondition: assetToEdit?.assetCondition || '',
       notes: assetToEdit?.notes || '',
+      manufacturerPartNumber: assetToEdit?.manufacturerPartNumber || '',
+      supplierName: assetToEdit?.supplierName || '',
+      poNumber: assetToEdit?.poNumber || '',
+      vendorInformation: assetToEdit?.vendorInformation || '',
       
-      // Tracking dates
+      // Tracking dates and maintenance info
       lastServiceDate: assetToEdit?.lastServiceDate ? formatDate(assetToEdit.lastServiceDate) : undefined,
       nextServiceDate: assetToEdit?.nextServiceDate ? formatDate(assetToEdit.nextServiceDate) : undefined,
+      maintenanceSchedule: assetToEdit?.maintenanceSchedule || '',
+      certificationDate: assetToEdit?.certificationDate ? formatDate(assetToEdit.certificationDate) : undefined,
+      certificationExpiry: assetToEdit?.certificationExpiry ? formatDate(assetToEdit.certificationExpiry) : undefined,
     },
   });
 
@@ -365,9 +375,24 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                     name="owner"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Owner/Department *</FormLabel>
+                        <FormLabel>Owner *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter owner name or department" {...field} />
+                          <Input placeholder="Enter owner/responsible person" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Department */}
+                  <FormField
+                    control={form.control}
+                    name="department"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Department</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter department or business unit" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -502,6 +527,21 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                     )}
                   />
 
+                  {/* Manufacturer Part Number */}
+                  <FormField
+                    control={form.control}
+                    name="manufacturerPartNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Manufacturer Part #</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter manufacturer part number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
                   {/* Condition */}
                   <FormField
                     control={form.control}
@@ -511,6 +551,51 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                         <FormLabel>Condition</FormLabel>
                         <FormControl>
                           <Input placeholder="Enter asset condition" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Supplier Name */}
+                  <FormField
+                    control={form.control}
+                    name="supplierName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter supplier/vendor name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Purchase Order Number */}
+                  <FormField
+                    control={form.control}
+                    name="poNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>PO Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter purchase order reference" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Vendor Information */}
+                  <FormField
+                    control={form.control}
+                    name="vendorInformation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vendor Information</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter additional vendor details" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
