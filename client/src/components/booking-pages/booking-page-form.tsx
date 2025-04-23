@@ -601,6 +601,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         const enrichedData = {
           ...data,
           facilities: selectedFacilities,
+          // Send appointment types to convert to excluded_appointment_types on server
           appointmentTypes: appointmentTypes
         };
         updateMutation.mutate(enrichedData);
@@ -610,6 +611,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         const enrichedData = {
           ...data,
           facilities: selectedFacilities,
+          // Send appointment types to convert to excluded_appointment_types on server
           appointmentTypes: appointmentTypes
         };
         createMutation.mutate(enrichedData);
