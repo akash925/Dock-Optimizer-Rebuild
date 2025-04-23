@@ -225,6 +225,25 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       hour12: true
     }).format(date);
   };
+  
+  // Get badge variant based on asset status
+  const getStatusVariant = (status: AssetStatus): "default" | "outline" | "destructive" | "secondary" => {
+    switch (status) {
+      case AssetStatus.ACTIVE:
+      case AssetStatus.OPERATIONAL:
+        return "default"; // green
+      case AssetStatus.MAINTENANCE:
+      case AssetStatus.PENDING:
+        return "secondary"; // yellow/orange
+      case AssetStatus.RETIRED:
+      case AssetStatus.DAMAGED:
+        return "destructive"; // red
+      case AssetStatus.INACTIVE:
+      case AssetStatus.STORAGE:
+      default:
+        return "outline"; // gray
+    }
+  };
 
   // Handle delete
   const handleDelete = (id: number) => {
