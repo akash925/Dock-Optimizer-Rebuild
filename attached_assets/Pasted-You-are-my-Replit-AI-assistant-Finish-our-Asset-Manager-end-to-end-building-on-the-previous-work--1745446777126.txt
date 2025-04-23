@@ -1,0 +1,47 @@
+You are my Replit AI assistant. Finish our Asset Manager end-to-end, building on the previous work:
+
+1. **Tab bar (left-to-right)**  
+   - **Assets** (default)  
+   - **Add / Import** (single button group)  
+   - **Files** (last)  
+     - Under “Files,” expose an “Upload File” action (no standalone Upload tab)
+
+2. **“Assets” list**  
+   - Paginated, searchable, sortable table of assets  
+   - Columns: Name, Category, Manufacturer (optional), Owner, Department, Serial/Barcode, Purchase Price & Currency, Purchase Date, Implemented Date, Location, Template, Tags, Photo  
+   - Filters: Type, Location, Status, Tags  
+
+3. **“Add / Import”**  
+   - One button opens a drawer or modal with two sections side-by-side or toggled:  
+     - **Add Asset**: form with all fields; only **Asset Name** required; **Manufacturer** optional; **Owner** + **Department** separate inputs  
+     - **Import Assets**: CSV/XLSX uploader for the attached “Hanzo Asset List.xlsx”; map columns; bulk-POST to `POST /api/assets/import`; row-level validation UI  
+
+4. **“Files” area**  
+   - List of all uploaded files (inspection reports, manuals, photos) across all assets  
+   - “Upload File” button to add new blobs (store in S3/Blob Storage, DB holds URL)  
+   - On each asset’s detail page, allow attaching any of these files  
+
+5. **Back end**  
+   - Drizzle schema + migration for new asset fields + file records table  
+   - `POST /api/assets` & `POST /api/assets/import` & file-list and file-upload endpoints  
+   - All uploads go to blob storage; DB holds only URL and metadata; server-side validation per shared schema  
+
+6. **Side nav**  
+   - Move “Asset Manager” under Dashboard, immediately after “Appointments”  
+   - Only one “Asset Manager” entry  
+
+7. **UX polish**  
+   - Loading indicators, error toasts, confirmation modals  
+   - Instant table refresh after create/import  
+   - Clear inline validation (only Asset Name required)
+
+✅ **Checkpoints**  
+ - Tab order & labels updated  
+ - Assets list works with correct defaults  
+ - Add & Import unified, only Name required  
+ - Files tab is last, with Upload inside it  
+ - Asset-file attachments possible  
+ - Back-end endpoints live & tested  
+ - Sidebar shows a single Asset Manager
+
+_Attach “Hanzo Asset List.xlsx” for mapping columns._  

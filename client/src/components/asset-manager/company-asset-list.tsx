@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { CompanyAsset, AssetCategory } from '@shared/schema';
+import { CompanyAsset, AssetCategory, AssetStatus, AssetLocation } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -26,7 +27,15 @@ import {
   Search,
   Loader2,
   Image,
-  Eye
+  Download,
+  Filter,
+  X,
+  MoreHorizontal,
+  Calendar,
+  MapPin,
+  Tag,
+  DollarSign,
+  Clock
 } from 'lucide-react';
 import { 
   AlertDialog, 
@@ -46,10 +55,42 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CompanyAssetForm } from './company-asset-form';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface CompanyAssetListProps {
   onEditAsset?: (asset: CompanyAsset) => void;
+}
+
+interface FilterOptions {
+  category: AssetCategory | null;
+  location: AssetLocation | null;
+  status: AssetStatus | null;
+  tags: string[];
 }
 
 export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
@@ -57,6 +98,15 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const [selectedAssetId, setSelectedAssetId] = useState<number | null>(null);
   const [assetToEdit, setAssetToEdit] = useState<CompanyAsset | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>({
+    category: null,
+    location: null,
+    status: null,
+    tags: []
+  });
+  const itemsPerPage = 10;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -94,13 +144,43 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     }
   });
 
-  // Filter assets based on search term
-  const filteredAssets = assets?.filter(asset => 
-    asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    asset.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    asset.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (asset.description && asset.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (asset.barcode && asset.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
+  // Apply all filters
+  const filteredAssets = assets?.filter(asset => {
+    // Search term filter
+    const searchMatch = 
+      asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      asset.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      asset.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (asset.description && asset.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (asset.barcode && asset.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (asset.serialNumber && asset.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (asset.department && asset.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (asset.purchasePrice && asset.purchasePrice.toString().includes(searchTerm.toLowerCase()));
+    
+    // Category filter
+    const categoryMatch = !filters.category || asset.category === filters.category;
+    
+    // Location filter
+    const locationMatch = !filters.location || asset.location === filters.location;
+    
+    // Status filter
+    const statusMatch = !filters.status || asset.status === filters.status;
+    
+    // Tags filter
+    const tagsMatch = filters.tags.length === 0 || 
+      (asset.tags && filters.tags.some(tag => 
+        asset.tags && typeof asset.tags === 'string' && 
+        JSON.parse(asset.tags).includes(tag)
+      ));
+    
+    return searchMatch && categoryMatch && locationMatch && statusMatch && tagsMatch;
+  });
+  
+  // Pagination
+  const totalPages = Math.ceil((filteredAssets?.length || 0) / itemsPerPage);
+  const paginatedAssets = filteredAssets?.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   // Get category icon based on asset category
@@ -161,20 +241,232 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     }
   };
 
+  // Format currency
+  const formatCurrency = (value: string | null): string => {
+    if (!value) return '-';
+    try {
+      const numValue = parseFloat(value);
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(numValue);
+    } catch (e) {
+      return value;
+    }
+  };
+
+  // Format tags
+  const formatTags = (tags: string | null): string[] => {
+    if (!tags) return [];
+    try {
+      return JSON.parse(tags);
+    } catch (e) {
+      return [];
+    }
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      category: null,
+      location: null,
+      status: null,
+      tags: []
+    });
+    setSearchTerm('');
+  };
+
+  // Get all available tags from assets
+  const getAllTags = (): string[] => {
+    const allTags = new Set<string>();
+    assets?.forEach(asset => {
+      if (asset.tags) {
+        try {
+          const tagList = JSON.parse(asset.tags);
+          if (Array.isArray(tagList)) {
+            tagList.forEach(tag => allTags.add(tag));
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+      }
+    });
+    return Array.from(allTags);
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search company assets..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        <div className="flex flex-col space-y-4 mb-4">
+          {/* Search and filter row */}
+          <div className="flex items-center justify-between">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, manufacturer, owner, serial number..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filters
+                    {(filters.category || filters.location || filters.status || filters.tags.length > 0) && (
+                      <Badge variant="secondary" className="ml-1 rounded-full px-1 py-0.5">
+                        {Object.values(filters).filter(v => v !== null && (Array.isArray(v) ? v.length > 0 : true)).length}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-0" align="end">
+                  <div className="p-4 border-b">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Filters</h4>
+                      {(filters.category || filters.location || filters.status || filters.tags.length > 0) && (
+                        <Button variant="ghost" size="sm" onClick={clearFilters} className="h-auto p-0 text-muted-foreground">
+                          Clear all
+                          <X className="ml-2 h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-4 space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Category</label>
+                      <Select 
+                        value={filters.category || ''} 
+                        onValueChange={(value) => setFilters({...filters, category: value ? value as AssetCategory : null})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All categories</SelectItem>
+                          {Object.values(AssetCategory).map(category => (
+                            <SelectItem key={category} value={category}>{formatCategory(category)}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Location</label>
+                      <Select 
+                        value={filters.location || ''} 
+                        onValueChange={(value) => setFilters({...filters, location: value ? value as AssetLocation : null})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All locations" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All locations</SelectItem>
+                          {Object.values(AssetLocation).map(location => (
+                            <SelectItem key={location} value={location}>{location}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Status</label>
+                      <Select 
+                        value={filters.status || ''} 
+                        onValueChange={(value) => setFilters({...filters, status: value ? value as AssetStatus : null})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All statuses</SelectItem>
+                          {Object.values(AssetStatus).map(status => (
+                            <SelectItem key={status} value={status}>{status}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Tags</label>
+                      <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto p-2 border rounded-md">
+                        {getAllTags().map(tag => (
+                          <Badge 
+                            key={tag}
+                            variant={filters.tags.includes(tag) ? "default" : "outline"}
+                            className="cursor-pointer"
+                            onClick={() => {
+                              if (filters.tags.includes(tag)) {
+                                setFilters({...filters, tags: filters.tags.filter(t => t !== tag)});
+                              } else {
+                                setFilters({...filters, tags: [...filters.tags, tag]});
+                              }
+                            }}
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                        {getAllTags().length === 0 && (
+                          <span className="text-sm text-muted-foreground">No tags found</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
+
+        {/* Active filters display */}
+        {(filters.category || filters.location || filters.status || filters.tags.length > 0) && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {filters.category && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Category: {formatCategory(filters.category)}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => setFilters({...filters, category: null})}
+                />
+              </Badge>
+            )}
+            {filters.location && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Location: {filters.location}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => setFilters({...filters, location: null})}
+                />
+              </Badge>
+            )}
+            {filters.status && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Status: {filters.status}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => setFilters({...filters, status: null})}
+                />
+              </Badge>
+            )}
+            {filters.tags.map(tag => (
+              <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                Tag: {tag}
+                <X 
+                  className="h-3 w-3 cursor-pointer" 
+                  onClick={() => setFilters({...filters, tags: filters.tags.filter(t => t !== tag)})}
+                />
+              </Badge>
+            ))}
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -185,110 +477,191 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
             Failed to load company assets. Please try again.
           </div>
         ) : filteredAssets && filteredAssets.length > 0 ? (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead>Asset Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Manufacturer</TableHead>
-                  <TableHead>Owner</TableHead>
-                  <TableHead>Barcode</TableHead>
-                  <TableHead>Last Updated</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAssets.map((asset) => (
-                  <TableRow key={asset.id}>
-                    <TableCell className="pl-4">{getCategoryIcon(asset.category)}</TableCell>
-                    <TableCell className="font-medium">{asset.name}</TableCell>
-                    <TableCell>{formatCategory(asset.category)}</TableCell>
-                    <TableCell>{asset.manufacturer}</TableCell>
-                    <TableCell>{asset.owner}</TableCell>
-                    <TableCell>{asset.barcode || '-'}</TableCell>
-                    <TableCell>{asset.updatedAt ? formatDate(new Date(asset.updatedAt)) : '-'}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {asset.photoUrl && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            title="View Photo"
-                            onClick={() => window.open(asset.photoUrl!, '_blank')}
-                          >
-                            <Image className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Edit"
-                          onClick={() => handleEdit(asset)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Delete"
-                              onClick={() => setSelectedAssetId(asset.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Asset</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete this company asset? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => selectedAssetId !== null && handleDelete(selectedAssetId)}
-                                className="bg-red-500 hover:bg-red-600 text-white"
-                              >
-                                {deleteMutation.isPending ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Deleting...
-                                  </>
-                                ) : (
-                                  'Delete'
-                                )}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
+          <>
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead>Asset Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Manufacturer</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Serial/Barcode</TableHead>
+                    <TableHead>Purchase Price</TableHead>
+                    <TableHead>Purchase Date</TableHead>
+                    <TableHead>Implemented Date</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Template</TableHead>
+                    <TableHead>Tags</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {paginatedAssets.map((asset) => (
+                    <TableRow key={asset.id}>
+                      <TableCell className="pl-4">{getCategoryIcon(asset.category)}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
+                      <TableCell>{formatCategory(asset.category)}</TableCell>
+                      <TableCell>{asset.manufacturer || '-'}</TableCell>
+                      <TableCell>{asset.owner || '-'}</TableCell>
+                      <TableCell>{asset.department || '-'}</TableCell>
+                      <TableCell>
+                        {asset.serialNumber && <div className="text-xs">{asset.serialNumber}</div>}
+                        {asset.barcode && <div className="text-xs text-muted-foreground">{asset.barcode}</div>}
+                        {!asset.serialNumber && !asset.barcode && '-'}
+                      </TableCell>
+                      <TableCell>{formatCurrency(asset.purchasePrice)}</TableCell>
+                      <TableCell>{asset.purchaseDate ? formatDate(new Date(asset.purchaseDate)) : '-'}</TableCell>
+                      <TableCell>{asset.implementedDate ? formatDate(new Date(asset.implementedDate)) : '-'}</TableCell>
+                      <TableCell>{asset.location || '-'}</TableCell>
+                      <TableCell>{asset.template || '-'}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[150px]">
+                          {formatTags(asset.tags).map((tag, i) => (
+                            <Badge key={i} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                          {(!asset.tags || formatTags(asset.tags).length === 0) && '-'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                              <DropdownMenuItem onClick={() => handleEdit(asset)}>
+                                <Pencil className="w-4 h-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              {asset.photoUrl && (
+                                <DropdownMenuItem onClick={() => window.open(asset.photoUrl!, '_blank')}>
+                                  <Image className="w-4 h-4 mr-2" />
+                                  View Photo
+                                </DropdownMenuItem>
+                              )}
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-600">
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this company asset? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDelete(asset.id)}
+                                      className="bg-red-500 hover:bg-red-600 text-white"
+                                    >
+                                      {deleteMutation.isPending ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Deleting...
+                                        </>
+                                      ) : (
+                                        'Delete'
+                                      )}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </DropdownMenuGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center my-6">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage > 1) handlePageChange(currentPage - 1);
+                        }}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({length: totalPages}, (_, i) => i + 1).map(page => (
+                      <PaginationItem key={page}>
+                        <PaginationLink 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePageChange(page);
+                          }}
+                          isActive={page === currentPage}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage < totalPages) handlePageChange(currentPage + 1);
+                        }}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center text-muted-foreground py-8">
-            {searchTerm ? "No company assets match your search." : "No company assets found. Add some assets to get started."}
+            {searchTerm || filters.category || filters.location || filters.status || filters.tags.length > 0 ? 
+              "No company assets match your search or filters." : 
+              "No company assets found. Add some assets to get started."}
           </div>
         )}
 
         {/* Edit Dialog */}
         {!onEditAsset && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Edit Company Asset</DialogTitle>
               </DialogHeader>
               {assetToEdit && (
                 <CompanyAssetForm 
                   assetToEdit={assetToEdit} 
-                  onSuccess={() => setIsDialogOpen(false)} 
+                  onSuccess={() => {
+                    setIsDialogOpen(false);
+                    queryClient.invalidateQueries({ queryKey: ['/api/asset-manager/company-assets'] });
+                    toast({
+                      title: 'Asset updated',
+                      description: 'Company asset has been updated successfully.',
+                    });
+                  }} 
                 />
               )}
             </DialogContent>
