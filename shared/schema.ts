@@ -626,7 +626,8 @@ export const companyAssets = pgTable("company_assets", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   manufacturer: text("manufacturer").notNull(),
-  owner: text("owner").notNull(),  // Department or person responsible
+  owner: text("owner").notNull(),  // Person responsible
+  department: text("department"),   // Department or business unit
   category: text("category").notNull().$type<AssetCategory>(),
   barcode: text("barcode"),
   serialNumber: text("serial_number"),
@@ -638,6 +639,8 @@ export const companyAssets = pgTable("company_assets", {
   purchaseDate: date("purchase_date"),
   implementedDate: date("implemented_date"),
   warrantyExpiration: date("warranty_expiration"),
+  depreciation: text("depreciation"),     // Depreciation schedule or amount
+  assetValue: text("asset_value"),        // Current book value
   
   // Location and status
   location: text("location").$type<AssetLocation>().default(AssetLocation.WAREHOUSE),
@@ -651,6 +654,10 @@ export const companyAssets = pgTable("company_assets", {
   model: text("model"),
   assetCondition: text("condition"),
   notes: text("notes"),
+  manufacturerPartNumber: text("manufacturer_part_number"),
+  supplierName: text("supplier_name"),
+  poNumber: text("po_number"),         // Purchase order reference
+  vendorInformation: text("vendor_information"),
   
   // Media
   photoUrl: text("photo_url"),
@@ -659,6 +666,9 @@ export const companyAssets = pgTable("company_assets", {
   // Tracking
   lastServiceDate: date("last_service_date"),
   nextServiceDate: date("next_service_date"),
+  maintenanceSchedule: text("maintenance_schedule"), // Description of maintenance requirements
+  certificationDate: date("certification_date"),
+  certificationExpiry: date("certification_expiry"),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
