@@ -11,9 +11,10 @@ import {
   DailyAvailability, InsertDailyAvailability,
   CustomQuestion, InsertCustomQuestion,
   BookingPage, InsertBookingPage,
+  Asset, InsertAsset,
   ScheduleStatus, DockStatus, HolidayScope, TimeInterval,
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
-  appointmentTypes, dailyAvailability, customQuestions, bookingPages
+  appointmentTypes, dailyAvailability, customQuestions, bookingPages, assets
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -104,6 +105,14 @@ export interface IStorage {
   updateBookingPage(id: number, bookingPage: Partial<BookingPage>): Promise<BookingPage | undefined>;
   deleteBookingPage(id: number): Promise<boolean>;
   
+  // Asset Manager operations
+  getAsset(id: number): Promise<Asset | undefined>;
+  getAssets(): Promise<Asset[]>;
+  getAssetsByUser(userId: number): Promise<Asset[]>;
+  createAsset(asset: InsertAsset): Promise<Asset>;
+  updateAsset(id: number, asset: Partial<Asset>): Promise<Asset | undefined>;
+  deleteAsset(id: number): Promise<boolean>;
+  
   // Session store
   sessionStore: any; // Type-safe session store
 }
@@ -121,6 +130,7 @@ export class MemStorage implements IStorage {
   private dailyAvailability: Map<number, DailyAvailability>;
   private customQuestions: Map<number, CustomQuestion>;
   private bookingPages: Map<number, BookingPage>;
+  private assets: Map<number, Asset>;
   sessionStore: any;
   
   private userIdCounter: number = 1;
@@ -134,6 +144,7 @@ export class MemStorage implements IStorage {
   private dailyAvailabilityIdCounter: number = 1;
   private customQuestionIdCounter: number = 1;
   private bookingPageIdCounter: number = 1;
+  private assetIdCounter: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -147,6 +158,7 @@ export class MemStorage implements IStorage {
     this.dailyAvailability = new Map();
     this.customQuestions = new Map();
     this.bookingPages = new Map();
+    this.assets = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 24 hours
     });
@@ -697,6 +709,42 @@ export class MemStorage implements IStorage {
 
   async deleteBookingPage(id: number): Promise<boolean> {
     return this.bookingPages.delete(id);
+  }
+
+  // Asset operations
+  async getAsset(id: number): Promise<Asset | undefined> {
+    return this.assets.get(id);
+  }
+
+  async getAssets(): Promise<Asset[]> {
+    return Array.from(this.assets.values());
+  }
+
+  async getAssetsByUser(userId: number): Promise<Asset[]> {
+    return Array.from(this.assets.values()).filter(
+      (asset) => asset.uploadedBy === userId
+    );
+  }
+
+  async createAsset(insertAsset: InsertAsset): Promise<Asset> {
+    const id = this.assetIdCounter++;
+    const createdAt = new Date();
+    const asset: Asset = { ...insertAsset, id, createdAt };
+    this.assets.set(id, asset);
+    return asset;
+  }
+
+  async updateAsset(id: number, assetUpdate: Partial<Asset>): Promise<Asset | undefined> {
+    const asset = this.assets.get(id);
+    if (!asset) return undefined;
+    
+    const updatedAsset = { ...asset, ...assetUpdate };
+    this.assets.set(id, updatedAsset);
+    return updatedAsset;
+  }
+
+  async deleteAsset(id: number): Promise<boolean> {
+    return this.assets.delete(id);
   }
 }
 
