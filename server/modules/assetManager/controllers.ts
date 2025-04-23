@@ -377,3 +377,144 @@ export const deleteCompanyAsset = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to delete company asset' });
   }
 };
+
+/**
+ * Bulk import company assets
+ */
+export const importCompanyAssets = async (req: Request, res: Response) => {
+  try {
+    // Validate request body
+    if (!req.body.assets || !Array.isArray(req.body.assets)) {
+      return res.status(400).json({ error: 'Invalid request format. Expected an array of assets.' });
+    }
+
+    const assets = req.body.assets;
+    
+    // Validate assets
+    if (assets.length === 0) {
+      return res.status(400).json({ error: 'No assets to import.' });
+    }
+
+    // Initialize counters
+    let successful = 0;
+    let failed = 0;
+    let warnings = 0;
+    const errors: any[] = [];
+
+    // Process each asset
+    for (const assetData of assets) {
+      try {
+        // Set createdBy if authenticated
+        if (req.user) {
+          assetData.createdBy = req.user.id;
+        }
+        
+        // Convert category string to enum value if provided
+        if (assetData.category) {
+          if (!Object.values(AssetCategory).includes(assetData.category as AssetCategory)) {
+            assetData.category = AssetCategory.OTHER;
+            warnings++;
+          }
+        } else {
+          assetData.category = AssetCategory.OTHER;
+          warnings++;
+        }
+        
+        // Parse dates if they are strings
+        ['purchaseDate', 'implementedDate', 'warrantyExpiration', 'lastServiceDate', 'nextServiceDate'].forEach(dateField => {
+          if (assetData[dateField] && typeof assetData[dateField] === 'string') {
+            try {
+              const date = new Date(assetData[dateField]);
+              // Check if date is valid
+              if (!isNaN(date.getTime())) {
+                assetData[dateField] = date;
+              } else {
+                delete assetData[dateField];
+                warnings++;
+              }
+            } catch (e) {
+              delete assetData[dateField];
+              warnings++;
+            }
+          }
+        });
+        
+        // Parse tags if they are a string
+        if (assetData.tags && typeof assetData.tags === 'string') {
+          try {
+            assetData.tags = JSON.parse(assetData.tags);
+          } catch (e) {
+            // If it's a comma-separated string, convert to array
+            if (assetData.tags.includes(',')) {
+              assetData.tags = assetData.tags.split(',').map((tag: string) => tag.trim());
+            } else {
+              assetData.tags = [assetData.tags.trim()];
+            }
+          }
+        }
+        
+        // Validate required fields
+        if (!assetData.name) {
+          throw new Error('Asset name is required');
+        }
+        
+        if (!assetData.manufacturer) {
+          throw new Error('Manufacturer is required');
+        }
+        
+        if (!assetData.owner) {
+          throw new Error('Owner is required');
+        }
+        
+        // Create the company asset data object
+        const companyAssetData = {
+          name: assetData.name,
+          manufacturer: assetData.manufacturer,
+          owner: assetData.owner,
+          category: assetData.category,
+          description: assetData.description || null,
+          barcode: assetData.barcode || null,
+          serialNumber: assetData.serialNumber || null,
+          photoUrl: assetData.photoUrl || null,
+          purchasePrice: assetData.purchasePrice || null,
+          currency: assetData.currency || 'USD',
+          purchaseDate: assetData.purchaseDate || null,
+          implementedDate: assetData.implementedDate || null,
+          warrantyExpiration: assetData.warrantyExpiration || null,
+          location: assetData.location || null,
+          status: assetData.status || null,
+          template: assetData.template || null,
+          tags: assetData.tags || null,
+          model: assetData.model || null,
+          assetCondition: assetData.assetCondition || null,
+          notes: assetData.notes || null,
+          lastServiceDate: assetData.lastServiceDate || null,
+          nextServiceDate: assetData.nextServiceDate || null,
+          createdBy: assetData.createdBy || null,
+        };
+        
+        // Create the asset (no photo buffer for bulk import)
+        await assetManagerService.createCompanyAsset(companyAssetData);
+        successful++;
+      } catch (error: any) {
+        failed++;
+        errors.push({
+          asset: assetData.name || `Asset at index ${assets.indexOf(assetData)}`,
+          error: error.message || 'Unknown error'
+        });
+      }
+    }
+
+    // Return result
+    return res.status(201).json({
+      total: assets.length,
+      successful,
+      failed,
+      warnings,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (error) {
+    console.error('Error in importCompanyAssets:', error);
+    return res.status(500).json({ error: 'Failed to import company assets' });
+  }
+};

@@ -64,6 +64,9 @@ assetManagerRouter.put('/company-assets/:id',
 // DELETE /api/asset-manager/company-assets/:id - Delete a company asset
 assetManagerRouter.delete('/company-assets/:id', isAuthenticated, controllers.deleteCompanyAsset);
 
+// POST /api/asset-manager/company-assets/import - Bulk import company assets
+assetManagerRouter.post('/company-assets/import', isAuthenticated, controllers.importCompanyAssets);
+
 // Legacy API routes (keeping for backward compatibility)
 // ===========================
 // Mount these at /api/...
