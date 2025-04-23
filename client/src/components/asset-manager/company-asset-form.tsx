@@ -222,9 +222,9 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.values(AssetCategory).map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category.charAt(0) + category.slice(1).toLowerCase().replace('_', ' ')}
+                      {Object.entries(AssetCategory).map(([key, value]) => (
+                        <SelectItem key={value} value={value}>
+                          {key.charAt(0) + key.slice(1).toLowerCase().replace('_', ' ')}
                         </SelectItem>
                       ))}
                     </SelectContent>
