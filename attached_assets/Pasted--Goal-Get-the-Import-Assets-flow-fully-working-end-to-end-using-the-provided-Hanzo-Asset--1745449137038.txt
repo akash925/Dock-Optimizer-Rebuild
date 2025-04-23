@@ -1,0 +1,39 @@
+💡 **Goal:** Get the “Import Assets” flow fully working end-to-end, using the provided “Hanzo Asset List (2) (1).xlsx” test file.
+
+1. **Open the Add/Import Modal**  
+   - Navigate to **Asset Manager → + Add / Import**.  
+   - Switch to the **Import Assets** tab.
+
+2. **Upload Hanzo Test File**  
+   - Drag & drop (or click “Select File”) and choose `Hanzo Asset List (2) (1).xlsx`.  
+   - The UI should parse the sheet, display a preview table, and show a validation summary.
+
+3. **Validation Rules**  
+   - **Only** `Asset Name` is required.  
+   - All other columns (Manufacturer, Owner, Department, Serial/Barcode, etc.) are **optional**.  
+   - The import dialog must let me map “Owner” → owner field and “Department” → department field separately (they should no longer be combined).
+  
+4. **Preview & Mapping**  
+   - After upload, I should see a **column-mapping interface**: each Excel column must be mapped to your schema fields.  
+   - Ensure “Asset Name” is mapped automatically, “Department” and “Owner” map correctly to their own fields, and all other columns map or can be skipped.
+
+5. **Run the Import**  
+   - Click “Import” and watch for no errors (unless data is truly malformed).  
+   - On success, all rows appear in the **Assets** list.
+
+6. **Edge Cases & Logging**  
+   - If any row fails, show row-level error messages at the bottom (e.g., “Row 42: Asset Name missing”).  
+   - Confirm that no unexpected React or network errors occur.
+
+Use the browser dev-tools console & network tab as needed, update the front-end component (`asset-import.tsx` / modal code) and/or the back-end controller (`assetManager/controllers.ts`) to enforce these rules.  Once fixed, re-run the import and let me know the final status summary.
+Notes for the AI agent:
+
+Focus on just the Import flow—don’t touch the rest of the form yet.
+
+The test file is located at sandbox:/mnt/data/Hanzo Asset List (2) (1).xlsx.
+
+Remember: only Asset Name is required; everything else is optional.
+
+Department and Owner must be separate fields in both UI and DB.
+
+Provide any error messages or console logs you see.
