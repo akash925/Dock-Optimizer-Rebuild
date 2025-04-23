@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import * as controllers from './controllers';
-import { isAuthenticated } from '../../middleware/auth';
+import { isAuthenticated } from '../../auth';
 
 const router = express.Router();
 
@@ -14,8 +14,32 @@ const upload = multer({
   },
 });
 
+// Asset Manager routes
+// ===========================
+
+// API Routes for Asset Manager UI
+// Mount these at /api/asset-manager/...
+const assetManagerRouter = express.Router();
+
+// GET /api/asset-manager/assets - Get all assets or filter by userId
+assetManagerRouter.get('/assets', isAuthenticated, controllers.listAssets);
+
+// POST /api/asset-manager/assets - Upload a new asset
+assetManagerRouter.post('/assets', 
+  isAuthenticated, 
+  upload.single('file'), // 'file' is the field name for the uploaded file
+  controllers.uploadAsset
+);
+
+// DELETE /api/asset-manager/assets/:id - Delete an asset
+assetManagerRouter.delete('/assets/:id', isAuthenticated, controllers.deleteAsset);
+
+// Legacy API routes (keeping for backward compatibility)
+// ===========================
+// Mount these at /api/...
+
 // GET /api/assets - Get all assets or filter by userId
-router.get('/assets', isAuthenticated, controllers.getAssets);
+router.get('/assets', isAuthenticated, controllers.listAssets);
 
 // GET /api/assets/:id - Get a single asset by ID
 router.get('/assets/:id', isAuthenticated, controllers.getAssetById);
@@ -24,7 +48,7 @@ router.get('/assets/:id', isAuthenticated, controllers.getAssetById);
 router.post('/assets', 
   isAuthenticated, 
   upload.single('file'), // 'file' is the field name for the uploaded file
-  controllers.createAsset
+  controllers.uploadAsset
 );
 
 // PUT /api/assets/:id - Update an asset
@@ -39,4 +63,5 @@ export function setupStaticFileServing(app: express.Express) {
   app.use('/uploads', express.static('uploads'));
 }
 
+export { assetManagerRouter };
 export default router;
