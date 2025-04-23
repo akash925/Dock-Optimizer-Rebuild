@@ -40,6 +40,30 @@ assetManagerRouter.post('/assets',
 // DELETE /api/asset-manager/assets/:id - Delete an asset
 assetManagerRouter.delete('/assets/:id', isAuthenticated, controllers.deleteAsset);
 
+// Company Asset routes
+// GET /api/asset-manager/company-assets - List all company assets
+assetManagerRouter.get('/company-assets', isAuthenticated, controllers.listCompanyAssets);
+
+// GET /api/asset-manager/company-assets/:id - Get company asset by ID
+assetManagerRouter.get('/company-assets/:id', isAuthenticated, controllers.getCompanyAssetById);
+
+// POST /api/asset-manager/company-assets - Create a new company asset
+assetManagerRouter.post('/company-assets',
+  isAuthenticated,
+  upload.single('photo'), // 'photo' is the field name for the uploaded photo
+  controllers.createCompanyAsset
+);
+
+// PUT /api/asset-manager/company-assets/:id - Update a company asset
+assetManagerRouter.put('/company-assets/:id',
+  isAuthenticated,
+  upload.single('photo'), // Optional photo update
+  controllers.updateCompanyAsset
+);
+
+// DELETE /api/asset-manager/company-assets/:id - Delete a company asset
+assetManagerRouter.delete('/company-assets/:id', isAuthenticated, controllers.deleteCompanyAsset);
+
 // Legacy API routes (keeping for backward compatibility)
 // ===========================
 // Mount these at /api/...

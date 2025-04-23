@@ -195,6 +195,179 @@ export class AssetManagerService implements AssetService {
   async deleteAsset(id: number): Promise<boolean> {
     return this.remove(id);
   }
+
+  /**
+   * List all company assets
+   */
+  async listCompanyAssets(): Promise<CompanyAsset[]> {
+    try {
+      const storage = await getStorage();
+      if (typeof storage.getCompanyAssets === 'function') {
+        return await storage.getCompanyAssets();
+      } else {
+        console.error('Storage does not implement getCompanyAssets method');
+        return [];
+      }
+    } catch (error) {
+      console.error('Error in listCompanyAssets:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get company asset by ID
+   */
+  async getCompanyAssetById(id: number): Promise<CompanyAsset | undefined> {
+    try {
+      const storage = await getStorage();
+      if (typeof storage.getCompanyAsset === 'function') {
+        return await storage.getCompanyAsset(id);
+      } else {
+        console.error('Storage does not implement getCompanyAsset method');
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`Error getting company asset with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Create a new company asset
+   */
+  async createCompanyAsset(companyAsset: InsertCompanyAsset, photoBuffer?: Buffer): Promise<CompanyAsset> {
+    try {
+      let photoUrl = null;
+
+      // Handle photo upload if provided
+      if (photoBuffer) {
+        // Generate a unique filename for the photo
+        const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-asset-photo.jpg`;
+        const filePath = path.join(UPLOAD_DIR, uniqueFilename);
+        
+        // Save the photo to disk
+        await writeFileAsync(filePath, photoBuffer);
+        
+        // Update the photo URL
+        photoUrl = `/uploads/${uniqueFilename}`;
+      }
+      
+      // Add photoUrl to company asset data
+      const assetWithPhoto = {
+        ...companyAsset,
+        photoUrl
+      };
+      
+      // Save to database
+      const storage = await getStorage();
+      if (typeof storage.createCompanyAsset === 'function') {
+        return await storage.createCompanyAsset(assetWithPhoto);
+      } else {
+        console.error('Storage does not implement createCompanyAsset method');
+        throw new Error('Unable to create company asset: storage method not available');
+      }
+    } catch (error) {
+      console.error('Error creating company asset:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing company asset
+   */
+  async updateCompanyAsset(id: number, companyAsset: UpdateCompanyAsset, photoBuffer?: Buffer): Promise<CompanyAsset | undefined> {
+    try {
+      const storage = await getStorage();
+      
+      // Get the existing asset to handle photo updates
+      const existingAsset = await this.getCompanyAssetById(id);
+      if (!existingAsset) {
+        return undefined;
+      }
+
+      let updateData: UpdateCompanyAsset = { ...companyAsset };
+      
+      // Handle photo update if provided
+      if (photoBuffer) {
+        // Delete old photo if one exists
+        if (existingAsset.photoUrl && existingAsset.photoUrl.startsWith('/uploads/')) {
+          const oldFilename = existingAsset.photoUrl.replace('/uploads/', '');
+          const oldFilePath = path.join(UPLOAD_DIR, oldFilename);
+          
+          try {
+            if (fs.existsSync(oldFilePath)) {
+              await unlinkAsync(oldFilePath);
+            }
+          } catch (error) {
+            console.error(`Error deleting old photo ${oldFilePath}:`, error);
+            // Continue with the update even if old photo deletion fails
+          }
+        }
+
+        // Generate a unique filename for the new photo
+        const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-asset-photo.jpg`;
+        const filePath = path.join(UPLOAD_DIR, uniqueFilename);
+        
+        // Save the new photo to disk
+        await writeFileAsync(filePath, photoBuffer);
+        
+        // Add the new photo URL to the update data
+        updateData.photoUrl = `/uploads/${uniqueFilename}`;
+      }
+      
+      // Update the database record
+      if (typeof storage.updateCompanyAsset === 'function') {
+        return await storage.updateCompanyAsset(id, updateData);
+      } else {
+        console.error('Storage does not implement updateCompanyAsset method');
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`Error updating company asset with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Delete a company asset
+   */
+  async deleteCompanyAsset(id: number): Promise<boolean> {
+    try {
+      const storage = await getStorage();
+      
+      // Get the asset first to get the photo URL
+      const asset = await this.getCompanyAssetById(id);
+      if (!asset) {
+        return false;
+      }
+      
+      // Delete the photo file from disk if it exists
+      if (asset.photoUrl && asset.photoUrl.startsWith('/uploads/')) {
+        const filename = asset.photoUrl.replace('/uploads/', '');
+        const filePath = path.join(UPLOAD_DIR, filename);
+        
+        try {
+          if (fs.existsSync(filePath)) {
+            await unlinkAsync(filePath);
+          }
+        } catch (error) {
+          console.error(`Error deleting photo file ${filePath}:`, error);
+          // Continue with deleting the database record even if file deletion fails
+        }
+      }
+      
+      // Delete the database record
+      if (typeof storage.deleteCompanyAsset === 'function') {
+        return await storage.deleteCompanyAsset(id);
+      } else {
+        console.error('Storage does not implement deleteCompanyAsset method');
+        return false;
+      }
+    } catch (error) {
+      console.error(`Error deleting company asset with ID ${id}:`, error);
+      return false;
+    }
+  }
 }
 
 export const assetManagerService = new AssetManagerService();
