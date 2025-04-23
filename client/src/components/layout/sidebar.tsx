@@ -16,6 +16,7 @@ import {
   Warehouse,
   FileText,
   Globe,
+  File,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMediaQuery } from "@/hooks/use-mobile";
@@ -170,6 +171,13 @@ export default function Sidebar({ className }: SidebarProps) {
               icon={<Globe size={20} />} 
               label="Booking Pages" 
               active={location === "/booking-pages"}
+              onClick={closeSidebar}
+            />
+            <SidebarItem 
+              href="/asset-manager" 
+              icon={<File size={20} />} 
+              label="Asset Manager" 
+              active={location === "/asset-manager"}
               onClick={closeSidebar}
             />
             {user.role === "admin" && (
