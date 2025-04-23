@@ -559,9 +559,14 @@ export type InsertCustomQuestion = z.infer<typeof insertCustomQuestionSchema>;
 export const assets = pgTable("assets", {
   id: serial("id").primaryKey(),
   filename: text("filename").notNull(), // Original filename
+  description: text("description"), // Optional description
+  fileType: text("file_type"), // MIME type
+  fileSize: integer("file_size"), // Size in bytes
   url: text("url").notNull(), // Path to the file on disk or URL
+  tags: jsonb("tags"), // JSON array of tags for categorization
   uploadedBy: integer("uploaded_by").notNull(), // User who uploaded the file
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastAccessedAt: timestamp("last_accessed_at"), // When the file was last accessed
 });
 
 export const assetsRelations = relations(assets, ({ one }) => ({

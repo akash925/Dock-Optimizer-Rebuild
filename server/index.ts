@@ -3,6 +3,10 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import fs from "fs";
+import dotenv from "dotenv";
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Check if Asset Manager module is enabled
 const ENABLE_ASSET_MANAGER = process.env.ENABLE_ASSET_MANAGER === 'true';
