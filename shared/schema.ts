@@ -637,7 +637,7 @@ export const companyAssets = pgTable("company_assets", {
   purchasePrice: text("purchase_price"),  // Stored as string to allow different currencies
   currency: text("currency").default("USD"),
   purchaseDate: date("purchase_date"),
-  implementedDate: date("implemented_date"),
+  // Renamed to implementationDate below
   warrantyExpiration: date("warranty_expiration"),
   depreciation: text("depreciation"),     // Depreciation schedule or amount
   assetValue: text("asset_value"),        // Current book value
@@ -663,10 +663,14 @@ export const companyAssets = pgTable("company_assets", {
   photoUrl: text("photo_url"),
   documentUrls: jsonb("document_urls"),  // Array of document URLs (manuals, receipts, etc.)
   
-  // Tracking
-  lastServiceDate: date("last_service_date"),
-  nextServiceDate: date("next_service_date"),
+  // Maintenance and tracking
+  lastMaintenanceDate: date("last_maintenance_date"),
+  nextMaintenanceDate: date("next_maintenance_date"),
   maintenanceSchedule: text("maintenance_schedule"), // Description of maintenance requirements
+  maintenanceContact: text("maintenance_contact"),
+  maintenanceNotes: text("maintenance_notes"),
+  implementationDate: date("implementation_date"), // When the asset was deployed
+  expectedLifetime: text("expected_lifetime"), // Expected operational lifespan
   certificationDate: date("certification_date"),
   certificationExpiry: date("certification_expiry"),
   
