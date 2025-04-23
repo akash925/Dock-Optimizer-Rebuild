@@ -267,11 +267,11 @@ export function AssetImport() {
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
           
-          // Convert to JSON
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 'A', defval: '' });
+          // Convert to JSON - use first row as headers
+          const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: '' });
           
           // Extract headers
-          const headers = Object.keys(jsonData[0] || {}).filter(key => key !== '__rowNum__');
+          const headers = Object.keys(jsonData[0] || {});
           setAvailableColumns(headers);
           
           // Auto-map columns

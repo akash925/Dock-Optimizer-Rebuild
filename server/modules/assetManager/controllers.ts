@@ -250,8 +250,8 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
     // Create company asset data object
     const companyAssetData = {
       name,
-      manufacturer: manufacturer || 'Unknown',  // Default value if not provided
-      owner: owner || 'Hanzo Logistics', // Default value if not provided
+      manufacturer: manufacturer ? String(manufacturer) : 'Unknown',  // Default value if not provided
+      owner: owner ? String(owner) : 'Hanzo Logistics', // Default value if not provided
       category: assetCategory || AssetCategory.OTHER, // Default to OTHER if not provided
       description: description || null,
       barcode: barcode || null,
@@ -462,8 +462,8 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
         // Create the company asset data object
         const companyAssetData = {
           name: assetData.name,
-          manufacturer: assetData.manufacturer || 'Unknown',  // Default value for required field
-          owner: assetData.owner || 'Hanzo Logistics',  // Default value for required field
+          manufacturer: assetData.manufacturer ? String(assetData.manufacturer) : 'Unknown',  // Default value for required field
+          owner: assetData.owner ? String(assetData.owner) : 'Hanzo Logistics',  // Default value for required field
           department: assetData.department || null,
           category: assetData.category,  // Already defaulted to AssetCategory.OTHER
           description: assetData.description || null,
