@@ -147,6 +147,14 @@ export default function Sidebar({ className }: SidebarProps) {
           onClick={closeSidebar}
         />
         
+        <SidebarItem 
+          href="/asset-manager" 
+          icon={<File size={20} />} 
+          label="Asset Manager" 
+          active={location === "/asset-manager"}
+          onClick={closeSidebar}
+        />
+        
         {(user.role === "admin" || user.role === "manager") && (
           <>
             <div className="px-4 py-2 mt-6 mb-2 text-neutral-400 text-xs font-medium uppercase">
@@ -171,13 +179,6 @@ export default function Sidebar({ className }: SidebarProps) {
               icon={<Globe size={20} />} 
               label="Booking Pages" 
               active={location === "/booking-pages"}
-              onClick={closeSidebar}
-            />
-            <SidebarItem 
-              href="/asset-manager" 
-              icon={<File size={20} />} 
-              label="Asset Manager" 
-              active={location === "/asset-manager"}
               onClick={closeSidebar}
             />
             {user.role === "admin" && (

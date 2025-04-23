@@ -25,15 +25,16 @@ export function FileUploader() {
       formData.append('file', file);
       formData.append('description', description);
 
-      const response = await fetch('/api/assets', {
+      // Use the new asset-manager endpoint
+      const response = await fetch('/api/asset-manager/assets', {
         method: 'POST',
         body: formData,
         // Do not set Content-Type here, it will be set automatically with the correct boundary
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to upload file');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to upload file');
       }
 
       return await response.json();
@@ -47,8 +48,9 @@ export function FileUploader() {
       setFile(null);
       setDescription('');
       
-      // Invalidate assets query to refresh the list
+      // Invalidate both asset queries to refresh the list
       queryClient.invalidateQueries({ queryKey: ['/api/assets'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/asset-manager/assets'] });
     },
     onError: (error: Error) => {
       toast({
