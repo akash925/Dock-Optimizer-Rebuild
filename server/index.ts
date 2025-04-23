@@ -57,15 +57,25 @@ app.use((req, res, next) => {
   // Register core routes
   const server = await registerRoutes(app);
   
-  // Conditionally load the Asset Manager module
-  if (ENABLE_ASSET_MANAGER || ENABLED_MODULES.includes('assetManager')) {
-    console.log('Loading Asset Manager module...');
+  // Load enabled modules dynamically
+  const modulesToLoad = [...ENABLED_MODULES];
+  if (ENABLE_ASSET_MANAGER && !modulesToLoad.includes('assetManager')) {
+    modulesToLoad.push('assetManager');
+  }
+  
+  // Load each enabled module
+  for (const moduleName of modulesToLoad) {
+    console.log(`Loading ${moduleName} module...`);
     try {
-      const { router } = await import('./modules/assetManager/routes');
-      app.use('/api', router);
-      console.log('Asset Manager module loaded successfully');
+      const modulePath = `./modules/${moduleName}/index`;
+      const module = await import(modulePath);
+      if (module.default && typeof module.default.initialize === 'function') {
+        module.default.initialize(app);
+      } else {
+        console.warn(`Module ${moduleName} doesn't have a valid initialize function`);
+      }
     } catch (error) {
-      console.error('Failed to load Asset Manager module:', error);
+      console.error(`Failed to load ${moduleName} module:`, error);
     }
   }
 

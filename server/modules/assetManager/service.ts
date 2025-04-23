@@ -1,95 +1,94 @@
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
-import { db } from '../../db';
-import { assets, type InsertAsset } from '../../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { Asset, InsertAsset } from '@shared/schema';
+import { getStorage } from '../../storage';
 
-// Convert fs.unlink to a Promise-based operation
+const UPLOAD_DIR = path.resolve('./uploads');
+const writeFileAsync = promisify(fs.writeFile);
 const unlinkAsync = promisify(fs.unlink);
 
-// Base directory for asset storage
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads', 'assets');
-
-// Ensure upload directory exists
+// Ensure uploads directory exists
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-/**
- * Asset Manager Service
- * Handles file operations for the Asset Manager module
- */
-export class AssetService {
-  /**
-   * Get all assets
-   */
-  async getAllAssets() {
-    return await db.select().from(assets).orderBy(assets.createdAt);
+export interface AssetService {
+  getAllAssets(): Promise<Asset[]>;
+  getAssetsByUser(userId: number): Promise<Asset[]>;
+  getAssetById(id: number): Promise<Asset | undefined>;
+  createAsset(asset: InsertAsset, fileBuffer: Buffer): Promise<Asset>;
+  updateAsset(id: number, asset: Partial<Asset>): Promise<Asset | undefined>;
+  deleteAsset(id: number): Promise<boolean>;
+}
+
+export class AssetManagerService implements AssetService {
+  async getAllAssets(): Promise<Asset[]> {
+    const storage = await getStorage();
+    return storage.getAssets();
   }
 
-  /**
-   * Get asset by ID
-   */
-  async getAssetById(id: number) {
-    const [asset] = await db.select().from(assets).where(eq(assets.id, id));
-    return asset;
+  async getAssetsByUser(userId: number): Promise<Asset[]> {
+    const storage = await getStorage();
+    return storage.getAssetsByUser(userId);
   }
 
-  /**
-   * Create a new asset record
-   */
-  async createAsset(assetData: InsertAsset) {
-    const [asset] = await db.insert(assets).values(assetData).returning();
-    return asset;
+  async getAssetById(id: number): Promise<Asset | undefined> {
+    const storage = await getStorage();
+    return storage.getAsset(id);
   }
 
-  /**
-   * Save file to disk
-   * @param file The file buffer
-   * @param filename The original filename
-   * @returns The path where the file was saved
-   */
-  async saveFile(file: Buffer, filename: string): Promise<string> {
-    // Create a unique filename to prevent collisions
-    const uniqueFilename = `${Date.now()}-${filename}`;
+  async createAsset(asset: InsertAsset, fileBuffer: Buffer): Promise<Asset> {
+    // Generate a unique filename to prevent collisions
+    const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${asset.filename}`;
     const filePath = path.join(UPLOAD_DIR, uniqueFilename);
     
-    // Write the file to disk
-    await fs.promises.writeFile(filePath, file);
+    // Save the file to disk
+    await writeFileAsync(filePath, fileBuffer);
     
-    // Return the path relative to the uploads directory
-    return `/uploads/assets/${uniqueFilename}`;
+    // Update the file URL in the asset data
+    const assetWithUrl = {
+      ...asset,
+      url: `/uploads/${uniqueFilename}`
+    };
+    
+    // Save to database
+    const storage = await getStorage();
+    return storage.createAsset(assetWithUrl);
   }
 
-  /**
-   * Delete an asset and its associated file
-   */
+  async updateAsset(id: number, asset: Partial<Asset>): Promise<Asset | undefined> {
+    const storage = await getStorage();
+    return storage.updateAsset(id, asset);
+  }
+
   async deleteAsset(id: number): Promise<boolean> {
-    const asset = await this.getAssetById(id);
+    const storage = await getStorage();
+    
+    // Get the asset first to get the file path
+    const asset = await storage.getAsset(id);
     if (!asset) {
       return false;
     }
-
-    // Delete the file from disk
-    try {
-      // Get the absolute path from the URL stored in the database
-      const filePath = path.join(process.cwd(), asset.url.replace(/^\//, ''));
+    
+    // Delete the file from disk if it exists
+    if (asset.url && asset.url.startsWith('/uploads/')) {
+      const filename = asset.url.replace('/uploads/', '');
+      const filePath = path.join(UPLOAD_DIR, filename);
       
-      // Check if file exists before attempting to delete
-      if (fs.existsSync(filePath)) {
-        await unlinkAsync(filePath);
+      try {
+        if (fs.existsSync(filePath)) {
+          await unlinkAsync(filePath);
+        }
+      } catch (error) {
+        console.error(`Error deleting file ${filePath}:`, error);
+        // Continue with deleting the database record even if file deletion fails
       }
-    } catch (error) {
-      console.error(`Error deleting file for asset ${id}:`, error);
-      // Continue with deleting the database record even if file deletion fails
     }
-
+    
     // Delete the database record
-    const result = await db.delete(assets).where(eq(assets.id, id));
-    return result.rowCount ? result.rowCount > 0 : false;
+    return storage.deleteAsset(id);
   }
 }
 
-// Export a singleton instance
-export const assetService = new AssetService();
+export const assetManagerService = new AssetManagerService();
