@@ -583,3 +583,53 @@ export const insertAssetSchema = createInsertSchema(assets).omit({
 
 export type Asset = typeof assets.$inferSelect;
 export type InsertAsset = z.infer<typeof insertAssetSchema>;
+
+// Asset Category Enum
+export const AssetCategory = {
+  EQUIPMENT: "equipment",
+  VEHICLE: "vehicle",
+  ELECTRONICS: "electronics",
+  FURNITURE: "furniture",
+  TOOLS: "tools",
+  SAFETY: "safety",
+  OTHER: "other",
+} as const;
+
+export type AssetCategory = (typeof AssetCategory)[keyof typeof AssetCategory];
+
+// Company Assets for Asset Manager Module - for tracking physical company assets
+export const companyAssets = pgTable("company_assets", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  manufacturer: text("manufacturer").notNull(),
+  owner: text("owner").notNull(),
+  category: text("category").notNull().$type<AssetCategory>(),
+  barcode: text("barcode"),
+  description: text("description"),
+  photoUrl: text("photo_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const companyAssetsRelations = relations(companyAssets, ({ one }) => ({
+  photo: one(assets, {
+    fields: [companyAssets.photoUrl],
+    references: [assets.url],
+  }),
+}));
+
+export const insertCompanyAssetSchema = createInsertSchema(companyAssets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateCompanyAssetSchema = createInsertSchema(companyAssets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).partial();
+
+export type CompanyAsset = typeof companyAssets.$inferSelect;
+export type InsertCompanyAsset = z.infer<typeof insertCompanyAssetSchema>;
+export type UpdateCompanyAsset = z.infer<typeof updateCompanyAssetSchema>;

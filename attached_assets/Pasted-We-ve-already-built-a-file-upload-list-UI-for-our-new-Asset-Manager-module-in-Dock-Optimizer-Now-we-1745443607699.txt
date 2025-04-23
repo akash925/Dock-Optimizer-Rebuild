@@ -1,0 +1,55 @@
+We’ve already built a file-upload/list UI for our new Asset Manager module in Dock Optimizer. Now we need to turn it into a full CRUD “company asset registry”—not just blob storage. Please:
+
+Database & API
+
+Add a new assets table (or Drizzle model) with fields:
+
+id (PK), name, manufacturer, owner, category, barcode, description, photo_url, created_at, updated_at
+
+Generate Zod schemas (insert/update) for that model.
+
+In the server (server/modules/assetManager), implement full REST handlers:
+
+GET /api/asset-manager/assets (list all)
+
+POST /api/asset-manager/assets (create a new asset)
+
+PUT /api/asset-manager/assets/:id (update metadata)
+
+DELETE /api/asset-manager/assets/:id
+
+Wire them through your AssetManagerService → controllers → routes → storage (both MemStorage & DatabaseStorage).
+
+React UI
+
+Replace the “Upload File” tab content with a Create Asset form that posts to your new POST /assets endpoint. Form fields: Name, Manufacturer, Owner, Category (select), Description, Barcode, Photo (file).
+
+Extend the All Files grid into an All Assets table: show all columns above plus photo thumbnail, with “Edit” (◻️ opens metadata in a modal), “Delete” (🗑️), “Download/View” buttons.
+
+Hook up Edit modal to PUT and Delete button to DELETE. On success, refresh the list.
+
+Keep file‐upload only for the photo—rest of the metadata lives in the DB.
+
+Navigation & Layout
+
+Remove the double-nested sidebar instance on the Asset Manager page (you currently see two sidebars layered). Fix your layout/components so there's just one.
+
+Move Asset Manager out of the “Management” section and into the Dashboard section, immediately below Appointments in the left nav.
+
+Update all route links (<NavLink> etc.) so users land at /asset-manager with that new menu order.
+
+Please give me complete code snippets for:
+
+Drizzle schema/model & migrations
+
+Zod types
+
+server modules: service, controllers, routes
+
+updates to storage.ts
+
+React components (form, table, modal, photo upload)
+
+sidebar/nav changes
+
+any small CSS/layout tweaks needed to eliminate the nested sidebar

@@ -113,6 +113,13 @@ export interface IStorage {
   updateAsset(id: number, asset: Partial<Asset>): Promise<Asset | undefined>;
   deleteAsset(id: number): Promise<boolean>;
   
+  // Company Asset operations
+  getCompanyAsset(id: number): Promise<CompanyAsset | undefined>;
+  getCompanyAssets(): Promise<CompanyAsset[]>;
+  createCompanyAsset(companyAsset: InsertCompanyAsset): Promise<CompanyAsset>;
+  updateCompanyAsset(id: number, companyAsset: UpdateCompanyAsset): Promise<CompanyAsset | undefined>;
+  deleteCompanyAsset(id: number): Promise<boolean>;
+  
   // Session store
   sessionStore: any; // Type-safe session store
 }
@@ -145,6 +152,8 @@ export class MemStorage implements IStorage {
   private customQuestionIdCounter: number = 1;
   private bookingPageIdCounter: number = 1;
   private assetIdCounter: number = 1;
+  private companyAssetIdCounter: number = 1;
+  private companyAssets: Map<number, CompanyAsset>;
 
   constructor() {
     this.users = new Map();
@@ -159,6 +168,7 @@ export class MemStorage implements IStorage {
     this.customQuestions = new Map();
     this.bookingPages = new Map();
     this.assets = new Map();
+    this.companyAssets = new Map();
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 24 hours
     });
