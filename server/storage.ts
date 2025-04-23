@@ -758,6 +758,39 @@ export class DatabaseStorage implements IStorage {
       createTableIfMissing: true
     });
   }
+  
+  // Asset Manager operations
+  async getAsset(id: number): Promise<Asset | undefined> {
+    const [asset] = await db.select().from(assets).where(eq(assets.id, id));
+    return asset;
+  }
+
+  async getAssets(): Promise<Asset[]> {
+    return await db.select().from(assets);
+  }
+
+  async getAssetsByUser(userId: number): Promise<Asset[]> {
+    return await db.select().from(assets).where(eq(assets.uploadedBy, userId));
+  }
+
+  async createAsset(insertAsset: InsertAsset): Promise<Asset> {
+    const [asset] = await db.insert(assets).values(insertAsset).returning();
+    return asset;
+  }
+
+  async updateAsset(id: number, assetUpdate: Partial<Asset>): Promise<Asset | undefined> {
+    const [updatedAsset] = await db
+      .update(assets)
+      .set(assetUpdate)
+      .where(eq(assets.id, id))
+      .returning();
+    return updatedAsset;
+  }
+
+  async deleteAsset(id: number): Promise<boolean> {
+    const result = await db.delete(assets).where(eq(assets.id, id)).returning();
+    return result.length > 0;
+  }
 
   // User operations
   async getUser(id: number): Promise<User | undefined> {
