@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
-import { Asset, InsertAsset } from '@shared/schema';
+import { Asset, InsertAsset, CompanyAsset, InsertCompanyAsset, UpdateCompanyAsset } from '@shared/schema';
 import { getStorage } from '../../storage';
 
 const UPLOAD_DIR = path.resolve('./uploads');
@@ -20,6 +20,13 @@ export interface AssetService {
   create(asset: InsertAsset, fileBuffer: Buffer): Promise<Asset>;
   update(id: number, asset: Partial<Asset>): Promise<Asset | undefined>;
   remove(id: number): Promise<boolean>;
+  
+  // Company Asset operations
+  listCompanyAssets(): Promise<CompanyAsset[]>;
+  getCompanyAssetById(id: number): Promise<CompanyAsset | undefined>;
+  createCompanyAsset(companyAsset: InsertCompanyAsset, photoBuffer?: Buffer): Promise<CompanyAsset>;
+  updateCompanyAsset(id: number, companyAsset: UpdateCompanyAsset, photoBuffer?: Buffer): Promise<CompanyAsset | undefined>;
+  deleteCompanyAsset(id: number): Promise<boolean>;
 }
 
 export class AssetManagerService implements AssetService {

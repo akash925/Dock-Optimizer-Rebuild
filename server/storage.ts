@@ -12,9 +12,10 @@ import {
   CustomQuestion, InsertCustomQuestion,
   BookingPage, InsertBookingPage,
   Asset, InsertAsset,
-  ScheduleStatus, DockStatus, HolidayScope, TimeInterval,
+  CompanyAsset, InsertCompanyAsset, UpdateCompanyAsset,
+  ScheduleStatus, DockStatus, HolidayScope, TimeInterval, AssetCategory,
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
-  appointmentTypes, dailyAvailability, customQuestions, bookingPages, assets
+  appointmentTypes, dailyAvailability, customQuestions, bookingPages, assets, companyAssets
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -756,6 +757,50 @@ export class MemStorage implements IStorage {
   async deleteAsset(id: number): Promise<boolean> {
     return this.assets.delete(id);
   }
+  
+  // Company Asset operations
+  async getCompanyAsset(id: number): Promise<CompanyAsset | undefined> {
+    return this.companyAssets.get(id);
+  }
+
+  async getCompanyAssets(): Promise<CompanyAsset[]> {
+    return Array.from(this.companyAssets.values());
+  }
+
+  async createCompanyAsset(insertCompanyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
+    const id = this.companyAssetIdCounter++;
+    const createdAt = new Date();
+    const updatedAt = new Date();
+    
+    const companyAsset: CompanyAsset = { 
+      ...insertCompanyAsset, 
+      id, 
+      createdAt,
+      updatedAt
+    };
+    
+    this.companyAssets.set(id, companyAsset);
+    return companyAsset;
+  }
+
+  async updateCompanyAsset(id: number, companyAssetUpdate: UpdateCompanyAsset): Promise<CompanyAsset | undefined> {
+    const companyAsset = this.companyAssets.get(id);
+    if (!companyAsset) return undefined;
+    
+    const updatedAt = new Date();
+    const updatedCompanyAsset = { 
+      ...companyAsset, 
+      ...companyAssetUpdate,
+      updatedAt
+    };
+    
+    this.companyAssets.set(id, updatedCompanyAsset);
+    return updatedCompanyAsset;
+  }
+
+  async deleteCompanyAsset(id: number): Promise<boolean> {
+    return this.companyAssets.delete(id);
+  }
 }
 
 // Database Storage Implementation
@@ -799,6 +844,35 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAsset(id: number): Promise<boolean> {
     const result = await db.delete(assets).where(eq(assets.id, id)).returning();
+    return result.length > 0;
+  }
+  
+  // Company Asset operations
+  async getCompanyAsset(id: number): Promise<CompanyAsset | undefined> {
+    const [companyAsset] = await db.select().from(companyAssets).where(eq(companyAssets.id, id));
+    return companyAsset;
+  }
+
+  async getCompanyAssets(): Promise<CompanyAsset[]> {
+    return await db.select().from(companyAssets);
+  }
+
+  async createCompanyAsset(insertCompanyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
+    const [companyAsset] = await db.insert(companyAssets).values(insertCompanyAsset).returning();
+    return companyAsset;
+  }
+
+  async updateCompanyAsset(id: number, companyAssetUpdate: UpdateCompanyAsset): Promise<CompanyAsset | undefined> {
+    const [updatedCompanyAsset] = await db
+      .update(companyAssets)
+      .set(companyAssetUpdate)
+      .where(eq(companyAssets.id, id))
+      .returning();
+    return updatedCompanyAsset;
+  }
+
+  async deleteCompanyAsset(id: number): Promise<boolean> {
+    const result = await db.delete(companyAssets).where(eq(companyAssets.id, id)).returning();
     return result.length > 0;
   }
 
