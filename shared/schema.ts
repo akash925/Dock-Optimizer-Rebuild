@@ -597,18 +597,73 @@ export const AssetCategory = {
 
 export type AssetCategory = (typeof AssetCategory)[keyof typeof AssetCategory];
 
+// Asset Status Enum
+export const AssetStatus = {
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  MAINTENANCE: "maintenance",
+  RETIRED: "retired",
+  LOST: "lost",
+} as const;
+
+export type AssetStatus = (typeof AssetStatus)[keyof typeof AssetStatus];
+
+// Asset Location Enum
+export const AssetLocation = {
+  WAREHOUSE: "warehouse",
+  OFFICE: "office",
+  FIELD: "field",
+  DOCK: "dock",
+  STORAGE: "storage",
+  CLIENT_SITE: "client_site",
+  OTHER: "other",
+} as const;
+
+export type AssetLocation = (typeof AssetLocation)[keyof typeof AssetLocation];
+
 // Company Assets for Asset Manager Module - for tracking physical company assets
 export const companyAssets = pgTable("company_assets", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   manufacturer: text("manufacturer").notNull(),
-  owner: text("owner").notNull(),
+  owner: text("owner").notNull(),  // Department or person responsible
   category: text("category").notNull().$type<AssetCategory>(),
   barcode: text("barcode"),
+  serialNumber: text("serial_number"),
   description: text("description"),
+  
+  // Financial information
+  purchasePrice: text("purchase_price"),  // Stored as string to allow different currencies
+  currency: text("currency").default("USD"),
+  purchaseDate: date("purchase_date"),
+  implementedDate: date("implemented_date"),
+  warrantyExpiration: date("warranty_expiration"),
+  
+  // Location and status
+  location: text("location").$type<AssetLocation>().default(AssetLocation.WAREHOUSE),
+  status: text("status").$type<AssetStatus>().default(AssetStatus.ACTIVE),
+  
+  // Template and tags
+  template: text("template"),  // For standardized assets that follow a template
+  tags: jsonb("tags"),  // Array of tags for searching/filtering
+  
+  // Additional metadata
+  model: text("model"),
+  assetCondition: text("condition"),
+  notes: text("notes"),
+  
+  // Media
   photoUrl: text("photo_url"),
+  documentUrls: jsonb("document_urls"),  // Array of document URLs (manuals, receipts, etc.)
+  
+  // Tracking
+  lastServiceDate: date("last_service_date"),
+  nextServiceDate: date("next_service_date"),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: integer("created_by"),
+  updatedBy: integer("updated_by"),
 });
 
 export const companyAssetsRelations = relations(companyAssets, ({ one }) => ({

@@ -1,0 +1,51 @@
+Here it is again—just copy & paste the entire block below into Replit’s AI widget (and attach your “Hanzo Asset List.xlsx”):
+
+```
+You are my Replit AI assistant. Finish our Asset Manager end-to-end:
+
+1. UI “Company Assets” tab
+   • Add a third tab next to Files & Upload called “Company Assets.”
+   • Display a paginated, searchable, sortable table of all assets.
+   • Columns: Name, Category, Manufacturer, Owner/Dept, Barcode/Serial, Purchase Price & Currency, Purchase Date, Implemented Date, Location (dropdown), Template (dropdown), Tags, Photo.
+   • Filters above the table: Type, Location, Status, Tags.
+
+2. “Add Asset” form
+   • On the Company Assets tab, add an “Add Asset” button.
+   • Open a modal (or page) with a form that contains all fields from the attached Hanzo spreadsheet.
+   • Validate required vs. optional. 
+   • POST to `POST /api/assets` to create a single asset. Update the table on success.
+
+3. Bulk CSV/XLSX import
+   • Expose an “Import CSV” button next to “Add Asset.”
+   • Allow uploading `.csv` or `.xlsx` (use Papaparse or SheetJS).
+   • Map columns from “Hanzo Asset List.xlsx” to asset fields.
+   • POST parsed rows to `POST /api/assets/import` in bulk.
+   • Show progress UI and row-level errors inline.
+
+4. Back end
+   • Create or update Drizzle schema & migration for all new asset fields.
+   • Implement `POST /api/assets` and `POST /api/assets/import` in Express/TypeScript.
+   • Use your shared schema for type safety and server-side validation.
+   • Store asset records in Postgres; store uploaded photos/files in blob storage (S3 or equivalent). DB holds only the URL.
+
+5. Navigation & placement
+   • Move “Asset Manager” from under Management into the top Dashboard nav, directly under Appointments.
+   • Remove any duplicate sidebar entries.
+   • Ensure the active nav state highlights correctly.
+
+6. UX polish
+   • Friendly validation messages.
+   • Loading spinners on async actions.
+   • Confirmation modals for deletes.
+   • Success toasts on create/import.
+
+✅ Checkpoints:
+ - “Company Assets” tab with working table, filters, pagination.
+ - “Add Asset” modal saves and refreshes list.
+ - CSV import correctly bulk-inserts with error reporting.
+ - Back-end endpoints are implemented and tests (manually curl or Postman).
+ - File uploads go to blob storage; DB stores only URLs.
+ - Sidebar nav is updated with a single “Asset Manager” entry.
+
+_Attach and reference the provided “Hanzo Asset List.xlsx” so the AI can map column names to DB fields._
+```
