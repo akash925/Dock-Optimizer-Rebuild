@@ -4,6 +4,7 @@ import { FileUploader } from './file-uploader';
 import { AssetList } from './simplified-asset-list';
 import { CompanyAssetList } from './company-asset-list';
 import { CompanyAssetForm } from './company-asset-form';
+import { AssetImport } from './asset-import';
 import { CompanyAsset } from '@shared/schema';
 
 export function AssetManager() {
@@ -33,11 +34,12 @@ export function AssetManager() {
       </div>
       
       <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-6">
-        <TabsList className="grid w-full max-w-3xl grid-cols-4">
+        <TabsList className="grid w-full max-w-4xl grid-cols-5">
           <TabsTrigger value="all">Files</TabsTrigger>
           <TabsTrigger value="upload">Upload File</TabsTrigger>
           <TabsTrigger value="company-assets">Company Assets</TabsTrigger>
           <TabsTrigger value="add-company-asset">Add Asset</TabsTrigger>
+          <TabsTrigger value="import-assets">Import Assets</TabsTrigger>
         </TabsList>
         
         <TabsContent value="all" className="mt-6">
@@ -66,6 +68,10 @@ export function AssetManager() {
               />
             </>
           )}
+        </TabsContent>
+
+        <TabsContent value="import-assets" className="mt-6">
+          <AssetImport />
         </TabsContent>
       </Tabs>
     </div>

@@ -172,7 +172,7 @@ export function AssetImport() {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (results) => {
+      complete: (results: Papa.ParseResult<any>) => {
         if (results.data && results.data.length > 0) {
           // Store column headers
           const headers = results.meta.fields || [];
@@ -198,7 +198,7 @@ export function AssetImport() {
           });
         }
       },
-      error: (error) => {
+      error: (error: Error) => {
         toast({
           title: 'Error Parsing CSV',
           description: error.message,
@@ -325,13 +325,13 @@ export function AssetImport() {
         return {
           ...row,
           __errors: rowErrors,
-          __status: 'error'
+          __status: 'error' as const
         };
       }
       
       return {
         ...row,
-        __status: 'valid'
+        __status: 'valid' as const
       };
     });
     
