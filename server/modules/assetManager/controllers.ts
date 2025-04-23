@@ -421,7 +421,7 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
         }
         
         // Parse dates if they are strings
-        ['purchaseDate', 'implementedDate', 'warrantyExpiration', 'lastServiceDate', 'nextServiceDate'].forEach(dateField => {
+        ['purchaseDate', 'implementationDate', 'warrantyExpiration', 'lastMaintenanceDate', 'nextMaintenanceDate', 'certificationDate', 'certificationExpiry'].forEach(dateField => {
           if (assetData[dateField] && typeof assetData[dateField] === 'string') {
             try {
               const date = new Date(assetData[dateField]);
@@ -471,25 +471,50 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
           name: assetData.name,
           manufacturer: assetData.manufacturer,
           owner: assetData.owner,
+          department: assetData.department || null,
           category: assetData.category,
           description: assetData.description || null,
           barcode: assetData.barcode || null,
           serialNumber: assetData.serialNumber || null,
           photoUrl: assetData.photoUrl || null,
+          
+          // Financial information
           purchasePrice: assetData.purchasePrice || null,
           currency: assetData.currency || 'USD',
           purchaseDate: assetData.purchaseDate || null,
-          implementedDate: assetData.implementedDate || null,
           warrantyExpiration: assetData.warrantyExpiration || null,
+          depreciation: assetData.depreciation || null,
+          assetValue: assetData.assetValue || null,
+          
+          // Location and status
           location: assetData.location || null,
           status: assetData.status || null,
+          
+          // Template and metadata
           template: assetData.template || null,
           tags: assetData.tags || null,
           model: assetData.model || null,
           assetCondition: assetData.assetCondition || null,
           notes: assetData.notes || null,
-          lastServiceDate: assetData.lastServiceDate || null,
-          nextServiceDate: assetData.nextServiceDate || null,
+          
+          // Procurement information
+          manufacturerPartNumber: assetData.manufacturerPartNumber || null,
+          supplierName: assetData.supplierName || null,
+          poNumber: assetData.poNumber || null,
+          vendorInformation: assetData.vendorInformation || null,
+          
+          // Maintenance information
+          lastMaintenanceDate: assetData.lastMaintenanceDate || null,
+          nextMaintenanceDate: assetData.nextMaintenanceDate || null,
+          maintenanceSchedule: assetData.maintenanceSchedule || null,
+          maintenanceContact: assetData.maintenanceContact || null,
+          maintenanceNotes: assetData.maintenanceNotes || null,
+          implementationDate: assetData.implementationDate || null,
+          expectedLifetime: assetData.expectedLifetime || null,
+          certificationDate: assetData.certificationDate || null,
+          certificationExpiry: assetData.certificationExpiry || null,
+          
+          // System fields
           createdBy: assetData.createdBy || null,
         };
         
