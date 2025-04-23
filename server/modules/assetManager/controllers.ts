@@ -230,10 +230,10 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
     // Extract the data from the request body
     const { name, manufacturer, owner, category, description, barcode } = req.body;
     
-    // Check for required fields
-    if (!name || !manufacturer || !owner || !category) {
+    // Check for required fields - only name is required
+    if (!name) {
       return res.status(400).json({ 
-        error: 'Missing required fields. Name, manufacturer, owner, and category are required.' 
+        error: 'Missing required field. Asset Name is required.' 
       });
     }
     
@@ -250,11 +250,12 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
     // Create company asset data object
     const companyAssetData = {
       name,
-      manufacturer,
-      owner,
-      category: assetCategory,
+      manufacturer: manufacturer || 'Unknown',  // Default value if not provided
+      owner: owner || 'Hanzo Logistics', // Default value if not provided
+      category: assetCategory || AssetCategory.OTHER, // Default to OTHER if not provided
       description: description || null,
       barcode: barcode || null,
+      status: 'inactive', // Default status
       photoUrl: null // Will be set by the service if photo is uploaded
     };
     
@@ -461,10 +462,10 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
         // Create the company asset data object
         const companyAssetData = {
           name: assetData.name,
-          manufacturer: assetData.manufacturer,
-          owner: assetData.owner,
+          manufacturer: assetData.manufacturer || 'Unknown',  // Default value for required field
+          owner: assetData.owner || 'Hanzo Logistics',  // Default value for required field
           department: assetData.department || null,
-          category: assetData.category,
+          category: assetData.category,  // Already defaulted to AssetCategory.OTHER
           description: assetData.description || null,
           barcode: assetData.barcode || null,
           serialNumber: assetData.serialNumber || null,
@@ -480,7 +481,7 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
           
           // Location and status
           location: assetData.location || null,
-          status: assetData.status || null,
+          status: assetData.status || 'inactive',  // Default to inactive
           
           // Template and metadata
           template: assetData.template || null,
