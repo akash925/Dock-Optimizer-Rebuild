@@ -285,10 +285,11 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid grid-cols-4 mb-6">
+              <TabsList className="grid grid-cols-5 mb-6">
                 <TabsTrigger value="basic">Basic Information</TabsTrigger>
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="financial">Financial</TabsTrigger>
+                <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
                 <TabsTrigger value="metadata">Metadata</TabsTrigger>
               </TabsList>
               
@@ -879,6 +880,257 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             />
                           </PopoverContent>
                         </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Depreciation */}
+                  <FormField
+                    control={form.control}
+                    name="depreciation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Depreciation</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter depreciation amount or schedule" 
+                            {...field} 
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter depreciation schedule or amount per year
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Asset Value */}
+                  <FormField
+                    control={form.control}
+                    name="assetValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Value</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                              type="text" 
+                              placeholder="0.00" 
+                              className="pl-8" 
+                              {...field} 
+                              value={field.value || ''}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Current book value of the asset
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </TabsContent>
+              
+              {/* Maintenance Tab */}
+              <TabsContent value="maintenance" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  {/* Last Maintenance Date */}
+                  <FormField
+                    control={form.control}
+                    name="lastMaintenanceDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Last Maintenance Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                              >
+                                {field.value ? (
+                                  format(new Date(field.value), "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={field.value ? new Date(field.value) : undefined}
+                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Next Maintenance Date */}
+                  <FormField
+                    control={form.control}
+                    name="nextMaintenanceDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Next Maintenance Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                              >
+                                {field.value ? (
+                                  format(new Date(field.value), "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={field.value ? new Date(field.value) : undefined}
+                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Maintenance Schedule */}
+                  <FormField
+                    control={form.control}
+                    name="maintenanceSchedule"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Maintenance Schedule</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g., Monthly, Quarterly, Annually" 
+                            {...field} 
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          How often maintenance should be performed
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Maintenance Contact */}
+                  <FormField
+                    control={form.control}
+                    name="maintenanceContact"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Maintenance Contact</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter maintenance contact person or company" 
+                            {...field} 
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Maintenance Notes */}
+                  <FormField
+                    control={form.control}
+                    name="maintenanceNotes"
+                    render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Maintenance Notes</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter maintenance history or requirements" 
+                            className="min-h-[100px]" 
+                            {...field} 
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Implementation Date */}
+                  <FormField
+                    control={form.control}
+                    name="implementationDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Implementation Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={`w-full pl-3 text-left font-normal ${!field.value ? "text-muted-foreground" : ""}`}
+                              >
+                                {field.value ? (
+                                  format(new Date(field.value), "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={field.value ? new Date(field.value) : undefined}
+                              onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : undefined)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormDescription>
+                          When the asset was initially deployed
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Expected Lifetime */}
+                  <FormField
+                    control={form.control}
+                    name="expectedLifetime"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Expected Lifetime</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g., 5 years" 
+                            {...field} 
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Expected operational lifespan of the asset
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
