@@ -491,9 +491,10 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     <TableHead>Serial/Barcode</TableHead>
                     <TableHead>Purchase Price</TableHead>
                     <TableHead>Purchase Date</TableHead>
-                    <TableHead>Implemented Date</TableHead>
+                    <TableHead>Implementation Date</TableHead>
+                    <TableHead>Next Maintenance</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Location</TableHead>
-                    <TableHead>Template</TableHead>
                     <TableHead>Tags</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -514,9 +515,23 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                       </TableCell>
                       <TableCell>{formatCurrency(asset.purchasePrice)}</TableCell>
                       <TableCell>{asset.purchaseDate ? formatDate(new Date(asset.purchaseDate)) : '-'}</TableCell>
-                      <TableCell>{asset.implementedDate ? formatDate(new Date(asset.implementedDate)) : '-'}</TableCell>
+                      <TableCell>{asset.implementationDate ? formatDate(new Date(asset.implementationDate)) : '-'}</TableCell>
+                      <TableCell>
+                        {asset.nextMaintenanceDate ? (
+                          <div className="flex items-center">
+                            <Calendar className="h-3 w-3 mr-1 text-muted-foreground" />
+                            {formatDate(new Date(asset.nextMaintenanceDate))}
+                          </div>
+                        ) : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {asset.status ? (
+                          <Badge variant={getStatusVariant(asset.status)} className="capitalize">
+                            {asset.status}
+                          </Badge>
+                        ) : '-'}
+                      </TableCell>
                       <TableCell>{asset.location || '-'}</TableCell>
-                      <TableCell>{asset.template || '-'}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1 max-w-[150px]">
                           {formatTags(asset.tags).map((tag, i) => (
