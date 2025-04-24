@@ -472,7 +472,7 @@ export default function AppointmentMaster() {
         
         <div className="border rounded-md">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="types">
                 <FilePlus className="h-4 w-4 mr-2" />
                 Appointment Types
@@ -480,10 +480,6 @@ export default function AppointmentMaster() {
               <TabsTrigger value="questions">
                 <FilePlus className="h-4 w-4 mr-2" />
                 Custom Questions
-              </TabsTrigger>
-              <TabsTrigger value="availability">
-                <Clock className="h-4 w-4 mr-2" />
-                Availability Rules
               </TabsTrigger>
               <TabsTrigger value="settings">
                 <Settings className="h-4 w-4 mr-2" />
