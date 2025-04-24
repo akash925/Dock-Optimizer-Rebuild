@@ -66,7 +66,8 @@ export function AppointmentDetailsDialog({
   open,
   onOpenChange,
   facilityName,
-  timezone
+  timezone,
+  timeFormat = "12h" // Default to 12h format if not provided
 }: AppointmentDetailsDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -393,6 +394,15 @@ export function AppointmentDetailsDialog({
   const timeRemaining = getTimeRemaining();
   const isImminent = timeRemaining >= 0 && timeRemaining <= 30;
   
+  // Helper function to format time based on timeFormat setting
+  const formatTimeWithFormat = (date: Date): string => {
+    if (timeFormat === "24h") {
+      return format(date, 'HH:mm'); // 24-hour format (e.g., 14:30)
+    } else {
+      return format(date, 'h:mm a'); // 12-hour format with am/pm (e.g., 2:30 pm)
+    }
+  };
+  
   return (
     <>
       {/* Reschedule Dialog */}
@@ -606,25 +616,24 @@ export function AppointmentDetailsDialog({
                     <div className="flex justify-between items-center">
                       <span className="font-medium">Your time:</span>
                       <span>
-                        {formatInUserTimeZone(new Date(appointment.startTime), 'h:mm a')} - {formatInUserTimeZone(new Date(appointment.endTime), 'h:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                        {formatTimeWithFormat(utcToUserTime(new Date(appointment.startTime)))} - {formatTimeWithFormat(utcToUserTime(new Date(appointment.endTime)))} {getTimeZoneAbbreviation(getUserTimeZone())}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="font-medium">Facility time:</span>
                       <span>
-                        {formatInFacilityTimeZone(
-                          new Date(appointment.startTime), 
-                          'h:mm a',
+                        {/* Apply consistent time formatting to match the tooltip formatting */}
+                        {formatTimeWithFormat(utcToFacilityTime(
+                          new Date(appointment.startTime),
                           appointment.facilityId && appointment.facilityTimezone 
                             ? appointment.facilityTimezone 
                             : "America/New_York"
-                        )} - {formatInFacilityTimeZone(
-                          new Date(appointment.endTime), 
-                          'h:mm a',
+                        ))} - {formatTimeWithFormat(utcToFacilityTime(
+                          new Date(appointment.endTime),
                           appointment.facilityId && appointment.facilityTimezone 
                             ? appointment.facilityTimezone 
                             : "America/New_York"
-                        )} {getTimeZoneAbbreviation(appointment.facilityTimezone || "America/New_York")}
+                        ))} {getTimeZoneAbbreviation(appointment.facilityTimezone || "America/New_York")}
                       </span>
                     </div>
                   </div>
