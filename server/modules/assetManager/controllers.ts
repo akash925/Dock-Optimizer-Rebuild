@@ -533,6 +533,38 @@ export const deleteCompanyAsset = async (req: Request, res: Response) => {
 };
 
 /**
+ * Update company asset barcode
+ * PATCH /api/asset-manager/company-assets/:id/barcode
+ */
+export const updateCompanyAssetBarcode = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { barcode } = req.body;
+    
+    if (!barcode) {
+      return res.status(400).json({ error: 'Barcode is required' });
+    }
+    
+    const asset = await assetManagerService.getCompanyAssetById(id);
+    if (!asset) {
+      return res.status(404).json({ error: 'Asset not found' });
+    }
+    
+    // Update just the barcode field
+    const updatedAsset = await assetManagerService.updateCompanyAsset(id, { barcode });
+    
+    if (!updatedAsset) {
+      return res.status(404).json({ error: 'Asset not found or update failed' });
+    }
+    
+    return res.status(200).json(updatedAsset);
+  } catch (error) {
+    console.error('Error updating company asset barcode:', error);
+    return res.status(500).json({ error: 'Failed to update asset barcode' });
+  }
+};
+
+/**
  * Update company asset status
  * PATCH /api/asset-manager/company-assets/:id/status
  */

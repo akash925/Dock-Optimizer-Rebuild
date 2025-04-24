@@ -67,6 +67,12 @@ assetManagerRouter.patch('/company-assets/:id/status',
   controllers.updateCompanyAssetStatus
 );
 
+// PATCH /api/asset-manager/company-assets/:id/barcode - Update company asset barcode
+assetManagerRouter.patch('/company-assets/:id/barcode',
+  isAuthenticated,
+  controllers.updateCompanyAssetBarcode
+);
+
 // DELETE /api/asset-manager/company-assets/:id - Delete a company asset
 assetManagerRouter.delete('/company-assets/:id', isAuthenticated, controllers.deleteCompanyAsset);
 
