@@ -18,24 +18,19 @@ import { Label } from '@/components/ui/label';
 import { Schedule } from '@shared/schema';
 import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 
-// List of common timezones
+// List of common timezones that we know are supported by FullCalendar
 const COMMON_TIMEZONES = [
   'America/New_York',
   'America/Chicago',
   'America/Denver',
   'America/Los_Angeles',
   'America/Phoenix',
-  'America/Anchorage',
-  'America/Honolulu',
-  'America/Puerto_Rico',
-  'America/Toronto',
+  'UTC',
   'Europe/London',
   'Europe/Paris',
   'Europe/Berlin',
   'Asia/Tokyo',
-  'Asia/Shanghai',
-  'Australia/Sydney',
-  'Pacific/Auckland'
+  'Australia/Sydney'
 ];
 
 interface FullCalendarViewProps {
