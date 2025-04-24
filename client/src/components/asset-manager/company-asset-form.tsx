@@ -263,8 +263,19 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
 
   // Handle form submission
   const onSubmit = (data: InsertCompanyAsset) => {
+    console.log("Form submission data:", data);
+    
+    // Make sure all data that's in a Select component is properly included
     if (isEditing) {
-      updateMutation.mutate(data);
+      // Ensure category, status, and other enum fields are included explicitly
+      const formData = {
+        ...data,
+        category: data.category || assetToEdit?.category,
+        status: data.status || assetToEdit?.status,
+        location: data.location || assetToEdit?.location,
+      };
+      console.log("Updated form data for edit:", formData);
+      updateMutation.mutate(formData);
     } else {
       createMutation.mutate(data);
     }
@@ -324,7 +335,8 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                         <FormLabel>Category *</FormLabel>
                         <Select 
                           onValueChange={field.onChange} 
-                          defaultValue={field.value}
+                          value={field.value || ''}
+                          defaultValue={isEditing && assetToEdit?.category ? assetToEdit.category : field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -413,7 +425,8 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                         <FormLabel>Status</FormLabel>
                         <Select 
                           onValueChange={field.onChange} 
-                          defaultValue={field.value}
+                          value={field.value || ''}
+                          defaultValue={isEditing && assetToEdit?.status ? assetToEdit.status : field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -442,7 +455,8 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                         <FormLabel>Location</FormLabel>
                         <Select 
                           onValueChange={field.onChange} 
-                          defaultValue={field.value}
+                          value={field.value || ''}
+                          defaultValue={isEditing && assetToEdit?.location ? assetToEdit.location : field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
