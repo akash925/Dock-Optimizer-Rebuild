@@ -119,8 +119,64 @@ export default function AssetEditPage() {
         </div>
       </div>
       
-      <h3 className="text-2xl font-semibold my-6">Edit Asset: {asset.name}</h3>
+      <div className="flex justify-between items-center my-6">
+        <h3 className="text-2xl font-semibold">Edit Asset: {asset.name}</h3>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setBarcodeDialogOpen(true)}
+            className="flex items-center gap-2"
+          >
+            {asset.barcode ? (
+              <>
+                <Barcode className="h-4 w-4" />
+                Manage Barcode
+              </>
+            ) : (
+              <>
+                <Barcode className="h-4 w-4" />
+                Add Barcode
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
       
+      {/* Display barcode information if available */}
+      {asset.barcode && (
+        <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Asset Barcode</div>
+              <div className="font-mono text-lg">{asset.barcode}</div>
+            </div>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(asset.barcode || '');
+                  toast({
+                    title: 'Copied!',
+                    description: 'Barcode copied to clipboard',
+                  });
+                }}
+              >
+                Copy
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setBarcodeDialogOpen(true)}
+              >
+                Edit
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Display asset image if available */}
       {asset.photoUrl && (
         <div className="mb-6 max-w-sm mx-auto">
           <div className="rounded-md overflow-hidden border shadow-sm">
@@ -136,6 +192,16 @@ export default function AssetEditPage() {
       <CompanyAssetForm 
         assetToEdit={asset} 
         onSuccess={() => navigate('/asset-manager')} 
+      />
+
+      {/* Barcode Generator Dialog */}
+      <BarcodeGenerator
+        assetId={Number(assetId)}
+        assetName={asset.name}
+        currentBarcode={asset.barcode}
+        onSave={updateBarcodeMutation.mutateAsync}
+        open={barcodeDialogOpen}
+        onOpenChange={setBarcodeDialogOpen}
       />
     </div>
   );

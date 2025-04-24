@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Scan, Loader2 } from 'lucide-react';
 import { BarcodeScanner } from './barcode-scanner';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 
 interface BarcodeScanButtonProps {
@@ -17,7 +17,7 @@ export function BarcodeScanButton({ variant = 'ghost', size = 'icon' }: BarcodeS
   const [scanning, setScanning] = useState(false);
   const [searching, setSearching] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
 
   const handleOpenScanner = () => {
     setOpen(true);

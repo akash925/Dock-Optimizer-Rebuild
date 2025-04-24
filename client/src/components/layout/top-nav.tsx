@@ -13,8 +13,10 @@ import {
   ExternalLink,
   Share2,
   Globe,
-  BookOpen
+  BookOpen,
+  Scan
 } from "lucide-react";
+import { BarcodeScanButton } from "@/components/asset-manager/barcode-scan-button";
 import organizationLogo from "@/assets/organization_logo.jpeg";
 import { Button } from "@/components/ui/button";
 import SearchBar from "@/components/search/search-bar";
@@ -193,6 +195,9 @@ export default function TopNav() {
           </DropdownMenu>
         </div>
         
+        {/* Barcode scanner button */}
+        <BarcodeScanButton variant="ghost" size="icon" />
+
         <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">

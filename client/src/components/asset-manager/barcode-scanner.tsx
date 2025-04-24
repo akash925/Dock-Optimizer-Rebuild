@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Quagga from 'quagga';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, X, Camera } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Camera, XCircle, RotateCcw } from 'lucide-react';
 
 interface BarcodeScannerProps {
   onDetected: (barcode: string) => void;
@@ -11,166 +9,195 @@ interface BarcodeScannerProps {
 }
 
 export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
-  const scannerRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
+  const videoRef = useRef<HTMLDivElement>(null);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [activeCamera, setActiveCamera] = useState<string | null>(null);
+  const [scannerActive, setScannerActive] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Request camera access and enumerate devices
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(() => {
-        return navigator.mediaDevices.enumerateDevices();
-      })
-      .then(devices => {
+    const setupScanner = async () => {
+      try {
+        // Get available cameras
+        const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
         setCameras(videoDevices);
+        
         if (videoDevices.length > 0) {
-          setActiveCamera(videoDevices[0].deviceId);
+          // Use the first camera by default
+          const defaultCamera = videoDevices[0].deviceId;
+          setActiveCamera(defaultCamera);
+          startScanner(defaultCamera);
+        } else {
+          console.error('No cameras found');
+          setLoading(false);
         }
-      })
-      .catch(error => {
-        console.error('Error accessing camera:', error);
-        toast({
-          title: 'Camera Access Error',
-          description: 'Unable to access camera. Please ensure you have granted camera permissions.',
-          variant: 'destructive',
-        });
+      } catch (error) {
+        console.error('Error setting up barcode scanner:', error);
+        if (error instanceof DOMException && error.name === 'NotAllowedError') {
+          setPermissionDenied(true);
+        }
         setLoading(false);
-      });
-
-    return () => {
-      // Clean up Quagga when component unmounts
-      Quagga.stop();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!scannerRef.current || !activeCamera) return;
-
-    const initQuagga = () => {
-      if (scannerRef.current) {
-        Quagga.init(
-          {
-            inputStream: {
-              name: 'Live',
-              type: 'LiveStream',
-              target: scannerRef.current,
-              constraints: {
-                deviceId: activeCamera,
-                width: 640,
-                height: 480,
-                facingMode: 'environment', // Prefer back camera
-              },
-            },
-            locator: {
-              patchSize: 'medium',
-              halfSample: true,
-            },
-            numOfWorkers: navigator.hardwareConcurrency || 4,
-            decoder: {
-              readers: [
-                'code_128_reader',
-                'ean_reader',
-                'ean_8_reader',
-                'code_39_reader',
-                'code_39_vin_reader',
-                'codabar_reader',
-                'upc_reader',
-                'upc_e_reader',
-                'i2of5_reader',
-                'code_93_reader',
-                'code_32_reader', // for pharmaceuticals
-              ],
-            },
-            locate: true,
-          },
-          (err) => {
-            if (err) {
-              console.error('Error initializing Quagga:', err);
-              toast({
-                title: 'Scanner Error',
-                description: 'Failed to initialize barcode scanner.',
-                variant: 'destructive',
-              });
-              setLoading(false);
-              return;
-            }
-            setLoading(false);
-            Quagga.start();
-          }
-        );
-
-        // Set up detection callback
-        Quagga.onDetected((result) => {
-          if (result.codeResult.code) {
-            // Provide haptic feedback if available
-            if (navigator.vibrate) {
-              navigator.vibrate(200);
-            }
-            
-            // Play success sound
-            const successAudio = new Audio('/assets/beep.mp3');
-            successAudio.play().catch(e => console.log('Audio play error:', e));
-            
-            onDetected(result.codeResult.code);
-            Quagga.stop();
-          }
-        });
       }
     };
 
-    initQuagga();
+    setupScanner();
 
     return () => {
-      Quagga.stop();
+      stopScanner();
     };
-  }, [activeCamera, onDetected]);
+  }, []);
+
+  const startScanner = (deviceId: string) => {
+    if (!videoRef.current) return;
+    
+    setLoading(true);
+    
+    Quagga.init(
+      {
+        inputStream: {
+          name: 'Live',
+          type: 'LiveStream',
+          target: videoRef.current,
+          constraints: {
+            deviceId: deviceId,
+            width: { min: 640 },
+            height: { min: 480 },
+            facingMode: 'environment', // prefer rear camera
+          },
+        },
+        locator: {
+          patchSize: 'medium',
+          halfSample: true,
+        },
+        numOfWorkers: navigator.hardwareConcurrency || 4,
+        decoder: {
+          readers: [
+            'code_128_reader',
+            'ean_reader',
+            'ean_8_reader',
+            'code_39_reader',
+            'code_39_vin_reader',
+            'codabar_reader',
+            'upc_reader',
+            'upc_e_reader',
+            'i2of5_reader',
+          ],
+        },
+        locate: true,
+      },
+      (err) => {
+        if (err) {
+          console.error('Error initializing Quagga:', err);
+          setLoading(false);
+          if (err.name === 'NotAllowedError') {
+            setPermissionDenied(true);
+          }
+          return;
+        }
+        
+        setScannerActive(true);
+        setLoading(false);
+        
+        Quagga.start();
+      }
+    );
+
+    Quagga.onDetected((result) => {
+      if (result && result.codeResult && result.codeResult.code) {
+        const code = result.codeResult.code;
+        console.log('Barcode detected:', code);
+        
+        // Stop scanning after detection
+        stopScanner();
+        
+        // Send the detected barcode to the parent component
+        onDetected(code);
+      }
+    });
+  };
+
+  const stopScanner = () => {
+    Quagga.stop();
+    setScannerActive(false);
+  };
 
   const handleCameraChange = (deviceId: string) => {
-    Quagga.stop();
+    stopScanner();
     setActiveCamera(deviceId);
-    setLoading(true);
+    startScanner(deviceId);
+  };
+  
+  const handleRetry = () => {
+    setPermissionDenied(false);
+    if (activeCamera) {
+      startScanner(activeCamera);
+    } else if (cameras.length > 0) {
+      startScanner(cameras[0].deviceId);
+    }
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="flex flex-row justify-between items-center">
-        <CardTitle>Scan Barcode</CardTitle>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-5 w-5" />
+    <div className="flex flex-col space-y-4">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-medium">Scan Asset Barcode</h3>
+        <Button variant="ghost" size="icon" onClick={onClose} title="Close">
+          <XCircle className="h-5 w-5" />
         </Button>
-      </CardHeader>
-      <CardContent>
-        <div 
-          ref={scannerRef} 
-          className="relative overflow-hidden rounded-md w-full aspect-video bg-gray-100"
-        >
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+      
+      {permissionDenied ? (
+        <div className="flex flex-col items-center justify-center p-6 space-y-4 text-center">
+          <div className="bg-red-50 text-red-600 p-4 rounded-lg">
+            <p className="font-semibold">Camera access denied</p>
+            <p className="text-sm mt-1">Please allow camera access to scan barcodes</p>
+          </div>
+          <Button onClick={handleRetry} className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div 
+            ref={videoRef} 
+            className={`bg-black rounded-lg w-full h-64 overflow-hidden relative ${loading ? 'flex items-center justify-center' : ''}`}
+          >
+            {loading && (
+              <div className="flex flex-col items-center justify-center gap-2 text-white">
+                <Camera className="h-8 w-8 animate-pulse" />
+                <p>Activating camera...</p>
+              </div>
+            )}
+          </div>
+          
+          {cameras.length > 1 && (
+            <div className="mt-2">
+              <label htmlFor="camera-select" className="block text-sm font-medium mb-1">
+                Select Camera
+              </label>
+              <select
+                id="camera-select"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={activeCamera || ''}
+                onChange={(e) => handleCameraChange(e.target.value)}
+                disabled={!scannerActive}
+              >
+                {cameras.map((camera) => (
+                  <option key={camera.deviceId} value={camera.deviceId}>
+                    {camera.label || `Camera ${camera.deviceId.substr(0, 5)}...`}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
-        </div>
-      </CardContent>
-      {cameras.length > 1 && (
-        <CardFooter className="flex-col gap-2">
-          <div className="text-sm font-medium">Select Camera:</div>
-          <div className="flex gap-2 flex-wrap">
-            {cameras.map((camera, index) => (
-              <Button
-                key={camera.deviceId}
-                variant={activeCamera === camera.deviceId ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleCameraChange(camera.deviceId)}
-              >
-                <Camera className="mr-2 h-4 w-4" />
-                Camera {index + 1}
-              </Button>
-            ))}
-          </div>
-        </CardFooter>
+          
+          <p className="text-center text-sm text-muted-foreground">
+            Point your camera at a barcode to scan it
+          </p>
+        </>
       )}
-    </Card>
+    </div>
   );
 }
