@@ -26,6 +26,7 @@ export interface AssetService {
   getCompanyAssetById(id: number): Promise<CompanyAsset | undefined>;
   createCompanyAsset(companyAsset: InsertCompanyAsset, photoBuffer?: Buffer): Promise<CompanyAsset>;
   updateCompanyAsset(id: number, companyAsset: UpdateCompanyAsset, photoBuffer?: Buffer): Promise<CompanyAsset | undefined>;
+  updateCompanyAssetStatus(id: number, status: string): Promise<CompanyAsset | undefined>;
   deleteCompanyAsset(id: number): Promise<boolean>;
 }
 
@@ -407,6 +408,35 @@ export class AssetManagerService implements AssetService {
       }
     } catch (error) {
       console.error(`Error updating company asset with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Update company asset status only
+   */
+  async updateCompanyAssetStatus(id: number, status: string): Promise<CompanyAsset | undefined> {
+    try {
+      const storage = await getStorage();
+      
+      // Get the existing asset to validate it exists
+      const existingAsset = await this.getCompanyAssetById(id);
+      if (!existingAsset) {
+        return undefined;
+      }
+      
+      // Update only the status field
+      const updateData = { status } as UpdateCompanyAsset;
+      
+      // Use the updateCompanyAsset method to update just the status
+      if (typeof storage.updateCompanyAsset === 'function') {
+        return await storage.updateCompanyAsset(id, updateData);
+      } else {
+        console.error('Storage does not implement updateCompanyAsset method');
+        return undefined;
+      }
+    } catch (error) {
+      console.error(`Error updating status for company asset with ID ${id}:`, error);
       return undefined;
     }
   }

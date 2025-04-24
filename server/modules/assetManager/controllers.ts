@@ -417,8 +417,38 @@ export const deleteCompanyAsset = async (req: Request, res: Response) => {
 };
 
 /**
- * Bulk import company assets
+ * Update company asset status
+ * PATCH /api/asset-manager/company-assets/:id/status
  */
+export const updateCompanyAssetStatus = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid company asset ID' });
+    }
+    
+    const { status } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
+    
+    // Check if the asset exists
+    const existingAsset = await assetManagerService.getCompanyAssetById(id);
+    if (!existingAsset) {
+      return res.status(404).json({ error: 'Company asset not found' });
+    }
+    
+    // Update status
+    const updatedAsset = await assetManagerService.updateCompanyAssetStatus(id, status);
+    
+    return res.json(updatedAsset);
+  } catch (error) {
+    console.error('Error updating company asset status:', error);
+    return res.status(500).json({ error: 'Failed to update company asset status' });
+  }
+};
+
 export const importCompanyAssets = async (req: Request, res: Response) => {
   try {
     // Validate request body
