@@ -428,15 +428,16 @@ export default function AppointmentMaster() {
                   </div>
                   <Button onClick={() => {
                     setSelectedAppointmentTypeId(null);
+                    const defaultDuration = 60;
                     setAppointmentTypeForm({
                       name: "",
                       description: "",
                       facilityId: facilities.length > 0 ? facilities[0].id : 0,
                       color: "#4CAF50",
-                      duration: 60,
+                      duration: defaultDuration,
                       type: "both",
                       maxConcurrent: 1,
-                      bufferTime: 0,
+                      bufferTime: defaultDuration, // Set buffer time to match duration by default
                       maxAppointmentsPerDay: undefined,
                       allowAppointmentsThroughBreaks: false,
                       allowAppointmentsPastBusinessHours: false,
@@ -495,15 +496,19 @@ export default function AppointmentMaster() {
                                   <DropdownMenuItem onClick={() => {
                                     setSelectedAppointmentTypeId(appointmentType.id);
                                     // Set the form data from the selected appointment type
+                                    // Get the duration and set the buffer time if it was previously 0
+                                    const duration = appointmentType.duration || 60;
+                                    const bufferTime = appointmentType.bufferTime || duration; // Use duration if buffer time is 0
+
                                     setAppointmentTypeForm({
                                       name: appointmentType.name || "",
                                       description: appointmentType.description || "",
                                       facilityId: appointmentType.facilityId || (facilities.length > 0 ? facilities[0].id : 0),
                                       color: appointmentType.color || "#4CAF50",
-                                      duration: appointmentType.duration || 60,
+                                      duration: duration,
                                       type: appointmentType.type || "both",
                                       maxConcurrent: appointmentType.maxConcurrent || 1,
-                                      bufferTime: appointmentType.bufferTime || 0,
+                                      bufferTime: bufferTime,
                                       maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay === null ? undefined : appointmentType.maxAppointmentsPerDay,
                                       timezone: appointmentType.timezone || "America/New_York",
                                       gracePeriod: appointmentType.gracePeriod || 15,
@@ -858,7 +863,14 @@ export default function AppointmentMaster() {
                       min="5"
                       step="5"
                       value={appointmentTypeForm.duration.toString()}
-                      onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, duration: parseInt(e.target.value) || 0})}
+                      onChange={(e) => {
+                        const newDuration = parseInt(e.target.value) || 0;
+                        setAppointmentTypeForm({
+                          ...appointmentTypeForm, 
+                          duration: newDuration,
+                          bufferTime: newDuration // Set buffer time to match duration
+                        });
+                      }}
                     />
                   </div>
                   
