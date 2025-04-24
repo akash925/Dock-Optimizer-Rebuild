@@ -56,12 +56,12 @@ export default function FacilitiesPage() {
   
   // Handle edit facility
   const handleEditFacility = (id: number) => {
-    navigate(`/facility-settings/${id}`);
+    setLocation(`/facility-settings/${id}`);
   };
   
   // Handle view facility schedule
   const handleViewFacilitySchedule = (id: number) => {
-    navigate(`/schedules?facilityId=${id}`);
+    setLocation(`/schedules?facilityId=${id}`);
   };
   
   // Format facility address
@@ -90,7 +90,7 @@ export default function FacilitiesPage() {
       <div className="container py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Facilities</h1>
-          <Button onClick={() => navigate("/facility-settings")}>
+          <Button onClick={() => setLocation("/facility-settings")}>
             <Plus className="mr-2 h-4 w-4" />
             Add Facility
           </Button>
@@ -103,7 +103,7 @@ export default function FacilitiesPage() {
               <p className="text-muted-foreground mb-4 text-center">
                 No facilities found. Add your first facility to get started.
               </p>
-              <Button onClick={() => navigate("/facility-settings")}>
+              <Button onClick={() => setLocation("/facility-settings")}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Facility
               </Button>

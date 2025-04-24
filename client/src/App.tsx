@@ -14,6 +14,8 @@ import Analytics from "@/pages/analytics";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
 import FacilityMaster from "@/pages/facility-master";
+import Facilities from "@/pages/facilities";
+import FacilitySettings from "@/pages/facility-settings";
 import Appointments from "@/pages/appointments";
 import AppointmentMaster from "@/pages/appointment-master";
 import BookingPages from "@/pages/booking-pages";
@@ -46,6 +48,9 @@ function App() {
         <ProtectedRoute path="/appointments" component={Appointments} />
         <ProtectedRoute path="/calendar" component={CalendarView} />
         <ProtectedRoute path="/facility-master" component={FacilityMaster} roles={["admin", "manager"]} />
+        <ProtectedRoute path="/facilities" component={Facilities} roles={["admin", "manager"]} />
+        <ProtectedRoute path="/facility-settings/:id" component={FacilitySettings} roles={["admin", "manager"]} />
+        <ProtectedRoute path="/facility-settings" component={FacilitySettings} roles={["admin", "manager"]} />
         <ProtectedRoute path="/appointment-master" component={AppointmentMaster} roles={["admin", "manager"]} />
         <ProtectedRoute path="/dock-status" component={DockStatus} />
         <ProtectedRoute path="/door-manager" component={DoorManager} />
