@@ -205,23 +205,30 @@ export const listCompanyAssets = async (req: Request, res: Response) => {
     
     // Add category filter if provided
     if (category && typeof category === 'string') {
+      console.log("Applying category filter:", category);
       filters.category = category;
     }
     
     // Add status filter if provided
     if (status && typeof status === 'string') {
+      console.log("Applying status filter:", status);
       filters.status = status;
     }
     
     // Add location filter if provided
     if (location && typeof location === 'string') {
+      console.log("Applying location filter:", location);
       filters.location = location;
     }
     
     // Add tags filter if provided (can be comma-separated)
     if (tags && typeof tags === 'string') {
+      console.log("Applying tags filter:", tags);
       filters.tags = tags.split(',');
     }
+    
+    // Log all filters being applied
+    console.log("Applied filters:", JSON.stringify(filters, null, 2));
     
     // Apply filters if any were provided
     const companyAssets = Object.keys(filters).length > 0
@@ -333,17 +340,58 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Company asset not found' });
     }
     
-    // Extract fields from request body
-    const { name, manufacturer, owner, category, description, barcode } = req.body;
+    console.log('Update asset request body:', req.body);
+    console.log('Update asset file:', req.file ? { 
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    } : 'No file uploaded');
+    
+    // Extract fields from request body - include all potential fields
+    const { 
+      name, manufacturer, owner, category, description, barcode, serialNumber,
+      model, department, location, status, template, assetCondition, notes,
+      manufacturerPartNumber, supplierName, poNumber, vendorInformation,
+      purchasePrice, currency, purchaseDate, implementedDate, warrantyExpiration, 
+      depreciation, assetValue, lastServiceDate, nextServiceDate, 
+      maintenanceSchedule, certificationDate, certificationExpiry
+    } = req.body;
     
     // Build update object with only the fields that were provided
     const updateData: any = {};
     
+    // Basic information
     if (name !== undefined) updateData.name = name;
     if (manufacturer !== undefined) updateData.manufacturer = manufacturer;
     if (owner !== undefined) updateData.owner = owner;
     if (description !== undefined) updateData.description = description;
     if (barcode !== undefined) updateData.barcode = barcode;
+    if (serialNumber !== undefined) updateData.serialNumber = serialNumber;
+    if (model !== undefined) updateData.model = model;
+    if (department !== undefined) updateData.department = department;
+    if (template !== undefined) updateData.template = template;
+    if (assetCondition !== undefined) updateData.assetCondition = assetCondition;
+    if (notes !== undefined) updateData.notes = notes;
+    if (manufacturerPartNumber !== undefined) updateData.manufacturerPartNumber = manufacturerPartNumber;
+    if (supplierName !== undefined) updateData.supplierName = supplierName;
+    if (poNumber !== undefined) updateData.poNumber = poNumber;
+    if (vendorInformation !== undefined) updateData.vendorInformation = vendorInformation;
+    
+    // Financial information
+    if (purchasePrice !== undefined) updateData.purchasePrice = purchasePrice;
+    if (currency !== undefined) updateData.currency = currency;
+    if (purchaseDate !== undefined) updateData.purchaseDate = purchaseDate;
+    if (implementedDate !== undefined) updateData.implementedDate = implementedDate;
+    if (warrantyExpiration !== undefined) updateData.warrantyExpiration = warrantyExpiration;
+    if (depreciation !== undefined) updateData.depreciation = depreciation;
+    if (assetValue !== undefined) updateData.assetValue = assetValue;
+    
+    // Maintenance information
+    if (lastServiceDate !== undefined) updateData.lastServiceDate = lastServiceDate;
+    if (nextServiceDate !== undefined) updateData.nextServiceDate = nextServiceDate;
+    if (maintenanceSchedule !== undefined) updateData.maintenanceSchedule = maintenanceSchedule;
+    if (certificationDate !== undefined) updateData.certificationDate = certificationDate;
+    if (certificationExpiry !== undefined) updateData.certificationExpiry = certificationExpiry;
     
     // Convert category string to enum value if provided
     if (category !== undefined) {
@@ -354,6 +402,16 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
           error: `Invalid category. Must be one of: ${Object.values(AssetCategory).join(', ')}` 
         });
       }
+    }
+    
+    // Handle location
+    if (location !== undefined) {
+      updateData.location = location;
+    }
+    
+    // Handle status
+    if (status !== undefined) {
+      updateData.status = status;
     }
     
     // Validate the update data
@@ -369,6 +427,9 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
     
     // Check if a new photo was uploaded
     const photoBuffer = req.file ? req.file.buffer : undefined;
+    if (photoBuffer) {
+      console.log('Found photo buffer with size:', photoBuffer.length);
+    }
     
     // Update the company asset
     const updatedAsset = await assetManagerService.updateCompanyAsset(id, updateData, photoBuffer);
