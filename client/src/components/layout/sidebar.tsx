@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   BarChart3,
   Calendar,
+  CalendarRange,
   DoorOpen,
   HelpCircle,
   Home,
@@ -119,8 +120,16 @@ export default function Sidebar({ className }: SidebarProps) {
         <SidebarItem 
           href="/schedules" 
           icon={<Calendar size={20} />} 
-          label="Calendar" 
-          active={location === "/schedules"}
+          label="Schedules" 
+          active={location === "/schedules" || location.startsWith("/schedules/")}
+          onClick={closeSidebar}
+        />
+        
+        <SidebarItem 
+          href="/calendar" 
+          icon={<CalendarRange size={20} />} 
+          label="Calendar View" 
+          active={location === "/calendar"}
           onClick={closeSidebar}
         />
 

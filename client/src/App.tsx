@@ -19,6 +19,7 @@ import AppointmentMaster from "@/pages/appointment-master";
 import BookingPages from "@/pages/booking-pages";
 import AssetManagerPage from "@/pages/asset-manager-page";
 import AssetEditPage from "@/pages/asset-edit-page";
+import CalendarView from "@/pages/calendar-view";
 import AuthDebugPage from "@/pages/auth-debug-page";
 import TestFixedAppointment from "@/pages/test-fixed-appointment";
 import TestFixedAppointmentV2 from "@/pages/test-fixed-appointment-v2";
@@ -43,6 +44,7 @@ function App() {
         <ProtectedRoute path="/schedules" component={Schedules} />
         <ProtectedRoute path="/schedules/:id" component={Schedules} />
         <ProtectedRoute path="/appointments" component={Appointments} />
+        <ProtectedRoute path="/calendar" component={CalendarView} />
         <ProtectedRoute path="/facility-master" component={FacilityMaster} roles={["admin", "manager"]} />
         <ProtectedRoute path="/appointment-master" component={AppointmentMaster} roles={["admin", "manager"]} />
         <ProtectedRoute path="/dock-status" component={DockStatus} />

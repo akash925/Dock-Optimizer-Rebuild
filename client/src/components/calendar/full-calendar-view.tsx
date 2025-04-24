@@ -1,0 +1,220 @@
+import React, { useState, useEffect, useRef } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import './full-calendar.css';
+import { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Schedule } from '@shared/schema';
+import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
+
+// List of common timezones
+const COMMON_TIMEZONES = [
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Phoenix',
+  'America/Anchorage',
+  'America/Honolulu',
+  'America/Puerto_Rico',
+  'America/Toronto',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Asia/Tokyo',
+  'Asia/Shanghai',
+  'Australia/Sydney',
+  'Pacific/Auckland'
+];
+
+interface FullCalendarViewProps {
+  schedules: Schedule[];
+  onEventClick: (scheduleId: number) => void;
+  onDateSelect?: (selectInfo: { start: Date; end: Date; allDay: boolean }) => void;
+}
+
+export function FullCalendarView({ 
+  schedules, 
+  onEventClick, 
+  onDateSelect 
+}: FullCalendarViewProps) {
+  // Get user's timezone and set as default
+  const [selectedTimezone, setSelectedTimezone] = useState<string>(getUserTimeZone());
+  const calendarRef = useRef<FullCalendar>(null);
+  
+  // Save timezone preference to localStorage
+  useEffect(() => {
+    // Load saved timezone preference if it exists
+    const savedTimezone = localStorage.getItem('preferredTimezone');
+    if (savedTimezone) {
+      setSelectedTimezone(savedTimezone);
+    }
+  }, []);
+  
+  // Save timezone preference when it changes
+  useEffect(() => {
+    localStorage.setItem('preferredTimezone', selectedTimezone);
+  }, [selectedTimezone]);
+  
+  // Convert schedules to FullCalendar event format
+  const events: EventInput[] = schedules.map(schedule => {
+    const isInbound = schedule.type === 'inbound';
+    
+    return {
+      id: schedule.id.toString(),
+      title: `${schedule.carrierName || 'Carrier'} #${schedule.truckNumber || 'N/A'}`,
+      start: schedule.startTime,
+      end: schedule.endTime,
+      backgroundColor: isInbound ? '#3B82F6' : '#10B981', // Blue for inbound, green for outbound
+      borderColor: isInbound ? '#2563EB' : '#059669',
+      textColor: '#FFFFFF',
+      extendedProps: {
+        type: schedule.type,
+        carrierId: schedule.carrierId,
+        dockId: schedule.dockId,
+        status: schedule.status
+      }
+    };
+  });
+  
+  // Handle event click
+  const handleEventClick = (clickInfo: EventClickArg) => {
+    const scheduleId = parseInt(clickInfo.event.id);
+    onEventClick(scheduleId);
+  };
+  
+  // Handle date selection
+  const handleDateSelect = (selectInfo: DateSelectArg) => {
+    if (onDateSelect) {
+      onDateSelect({
+        start: selectInfo.start,
+        end: selectInfo.end,
+        allDay: selectInfo.allDay
+      });
+    }
+  };
+  
+  // Handle timezone change
+  const handleTimezoneChange = (timezone: string) => {
+    setSelectedTimezone(timezone);
+    
+    // Force calendar to re-render with new timezone
+    if (calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.setOption('timeZone', timezone);
+      calendarApi.render(); // Re-render the calendar
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Timezone selector */}
+      <div className="flex items-end justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <div className="flex-col space-y-1.5 w-64">
+            <Label htmlFor="timezone-select">Timezone</Label>
+            <Select 
+              value={selectedTimezone} 
+              onValueChange={handleTimezoneChange}
+            >
+              <SelectTrigger id="timezone-select">
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={getUserTimeZone()}>
+                  Local: {getUserTimeZone()} ({getTimeZoneAbbreviation(getUserTimeZone())})
+                </SelectItem>
+                {COMMON_TIMEZONES.filter(tz => tz !== getUserTimeZone()).map(timezone => (
+                  <SelectItem key={timezone} value={timezone}>
+                    {timezone} ({getTimeZoneAbbreviation(timezone)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              if (calendarRef.current) {
+                calendarRef.current.getApi().today();
+              }
+            }}
+          >
+            Today
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              if (calendarRef.current) {
+                calendarRef.current.getApi().prev();
+              }
+            }}
+          >
+            Previous
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              if (calendarRef.current) {
+                calendarRef.current.getApi().next();
+              }
+            }}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+      
+      <Card>
+        <CardContent className="p-0 overflow-auto">
+          <div className="h-[700px]">
+            <FullCalendar
+              ref={calendarRef}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="timeGridWeek"
+              headerToolbar={{
+                left: 'dayGridMonth,timeGridWeek,timeGridDay',
+                center: 'title',
+                right: ''
+              }}
+              nowIndicator={true}
+              timeZone={selectedTimezone}
+              events={events}
+              selectable={!!onDateSelect}
+              selectMirror={true}
+              dayMaxEvents={true}
+              weekends={true}
+              eventClick={handleEventClick}
+              select={handleDateSelect}
+              allDaySlot={false}
+              slotDuration="00:30:00"
+              slotLabelInterval="01:00"
+              slotMinTime="06:00:00"
+              slotMaxTime="20:00:00"
+              height="100%"
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default FullCalendarView;
