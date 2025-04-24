@@ -586,37 +586,37 @@ export type InsertAsset = z.infer<typeof insertAssetSchema>;
 
 // Asset Category Enum
 export const AssetCategory = {
-  EQUIPMENT: "equipment",
-  VEHICLE: "vehicle",
-  ELECTRONICS: "electronics",
-  FURNITURE: "furniture",
-  TOOLS: "tools",
-  SAFETY: "safety",
-  OTHER: "other",
+  EQUIPMENT: "EQUIPMENT",
+  VEHICLE: "VEHICLE",
+  ELECTRONICS: "ELECTRONICS",
+  FURNITURE: "FURNITURE",
+  TOOLS: "TOOLS",
+  SAFETY: "SAFETY",
+  OTHER: "OTHER",
 } as const;
 
 export type AssetCategory = (typeof AssetCategory)[keyof typeof AssetCategory];
 
 // Asset Status Enum
 export const AssetStatus = {
-  ACTIVE: "active",
-  INACTIVE: "inactive",
-  MAINTENANCE: "maintenance",
-  RETIRED: "retired",
-  LOST: "lost",
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+  MAINTENANCE: "MAINTENANCE",
+  RETIRED: "RETIRED",
+  LOST: "LOST",
 } as const;
 
 export type AssetStatus = (typeof AssetStatus)[keyof typeof AssetStatus];
 
 // Asset Location Enum
 export const AssetLocation = {
-  WAREHOUSE: "warehouse",
-  OFFICE: "office",
-  FIELD: "field",
-  DOCK: "dock",
-  STORAGE: "storage",
-  CLIENT_SITE: "client_site",
-  OTHER: "other",
+  WAREHOUSE: "WAREHOUSE",
+  OFFICE: "OFFICE",
+  FIELD: "FIELD",
+  DOCK: "DOCK",
+  STORAGE: "STORAGE",
+  CLIENT_SITE: "CLIENT_SITE",
+  OTHER: "OTHER",
 } as const;
 
 export type AssetLocation = (typeof AssetLocation)[keyof typeof AssetLocation];
