@@ -824,7 +824,24 @@ export default function AppointmentForm({
               </Button>
               <Button 
                 type="button" 
-                onClick={() => setStep(3)}
+                onClick={() => {
+                  // Initialize additional fields to prevent data contamination when going to Step 3
+                  // This prevents the truck number from appearing in the weight field
+                  if (!form.getValues("weight")) {
+                    form.setValue("weight", undefined as any);
+                  }
+                  if (!form.getValues("palletCount")) {
+                    form.setValue("palletCount", undefined as any);
+                  }
+                  if (!form.getValues("bolNumber")) {
+                    form.setValue("bolNumber", "");
+                  }
+                  if (!form.getValues("poNumber")) {
+                    form.setValue("poNumber", "");
+                  }
+                  
+                  setStep(3);
+                }}
                 disabled={!form.getValues("customerName") || !form.getValues("truckNumber")}
               >
                 Next
@@ -837,119 +854,27 @@ export default function AppointmentForm({
         return (
           <>
             <div className="space-y-4">
-              {/* Step 3: Scheduling & Additional Details */}
-              <h3 className="text-lg font-medium">Schedule Appointment</h3>
+              {/* Step 3: Additional Details Only - Schedule details already entered in Step 1 */}
+              <h3 className="text-lg font-medium">Additional Details</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Date Picker */}
-                <FormField
-                  control={form.control}
-                  name="appointmentDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Date*</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                (() => {
-                                  try {
-                                    // Ensure we have a valid date object
-                                    const date = new Date(field.value);
-                                    if (isNaN(date.getTime())) {
-                                      return <span>Pick a date</span>;
-                                    }
-                                    return format(date, "PPP");
-                                  } catch (e) {
-                                    console.error("Error formatting date:", e);
-                                    return <span>Pick a date</span>;
-                                  }
-                                })()
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value ? new Date(field.value) : undefined}
-                            onSelect={(date) => {
-                              if (date) {
-                                // Get the local date parts to avoid timezone shifts
-                                const localYear = date.getFullYear();
-                                const localMonth = date.getMonth() + 1; // JavaScript months are 0-based
-                                const localDay = date.getDate();
-                                
-                                // Format with yyyy-MM-dd pattern preserving the actual selected day
-                                const formattedDate = `${localYear}-${localMonth.toString().padStart(2, '0')}-${localDay.toString().padStart(2, '0')}`;
-                                field.onChange(formattedDate);
-                                console.log("Selected date (step 3):", formattedDate);
-                              }
-                            }}
-                            disabled={(date) => {
-                              // Disable dates in the past
-                              return date < new Date(new Date().setHours(0, 0, 0, 0));
-                            }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Time Picker */}
-                <FormField
-                  control={form.control}
-                  name="appointmentTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Time*</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value || getDefaultTimeSlot()}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a time">
-                              {field.value ? (
-                                <div className="flex items-center">
-                                  <Clock className="mr-2 h-4 w-4" />
-                                  {field.value}
-                                </div>
-                              ) : (
-                                "Select a time"
-                              )}
-                            </SelectValue>
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {getAvailableTimes().map((time) => (
-                            <SelectItem key={time} value={time}>
-                              {time}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {/* Date/Time Confirmation - Read-only summary of already selected date/time */}
+              <div className="bg-muted/40 p-3 rounded-md text-sm mb-4">
+                <p className="font-medium">Appointment Schedule:</p>
+                <div className="mt-1">
+                  <p>
+                    <strong>Date:</strong> {
+                      form.getValues("appointmentDate") 
+                        ? format(new Date(form.getValues("appointmentDate")), "PPP") 
+                        : "Not selected"
+                    }
+                  </p>
+                  <p>
+                    <strong>Time:</strong> {form.getValues("appointmentTime") || "Not selected"}
+                  </p>
+                </div>
               </div>
               
-              {/* Additional Details */}
-              <h3 className="text-lg font-medium pt-4">Additional Details</h3>
+
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
