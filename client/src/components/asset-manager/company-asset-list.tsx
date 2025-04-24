@@ -171,7 +171,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const queryString = buildQueryParams();
   
   // Fetch company assets with filters
-  const { data: assets, isLoading, error } = useQuery<CompanyAsset[]>({
+  const { data: assets, isLoading, error, refetch } = useQuery<CompanyAsset[]>({
     queryKey: ['/api/asset-manager/company-assets', queryString],
     queryFn: async () => {
       const endpoint = `/api/asset-manager/company-assets${queryString ? `?${queryString}` : ''}`;
@@ -183,6 +183,11 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     },
     placeholderData: [],
   });
+  
+  // Refetch when debounced search term changes
+  useEffect(() => {
+    refetch();
+  }, [debouncedSearchTerm, refetch]);
 
   // Delete mutation
   const deleteMutation = useMutation({
