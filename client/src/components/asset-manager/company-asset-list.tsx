@@ -34,7 +34,7 @@ import {
   Trash2,
   Search,
   Loader2,
-  Image,
+
   Download,
   Filter,
   X,

@@ -144,9 +144,52 @@ export default function AssetEditPage() {
           )}
           {/* Overlay button for changing image */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <Button variant="outline" className="bg-background">
-              Change Display Image
-            </Button>
+            <label htmlFor="asset-photo-upload" className="cursor-pointer">
+              <Button variant="outline" className="bg-background" type="button">
+                Change Display Image
+              </Button>
+              <input 
+                id="asset-photo-upload" 
+                type="file" 
+                className="hidden" 
+                accept=".jpg,.jpeg,.png,.pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    // Create FormData to upload the image
+                    const formData = new FormData();
+                    formData.append('photo', file);
+                    
+                    // Upload the image
+                    fetch(`/api/asset-manager/company-assets/${assetId}/photo`, {
+                      method: 'POST',
+                      body: formData,
+                    })
+                    .then(response => {
+                      if (!response.ok) {
+                        throw new Error('Failed to upload image');
+                      }
+                      return response.json();
+                    })
+                    .then(() => {
+                      // Invalidate the asset query to refresh the data
+                      queryClient.invalidateQueries({ queryKey: [`/api/asset-manager/company-assets/${assetId}`] });
+                      toast({
+                        title: 'Image uploaded',
+                        description: 'Asset image has been updated successfully',
+                      });
+                    })
+                    .catch(err => {
+                      toast({
+                        title: 'Upload failed',
+                        description: err.message || 'Failed to upload image',
+                        variant: 'destructive',
+                      });
+                    });
+                  }
+                }}
+              />
+            </label>
           </div>
         </div>
       </div>
