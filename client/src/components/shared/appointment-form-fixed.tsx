@@ -392,6 +392,30 @@ export default function AppointmentForm({
     return times;
   };
   
+  // Get the next available time slot (closest full hour)
+  const getDefaultTimeSlot = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const nextHour = currentHour + 1;
+    
+    // Default to 3 PM if it's already past 3 PM
+    if (nextHour >= 15) {
+      return "15:00 (1 available)";
+    }
+    
+    // Return the next hour if it's within facility hours
+    if (nextHour >= 8 && nextHour < 17) {
+      const appointmentType = form.getValues("appointmentTypeId") 
+        ? allAppointmentTypes.find(type => type.id === form.getValues("appointmentTypeId"))
+        : null;
+      const maxConcurrent = appointmentType?.maxConcurrent || 1;
+      return `${nextHour.toString().padStart(2, '0')}:00 (${maxConcurrent} available)`;
+    }
+    
+    // Default to the facility opening hour (8 AM)
+    return "08:00 (1 available)";
+  };
+  
   // Form content based on the current step
   const renderFormContent = () => {
     switch (step) {
@@ -577,7 +601,7 @@ export default function AppointmentForm({
                         <FormLabel>Time*</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          defaultValue={field.value || getDefaultTimeSlot()}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -835,7 +859,19 @@ export default function AppointmentForm({
                               )}
                             >
                               {field.value ? (
-                                format(new Date(field.value), "PPP")
+                                (() => {
+                                  try {
+                                    // Ensure we have a valid date object
+                                    const date = new Date(field.value);
+                                    if (isNaN(date.getTime())) {
+                                      return <span>Pick a date</span>;
+                                    }
+                                    return format(date, "PPP");
+                                  } catch (e) {
+                                    console.error("Error formatting date:", e);
+                                    return <span>Pick a date</span>;
+                                  }
+                                })()
                               ) : (
                                 <span>Pick a date</span>
                               )}
@@ -882,7 +918,7 @@ export default function AppointmentForm({
                       <FormLabel>Time*</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        defaultValue={field.value || getDefaultTimeSlot()}
                       >
                         <FormControl>
                           <SelectTrigger>
