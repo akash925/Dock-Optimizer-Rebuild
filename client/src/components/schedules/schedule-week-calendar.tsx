@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useEffect, useRef } from "react";
-import { format, addDays, startOfWeek, endOfWeek, isWithinInterval, areIntervalsOverlapping } from "date-fns";
+import { format, addDays, startOfWeek, endOfWeek, isWithinInterval, areIntervalsOverlapping, addMinutes } from "date-fns";
 import { Schedule, Carrier } from "@shared/schema";
 import { formatTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Calendar as CalendarIcon,
   X,
-  Info
+  Info,
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -18,7 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { utcToUserTime } from "@/lib/timezone-utils";
+import { utcToUserTime, formatInTimeZone, getUserTimeZone } from "@/lib/timezone-utils";
 
 interface ScheduleWeekCalendarProps {
   schedules: Schedule[];
@@ -49,6 +50,10 @@ export default function ScheduleWeekCalendar({
   const [customerSearch, setCustomerSearch] = useState("");
   const [carrierSearch, setCarrierSearch] = useState("");
   const [selectedTimezone, setSelectedTimezone] = useState(timezone || "");
+  
+  // State for current time indicator
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
   
   // Current week dates
   const weekStart = startOfWeek(date, { weekStartsOn: 0 }); // Sunday as start of week
@@ -182,6 +187,35 @@ export default function ScheduleWeekCalendar({
       return () => grid.removeEventListener('scroll', handleGridScroll);
     }
   }, []);
+  
+  // Function to calculate the current time position
+  const calculateTimePosition = () => {
+    const now = new Date();
+    // Use selected timezone if available, otherwise use local time
+    const tzToUse = timezone || getUserTimeZone();
+    
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    
+    // Calculate position (each hour is 50px)
+    const position = (hours + minutes / 60) * 50;
+    return position;
+  };
+  
+  // Update current time every minute
+  useEffect(() => {
+    // Initial calculation
+    setCurrentTime(new Date());
+    setCurrentTimePosition(calculateTimePosition());
+    
+    // Set up interval to update every minute
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+      setCurrentTimePosition(calculateTimePosition());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, [timezone]); // Recalculate when timezone changes
 
   return (
     <div className="bg-white rounded-lg shadow p-3 pb-0 mb-4 relative w-full overflow-hidden">
@@ -392,6 +426,38 @@ export default function ScheduleWeekCalendar({
                   })}
                 </div>
               ))}
+              
+              {/* Current time indicator - only show for today's date */}
+              {weekDays.some(day => 
+                day.getDate() === new Date().getDate() && 
+                day.getMonth() === new Date().getMonth() && 
+                day.getFullYear() === new Date().getFullYear()
+              ) && (
+                <div className="absolute left-0 right-0 flex items-center z-50 pointer-events-none" 
+                     style={{ top: `${currentTimePosition}px` }}>
+                  <div className="w-16 flex items-center justify-end pr-1">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 text-red-500 mr-1" />
+                            <span className="text-xs font-medium text-red-500">
+                              {formatTimeWithFormat(currentTime)}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="start" className="text-xs">
+                          <p>Current time</p>
+                          <p className="text-muted-foreground">Timezone: {timezone || getUserTimeZone()}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <div className="flex-1 border-t border-red-500 relative">
+                    <div className="absolute -right-1 -top-1.5 w-0 h-0 border-t-4 border-r-4 border-b-4 border-transparent border-r-red-500 border-b-transparent" />
+                  </div>
+                </div>
+              )}
               
               {/* Schedule events - positioned absolutely over the grid */}
               {weekSchedules.map(schedule => {
