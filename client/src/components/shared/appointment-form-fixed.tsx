@@ -502,7 +502,19 @@ export default function AppointmentForm({
                                 )}
                               >
                                 {field.value ? (
-                                  format(new Date(field.value), "PPP")
+                                  (() => {
+                                    try {
+                                      // Ensure we have a valid date object
+                                      const date = new Date(field.value);
+                                      if (isNaN(date.getTime())) {
+                                        return <span>Pick a date</span>;
+                                      }
+                                      return format(date, "PPP");
+                                    } catch (e) {
+                                      console.error("Error formatting date:", e);
+                                      return <span>Pick a date</span>;
+                                    }
+                                  })()
                                 ) : (
                                   <span>Pick a date</span>
                                 )}
@@ -516,12 +528,17 @@ export default function AppointmentForm({
                               selected={field.value ? new Date(field.value) : undefined}
                               onSelect={(date) => {
                                 if (date) {
-                                  // Ensure we're using the selected date exactly as is
-                                  const year = date.getFullYear();
-                                  const month = date.getMonth() + 1;
-                                  const day = date.getDate();
-                                  const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                                  field.onChange(formattedDate);
+                                  // Make a clean date with no time information to avoid timezone issues
+                                  const utcDate = new Date(Date.UTC(
+                                    date.getFullYear(),
+                                    date.getMonth(),
+                                    date.getDate()
+                                  ));
+                                  
+                                  // Format with yyyy-MM-dd pattern
+                                  const isoDate = utcDate.toISOString().split('T')[0];
+                                  field.onChange(isoDate);
+                                  console.log("Selected date:", isoDate);
                                 }
                               }}
                               disabled={(date) => {

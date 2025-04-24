@@ -654,138 +654,15 @@ export default function Schedules() {
         timeFormat={timeFormat}
       />
       
-      {/* Appointment Type Selection Dialog */}
-      <Dialog open={isAppointmentTypeDialogOpen} onOpenChange={setIsAppointmentTypeDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto p-0">
-          <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle className="text-2xl font-semibold">Select Appointment Type</DialogTitle>
-            <DialogDescription>
-              Choose the type of appointment you'd like to schedule.
-            </DialogDescription>
-          </DialogHeader>
-          {/* Facility selector for appointment types */}
-          <div className="px-6 pb-2 pt-1">
-            <Select 
-              value={filterFacilityId === "all" ? "all" : filterFacilityId.toString()} 
-              onValueChange={(value) => {
-                const newFacilityId = value === "all" ? "all" : parseInt(value);
-                setFilterFacilityId(newFacilityId);
-                setFilterDockId("all");
-              }}
-            >
-              <SelectTrigger className="w-full font-medium">
-                <SelectValue placeholder="Select facility" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Facilities</SelectItem>
-                {facilities.map((facility) => (
-                  <SelectItem key={facility.id} value={facility.id.toString()}>
-                    {facility.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="py-2">
-            {/* Filter appointment types by selected facility */}
-            {(() => {
-              // Get the filtered appointment types based on selected facility
-              const filteredTypes = filterFacilityId === "all" 
-                ? appointmentTypes 
-                : appointmentTypes.filter(type => type.facilityId === filterFacilityId);
-              
-              if (filteredTypes.length > 0) {
-                return (
-                  <div className="divide-y divide-gray-100">
-                    {filteredTypes.map((type) => {
-                      // Determine the facility name for this appointment type
-                      const facility = facilities.find(f => f.id === type.facilityId);
-                      const facilityName = facility?.name || "Unknown Location";
-                      
-                      // Create badge for inbound/outbound/both
-                      let typeLabel = "";
-                      let typeColor = "";
-                      if (type.type.toLowerCase() === 'inbound') {
-                        typeLabel = "Inbound";
-                        typeColor = "bg-blue-100 text-blue-800";
-                      } else if (type.type.toLowerCase() === 'outbound') {
-                        typeLabel = "Outbound";
-                        typeColor = "bg-purple-100 text-purple-800";
-                      } else {
-                        typeLabel = "Inbound/Outbound";
-                        typeColor = "bg-gray-100 text-gray-800";
-                      }
-                      
-                      return (
-                        <button
-                          key={type.id}
-                          className="w-full px-6 py-4 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 transition-colors flex items-start justify-between group"
-                          onClick={() => handleAppointmentTypeSelected(type.id)}
-                        >
-                          <div className="flex items-start w-full">
-                            {/* Left color bar */}
-                            <div 
-                              className="w-1.5 self-stretch mr-4 rounded-full flex-shrink-0" 
-                              style={{ backgroundColor: type.color || '#888' }}
-                            />
-                            
-                            {/* Content */}
-                            <div className="flex-1">
-                              <div className="flex justify-between w-full">
-                                <h3 className="font-semibold text-lg">{type.name}</h3>
-                                <span className="text-sm text-gray-500 flex items-center">
-                                  <Clock className="h-4 w-4 mr-1.5" />
-                                  {type.duration} min
-                                </span>
-                              </div>
-                              
-                              <p className="text-sm text-gray-600 mt-1 mb-2">
-                                {type.description || 'No description available'}
-                              </p>
-                              
-                              <div className="flex items-center">
-                                <span className={`text-xs px-2 py-1 rounded-full ${typeColor}`}>
-                                  {typeLabel}
-                                </span>
-                                <span className="mx-2 text-gray-300">•</span>
-                                <span className="text-xs text-gray-500">
-                                  {facilityName}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              } else if (filterFacilityId !== "all") {
-                return (
-                  <div className="text-center p-8 border-t">
-                    <p className="text-muted-foreground">No appointment types available for this facility.</p>
-                    <p className="text-sm mt-2">
-                      Please select a different facility or configure appointment types in the Appointment Master section.
-                    </p>
-                  </div>
-                );
-              } else {
-                return (
-                  <div className="text-center p-8 border-t">
-                    <p className="text-muted-foreground">No appointment types available.</p>
-                    <p className="text-sm mt-2">
-                      Please configure appointment types in the Appointment Master section.
-                    </p>
-                  </div>
-                );
-              }
-            })()}
-          </div>
-          <div className="flex justify-end p-6 border-t">
-            <Button variant="outline" onClick={() => setIsAppointmentTypeDialogOpen(false)} className="px-4">
-              Cancel
-            </Button>
-          </div>
+      {/* Appointment Type Selection Dialog - hidden, but keeping the component for reference */}
+      <Dialog open={false} onOpenChange={() => {
+          // Always force this dialog to be closed and go to the form directly
+          setIsAppointmentTypeDialogOpen(false);
+          setClickedCellDate(new Date());
+          setIsFormOpen(true);
+        }}>
+        <DialogContent className="hidden">
+          {/* Dialog content hidden - the dialog will never be shown */}
         </DialogContent>
       </Dialog>
     </div>
