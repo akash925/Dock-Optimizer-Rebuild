@@ -353,7 +353,43 @@ export default function AppointmentForm({
     // Only run when submitting on the final step
     // Step navigation is now handled by the Next/Back buttons directly
     setIsSubmitting(true);
-    createAppointmentMutation.mutate(data);
+    
+    // Create a sanitized copy of the data
+    const sanitizedData = { ...data };
+    
+    // Ensure date format is correct
+    if (sanitizedData.appointmentDate) {
+      try {
+        // Check if it's in YYYY-MM-DD format
+        if (typeof sanitizedData.appointmentDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sanitizedData.appointmentDate)) {
+          // Already in correct format, no need to change
+          console.log("Date is already in correct format:", sanitizedData.appointmentDate);
+        } else {
+          // Try to parse and format it correctly
+          const dateObj = new Date(sanitizedData.appointmentDate);
+          if (!isNaN(dateObj.getTime())) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            sanitizedData.appointmentDate = `${year}-${month}-${day}`;
+            console.log("Reformatted date for submission:", sanitizedData.appointmentDate);
+          }
+        }
+      } catch (e) {
+        console.error("Error processing date for submission:", e);
+      }
+    }
+    
+    // Extract just the time part from appointmentTime if it includes availability info
+    if (sanitizedData.appointmentTime && sanitizedData.appointmentTime.includes('(')) {
+      sanitizedData.appointmentTime = sanitizedData.appointmentTime.split(' (')[0];
+      console.log("Extracted time for submission:", sanitizedData.appointmentTime);
+    }
+    
+    console.log("Submitting appointment with sanitized data:", sanitizedData);
+    
+    // Call the mutation function with the sanitized data
+    createAppointmentMutation.mutate(sanitizedData);
   };
   
   // Handle going back a step
@@ -864,7 +900,24 @@ export default function AppointmentForm({
                   <p>
                     <strong>Date:</strong> {
                       form.getValues("appointmentDate") 
-                        ? format(new Date(form.getValues("appointmentDate")), "PPP") 
+                        ? (() => {
+                            try {
+                              // Parse the date string with care
+                              const dateVal = form.getValues("appointmentDate");
+                              // Check if the value looks like a YYYY-MM-DD date
+                              if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
+                                const [year, month, day] = dateVal.split('-').map(num => parseInt(num, 10));
+                                // Months in JS are 0-indexed
+                                const date = new Date(year, month - 1, day);
+                                return format(date, "PPP");
+                              }
+                              // Alternative date format
+                              return format(new Date(dateVal), "PPP");
+                            } catch (e) {
+                              console.error("Error formatting date in summary:", e);
+                              return form.getValues("appointmentDate") || "Not selected";
+                            }
+                          })()
                         : "Not selected"
                     }
                   </p>
@@ -974,7 +1027,24 @@ export default function AppointmentForm({
                     <p><strong>Type:</strong> {
                       allAppointmentTypes.find(t => t.id === form.getValues("appointmentTypeId"))?.name || "Unknown"
                     }</p>
-                    <p><strong>Date/Time:</strong> {form.getValues("appointmentDate")} at {form.getValues("appointmentTime")}</p>
+                    <p><strong>Date/Time:</strong> {
+                      (() => {
+                        try {
+                          // Parse the date string carefully
+                          const dateVal = form.getValues("appointmentDate");
+                          if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
+                            const [year, month, day] = dateVal.split('-').map(num => parseInt(num, 10));
+                            // Create date with proper timezone handling
+                            const date = new Date(year, month - 1, day);
+                            return `${format(date, "yyyy-MM-dd")} at ${form.getValues("appointmentTime")}`;
+                          }
+                          return `${dateVal} at ${form.getValues("appointmentTime")}`;
+                        } catch (e) {
+                          console.error("Error formatting date in appointment summary:", e);
+                          return `${form.getValues("appointmentDate")} at ${form.getValues("appointmentTime")}`;
+                        }
+                      })()
+                    }</p>
                     <p><strong>Customer:</strong> {form.getValues("customerName")}</p>
                     <p><strong>Direction:</strong> {form.getValues("type") === "inbound" ? "Inbound (Delivery)" : "Outbound (Pickup)"}</p>
                   </div>
