@@ -291,6 +291,35 @@ export default function AppointmentForm({
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       
+      // Reset the form to defaults
+      form.reset({
+        facilityId: initialFacilityId || undefined,
+        appointmentTypeId: initialAppointmentTypeId || undefined,
+        carrierId: undefined,
+        carrierName: "",
+        customerName: "",
+        mcNumber: "",
+        truckNumber: "",
+        trailerNumber: "",
+        driverName: "",
+        driverPhone: "",
+        type: "inbound",
+        appointmentMode: "trailer",
+        appointmentDate: format(new Date(), "yyyy-MM-dd"),
+        appointmentTime: "09:00",
+        dockId: initialDockId,
+        bolNumber: "",
+        poNumber: "",
+        palletCount: "",
+        weight: "",
+        notes: "",
+        facilityTimezone: facilityTimezone,
+      });
+
+      // Reset step to 1
+      setStep(1);
+      setIsSubmitting(false);
+      
       // Call the success callback if provided
       if (onSubmitSuccess) {
         onSubmitSuccess(data);
@@ -479,7 +508,12 @@ export default function AppointmentForm({
                               selected={field.value ? new Date(field.value) : undefined}
                               onSelect={(date) => {
                                 if (date) {
-                                  field.onChange(format(date, "yyyy-MM-dd"))
+                                  // Ensure we're using the selected date exactly as is
+                                  const year = date.getFullYear();
+                                  const month = date.getMonth() + 1;
+                                  const day = date.getDate();
+                                  const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                                  field.onChange(formattedDate);
                                 }
                               }}
                               disabled={(date) => {
@@ -763,7 +797,12 @@ export default function AppointmentForm({
                             selected={field.value ? new Date(field.value) : undefined}
                             onSelect={(date) => {
                               if (date) {
-                                field.onChange(format(date, "yyyy-MM-dd"))
+                                // Ensure we're using the selected date exactly as is
+                                const year = date.getFullYear();
+                                const month = date.getMonth() + 1;
+                                const day = date.getDate();
+                                const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                                field.onChange(formattedDate);
                               }
                             }}
                             disabled={(date) => {
