@@ -44,6 +44,7 @@ export default function Schedules() {
   const [isAppointmentTypeDialogOpen, setIsAppointmentTypeDialogOpen] = useState(false);
   const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState<number | undefined>(undefined);
   const [timezone, setTimezone] = useState<string>(getUserTimeZone());
+  const [timeFormat, setTimeFormat] = useState<"12h" | "24h">("12h");
   
   // Fetch schedules
   const { data: schedules = [] } = useQuery<Schedule[]>({
@@ -470,6 +471,27 @@ export default function Schedules() {
             </SelectContent>
           </Select>
           
+          {/* Time Format Toggle */}
+          <div className="flex items-center h-9 gap-1 border rounded-md px-2">
+            <span className="text-sm text-gray-500 mr-1">Format:</span>
+            <Button
+              variant={timeFormat === "12h" ? "default" : "outline"}
+              size="sm"
+              className="h-6 text-xs rounded-sm px-1.5"
+              onClick={() => setTimeFormat("12h")}
+            >
+              12h
+            </Button>
+            <Button
+              variant={timeFormat === "24h" ? "default" : "outline"}
+              size="sm"
+              className="h-6 text-xs rounded-sm px-1.5"
+              onClick={() => setTimeFormat("24h")}
+            >
+              24h
+            </Button>
+          </div>
+          
           {/* Clear Filters */}
           {(searchQuery || filterStatus !== "all" || filterType !== "all" || 
             filterDockId !== "all" || filterFacilityId !== "all") && (
@@ -518,6 +540,7 @@ export default function Schedules() {
             carriers={carriers}
             date={selectedDate}
             timezone={timezone}
+            timeFormat={timeFormat}
             onScheduleClick={handleScheduleClick}
             onDateChange={setSelectedDate}
             onViewChange={setViewMode}

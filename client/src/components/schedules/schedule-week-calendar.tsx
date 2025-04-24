@@ -137,7 +137,7 @@ export default function ScheduleWeekCalendar({
   const clearFilters = () => {
     setCustomerSearch("");
     setCarrierSearch("");
-    setSelectedTimezone("");
+    // Timezone selection is now handled by parent component
   };
   
   // Reference to the calendar grid container for auto-scrolling
@@ -240,23 +240,13 @@ export default function ScheduleWeekCalendar({
               </button>
             )}
           </div>
-          <select 
-            className="h-7 px-1 rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-primary text-xs w-[130px]"
-            value={selectedTimezone}
-            onChange={(e) => setSelectedTimezone(e.target.value)}
-          >
-            <option value="">TimeZone</option>
-            <option value="EST">Eastern (ET)</option>
-            <option value="CST">Central (CT)</option>
-            <option value="MST">Mountain (MT)</option>
-            <option value="PST">Pacific (PT)</option>
-          </select>
+          {/* Timezone selection moved to parent component */}
           <Button 
             variant="secondary" 
             size="sm"
             className="h-7 px-2 text-xs"
             onClick={clearFilters}
-            disabled={!customerSearch && !carrierSearch && !selectedTimezone}
+            disabled={!customerSearch && !carrierSearch}
           >
             Clear
           </Button>
