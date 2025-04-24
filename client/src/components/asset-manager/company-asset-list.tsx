@@ -472,14 +472,14 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Category</label>
                       <Select 
-                        value={filters.category || ''} 
-                        onValueChange={(value) => setFilters({...filters, category: value ? value as AssetCategory : null})}
+                        value={filters.category || "all"} 
+                        onValueChange={(value) => setFilters({...filters, category: value === "all" ? null : value as AssetCategory})}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="All categories" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">All categories</SelectItem>
+                          <SelectItem value="all">All categories</SelectItem>
                           {Object.values(AssetCategory).map(category => (
                             <SelectItem key={category} value={category}>{formatCategory(category)}</SelectItem>
                           ))}
@@ -490,14 +490,14 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Location</label>
                       <Select 
-                        value={filters.location || ''} 
-                        onValueChange={(value) => setFilters({...filters, location: value ? value as AssetLocation : null})}
+                        value={filters.location || "all"} 
+                        onValueChange={(value) => setFilters({...filters, location: value === "all" ? null : value as AssetLocation})}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="All locations" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">All locations</SelectItem>
+                          <SelectItem value="all">All locations</SelectItem>
                           {Object.values(AssetLocation).map(location => (
                             <SelectItem key={location} value={location}>{location}</SelectItem>
                           ))}
@@ -508,14 +508,14 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Status</label>
                       <Select 
-                        value={filters.status || ''} 
-                        onValueChange={(value) => setFilters({...filters, status: value ? value as AssetStatus : null})}
+                        value={filters.status || "all"} 
+                        onValueChange={(value) => setFilters({...filters, status: value === "all" ? null : value as AssetStatus})}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="All statuses" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">All statuses</SelectItem>
+                          <SelectItem value="all">All statuses</SelectItem>
                           {Object.values(AssetStatus).map(status => (
                             <SelectItem key={status} value={status}>{status}</SelectItem>
                           ))}
