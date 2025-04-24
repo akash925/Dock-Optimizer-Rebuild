@@ -1,0 +1,44 @@
+Goal:
+
+Make each asset row in company-asset-list.tsx clickable—navigating to the full “Edit Asset” page for that asset (same route you already have on the Edit button).
+
+Remove the extra button row (“Assets + Add / Import Files”) on the top of the Edit Asset page so it matches the Conmitto mock.
+
+Style the Edit page to show a header “Edit Asset: <Asset Name>” below the main “Asset Manager” title, then render your existing multi-tab form (Basic Information, Details, Financial, Maintenance, Metadata) full-width.
+
+Ensure the asset’s display image is shown above the form and can be changed via the existing “Change Display Image” workflow.
+
+Keep all of the data-entry fields you’ve already built, but hide the “Assets + Add / Import Files” nav row so the page matches the attached screenshot.
+
+Files to update:
+
+client/src/components/asset-manager/company-asset-list.tsx
+
+The route handler in your React Router config (if any) so <TableRow> wraps a <Link to={/assets/${asset.id}/edit}>
+
+client/src/pages/asset-manager/EditAssetPage.tsx (or wherever your Edit page lives)
+
+Steps:
+
+In company-asset-list.tsx, import your router’s Link (or useNavigate) and wrap each <TableRow> in a <Link to={/assets/${row.id}/edit}>…</Link>. Remove any onClick on the Edit button—navigation now comes from the row click.
+
+In your EditAssetPage component:
+
+Delete or comment out the <div className="button-row">Assets + Add / Import Files</div> that sits above the “Edit Asset: …” heading.
+
+Ensure the top of the page reads:
+
+jsx
+Copy
+Edit
+<h1>Asset Manager</h1>
+<h2>Edit Asset: {asset.name}</h2>
+Below that, render the existing form (<Tabs>…</Tabs>).
+
+Verify that the <img src={asset.imageUrl} /> (or your Antd Avatar / UI component) is visible above the form and that the “Change Display Image” button still opens its upload modal.
+
+Test by clicking on any row—should navigate to /assets/:id/edit and show the cleaned-up, full-screen edit page with your data intact.
+
+Run npm run dev (or yarn dev) and confirm no new console or TypeScript errors.
+
+Attached: Conmitto Manager full-page mock for reference.
