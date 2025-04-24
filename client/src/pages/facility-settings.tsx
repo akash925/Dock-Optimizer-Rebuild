@@ -1,53 +1,25 @@
-import React from "react";
-import { useParams, useNavigate } from "wouter";
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Save } from "lucide-react";
-import { TimePicker } from "@/components/ui/date-time-picker/time-picker";
-import Layout from "@/components/layout/layout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { Facility } from "@shared/schema";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Clock, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const timeFormatRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
-
-// Time schema for form validation
-const timeSchema = z.string()
-  .regex(timeFormatRegex, { message: "Time must be in 24-hour format (HH:MM)" });
-
-// Define the facility form schema
+// Define facility edit schema with operating hours validation
 const facilityEditSchema = z.object({
+  // Basic facility information
   name: z.string().min(1, "Facility name is required"),
   address1: z.string().min(1, "Address is required"),
   address2: z.string().optional(),
@@ -57,212 +29,131 @@ const facilityEditSchema = z.object({
   country: z.string().min(1, "Country is required"),
   timezone: z.string().min(1, "Timezone is required"),
   
-  // Operating hours - Monday
-  mondayOpen: z.boolean().default(true),
-  mondayStart: timeSchema.default("08:00"),
-  mondayEnd: timeSchema.default("17:00"),
-  mondayBreakStart: timeSchema.default("12:00"),
-  mondayBreakEnd: timeSchema.default("13:00"),
+  // Operating hours for each day of the week
+  mondayOpen: z.boolean(),
+  mondayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  mondayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  mondayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  mondayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
   
-  // Tuesday
-  tuesdayOpen: z.boolean().default(true),
-  tuesdayStart: timeSchema.default("08:00"),
-  tuesdayEnd: timeSchema.default("17:00"),
-  tuesdayBreakStart: timeSchema.default("12:00"),
-  tuesdayBreakEnd: timeSchema.default("13:00"),
+  tuesdayOpen: z.boolean(),
+  tuesdayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  tuesdayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  tuesdayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  tuesdayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
   
-  // Wednesday
-  wednesdayOpen: z.boolean().default(true),
-  wednesdayStart: timeSchema.default("08:00"),
-  wednesdayEnd: timeSchema.default("17:00"),
-  wednesdayBreakStart: timeSchema.default("12:00"),
-  wednesdayBreakEnd: timeSchema.default("13:00"),
+  wednesdayOpen: z.boolean(),
+  wednesdayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  wednesdayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  wednesdayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  wednesdayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
   
-  // Thursday
-  thursdayOpen: z.boolean().default(true),
-  thursdayStart: timeSchema.default("08:00"),
-  thursdayEnd: timeSchema.default("17:00"),
-  thursdayBreakStart: timeSchema.default("12:00"),
-  thursdayBreakEnd: timeSchema.default("13:00"),
+  thursdayOpen: z.boolean(),
+  thursdayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  thursdayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  thursdayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  thursdayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
   
-  // Friday
-  fridayOpen: z.boolean().default(true),
-  fridayStart: timeSchema.default("08:00"),
-  fridayEnd: timeSchema.default("17:00"),
-  fridayBreakStart: timeSchema.default("12:00"),
-  fridayBreakEnd: timeSchema.default("13:00"),
+  fridayOpen: z.boolean(),
+  fridayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  fridayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  fridayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  fridayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
   
-  // Saturday
-  saturdayOpen: z.boolean().default(false),
-  saturdayStart: timeSchema.default("08:00"),
-  saturdayEnd: timeSchema.default("13:00"),
-  saturdayBreakStart: timeSchema.optional(),
-  saturdayBreakEnd: timeSchema.optional(),
+  saturdayOpen: z.boolean(),
+  saturdayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  saturdayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  saturdayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  saturdayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
   
-  // Sunday
-  sundayOpen: z.boolean().default(false),
-  sundayStart: timeSchema.default("08:00"),
-  sundayEnd: timeSchema.default("17:00"),
-  sundayBreakStart: timeSchema.optional(),
-  sundayBreakEnd: timeSchema.optional(),
-});
+  sundayOpen: z.boolean(),
+  sundayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  sundayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+  sundayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  sundayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+}).refine(
+  (data) => {
+    // For each day that is open, ensure start time is before end time
+    if (data.mondayOpen && data.mondayStart >= data.mondayEnd) {
+      return false;
+    }
+    if (data.tuesdayOpen && data.tuesdayStart >= data.tuesdayEnd) {
+      return false;
+    }
+    if (data.wednesdayOpen && data.wednesdayStart >= data.wednesdayEnd) {
+      return false;
+    }
+    if (data.thursdayOpen && data.thursdayStart >= data.thursdayEnd) {
+      return false;
+    }
+    if (data.fridayOpen && data.fridayStart >= data.fridayEnd) {
+      return false;
+    }
+    if (data.saturdayOpen && data.saturdayStart >= data.saturdayEnd) {
+      return false;
+    }
+    if (data.sundayOpen && data.sundayStart >= data.sundayEnd) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "End time must be after start time",
+    path: ["mondayEnd"], // This is a placeholder, the actual error field will vary
+  }
+).refine(
+  (data) => {
+    // For each day with a break, ensure break start is after day start and before day end
+    if (data.mondayOpen && data.mondayBreakStart && data.mondayBreakEnd) {
+      if (data.mondayBreakStart <= data.mondayStart || data.mondayBreakStart >= data.mondayEnd) {
+        return false;
+      }
+      if (data.mondayBreakEnd <= data.mondayBreakStart || data.mondayBreakEnd >= data.mondayEnd) {
+        return false;
+      }
+    }
+    // Add similar validations for other days
+    return true;
+  },
+  {
+    message: "Break times must be within operating hours",
+    path: ["mondayBreakStart"], // This is a placeholder
+  }
+);
 
 export type FacilityFormValues = z.infer<typeof facilityEditSchema>;
 
-const timezones = [
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "America/Anchorage", label: "Alaska Time (AKT)" },
-  { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" },
-  { value: "Europe/London", label: "London (GMT)" },
-  { value: "Europe/Paris", label: "Central European Time (CET)" },
-  { value: "Asia/Tokyo", label: "Japan Standard Time (JST)" },
-  { value: "Australia/Sydney", label: "Australian Eastern Time (AET)" },
-];
-
-// Component for time input fields
-const TimeInputFields = ({ dayName, form, isDisabled = false }: { 
-  dayName: string; 
-  form: any;
-  isDisabled?: boolean;
-}) => {
-  const dayIsOpenField = `${dayName}Open`;
-  const isOpen = form.watch(dayIsOpenField);
-  
-  return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-bold">{dayName.charAt(0).toUpperCase() + dayName.slice(1)}</CardTitle>
-          <FormField
-            control={form.control}
-            name={dayIsOpenField}
-            render={({ field }) => (
-              <FormItem className="flex items-center gap-2">
-                <FormLabel>Open</FormLabel>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className={`grid gap-4 ${isOpen ? "grid-cols-2" : "grid-cols-2 opacity-50"}`}>
-          <FormField
-            control={form.control}
-            name={`${dayName}Start`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Start Time</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="HH:MM"
-                    {...field}
-                    disabled={!isOpen || isDisabled}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`${dayName}End`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>End Time</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="HH:MM"
-                    {...field}
-                    disabled={!isOpen || isDisabled}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`${dayName}BreakStart`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Break Start</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="HH:MM"
-                    {...field}
-                    value={field.value || ""}
-                    disabled={!isOpen || isDisabled}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`${dayName}BreakEnd`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Break End</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="HH:MM"
-                    {...field}
-                    value={field.value || ""}
-                    disabled={!isOpen || isDisabled}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
 export default function FacilitySettingsPage() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
+  const params = useParams<{ id: string }>();
+  const facilityId = params?.id ? parseInt(params.id) : undefined;
   const { toast } = useToast();
   
-  const facilityId = id ? parseInt(id) : null;
-  
-  const isEditMode = !!facilityId;
-  
-  // Fetch facility data if in edit mode
-  const { data: facility, isLoading: isLoadingFacility } = useQuery({
+  // Fetch facility data
+  const { data: facility, isLoading, error } = useQuery<Facility, Error>({
     queryKey: ['/api/facilities', facilityId],
     queryFn: async () => {
-      if (!facilityId) return null;
-      const res = await fetch(`/api/facilities/${facilityId}`);
-      if (!res.ok) throw new Error("Failed to load facility");
-      return res.json();
+      if (!facilityId) throw new Error("Facility ID is required");
+      const response = await fetch(`/api/facilities/${facilityId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch facility");
+      }
+      return response.json();
     },
     enabled: !!facilityId,
   });
-
-  // Set up form with default values
+  
+  // Form setup
   const form = useForm<FacilityFormValues>({
     resolver: zodResolver(facilityEditSchema),
-    defaultValues: facility || {
+    defaultValues: {
       name: "",
       address1: "",
       address2: "",
       city: "",
       state: "",
       pincode: "",
-      country: "USA",
+      country: "",
       timezone: "America/New_York",
       
       mondayOpen: true,
@@ -298,275 +189,984 @@ export default function FacilitySettingsPage() {
       saturdayOpen: false,
       saturdayStart: "08:00",
       saturdayEnd: "13:00",
+      saturdayBreakStart: "",
+      saturdayBreakEnd: "",
       
       sundayOpen: false,
       sundayStart: "08:00",
       sundayEnd: "17:00",
+      sundayBreakStart: "",
+      sundayBreakEnd: "",
     },
   });
   
-  // Update form values when facility data is loaded
-  React.useEffect(() => {
+  // Update form when facility data is loaded
+  useEffect(() => {
     if (facility) {
-      form.reset(facility);
+      form.reset({
+        name: facility.name || "",
+        address1: facility.address1 || "",
+        address2: facility.address2 || "",
+        city: facility.city || "",
+        state: facility.state || "",
+        pincode: facility.pincode || "",
+        country: facility.country || "",
+        timezone: facility.timezone || "America/New_York",
+        
+        mondayOpen: facility.mondayOpen ?? true,
+        mondayStart: facility.mondayStart || "08:00",
+        mondayEnd: facility.mondayEnd || "17:00",
+        mondayBreakStart: facility.mondayBreakStart || "12:00",
+        mondayBreakEnd: facility.mondayBreakEnd || "13:00",
+        
+        tuesdayOpen: facility.tuesdayOpen ?? true,
+        tuesdayStart: facility.tuesdayStart || "08:00",
+        tuesdayEnd: facility.tuesdayEnd || "17:00",
+        tuesdayBreakStart: facility.tuesdayBreakStart || "12:00",
+        tuesdayBreakEnd: facility.tuesdayBreakEnd || "13:00",
+        
+        wednesdayOpen: facility.wednesdayOpen ?? true,
+        wednesdayStart: facility.wednesdayStart || "08:00",
+        wednesdayEnd: facility.wednesdayEnd || "17:00",
+        wednesdayBreakStart: facility.wednesdayBreakStart || "12:00",
+        wednesdayBreakEnd: facility.wednesdayBreakEnd || "13:00",
+        
+        thursdayOpen: facility.thursdayOpen ?? true,
+        thursdayStart: facility.thursdayStart || "08:00",
+        thursdayEnd: facility.thursdayEnd || "17:00",
+        thursdayBreakStart: facility.thursdayBreakStart || "12:00",
+        thursdayBreakEnd: facility.thursdayBreakEnd || "13:00",
+        
+        fridayOpen: facility.fridayOpen ?? true,
+        fridayStart: facility.fridayStart || "08:00",
+        fridayEnd: facility.fridayEnd || "17:00",
+        fridayBreakStart: facility.fridayBreakStart || "12:00",
+        fridayBreakEnd: facility.fridayBreakEnd || "13:00",
+        
+        saturdayOpen: facility.saturdayOpen ?? false,
+        saturdayStart: facility.saturdayStart || "08:00",
+        saturdayEnd: facility.saturdayEnd || "13:00",
+        saturdayBreakStart: facility.saturdayBreakStart || "",
+        saturdayBreakEnd: facility.saturdayBreakEnd || "",
+        
+        sundayOpen: facility.sundayOpen ?? false,
+        sundayStart: facility.sundayStart || "08:00",
+        sundayEnd: facility.sundayEnd || "17:00",
+        sundayBreakStart: facility.sundayBreakStart || "",
+        sundayBreakEnd: facility.sundayBreakEnd || "",
+      });
     }
   }, [facility, form]);
   
-  // Mutation for saving facility
-  const saveFacilityMutation = useMutation({
+  // Submit handler
+  const updateMutation = useMutation({
     mutationFn: async (data: FacilityFormValues) => {
-      if (isEditMode) {
-        // Update existing facility
-        return apiRequest("PATCH", `/api/facilities/${facilityId}`, data);
-      } else {
-        // Create new facility
-        return apiRequest("POST", "/api/facilities", data);
+      if (!facilityId) throw new Error("Facility ID is required");
+      
+      const response = await apiRequest(
+        "PATCH",
+        `/api/facilities/${facilityId}`,
+        data
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update facility");
       }
-    },
-    onSuccess: async () => {
-      // Show success message
-      toast({
-        title: `Facility ${isEditMode ? "updated" : "created"} successfully`,
-        description: `The facility has been ${isEditMode ? "updated" : "created"} with the new settings.`,
-      });
       
-      // Invalidate facilities query to refresh data
+      return response.json();
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/facilities'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/facilities', facilityId] });
       
-      // Navigate back to facilities list
-      navigate("/facilities");
-    },
-    onError: (error) => {
-      console.error("Error saving facility:", error);
       toast({
-        title: "Error saving facility",
-        description: error.message || "An unexpected error occurred",
+        title: "Facility updated",
+        description: "Facility settings have been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
   
-  // Form submission handler
   const onSubmit = (data: FacilityFormValues) => {
-    saveFacilityMutation.mutate(data);
+    updateMutation.mutate(data);
   };
   
-  if (isLoadingFacility) {
+  if (isLoading) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <p className="text-destructive">Error: {error.message}</p>
+        <Button onClick={() => setLocation("/facilities")}>
+          Back to Facilities
+        </Button>
+      </div>
     );
   }
   
   return (
-    <Layout>
-      <div className="container py-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">
-            {isEditMode ? "Edit Facility" : "Add New Facility"}
-          </h1>
-          <Button variant="outline" onClick={() => navigate("/facilities")}>
-            Back to Facilities
-          </Button>
-        </div>
+    <div className="container py-8">
+      <div className="flex items-center mb-6">
+        <Button 
+          variant="ghost" 
+          className="mr-4"
+          onClick={() => setLocation("/facilities")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+        <h1 className="text-3xl font-bold">Facility Settings</h1>
+      </div>
+      
+      <Tabs defaultValue="general">
+        <TabsList className="mb-6">
+          <TabsTrigger value="general">General Information</TabsTrigger>
+          <TabsTrigger value="hours">Operating Hours</TabsTrigger>
+        </TabsList>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <Tabs defaultValue="general">
-              <TabsList className="mb-4">
-                <TabsTrigger value="general">General Information</TabsTrigger>
-                <TabsTrigger value="hours">Operating Hours</TabsTrigger>
-              </TabsList>
-              
-              {/* General Information Tab */}
-              <TabsContent value="general">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Facility Details</CardTitle>
-                    <CardDescription>
-                      Enter the basic information about this facility
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Facility Name</FormLabel>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <TabsContent value="general">
+              <Card>
+                <CardHeader>
+                  <CardTitle>General Information</CardTitle>
+                  <CardDescription>Update the facility's basic information.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Facility Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="timezone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Timezone</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
                             <FormControl>
-                              <Input placeholder="Facility Name" {...field} />
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select timezone" />
+                              </SelectTrigger>
                             </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="timezone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Timezone</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select timezone" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {timezones.map((tz) => (
-                                  <SelectItem key={tz.value} value={tz.value}>
-                                    {tz.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="address1"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Address Line 1</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Street Address" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="address2"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Address Line 2</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Suite, Floor, etc." {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>City</FormLabel>
-                            <FormControl>
-                              <Input placeholder="City" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="state"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>State/Province</FormLabel>
-                            <FormControl>
-                              <Input placeholder="State/Province" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="pincode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Postal Code</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Postal/ZIP Code" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="country"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Country</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Country" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              {/* Operating Hours Tab */}
-              <TabsContent value="hours">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Facility Operating Hours</CardTitle>
-                    <CardDescription>
-                      Set the operating hours for this facility. These hours will be used as the default for scheduling appointments.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <TimeInputFields dayName="monday" form={form} />
-                      <TimeInputFields dayName="tuesday" form={form} />
-                      <TimeInputFields dayName="wednesday" form={form} />
-                      <TimeInputFields dayName="thursday" form={form} />
-                      <TimeInputFields dayName="friday" form={form} />
-                      <TimeInputFields dayName="saturday" form={form} />
-                      <TimeInputFields dayName="sunday" form={form} />
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                            <SelectContent>
+                              <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                              <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                              <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                              <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="address1"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address Line 1</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="address2"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address Line 2</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State/Province</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="pincode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Postal Code</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
             
-            <div className="flex justify-end space-x-4">
+            <TabsContent value="hours">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Facility Operating Hours</CardTitle>
+                  <CardDescription>
+                    Configure when this facility is open for appointments. All times are in 24-hour format (HH:MM).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Monday */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-lg font-medium">Monday</h3>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="mondayOpen"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormLabel>Open</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {form.watch("mondayOpen") && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="mondayStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Opening Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="08:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="mondayEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Closing Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="17:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="mondayBreakStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break Start</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="12:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="mondayBreakEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break End</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="13:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Tuesday */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-lg font-medium">Tuesday</h3>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="tuesdayOpen"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormLabel>Open</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {form.watch("tuesdayOpen") && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="tuesdayStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Opening Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="08:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="tuesdayEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Closing Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="17:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="tuesdayBreakStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break Start</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="12:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="tuesdayBreakEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break End</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="13:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Wednesday */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-lg font-medium">Wednesday</h3>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="wednesdayOpen"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormLabel>Open</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {form.watch("wednesdayOpen") && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="wednesdayStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Opening Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="08:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="wednesdayEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Closing Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="17:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="wednesdayBreakStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break Start</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="12:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="wednesdayBreakEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break End</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="13:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Thursday */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-lg font-medium">Thursday</h3>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="thursdayOpen"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormLabel>Open</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {form.watch("thursdayOpen") && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="thursdayStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Opening Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="08:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="thursdayEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Closing Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="17:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="thursdayBreakStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break Start</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="12:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="thursdayBreakEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break End</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="13:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Friday */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-lg font-medium">Friday</h3>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="fridayOpen"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormLabel>Open</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {form.watch("fridayOpen") && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="fridayStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Opening Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="08:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="fridayEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Closing Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="17:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="fridayBreakStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break Start</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="12:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="fridayBreakEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break End</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="13:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Saturday */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-lg font-medium">Saturday</h3>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="saturdayOpen"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormLabel>Open</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {form.watch("saturdayOpen") && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="saturdayStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Opening Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="08:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="saturdayEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Closing Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="13:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="saturdayBreakStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break Start</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="12:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="saturdayBreakEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break End</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="13:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Sunday */}
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
+                        <h3 className="text-lg font-medium">Sunday</h3>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="sundayOpen"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center space-x-2 space-y-0">
+                            <FormLabel>Open</FormLabel>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {form.watch("sundayOpen") && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="sundayStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Opening Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="08:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="sundayEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Closing Time</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="17:00" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="sundayBreakStart"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break Start</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="12:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="sundayBreakEnd"
+                            render={({ field }) => (
+                              <FormItem className="flex-1">
+                                <FormLabel>Break End</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="13:00"
+                                    value={field.value || ""}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <CardFooter className="flex justify-end border rounded-lg p-4 mt-6">
               <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => navigate("/facilities")}
+                type="submit"
+                disabled={updateMutation.isPending}
               >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={saveFacilityMutation.isPending}
-              >
-                {saveFacilityMutation.isPending && (
+                {updateMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                {isEditMode ? "Update Facility" : "Create Facility"}
+                Save Changes
               </Button>
-            </div>
+            </CardFooter>
           </form>
         </Form>
-      </div>
-    </Layout>
+      </Tabs>
+    </div>
   );
 }

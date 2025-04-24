@@ -1,6 +1,6 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { 
   Card, 
   CardContent, 
@@ -39,7 +39,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Facility } from "@shared/schema";
 
 export default function FacilitiesPage() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   
   // Fetch facilities
