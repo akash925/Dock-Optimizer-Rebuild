@@ -300,13 +300,69 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid grid-cols-5 mb-6">
+              <TabsList className="grid grid-cols-4 mb-6">
                 <TabsTrigger value="basic">Basic Information</TabsTrigger>
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger value="financial">Financial</TabsTrigger>
                 <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-                <TabsTrigger value="metadata">Metadata</TabsTrigger>
               </TabsList>
+              
+              {/* Photo Upload - Now at the top before tabs */}
+              <div className="mb-6 pb-6 border-b">
+                <div className="flex flex-col md:flex-row gap-6 items-start">
+                  <div className="space-y-2 flex-1">
+                    <Label htmlFor="photo">Asset Photo</Label>
+                    
+                    {photoPreview ? (
+                      <div className="w-full h-40 relative">
+                        <img 
+                          src={photoPreview} 
+                          alt="Asset preview" 
+                          className="h-full max-w-full object-contain rounded-md border" 
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="absolute top-2 right-2 bg-background"
+                          onClick={() => {
+                            setPhotoFile(null);
+                            setPhotoPreview(null);
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : assetToEdit?.photoUrl ? (
+                      <div className="w-full h-40 relative">
+                        <img 
+                          src={assetToEdit.photoUrl} 
+                          alt={assetToEdit.name} 
+                          className="h-full max-w-full object-contain rounded-md border" 
+                        />
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-muted rounded-md p-6 flex flex-col items-center justify-center bg-muted/10 h-40">
+                        <UploadCloud className="h-10 w-10 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground mb-2">Click or drag and drop to upload</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="w-full md:w-auto flex flex-col space-y-2">
+                    <Input
+                      id="photo"
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handlePhotoChange}
+                      className="max-w-md"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Upload a photo of the asset (optional). Supported formats: JPG, PNG, PDF
+                    </p>
+                  </div>
+                </div>
+              </div>
               
               {/* Basic Information Tab */}
               <TabsContent value="basic" className="space-y-4">
@@ -1156,48 +1212,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                 </div>
               </TabsContent>
               
-              {/* Metadata Tab */}
-              <TabsContent value="metadata" className="space-y-4">
-                <div className="space-y-4">
-                  {/* Photo Upload */}
-                  <div className="space-y-2">
-                    <Label htmlFor="photo">Photo</Label>
-                    
-                    {photoPreview ? (
-                      <div className="my-4 w-40 h-40 relative">
-                        <img 
-                          src={photoPreview} 
-                          alt="Asset preview" 
-                          className="w-full h-full object-cover rounded-md" 
-                        />
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center bg-gray-50">
-                        <UploadCloud className="h-10 w-10 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500 mb-2">Click or drag and drop to upload</p>
-                      </div>
-                    )}
-                    
-                    <Input
-                      id="photo"
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                    />
-                    <FormDescription>
-                      Upload a photo of the asset (optional)
-                    </FormDescription>
-                  </div>
 
-                  {/* Document Upload (not implemented yet) */}
-                  <div className="border rounded-md p-4 bg-gray-50">
-                    <div className="flex items-center text-sm text-muted-foreground mb-2">
-                      <AlertCircle className="h-4 w-4 mr-2" />
-                      Document uploads for asset manuals and receipts will be added in a future update.
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
             </Tabs>
 
             {/* Submit Button */}
