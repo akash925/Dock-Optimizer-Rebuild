@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarDays, Clock, FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon } from "lucide-react";
+import { CalendarDays, FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
@@ -35,22 +35,11 @@ interface QuestionFormField {
   appointmentType: "inbound" | "outbound" | "both";
 }
 
-interface AvailabilityRule {
-  id: number;
-  dayOfWeek: number; // 0-6 for Sunday-Saturday
-  maxAppointments: number;
-  startTime: string;
-  endTime: string;
-  appointmentType: "inbound" | "outbound" | "both";
-}
-
 export default function AppointmentMaster() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("types");
   const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
   const [showQuestionDialog, setShowQuestionDialog] = useState(false);
-  const [showAvailabilityDialog, setShowAvailabilityDialog] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   
   // Appointment Type Management
   const [showNewAppointmentTypeDialog, setShowNewAppointmentTypeDialog] = useState(false);
@@ -94,15 +83,6 @@ export default function AppointmentMaster() {
     required: false,
     options: [],
     placeholder: "",
-    appointmentType: "both"
-  });
-  
-  // Form fields for availability rule editing
-  const [availabilityForm, setAvailabilityForm] = useState<Partial<AvailabilityRule>>({
-    dayOfWeek: 1, // Monday default
-    maxAppointments: 10,
-    startTime: "08:00",
-    endTime: "17:00",
     appointmentType: "both"
   });
   
@@ -165,17 +145,6 @@ export default function AppointmentMaster() {
       order: 4,
       appointmentType: "both"
     }
-  ]);
-  
-  // Mock data for availability rules
-  const [availabilityRules, setAvailabilityRules] = useState<AvailabilityRule[]>([
-    { id: 1, dayOfWeek: 1, maxAppointments: 15, startTime: "08:00", endTime: "17:00", appointmentType: "both" },
-    { id: 2, dayOfWeek: 2, maxAppointments: 15, startTime: "08:00", endTime: "17:00", appointmentType: "both" },
-    { id: 3, dayOfWeek: 3, maxAppointments: 15, startTime: "08:00", endTime: "17:00", appointmentType: "both" },
-    { id: 4, dayOfWeek: 4, maxAppointments: 15, startTime: "08:00", endTime: "17:00", appointmentType: "both" },
-    { id: 5, dayOfWeek: 5, maxAppointments: 12, startTime: "08:00", endTime: "16:00", appointmentType: "both" },
-    { id: 6, dayOfWeek: 6, maxAppointments: 8, startTime: "09:00", endTime: "13:00", appointmentType: "inbound" },
-    { id: 7, dayOfWeek: 0, maxAppointments: 0, startTime: "00:00", endTime: "00:00", appointmentType: "both" },
   ]);
   
   // Helper functions and mutations
@@ -325,47 +294,6 @@ export default function AppointmentMaster() {
     }
   });
   
-  const saveAvailabilityRuleMutation = useMutation({
-    mutationFn: async (rule: Partial<AvailabilityRule>) => {
-      // Mock API call
-      return new Promise<AvailabilityRule>((resolve) => {
-        setTimeout(() => {
-          const newRule = {
-            id: selectedDay !== null 
-              ? availabilityRules.find(r => r.dayOfWeek === selectedDay)?.id || Math.max(0, ...availabilityRules.map(r => r.id)) + 1
-              : Math.max(0, ...availabilityRules.map(r => r.id)) + 1,
-            dayOfWeek: rule.dayOfWeek || 1,
-            maxAppointments: rule.maxAppointments || 0,
-            startTime: rule.startTime || "08:00",
-            endTime: rule.endTime || "17:00",
-            appointmentType: rule.appointmentType || "both"
-          } as AvailabilityRule;
-          resolve(newRule);
-        }, 500);
-      });
-    },
-    onSuccess: (newRule) => {
-      const existingRuleIndex = availabilityRules.findIndex(r => r.dayOfWeek === newRule.dayOfWeek);
-      
-      let updatedRules;
-      if (existingRuleIndex >= 0) {
-        updatedRules = [...availabilityRules];
-        updatedRules[existingRuleIndex] = newRule;
-      } else {
-        updatedRules = [...availabilityRules, newRule];
-      }
-      
-      setAvailabilityRules(updatedRules);
-      setShowAvailabilityDialog(false);
-      setSelectedDay(null);
-      
-      toast({
-        title: "Success",
-        description: "Availability rule updated successfully",
-      });
-    }
-  });
-  
   // Delete custom field
   const deleteCustomField = (id: number) => {
     setCustomFields(customFields.filter(field => field.id !== id));
@@ -387,31 +315,6 @@ export default function AppointmentMaster() {
       appointmentType: field.appointmentType
     });
     setShowQuestionDialog(true);
-  };
-  
-  // Edit availability rule
-  const editAvailabilityRule = (dayOfWeek: number) => {
-    const rule = availabilityRules.find(r => r.dayOfWeek === dayOfWeek);
-    if (rule) {
-      setSelectedDay(dayOfWeek);
-      setAvailabilityForm({
-        dayOfWeek: rule.dayOfWeek,
-        maxAppointments: rule.maxAppointments,
-        startTime: rule.startTime,
-        endTime: rule.endTime,
-        appointmentType: rule.appointmentType
-      });
-    } else {
-      setSelectedDay(dayOfWeek);
-      setAvailabilityForm({
-        dayOfWeek: dayOfWeek,
-        maxAppointments: 0,
-        startTime: "08:00",
-        endTime: "17:00",
-        appointmentType: "both"
-      });
-    }
-    setShowAvailabilityDialog(true);
   };
   
   // Handle form changes for question editing
@@ -439,23 +342,50 @@ export default function AppointmentMaster() {
   
   // Handle removing an option
   const removeOption = (index: number) => {
+    const newOptions = [...(questionForm.options || [])];
+    newOptions.splice(index, 1);
     setQuestionForm(prev => ({
       ...prev,
-      options: (prev.options || []).filter((_, i) => i !== index)
+      options: newOptions
     }));
   };
   
-  // Handle form changes for availability rules
-  const handleAvailabilityFormChange = (field: string, value: any) => {
-    setAvailabilityForm(prev => ({ ...prev, [field]: value }));
+  // Get appointment type label for display
+  const getAppointmentTypeLabel = (type: string) => {
+    switch(type) {
+      case "inbound": return "Inbound";
+      case "outbound": return "Outbound";
+      case "both": return "Both";
+      default: return type;
+    }
   };
   
-  const getAppointmentTypeLabel = (type: string) => {
-    switch (type) {
-      case "inbound": return <Badge variant="outline" className="bg-slate-50 text-blue-700 border-blue-200">Inbound</Badge>;
-      case "outbound": return <Badge variant="outline" className="bg-slate-50 text-emerald-700 border-emerald-200">Outbound</Badge>;
-      case "both": return <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">Both</Badge>;
-      default: return null;
+  // Handle submit appointment type form
+  const handleAppointmentTypeSubmit = () => {
+    const formData = {
+      ...appointmentTypeForm,
+      id: selectedAppointmentTypeId
+    };
+    
+    if (selectedAppointmentTypeId) {
+      updateAppointmentTypeMutation.mutate(formData);
+    } else {
+      createAppointmentTypeMutation.mutate(formData);
+    }
+  };
+  
+  // Handle moving between form steps
+  const goToNextStep = () => {
+    if (appointmentTypeFormStep < 3) {
+      setAppointmentTypeFormStep(prev => prev + 1);
+    } else {
+      handleAppointmentTypeSubmit();
+    }
+  };
+  
+  const goToPreviousStep = () => {
+    if (appointmentTypeFormStep > 1) {
+      setAppointmentTypeFormStep(prev => prev - 1);
     }
   };
   
@@ -489,429 +419,746 @@ export default function AppointmentMaster() {
             
             {/* Appointment Types Tab */}
             <TabsContent value="types">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Appointment Types</CardTitle>
-                    <CardDescription>
-                      Create and manage appointment types
-                    </CardDescription>
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Appointment Types</CardTitle>
+                      <CardDescription>
+                        Create and manage appointment types
+                      </CardDescription>
+                    </div>
+                    <Button onClick={() => {
+                      setSelectedAppointmentTypeId(null);
+                      setAppointmentTypeForm({
+                        name: "",
+                        description: "",
+                        facilityId: facilities.length > 0 ? facilities[0].id : 0,
+                        color: "#4CAF50",
+                        duration: 60,
+                        type: "both",
+                        maxConcurrent: 1,
+                        bufferTime: 0,
+                        maxAppointmentsPerDay: undefined,
+                        allowAppointmentsThroughBreaks: false,
+                        allowAppointmentsPastBusinessHours: false,
+                        timezone: "America/New_York",
+                        gracePeriod: 15,
+                        emailReminderTime: 24,
+                        showRemainingSlots: true,
+                        overrideFacilityHours: false
+                      });
+                      setAppointmentTypeFormStep(1);
+                      setShowNewAppointmentTypeDialog(true);
+                    }}>
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      New Appointment Type
+                    </Button>
                   </div>
-                  <Button onClick={() => {
-                    setSelectedAppointmentTypeId(null);
-                    setAppointmentTypeForm({
-                      name: "",
-                      description: "",
-                      facilityId: facilities.length > 0 ? facilities[0].id : 0,
-                      color: "#4CAF50",
-                      duration: 60,
-                      type: "both",
-                      maxConcurrent: 1,
-                      bufferTime: 0,
-                      maxAppointmentsPerDay: undefined,
-                      allowAppointmentsThroughBreaks: false,
-                      allowAppointmentsPastBusinessHours: false,
-                      timezone: "America/New_York",
-                      gracePeriod: 15,
-                      emailReminderTime: 24,
-                      showRemainingSlots: true,
-
-                    });
-                    setAppointmentTypeFormStep(1);
-                    setShowNewAppointmentTypeDialog(true);
-                  }}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    New Appointment Type
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingAppointmentTypes ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                    <p className="text-muted-foreground">Loading appointment types...</p>
-                  </div>
-                ) : apiAppointmentTypes.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No appointment types have been created yet.</p>
-                    <p className="text-sm mt-2">Click "New Appointment Type" to create your first appointment type.</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Appointment Name</TableHead>
-                        <TableHead>Facility</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {appointmentTypesWithFacilityNames.map((appointmentType) => (
-                        <TableRow key={appointmentType.id}>
-                          <TableCell className="font-medium">{appointmentType.name}</TableCell>
-                          <TableCell>{appointmentType.facilityName}</TableCell>
-                          <TableCell>{getAppointmentTypeLabel(appointmentType.type)}</TableCell>
-                          <TableCell>{appointmentType.createdDate}</TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => {
-                                  setSelectedAppointmentTypeId(appointmentType.id);
-                                  // Set the form data from the selected appointment type
-                                  setAppointmentTypeForm({
-                                    name: appointmentType.name || "",
-                                    description: appointmentType.description || "",
-                                    facilityId: appointmentType.facilityId || (facilities.length > 0 ? facilities[0].id : 0),
-                                    color: appointmentType.color || "#4CAF50",
-                                    duration: appointmentType.duration || 60,
-                                    type: appointmentType.type || "both",
-                                    maxConcurrent: appointmentType.maxConcurrent || 1,
-                                    bufferTime: appointmentType.bufferTime || 0,
-                                    maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay === null ? undefined : appointmentType.maxAppointmentsPerDay,
-                                    timezone: appointmentType.timezone || "America/New_York",
-                                    gracePeriod: appointmentType.gracePeriod || 15,
-                                    emailReminderTime: appointmentType.emailReminderTime || 24,
-                                    showRemainingSlots: appointmentType.showRemainingSlots ?? true,
-                                    allowAppointmentsThroughBreaks: appointmentType.allowAppointmentsThroughBreaks || false,
-                                    allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false,
-                                    overrideFacilityHours: appointmentType.overrideFacilityHours || false
-                                  });
-                                  setAppointmentTypeFormStep(1);
-                                  setShowNewAppointmentTypeDialog(true);
-                                }}>
-                                  <Pencil className="h-4 w-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  duplicateAppointmentTypeMutation.mutate(appointmentType.id);
-                                }}>
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Duplicate
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  className="text-red-600"
-                                  onClick={() => {
-                                    if(confirm(`Are you sure you want to delete "${appointmentType.name}"?`)) {
-                                      deleteAppointmentTypeMutation.mutate(appointmentType.id);
-                                    }
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingAppointmentTypes ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                      <p className="text-muted-foreground">Loading appointment types...</p>
+                    </div>
+                  ) : apiAppointmentTypes.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No appointment types have been created yet.</p>
+                      <p className="text-sm mt-2">Click "New Appointment Type" to create your first appointment type.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Appointment Name</TableHead>
+                          <TableHead>Facility</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {appointmentTypesWithFacilityNames.map((appointmentType) => (
+                          <TableRow key={appointmentType.id}>
+                            <TableCell className="font-medium">{appointmentType.name}</TableCell>
+                            <TableCell>{appointmentType.facilityName}</TableCell>
+                            <TableCell>{getAppointmentTypeLabel(appointmentType.type)}</TableCell>
+                            <TableCell>{appointmentType.createdDate}</TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => {
+                                    setSelectedAppointmentTypeId(appointmentType.id);
+                                    // Set the form data from the selected appointment type
+                                    setAppointmentTypeForm({
+                                      name: appointmentType.name || "",
+                                      description: appointmentType.description || "",
+                                      facilityId: appointmentType.facilityId || (facilities.length > 0 ? facilities[0].id : 0),
+                                      color: appointmentType.color || "#4CAF50",
+                                      duration: appointmentType.duration || 60,
+                                      type: appointmentType.type || "both",
+                                      maxConcurrent: appointmentType.maxConcurrent || 1,
+                                      bufferTime: appointmentType.bufferTime || 0,
+                                      maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay === null ? undefined : appointmentType.maxAppointmentsPerDay,
+                                      timezone: appointmentType.timezone || "America/New_York",
+                                      gracePeriod: appointmentType.gracePeriod || 15,
+                                      emailReminderTime: appointmentType.emailReminderTime || 24,
+                                      showRemainingSlots: appointmentType.showRemainingSlots ?? true,
+                                      allowAppointmentsThroughBreaks: appointmentType.allowAppointmentsThroughBreaks || false,
+                                      allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false,
+                                      overrideFacilityHours: appointmentType.overrideFacilityHours || false
+                                    });
+                                    setAppointmentTypeFormStep(1);
+                                    setShowNewAppointmentTypeDialog(true);
+                                  }}>
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    duplicateAppointmentTypeMutation.mutate(appointmentType.id);
+                                  }}>
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Duplicate
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="text-red-600"
+                                    onClick={() => {
+                                      if(confirm(`Are you sure you want to delete "${appointmentType.name}"?`)) {
+                                        deleteAppointmentTypeMutation.mutate(appointmentType.id);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <div className="mt-6">
+                <SeedAppointmentTypes />
+              </div>
+            </TabsContent>
             
-            <div className="mt-6">
-              <SeedAppointmentTypes />
-            </div>
-          </TabsContent>
-          
             {/* Custom Questions Tab */}
             <TabsContent value="questions">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Custom Form Questions</CardTitle>
-                    <CardDescription>
-                      Create and manage custom fields for appointment forms
-                    </CardDescription>
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Custom Form Questions</CardTitle>
+                      <CardDescription>
+                        Create and manage custom fields for appointment forms
+                      </CardDescription>
+                    </div>
+                    <Button onClick={() => {
+                      setSelectedQuestionId(null);
+                      setQuestionForm({
+                        label: "",
+                        type: "text",
+                        required: false,
+                        options: [],
+                        placeholder: "",
+                        appointmentType: "both"
+                      });
+                      setShowQuestionDialog(true);
+                    }}>
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Question
+                    </Button>
                   </div>
-                  <Button onClick={() => {
-                    setSelectedQuestionId(null);
-                    setQuestionForm({
-                      label: "",
-                      type: "text",
-                      required: false,
-                      options: [],
-                      placeholder: "",
-                      appointmentType: "both"
-                    });
-                    setShowQuestionDialog(true);
-                  }}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Add Question
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {customFields.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No custom questions have been created yet.</p>
-                    <p className="text-sm mt-2">Click "Add Question" to create your first custom question.</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[50px]">Order</TableHead>
-                        <TableHead>Field Label</TableHead>
-                        <TableHead>Field Type</TableHead>
-                        <TableHead>Required</TableHead>
-                        <TableHead>Appointment Type</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {customFields.map((field) => (
-                        <TableRow key={field.id}>
-                          <TableCell>{field.order}</TableCell>
-                          <TableCell className="font-medium">{field.label}</TableCell>
-                          <TableCell className="capitalize">{field.type}</TableCell>
-                          <TableCell>{field.required ? "Yes" : "No"}</TableCell>
-                          <TableCell>{getAppointmentTypeLabel(field.appointmentType)}</TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => editCustomField(field)}
-                            >
-                              Edit
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-red-500"
-                              onClick={() => deleteCustomField(field.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
+                </CardHeader>
+                <CardContent>
+                  {customFields.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No custom questions have been created yet.</p>
+                      <p className="text-sm mt-2">Click "Add Question" to create your first custom question.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[50px]">Order</TableHead>
+                          <TableHead>Field Label</TableHead>
+                          <TableHead>Field Type</TableHead>
+                          <TableHead>Required</TableHead>
+                          <TableHead>Appointment Type</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-            {/* Availability Rules Tab */}
-            <TabsContent value="availability">
-            <Card>
-              <CardHeader>
-                <CardTitle>Appointment Availability Rules</CardTitle>
-                <CardDescription>
-                  Set the maximum number of appointments allowed for each day of the week
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {weekDays.map((day, index) => {
-                    const dayRule = availabilityRules.find(r => r.dayOfWeek === index);
-                    const isClosed = !dayRule || dayRule.maxAppointments === 0;
-                    
-                    return (
-                      <Card key={index} className={isClosed ? "border-dashed opacity-70" : ""}>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-base flex justify-between items-center">
-                            <span>{day}</span>
-                            {isClosed && <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">Closed</Badge>}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          {!isClosed ? (
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Hours:</span>
-                                <span>{dayRule?.startTime} - {dayRule?.endTime}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Max Appointments:</span>
-                                <span>{dayRule?.maxAppointments}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Type:</span>
-                                <span>{getAppointmentTypeLabel(dayRule?.appointmentType || 'both')}</span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="py-2 text-center text-muted-foreground text-sm">
-                              Facility is closed on this day
-                            </div>
-                          )}
-                        </CardContent>
-                        <CardFooter className="pt-0">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full"
-                            onClick={() => editAvailabilityRule(index)}
-                          >
-                            {isClosed ? "Set hours" : "Edit"}
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
+                      </TableHeader>
+                      <TableBody>
+                        {customFields.map((field) => (
+                          <TableRow key={field.id}>
+                            <TableCell>{field.order}</TableCell>
+                            <TableCell className="font-medium">{field.label}</TableCell>
+                            <TableCell className="capitalize">{field.type}</TableCell>
+                            <TableCell>{field.required ? "Yes" : "No"}</TableCell>
+                            <TableCell>{getAppointmentTypeLabel(field.appointmentType)}</TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => editCustomField(field)}
+                              >
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-red-500"
+                                onClick={() => deleteCustomField(field.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
             {/* General Settings Tab */}
             <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>General Appointment Settings</CardTitle>
-                <CardDescription>
-                  Configure global appointment settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Advance Notice Requirements</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="inbound-advance">Inbound appointments (hours)</Label>
-                      <Input id="inbound-advance" type="number" defaultValue="24" />
-                      <p className="text-sm text-muted-foreground">
-                        Minimum hours in advance for scheduling inbound appointments
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="outbound-advance">Outbound appointments (hours)</Label>
-                      <Input id="outbound-advance" type="number" defaultValue="48" />
-                      <p className="text-sm text-muted-foreground">
-                        Minimum hours in advance for scheduling outbound appointments
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Scheduling Window</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="max-days">Maximum days in advance</Label>
-                      <Input id="max-days" type="number" defaultValue="30" />
-                      <p className="text-sm text-muted-foreground">
-                        Maximum number of days in advance appointments can be scheduled
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="booking-buffer">Booking buffer (minutes)</Label>
-                      <Input id="booking-buffer" type="number" defaultValue="15" />
-                      <p className="text-sm text-muted-foreground">
-                        Buffer time between appointments
-                      </p>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Appointment System Settings</CardTitle>
+                  <CardDescription>
+                    Configure general settings for the appointment system
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Email Notifications</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Switch id="email-confirmations" checked={true} />
+                          <Label htmlFor="email-confirmations">
+                            Send appointment confirmations
+                          </Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground ml-6">
+                          Send email confirmations when appointments are created
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Switch id="email-reminders" checked={true} />
+                          <Label htmlFor="email-reminders">
+                            Send appointment reminders
+                          </Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground ml-6">
+                          Send email reminders before scheduled appointments
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Notification Settings</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Switch id="email-confirm" defaultChecked />
-                      <Label htmlFor="email-confirm">
-                        Send email confirmation to carriers
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch id="email-reminder" defaultChecked />
-                      <Label htmlFor="email-reminder">
-                        Send reminder 24 hours before appointment
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch id="sms-notification" />
-                      <Label htmlFor="sms-notification">
-                        Enable SMS notifications
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Approval Settings</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Switch id="auto-approval" defaultChecked />
-                      <Label htmlFor="auto-approval">
-                        Automatically approve appointments
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch id="manual-approval" />
-                      <Label htmlFor="manual-approval">
-                        Require manual approval for outbound appointments
-                      </Label>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Calendar Settings</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="default-view">Default Calendar View</Label>
+                        <Select defaultValue="week">
+                          <SelectTrigger id="default-view">
+                            <SelectValue placeholder="Select view" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day">Day View</SelectItem>
+                            <SelectItem value="week">Week View</SelectItem>
+                            <SelectItem value="month">Month View</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="week-starts">Week Starts On</Label>
+                        <Select defaultValue="1">
+                          <SelectTrigger id="week-starts">
+                            <SelectValue placeholder="Select day" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">Sunday</SelectItem>
+                            <SelectItem value="1">Monday</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Settings
-                </Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        </div> {/* Close the border rounded-md div */}
-        
-        {/* Question Dialog */}
-        <Dialog open={showQuestionDialog} onOpenChange={setShowQuestionDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>{selectedQuestionId ? "Edit Question" : "Add New Question"}</DialogTitle>
-              <DialogDescription>
-                {selectedQuestionId 
-                  ? "Update the properties of this custom question"
-                  : "Add a new custom question to the appointment form"
-                }
-              </DialogDescription>
-            </DialogHeader>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Booking Rules</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="max-days-advance">Maximum Days in Advance</Label>
+                        <Select defaultValue="90">
+                          <SelectTrigger id="max-days-advance">
+                            <SelectValue placeholder="Select days" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="30">30 days</SelectItem>
+                            <SelectItem value="60">60 days</SelectItem>
+                            <SelectItem value="90">90 days</SelectItem>
+                            <SelectItem value="180">180 days</SelectItem>
+                            <SelectItem value="365">365 days</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="min-notice">Minimum Notice Period</Label>
+                        <Select defaultValue="24">
+                          <SelectTrigger id="min-notice">
+                            <SelectValue placeholder="Select hours" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1 hour</SelectItem>
+                            <SelectItem value="2">2 hours</SelectItem>
+                            <SelectItem value="4">4 hours</SelectItem>
+                            <SelectItem value="8">8 hours</SelectItem>
+                            <SelectItem value="24">24 hours</SelectItem>
+                            <SelectItem value="48">48 hours</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+      
+      {/* Create/Edit Appointment Type Dialog */}
+      <Dialog open={showNewAppointmentTypeDialog} onOpenChange={setShowNewAppointmentTypeDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAppointmentTypeId ? "Edit Appointment Type" : "Create New Appointment Type"}
+            </DialogTitle>
+            <DialogDescription>
+              {appointmentTypeFormStep === 1 && "Configure basic details for this appointment type"}
+              {appointmentTypeFormStep === 2 && "Set scheduling rules and availability"}
+              {appointmentTypeFormStep === 3 && "Configure additional options and settings"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {/* Step navigation */}
+            <div className="flex items-center mb-6">
+              <Button 
+                className={`relative flex items-center justify-center w-8 h-8 rounded-full ${
+                  appointmentTypeFormStep >= 1 ? "bg-primary text-white" : "bg-muted"
+                }`}
+                variant="ghost"
+                onClick={() => setAppointmentTypeFormStep(1)}
+              >
+                1
+              </Button>
+              <div className={`h-1 flex-1 ${appointmentTypeFormStep >= 2 ? "bg-primary" : "bg-muted"}`} />
+              <Button 
+                className={`relative flex items-center justify-center w-8 h-8 rounded-full ${
+                  appointmentTypeFormStep >= 2 ? "bg-primary text-white" : "bg-muted"
+                }`}
+                variant="ghost"
+                onClick={() => setAppointmentTypeFormStep(2)}
+                disabled={appointmentTypeFormStep < 2}
+              >
+                2
+              </Button>
+              <div className={`h-1 flex-1 ${appointmentTypeFormStep >= 3 ? "bg-primary" : "bg-muted"}`} />
+              <Button 
+                className={`relative flex items-center justify-center w-8 h-8 rounded-full ${
+                  appointmentTypeFormStep >= 3 ? "bg-primary text-white" : "bg-muted"
+                }`}
+                variant="ghost"
+                onClick={() => setAppointmentTypeFormStep(3)}
+                disabled={appointmentTypeFormStep < 3}
+              >
+                3
+              </Button>
+            </div>
             
-            <div className="space-y-4">
+            {/* Step 1: Basic Details */}
+            {appointmentTypeFormStep === 1 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-name">Name</Label>
+                    <Input
+                      id="appointment-name"
+                      placeholder="e.g., Standard Delivery, Express Pickup"
+                      value={appointmentTypeForm.name}
+                      onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, name: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-facility">Facility</Label>
+                    <Select
+                      value={appointmentTypeForm.facilityId.toString()}
+                      onValueChange={(value) => setAppointmentTypeForm({...appointmentTypeForm, facilityId: parseInt(value)})}
+                    >
+                      <SelectTrigger id="appointment-facility">
+                        <SelectValue placeholder="Select facility" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {facilities.map((facility) => (
+                          <SelectItem key={facility.id} value={facility.id.toString()}>
+                            {facility.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="appointment-description">Description</Label>
+                  <Textarea
+                    id="appointment-description"
+                    placeholder="Briefly describe this appointment type..."
+                    value={appointmentTypeForm.description || ""}
+                    onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, description: e.target.value})}
+                    className="min-h-20"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-duration">Duration (minutes)</Label>
+                    <Input
+                      id="appointment-duration"
+                      type="number"
+                      min="5"
+                      step="5"
+                      value={appointmentTypeForm.duration.toString()}
+                      onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, duration: parseInt(e.target.value) || 0})}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-color">Color</Label>
+                    <Input 
+                      id="appointment-color" 
+                      type="color" 
+                      value={appointmentTypeForm.color} 
+                      onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, color: e.target.value})}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="appointment-type">Appointment Operations</Label>
+                  <RadioGroup 
+                    value={appointmentTypeForm.type} 
+                    onValueChange={(value) => setAppointmentTypeForm({
+                      ...appointmentTypeForm, 
+                      type: value as "inbound" | "outbound" | "both"
+                    })}
+                  >
+                    <div className="flex items-center space-x-2 py-2">
+                      <RadioGroupItem value="inbound" id="appointment-type-inbound" />
+                      <Label htmlFor="appointment-type-inbound">Inbound Only</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 py-2">
+                      <RadioGroupItem value="outbound" id="appointment-type-outbound" />
+                      <Label htmlFor="appointment-type-outbound">Outbound Only</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 py-2">
+                      <RadioGroupItem value="both" id="appointment-type-both" />
+                      <Label htmlFor="appointment-type-both">Both Inbound & Outbound</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            )}
+            
+            {/* Step 2: Scheduling Options */}
+            {appointmentTypeFormStep === 2 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-buffer">Buffer Time (minutes)</Label>
+                    <Input
+                      id="appointment-buffer"
+                      type="number"
+                      min="0"
+                      step="5"
+                      value={appointmentTypeForm.bufferTime.toString()}
+                      onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, bufferTime: parseInt(e.target.value) || 0})}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Buffer time between appointments of this type
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-max-concurrent">Max Concurrent Appointments</Label>
+                    <Input
+                      id="appointment-max-concurrent"
+                      type="number"
+                      min="1"
+                      value={appointmentTypeForm.maxConcurrent.toString()}
+                      onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, maxConcurrent: parseInt(e.target.value) || 1})}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      How many appointments can be scheduled at the same time
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-daily-max">Max Appointments Per Day (optional)</Label>
+                    <Input
+                      id="appointment-daily-max"
+                      type="number"
+                      min="1"
+                      placeholder="No limit"
+                      value={appointmentTypeForm.maxAppointmentsPerDay?.toString() || ""}
+                      onChange={(e) => setAppointmentTypeForm({
+                        ...appointmentTypeForm, 
+                        maxAppointmentsPerDay: e.target.value ? parseInt(e.target.value) : undefined
+                      })}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-grace">Grace Period (minutes)</Label>
+                    <Input
+                      id="appointment-grace"
+                      type="number"
+                      min="0"
+                      value={appointmentTypeForm.gracePeriod.toString()}
+                      onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, gracePeriod: parseInt(e.target.value) || 0})}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Time before appointment is marked as late
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="appointment-show-slots"
+                      checked={appointmentTypeForm.showRemainingSlots}
+                      onCheckedChange={(checked) => setAppointmentTypeForm({
+                        ...appointmentTypeForm, 
+                        showRemainingSlots: checked
+                      })}
+                    />
+                    <Label htmlFor="appointment-show-slots">
+                      Show remaining appointment slots
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground ml-6">
+                    Display the number of remaining slots for each time slot on the booking page
+                  </p>
+                </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="appointment-allow-through-breaks"
+                      checked={appointmentTypeForm.allowAppointmentsThroughBreaks}
+                      onCheckedChange={(checked) => setAppointmentTypeForm({
+                        ...appointmentTypeForm, 
+                        allowAppointmentsThroughBreaks: checked
+                      })}
+                    />
+                    <Label htmlFor="appointment-allow-through-breaks">
+                      Allow appointments to span through breaks
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground ml-6">
+                    When enabled, appointments can be scheduled during facility break times
+                  </p>
+                </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="appointment-allow-outside-hours"
+                      checked={appointmentTypeForm.allowAppointmentsPastBusinessHours}
+                      onCheckedChange={(checked) => setAppointmentTypeForm({
+                        ...appointmentTypeForm, 
+                        allowAppointmentsPastBusinessHours: checked
+                      })}
+                    />
+                    <Label htmlFor="appointment-allow-outside-hours">
+                      Allow appointments past business hours
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground ml-6">
+                    When enabled, appointments can extend past facility closing time
+                  </p>
+                </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="appointment-override-facility-hours"
+                      checked={appointmentTypeForm.overrideFacilityHours}
+                      onCheckedChange={(checked) => setAppointmentTypeForm({
+                        ...appointmentTypeForm, 
+                        overrideFacilityHours: checked
+                      })}
+                    />
+                    <Label htmlFor="appointment-override-facility-hours">
+                      Override facility hours
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground ml-6">
+                    When enabled, this appointment type can be scheduled outside regular facility hours
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Step 3: Additional Options */}
+            {appointmentTypeFormStep === 3 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-timezone">Timezone</Label>
+                    <Select
+                      value={appointmentTypeForm.timezone}
+                      onValueChange={(value) => setAppointmentTypeForm({...appointmentTypeForm, timezone: value})}
+                    >
+                      <SelectTrigger id="appointment-timezone">
+                        <SelectValue placeholder="Select timezone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                        <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                        <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                        <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-reminder">Email Reminder (hours before)</Label>
+                    <Input
+                      id="appointment-reminder"
+                      type="number"
+                      min="0"
+                      value={appointmentTypeForm.emailReminderTime.toString()}
+                      onChange={(e) => setAppointmentTypeForm({
+                        ...appointmentTypeForm, 
+                        emailReminderTime: parseInt(e.target.value) || 0
+                      })}
+                    />
+                  </div>
+                </div>
+                
+                <div className="p-4 border rounded-md bg-muted/50 space-y-2">
+                  <div className="flex items-center">
+                    <InfoIcon className="h-5 w-5 text-muted-foreground mr-2" />
+                    <h3 className="font-medium">Form Questions</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    You can add custom form fields for this appointment type from the "Custom Questions" tab.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <div className="flex w-full justify-between">
+              <div>
+                {appointmentTypeFormStep > 1 && (
+                  <Button variant="outline" onClick={goToPreviousStep}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </Button>
+                )}
+              </div>
+              <div>
+                <Button variant="outline" onClick={() => setShowNewAppointmentTypeDialog(false)} className="mr-2">
+                  Cancel
+                </Button>
+                {appointmentTypeFormStep < 3 ? (
+                  <Button onClick={goToNextStep}>
+                    Next
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button onClick={handleAppointmentTypeSubmit}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {selectedAppointmentTypeId ? "Save Changes" : "Create Appointment Type"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Custom Question Dialog */}
+      <Dialog open={showQuestionDialog} onOpenChange={setShowQuestionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedQuestionId ? "Edit Custom Field" : "Add Custom Field"}
+            </DialogTitle>
+            <DialogDescription>
+              Create a custom form field for appointment booking forms
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="question-label">Label</Label>
-                <Input 
-                  id="question-label" 
-                  value={questionForm.label || ""} 
+                <Label htmlFor="field-label">Field Label</Label>
+                <Input
+                  id="field-label"
+                  placeholder="e.g., Delivery Instructions"
+                  value={questionForm.label || ""}
                   onChange={(e) => handleQuestionFormChange("label", e.target.value)}
-                  placeholder="Enter question label" 
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="question-type">Field Type</Label>
-                <Select 
-                  value={questionForm.type} 
+                <Label htmlFor="field-type">Field Type</Label>
+                <Select
+                  value={questionForm.type || "text"}
                   onValueChange={(value) => handleQuestionFormChange("type", value)}
                 >
-                  <SelectTrigger id="question-type">
+                  <SelectTrigger id="field-type">
                     <SelectValue placeholder="Select field type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="textarea">Textarea</SelectItem>
+                    <SelectItem value="text">Text Field</SelectItem>
+                    <SelectItem value="textarea">Text Area</SelectItem>
                     <SelectItem value="select">Dropdown</SelectItem>
                     <SelectItem value="radio">Radio Buttons</SelectItem>
                     <SelectItem value="checkbox">Checkboxes</SelectItem>
@@ -920,702 +1167,96 @@ export default function AppointmentMaster() {
                 </Select>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="question-required" 
-                  checked={questionForm.required} 
-                  onCheckedChange={(checked) => handleQuestionFormChange("required", checked)}
-                />
-                <Label htmlFor="question-required">Required field</Label>
-              </div>
-              
               <div className="space-y-2">
-                <Label htmlFor="question-placeholder">Placeholder (optional)</Label>
-                <Input 
-                  id="question-placeholder" 
-                  value={questionForm.placeholder || ""} 
+                <Label htmlFor="field-placeholder">Placeholder Text (optional)</Label>
+                <Input
+                  id="field-placeholder"
+                  placeholder="Enter placeholder text..."
+                  value={questionForm.placeholder || ""}
                   onChange={(e) => handleQuestionFormChange("placeholder", e.target.value)}
-                  placeholder="Enter placeholder text" 
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="question-applicable">Applicable To</Label>
-                <Select 
-                  value={questionForm.appointmentType || "both"} 
+                <Label>Field Options</Label>
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="field-required"
+                    checked={questionForm.required || false}
+                    onCheckedChange={(checked) => handleQuestionFormChange("required", checked)}
+                  />
+                  <Label htmlFor="field-required">
+                    Required field
+                  </Label>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="field-apply-to">Apply to Appointment Types</Label>
+                <Select
+                  value={questionForm.appointmentType || "both"}
                   onValueChange={(value) => handleQuestionFormChange("appointmentType", value)}
                 >
-                  <SelectTrigger id="question-applicable">
-                    <SelectValue placeholder="Select applicable appointment types" />
+                  <SelectTrigger id="field-apply-to">
+                    <SelectValue placeholder="Select application" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="both">All Appointments</SelectItem>
                     <SelectItem value="inbound">Inbound Only</SelectItem>
                     <SelectItem value="outbound">Outbound Only</SelectItem>
+                    <SelectItem value="both">Both Inbound & Outbound</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               {(questionForm.type === "select" || questionForm.type === "radio" || questionForm.type === "checkbox") && (
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Label>Options</Label>
-                    <Button variant="outline" size="sm" onClick={addOption}>
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Option
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {(questionForm.options || []).map((option, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <Input 
-                          value={option} 
-                          onChange={(e) => updateOption(index, e.target.value)}
-                          placeholder={`Option ${index + 1}`} 
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-red-500"
-                          onClick={() => removeOption(index)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    
-                    {(questionForm.options || []).length === 0 && (
-                      <div className="text-center py-2 text-muted-foreground text-sm">
-                        No options added yet. Click "Add Option" to create some.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowQuestionDialog(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={() => saveCustomFieldMutation.mutate(questionForm)}
-                disabled={saveCustomFieldMutation.isPending}
-              >
-                {saveCustomFieldMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {selectedQuestionId ? "Update Question" : "Add Question"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        
-        {/* Availability Rule Dialog */}
-        <Dialog open={showAvailabilityDialog} onOpenChange={setShowAvailabilityDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                Edit {weekDays[availabilityForm.dayOfWeek as number]} Availability
-              </DialogTitle>
-              <DialogDescription>
-                Configure the availability for this day of the week
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="avail-open">Open for appointments</Label>
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="avail-open" 
-                    checked={availabilityForm.maxAppointments !== 0}
-                    onCheckedChange={(checked) => {
-                      handleAvailabilityFormChange("maxAppointments", checked ? 10 : 0);
-                    }}
-                  />
-                  <Label htmlFor="avail-open">
-                    {availabilityForm.maxAppointments === 0 ? "Closed" : "Open"}
-                  </Label>
-                </div>
-              </div>
-              
-              {availabilityForm.maxAppointments !== 0 && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="avail-start">Start Time</Label>
-                      <Input 
-                        id="avail-start" 
-                        type="time" 
-                        value={availabilityForm.startTime || "08:00"} 
-                        onChange={(e) => handleAvailabilityFormChange("startTime", e.target.value)}
+                <div className="space-y-3 border p-3 rounded-md">
+                  <Label>Options</Label>
+                  {(questionForm.options || []).map((option, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <Input
+                        value={option}
+                        onChange={(e) => updateOption(index, e.target.value)}
+                        placeholder={`Option ${index + 1}`}
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="avail-end">End Time</Label>
-                      <Input 
-                        id="avail-end" 
-                        type="time" 
-                        value={availabilityForm.endTime || "17:00"} 
-                        onChange={(e) => handleAvailabilityFormChange("endTime", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="avail-max">Maximum Appointments</Label>
-                    <Input 
-                      id="avail-max" 
-                      type="number" 
-                      min="1"
-                      value={availabilityForm.maxAppointments || 10} 
-                      onChange={(e) => handleAvailabilityFormChange("maxAppointments", parseInt(e.target.value))}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Maximum number of appointments that can be scheduled on this day
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="avail-type">Appointment Type</Label>
-                    <Select 
-                      value={availabilityForm.appointmentType || "both"} 
-                      onValueChange={(value) => handleAvailabilityFormChange("appointmentType", value)}
-                    >
-                      <SelectTrigger id="avail-type">
-                        <SelectValue placeholder="Select appointment type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="both">All Appointments</SelectItem>
-                        <SelectItem value="inbound">Inbound Only</SelectItem>
-                        <SelectItem value="outbound">Outbound Only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowAvailabilityDialog(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={() => saveAvailabilityRuleMutation.mutate(availabilityForm)}
-                disabled={saveAvailabilityRuleMutation.isPending}
-              >
-                {saveAvailabilityRuleMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Save Rule
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        
-        {/* New Appointment Type Dialog */}
-        <Dialog open={showNewAppointmentTypeDialog} onOpenChange={setShowNewAppointmentTypeDialog}>
-          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {selectedAppointmentTypeId ? "Edit Appointment Type" : "Create Appointment Type"}
-              </DialogTitle>
-              <DialogDescription>
-                {selectedAppointmentTypeId 
-                  ? "Update the properties of this appointment type"
-                  : "Configure the details for your new appointment type"
-                }
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-6">
-              {/* Step Navigation */}
-              <div className="flex justify-between">
-                <div className="flex space-x-1">
-                  <Button 
-                    variant={appointmentTypeFormStep === 1 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setAppointmentTypeFormStep(1)}
-                    className="rounded-full w-8 h-8 p-0"
-                  >1</Button>
-                  <Button 
-                    variant={appointmentTypeFormStep === 2 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setAppointmentTypeFormStep(2)}
-                    className="rounded-full w-8 h-8 p-0"
-                  >2</Button>
-                  <Button 
-                    variant={appointmentTypeFormStep === 3 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setAppointmentTypeFormStep(3)}
-                    className="rounded-full w-8 h-8 p-0"
-                  >3</Button>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Step {appointmentTypeFormStep} of 3: {
-                    appointmentTypeFormStep === 1 ? "Appointment Details" : 
-                    appointmentTypeFormStep === 2 ? "Scheduling Settings" : 
-                    "Custom Questions"
-                  }
-                </div>
-              </div>
-              
-              {/* Step 1: Basic Details */}
-              {appointmentTypeFormStep === 1 && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="appointment-name">Appointment Type Name</Label>
-                      <Input 
-                        id="appointment-name" 
-                        value={appointmentTypeForm.name} 
-                        onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, name: e.target.value})}
-                        placeholder="e.g., 1 Hour Trailer Appointment" 
-                      />
-                    </div>
-                    
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="appointment-desc">Description (optional)</Label>
-                      <Textarea 
-                        id="appointment-desc" 
-                        value={appointmentTypeForm.description || ""} 
-                        onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, description: e.target.value})}
-                        placeholder="Add a description for this appointment type" 
-                        rows={3}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="appointment-facility">Facility</Label>
-                      <Select 
-                        value={appointmentTypeForm.facilityId.toString()} 
-                        onValueChange={(value) => setAppointmentTypeForm({
-                          ...appointmentTypeForm, 
-                          facilityId: parseInt(value)
-                        })}
+                      <Button
+                        type="button" 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => removeOption(index)}
                       >
-                        <SelectTrigger id="appointment-facility">
-                          <SelectValue placeholder="Select a facility" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {facilities.map((facility) => (
-                            <SelectItem key={facility.id} value={facility.id.toString()}>
-                              {facility.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="appointment-duration">Duration (minutes)</Label>
-                      <Input 
-                        id="appointment-duration" 
-                        type="number" 
-                        min="15"
-                        step="15"
-                        value={appointmentTypeForm.duration} 
-                        onChange={(e) => setAppointmentTypeForm({
-                          ...appointmentTypeForm, 
-                          duration: parseInt(e.target.value)
-                        })}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="appointment-color">Color</Label>
-                      <div className="flex items-center space-x-2">
-                        <div 
-                          className="w-6 h-6 rounded-full border" 
-                          style={{ backgroundColor: appointmentTypeForm.color }}
-                        />
-                        <Input 
-                          id="appointment-color" 
-                          type="color" 
-                          value={appointmentTypeForm.color} 
-                          onChange={(e) => setAppointmentTypeForm({...appointmentTypeForm, color: e.target.value})}
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="appointment-type">Appointment Operations</Label>
-                      <RadioGroup 
-                        value={appointmentTypeForm.type} 
-                        onValueChange={(value) => setAppointmentTypeForm({
-                          ...appointmentTypeForm, 
-                          type: value as "inbound" | "outbound" | "both"
-                        })}
-                      >
-                        <div className="flex items-center space-x-2 py-2">
-                          <RadioGroupItem value="inbound" id="appointment-type-inbound" />
-                          <Label htmlFor="appointment-type-inbound">Inbound Only</Label>
-                        </div>
-                        <div className="flex items-center space-x-2 py-2">
-                          <RadioGroupItem value="outbound" id="appointment-type-outbound" />
-                          <Label htmlFor="appointment-type-outbound">Outbound Only</Label>
-                        </div>
-                        <div className="flex items-center space-x-2 py-2">
-                          <RadioGroupItem value="both" id="appointment-type-both" />
-                          <Label htmlFor="appointment-type-both">Both Inbound and Outbound</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Step 2: Scheduling Options */}
-              {appointmentTypeFormStep === 2 && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="appointment-slots">Maximum concurrent appointments</Label>
-                      <Input 
-                        id="appointment-slots" 
-                        type="number" 
-                        min="1"
-                        value={appointmentTypeForm.maxConcurrent} 
-                        onChange={(e) => setAppointmentTypeForm({
-                          ...appointmentTypeForm, 
-                          maxConcurrent: parseInt(e.target.value)
-                        })}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Maximum number of appointments that can be scheduled at the same time
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="appointment-max-per-day">Maximum appointments per day</Label>
-                      <Input 
-                        id="appointment-max-per-day" 
-                        type="number" 
-                        min="0"
-                        placeholder="No limit"
-                        value={appointmentTypeForm.maxAppointmentsPerDay === undefined ? '' : appointmentTypeForm.maxAppointmentsPerDay} 
-                        onChange={(e) => setAppointmentTypeForm({
-                          ...appointmentTypeForm, 
-                          maxAppointmentsPerDay: e.target.value === '' ? undefined : parseInt(e.target.value)
-                        })}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Optional limit for total appointments per day (leave empty for no limit)
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="appointment-grace">Grace period (minutes)</Label>
-                      <Input 
-                        id="appointment-grace" 
-                        type="number" 
-                        min="0"
-                        step="5"
-                        value={appointmentTypeForm.gracePeriod} 
-                        onChange={(e) => setAppointmentTypeForm({
-                          ...appointmentTypeForm, 
-                          gracePeriod: parseInt(e.target.value)
-                        })}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Grace period before an appointment is marked late
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="appointment-buffer">Buffer time (minutes)</Label>
-                      <Input 
-                        id="appointment-buffer" 
-                        type="number" 
-                        min="0"
-                        step="5"
-                        value={appointmentTypeForm.bufferTime} 
-                        onChange={(e) => setAppointmentTypeForm({
-                          ...appointmentTypeForm, 
-                          bufferTime: parseInt(e.target.value)
-                        })}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Gap between appointments (e.g., for cleanup or preparation)
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="appointment-reminder">Email reminder time (hours)</Label>
-                      <Input 
-                        id="appointment-reminder" 
-                        type="number" 
-                        min="1"
-                        value={appointmentTypeForm.emailReminderTime} 
-                        onChange={(e) => setAppointmentTypeForm({
-                          ...appointmentTypeForm, 
-                          emailReminderTime: parseInt(e.target.value)
-                        })}
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Hours before appointment to send email reminder
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="appointment-tz">Timezone</Label>
-                      <Select 
-                        value={appointmentTypeForm.timezone} 
-                        onValueChange={(value) => setAppointmentTypeForm({...appointmentTypeForm, timezone: value})}
-                      >
-                        <SelectTrigger id="appointment-tz">
-                          <SelectValue placeholder="Select timezone" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="America/New_York">Eastern (ET)</SelectItem>
-                          <SelectItem value="America/Chicago">Central (CT)</SelectItem>
-                          <SelectItem value="America/Denver">Mountain (MT)</SelectItem>
-                          <SelectItem value="America/Los_Angeles">Pacific (PT)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2 md:col-span-2">
-                      <div className="flex items-center space-x-2">
-                        <Switch 
-                          id="appointment-show-slots"
-                          checked={appointmentTypeForm.showRemainingSlots}
-                          onCheckedChange={(checked) => setAppointmentTypeForm({
-                            ...appointmentTypeForm, 
-                            showRemainingSlots: checked
-                          })}
-                        />
-                        <Label htmlFor="appointment-show-slots">
-                          Show remaining appointment slots
-                        </Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground ml-6">
-                        Display the number of remaining slots for each time slot on the booking page
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2 md:col-span-2">
-                      <div className="flex items-center space-x-2">
-                        <Switch 
-                          id="appointment-allow-through-breaks"
-                          checked={appointmentTypeForm.allowAppointmentsThroughBreaks}
-                          onCheckedChange={(checked) => setAppointmentTypeForm({
-                            ...appointmentTypeForm, 
-                            allowAppointmentsThroughBreaks: checked
-                          })}
-                        />
-                        <Label htmlFor="appointment-allow-through-breaks">
-                          Allow appointments to span breaks
-                        </Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground ml-6">
-                        When enabled, appointments can be scheduled during break times
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2 md:col-span-2">
-                      <div className="flex items-center space-x-2">
-                        <Switch 
-                          id="appointment-override-facility-hours"
-                          checked={appointmentTypeForm.overrideFacilityHours}
-                          onCheckedChange={(checked) => setAppointmentTypeForm({
-                            ...appointmentTypeForm, 
-                            overrideFacilityHours: checked
-                          })}
-                        />
-                        <Label htmlFor="appointment-override-facility-hours">
-                          Override facility hours
-                        </Label>
-                      </div>
-                      <p className="text-sm text-muted-foreground ml-6">
-                        When enabled, this appointment type will be available 24/7, ignoring facility business hours entirely
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-2 md:col-span-2">
-                      <Alert>
-                        <InfoIcon className="h-4 w-4" />
-                        <AlertTitle>Facility Hours</AlertTitle>
-                        <AlertDescription>
-                          Appointment availability is now managed at the facility level. Use the "Override facility hours" toggle 
-                          above to make this appointment type available at all times.
-                        </AlertDescription>
-                      </Alert>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Step 3: Required and Custom Questions */}
-              {appointmentTypeFormStep === 3 && (
-                <div className="space-y-6">
-                  {/* Core Questions Section */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Core Questions</h3>
-                    <p className="text-sm text-muted-foreground">These standard questions are required for all appointments.</p>
-                    
-                    <div className="space-y-3 bg-slate-50 p-4 rounded-md">
-                      <div className="flex items-center justify-between py-2 border-b">
-                        <div className="flex items-center space-x-3">
-                          <Checkbox id="core-carrier-name" defaultChecked disabled />
-                          <Label htmlFor="core-carrier-name" className="font-medium">Carrier Name</Label>
-                        </div>
-                        <Badge>Required</Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between py-2 border-b">
-                        <div className="flex items-center space-x-3">
-                          <Checkbox id="core-mc-number" defaultChecked />
-                          <Label htmlFor="core-mc-number">MC Number</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="req-mc-number" defaultChecked />
-                          <Label htmlFor="req-mc-number" className="text-sm">Required</Label>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between py-2 border-b">
-                        <div className="flex items-center space-x-3">
-                          <Checkbox id="core-driver-email" defaultChecked />
-                          <Label htmlFor="core-driver-email">Driver/Dispatcher Email</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="req-driver-email" defaultChecked />
-                          <Label htmlFor="req-driver-email" className="text-sm">Required</Label>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between py-2 border-b">
-                        <div className="flex items-center space-x-3">
-                          <Checkbox id="core-driver-phone" defaultChecked />
-                          <Label htmlFor="core-driver-phone">Driver/Dispatcher Phone</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="req-driver-phone" defaultChecked />
-                          <Label htmlFor="req-driver-phone" className="text-sm">Required</Label>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between py-2">
-                        <div className="flex items-center space-x-3">
-                          <Checkbox id="core-driver-license" defaultChecked />
-                          <Label htmlFor="core-driver-license">Driver's License Number</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="req-driver-license" defaultChecked />
-                          <Label htmlFor="req-driver-license" className="text-sm">Required</Label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Custom Questions Section */}
-                  <div className="space-y-4 pt-4 border-t">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-medium">Custom Questions</h3>
-                      <Button variant="outline" size="sm" onClick={() => {
-                        setSelectedQuestionId(null);
-                        setQuestionForm({
-                          label: "",
-                          type: "text",
-                          required: false,
-                          options: [],
-                          placeholder: "",
-                          appointmentType: "both"
-                        });
-                        setShowQuestionDialog(true);
-                      }}>
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Add Question
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                    
-                    {customFields.length === 0 ? (
-                      <div className="text-center py-8 border rounded-md bg-slate-50 text-muted-foreground">
-                        <p>No custom questions have been created yet.</p>
-                        <p className="text-sm mt-2">Custom questions will be displayed on the appointment booking form.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {customFields.map((field) => (
-                          <Card key={field.id}>
-                            <CardHeader className="py-3">
-                              <div className="flex justify-between items-center">
-                                <div className="flex items-center space-x-2">
-                                  <Checkbox 
-                                    id={`include-field-${field.id}`}
-                                    defaultChecked={field.appointmentType === "both" || field.appointmentType === appointmentTypeForm.type}
-                                  />
-                                  <Label htmlFor={`include-field-${field.id}`} className="font-medium">
-                                    {field.label}
-                                  </Label>
-                                </div>
-                                <Badge variant="outline" className="capitalize">
-                                  {field.type}
-                                </Badge>
-                              </div>
-                            </CardHeader>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addOption}
+                    className="mt-2"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Option
+                  </Button>
                 </div>
               )}
             </div>
-            
-            <DialogFooter>
-              <div className="flex justify-between w-full">
-                <div>
-                  {appointmentTypeFormStep > 1 && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setAppointmentTypeFormStep(appointmentTypeFormStep - 1)}
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Back
-                    </Button>
-                  )}
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline" onClick={() => setShowNewAppointmentTypeDialog(false)}>
-                    Cancel
-                  </Button>
-                  
-                  {appointmentTypeFormStep < 3 ? (
-                    <Button onClick={() => setAppointmentTypeFormStep(appointmentTypeFormStep + 1)}>
-                      Next
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={() => {
-                        if (selectedAppointmentTypeId) {
-                          // Update existing appointment type
-                          updateAppointmentTypeMutation.mutate({
-                            ...appointmentTypeForm,
-                            id: selectedAppointmentTypeId
-                          });
-                        } else {
-                          // Create new appointment type
-                          createAppointmentTypeMutation.mutate(appointmentTypeForm);
-                        }
-                      }}
-                      disabled={updateAppointmentTypeMutation.isPending || createAppointmentTypeMutation.isPending}
-                    >
-                      {(updateAppointmentTypeMutation.isPending || createAppointmentTypeMutation.isPending) ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4 mr-2" />
-                      )}
-                      {selectedAppointmentTypeId ? "Update Appointment Type" : "Create Appointment Type"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQuestionDialog(false)} className="mr-2">
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => saveCustomFieldMutation.mutate(questionForm)} 
+              disabled={saveCustomFieldMutation.isPending}
+            >
+              {saveCustomFieldMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {selectedQuestionId ? "Update Field" : "Add Field"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
