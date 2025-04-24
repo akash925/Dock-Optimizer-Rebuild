@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -205,12 +205,46 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
         description: 'Company asset has been deleted successfully.',
       });
       
-      // Invalidate query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/asset-manager/company-assets'] });
+      // Invalidate query to refresh the list with current search parameters
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/asset-manager/company-assets'],
+        exact: false
+      });
     },
     onError: (error: Error) => {
       toast({
         title: 'Deletion failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Status update mutation
+  const statusUpdateMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number, status: AssetStatus }) => {
+      const response = await apiRequest('PATCH', `/api/asset-manager/company-assets/${id}/status`, { status });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update asset status');
+      }
+      return { id, status };
+    },
+    onSuccess: ({ status }) => {
+      toast({
+        title: 'Status updated',
+        description: `Asset status has been updated to ${status}`,
+      });
+      
+      // Invalidate query to refresh the list with current search parameters
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/asset-manager/company-assets'],
+        exact: false
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Status update failed',
         description: error.message,
         variant: 'destructive',
       });
@@ -299,6 +333,11 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       setAssetToEdit(asset);
       setIsDialogOpen(true);
     }
+  };
+  
+  // Handle status update
+  const handleStatusUpdate = (id: number, status: AssetStatus) => {
+    statusUpdateMutation.mutate({ id, status });
   };
   
   // Navigate to full edit page
@@ -640,6 +679,21 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                                 <Pencil className="w-4 h-4 mr-2" />
                                 Edit Full Page
                               </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+                              {Object.values(AssetStatus).map((status) => (
+                                <DropdownMenuItem 
+                                  key={status}
+                                  disabled={asset.status === status}
+                                  onClick={() => handleStatusUpdate(asset.id, status)}
+                                >
+                                  <Badge variant={getStatusVariant(status)} className="mr-2 capitalize">
+                                    {status}
+                                  </Badge>
+                                  {asset.status === status ? 'Current' : 'Change to'}
+                                </DropdownMenuItem>
+                              ))}
+                              <DropdownMenuSeparator />
                               {asset.photoUrl && (
                                 <DropdownMenuItem onClick={() => window.open(asset.photoUrl!, '_blank')}>
                                   <Image className="w-4 h-4 mr-2" />

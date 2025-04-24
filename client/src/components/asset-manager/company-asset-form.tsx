@@ -242,8 +242,12 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         description: 'Company asset has been updated successfully.',
       });
       
-      // Invalidate queries to refresh lists
-      queryClient.invalidateQueries({ queryKey: ['/api/asset-manager/company-assets'] });
+      // Invalidate queries to refresh lists - this will match all query keys that start with this prefix
+      // ensuring that searches with different filter parameters are also refreshed
+      queryClient.invalidateQueries({
+        queryKey: ['/api/asset-manager/company-assets'],
+        exact: false
+      });
       
       // Call success callback if provided
       if (onSuccess) onSuccess();
