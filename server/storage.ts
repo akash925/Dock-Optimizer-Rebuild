@@ -20,7 +20,7 @@ import {
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, or, ilike, SQL, sql } from "drizzle-orm";
 import { db, pool } from "./db";
 
 const MemoryStore = createMemoryStore(session);
@@ -117,6 +117,7 @@ export interface IStorage {
   // Company Asset operations
   getCompanyAsset(id: number): Promise<CompanyAsset | undefined>;
   getCompanyAssets(): Promise<CompanyAsset[]>;
+  getFilteredCompanyAssets(filters: Record<string, any>): Promise<CompanyAsset[]>;
   createCompanyAsset(companyAsset: InsertCompanyAsset): Promise<CompanyAsset>;
   updateCompanyAsset(id: number, companyAsset: UpdateCompanyAsset): Promise<CompanyAsset | undefined>;
   deleteCompanyAsset(id: number): Promise<boolean>;
@@ -766,6 +767,69 @@ export class MemStorage implements IStorage {
   async getCompanyAssets(): Promise<CompanyAsset[]> {
     return Array.from(this.companyAssets.values());
   }
+  
+  async getFilteredCompanyAssets(filters: Record<string, any>): Promise<CompanyAsset[]> {
+    const assets = Array.from(this.companyAssets.values());
+    
+    // Return all assets if no filters are provided
+    if (!filters || Object.keys(filters).length === 0) {
+      return assets;
+    }
+    
+    return assets.filter(asset => {
+      // Search term (q) filter - check across multiple fields
+      if (filters.q) {
+        const searchTerm = filters.q.toLowerCase();
+        const searchMatch = 
+          asset.name.toLowerCase().includes(searchTerm) ||
+          asset.manufacturer.toLowerCase().includes(searchTerm) ||
+          asset.owner.toLowerCase().includes(searchTerm) ||
+          (asset.description && asset.description.toLowerCase().includes(searchTerm)) ||
+          (asset.barcode && asset.barcode.toLowerCase().includes(searchTerm)) ||
+          (asset.serialNumber && asset.serialNumber.toLowerCase().includes(searchTerm)) ||
+          (asset.department && asset.department.toLowerCase().includes(searchTerm));
+        
+        if (!searchMatch) return false;
+      }
+      
+      // Category filter
+      if (filters.category && asset.category !== filters.category) {
+        return false;
+      }
+      
+      // Location filter
+      if (filters.location && asset.location !== filters.location) {
+        return false;
+      }
+      
+      // Status filter
+      if (filters.status && asset.status !== filters.status) {
+        return false;
+      }
+      
+      // Tags filter
+      if (filters.tags) {
+        const filterTags = filters.tags.split(',');
+        if (filterTags.length > 0) {
+          // Skip assets with no tags
+          if (!asset.tags) return false;
+          
+          // Parse asset tags
+          try {
+            const assetTags = JSON.parse(asset.tags);
+            // Check if any filter tag exists in asset tags
+            const hasMatchingTag = filterTags.some(tag => assetTags.includes(tag));
+            if (!hasMatchingTag) return false;
+          } catch (e) {
+            // If tags can't be parsed, consider it a non-match
+            return false;
+          }
+        }
+      }
+      
+      return true;
+    });
+  }
 
   async createCompanyAsset(insertCompanyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
     const id = this.companyAssetIdCounter++;
@@ -861,19 +925,19 @@ export class DatabaseStorage implements IStorage {
     let query = db.select().from(companyAssets);
     
     // Apply search term filter
-    if (filters.searchTerm) {
-      const searchTerm = `%${filters.searchTerm}%`;
+    if (filters.q) {
+      const searchTerm = `%${filters.q}%`;
       query = query.where(
         or(
-          ilike(companyAssets.name, searchTerm),
-          ilike(companyAssets.description || '', searchTerm),
-          ilike(companyAssets.manufacturer, searchTerm),
-          ilike(companyAssets.model || '', searchTerm),
-          ilike(companyAssets.notes || '', searchTerm),
-          ilike(companyAssets.department || '', searchTerm),
-          ilike(companyAssets.owner, searchTerm),
-          ilike(companyAssets.barcode || '', searchTerm),
-          ilike(companyAssets.serialNumber || '', searchTerm)
+          sql`${companyAssets.name} ILIKE ${searchTerm}`,
+          sql`COALESCE(${companyAssets.description}, '') ILIKE ${searchTerm}`,
+          sql`${companyAssets.manufacturer} ILIKE ${searchTerm}`,
+          sql`COALESCE(${companyAssets.model}, '') ILIKE ${searchTerm}`,
+          sql`COALESCE(${companyAssets.notes}, '') ILIKE ${searchTerm}`,
+          sql`COALESCE(${companyAssets.department}, '') ILIKE ${searchTerm}`,
+          sql`${companyAssets.owner} ILIKE ${searchTerm}`,
+          sql`COALESCE(${companyAssets.barcode}, '') ILIKE ${searchTerm}`,
+          sql`COALESCE(${companyAssets.serialNumber}, '') ILIKE ${searchTerm}`
         )
       );
     }
@@ -894,25 +958,25 @@ export class DatabaseStorage implements IStorage {
     }
     
     // Apply tags filter
-    // Tags are stored as a JSON array, so we need to use JSON contains operator
-    if (filters.tags && filters.tags.length > 0) {
-      // This is a simplified approach since JSON filtering varies by database
-      // In a real implementation, you would need more sophisticated JSON querying
-      // For now, we'll get all assets and filter in memory
-      const assets = await query;
-      return assets.filter(asset => {
-        if (!asset.tags) return false;
-        
-        const assetTags = Array.isArray(asset.tags) 
-          ? asset.tags 
-          : (typeof asset.tags === 'string' ? [asset.tags] : []);
-        
-        return filters.tags.some((tag: string) => 
-          assetTags.some((assetTag: string) => 
-            assetTag.toLowerCase().includes(tag.toLowerCase())
-          )
-        );
-      });
+    if (filters.tags) {
+      const tagList = filters.tags.split(',');
+      if (tagList.length > 0) {
+        // Get results and filter in memory for tags
+        const assets = await query;
+        return assets.filter(asset => {
+          if (!asset.tags) return false;
+          
+          try {
+            const assetTags = JSON.parse(asset.tags as string);
+            return tagList.some(tag => 
+              assetTags.includes(tag)
+            );
+          } catch (e) {
+            // If tags can't be parsed, consider it a non-match
+            return false;
+          }
+        });
+      }
     }
     
     return await query;
