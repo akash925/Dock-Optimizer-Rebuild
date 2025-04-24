@@ -363,16 +363,30 @@ export default function AppointmentForm({
     }
   };
   
-  // Get available times based on the selected date
+  // Get available times based on the selected date and appointment type
   const getAvailableTimes = () => {
-    // For now, return a simple array of times every 30 minutes from 8 AM to 5 PM
+    const selectedAppointmentType = form.getValues("appointmentTypeId") 
+      ? allAppointmentTypes.find(type => type.id === form.getValues("appointmentTypeId"))
+      : null;
+    
+    // Default facility hours (8 AM to 5 PM)
+    const facilityOpenHour = 8;
+    const facilityCloseHour = 17;
+    
+    // Only show full hour slots for standard appointment booking
     const times = [];
-    for (let hour = 8; hour <= 17; hour++) {
-      for (let minute of [0, 30]) {
-        if (hour === 17 && minute > 0) continue; // Don't go past 5 PM
-        times.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
-      }
+    for (let hour = facilityOpenHour; hour < facilityCloseHour; hour++) {
+      // Create the time slot with availability indication
+      const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+      
+      // For each slot, we could add info about available appointment slots
+      // In a real implementation, this would come from the API based on the selected date and facility
+      let slotsAvailable = 3; // Default value; would be fetched from API
+      
+      // Add a modified display string that includes availability info
+      times.push(`${timeStr} (${slotsAvailable} available)`);
     }
+    
     return times;
   };
   
@@ -528,17 +542,15 @@ export default function AppointmentForm({
                               selected={field.value ? new Date(field.value) : undefined}
                               onSelect={(date) => {
                                 if (date) {
-                                  // Make a clean date with no time information to avoid timezone issues
-                                  const utcDate = new Date(Date.UTC(
-                                    date.getFullYear(),
-                                    date.getMonth(),
-                                    date.getDate()
-                                  ));
+                                  // Get the local date parts to avoid timezone shifts
+                                  const localYear = date.getFullYear();
+                                  const localMonth = date.getMonth() + 1; // JavaScript months are 0-based
+                                  const localDay = date.getDate();
                                   
-                                  // Format with yyyy-MM-dd pattern
-                                  const isoDate = utcDate.toISOString().split('T')[0];
-                                  field.onChange(isoDate);
-                                  console.log("Selected date:", isoDate);
+                                  // Format with yyyy-MM-dd pattern preserving the actual selected day
+                                  const formattedDate = `${localYear}-${localMonth.toString().padStart(2, '0')}-${localDay.toString().padStart(2, '0')}`;
+                                  field.onChange(formattedDate);
+                                  console.log("Selected date (exactly as selected):", formattedDate);
                                 }
                               }}
                               disabled={(date) => {
@@ -822,17 +834,15 @@ export default function AppointmentForm({
                             selected={field.value ? new Date(field.value) : undefined}
                             onSelect={(date) => {
                               if (date) {
-                                // Make a clean date with no time information to avoid timezone issues
-                                const utcDate = new Date(Date.UTC(
-                                  date.getFullYear(),
-                                  date.getMonth(),
-                                  date.getDate()
-                                ));
+                                // Get the local date parts to avoid timezone shifts
+                                const localYear = date.getFullYear();
+                                const localMonth = date.getMonth() + 1; // JavaScript months are 0-based
+                                const localDay = date.getDate();
                                 
-                                // Format with yyyy-MM-dd pattern
-                                const isoDate = utcDate.toISOString().split('T')[0];
-                                field.onChange(isoDate);
-                                console.log("Selected date:", isoDate);
+                                // Format with yyyy-MM-dd pattern preserving the actual selected day
+                                const formattedDate = `${localYear}-${localMonth.toString().padStart(2, '0')}-${localDay.toString().padStart(2, '0')}`;
+                                field.onChange(formattedDate);
+                                console.log("Selected date (step 3):", formattedDate);
                               }
                             }}
                             disabled={(date) => {
