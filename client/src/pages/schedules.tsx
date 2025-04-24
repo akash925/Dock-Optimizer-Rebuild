@@ -560,6 +560,7 @@ export default function Schedules() {
               : docks}
             date={selectedDate}
             timezone={timezone}
+            timeFormat={timeFormat}
             onScheduleClick={handleScheduleClick}
             onDateChange={setSelectedDate}
             onCellClick={handleCellClick}
@@ -578,6 +579,7 @@ export default function Schedules() {
               : docks}
             date={selectedDate}
             timezone={timezone}
+            timeFormat={timeFormat}
             onScheduleClick={handleScheduleClick}
             onDateChange={setSelectedDate}
             onCellClick={handleCellClick}
@@ -592,6 +594,7 @@ export default function Schedules() {
               : docks}
             date={selectedDate}
             timezone={timezone}
+            timeFormat={timeFormat}
             onScheduleClick={handleScheduleClick}
             onCellClick={handleCellClick}
           />
@@ -636,6 +639,7 @@ export default function Schedules() {
         initialDockId={selectedDockId}  // Pass the selected dock to the form
         appointmentTypeId={selectedAppointmentTypeId} // Pass the selected appointment type
         timezone={timezone} // Pass the selected timezone
+        timeFormat={timeFormat} // Pass the selected time format
       />
       
       {/* Appointment Details Dialog */}
@@ -644,6 +648,7 @@ export default function Schedules() {
         open={isDetailsDialogOpen}
         onOpenChange={handleDetailsDialogClose}
         facilityName={selectedSchedule ? getFacilityNameForDock(selectedSchedule.dockId) : ""}
+        timeFormat={timeFormat}
       />
       
       {/* Appointment Type Selection Dialog */}
