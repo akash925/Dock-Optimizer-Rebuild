@@ -27,7 +27,9 @@ import {
   getTimeZoneAbbreviation,
   formatInUserTimeZone,
   formatInFacilityTimeZone,
-  formatDateRangeInTimeZone
+  formatDateRangeInTimeZone,
+  utcToUserTime,
+  utcToFacilityTime
 } from "@/lib/timezone-utils";
 import { 
   Popover,
