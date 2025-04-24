@@ -188,11 +188,46 @@ export const createAsset = uploadAsset;
  */
 
 /**
- * List all company assets
+ * List all company assets with optional filtering
  */
 export const listCompanyAssets = async (req: Request, res: Response) => {
   try {
-    const companyAssets = await assetManagerService.listCompanyAssets();
+    // Extract filter parameters from query
+    const { q, category, status, location, tags } = req.query;
+    
+    // Build filter object
+    const filters: Record<string, any> = {};
+    
+    // Add search term if provided
+    if (q && typeof q === 'string') {
+      filters.searchTerm = q;
+    }
+    
+    // Add category filter if provided
+    if (category && typeof category === 'string') {
+      filters.category = category;
+    }
+    
+    // Add status filter if provided
+    if (status && typeof status === 'string') {
+      filters.status = status;
+    }
+    
+    // Add location filter if provided
+    if (location && typeof location === 'string') {
+      filters.location = location;
+    }
+    
+    // Add tags filter if provided (can be comma-separated)
+    if (tags && typeof tags === 'string') {
+      filters.tags = tags.split(',');
+    }
+    
+    // Apply filters if any were provided
+    const companyAssets = Object.keys(filters).length > 0
+      ? await assetManagerService.listCompanyAssets(filters)
+      : await assetManagerService.listCompanyAssets();
+    
     return res.json(companyAssets);
   } catch (error) {
     console.error('Error fetching company assets:', error);

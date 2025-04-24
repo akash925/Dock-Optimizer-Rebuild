@@ -197,12 +197,24 @@ export class AssetManagerService implements AssetService {
   }
 
   /**
-   * List all company assets
+   * List all company assets with search and filtering
    */
-  async listCompanyAssets(): Promise<CompanyAsset[]> {
+  async listCompanyAssets(filters?: Record<string, any>): Promise<CompanyAsset[]> {
     try {
       const storage = await getStorage();
       if (typeof storage.getCompanyAssets === 'function') {
+        // If filters provided, use the filtered method
+        if (filters && Object.keys(filters).length > 0) {
+          if (typeof storage.getFilteredCompanyAssets === 'function') {
+            return await storage.getFilteredCompanyAssets(filters);
+          } else {
+            console.warn('Storage does not implement getFilteredCompanyAssets method, fallback to client-side filtering');
+            // Fallback: Get all and filter in memory
+            const assets = await storage.getCompanyAssets();
+            return this.filterCompanyAssets(assets, filters);
+          }
+        }
+        // No filters, get all
         return await storage.getCompanyAssets();
       } else {
         console.error('Storage does not implement getCompanyAssets method');
@@ -212,6 +224,68 @@ export class AssetManagerService implements AssetService {
       console.error('Error in listCompanyAssets:', error);
       return [];
     }
+  }
+  
+  /**
+   * Filter company assets in memory when database filtering is not available
+   * This is a fallback method for in-memory filtering
+   */
+  private filterCompanyAssets(assets: CompanyAsset[], filters: Record<string, any>): CompanyAsset[] {
+    return assets.filter(asset => {
+      // Search text filtering (check name, description, manufacturer, model, notes)
+      if (filters.searchTerm) {
+        const searchTerm = filters.searchTerm.toLowerCase();
+        const searchFields = [
+          asset.name, 
+          asset.description, 
+          asset.manufacturer, 
+          asset.model, 
+          asset.notes,
+          asset.department,
+          asset.owner,
+          asset.barcode,
+          asset.serialNumber
+        ].filter(Boolean).map(field => field?.toLowerCase());
+        
+        if (!searchFields.some(field => field?.includes(searchTerm))) {
+          return false;
+        }
+      }
+      
+      // Category filtering
+      if (filters.category && asset.category !== filters.category) {
+        return false;
+      }
+      
+      // Status filtering
+      if (filters.status && asset.status !== filters.status) {
+        return false;
+      }
+      
+      // Location filtering
+      if (filters.location && asset.location !== filters.location) {
+        return false;
+      }
+      
+      // Tags filtering
+      if (filters.tags && filters.tags.length > 0 && asset.tags) {
+        // Convert asset.tags to array if it's not already
+        const assetTags = Array.isArray(asset.tags) 
+          ? asset.tags 
+          : (typeof asset.tags === 'string' ? [asset.tags] : []);
+        
+        // Check if any of the filter tags exist in asset tags
+        if (!filters.tags.some((tag: string) => 
+          assetTags.some((assetTag: string) => 
+            assetTag.toLowerCase().includes(tag.toLowerCase())
+          )
+        )) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
   }
 
   /**

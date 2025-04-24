@@ -856,6 +856,67 @@ export class DatabaseStorage implements IStorage {
   async getCompanyAssets(): Promise<CompanyAsset[]> {
     return await db.select().from(companyAssets);
   }
+  
+  async getFilteredCompanyAssets(filters: Record<string, any>): Promise<CompanyAsset[]> {
+    let query = db.select().from(companyAssets);
+    
+    // Apply search term filter
+    if (filters.searchTerm) {
+      const searchTerm = `%${filters.searchTerm}%`;
+      query = query.where(
+        or(
+          ilike(companyAssets.name, searchTerm),
+          ilike(companyAssets.description || '', searchTerm),
+          ilike(companyAssets.manufacturer, searchTerm),
+          ilike(companyAssets.model || '', searchTerm),
+          ilike(companyAssets.notes || '', searchTerm),
+          ilike(companyAssets.department || '', searchTerm),
+          ilike(companyAssets.owner, searchTerm),
+          ilike(companyAssets.barcode || '', searchTerm),
+          ilike(companyAssets.serialNumber || '', searchTerm)
+        )
+      );
+    }
+    
+    // Apply category filter
+    if (filters.category) {
+      query = query.where(eq(companyAssets.category, filters.category));
+    }
+    
+    // Apply status filter
+    if (filters.status) {
+      query = query.where(eq(companyAssets.status, filters.status));
+    }
+    
+    // Apply location filter
+    if (filters.location) {
+      query = query.where(eq(companyAssets.location, filters.location));
+    }
+    
+    // Apply tags filter
+    // Tags are stored as a JSON array, so we need to use JSON contains operator
+    if (filters.tags && filters.tags.length > 0) {
+      // This is a simplified approach since JSON filtering varies by database
+      // In a real implementation, you would need more sophisticated JSON querying
+      // For now, we'll get all assets and filter in memory
+      const assets = await query;
+      return assets.filter(asset => {
+        if (!asset.tags) return false;
+        
+        const assetTags = Array.isArray(asset.tags) 
+          ? asset.tags 
+          : (typeof asset.tags === 'string' ? [asset.tags] : []);
+        
+        return filters.tags.some((tag: string) => 
+          assetTags.some((assetTag: string) => 
+            assetTag.toLowerCase().includes(tag.toLowerCase())
+          )
+        );
+      });
+    }
+    
+    return await query;
+  }
 
   async createCompanyAsset(insertCompanyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
     const [companyAsset] = await db.insert(companyAssets).values(insertCompanyAsset).returning();
