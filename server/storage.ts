@@ -1357,6 +1357,16 @@ export class DatabaseStorage implements IStorage {
         ? new Date(insertSchedule.endTime) 
         : insertSchedule.endTime;
       
+      // Store facility information as metadata
+      let facilityMetadata = {};
+      if (insertSchedule.facilityId || insertSchedule.facilityName || insertSchedule.facilityTimezone) {
+        facilityMetadata = {
+          facilityId: insertSchedule.facilityId,
+          facilityName: insertSchedule.facilityName,
+          facilityTimezone: insertSchedule.facilityTimezone
+        };
+      }
+      
       const values = {
         dock_id: insertSchedule.dockId,
         carrier_id: insertSchedule.carrierId,
@@ -1374,7 +1384,9 @@ export class DatabaseStorage implements IStorage {
         weight: insertSchedule.weight || null,
         appointment_mode: insertSchedule.appointmentMode || 'trailer',
         appointment_type_id: insertSchedule.appointmentTypeId || null,
-        custom_form_data: insertSchedule.customFormData || null,
+        custom_form_data: Object.keys(facilityMetadata).length > 0 
+          ? { ...insertSchedule.customFormData, facilityInfo: facilityMetadata }
+          : insertSchedule.customFormData || null,
         start_time: startTime,
         end_time: endTime,
         type: insertSchedule.type,
