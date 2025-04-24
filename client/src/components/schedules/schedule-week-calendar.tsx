@@ -19,7 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { utcToUserTime, formatInTimeZone, getUserTimeZone } from "@/lib/timezone-utils";
+import { utcToUserTime, formatInTimeZone, getUserTimeZone, getCurrentTimeInTimeZone } from "@/lib/timezone-utils";
 
 interface ScheduleWeekCalendarProps {
   schedules: Schedule[];
@@ -188,11 +188,13 @@ export default function ScheduleWeekCalendar({
     }
   }, []);
   
-  // Function to calculate the current time position
+  // Function to calculate the current time position based on timezone
   const calculateTimePosition = () => {
-    const now = new Date();
     // Use selected timezone if available, otherwise use local time
     const tzToUse = timezone || getUserTimeZone();
+    
+    // Get current time in the selected timezone
+    const now = getCurrentTimeInTimeZone(tzToUse);
     
     const hours = now.getHours();
     const minutes = now.getMinutes();
@@ -202,15 +204,20 @@ export default function ScheduleWeekCalendar({
     return position;
   };
   
-  // Update current time every minute
+  // Update current time every minute and when timezone changes
   useEffect(() => {
+    // Get the timezone-adjusted current time
+    const tzToUse = timezone || getUserTimeZone();
+    const now = getCurrentTimeInTimeZone(tzToUse);
+    
     // Initial calculation
-    setCurrentTime(new Date());
+    setCurrentTime(now);
     setCurrentTimePosition(calculateTimePosition());
     
     // Set up interval to update every minute
     const interval = setInterval(() => {
-      setCurrentTime(new Date());
+      const updatedNow = getCurrentTimeInTimeZone(tzToUse);
+      setCurrentTime(updatedNow);
       setCurrentTimePosition(calculateTimePosition());
     }, 60000); // Update every minute
     

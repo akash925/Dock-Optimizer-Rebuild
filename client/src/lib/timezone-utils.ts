@@ -310,6 +310,20 @@ export const formatDateRangeInTimeZone = (
  * const { userTimeRange, facilityTimeRange, userZoneAbbr, facilityZoneAbbr } = 
  *   formatTimeRangeForDualZones(start, end, 'America/Chicago');
  */
+/**
+ * Gets the current time in a specific time zone.
+ * 
+ * @param {string} timeZone - The IANA time zone identifier, if none provided uses the user's local time zone
+ * @returns {Date} A Date object representing the current time in the specified time zone
+ * @example
+ * const currentLATime = getCurrentTimeInTimeZone('America/Los_Angeles');
+ */
+export const getCurrentTimeInTimeZone = (timeZone?: string): Date => {
+  const tz = timeZone || getUserTimeZone();
+  const now = new Date();
+  return toZonedTime(now, tz);
+};
+
 export const formatTimeRangeForDualZones = (
   start: Date | string,
   end: Date | string,
