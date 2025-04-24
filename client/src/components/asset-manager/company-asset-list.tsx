@@ -3,6 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { CompanyAsset, AssetCategory, AssetStatus, AssetLocation } from '@shared/schema';
+
+// Add type declaration for window.searchTimeout
+declare global {
+  interface Window {
+    searchTimeout: number;
+  }
+}
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -110,9 +117,68 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch company assets
+  // Debounce search term to avoid too many requests
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  
+  // Handle search term change with debounce
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    // Clear any existing timeouts
+    if (window.searchTimeout) {
+      clearTimeout(window.searchTimeout);
+    }
+    // Set a new timeout
+    window.searchTimeout = setTimeout(() => {
+      setDebouncedSearchTerm(value);
+    }, 300); // 300ms debounce
+  };
+  
+  // Build query params for API request
+  const buildQueryParams = () => {
+    const params = new URLSearchParams();
+    
+    // Add search term if exists
+    if (debouncedSearchTerm) {
+      params.append('q', debouncedSearchTerm);
+    }
+    
+    // Add category filter if selected
+    if (filters.category) {
+      params.append('category', filters.category);
+    }
+    
+    // Add location filter if selected
+    if (filters.location) {
+      params.append('location', filters.location);
+    }
+    
+    // Add status filter if selected
+    if (filters.status) {
+      params.append('status', filters.status);
+    }
+    
+    // Add tags filter if selected
+    if (filters.tags.length > 0) {
+      params.append('tags', filters.tags.join(','));
+    }
+    
+    return params.toString();
+  };
+  
+  // Get the query string
+  const queryString = buildQueryParams();
+  
+  // Fetch company assets with filters
   const { data: assets, isLoading, error } = useQuery<CompanyAsset[]>({
-    queryKey: ['/api/asset-manager/company-assets'],
+    queryKey: ['/api/asset-manager/company-assets', queryString],
+    queryFn: async () => {
+      const endpoint = `/api/asset-manager/company-assets${queryString ? `?${queryString}` : ''}`;
+      const response = await fetch(endpoint);
+      if (!response.ok) {
+        throw new Error('Error fetching assets');
+      }
+      return response.json();
+    },
     placeholderData: [],
   });
 
@@ -330,7 +396,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                 placeholder="Search by name, manufacturer, owner, serial number..."
                 className="pl-8"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
               />
             </div>
 
