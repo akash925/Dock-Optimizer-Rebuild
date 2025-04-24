@@ -935,6 +935,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Patch endpoint for partial facility updates (used for operating hours)
+  app.patch("/api/facilities/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      console.log(`Patching facility ID: ${id} with data:`, req.body);
+      
+      const facility = await storage.getFacility(id);
+      if (!facility) {
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      // For patch, we don't need to validate all fields, just update the ones provided
+      const updateData = {
+        ...req.body,
+        lastModifiedAt: new Date()
+      };
+      
+      const updatedFacility = await storage.updateFacility(id, updateData);
+      console.log("Facility patched successfully:", updatedFacility);
+      res.json(updatedFacility);
+    } catch (err) {
+      console.error("Error patching facility:", err);
+      res.status(500).json({ 
+        message: "Failed to patch facility",
+        error: err instanceof Error ? err.message : "Unknown error"
+      });
+    }
+  });
   
   app.delete("/api/facilities/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
