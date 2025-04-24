@@ -144,21 +144,29 @@ export default function AssetEditPage() {
           )}
           {/* Overlay button for changing image */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <label htmlFor="asset-photo-upload" className="cursor-pointer">
-              <Button variant="outline" className="bg-background" type="button">
-                Change Display Image
-              </Button>
+            <div className="cursor-pointer">
+              <label htmlFor="asset-photo-upload" className="cursor-pointer">
+                <Button variant="outline" className="bg-background" type="button">
+                  Change Display Image
+                </Button>
+              </label>
               <input 
                 id="asset-photo-upload" 
                 type="file" 
                 className="hidden" 
-                accept=".jpg,.jpeg,.png,.pdf"
+                accept="image/*,.pdf"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
+                    console.log("Selected file:", file.name, file.type, file.size);
                     // Create FormData to upload the image
                     const formData = new FormData();
                     formData.append('photo', file);
+                    
+                    toast({
+                      title: 'Uploading...',
+                      description: 'Uploading image, please wait',
+                    });
                     
                     // Upload the image
                     fetch(`/api/asset-manager/company-assets/${assetId}/photo`, {
@@ -180,6 +188,7 @@ export default function AssetEditPage() {
                       });
                     })
                     .catch(err => {
+                      console.error("Upload error:", err);
                       toast({
                         title: 'Upload failed',
                         description: err.message || 'Failed to upload image',
@@ -189,20 +198,47 @@ export default function AssetEditPage() {
                   }
                 }}
               />
-            </label>
+            </div>
           </div>
         </div>
       </div>
       
-      {/* Display barcode information if available */}
-      {asset.barcode && (
-        <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+      {/* Display barcode information */}
+      <div className="mb-6 p-4 bg-muted/50 rounded-lg">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-row gap-4 items-center">
             <div>
               <div className="text-sm text-muted-foreground mb-1">Asset Barcode</div>
-              <div className="font-mono text-lg">{asset.barcode}</div>
+              <div className="font-mono text-lg">{asset.barcode || 'Not assigned'}</div>
             </div>
-            <div className="flex space-x-2">
+            
+            {/* Display barcode image */}
+            {asset.barcode && (
+              <div className="bg-white p-2 border rounded">
+                <svg ref={(ref) => {
+                  if (ref && asset.barcode) {
+                    try {
+                      import('jsbarcode').then(({ default: JsBarcode }) => {
+                        JsBarcode(ref, asset.barcode, {
+                          format: "CODE128",
+                          width: 1.5,
+                          height: 40,
+                          displayValue: false,
+                          margin: 0,
+                          background: '#ffffff',
+                        });
+                      });
+                    } catch (error) {
+                      console.error('Error generating barcode:', error);
+                    }
+                  }
+                }} className="h-12"></svg>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex space-x-2">
+            {asset.barcode && (
               <Button 
                 variant="outline" 
                 size="sm"
@@ -216,17 +252,17 @@ export default function AssetEditPage() {
               >
                 Copy
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setBarcodeDialogOpen(true)}
-              >
-                Edit
-              </Button>
-            </div>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setBarcodeDialogOpen(true)}
+            >
+              {asset.barcode ? 'Edit' : 'Assign Barcode'}
+            </Button>
           </div>
         </div>
-      )}
+      </div>
       
       <CompanyAssetForm 
         assetToEdit={asset} 

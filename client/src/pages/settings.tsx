@@ -38,12 +38,24 @@ export default function Settings() {
   const [customHolidayName, setCustomHolidayName] = useState("");
   const [customHolidayDate, setCustomHolidayDate] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [defaultBarcodeFormat, setDefaultBarcodeFormat] = useState<string>("CODE128");
+  const [barcodePrefix, setBarcodePrefix] = useState<string>("H");
   
-  // Load saved logo from localStorage on component mount
+  // Load saved logo and barcode settings from localStorage on component mount
   useEffect(() => {
     const savedLogo = localStorage.getItem('organizationLogo');
     if (savedLogo) {
       setLogoPreview(savedLogo);
+    }
+    
+    const savedFormat = localStorage.getItem('defaultBarcodeFormat');
+    if (savedFormat) {
+      setDefaultBarcodeFormat(savedFormat);
+    }
+    
+    const savedPrefix = localStorage.getItem('barcodePrefix');
+    if (savedPrefix) {
+      setBarcodePrefix(savedPrefix);
     }
   }, []);
   const [organizationHolidays, setOrganizationHolidays] = useState([
@@ -126,6 +138,12 @@ export default function Settings() {
 
   // Handle save settings
   const handleSaveSettings = (settingType: string) => {
+    // Save barcode format settings to localStorage if organization settings
+    if (settingType === "organization") {
+      localStorage.setItem('defaultBarcodeFormat', defaultBarcodeFormat);
+      localStorage.setItem('barcodePrefix', barcodePrefix);
+    }
+    
     toast({
       title: "Settings Saved",
       description: `Your ${settingType} settings have been updated.`,
