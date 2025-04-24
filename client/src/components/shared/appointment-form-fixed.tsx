@@ -275,6 +275,7 @@ export default function AppointmentForm({
         notes: data.notes || "",
         createdBy: user?.id || null,
         facilityId: data.facilityId,
+        facilityName: facilities.find(f => f.id === data.facilityId)?.name || "",
         facilityTimezone: data.facilityTimezone || facilityTimezone,
         // If custom carrier, add the new carrier data
         newCarrier: data.carrierId ? undefined : {
@@ -430,6 +431,10 @@ export default function AppointmentForm({
       ? allAppointmentTypes.find(type => type.id === form.getValues("appointmentTypeId"))
       : null;
     
+    // Get selected facility
+    const selectedFacilityId = form.getValues("facilityId");
+    const selectedFacility = facilities.find(f => f.id === selectedFacilityId);
+    
     // Default facility hours (8 AM to 5 PM)
     const facilityOpenHour = 8;
     const facilityCloseHour = 17;
@@ -467,9 +472,39 @@ export default function AppointmentForm({
       }
     }
     
+    // Get day of week from the selected date (0-6, where 0 is Sunday)
+    let dayOfWeek = 0;
+    if (selectedDate) {
+      try {
+        const dateParts = selectedDate.split('-');
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
+        const day = parseInt(dateParts[2], 10);
+        
+        const date = new Date(year, month, day);
+        dayOfWeek = date.getDay();
+      } catch (e) {
+        console.error("Error determining day of week:", e);
+      }
+    }
+    
+    // Determine facility operating hours based on the day of week
+    // For simplicity, using standard hours but this could be extended to use facility-specific settings
+    let openingHour = facilityOpenHour;
+    let closingHour = facilityCloseHour;
+    
+    // Weekend handling - shorter hours on Saturday, closed on Sunday
+    if (dayOfWeek === 0) { // Sunday
+      // No times available
+      return [];
+    } else if (dayOfWeek === 6) { // Saturday
+      openingHour = 9; // Open later
+      closingHour = 14; // Close earlier
+    }
+    
     // Only show full hour slots for standard appointment booking
     const times = [];
-    for (let hour = facilityOpenHour; hour < facilityCloseHour; hour++) {
+    for (let hour = openingHour; hour < closingHour; hour++) {
       // Check if we need to filter out past times for today
       if (isToday && hour <= currentHour) {
         // Skip times that are in the past for today
@@ -526,31 +561,56 @@ export default function AppointmentForm({
       : null;
     const maxConcurrent = appointmentType?.maxConcurrent || 1;
     
+    // Get day of week from the selected date (0-6, where 0 is Sunday)
+    let dayOfWeek = 0;
+    if (selectedDate) {
+      try {
+        const dateParts = selectedDate.split('-');
+        const year = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
+        const day = parseInt(dateParts[2], 10);
+        
+        const date = new Date(year, month, day);
+        dayOfWeek = date.getDay();
+      } catch (e) {
+        console.error("Error determining day of week:", e);
+      }
+    }
+    
+    // Default facility hours (8 AM to 5 PM)
+    let facilityOpenHour = 8;
+    let facilityCloseHour = 17;
+    
+    // Weekend handling - shorter hours on Saturday, closed on Sunday
+    if (dayOfWeek === 0) { // Sunday
+      // No times available - return Monday morning
+      return "08:00 (1 available)";
+    } else if (dayOfWeek === 6) { // Saturday
+      facilityOpenHour = 9; // Open later
+      facilityCloseHour = 14; // Close earlier
+    }
+    
     // If it's today and already past opening hours, use the next available hour
     if (isToday) {
-      // If it's past 4 PM, default to tomorrow at 8 AM
-      if (currentHour >= 16) {
-        return "08:00 (1 available)";
+      // If it's past closing time, default to tomorrow at opening time
+      if (currentHour >= facilityCloseHour - 1) {
+        return `${facilityOpenHour.toString().padStart(2, '0')}:00 (${maxConcurrent} available)`;
       }
       
       // If it's within working hours, use the next hour
-      if (nextHour >= 8 && nextHour < 17) {
+      if (nextHour >= facilityOpenHour && nextHour < facilityCloseHour) {
         return `${nextHour.toString().padStart(2, '0')}:00 (${maxConcurrent} available)`;
       }
       
-      // If it's before opening hours, default to opening hour (8 AM)
-      if (nextHour < 8) {
-        return "08:00 (1 available)";
+      // If it's before opening hours, default to opening hour
+      if (nextHour < facilityOpenHour) {
+        return `${facilityOpenHour.toString().padStart(2, '0')}:00 (${maxConcurrent} available)`;
       }
     }
     
-    // Default to 3 PM if it's not today
-    if (!isToday && nextHour >= 15) {
-      return "15:00 (1 available)";
-    }
-    
-    // For future dates or fallback, use 8 AM
-    return "08:00 (1 available)";
+    // Default to 3 PM if it's not today (or 11 AM if the facility closes before 3 PM)
+    const defaultHour = facilityCloseHour > 15 ? 15 : facilityOpenHour + 2;
+    return `${defaultHour.toString().padStart(2, '0')}:00 (${maxConcurrent} available)`;
   };
   
   // Form content based on the current step
