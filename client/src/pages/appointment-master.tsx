@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarDays, FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon } from "lucide-react";
+import { FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
@@ -389,369 +389,374 @@ export default function AppointmentMaster() {
     }
   };
   
-  return (
-    <Layout>
-      <div className="container mx-auto py-6 space-y-6">
-        <h1 className="text-3xl font-bold text-center mb-6">Appointment Master</h1>
-        
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-muted-foreground">Configure appointment types, forms, and availability</span>
-          </div>
-        </div>
-        
-        <div className="border rounded-md">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="types">
-                <FilePlus className="h-4 w-4 mr-2" />
-                Appointment Types
-              </TabsTrigger>
-              <TabsTrigger value="questions">
-                <FilePlus className="h-4 w-4 mr-2" />
-                Custom Questions
-              </TabsTrigger>
-              <TabsTrigger value="settings">
-                <Settings className="h-4 w-4 mr-2" />
-                General Settings
-              </TabsTrigger>
-            </TabsList>
-            
-            {/* Appointment Types Tab */}
-            <TabsContent value="types">
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle>Appointment Types</CardTitle>
-                      <CardDescription>
-                        Create and manage appointment types
-                      </CardDescription>
-                    </div>
-                    <Button onClick={() => {
-                      setSelectedAppointmentTypeId(null);
-                      setAppointmentTypeForm({
-                        name: "",
-                        description: "",
-                        facilityId: facilities.length > 0 ? facilities[0].id : 0,
-                        color: "#4CAF50",
-                        duration: 60,
-                        type: "both",
-                        maxConcurrent: 1,
-                        bufferTime: 0,
-                        maxAppointmentsPerDay: undefined,
-                        allowAppointmentsThroughBreaks: false,
-                        allowAppointmentsPastBusinessHours: false,
-                        timezone: "America/New_York",
-                        gracePeriod: 15,
-                        emailReminderTime: 24,
-                        showRemainingSlots: true,
-                        overrideFacilityHours: false
-                      });
-                      setAppointmentTypeFormStep(1);
-                      setShowNewAppointmentTypeDialog(true);
-                    }}>
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      New Appointment Type
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {isLoadingAppointmentTypes ? (
-                    <div className="text-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                      <p className="text-muted-foreground">Loading appointment types...</p>
-                    </div>
-                  ) : apiAppointmentTypes.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>No appointment types have been created yet.</p>
-                      <p className="text-sm mt-2">Click "New Appointment Type" to create your first appointment type.</p>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Appointment Name</TableHead>
-                          <TableHead>Facility</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Created</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {appointmentTypesWithFacilityNames.map((appointmentType) => (
-                          <TableRow key={appointmentType.id}>
-                            <TableCell className="font-medium">{appointmentType.name}</TableCell>
-                            <TableCell>{appointmentType.facilityName}</TableCell>
-                            <TableCell>{getAppointmentTypeLabel(appointmentType.type)}</TableCell>
-                            <TableCell>{appointmentType.createdDate}</TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => {
-                                    setSelectedAppointmentTypeId(appointmentType.id);
-                                    // Set the form data from the selected appointment type
-                                    setAppointmentTypeForm({
-                                      name: appointmentType.name || "",
-                                      description: appointmentType.description || "",
-                                      facilityId: appointmentType.facilityId || (facilities.length > 0 ? facilities[0].id : 0),
-                                      color: appointmentType.color || "#4CAF50",
-                                      duration: appointmentType.duration || 60,
-                                      type: appointmentType.type || "both",
-                                      maxConcurrent: appointmentType.maxConcurrent || 1,
-                                      bufferTime: appointmentType.bufferTime || 0,
-                                      maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay === null ? undefined : appointmentType.maxAppointmentsPerDay,
-                                      timezone: appointmentType.timezone || "America/New_York",
-                                      gracePeriod: appointmentType.gracePeriod || 15,
-                                      emailReminderTime: appointmentType.emailReminderTime || 24,
-                                      showRemainingSlots: appointmentType.showRemainingSlots ?? true,
-                                      allowAppointmentsThroughBreaks: appointmentType.allowAppointmentsThroughBreaks || false,
-                                      allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false,
-                                      overrideFacilityHours: appointmentType.overrideFacilityHours || false
-                                    });
-                                    setAppointmentTypeFormStep(1);
-                                    setShowNewAppointmentTypeDialog(true);
-                                  }}>
-                                    <Pencil className="h-4 w-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => {
-                                    duplicateAppointmentTypeMutation.mutate(appointmentType.id);
-                                  }}>
-                                    <Copy className="h-4 w-4 mr-2" />
-                                    Duplicate
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    className="text-red-600"
-                                    onClick={() => {
-                                      if(confirm(`Are you sure you want to delete "${appointmentType.name}"?`)) {
-                                        deleteAppointmentTypeMutation.mutate(appointmentType.id);
-                                      }
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <div className="mt-6">
-                <SeedAppointmentTypes />
-              </div>
-            </TabsContent>
-            
-            {/* Custom Questions Tab */}
-            <TabsContent value="questions">
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle>Custom Form Questions</CardTitle>
-                      <CardDescription>
-                        Create and manage custom fields for appointment forms
-                      </CardDescription>
-                    </div>
-                    <Button onClick={() => {
-                      setSelectedQuestionId(null);
-                      setQuestionForm({
-                        label: "",
-                        type: "text",
-                        required: false,
-                        options: [],
-                        placeholder: "",
-                        appointmentType: "both"
-                      });
-                      setShowQuestionDialog(true);
-                    }}>
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Question
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {customFields.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>No custom questions have been created yet.</p>
-                      <p className="text-sm mt-2">Click "Add Question" to create your first custom question.</p>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[50px]">Order</TableHead>
-                          <TableHead>Field Label</TableHead>
-                          <TableHead>Field Type</TableHead>
-                          <TableHead>Required</TableHead>
-                          <TableHead>Appointment Type</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {customFields.map((field) => (
-                          <TableRow key={field.id}>
-                            <TableCell>{field.order}</TableCell>
-                            <TableCell className="font-medium">{field.label}</TableCell>
-                            <TableCell className="capitalize">{field.type}</TableCell>
-                            <TableCell>{field.required ? "Yes" : "No"}</TableCell>
-                            <TableCell>{getAppointmentTypeLabel(field.appointmentType)}</TableCell>
-                            <TableCell className="text-right">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => editCustomField(field)}
-                              >
-                                Edit
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-red-500"
-                                onClick={() => deleteCustomField(field.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            {/* General Settings Tab */}
-            <TabsContent value="settings">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Appointment System Settings</CardTitle>
-                  <CardDescription>
-                    Configure general settings for the appointment system
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Email Notifications</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Switch id="email-confirmations" checked={true} />
-                          <Label htmlFor="email-confirmations">
-                            Send appointment confirmations
-                          </Label>
-                        </div>
-                        <p className="text-sm text-muted-foreground ml-6">
-                          Send email confirmations when appointments are created
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Switch id="email-reminders" checked={true} />
-                          <Label htmlFor="email-reminders">
-                            Send appointment reminders
-                          </Label>
-                        </div>
-                        <p className="text-sm text-muted-foreground ml-6">
-                          Send email reminders before scheduled appointments
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Calendar Settings</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="default-view">Default Calendar View</Label>
-                        <Select defaultValue="week">
-                          <SelectTrigger id="default-view">
-                            <SelectValue placeholder="Select view" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="day">Day View</SelectItem>
-                            <SelectItem value="week">Week View</SelectItem>
-                            <SelectItem value="month">Month View</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="week-starts">Week Starts On</Label>
-                        <Select defaultValue="1">
-                          <SelectTrigger id="week-starts">
-                            <SelectValue placeholder="Select day" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="0">Sunday</SelectItem>
-                            <SelectItem value="1">Monday</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Booking Rules</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="max-days-advance">Maximum Days in Advance</Label>
-                        <Select defaultValue="90">
-                          <SelectTrigger id="max-days-advance">
-                            <SelectValue placeholder="Select days" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="30">30 days</SelectItem>
-                            <SelectItem value="60">60 days</SelectItem>
-                            <SelectItem value="90">90 days</SelectItem>
-                            <SelectItem value="180">180 days</SelectItem>
-                            <SelectItem value="365">365 days</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="min-notice">Minimum Notice Period</Label>
-                        <Select defaultValue="24">
-                          <SelectTrigger id="min-notice">
-                            <SelectValue placeholder="Select hours" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1 hour</SelectItem>
-                            <SelectItem value="2">2 hours</SelectItem>
-                            <SelectItem value="4">4 hours</SelectItem>
-                            <SelectItem value="8">8 hours</SelectItem>
-                            <SelectItem value="24">24 hours</SelectItem>
-                            <SelectItem value="48">48 hours</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+  // Render the main content directly without duplicating UI components
+  const renderContent = () => (
+    <div className="container mx-auto py-6 space-y-6">
+      <h1 className="text-3xl font-bold text-center mb-6">Appointment Master</h1>
+      
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-2">
+          <span className="text-muted-foreground">Configure appointment types, forms, and availability</span>
         </div>
       </div>
+      
+      <div className="border rounded-md">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="types">
+              <FilePlus className="h-4 w-4 mr-2" />
+              Appointment Types
+            </TabsTrigger>
+            <TabsTrigger value="questions">
+              <FilePlus className="h-4 w-4 mr-2" />
+              Custom Questions
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Settings className="h-4 w-4 mr-2" />
+              General Settings
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* Appointment Types Tab */}
+          <TabsContent value="types">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Appointment Types</CardTitle>
+                    <CardDescription>
+                      Create and manage appointment types
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => {
+                    setSelectedAppointmentTypeId(null);
+                    setAppointmentTypeForm({
+                      name: "",
+                      description: "",
+                      facilityId: facilities.length > 0 ? facilities[0].id : 0,
+                      color: "#4CAF50",
+                      duration: 60,
+                      type: "both",
+                      maxConcurrent: 1,
+                      bufferTime: 0,
+                      maxAppointmentsPerDay: undefined,
+                      allowAppointmentsThroughBreaks: false,
+                      allowAppointmentsPastBusinessHours: false,
+                      timezone: "America/New_York",
+                      gracePeriod: 15,
+                      emailReminderTime: 24,
+                      showRemainingSlots: true,
+                      overrideFacilityHours: false
+                    });
+                    setAppointmentTypeFormStep(1);
+                    setShowNewAppointmentTypeDialog(true);
+                  }}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    New Appointment Type
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingAppointmentTypes ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                    <p className="text-muted-foreground">Loading appointment types...</p>
+                  </div>
+                ) : apiAppointmentTypes.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No appointment types have been created yet.</p>
+                    <p className="text-sm mt-2">Click "New Appointment Type" to create your first appointment type.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Appointment Name</TableHead>
+                        <TableHead>Facility</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {appointmentTypesWithFacilityNames.map((appointmentType) => (
+                        <TableRow key={appointmentType.id}>
+                          <TableCell className="font-medium">{appointmentType.name}</TableCell>
+                          <TableCell>{appointmentType.facilityName}</TableCell>
+                          <TableCell>{getAppointmentTypeLabel(appointmentType.type)}</TableCell>
+                          <TableCell>{appointmentType.createdDate}</TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedAppointmentTypeId(appointmentType.id);
+                                  // Set the form data from the selected appointment type
+                                  setAppointmentTypeForm({
+                                    name: appointmentType.name || "",
+                                    description: appointmentType.description || "",
+                                    facilityId: appointmentType.facilityId || (facilities.length > 0 ? facilities[0].id : 0),
+                                    color: appointmentType.color || "#4CAF50",
+                                    duration: appointmentType.duration || 60,
+                                    type: appointmentType.type || "both",
+                                    maxConcurrent: appointmentType.maxConcurrent || 1,
+                                    bufferTime: appointmentType.bufferTime || 0,
+                                    maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay === null ? undefined : appointmentType.maxAppointmentsPerDay,
+                                    timezone: appointmentType.timezone || "America/New_York",
+                                    gracePeriod: appointmentType.gracePeriod || 15,
+                                    emailReminderTime: appointmentType.emailReminderTime || 24,
+                                    showRemainingSlots: appointmentType.showRemainingSlots ?? true,
+                                    allowAppointmentsThroughBreaks: appointmentType.allowAppointmentsThroughBreaks || false,
+                                    allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false,
+                                    overrideFacilityHours: appointmentType.overrideFacilityHours || false
+                                  });
+                                  setAppointmentTypeFormStep(1);
+                                  setShowNewAppointmentTypeDialog(true);
+                                }}>
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  duplicateAppointmentTypeMutation.mutate(appointmentType.id);
+                                }}>
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => {
+                                    if(confirm(`Are you sure you want to delete "${appointmentType.name}"?`)) {
+                                      deleteAppointmentTypeMutation.mutate(appointmentType.id);
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+            
+            <div className="mt-6">
+              <SeedAppointmentTypes />
+            </div>
+          </TabsContent>
+          
+          {/* Custom Questions Tab */}
+          <TabsContent value="questions">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Custom Form Questions</CardTitle>
+                    <CardDescription>
+                      Create and manage custom fields for appointment forms
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => {
+                    setSelectedQuestionId(null);
+                    setQuestionForm({
+                      label: "",
+                      type: "text",
+                      required: false,
+                      options: [],
+                      placeholder: "",
+                      appointmentType: "both"
+                    });
+                    setShowQuestionDialog(true);
+                  }}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Question
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {customFields.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No custom questions have been created yet.</p>
+                    <p className="text-sm mt-2">Click "Add Question" to create your first custom question.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]">Order</TableHead>
+                        <TableHead>Field Label</TableHead>
+                        <TableHead>Field Type</TableHead>
+                        <TableHead>Required</TableHead>
+                        <TableHead>Appointment Type</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {customFields.map((field) => (
+                        <TableRow key={field.id}>
+                          <TableCell>{field.order}</TableCell>
+                          <TableCell className="font-medium">{field.label}</TableCell>
+                          <TableCell className="capitalize">{field.type}</TableCell>
+                          <TableCell>{field.required ? "Yes" : "No"}</TableCell>
+                          <TableCell>{getAppointmentTypeLabel(field.appointmentType)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => editCustomField(field)}
+                            >
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-red-500"
+                              onClick={() => deleteCustomField(field.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* General Settings Tab */}
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Appointment System Settings</CardTitle>
+                <CardDescription>
+                  Configure general settings for the appointment system
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Email Notifications</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch id="email-confirmations" checked={true} />
+                        <Label htmlFor="email-confirmations">
+                          Send appointment confirmations
+                        </Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground ml-6">
+                        Send email confirmations when appointments are created
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Switch id="email-reminders" checked={true} />
+                        <Label htmlFor="email-reminders">
+                          Send appointment reminders
+                        </Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground ml-6">
+                        Send email reminders before scheduled appointments
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Calendar Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="default-view">Default Calendar View</Label>
+                      <Select defaultValue="week">
+                        <SelectTrigger id="default-view">
+                          <SelectValue placeholder="Select view" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="day">Day View</SelectItem>
+                          <SelectItem value="week">Week View</SelectItem>
+                          <SelectItem value="month">Month View</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="week-starts">Week Starts On</Label>
+                      <Select defaultValue="1">
+                        <SelectTrigger id="week-starts">
+                          <SelectValue placeholder="Select day" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">Sunday</SelectItem>
+                          <SelectItem value="1">Monday</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Booking Rules</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="max-days-advance">Maximum Days in Advance</Label>
+                      <Select defaultValue="90">
+                        <SelectTrigger id="max-days-advance">
+                          <SelectValue placeholder="Select days" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="30">30 days</SelectItem>
+                          <SelectItem value="60">60 days</SelectItem>
+                          <SelectItem value="90">90 days</SelectItem>
+                          <SelectItem value="180">180 days</SelectItem>
+                          <SelectItem value="365">365 days</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="min-notice">Minimum Notice Period</Label>
+                      <Select defaultValue="24">
+                        <SelectTrigger id="min-notice">
+                          <SelectValue placeholder="Select hours" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 hour</SelectItem>
+                          <SelectItem value="2">2 hours</SelectItem>
+                          <SelectItem value="4">4 hours</SelectItem>
+                          <SelectItem value="8">8 hours</SelectItem>
+                          <SelectItem value="24">24 hours</SelectItem>
+                          <SelectItem value="48">48 hours</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+  
+  return (
+    <Layout>
+      {renderContent()}
       
       {/* Create/Edit Appointment Type Dialog */}
       <Dialog open={showNewAppointmentTypeDialog} onOpenChange={setShowNewAppointmentTypeDialog}>
