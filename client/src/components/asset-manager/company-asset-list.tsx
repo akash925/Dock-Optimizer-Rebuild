@@ -151,24 +151,30 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     // Add category filter if selected
     if (filters.category) {
       params.append('category', filters.category);
+      console.log("Adding category filter:", filters.category);
     }
     
     // Add location filter if selected
     if (filters.location) {
       params.append('location', filters.location);
+      console.log("Adding location filter:", filters.location);
     }
     
     // Add status filter if selected
     if (filters.status) {
       params.append('status', filters.status);
+      console.log("Adding status filter:", filters.status);
     }
     
     // Add tags filter if selected
     if (filters.tags.length > 0) {
       params.append('tags', filters.tags.join(','));
+      console.log("Adding tags filter:", filters.tags.join(','));
     }
     
-    return params.toString();
+    const queryString = params.toString();
+    console.log("Query params:", queryString);
+    return queryString;
   };
   
   // Get the query string
@@ -477,8 +483,11 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Category</label>
                       <Select 
-                        value={filters.category || "all"} 
-                        onValueChange={(value) => setFilters({...filters, category: value === "all" ? null : value as AssetCategory})}
+                        value={filters.category !== null ? filters.category : "all"} 
+                        onValueChange={(value) => {
+                          console.log("Category changed to:", value);
+                          setFilters({...filters, category: value === "all" ? null : value as AssetCategory});
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="All categories" />
@@ -495,8 +504,11 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Location</label>
                       <Select 
-                        value={filters.location || "all"} 
-                        onValueChange={(value) => setFilters({...filters, location: value === "all" ? null : value as AssetLocation})}
+                        value={filters.location !== null ? filters.location : "all"} 
+                        onValueChange={(value) => {
+                          console.log("Location changed to:", value);
+                          setFilters({...filters, location: value === "all" ? null : value as AssetLocation});
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="All locations" />
@@ -513,8 +525,11 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Status</label>
                       <Select 
-                        value={filters.status || "all"} 
-                        onValueChange={(value) => setFilters({...filters, status: value === "all" ? null : value as AssetStatus})}
+                        value={filters.status !== null ? filters.status : "all"} 
+                        onValueChange={(value) => {
+                          console.log("Status changed to:", value);
+                          setFilters({...filters, status: value === "all" ? null : value as AssetStatus});
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="All statuses" />
