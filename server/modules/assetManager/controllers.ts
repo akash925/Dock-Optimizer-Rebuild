@@ -200,7 +200,7 @@ export const listCompanyAssets = async (req: Request, res: Response) => {
     
     // Add search term if provided
     if (q && typeof q === 'string') {
-      filters.searchTerm = q;
+      filters.q = q;
     }
     
     // Add category filter if provided
