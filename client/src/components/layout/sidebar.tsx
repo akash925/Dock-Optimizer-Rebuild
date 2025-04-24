@@ -126,14 +126,6 @@ export default function Sidebar({ className }: SidebarProps) {
         />
         
         <SidebarItem 
-          href="/calendar" 
-          icon={<CalendarRange size={20} />} 
-          label="Calendar View" 
-          active={location === "/calendar"}
-          onClick={closeSidebar}
-        />
-
-        <SidebarItem 
           href="/door-manager" 
           icon={<Layout size={20} />} 
           label="Door Manager" 
