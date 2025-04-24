@@ -206,8 +206,15 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       });
       
       // Invalidate query to refresh the list with current search parameters
+      // Build query key that includes current search/filter context
+      let queryKey = ['/api/asset-manager/company-assets'];
+      // Add the current search term and filters to maintain context
+      if (debouncedSearchTerm || Object.values(filters).some(val => val !== null && (Array.isArray(val) ? val.length > 0 : true))) {
+        queryKey.push('filtered');
+      }
+      
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/asset-manager/company-assets'],
+        queryKey,
         exact: false
       });
     },
@@ -237,8 +244,15 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       });
       
       // Invalidate query to refresh the list with current search parameters
+      // Build query key that includes current search/filter context
+      let queryKey = ['/api/asset-manager/company-assets'];
+      // Add the current search term and filters to maintain context
+      if (debouncedSearchTerm || Object.values(filters).some(val => val !== null && (Array.isArray(val) ? val.length > 0 : true))) {
+        queryKey.push('filtered');
+      }
+      
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/asset-manager/company-assets'],
+        queryKey,
         exact: false
       });
     },
@@ -808,7 +822,18 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                   assetToEdit={assetToEdit} 
                   onSuccess={() => {
                     setIsDialogOpen(false);
-                    queryClient.invalidateQueries({ queryKey: ['/api/asset-manager/company-assets'] });
+                    
+                    // Build query key that includes current search/filter context
+                    let queryKey = ['/api/asset-manager/company-assets'];
+                    // Add the current search term and filters to maintain context
+                    if (debouncedSearchTerm || Object.values(filters).some(val => val !== null && (Array.isArray(val) ? val.length > 0 : true))) {
+                      queryKey.push('filtered');
+                    }
+                    
+                    queryClient.invalidateQueries({ 
+                      queryKey,
+                      exact: false 
+                    });
                     toast({
                       title: 'Asset updated',
                       description: 'Company asset has been updated successfully.',
