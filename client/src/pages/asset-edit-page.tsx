@@ -1,18 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRoute } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { CompanyAssetForm } from '@/components/asset-manager/company-asset-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CompanyAsset } from '@shared/schema';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Barcode, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { BarcodeGenerator } from '@/components/asset-manager/barcode-generator';
 
 export default function AssetEditPage() {
   const [, params] = useRoute<{ id: string }>('/asset-manager/assets/:id/edit');
   const [, navigate] = useLocation();
   const assetId = params?.id;
+  const [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: asset, isLoading, error } = useQuery<CompanyAsset>({
     queryKey: [`/api/asset-manager/company-assets/${assetId}`],
@@ -24,6 +30,28 @@ export default function AssetEditPage() {
       return response.json();
     },
     enabled: !!assetId,
+  });
+  
+  // Mutation for updating the barcode
+  const updateBarcodeMutation = useMutation({
+    mutationFn: async (barcode: string) => {
+      const response = await apiRequest('PATCH', `/api/asset-manager/company-assets/${assetId}/barcode`, { barcode });
+      if (!response.ok) {
+        throw new Error('Failed to update barcode');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate the asset query to refresh the data
+      queryClient.invalidateQueries({ queryKey: [`/api/asset-manager/company-assets/${assetId}`] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update barcode',
+        variant: 'destructive',
+      });
+    },
   });
 
   if (isLoading) {
