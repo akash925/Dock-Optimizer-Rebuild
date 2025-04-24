@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Calendar as CalendarIcon, ListFilter, Grid, List, Eye, Search, XCircle, Clock, CheckCircle2 } from "lucide-react";
+import { PlusCircle, Calendar as CalendarIcon, ListFilter, Grid, List, Eye, Search, XCircle, Clock, CheckCircle2, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/ui/data-table";
@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { getUserTimeZone, getTimeZoneAbbreviation } from "@/lib/timezone-utils";
 
 export default function Schedules() {
   const { toast } = useToast();
@@ -42,6 +43,7 @@ export default function Schedules() {
   const [selectedDockId, setSelectedDockId] = useState<number | undefined>(undefined);
   const [isAppointmentTypeDialogOpen, setIsAppointmentTypeDialogOpen] = useState(false);
   const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState<number | undefined>(undefined);
+  const [timezone, setTimezone] = useState<string>(getUserTimeZone());
   
   // Fetch schedules
   const { data: schedules = [] } = useQuery<Schedule[]>({
@@ -435,6 +437,22 @@ export default function Schedules() {
             </SelectContent>
           </Select>
           
+          {/* Timezone Filter */}
+          <Select value={timezone} onValueChange={(value) => setTimezone(value)}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Timezone" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="America/New_York">Eastern (ET)</SelectItem>
+              <SelectItem value="America/Chicago">Central (CT)</SelectItem>
+              <SelectItem value="America/Denver">Mountain (MT)</SelectItem>
+              <SelectItem value="America/Los_Angeles">Pacific (PT)</SelectItem>
+              <SelectItem value="America/Anchorage">Alaska (AKT)</SelectItem>
+              <SelectItem value="Pacific/Honolulu">Hawaii (HAT)</SelectItem>
+              <SelectItem value="Etc/UTC">UTC</SelectItem>
+            </SelectContent>
+          </Select>
+          
           {/* Clear Filters */}
           {(searchQuery || filterStatus !== "all" || filterType !== "all" || 
             filterDockId !== "all" || filterFacilityId !== "all") && (
@@ -482,6 +500,7 @@ export default function Schedules() {
               : docks}
             carriers={carriers}
             date={selectedDate}
+            timezone={timezone}
             onScheduleClick={handleScheduleClick}
             onDateChange={setSelectedDate}
             onViewChange={setViewMode}
@@ -500,6 +519,7 @@ export default function Schedules() {
               ? docks.filter(dock => dock.facilityId === filterFacilityId)
               : docks}
             date={selectedDate}
+            timezone={timezone}
             onScheduleClick={handleScheduleClick}
             onDateChange={setSelectedDate}
             onCellClick={handleCellClick}
@@ -517,6 +537,7 @@ export default function Schedules() {
               ? docks.filter(dock => dock.facilityId === filterFacilityId)
               : docks}
             date={selectedDate}
+            timezone={timezone}
             onScheduleClick={handleScheduleClick}
             onDateChange={setSelectedDate}
             onCellClick={handleCellClick}
@@ -530,6 +551,7 @@ export default function Schedules() {
               ? docks.filter(dock => dock.facilityId === filterFacilityId)
               : docks}
             date={selectedDate}
+            timezone={timezone}
             onScheduleClick={handleScheduleClick}
             onCellClick={handleCellClick}
           />
@@ -573,6 +595,7 @@ export default function Schedules() {
         initialDate={clickedCellDate || selectedDate}
         initialDockId={selectedDockId}  // Pass the selected dock to the form
         appointmentTypeId={selectedAppointmentTypeId} // Pass the selected appointment type
+        timezone={timezone} // Pass the selected timezone
       />
       
       {/* Appointment Details Dialog */}
