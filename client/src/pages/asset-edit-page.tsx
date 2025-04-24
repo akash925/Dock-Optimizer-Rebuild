@@ -104,11 +104,11 @@ export default function AssetEditPage() {
   return (
     <div className="container mx-auto py-8">
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Asset Manager</h2>
-            <p className="text-muted-foreground mt-2">Managing assets and equipment</p>
-          </div>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Asset Manager</h2>
+          <h3 className="text-2xl font-semibold mt-2">Edit Asset: {asset.name}</h3>
+        </div>
+        <div className="flex justify-end">
           <Button 
             onClick={() => navigate('/asset-manager')}
             variant="outline"
@@ -119,26 +119,29 @@ export default function AssetEditPage() {
         </div>
       </div>
       
-      <div className="flex justify-between items-center my-6">
-        <h3 className="text-2xl font-semibold">Edit Asset: {asset.name}</h3>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setBarcodeDialogOpen(true)}
-            className="flex items-center gap-2"
-          >
-            {asset.barcode ? (
-              <>
-                <Barcode className="h-4 w-4" />
-                Manage Barcode
-              </>
-            ) : (
-              <>
-                <Barcode className="h-4 w-4" />
-                Add Barcode
-              </>
-            )}
-          </Button>
+      {/* Display asset image prominently */}
+      <div className="mb-6 max-w-md mx-auto">
+        <div className="rounded-md overflow-hidden border shadow-sm relative group">
+          {asset.photoUrl ? (
+            <img 
+              src={asset.photoUrl} 
+              alt={asset.name} 
+              className="w-full h-auto max-h-[300px] object-contain"
+            />
+          ) : (
+            <div className="w-full h-[200px] bg-muted/50 flex items-center justify-center">
+              <div className="text-muted-foreground text-center p-4">
+                <Image className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p>No image available</p>
+              </div>
+            </div>
+          )}
+          {/* Overlay button for changing image */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <Button variant="outline" className="bg-background">
+              Change Display Image
+            </Button>
+          </div>
         </div>
       </div>
       
@@ -172,19 +175,6 @@ export default function AssetEditPage() {
                 Edit
               </Button>
             </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Display asset image if available */}
-      {asset.photoUrl && (
-        <div className="mb-6 max-w-sm mx-auto">
-          <div className="rounded-md overflow-hidden border shadow-sm">
-            <img 
-              src={asset.photoUrl} 
-              alt={asset.name} 
-              className="w-full h-auto object-contain"
-            />
           </div>
         </div>
       )}

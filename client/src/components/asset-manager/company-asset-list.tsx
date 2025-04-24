@@ -705,13 +705,9 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuGroup>
-                              <DropdownMenuItem onClick={() => handleEdit(asset)}>
-                                <Pencil className="w-4 h-4 mr-2" />
-                                Edit in Dialog
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => navigateToFullEditPage(asset)}>
                                 <Pencil className="w-4 h-4 mr-2" />
-                                Edit Full Page
+                                Edit Asset
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuLabel>Update Status</DropdownMenuLabel>
