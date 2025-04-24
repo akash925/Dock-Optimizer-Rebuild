@@ -61,6 +61,12 @@ assetManagerRouter.put('/company-assets/:id',
   controllers.updateCompanyAsset
 );
 
+// PATCH /api/asset-manager/company-assets/:id/status - Update company asset status
+assetManagerRouter.patch('/company-assets/:id/status',
+  isAuthenticated,
+  controllers.updateCompanyAssetStatus
+);
+
 // DELETE /api/asset-manager/company-assets/:id - Delete a company asset
 assetManagerRouter.delete('/company-assets/:id', isAuthenticated, controllers.deleteCompanyAsset);
 
