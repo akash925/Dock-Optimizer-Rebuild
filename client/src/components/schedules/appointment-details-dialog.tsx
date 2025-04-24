@@ -57,13 +57,15 @@ interface AppointmentDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   facilityName?: string;
+  timezone?: string; // Add timezone prop
 }
 
 export function AppointmentDetailsDialog({
   appointment,
   open,
   onOpenChange,
-  facilityName
+  facilityName,
+  timezone
 }: AppointmentDetailsDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();

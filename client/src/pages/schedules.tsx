@@ -438,7 +438,24 @@ export default function Schedules() {
           </Select>
           
           {/* Timezone Filter */}
-          <Select value={timezone} onValueChange={(value) => setTimezone(value)}>
+          <Select 
+            value={timezone} 
+            onValueChange={(value) => {
+              const oldTimezone = timezone;
+              setTimezone(value);
+              
+              // Force a re-render if the timezone has changed
+              if (oldTimezone !== value) {
+                // Briefly switch to another view mode and back to force re-render
+                const currentView = viewMode;
+                const tempView: "calendar" | "week" | "day" | "month" | "list" = 
+                  currentView === "calendar" ? "week" : "calendar";
+                
+                setViewMode(tempView);
+                setTimeout(() => setViewMode(currentView), 10);
+              }
+            }}
+          >
             <SelectTrigger className="w-[180px] h-9">
               <SelectValue placeholder="Timezone" />
             </SelectTrigger>
