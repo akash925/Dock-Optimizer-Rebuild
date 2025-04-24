@@ -1,4 +1,4 @@
-import FixedAppointmentForm from "@/components/shared/fixed-appointment-form";
+import AppointmentForm from "@/components/shared/appointment-form-fixed";
 import { Schedule } from "@shared/schema";
 
 interface AppointmentFormProps {
@@ -9,9 +9,11 @@ interface AppointmentFormProps {
   initialDate?: Date;
   initialDockId?: number;
   appointmentTypeId?: number;
+  timezone?: string;
+  timeFormat?: "12h" | "24h";
 }
 
-export default function AppointmentForm({
+export default function ScheduleAppointmentForm({
   isOpen,
   onClose,
   initialData,
@@ -19,10 +21,12 @@ export default function AppointmentForm({
   initialDate,
   initialDockId,
   appointmentTypeId,
+  timezone,
+  timeFormat,
 }: AppointmentFormProps) {
-  // Use the fixed component to avoid FormContext errors
+  // Use our new improved appointment form component
   return (
-    <FixedAppointmentForm
+    <AppointmentForm
       mode="internal"
       isOpen={isOpen}
       onClose={onClose}
@@ -31,6 +35,7 @@ export default function AppointmentForm({
       initialDate={initialDate}
       initialDockId={initialDockId}
       appointmentTypeId={appointmentTypeId}
+      facilityTimezone={timezone}
     />
   );
 }
