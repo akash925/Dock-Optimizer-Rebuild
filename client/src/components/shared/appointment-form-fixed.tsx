@@ -370,9 +370,16 @@ export default function AppointmentForm({
           if (!isNaN(dateObj.getTime())) {
             // Set time to noon to avoid timezone issues
             dateObj.setHours(12, 0, 0, 0);
+            
+            // Extract date components
             const year = dateObj.getFullYear();
-            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const day = String(dateObj.getDate()).padStart(2, '0');
+            const monthValue = dateObj.getMonth() + 1;
+            const dayValue = dateObj.getDate();
+            
+            // Format with proper zero-padding
+            const month = String(monthValue).padStart(2, '0');
+            const day = String(dayValue).padStart(2, '0');
+            
             sanitizedData.appointmentDate = `${year}-${month}-${day}`;
             console.log("Reformatted date for submission:", sanitizedData.appointmentDate);
           }
@@ -430,9 +437,45 @@ export default function AppointmentForm({
     // Use the max concurrent appointments from the selected appointment type
     const maxConcurrent = selectedAppointmentType?.maxConcurrent || 1;
     
+    // Get current date and time
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentDay = now.getDate();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    
+    // Check if selected date is today
+    const selectedDate = form.getValues("appointmentDate");
+    let isToday = false;
+    
+    if (selectedDate) {
+      try {
+        if (typeof selectedDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
+          const dateParts = selectedDate.split('-');
+          const year = parseInt(dateParts[0], 10);
+          const month = parseInt(dateParts[1], 10);
+          const day = parseInt(dateParts[2], 10);
+          
+          isToday = (
+            year === currentYear && 
+            month === currentMonth && 
+            day === currentDay
+          );
+        }
+      } catch (e) {
+        console.error("Error parsing date when checking if selected date is today:", e);
+      }
+    }
+    
     // Only show full hour slots for standard appointment booking
     const times = [];
     for (let hour = facilityOpenHour; hour < facilityCloseHour; hour++) {
+      // Check if we need to filter out past times for today
+      if (isToday && hour <= currentHour) {
+        // Skip times that are in the past for today
+        continue;
+      }
+      
       // Create the time slot with availability indication
       const timeStr = `${hour.toString().padStart(2, '0')}:00`;
       
@@ -452,21 +495,61 @@ export default function AppointmentForm({
     const currentHour = now.getHours();
     const nextHour = currentHour + 1;
     
-    // Default to 3 PM if it's already past 3 PM
-    if (nextHour >= 15) {
+    // Get selected date
+    const selectedDate = form.getValues("appointmentDate");
+    let isToday = false;
+    
+    // Check if the selected date is today
+    if (selectedDate) {
+      try {
+        if (typeof selectedDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
+          const dateParts = selectedDate.split('-');
+          const year = parseInt(dateParts[0], 10);
+          const month = parseInt(dateParts[1], 10);
+          const day = parseInt(dateParts[2], 10);
+          
+          const today = new Date();
+          isToday = (
+            year === today.getFullYear() && 
+            month === today.getMonth() + 1 && 
+            day === today.getDate()
+          );
+        }
+      } catch (e) {
+        console.error("Error parsing date when getting default time slot:", e);
+      }
+    }
+    
+    // The selected appointment type 
+    const appointmentType = form.getValues("appointmentTypeId") 
+      ? allAppointmentTypes.find(type => type.id === form.getValues("appointmentTypeId"))
+      : null;
+    const maxConcurrent = appointmentType?.maxConcurrent || 1;
+    
+    // If it's today and already past opening hours, use the next available hour
+    if (isToday) {
+      // If it's past 4 PM, default to tomorrow at 8 AM
+      if (currentHour >= 16) {
+        return "08:00 (1 available)";
+      }
+      
+      // If it's within working hours, use the next hour
+      if (nextHour >= 8 && nextHour < 17) {
+        return `${nextHour.toString().padStart(2, '0')}:00 (${maxConcurrent} available)`;
+      }
+      
+      // If it's before opening hours, default to opening hour (8 AM)
+      if (nextHour < 8) {
+        return "08:00 (1 available)";
+      }
+    }
+    
+    // Default to 3 PM if it's not today
+    if (!isToday && nextHour >= 15) {
       return "15:00 (1 available)";
     }
     
-    // Return the next hour if it's within facility hours
-    if (nextHour >= 8 && nextHour < 17) {
-      const appointmentType = form.getValues("appointmentTypeId") 
-        ? allAppointmentTypes.find(type => type.id === form.getValues("appointmentTypeId"))
-        : null;
-      const maxConcurrent = appointmentType?.maxConcurrent || 1;
-      return `${nextHour.toString().padStart(2, '0')}:00 (${maxConcurrent} available)`;
-    }
-    
-    // Default to the facility opening hour (8 AM)
+    // For future dates or fallback, use 8 AM
     return "08:00 (1 available)";
   };
   
@@ -622,18 +705,16 @@ export default function AppointmentForm({
                               selected={field.value ? new Date(field.value) : undefined}
                               onSelect={(date) => {
                                 if (date) {
-                                  // Set the time to noon to avoid any timezone issues
-                                  // This ensures the date doesn't shift due to timezone conversions
-                                  const selectedDate = new Date(date);
-                                  selectedDate.setHours(12, 0, 0, 0);
+                                  // Create a new date object that preserves the exact date selected
+                                  // Important: We need to use the date passed directly and not create a new Date
+                                  // which may cause timezone issues
+                                  const year = date.getFullYear();
+                                  const month = date.getMonth() + 1; // JavaScript months are 0-based
+                                  const day = date.getDate();
                                   
-                                  // Extract the local date components (not UTC)
-                                  const localYear = selectedDate.getFullYear();
-                                  const localMonth = selectedDate.getMonth() + 1; // JavaScript months are 0-based
-                                  const localDay = selectedDate.getDate();
+                                  // Format with yyyy-MM-dd pattern - forcing UTC handling to prevent date shifts
+                                  const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                                   
-                                  // Format with yyyy-MM-dd pattern
-                                  const formattedDate = `${localYear}-${localMonth.toString().padStart(2, '0')}-${localDay.toString().padStart(2, '0')}`;
                                   field.onChange(formattedDate);
                                   console.log("Selected date (exactly as selected):", formattedDate);
                                 }
