@@ -267,16 +267,13 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const getStatusVariant = (status: AssetStatus): "default" | "outline" | "destructive" | "secondary" => {
     switch (status) {
       case AssetStatus.ACTIVE:
-      case AssetStatus.OPERATIONAL:
         return "default"; // green
       case AssetStatus.MAINTENANCE:
-      case AssetStatus.PENDING:
         return "secondary"; // yellow/orange
       case AssetStatus.RETIRED:
-      case AssetStatus.DAMAGED:
         return "destructive"; // red
       case AssetStatus.INACTIVE:
-      case AssetStatus.STORAGE:
+      case AssetStatus.LOST:
       default:
         return "outline"; // gray
     }
@@ -312,13 +309,18 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   };
 
   // Format tags
-  const formatTags = (tags: string | null): string[] => {
+  const formatTags = (tags: string | null | unknown): string[] => {
     if (!tags) return [];
-    try {
-      return JSON.parse(tags);
-    } catch (e) {
-      return [];
+    
+    if (typeof tags === 'string') {
+      try {
+        return JSON.parse(tags);
+      } catch (e) {
+        return [];
+      }
     }
+    
+    return [];
   };
 
   // Clear all filters
@@ -338,9 +340,14 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     assets?.forEach(asset => {
       if (asset.tags) {
         try {
-          const tagList = JSON.parse(asset.tags);
+          // Only parse if it's a string
+          const tagList = typeof asset.tags === 'string' ? JSON.parse(asset.tags) : asset.tags;
           if (Array.isArray(tagList)) {
-            tagList.forEach(tag => allTags.add(tag));
+            tagList.forEach(tag => {
+              if (typeof tag === 'string') {
+                allTags.add(tag);
+              }
+            });
           }
         } catch (e) {
           // Ignore parsing errors
@@ -532,7 +539,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
           <div className="text-center text-red-500 py-8">
             Failed to load company assets. Please try again.
           </div>
-        ) : filteredAssets && filteredAssets.length > 0 ? (
+        ) : assets && assets.length > 0 ? (
           <>
             <div className="rounded-md border overflow-x-auto">
               <Table>
@@ -556,7 +563,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedAssets.map((asset) => (
+                  {paginatedAssets?.map((asset) => (
                     <TableRow key={asset.id}>
                       <TableCell className="pl-4">{getCategoryIcon(asset.category)}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
