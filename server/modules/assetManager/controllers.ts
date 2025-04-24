@@ -731,3 +731,29 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to import company assets' });
   }
 };
+
+/**
+ * Search for company asset by barcode
+ */
+export const searchCompanyAssetByBarcode = async (req: Request, res: Response) => {
+  try {
+    const { barcode } = req.query;
+    
+    if (!barcode) {
+      return res.status(400).json({ error: 'Barcode parameter is required' });
+    }
+    
+    console.log('Searching for asset with barcode:', barcode);
+    
+    const asset = await assetManagerService.assetManagerService.findCompanyAssetByBarcode(barcode as string);
+    
+    if (!asset) {
+      return res.status(404).json({ error: 'Asset not found with this barcode' });
+    }
+    
+    return res.status(200).json(asset);
+  } catch (error) {
+    console.error('Error searching for asset by barcode:', error);
+    return res.status(500).json({ error: 'Failed to search for asset by barcode' });
+  }
+};

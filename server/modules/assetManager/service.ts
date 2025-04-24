@@ -496,6 +496,27 @@ export class AssetManagerService implements AssetService {
       return false;
     }
   }
+
+  /**
+   * Find company asset by barcode
+   */
+  async findCompanyAssetByBarcode(barcode: string): Promise<CompanyAsset | undefined> {
+    try {
+      const storage = await getStorage();
+      
+      if (typeof storage.findCompanyAssetByBarcode === 'function') {
+        return await storage.findCompanyAssetByBarcode(barcode);
+      } else {
+        // Fallback to searching all assets if method not available
+        console.warn('Storage does not implement findCompanyAssetByBarcode method, falling back to search');
+        const assets = await this.listCompanyAssets();
+        return assets.find(asset => asset.barcode === barcode);
+      }
+    } catch (error) {
+      console.error(`Error finding company asset by barcode ${barcode}:`, error);
+      return undefined;
+    }
+  }
 }
 
 export const assetManagerService = new AssetManagerService();
