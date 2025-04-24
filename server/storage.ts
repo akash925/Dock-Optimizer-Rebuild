@@ -1055,11 +1055,16 @@ export class DatabaseStorage implements IStorage {
   // Schedule operations
   async getSchedule(id: number): Promise<Schedule | undefined> {
     try {
-      // Use pool's query directly to avoid any issues with the ORM
-      const result = await pool.query(
-        `SELECT * FROM schedules WHERE id = $1 LIMIT 1`,
-        [id]
-      );
+      // Use pool's query directly, joining with related tables to get facility info
+      const result = await pool.query(`
+        SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id,
+               at.name as appointment_type_name
+        FROM schedules s
+        LEFT JOIN docks d ON s.dock_id = d.id
+        LEFT JOIN facilities f ON d.facility_id = f.id
+        LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+        WHERE s.id = $1 LIMIT 1
+      `, [id]);
       
       if (result.rows.length === 0) {
         return undefined;
@@ -1067,14 +1072,27 @@ export class DatabaseStorage implements IStorage {
       
       const row = result.rows[0];
       
+      // Extract facility information from customFormData if available
+      let facilityName = row.facility_name;
+      let facilityId = row.facility_id;
+      
+      if (row.custom_form_data && row.custom_form_data.facilityInfo) {
+        facilityName = facilityName || row.custom_form_data.facilityInfo.facilityName;
+        facilityId = facilityId || row.custom_form_data.facilityInfo.facilityId;
+      }
+      
       // Convert snake_case database columns to camelCase for our interface
       return {
         id: row.id,
         type: row.type,
         status: row.status,
         dockId: row.dock_id,
+        dockName: row.dock_name,
+        facilityId: facilityId,
+        facilityName: facilityName,
         carrierId: row.carrier_id,
         appointmentTypeId: row.appointment_type_id,
+        appointmentTypeName: row.appointment_type_name,
         truckNumber: row.truck_number,
         trailerNumber: row.trailer_number,
         driverName: row.driver_name,
@@ -1108,10 +1126,22 @@ export class DatabaseStorage implements IStorage {
   async getSchedules(): Promise<Schedule[]> {
     try {
       // Use pool to query directly
-      const result = await pool.query(`SELECT * FROM schedules`);
+      const result = await pool.query(`SELECT schedules.*, facilities.name AS facility_name 
+                                       FROM schedules 
+                                       LEFT JOIN docks ON schedules.dock_id = docks.id
+                                       LEFT JOIN facilities ON docks.facility_id = facilities.id`);
       
       // Transform to match our expected Schedule interface
       return result.rows.map((row: any) => {
+        // Extract facility information from customFormData if available
+        let facilityName = row.facility_name;
+        let facilityId = null;
+        
+        if (row.custom_form_data && row.custom_form_data.facilityInfo) {
+          facilityName = facilityName || row.custom_form_data.facilityInfo.facilityName;
+          facilityId = row.custom_form_data.facilityInfo.facilityId;
+        }
+        
         return {
           id: row.id,
           type: row.type,
@@ -1128,6 +1158,8 @@ export class DatabaseStorage implements IStorage {
           carrierName: row.carrier_name,
           mcNumber: row.mc_number,
           bolNumber: row.bol_number,
+          facilityName: facilityName,
+          facilityId: facilityId,
           poNumber: row.po_number,
           palletCount: row.pallet_count,
           weight: row.weight,
@@ -1152,19 +1184,34 @@ export class DatabaseStorage implements IStorage {
 
   async getSchedulesByDock(dockId: number): Promise<Schedule[]> {
     try {
-      // Use pool to query directly
-      const result = await pool.query(
-        `SELECT * FROM schedules WHERE dock_id = $1`,
-        [dockId]
-      );
+      // Use pool to query directly - join with facilities to get facility data
+      const result = await pool.query(`
+        SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id
+        FROM schedules s
+        LEFT JOIN docks d ON s.dock_id = d.id
+        LEFT JOIN facilities f ON d.facility_id = f.id
+        WHERE s.dock_id = $1
+      `, [dockId]);
       
       // Transform to match our expected Schedule interface
       return result.rows.map((row: any) => {
+        // Extract facility information from customFormData if available
+        let facilityName = row.facility_name;
+        let facilityId = row.facility_id;
+        
+        if (row.custom_form_data && row.custom_form_data.facilityInfo) {
+          facilityName = facilityName || row.custom_form_data.facilityInfo.facilityName;
+          facilityId = facilityId || row.custom_form_data.facilityInfo.facilityId;
+        }
+        
         return {
           id: row.id,
           type: row.type,
           status: row.status,
           dockId: row.dock_id,
+          dockName: row.dock_name,
+          facilityId: facilityId,
+          facilityName: facilityName,
           carrierId: row.carrier_id,
           appointmentTypeId: row.appointment_type_id,
           truckNumber: row.truck_number,
