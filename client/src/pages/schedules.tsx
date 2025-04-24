@@ -517,7 +517,9 @@ export default function Schedules() {
         <Button 
           onClick={() => {
             setEditScheduleId(null);
-            setIsAppointmentTypeDialogOpen(true);
+            // Skip appointment type dialog and open form directly
+            setClickedCellDate(new Date());
+            setIsFormOpen(true);
           }}
           className="bg-primary text-white h-9 ml-auto"
         >
