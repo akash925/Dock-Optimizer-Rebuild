@@ -6,6 +6,7 @@ import FullCalendarView from '@/components/calendar/full-calendar-view';
 import { Schedule } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import AppointmentForm from '@/components/shared/appointment-form-fixed';
 
 export default function CalendarPage() {
   const [, navigate] = useLocation();
@@ -80,32 +81,20 @@ export default function CalendarPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Create appointment dialog */}
-      <Dialog open={isCreateModalOpen} onOpenChange={(open) => !open && setIsCreateModalOpen(false)}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Create New Appointment</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {dateSelectInfo && (
-              <div className="space-y-4">
-                <p>
-                  Create appointment from{' '}
-                  {dateSelectInfo.start.toLocaleString()} to{' '}
-                  {dateSelectInfo.end.toLocaleString()}
-                </p>
-                <Button
-                  onClick={() => {
-                    navigate('/schedules/new');
-                  }}
-                >
-                  Continue to Appointment Form
-                </Button>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Create appointment form directly in the dialog */}
+      {dateSelectInfo && (
+        <AppointmentForm
+          mode="internal"
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          initialDate={dateSelectInfo.start}
+          editMode="create"
+          onSubmitSuccess={() => {
+            setIsCreateModalOpen(false);
+            setDateSelectInfo(null);
+          }}
+        />
+      )}
     </div>
   );
 }

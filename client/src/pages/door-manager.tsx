@@ -4,7 +4,7 @@ import { Dock, Schedule, Carrier, Facility } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import DoorAppointmentForm from "../components/door-manager/door-appointment-form";
+import DoorAppointmentForm from "../components/door-manager/door-appointment-form-fixed";
 import ReleaseDoorForm from "../components/door-manager/release-door-form";
 import { X, LogOut } from "lucide-react";
 
@@ -288,15 +288,12 @@ export default function DoorManager() {
       </div>
       
       {/* Door Appointment Form Dialog */}
-      {showAppointmentForm && selectedDockId && selectedTimeSlot && (
+      {showAppointmentForm && selectedDockId && (
         <DoorAppointmentForm 
           isOpen={showAppointmentForm}
           onClose={handleCloseAppointmentForm}
           dockId={selectedDockId}
-          initialStartTime={selectedTimeSlot.start}
-          initialEndTime={selectedTimeSlot.end}
-          carriers={carriers}
-          schedules={schedules}
+          facilityId={selectedFacilityId || undefined}
           onSuccess={() => {
             refetchSchedules();
             handleCloseAppointmentForm();
