@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import Layout from "@/components/layout/index";
 import { Facility, AppointmentType, insertAppointmentTypeSchema } from "@shared/schema";
 import SeedAppointmentTypes from "@/components/appointment-master/seed-appointment-types";
 import { Button } from "@/components/ui/button";
@@ -389,18 +388,17 @@ export default function AppointmentMaster() {
     }
   };
   
-  // Render the main content directly without duplicating UI components
-  const renderContent = () => (
+  return (
     <div className="container mx-auto py-6 space-y-6">
-      <h1 className="text-3xl font-bold text-center mb-6">Appointment Master</h1>
+      <h1 className="text-3xl font-bold mb-6">Appointment Master</h1>
       
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center space-x-2">
-          <span className="text-muted-foreground">Configure appointment types, forms, and availability</span>
+          <span className="text-muted-foreground">Configure appointment types, forms, and settings</span>
         </div>
       </div>
       
-      <div className="border rounded-md">
+      <div className="border rounded-md bg-white">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="types">
@@ -419,7 +417,7 @@ export default function AppointmentMaster() {
           
           {/* Appointment Types Tab */}
           <TabsContent value="types">
-            <Card>
+            <Card className="border-0 shadow-none">
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
@@ -457,95 +455,97 @@ export default function AppointmentMaster() {
                 </div>
               </CardHeader>
               <CardContent>
-                {isLoadingAppointmentTypes ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                    <p className="text-muted-foreground">Loading appointment types...</p>
-                  </div>
-                ) : apiAppointmentTypes.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No appointment types have been created yet.</p>
-                    <p className="text-sm mt-2">Click "New Appointment Type" to create your first appointment type.</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Appointment Name</TableHead>
-                        <TableHead>Facility</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {appointmentTypesWithFacilityNames.map((appointmentType) => (
-                        <TableRow key={appointmentType.id}>
-                          <TableCell className="font-medium">{appointmentType.name}</TableCell>
-                          <TableCell>{appointmentType.facilityName}</TableCell>
-                          <TableCell>{getAppointmentTypeLabel(appointmentType.type)}</TableCell>
-                          <TableCell>{appointmentType.createdDate}</TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => {
-                                  setSelectedAppointmentTypeId(appointmentType.id);
-                                  // Set the form data from the selected appointment type
-                                  setAppointmentTypeForm({
-                                    name: appointmentType.name || "",
-                                    description: appointmentType.description || "",
-                                    facilityId: appointmentType.facilityId || (facilities.length > 0 ? facilities[0].id : 0),
-                                    color: appointmentType.color || "#4CAF50",
-                                    duration: appointmentType.duration || 60,
-                                    type: appointmentType.type || "both",
-                                    maxConcurrent: appointmentType.maxConcurrent || 1,
-                                    bufferTime: appointmentType.bufferTime || 0,
-                                    maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay === null ? undefined : appointmentType.maxAppointmentsPerDay,
-                                    timezone: appointmentType.timezone || "America/New_York",
-                                    gracePeriod: appointmentType.gracePeriod || 15,
-                                    emailReminderTime: appointmentType.emailReminderTime || 24,
-                                    showRemainingSlots: appointmentType.showRemainingSlots ?? true,
-                                    allowAppointmentsThroughBreaks: appointmentType.allowAppointmentsThroughBreaks || false,
-                                    allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false,
-                                    overrideFacilityHours: appointmentType.overrideFacilityHours || false
-                                  });
-                                  setAppointmentTypeFormStep(1);
-                                  setShowNewAppointmentTypeDialog(true);
-                                }}>
-                                  <Pencil className="h-4 w-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  duplicateAppointmentTypeMutation.mutate(appointmentType.id);
-                                }}>
-                                  <Copy className="h-4 w-4 mr-2" />
-                                  Duplicate
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  className="text-red-600"
-                                  onClick={() => {
-                                    if(confirm(`Are you sure you want to delete "${appointmentType.name}"?`)) {
-                                      deleteAppointmentTypeMutation.mutate(appointmentType.id);
-                                    }
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
+                <div className="overflow-x-auto">
+                  {isLoadingAppointmentTypes ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                      <p className="text-muted-foreground">Loading appointment types...</p>
+                    </div>
+                  ) : apiAppointmentTypes.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No appointment types have been created yet.</p>
+                      <p className="text-sm mt-2">Click "New Appointment Type" to create your first appointment type.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Appointment Name</TableHead>
+                          <TableHead>Facility</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                      </TableHeader>
+                      <TableBody>
+                        {appointmentTypesWithFacilityNames.map((appointmentType) => (
+                          <TableRow key={appointmentType.id}>
+                            <TableCell className="font-medium">{appointmentType.name}</TableCell>
+                            <TableCell>{appointmentType.facilityName}</TableCell>
+                            <TableCell>{getAppointmentTypeLabel(appointmentType.type)}</TableCell>
+                            <TableCell>{appointmentType.createdDate}</TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => {
+                                    setSelectedAppointmentTypeId(appointmentType.id);
+                                    // Set the form data from the selected appointment type
+                                    setAppointmentTypeForm({
+                                      name: appointmentType.name || "",
+                                      description: appointmentType.description || "",
+                                      facilityId: appointmentType.facilityId || (facilities.length > 0 ? facilities[0].id : 0),
+                                      color: appointmentType.color || "#4CAF50",
+                                      duration: appointmentType.duration || 60,
+                                      type: appointmentType.type || "both",
+                                      maxConcurrent: appointmentType.maxConcurrent || 1,
+                                      bufferTime: appointmentType.bufferTime || 0,
+                                      maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay === null ? undefined : appointmentType.maxAppointmentsPerDay,
+                                      timezone: appointmentType.timezone || "America/New_York",
+                                      gracePeriod: appointmentType.gracePeriod || 15,
+                                      emailReminderTime: appointmentType.emailReminderTime || 24,
+                                      showRemainingSlots: appointmentType.showRemainingSlots ?? true,
+                                      allowAppointmentsThroughBreaks: appointmentType.allowAppointmentsThroughBreaks || false,
+                                      allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false,
+                                      overrideFacilityHours: appointmentType.overrideFacilityHours || false
+                                    });
+                                    setAppointmentTypeFormStep(1);
+                                    setShowNewAppointmentTypeDialog(true);
+                                  }}>
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    duplicateAppointmentTypeMutation.mutate(appointmentType.id);
+                                  }}>
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Duplicate
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    className="text-red-600"
+                                    onClick={() => {
+                                      if(confirm(`Are you sure you want to delete "${appointmentType.name}"?`)) {
+                                        deleteAppointmentTypeMutation.mutate(appointmentType.id);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
               </CardContent>
             </Card>
             
@@ -556,7 +556,7 @@ export default function AppointmentMaster() {
           
           {/* Custom Questions Tab */}
           <TabsContent value="questions">
-            <Card>
+            <Card className="border-0 shadow-none">
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
@@ -583,60 +583,62 @@ export default function AppointmentMaster() {
                 </div>
               </CardHeader>
               <CardContent>
-                {customFields.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>No custom questions have been created yet.</p>
-                    <p className="text-sm mt-2">Click "Add Question" to create your first custom question.</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[50px]">Order</TableHead>
-                        <TableHead>Field Label</TableHead>
-                        <TableHead>Field Type</TableHead>
-                        <TableHead>Required</TableHead>
-                        <TableHead>Appointment Type</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {customFields.map((field) => (
-                        <TableRow key={field.id}>
-                          <TableCell>{field.order}</TableCell>
-                          <TableCell className="font-medium">{field.label}</TableCell>
-                          <TableCell className="capitalize">{field.type}</TableCell>
-                          <TableCell>{field.required ? "Yes" : "No"}</TableCell>
-                          <TableCell>{getAppointmentTypeLabel(field.appointmentType)}</TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => editCustomField(field)}
-                            >
-                              Edit
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-red-500"
-                              onClick={() => deleteCustomField(field.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
+                <div className="overflow-x-auto">
+                  {customFields.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No custom questions have been created yet.</p>
+                      <p className="text-sm mt-2">Click "Add Question" to create your first custom question.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[50px]">Order</TableHead>
+                          <TableHead>Field Label</TableHead>
+                          <TableHead>Field Type</TableHead>
+                          <TableHead>Required</TableHead>
+                          <TableHead>Appointment Type</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
+                      </TableHeader>
+                      <TableBody>
+                        {customFields.map((field) => (
+                          <TableRow key={field.id}>
+                            <TableCell>{field.order}</TableCell>
+                            <TableCell className="font-medium">{field.label}</TableCell>
+                            <TableCell className="capitalize">{field.type}</TableCell>
+                            <TableCell>{field.required ? "Yes" : "No"}</TableCell>
+                            <TableCell>{getAppointmentTypeLabel(field.appointmentType)}</TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => editCustomField(field)}
+                              >
+                                Edit
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-red-500"
+                                onClick={() => deleteCustomField(field.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
           
           {/* General Settings Tab */}
           <TabsContent value="settings">
-            <Card>
+            <Card className="border-0 shadow-none">
               <CardHeader>
                 <CardTitle>Appointment System Settings</CardTitle>
                 <CardDescription>
@@ -751,12 +753,6 @@ export default function AppointmentMaster() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
-  
-  return (
-    <Layout>
-      {renderContent()}
       
       {/* Create/Edit Appointment Type Dialog */}
       <Dialog open={showNewAppointmentTypeDialog} onOpenChange={setShowNewAppointmentTypeDialog}>
@@ -1262,6 +1258,6 @@ export default function AppointmentMaster() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </div>
   );
 }
