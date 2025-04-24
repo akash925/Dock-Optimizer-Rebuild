@@ -30,6 +30,7 @@ interface ScheduleWeekCalendarProps {
   onViewChange: (view: "month" | "week" | "day" | "list") => void;
   onCellClick?: (date: Date, dockId?: number) => void;
   timezone?: string; // Add timezone prop
+  timeFormat?: "12h" | "24h"; // Add time format prop
 }
 
 export default function ScheduleWeekCalendar({
@@ -42,6 +43,7 @@ export default function ScheduleWeekCalendar({
   onViewChange,
   onCellClick,
   timezone,
+  timeFormat = "12h", // Default to 12h format if not specified
 }: ScheduleWeekCalendarProps) {
   // State for filters
   const [customerSearch, setCustomerSearch] = useState("");
@@ -58,13 +60,15 @@ export default function ScheduleWeekCalendar({
   // Generate days of the week
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   
-  // Generate hours from 12AM to 11PM
+  // Generate hours from 12AM to 11PM based on timeFormat
   const hours = Array.from({ length: 24 }, (_, i) => {
     const hour = i; // Starting from 12 AM
     return {
-      display: hour < 12 
-        ? `${hour === 0 ? 12 : hour}am` 
-        : `${hour === 12 ? 12 : hour - 12}${hour < 12 ? 'am' : 'pm'}`,
+      display: timeFormat === "24h"
+        ? `${hour.toString().padStart(2, '0')}:00`  // 24h format (e.g., "08:00", "14:00")
+        : hour < 12 
+          ? `${hour === 0 ? 12 : hour}am` 
+          : `${hour === 12 ? 12 : hour - 12}${hour < 12 ? 'am' : 'pm'}`,
       value: hour
     };
   });
@@ -116,6 +120,15 @@ export default function ScheduleWeekCalendar({
     );
     
     return index;
+  };
+  
+  // Helper function to format time based on timeFormat setting
+  const formatTimeWithFormat = (date: Date): string => {
+    if (timeFormat === "24h") {
+      return format(date, 'HH:mm'); // 24-hour format (e.g., 14:30)
+    } else {
+      return format(date, 'h:mm a'); // 12-hour format with am/pm (e.g., 2:30 pm)
+    }
   };
   
 
@@ -395,9 +408,9 @@ export default function ScheduleWeekCalendar({
                 const startDate = utcToUserTime(schedule.startTime);
                 const endDate = utcToUserTime(schedule.endTime);
                 
-                // Format times for display with timezone consideration
-                const startTimeStr = format(startDate, 'h:mm a');
-                const endTimeStr = format(endDate, 'h:mm a');
+                // Format times for display based on selected time format
+                const startTimeStr = formatTimeWithFormat(startDate);
+                const endTimeStr = formatTimeWithFormat(endDate);
                 
                 // Calculate precise position based on hours and cell size
                 const startHour = startDate.getHours();
@@ -471,7 +484,7 @@ export default function ScheduleWeekCalendar({
                             <span className="font-medium">Your time:</span> {startTimeStr}-{endTimeStr}
                           </div>
                           <div>
-                            <span className="font-medium">Facility time:</span> {format(startDate, 'h:mm a')}-{format(endDate, 'h:mm a')}
+                            <span className="font-medium">Facility time:</span> {formatTimeWithFormat(startDate)}-{formatTimeWithFormat(endDate)}
                           </div>
                           <div>Carrier: {carrier?.name || schedule.carrierName || "Unknown"}</div>
                           <div>Truck: #{schedule.truckNumber}</div>
