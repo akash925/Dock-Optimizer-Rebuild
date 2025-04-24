@@ -539,13 +539,12 @@ export function AppointmentDetailsDialog({
                     <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                     <span className="font-medium">
                       {appointment && appointment.startTime && appointment.endTime
-                        ? formatTimeRangeForDualZones(
+                        ? formatDateRangeInTimeZone(
                             new Date(appointment.startTime),
                             new Date(appointment.endTime),
-                            timezone || getUserTimeZone(),
-                            appointment.facilityId && appointment.facilityTimezone 
-                              ? appointment.facilityTimezone 
-                              : "America/New_York"
+                            getUserTimeZone(),
+                            'MMM d, yyyy',
+                            'h:mm a'
                           )
                         : ""}
                     </span>
