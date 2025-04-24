@@ -186,7 +186,7 @@ export default function AppointmentForm({
   // Filtered appointment types based on selected facility
   const [filteredAppointmentTypes, setFilteredAppointmentTypes] = useState<AppointmentType[]>([]);
   
-  // Update filtered appointment types when facility changes
+  // Update filtered appointment types when facility changes or appointment types load
   useEffect(() => {
     const facilityId = form.getValues("facilityId");
     if (facilityId) {
@@ -195,13 +195,24 @@ export default function AppointmentForm({
     } else {
       setFilteredAppointmentTypes(allAppointmentTypes);
     }
-  }, [form, allAppointmentTypes]);
+  }, [allAppointmentTypes]); // Only run when appointment types change
   
-  // Fetch details of selected appointment type
+  // Watch for facilityId changes to update filtered appointment types
+  const watchedFacilityId = form.watch("facilityId");
   useEffect(() => {
-    const appointmentTypeId = form.getValues("appointmentTypeId");
-    if (appointmentTypeId) {
-      const selectedType = allAppointmentTypes.find(type => type.id === appointmentTypeId);
+    if (watchedFacilityId) {
+      const typesForFacility = allAppointmentTypes.filter(type => type.facilityId === watchedFacilityId);
+      setFilteredAppointmentTypes(typesForFacility);
+    } else {
+      setFilteredAppointmentTypes(allAppointmentTypes);
+    }
+  }, [watchedFacilityId, allAppointmentTypes]);
+  
+  // Watch for appointment type changes
+  const watchedAppointmentTypeId = form.watch("appointmentTypeId");
+  useEffect(() => {
+    if (watchedAppointmentTypeId) {
+      const selectedType = allAppointmentTypes.find(type => type.id === watchedAppointmentTypeId);
       if (selectedType) {
         setSelectedAppointmentType(selectedType);
         
@@ -215,7 +226,7 @@ export default function AppointmentForm({
         }
       }
     }
-  }, [form, allAppointmentTypes]);
+  }, [watchedAppointmentTypeId, allAppointmentTypes]);
   
   // Create appointment mutation
   const createAppointmentMutation = useMutation({
