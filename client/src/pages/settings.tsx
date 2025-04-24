@@ -796,6 +796,79 @@ export default function Settings() {
                 </div>
               </div>
               
+              <div className="space-y-4 border-t pt-6">
+                <h3 className="text-lg font-medium">Asset Manager Settings</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="barcode-format">Default Barcode Format</Label>
+                      <Select 
+                        value={defaultBarcodeFormat} 
+                        onValueChange={setDefaultBarcodeFormat}
+                      >
+                        <SelectTrigger id="barcode-format" className="w-full">
+                          <SelectValue placeholder="Select barcode format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CODE128">Code 128</SelectItem>
+                          <SelectItem value="CODE39">Code 39</SelectItem>
+                          <SelectItem value="EAN13">EAN-13</SelectItem>
+                          <SelectItem value="UPC">UPC</SelectItem>
+                          <SelectItem value="EAN8">EAN-8</SelectItem>
+                          <SelectItem value="ITF14">ITF-14</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground">
+                        Default format used when generating barcodes for new assets.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="barcode-prefix">Default Barcode Prefix</Label>
+                      <Input 
+                        id="barcode-prefix" 
+                        value={barcodePrefix}
+                        onChange={(e) => setBarcodePrefix(e.target.value)} 
+                        placeholder="H" 
+                        maxLength={3}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Optional prefix to add to automatically generated barcodes (1-3 characters).
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-muted/40 rounded-md border">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white p-3 border rounded">
+                        <svg ref={(ref) => {
+                          if (ref) {
+                            try {
+                              import('jsbarcode').then(({ default: JsBarcode }) => {
+                                JsBarcode(ref, `${barcodePrefix}12345`, {
+                                  format: defaultBarcodeFormat,
+                                  width: 1.5,
+                                  height: 50,
+                                  displayValue: true,
+                                  margin: 5,
+                                  background: '#ffffff',
+                                });
+                              });
+                            } catch (error) {
+                              console.error('Error generating barcode:', error);
+                            }
+                          }
+                        }} className="h-16"></svg>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <p>Preview of barcode with current settings.</p>
+                        <p>Changes will apply to new barcodes generated after saving.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <div className="flex justify-end pt-4 border-t">
                 <Button onClick={() => handleSaveSettings("organization")}>
                   <Save className="h-4 w-4 mr-2" />
