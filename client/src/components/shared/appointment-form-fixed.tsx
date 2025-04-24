@@ -313,14 +313,10 @@ export default function AppointmentForm({
   
   // Form submission handler
   const onSubmit = (data: AppointmentFormValues) => {
-    if (step < 3) {
-      // Move to next step
-      setStep(step + 1);
-    } else {
-      // Submit the form
-      setIsSubmitting(true);
-      createAppointmentMutation.mutate(data);
-    }
+    // Only run when submitting on the final step
+    // Step navigation is now handled by the Next/Back buttons directly
+    setIsSubmitting(true);
+    createAppointmentMutation.mutate(data);
   };
   
   // Handle going back a step
@@ -404,6 +400,8 @@ export default function AppointmentForm({
                           const typeId = parseInt(value);
                           const selectedType = allAppointmentTypes.find(type => type.id === typeId);
                           if (selectedType) {
+                            console.log("Selected appointment type ID:", typeId);
+                            console.log("Selected appointment type:", selectedType.name, "Duration:", selectedType.duration, "minutes");
                             setSelectedAppointmentType(selectedType);
                             // Set the appointment mode based on duration
                             const recommendedMode = selectedType.duration <= 60 ? "trailer" : "container";
@@ -446,60 +444,96 @@ export default function AppointmentForm({
                 </div>
               )}
               
-              {/* Carrier Information */}
-              <div className="space-y-4 mt-6">
-                <h3 className="text-lg font-medium">Carrier Information</h3>
-                
-                <FormField
-                  control={form.control}
-                  name="carrierId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Carrier*</FormLabel>
-                      <CarrierSelector 
-                        form={form}
-                        idFieldName="carrierId"
-                        nameFieldName="carrierName"
-                        mcNumberFieldName="mcNumber"
-                      />
-                      <FormDescription>
-                        Select a carrier from the list or enter a custom carrier name below.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Time Selection - Moved to right after appointment type info */}
+              {selectedAppointmentType && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Date Picker */}
                   <FormField
                     control={form.control}
-                    name="customerName"
+                    name="appointmentDate"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer Name*</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter customer name" {...field} />
-                        </FormControl>
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Date*</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(new Date(field.value), "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value ? new Date(field.value) : undefined}
+                              onSelect={(date) => {
+                                if (date) {
+                                  field.onChange(format(date, "yyyy-MM-dd"))
+                                }
+                              }}
+                              disabled={(date) => {
+                                // Disable dates in the past
+                                return date < new Date(new Date().setHours(0, 0, 0, 0));
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   
+                  {/* Time Picker */}
                   <FormField
                     control={form.control}
-                    name="mcNumber"
+                    name="appointmentTime"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>MC Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter MC number" {...field} />
-                        </FormControl>
+                        <FormLabel>Time*</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a time">
+                                {field.value ? (
+                                  <div className="flex items-center">
+                                    <Clock className="mr-2 h-4 w-4" />
+                                    {field.value}
+                                  </div>
+                                ) : (
+                                  "Select a time"
+                                )}
+                              </SelectValue>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {getAvailableTimes().map((time) => (
+                              <SelectItem key={time} value={time}>
+                                {time}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-              </div>
+              )}
             </div>
             
             {/* Step 1 Navigation */}
@@ -513,7 +547,11 @@ export default function AppointmentForm({
                   Cancel
                 </Button>
               )}
-              <Button type="submit">
+              <Button 
+                type="button" 
+                onClick={() => setStep(2)}
+                disabled={!form.getValues("facilityId") || !form.getValues("appointmentTypeId")}
+              >
                 Next
               </Button>
             </div>
@@ -524,8 +562,61 @@ export default function AppointmentForm({
         return (
           <>
             <div className="space-y-4">
+              {/* Step 2: Carrier Information */}
+              <h3 className="text-lg font-medium">Carrier Information</h3>
+              
+              <FormField
+                control={form.control}
+                name="carrierId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Carrier*</FormLabel>
+                    <CarrierSelector 
+                      form={form}
+                      idFieldName="carrierId"
+                      nameFieldName="carrierName"
+                      mcNumberFieldName="mcNumber"
+                    />
+                    <FormDescription>
+                      Select a carrier from the list or enter a custom carrier name below.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="customerName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Customer Name*</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter customer name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="mcNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>MC Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter MC number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
               {/* Step 2: Truck & Driver Information */}
-              <h3 className="text-lg font-medium">Truck & Driver Information</h3>
+              <h3 className="text-lg font-medium mt-6">Truck & Driver Information</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -614,34 +705,6 @@ export default function AppointmentForm({
                   </FormItem>
                 )}
               />
-              
-              {/* Load Type */}
-              <FormField
-                control={form.control}
-                name="appointmentMode"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Load Type*</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="trailer" id="trailer" />
-                          <Label htmlFor="trailer">Trailer (1 Hour)</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="container" id="container" />
-                          <Label htmlFor="container">Container (4 Hours)</Label>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
             
             {/* Step 2 Navigation */}
@@ -649,7 +712,11 @@ export default function AppointmentForm({
               <Button type="button" variant="outline" onClick={goBack}>
                 Back
               </Button>
-              <Button type="submit">
+              <Button 
+                type="button" 
+                onClick={() => setStep(3)}
+                disabled={!form.getValues("customerName") || !form.getValues("truckNumber")}
+              >
                 Next
               </Button>
             </div>
@@ -865,7 +932,11 @@ export default function AppointmentForm({
               <Button type="button" variant="outline" onClick={goBack}>
                 Back
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="button" 
+                onClick={form.handleSubmit(onSubmit)} 
+                disabled={isSubmitting}
+              >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isSubmitting ? "Creating..." : "Create Appointment"}
               </Button>
