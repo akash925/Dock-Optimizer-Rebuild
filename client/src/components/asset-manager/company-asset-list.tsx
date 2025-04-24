@@ -130,9 +130,13 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       clearTimeout(window.searchTimeout);
     }
     // Set a new timeout
-    window.searchTimeout = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       setDebouncedSearchTerm(value);
+      console.log("Search term debounced:", value);
     }, 300); // 300ms debounce
+    
+    // TypeScript: explicitly cast setTimeout's return value to any to avoid type errors
+    window.searchTimeout = timeoutId as any;
   };
   
   // Build query params for API request
@@ -184,10 +188,10 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     placeholderData: [],
   });
   
-  // Refetch when debounced search term changes
+  // Refetch when debounced search term or filters change
   useEffect(() => {
     refetch();
-  }, [debouncedSearchTerm, refetch]);
+  }, [debouncedSearchTerm, filters.category, filters.location, filters.status, filters.tags, refetch]);
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -397,6 +401,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       tags: []
     });
     setSearchTerm('');
+    setDebouncedSearchTerm(''); // Also clear the debounced search term to trigger a refetch
   };
 
   // Get all available tags from assets
