@@ -152,13 +152,14 @@ export default function Schedules() {
         setSelectedDockId(dockId);
       }
       
-      // Open appointment type selection dialog first
-      setIsAppointmentTypeDialogOpen(true);
+      // Skip appointment type dialog and go directly to the form
+      // We'll select appointment type in the first step of the new form
+      setIsFormOpen(true);
     } else {
       console.error("Invalid date received from cell click:", date);
       // Fallback to current date/time if we got an invalid date
       setClickedCellDate(new Date());
-      setIsAppointmentTypeDialogOpen(true);
+      setIsFormOpen(true);
     }
   };
   

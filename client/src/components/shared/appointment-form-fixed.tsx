@@ -188,14 +188,8 @@ export default function AppointmentForm({
   
   // Update filtered appointment types when facility changes or appointment types load
   useEffect(() => {
-    const facilityId = form.getValues("facilityId");
-    if (facilityId) {
-      const typesForFacility = allAppointmentTypes.filter(type => type.facilityId === facilityId);
-      setFilteredAppointmentTypes(typesForFacility);
-    } else {
-      setFilteredAppointmentTypes(allAppointmentTypes);
-    }
-  }, [allAppointmentTypes]); // Only run when appointment types change
+    // This effect isn't needed as we handle it in the watchedFacilityId effect below
+  }, []);
   
   // Watch for facilityId changes to update filtered appointment types
   const watchedFacilityId = form.watch("facilityId");
