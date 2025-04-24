@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { CompanyAsset, AssetCategory, AssetStatus, AssetLocation } from '@shared/schema';
+import { useLocation } from 'wouter';
 
 // Add type declaration for window.searchTimeout
 declare global {
@@ -116,6 +117,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const itemsPerPage = 10;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   // Debounce search term to avoid too many requests
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -292,6 +294,11 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       setAssetToEdit(asset);
       setIsDialogOpen(true);
     }
+  };
+  
+  // Navigate to full edit page
+  const navigateToFullEditPage = (asset: CompanyAsset) => {
+    navigate(`/asset-manager/assets/${asset.id}/edit`);
   };
 
   // Format currency
@@ -564,8 +571,12 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                 </TableHeader>
                 <TableBody>
                   {paginatedAssets?.map((asset) => (
-                    <TableRow key={asset.id}>
-                      <TableCell className="pl-4">{getCategoryIcon(asset.category)}</TableCell>
+                    <TableRow 
+                      key={asset.id} 
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigateToFullEditPage(asset)}
+                    >
+                      <TableCell className="pl-4" onClick={(e) => e.stopPropagation()}>{getCategoryIcon(asset.category)}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
                       <TableCell>{formatCategory(asset.category)}</TableCell>
                       <TableCell>{asset.manufacturer || '-'}</TableCell>
@@ -605,7 +616,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                           {(!asset.tags || formatTags(asset.tags).length === 0) && '-'}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -618,7 +629,11 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                             <DropdownMenuGroup>
                               <DropdownMenuItem onClick={() => handleEdit(asset)}>
                                 <Pencil className="w-4 h-4 mr-2" />
-                                Edit
+                                Edit in Dialog
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigateToFullEditPage(asset)}>
+                                <Pencil className="w-4 h-4 mr-2" />
+                                Edit Full Page
                               </DropdownMenuItem>
                               {asset.photoUrl && (
                                 <DropdownMenuItem onClick={() => window.open(asset.photoUrl!, '_blank')}>

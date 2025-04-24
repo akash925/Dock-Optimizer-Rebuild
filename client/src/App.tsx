@@ -18,6 +18,7 @@ import Appointments from "@/pages/appointments";
 import AppointmentMaster from "@/pages/appointment-master";
 import BookingPages from "@/pages/booking-pages";
 import AssetManagerPage from "@/pages/asset-manager-page";
+import AssetEditPage from "@/pages/asset-edit-page";
 import AuthDebugPage from "@/pages/auth-debug-page";
 import TestFixedAppointment from "@/pages/test-fixed-appointment";
 import TestFixedAppointmentV2 from "@/pages/test-fixed-appointment-v2";
@@ -50,6 +51,7 @@ function App() {
         <ProtectedRoute path="/users" component={Users} roles={["admin"]} />
         <ProtectedRoute path="/booking-pages" component={BookingPages} roles={["admin", "manager"]} />
         <ProtectedRoute path="/asset-manager" component={AssetManagerPage} roles={["admin", "manager"]} />
+        <ProtectedRoute path="/asset-manager/assets/:id/edit" component={AssetEditPage} roles={["admin", "manager"]} />
         <ProtectedRoute path="/settings" component={Settings} roles={["admin", "manager"]} />
         <Route component={NotFound} />
       </Switch>
