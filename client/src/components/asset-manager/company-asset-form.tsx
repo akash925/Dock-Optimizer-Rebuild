@@ -320,18 +320,18 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                           alt="Asset preview" 
                           className="h-full max-w-full object-contain rounded-md border" 
                         />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="absolute top-2 right-2 bg-background"
-                          onClick={() => {
-                            setPhotoFile(null);
-                            setPhotoPreview(null);
-                          }}
-                        >
-                          Remove
-                        </Button>
+                        <div className="absolute top-2 right-2">
+                          <button
+                            type="button"
+                            className="px-2 py-1 text-xs bg-background border rounded hover:bg-gray-100"
+                            onClick={() => {
+                              setPhotoFile(null);
+                              setPhotoPreview(null);
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
                       </div>
                     ) : assetToEdit?.photoUrl ? (
                       <div className="w-full h-40 relative">
