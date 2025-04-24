@@ -270,7 +270,10 @@ export const getCompanyAssetById = async (req: Request, res: Response) => {
 export const createCompanyAsset = async (req: Request, res: Response) => {
   try {
     // Extract the data from the request body
-    const { name, manufacturer, owner, category, description, barcode } = req.body;
+    const { 
+      name, manufacturer, owner, category, description, barcode, 
+      tags, status, location, department
+    } = req.body;
     
     // Check for required fields - only name is required
     if (!name) {
@@ -289,6 +292,29 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
       });
     }
     
+    // Process tags - ensure they're properly stored as JSON string
+    let processedTags = null;
+    if (tags) {
+      if (typeof tags === 'string') {
+        try {
+          // If it's already a JSON string, parse it to validate and then stringify again
+          const parsedTags = JSON.parse(tags);
+          if (Array.isArray(parsedTags)) {
+            processedTags = JSON.stringify(parsedTags);
+          } else {
+            processedTags = JSON.stringify([tags]);
+          }
+        } catch (e) {
+          // If parsing fails, it might be a comma-separated string
+          processedTags = JSON.stringify(tags.split(',').map(t => t.trim()));
+        }
+      } else if (Array.isArray(tags)) {
+        processedTags = JSON.stringify(tags);
+      } else {
+        processedTags = JSON.stringify([String(tags)]);
+      }
+    }
+    
     // Create company asset data object
     const companyAssetData = {
       name,
@@ -297,7 +323,10 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
       category: assetCategory || AssetCategory.OTHER, // Default to OTHER if not provided
       description: description || null,
       barcode: barcode || null,
-      status: 'inactive', // Default status
+      status: status || 'inactive', // Default status
+      location: location || null,
+      department: department || null,
+      tags: processedTags,
       photoUrl: null // Will be set by the service if photo is uploaded
     };
     
@@ -354,7 +383,7 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
       manufacturerPartNumber, supplierName, poNumber, vendorInformation,
       purchasePrice, currency, purchaseDate, implementedDate, warrantyExpiration, 
       depreciation, assetValue, lastServiceDate, nextServiceDate, 
-      maintenanceSchedule, certificationDate, certificationExpiry
+      maintenanceSchedule, certificationDate, certificationExpiry, tags
     } = req.body;
     
     // Build update object with only the fields that were provided
@@ -376,6 +405,32 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
     if (supplierName !== undefined) updateData.supplierName = supplierName;
     if (poNumber !== undefined) updateData.poNumber = poNumber;
     if (vendorInformation !== undefined) updateData.vendorInformation = vendorInformation;
+    
+    // Process tags if provided
+    if (tags !== undefined) {
+      let processedTags = null;
+      if (tags) {
+        if (typeof tags === 'string') {
+          try {
+            // If it's already a JSON string, parse it to validate and then stringify again
+            const parsedTags = JSON.parse(tags);
+            if (Array.isArray(parsedTags)) {
+              processedTags = JSON.stringify(parsedTags);
+            } else {
+              processedTags = JSON.stringify([tags]);
+            }
+          } catch (e) {
+            // If parsing fails, it might be a comma-separated string
+            processedTags = JSON.stringify(tags.split(',').map(t => t.trim()));
+          }
+        } else if (Array.isArray(tags)) {
+          processedTags = JSON.stringify(tags);
+        } else {
+          processedTags = JSON.stringify([String(tags)]);
+        }
+      }
+      updateData.tags = processedTags;
+    }
     
     // Financial information
     if (purchasePrice !== undefined) updateData.purchasePrice = purchasePrice;
@@ -568,18 +623,30 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
           }
         });
         
-        // Parse tags if they are a string
-        if (assetData.tags && typeof assetData.tags === 'string') {
-          try {
-            assetData.tags = JSON.parse(assetData.tags);
-          } catch (e) {
-            // If it's a comma-separated string, convert to array
-            if (assetData.tags.includes(',')) {
-              assetData.tags = assetData.tags.split(',').map((tag: string) => tag.trim());
-            } else {
-              assetData.tags = [assetData.tags.trim()];
+        // Process tags - ensure they're properly stored as JSON string  
+        if (assetData.tags) {
+          let processedTags = null;
+          if (typeof assetData.tags === 'string') {
+            try {
+              // If it's already a JSON string, parse it to validate
+              const parsedTags = JSON.parse(assetData.tags);
+              if (Array.isArray(parsedTags)) {
+                processedTags = parsedTags;
+              } else {
+                processedTags = [assetData.tags];
+              }
+            } catch (e) {
+              // If parsing fails, it might be a comma-separated string
+              processedTags = assetData.tags.split(',').map((tag: string) => tag.trim());
             }
+          } else if (Array.isArray(assetData.tags)) {
+            processedTags = assetData.tags;
+          } else {
+            processedTags = [String(assetData.tags)];
           }
+          
+          // Store as JSON string
+          assetData.tags = JSON.stringify(processedTags);
         }
         
         // Validate required fields - only Asset Name is required
