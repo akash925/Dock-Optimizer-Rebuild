@@ -233,8 +233,8 @@ export class AssetManagerService implements AssetService {
   private filterCompanyAssets(assets: CompanyAsset[], filters: Record<string, any>): CompanyAsset[] {
     return assets.filter(asset => {
       // Search text filtering (check name, description, manufacturer, model, notes)
-      if (filters.searchTerm) {
-        const searchTerm = filters.searchTerm.toLowerCase();
+      if (filters.q) {
+        const searchTerm = filters.q.toLowerCase();
         const searchFields = [
           asset.name, 
           asset.description, 
@@ -268,19 +268,28 @@ export class AssetManagerService implements AssetService {
       }
       
       // Tags filtering
-      if (filters.tags && filters.tags.length > 0 && asset.tags) {
-        // Convert asset.tags to array if it's not already
-        const assetTags = Array.isArray(asset.tags) 
-          ? asset.tags 
-          : (typeof asset.tags === 'string' ? [asset.tags] : []);
-        
-        // Check if any of the filter tags exist in asset tags
-        if (!filters.tags.some((tag: string) => 
-          assetTags.some((assetTag: string) => 
-            assetTag.toLowerCase().includes(tag.toLowerCase())
-          )
-        )) {
-          return false;
+      if (filters.tags && asset.tags) {
+        // Split tags by comma
+        const tagList = filters.tags.split(',');
+        if (tagList.length > 0) {
+          try {
+            // Parse asset tags from JSON
+            const assetTags = typeof asset.tags === 'string' 
+              ? JSON.parse(asset.tags) 
+              : (Array.isArray(asset.tags) ? asset.tags : []);
+            
+            // Check if any of the filter tags exist in asset tags
+            const hasMatchingTag = tagList.some(tag => 
+              assetTags.includes(tag)
+            );
+            
+            if (!hasMatchingTag) {
+              return false;
+            }
+          } catch (error) {
+            console.warn(`Error parsing tags for asset ${asset.id}:`, error);
+            return false;
+          }
         }
       }
       

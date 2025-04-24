@@ -210,41 +210,12 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     }
   });
 
-  // Apply all filters
-  const filteredAssets = assets?.filter(asset => {
-    // Search term filter
-    const searchMatch = 
-      asset.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      asset.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (asset.description && asset.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (asset.barcode && asset.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (asset.serialNumber && asset.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (asset.department && asset.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (asset.purchasePrice && asset.purchasePrice.toString().includes(searchTerm.toLowerCase()));
-    
-    // Category filter
-    const categoryMatch = !filters.category || asset.category === filters.category;
-    
-    // Location filter
-    const locationMatch = !filters.location || asset.location === filters.location;
-    
-    // Status filter
-    const statusMatch = !filters.status || asset.status === filters.status;
-    
-    // Tags filter
-    const tagsMatch = filters.tags.length === 0 || 
-      (asset.tags && filters.tags.some(tag => 
-        asset.tags && typeof asset.tags === 'string' && 
-        JSON.parse(asset.tags).includes(tag)
-      ));
-    
-    return searchMatch && categoryMatch && locationMatch && statusMatch && tagsMatch;
-  });
+  // Server-side filtering and pagination
+  // Let's assume the API doesn't handle pagination yet, so we'll do it on the client side
   
   // Pagination
-  const totalPages = Math.ceil((filteredAssets?.length || 0) / itemsPerPage);
-  const paginatedAssets = filteredAssets?.slice(
+  const totalPages = Math.ceil((assets?.length || 0) / itemsPerPage);
+  const paginatedAssets = assets?.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
