@@ -58,6 +58,7 @@ interface AppointmentDetailsDialogProps {
   onOpenChange: (open: boolean) => void;
   facilityName?: string;
   timezone?: string; // Add timezone prop
+  timeFormat?: "12h" | "24h"; // Add timeFormat prop
 }
 
 export function AppointmentDetailsDialog({
