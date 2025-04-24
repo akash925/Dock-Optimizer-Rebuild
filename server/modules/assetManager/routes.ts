@@ -73,6 +73,9 @@ assetManagerRouter.delete('/company-assets/:id', isAuthenticated, controllers.de
 // POST /api/asset-manager/company-assets/import - Bulk import company assets
 assetManagerRouter.post('/company-assets/import', isAuthenticated, controllers.importCompanyAssets);
 
+// GET /api/asset-manager/company-assets/barcode/search - Search for company asset by barcode
+assetManagerRouter.get('/company-assets/barcode/search', isAuthenticated, controllers.searchCompanyAssetByBarcode);
+
 // Legacy API routes (keeping for backward compatibility)
 // ===========================
 // Mount these at /api/...

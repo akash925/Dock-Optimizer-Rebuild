@@ -745,7 +745,7 @@ export const searchCompanyAssetByBarcode = async (req: Request, res: Response) =
     
     console.log('Searching for asset with barcode:', barcode);
     
-    const asset = await assetManagerService.assetManagerService.findCompanyAssetByBarcode(barcode as string);
+    const asset = await assetManagerService.findCompanyAssetByBarcode(barcode as string);
     
     if (!asset) {
       return res.status(404).json({ error: 'Asset not found with this barcode' });
