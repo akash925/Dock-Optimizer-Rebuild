@@ -384,6 +384,8 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
   }
 };
 
+
+
 /**
  * Delete a company asset
  */
