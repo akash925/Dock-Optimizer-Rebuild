@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -193,30 +193,44 @@ export default function AppointmentForm({
   
   // Watch for facilityId changes to update filtered appointment types
   const watchedFacilityId = form.watch("facilityId");
+  const lastFacilityIdRef = useRef<number | undefined>(watchedFacilityId);
+  
   useEffect(() => {
-    if (watchedFacilityId) {
-      const typesForFacility = allAppointmentTypes.filter(type => type.facilityId === watchedFacilityId);
-      setFilteredAppointmentTypes(typesForFacility);
-    } else {
-      setFilteredAppointmentTypes(allAppointmentTypes);
+    // Only run if facility ID actually changed
+    if (watchedFacilityId !== lastFacilityIdRef.current) {
+      lastFacilityIdRef.current = watchedFacilityId;
+      
+      if (watchedFacilityId) {
+        const typesForFacility = allAppointmentTypes.filter(type => type.facilityId === watchedFacilityId);
+        setFilteredAppointmentTypes(typesForFacility);
+      } else {
+        setFilteredAppointmentTypes(allAppointmentTypes);
+      }
     }
   }, [watchedFacilityId, allAppointmentTypes]);
   
-  // Watch for appointment type changes
+  // Watch for appointment type changes - use callback to avoid triggering another render
   const watchedAppointmentTypeId = form.watch("appointmentTypeId");
+  const lastAppointmentTypeIdRef = useRef<number | undefined>(watchedAppointmentTypeId);
+  
   useEffect(() => {
-    if (watchedAppointmentTypeId) {
-      const selectedType = allAppointmentTypes.find(type => type.id === watchedAppointmentTypeId);
-      if (selectedType) {
-        setSelectedAppointmentType(selectedType);
-        
-        // Set appointment mode based on duration (4hr = container, 1hr = trailer)
-        const recommendedMode = selectedType.duration <= 60 ? "trailer" : "container";
-        form.setValue("appointmentMode", recommendedMode);
-        
-        // If type is for a specific facility, set the facility
-        if (selectedType.facilityId && !form.getValues("facilityId")) {
-          form.setValue("facilityId", selectedType.facilityId);
+    // Only run if appointment type actually changed
+    if (watchedAppointmentTypeId !== lastAppointmentTypeIdRef.current) {
+      lastAppointmentTypeIdRef.current = watchedAppointmentTypeId;
+      
+      if (watchedAppointmentTypeId) {
+        const selectedType = allAppointmentTypes.find(type => type.id === watchedAppointmentTypeId);
+        if (selectedType) {
+          setSelectedAppointmentType(selectedType);
+          
+          // Set appointment mode based on duration (4hr = container, 1hr = trailer)
+          const recommendedMode = selectedType.duration <= 60 ? "trailer" : "container";
+          form.setValue("appointmentMode", recommendedMode);
+          
+          // If type is for a specific facility, set the facility
+          if (selectedType.facilityId && !form.getValues("facilityId")) {
+            form.setValue("facilityId", selectedType.facilityId);
+          }
         }
       }
     }
@@ -791,12 +805,17 @@ export default function AppointmentForm({
                             selected={field.value ? new Date(field.value) : undefined}
                             onSelect={(date) => {
                               if (date) {
-                                // Ensure we're using the selected date exactly as is
-                                const year = date.getFullYear();
-                                const month = date.getMonth() + 1;
-                                const day = date.getDate();
-                                const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                                field.onChange(formattedDate);
+                                // Make a clean date with no time information to avoid timezone issues
+                                const utcDate = new Date(Date.UTC(
+                                  date.getFullYear(),
+                                  date.getMonth(),
+                                  date.getDate()
+                                ));
+                                
+                                // Format with yyyy-MM-dd pattern
+                                const isoDate = utcDate.toISOString().split('T')[0];
+                                field.onChange(isoDate);
+                                console.log("Selected date:", isoDate);
                               }
                             }}
                             disabled={(date) => {
