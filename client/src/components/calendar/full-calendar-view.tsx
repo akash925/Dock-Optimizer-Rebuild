@@ -37,15 +37,24 @@ interface FullCalendarViewProps {
   schedules: Schedule[];
   onEventClick: (scheduleId: number) => void;
   onDateSelect?: (selectInfo: { start: Date; end: Date; allDay: boolean }) => void;
+  timezone?: string; // Add timezone prop
 }
 
 export function FullCalendarView({ 
   schedules, 
   onEventClick, 
-  onDateSelect 
+  onDateSelect,
+  timezone 
 }: FullCalendarViewProps) {
-  // Get user's timezone and set as default
-  const [selectedTimezone, setSelectedTimezone] = useState<string>(getUserTimeZone());
+  // Get user's timezone and set as default, or use the passed timezone prop
+  const [selectedTimezone, setSelectedTimezone] = useState<string>(timezone || getUserTimeZone());
+  
+  // Update selectedTimezone when the timezone prop changes
+  useEffect(() => {
+    if (timezone) {
+      setSelectedTimezone(timezone);
+    }
+  }, [timezone]);
   const calendarRef = useRef<FullCalendar>(null);
   
   // Save timezone preference to localStorage

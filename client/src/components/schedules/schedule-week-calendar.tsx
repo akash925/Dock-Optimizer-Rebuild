@@ -29,6 +29,7 @@ interface ScheduleWeekCalendarProps {
   onDateChange: (date: Date) => void;
   onViewChange: (view: "month" | "week" | "day" | "list") => void;
   onCellClick?: (date: Date, dockId?: number) => void;
+  timezone?: string; // Add timezone prop
 }
 
 export default function ScheduleWeekCalendar({
@@ -40,11 +41,12 @@ export default function ScheduleWeekCalendar({
   onDateChange,
   onViewChange,
   onCellClick,
+  timezone,
 }: ScheduleWeekCalendarProps) {
   // State for filters
   const [customerSearch, setCustomerSearch] = useState("");
   const [carrierSearch, setCarrierSearch] = useState("");
-  const [selectedTimezone, setSelectedTimezone] = useState("");
+  const [selectedTimezone, setSelectedTimezone] = useState(timezone || "");
   
   // Current week dates
   const weekStart = startOfWeek(date, { weekStartsOn: 0 }); // Sunday as start of week

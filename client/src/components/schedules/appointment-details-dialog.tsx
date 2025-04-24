@@ -555,40 +555,45 @@ export function AppointmentDetailsDialog({
               </div>
             </div>
             
-            <div className="mt-4">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Time & Timezone:</Label>
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <div className="flex flex-col">
-                    <div className="flex items-center">
-                      <span className="text-xs font-medium">Your time:</span>
-                      <span className="text-xs ml-1">
-                        {appointment ? formatInUserTimeZone(appointment.startTime, 'MM/dd/yyyy hh:mm a') : ""} - {appointment ? formatInUserTimeZone(appointment.endTime, 'hh:mm a') : ""}
-                        {" "}{getTimeZoneAbbreviation(getUserTimeZone())}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-xs font-medium">Facility time:</span>
-                      <span className="text-xs ml-1">
-                        {appointment && appointment.startTime ? format(new Date(appointment.startTime), 'MM/dd/yyyy hh:mm a') : ""} - {appointment && appointment.endTime ? format(new Date(appointment.endTime), 'hh:mm a') : ""}
-                        {" "}ET
-                      </span>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-3 w-3 text-muted-foreground ml-1 cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p className="text-xs">Appointments are shown in your local timezone, but stored in the facility's timezone.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {/* Time & Timezone Information */}
+            <div className="mt-3 pb-2 border-b">
+              <Label className="text-xs text-muted-foreground">
+                <Clock className="h-3 w-3 inline mr-1" /> Time & Timezone:
+              </Label>
               
+              {appointment && appointment.startTime && appointment.endTime && (
+                <div className="bg-muted/30 rounded-md p-2 mt-1">
+                  {/* Get the facility timezone - use America/New_York as fallback */}
+                  {(() => {
+                    // Extract timezone info using formatTimeRangeForDualZones
+                    const facilityTz = appointment.facilityTimezone || "America/New_York";
+                    const { 
+                      userTimeRange, facilityTimeRange,
+                      userZoneAbbr, facilityZoneAbbr
+                    } = formatTimeRangeForDualZones(
+                      appointment.startTime,
+                      appointment.endTime,
+                      facilityTz
+                    );
+                    
+                    return (
+                      <div className="grid grid-cols-1 gap-1 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Your time:</span>
+                          <span>{userTimeRange} {userZoneAbbr}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Facility time:</span>
+                          <span>{facilityTimeRange} {facilityZoneAbbr}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-4">
               <div className="space-y-1 mt-3">
                 <Label className="text-xs text-muted-foreground">Pickup or Dropoff:</Label>
                 <div className="flex items-center">
