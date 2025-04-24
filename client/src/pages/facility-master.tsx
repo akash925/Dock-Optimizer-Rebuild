@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +35,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Pencil, Trash, Plus } from "lucide-react";
+import { Loader2, Pencil, Trash, Plus, Settings } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -119,6 +120,7 @@ export default function FacilityMaster() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isHolidaysDialogOpen, setIsHolidaysDialogOpen] = useState(false);
@@ -514,6 +516,10 @@ export default function FacilityMaster() {
     setCurrentFacility(facility);
     setIsDockManagementDialogOpen(true);
   };
+  
+  const handleSettingsClick = (facility: Facility) => {
+    setLocation(`/facility-settings/${facility.id}`);
+  };
 
   const handleAddHoliday = () => {
     holidayForm.reset({
@@ -694,6 +700,16 @@ export default function FacilityMaster() {
                           strokeWidth={2} 
                         />
                       </svg>
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-8 w-8 p-0 bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-600"
+                      onClick={() => handleSettingsClick(facility)}
+                      title="Facility Settings"
+                    >
+                      <Settings className="h-4 w-4" />
                     </Button>
                     
                     <AlertDialog>
