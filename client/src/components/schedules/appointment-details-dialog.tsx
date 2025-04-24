@@ -582,7 +582,7 @@ export function AppointmentDetailsDialog({
                         {appointment && appointment.startTime 
                           ? formatInFacilityTimeZone(
                               new Date(appointment.startTime), 
-                              'MM/dd/yyyy, hh:mm a',
+                              `MM/dd/yyyy, ${timeFormat === "24h" ? 'HH:mm' : 'h:mm a'}`,
                               appointment.facilityId && appointment.facilityTimezone 
                                 ? appointment.facilityTimezone 
                                 : "America/New_York"
@@ -590,7 +590,7 @@ export function AppointmentDetailsDialog({
                           : ""} - {appointment && appointment.endTime 
                           ? formatInFacilityTimeZone(
                               new Date(appointment.endTime), 
-                              'hh:mm a',
+                              timeFormat === "24h" ? 'HH:mm' : 'h:mm a',
                               appointment.facilityId && appointment.facilityTimezone 
                                 ? appointment.facilityTimezone 
                                 : "America/New_York"
@@ -665,18 +665,18 @@ export function AppointmentDetailsDialog({
                     {appointment.actualStartTime ? (
                       <>
                         <div className="text-sm font-medium">
-                          {format(new Date(appointment.actualStartTime), "MM/dd/yyyy, hh:mm a")}
+                          {format(new Date(appointment.actualStartTime), timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a")}
                         </div>
                         <div className="flex flex-col mt-1">
                           <div className="text-xs">
                             <span className="font-medium">Your time:</span>{" "}
-                            {formatInUserTimeZone(new Date(appointment.actualStartTime), 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                            {formatInUserTimeZone(new Date(appointment.actualStartTime), timeFormat === "24h" ? 'MM/dd/yyyy HH:mm' : 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
                           </div>
                           <div className="text-xs">
                             <span className="font-medium">Facility time:</span>{" "}
                             {formatInFacilityTimeZone(
                               new Date(appointment.actualStartTime), 
-                              'MM/dd/yyyy hh:mm a',
+                              timeFormat === "24h" ? 'MM/dd/yyyy HH:mm' : 'MM/dd/yyyy hh:mm a',
                               appointment.facilityId && appointment.facilityTimezone 
                                 ? appointment.facilityTimezone 
                                 : "America/New_York"
@@ -702,18 +702,18 @@ export function AppointmentDetailsDialog({
                     {appointment.actualEndTime ? (
                       <>
                         <div className="text-sm font-medium">
-                          {format(new Date(appointment.actualEndTime), "MM/dd/yyyy, hh:mm a")}
+                          {format(new Date(appointment.actualEndTime), timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a")}
                         </div>
                         <div className="flex flex-col mt-1">
                           <div className="text-xs">
                             <span className="font-medium">Your time:</span>{" "}
-                            {formatInUserTimeZone(new Date(appointment.actualEndTime), 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                            {formatInUserTimeZone(new Date(appointment.actualEndTime), timeFormat === "24h" ? 'MM/dd/yyyy HH:mm' : 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
                           </div>
                           <div className="text-xs">
                             <span className="font-medium">Facility time:</span>{" "}
                             {formatInFacilityTimeZone(
                               new Date(appointment.actualEndTime), 
-                              'MM/dd/yyyy hh:mm a',
+                              timeFormat === "24h" ? 'MM/dd/yyyy HH:mm' : 'MM/dd/yyyy hh:mm a',
                               appointment.facilityId && appointment.facilityTimezone 
                                 ? appointment.facilityTimezone 
                                 : "America/New_York"
@@ -849,10 +849,13 @@ export function AppointmentDetailsDialog({
                       if (printWindow) {
                         const startTime = new Date(appointment.startTime);
                         // Format the start time in both user timezone and facility timezone
-                        const userTimeFormatted = formatInUserTimeZone(startTime, 'MMM dd, yyyy h:mm a');
+                        const userTimeFormatted = formatInUserTimeZone(
+                          startTime, 
+                          timeFormat === "24h" ? 'MMM dd, yyyy HH:mm' : 'MMM dd, yyyy h:mm a'
+                        );
                         const facilityTimeFormatted = formatInFacilityTimeZone(
                           startTime,
-                          'MMM dd, yyyy h:mm a',
+                          timeFormat === "24h" ? 'MMM dd, yyyy HH:mm' : 'MMM dd, yyyy h:mm a',
                           appointment.facilityId && appointment.facilityTimezone 
                             ? appointment.facilityTimezone 
                             : "America/New_York"
@@ -974,7 +977,7 @@ export function AppointmentDetailsDialog({
                             {event.type.replace('-', ' ')}
                           </TableCell>
                           <TableCell>
-                            {format(new Date(event.timestamp), "MM/dd/yyyy hh:mm a")}
+                            {format(new Date(event.timestamp), timeFormat === "24h" ? "MM/dd/yyyy HH:mm" : "MM/dd/yyyy hh:mm a")}
                           </TableCell>
                           <TableCell>
                             {typeof event.user === 'number' 
