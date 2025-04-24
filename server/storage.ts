@@ -1072,14 +1072,20 @@ export class DatabaseStorage implements IStorage {
       
       const row = result.rows[0];
       
-      // Extract facility information from customFormData if available
-      let facilityName = row.facility_name;
-      let facilityId = row.facility_id;
+      // Extract facility information - prioritize the explicit saved values 
+      // from customFormData over the joined values
+      let facilityName = null;
+      let facilityId = null;
       
+      // First check if we have explicitly saved facility info
       if (row.custom_form_data && row.custom_form_data.facilityInfo) {
-        facilityName = facilityName || row.custom_form_data.facilityInfo.facilityName;
-        facilityId = facilityId || row.custom_form_data.facilityInfo.facilityId;
+        facilityName = row.custom_form_data.facilityInfo.facilityName;
+        facilityId = row.custom_form_data.facilityInfo.facilityId;
       }
+      
+      // Fall back to joined table values if explicit values aren't available
+      facilityName = facilityName || row.facility_name;
+      facilityId = facilityId || row.facility_id;
       
       // Convert snake_case database columns to camelCase for our interface
       return {
@@ -1133,14 +1139,20 @@ export class DatabaseStorage implements IStorage {
       
       // Transform to match our expected Schedule interface
       return result.rows.map((row: any) => {
-        // Extract facility information from customFormData if available
-        let facilityName = row.facility_name;
+        // Extract facility information - prioritize the explicitly saved values 
+        // from customFormData over the joined values
+        let facilityName = null;
         let facilityId = null;
         
+        // First check if we have explicitly saved facility info
         if (row.custom_form_data && row.custom_form_data.facilityInfo) {
-          facilityName = facilityName || row.custom_form_data.facilityInfo.facilityName;
+          facilityName = row.custom_form_data.facilityInfo.facilityName;
           facilityId = row.custom_form_data.facilityInfo.facilityId;
         }
+        
+        // Fall back to joined table values if explicit values aren't available
+        facilityName = facilityName || row.facility_name;
+        facilityId = facilityId || row.facility_id;
         
         return {
           id: row.id,
@@ -1195,14 +1207,20 @@ export class DatabaseStorage implements IStorage {
       
       // Transform to match our expected Schedule interface
       return result.rows.map((row: any) => {
-        // Extract facility information from customFormData if available
-        let facilityName = row.facility_name;
-        let facilityId = row.facility_id;
+        // Extract facility information - prioritize the explicitly saved values 
+        // from customFormData over the joined values
+        let facilityName = null;
+        let facilityId = null;
         
+        // First check if we have explicitly saved facility info
         if (row.custom_form_data && row.custom_form_data.facilityInfo) {
-          facilityName = facilityName || row.custom_form_data.facilityInfo.facilityName;
-          facilityId = facilityId || row.custom_form_data.facilityInfo.facilityId;
+          facilityName = row.custom_form_data.facilityInfo.facilityName;
+          facilityId = row.custom_form_data.facilityInfo.facilityId;
         }
+        
+        // Fall back to joined table values if explicit values aren't available
+        facilityName = facilityName || row.facility_name;
+        facilityId = facilityId || row.facility_id;
         
         return {
           id: row.id,

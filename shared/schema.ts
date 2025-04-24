@@ -200,6 +200,50 @@ export const facilities = pgTable("facilities", {
   longitude: text("longitude"),
   company: text("company"),
   timezone: text("timezone").default("America/New_York"), // Default to Eastern Time
+  
+  // Operating hours for the facility - all times stored in 24-hour format HH:MM
+  mondayStart: text("monday_start").default("08:00"),
+  mondayEnd: text("monday_end").default("17:00"),
+  mondayBreakStart: text("monday_break_start").default("12:00"),
+  mondayBreakEnd: text("monday_break_end").default("13:00"),
+  mondayOpen: boolean("monday_open").default(true),
+  
+  tuesdayStart: text("tuesday_start").default("08:00"),
+  tuesdayEnd: text("tuesday_end").default("17:00"),
+  tuesdayBreakStart: text("tuesday_break_start").default("12:00"),
+  tuesdayBreakEnd: text("tuesday_break_end").default("13:00"),
+  tuesdayOpen: boolean("tuesday_open").default(true),
+  
+  wednesdayStart: text("wednesday_start").default("08:00"),
+  wednesdayEnd: text("wednesday_end").default("17:00"),
+  wednesdayBreakStart: text("wednesday_break_start").default("12:00"),
+  wednesdayBreakEnd: text("wednesday_break_end").default("13:00"),
+  wednesdayOpen: boolean("wednesday_open").default(true),
+  
+  thursdayStart: text("thursday_start").default("08:00"),
+  thursdayEnd: text("thursday_end").default("17:00"),
+  thursdayBreakStart: text("thursday_break_start").default("12:00"),
+  thursdayBreakEnd: text("thursday_break_end").default("13:00"),
+  thursdayOpen: boolean("thursday_open").default(true),
+  
+  fridayStart: text("friday_start").default("08:00"),
+  fridayEnd: text("friday_end").default("17:00"),
+  fridayBreakStart: text("friday_break_start").default("12:00"),
+  fridayBreakEnd: text("friday_break_end").default("13:00"),
+  fridayOpen: boolean("friday_open").default(true),
+  
+  saturdayStart: text("saturday_start").default("08:00"),
+  saturdayEnd: text("saturday_end").default("13:00"),
+  saturdayBreakStart: text("saturday_break_start"),
+  saturdayBreakEnd: text("saturday_break_end"),
+  saturdayOpen: boolean("saturday_open").default(false),
+  
+  sundayStart: text("sunday_start").default("08:00"),
+  sundayEnd: text("sunday_end").default("17:00"),
+  sundayBreakStart: text("sunday_break_start"),
+  sundayBreakEnd: text("sunday_break_end"),
+  sundayOpen: boolean("sunday_open").default(false),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),
 });
