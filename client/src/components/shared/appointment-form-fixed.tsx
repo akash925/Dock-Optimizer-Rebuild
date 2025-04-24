@@ -373,18 +373,20 @@ export default function AppointmentForm({
     const facilityOpenHour = 8;
     const facilityCloseHour = 17;
     
+    // Use the max concurrent appointments from the selected appointment type
+    const maxConcurrent = selectedAppointmentType?.maxConcurrent || 1;
+    
     // Only show full hour slots for standard appointment booking
     const times = [];
     for (let hour = facilityOpenHour; hour < facilityCloseHour; hour++) {
       // Create the time slot with availability indication
       const timeStr = `${hour.toString().padStart(2, '0')}:00`;
       
-      // For each slot, we could add info about available appointment slots
-      // In a real implementation, this would come from the API based on the selected date and facility
-      let slotsAvailable = 3; // Default value; would be fetched from API
+      // Use the actual max concurrent value from the appointment type
+      const availableSlots = maxConcurrent;
       
       // Add a modified display string that includes availability info
-      times.push(`${timeStr} (${slotsAvailable} available)`);
+      times.push(`${timeStr} (${availableSlots} available)`);
     }
     
     return times;
@@ -620,7 +622,18 @@ export default function AppointmentForm({
               )}
               <Button 
                 type="button" 
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  // Prevent date and time from step 1 from appearing in the customerName and mcNumber fields
+                  // by ensuring we have default values for all relevant fields
+                  if (!form.getValues("customerName")) {
+                    form.setValue("customerName", "");
+                  }
+                  if (!form.getValues("mcNumber")) {
+                    form.setValue("mcNumber", "");
+                  }
+                  
+                  setStep(2);
+                }}
                 disabled={!form.getValues("facilityId") || !form.getValues("appointmentTypeId")}
               >
                 Next
@@ -633,8 +646,55 @@ export default function AppointmentForm({
         return (
           <>
             <div className="space-y-4">
-              {/* Step 2: Carrier Information */}
-              <h3 className="text-lg font-medium">Carrier Information</h3>
+              {/* Step 2: Customer Information First */}
+              <h3 className="text-lg font-medium">Customer Information</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="customerName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Customer Name*</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter customer name" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Appointment Type */}
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Direction*</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex space-x-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="inbound" id="inbound" />
+                            <Label htmlFor="inbound">Inbound (Delivery)</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="outbound" id="outbound" />
+                            <Label htmlFor="outbound">Outbound (Pickup)</Label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {/* Step 2: Carrier & Driver Information combined section */}
+              <h3 className="text-lg font-medium mt-6">Carrier & Driver Information</h3>
               
               <FormField
                 control={form.control}
@@ -659,37 +719,18 @@ export default function AppointmentForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="customerName"
+                  name="mcNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer Name*</FormLabel>
+                      <FormLabel>MC Number</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter customer name" {...field} />
+                        <Input placeholder="Enter MC number" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="mcNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>MC Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter MC number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {/* Step 2: Truck & Driver Information */}
-              <h3 className="text-lg font-medium mt-6">Truck & Driver Information</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="truckNumber"
@@ -703,7 +744,9 @@ export default function AppointmentForm({
                     </FormItem>
                   )}
                 />
-                
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="trailerNumber"
@@ -717,9 +760,7 @@ export default function AppointmentForm({
                     </FormItem>
                   )}
                 />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
                 <FormField
                   control={form.control}
                   name="driverName"
@@ -733,7 +774,9 @@ export default function AppointmentForm({
                     </FormItem>
                   )}
                 />
-                
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="driverPhone"
@@ -748,34 +791,6 @@ export default function AppointmentForm({
                   )}
                 />
               </div>
-              
-              {/* Appointment Type */}
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Appointment Type*</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="inbound" id="inbound" />
-                          <Label htmlFor="inbound">Inbound (Delivery)</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="outbound" id="outbound" />
-                          <Label htmlFor="outbound">Outbound (Pickup)</Label>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
             
             {/* Step 2 Navigation */}
