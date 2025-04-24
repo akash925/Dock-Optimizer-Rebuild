@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CompanyAssetForm } from '@/components/asset-manager/company-asset-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CompanyAsset } from '@shared/schema';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 
@@ -16,6 +16,13 @@ export default function AssetEditPage() {
 
   const { data: asset, isLoading, error } = useQuery<CompanyAsset>({
     queryKey: [`/api/asset-manager/company-assets/${assetId}`],
+    queryFn: async () => {
+      const response = await fetch(`/api/asset-manager/company-assets/${assetId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch asset details');
+      }
+      return response.json();
+    },
     enabled: !!assetId,
   });
 
@@ -69,9 +76,18 @@ export default function AssetEditPage() {
   return (
     <div className="container mx-auto py-8">
       <div className="space-y-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Asset Manager</h2>
-          <p className="text-muted-foreground mt-2">Managing assets and equipment</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Asset Manager</h2>
+            <p className="text-muted-foreground mt-2">Managing assets and equipment</p>
+          </div>
+          <Button 
+            onClick={() => navigate('/asset-manager')}
+            variant="outline"
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Assets
+          </Button>
         </div>
       </div>
       
