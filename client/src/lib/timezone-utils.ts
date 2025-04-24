@@ -92,9 +92,19 @@ export const userTimeToUtc = (date: Date | string): Date => {
  */
 export const formatInUserTimeZone = (date: Date | string, formatStr: string): string => {
   if (!date) return '';
-  const userTimeZone = getUserTimeZone();
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return formatInTimeZone(dateObj, userTimeZone, formatStr);
+  try {
+    const userTimeZone = getUserTimeZone();
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      console.error('Invalid date provided to formatInUserTimeZone:', date);
+      return '—';
+    }
+    return formatInTimeZone(dateObj, userTimeZone, formatStr);
+  } catch (error) {
+    console.error('Error formatting date in user timezone:', error);
+    return '—';
+  }
 };
 
 /**
@@ -108,10 +118,20 @@ export const formatInUserTimeZone = (date: Date | string, formatStr: string): st
  * @example
  * const formattedDate = formatInFacilityTimeZone(date, 'America/Chicago', 'yyyy-MM-dd HH:mm');
  */
-export const formatInFacilityTimeZone = (date: Date | string, facilityTimeZone: string, formatStr: string): string => {
+export const formatInFacilityTimeZone = (date: Date | string, formatStr: string, facilityTimeZone: string): string => {
   if (!date) return '';
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return formatInTimeZone(dateObj, facilityTimeZone, formatStr);
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      console.error('Invalid date provided to formatInFacilityTimeZone:', date);
+      return '—';
+    }
+    return formatInTimeZone(dateObj, facilityTimeZone, formatStr);
+  } catch (error) {
+    console.error('Error formatting date in facility timezone:', error);
+    return '—';
+  }
 };
 
 /**
@@ -133,15 +153,45 @@ export const formatForDualTimeZoneDisplay = (
   facilityTimeZone: string,
   formatStr: string = 'h:mm a'
 ): { userTime: string; facilityTime: string; userZone: string; facilityZone: string } => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  const userTimeZone = getUserTimeZone();
+  if (!date) {
+    return {
+      userTime: '—',
+      facilityTime: '—',
+      userZone: getUserTimeZone(),
+      facilityZone: facilityTimeZone
+    };
+  }
   
-  return {
-    userTime: formatInTimeZone(dateObj, userTimeZone, formatStr),
-    facilityTime: formatInTimeZone(dateObj, facilityTimeZone, formatStr),
-    userZone: userTimeZone,
-    facilityZone: facilityTimeZone
-  };
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const userTimeZone = getUserTimeZone();
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      console.error('Invalid date provided to formatForDualTimeZoneDisplay:', date);
+      return {
+        userTime: '—',
+        facilityTime: '—',
+        userZone: userTimeZone,
+        facilityZone: facilityTimeZone
+      };
+    }
+    
+    return {
+      userTime: formatInTimeZone(dateObj, userTimeZone, formatStr),
+      facilityTime: formatInTimeZone(dateObj, facilityTimeZone, formatStr),
+      userZone: userTimeZone,
+      facilityZone: facilityTimeZone
+    };
+  } catch (error) {
+    console.error('Error in formatForDualTimeZoneDisplay:', error);
+    return {
+      userTime: '—',
+      facilityTime: '—',
+      userZone: getUserTimeZone(),
+      facilityZone: facilityTimeZone
+    };
+  }
 };
 
 /**
@@ -217,14 +267,32 @@ export const formatDateRangeInTimeZone = (
   dateFormat: string = 'MMM d, yyyy',
   timeFormat: string = 'h:mm a'
 ): string => {
-  const startDate = typeof start === 'string' ? new Date(start) : start;
-  const endDate = typeof end === 'string' ? new Date(end) : end;
+  if (!start || !end) return '—';
   
-  const startDateStr = formatInTimeZone(startDate, timeZone, dateFormat);
-  const startTimeStr = formatInTimeZone(startDate, timeZone, timeFormat);
-  const endTimeStr = formatInTimeZone(endDate, timeZone, timeFormat);
-  
-  return `${startDateStr}, ${startTimeStr} - ${endTimeStr} ${getTimeZoneAbbreviation(timeZone, startDate)}`;
+  try {
+    const startDate = typeof start === 'string' ? new Date(start) : start;
+    const endDate = typeof end === 'string' ? new Date(end) : end;
+    
+    // Check if dates are valid
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      console.error('Invalid date provided to formatDateRangeInTimeZone:', { start, end });
+      return '—';
+    }
+    
+    try {
+      const startDateStr = formatInTimeZone(startDate, timeZone, dateFormat);
+      const startTimeStr = formatInTimeZone(startDate, timeZone, timeFormat);
+      const endTimeStr = formatInTimeZone(endDate, timeZone, timeFormat);
+      
+      return `${startDateStr}, ${startTimeStr} - ${endTimeStr} ${getTimeZoneAbbreviation(timeZone, startDate)}`;
+    } catch (formatError) {
+      console.error('Error formatting time in formatDateRangeInTimeZone:', formatError);
+      return '—';
+    }
+  } catch (error) {
+    console.error('Error in formatDateRangeInTimeZone:', error);
+    return '—';
+  }
 };
 
 /**
@@ -252,24 +320,64 @@ export const formatTimeRangeForDualZones = (
   userZoneAbbr: string;
   facilityZoneAbbr: string;
 } => {
-  const startDate = typeof start === 'string' ? new Date(start) : start;
-  const endDate = typeof end === 'string' ? new Date(end) : end;
-  const userTimeZone = getUserTimeZone();
+  if (!start || !end) {
+    return {
+      userTimeRange: '—',
+      facilityTimeRange: '—',
+      userZoneAbbr: getTimeZoneAbbreviation(getUserTimeZone()),
+      facilityZoneAbbr: getTimeZoneAbbreviation(facilityTimeZone)
+    };
+  }
   
-  const timeFormat = 'h:mm a';
-  
-  const userStartTime = formatInTimeZone(startDate, userTimeZone, timeFormat);
-  const userEndTime = formatInTimeZone(endDate, userTimeZone, timeFormat);
-  const facilityStartTime = formatInTimeZone(startDate, facilityTimeZone, timeFormat);
-  const facilityEndTime = formatInTimeZone(endDate, facilityTimeZone, timeFormat);
-  
-  const userZoneAbbr = getTimeZoneAbbreviation(userTimeZone, startDate);
-  const facilityZoneAbbr = getTimeZoneAbbreviation(facilityTimeZone, startDate);
-  
-  return {
-    userTimeRange: `${userStartTime} - ${userEndTime}`,
-    facilityTimeRange: `${facilityStartTime} - ${facilityEndTime}`,
-    userZoneAbbr,
-    facilityZoneAbbr
-  };
+  try {
+    const startDate = typeof start === 'string' ? new Date(start) : start;
+    const endDate = typeof end === 'string' ? new Date(end) : end;
+    
+    // Check if dates are valid
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      console.error('Invalid date provided to formatTimeRangeForDualZones:', { start, end });
+      return {
+        userTimeRange: '—',
+        facilityTimeRange: '—',
+        userZoneAbbr: getTimeZoneAbbreviation(getUserTimeZone()),
+        facilityZoneAbbr: getTimeZoneAbbreviation(facilityTimeZone)
+      };
+    }
+    
+    const userTimeZone = getUserTimeZone();
+    const timeFormat = 'h:mm a';
+    
+    try {
+      const userStartTime = formatInTimeZone(startDate, userTimeZone, timeFormat);
+      const userEndTime = formatInTimeZone(endDate, userTimeZone, timeFormat);
+      const facilityStartTime = formatInTimeZone(startDate, facilityTimeZone, timeFormat);
+      const facilityEndTime = formatInTimeZone(endDate, facilityTimeZone, timeFormat);
+      
+      const userZoneAbbr = getTimeZoneAbbreviation(userTimeZone, startDate);
+      const facilityZoneAbbr = getTimeZoneAbbreviation(facilityTimeZone, startDate);
+      
+      return {
+        userTimeRange: `${userStartTime} - ${userEndTime}`,
+        facilityTimeRange: `${facilityStartTime} - ${facilityEndTime}`,
+        userZoneAbbr,
+        facilityZoneAbbr
+      };
+    } catch (formatError) {
+      console.error('Error formatting time in formatTimeRangeForDualZones:', formatError);
+      return {
+        userTimeRange: '—',
+        facilityTimeRange: '—',
+        userZoneAbbr: getTimeZoneAbbreviation(userTimeZone),
+        facilityZoneAbbr: getTimeZoneAbbreviation(facilityTimeZone)
+      };
+    }
+  } catch (error) {
+    console.error('Error in formatTimeRangeForDualZones:', error);
+    return {
+      userTimeRange: '—',
+      facilityTimeRange: '—',
+      userZoneAbbr: getTimeZoneAbbreviation(getUserTimeZone()),
+      facilityZoneAbbr: getTimeZoneAbbreviation(facilityTimeZone)
+    };
+  }
 };
