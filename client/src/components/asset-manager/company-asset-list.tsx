@@ -148,20 +148,20 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       params.append('q', debouncedSearchTerm);
     }
     
-    // Add category filter if selected
-    if (filters.category) {
+    // Add category filter if selected - ensure it's not 'all' or empty string
+    if (filters.category && filters.category !== 'all' && filters.category !== '') {
       params.append('category', filters.category);
       console.log("Adding category filter:", filters.category);
     }
     
-    // Add location filter if selected
-    if (filters.location) {
+    // Add location filter if selected - ensure it's not 'all' or empty string
+    if (filters.location && filters.location !== 'all' && filters.location !== '') {
       params.append('location', filters.location);
       console.log("Adding location filter:", filters.location);
     }
     
-    // Add status filter if selected
-    if (filters.status) {
+    // Add status filter if selected - ensure it's not 'all' or empty string
+    if (filters.status && filters.status !== 'all' && filters.status !== '') {
       params.append('status', filters.status);
       console.log("Adding status filter:", filters.status);
     }
@@ -483,7 +483,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Category</label>
                       <Select 
-                        value={filters.category !== null ? filters.category : "all"} 
+                        value={filters.category || "all"} 
                         onValueChange={(value) => {
                           console.log("Category changed to:", value);
                           setFilters({...filters, category: value === "all" ? null : value as AssetCategory});
@@ -504,7 +504,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Location</label>
                       <Select 
-                        value={filters.location !== null ? filters.location : "all"} 
+                        value={filters.location || "all"} 
                         onValueChange={(value) => {
                           console.log("Location changed to:", value);
                           setFilters({...filters, location: value === "all" ? null : value as AssetLocation});
@@ -525,7 +525,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Status</label>
                       <Select 
-                        value={filters.status !== null ? filters.status : "all"} 
+                        value={filters.status || "all"} 
                         onValueChange={(value) => {
                           console.log("Status changed to:", value);
                           setFilters({...filters, status: value === "all" ? null : value as AssetStatus});
