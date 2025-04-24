@@ -533,26 +533,62 @@ export function AppointmentDetailsDialog({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground">Scheduled Start:</Label>
-                <div className="flex items-center mt-1">
-                  <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className="font-medium">
-                    {appointment && appointment.startTime 
-                      ? format(new Date(appointment.startTime), 'MM/dd/yyyy, hh:mm a') 
-                      : ""}
-                  </span>
-                </div>
-              </div>
-              
-              <div>
-                <Label className="text-xs text-muted-foreground">Scheduled End:</Label>
-                <div className="flex items-center mt-1">
-                  <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className="font-medium">
-                    {appointment && appointment.endTime 
-                      ? format(new Date(appointment.endTime), 'MM/dd/yyyy, hh:mm a') 
-                      : ""}
-                  </span>
+                <Label className="text-xs text-muted-foreground">Scheduled Time:</Label>
+                <div className="flex flex-col mt-1">
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span className="font-medium">
+                      {appointment && appointment.startTime && appointment.endTime
+                        ? formatTimeRangeForDualZones(
+                            new Date(appointment.startTime),
+                            new Date(appointment.endTime),
+                            timezone || getUserTimeZone(),
+                            appointment.facilityId && appointment.facilityTimezone 
+                              ? appointment.facilityTimezone 
+                              : "America/New_York"
+                          )
+                        : ""}
+                    </span>
+                  </div>
+                  
+                  {/* Show detailed times in both timezones */}
+                  <div className="mt-2 text-sm text-gray-600">
+                    <div className="flex items-center">
+                      <Clock className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                      <span>Your time: </span>
+                      <span className="ml-1 font-medium">
+                        {appointment && appointment.startTime 
+                          ? formatInUserTimeZone(new Date(appointment.startTime), 'MM/dd/yyyy, hh:mm a') 
+                          : ""} - {appointment && appointment.endTime 
+                          ? formatInUserTimeZone(new Date(appointment.endTime), 'hh:mm a') 
+                          : ""}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center mt-1">
+                      <Clock className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                      <span>Facility time: </span>
+                      <span className="ml-1 font-medium">
+                        {appointment && appointment.startTime 
+                          ? formatInFacilityTimeZone(
+                              new Date(appointment.startTime), 
+                              'MM/dd/yyyy, hh:mm a',
+                              appointment.facilityId && appointment.facilityTimezone 
+                                ? appointment.facilityTimezone 
+                                : "America/New_York"
+                            )
+                          : ""} - {appointment && appointment.endTime 
+                          ? formatInFacilityTimeZone(
+                              new Date(appointment.endTime), 
+                              'hh:mm a',
+                              appointment.facilityId && appointment.facilityTimezone 
+                                ? appointment.facilityTimezone 
+                                : "America/New_York"
+                            )
+                          : ""}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -565,32 +601,33 @@ export function AppointmentDetailsDialog({
               
               {appointment && appointment.startTime && appointment.endTime && (
                 <div className="bg-muted/30 rounded-md p-2 mt-1">
-                  {/* Get the facility timezone - use America/New_York as fallback */}
-                  {(() => {
-                    // Extract timezone info using formatTimeRangeForDualZones
-                    const facilityTz = appointment.facilityTimezone || "America/New_York";
-                    const { 
-                      userTimeRange, facilityTimeRange,
-                      userZoneAbbr, facilityZoneAbbr
-                    } = formatTimeRangeForDualZones(
-                      appointment.startTime,
-                      appointment.endTime,
-                      facilityTz
-                    );
-                    
-                    return (
-                      <div className="grid grid-cols-1 gap-1 text-sm">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Your time:</span>
-                          <span>{userTimeRange} {userZoneAbbr}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Facility time:</span>
-                          <span>{facilityTimeRange} {facilityZoneAbbr}</span>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                  {/* Display time information with proper timezone handling */}
+                  <div className="grid grid-cols-1 gap-1 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Your time:</span>
+                      <span>
+                        {formatInUserTimeZone(new Date(appointment.startTime), 'h:mm a')} - {formatInUserTimeZone(new Date(appointment.endTime), 'h:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Facility time:</span>
+                      <span>
+                        {formatInFacilityTimeZone(
+                          new Date(appointment.startTime), 
+                          'h:mm a',
+                          appointment.facilityId && appointment.facilityTimezone 
+                            ? appointment.facilityTimezone 
+                            : "America/New_York"
+                        )} - {formatInFacilityTimeZone(
+                          new Date(appointment.endTime), 
+                          'h:mm a',
+                          appointment.facilityId && appointment.facilityTimezone 
+                            ? appointment.facilityTimezone 
+                            : "America/New_York"
+                        )} {getTimeZoneAbbreviation(appointment.facilityTimezone || "America/New_York")}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -624,11 +661,17 @@ export function AppointmentDetailsDialog({
                         <div className="flex flex-col mt-1">
                           <div className="text-xs">
                             <span className="font-medium">Your time:</span>{" "}
-                            {formatInUserTimeZone(appointment.actualStartTime, 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                            {formatInUserTimeZone(new Date(appointment.actualStartTime), 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
                           </div>
                           <div className="text-xs">
                             <span className="font-medium">Facility time:</span>{" "}
-                            {format(new Date(appointment.actualStartTime), 'MM/dd/yyyy hh:mm a')} ET
+                            {formatInFacilityTimeZone(
+                              new Date(appointment.actualStartTime), 
+                              'MM/dd/yyyy hh:mm a',
+                              appointment.facilityId && appointment.facilityTimezone 
+                                ? appointment.facilityTimezone 
+                                : "America/New_York"
+                            )} {getTimeZoneAbbreviation(appointment.facilityTimezone || "America/New_York")}
                           </div>
                         </div>
                         {appointment.lastModifiedBy && (
@@ -655,11 +698,17 @@ export function AppointmentDetailsDialog({
                         <div className="flex flex-col mt-1">
                           <div className="text-xs">
                             <span className="font-medium">Your time:</span>{" "}
-                            {formatInUserTimeZone(appointment.actualEndTime, 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                            {formatInUserTimeZone(new Date(appointment.actualEndTime), 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
                           </div>
                           <div className="text-xs">
                             <span className="font-medium">Facility time:</span>{" "}
-                            {format(new Date(appointment.actualEndTime), 'MM/dd/yyyy hh:mm a')} ET
+                            {formatInFacilityTimeZone(
+                              new Date(appointment.actualEndTime), 
+                              'MM/dd/yyyy hh:mm a',
+                              appointment.facilityId && appointment.facilityTimezone 
+                                ? appointment.facilityTimezone 
+                                : "America/New_York"
+                            )} {getTimeZoneAbbreviation(appointment.facilityTimezone || "America/New_York")}
                           </div>
                         </div>
                         {appointment.lastModifiedBy && (
@@ -790,7 +839,19 @@ export function AppointmentDetailsDialog({
                       const printWindow = window.open('', '_blank');
                       if (printWindow) {
                         const startTime = new Date(appointment.startTime);
-                        const formattedStartTime = format(startTime, 'MMM dd, yyyy h:mm a');
+                        // Format the start time in both user timezone and facility timezone
+                        const userTimeFormatted = formatInUserTimeZone(startTime, 'MMM dd, yyyy h:mm a');
+                        const facilityTimeFormatted = formatInFacilityTimeZone(
+                          startTime,
+                          'MMM dd, yyyy h:mm a',
+                          appointment.facilityId && appointment.facilityTimezone 
+                            ? appointment.facilityTimezone 
+                            : "America/New_York"
+                        );
+                        const userTimeZoneAbbr = getTimeZoneAbbreviation(getUserTimeZone());
+                        const facilityTimeZoneAbbr = getTimeZoneAbbreviation(
+                          appointment.facilityTimezone || "America/New_York"
+                        );
                         
                         printWindow.document.write(`
                           <html>
@@ -828,7 +889,8 @@ export function AppointmentDetailsDialog({
                               </div>
                               <p><strong>Confirmation Code:</strong></p>
                               <div class="confirmation">HC${appointment.id.toString().padStart(6, '0')}</div>
-                              <p class="info">Appointment Time: ${formattedStartTime}</p>
+                              <p class="info">Your Local Time: ${userTimeFormatted} ${userTimeZoneAbbr}</p>
+                              <p class="info">Facility Time: ${facilityTimeFormatted} ${facilityTimeZoneAbbr}</p>
                               <p class="info">Carrier: ${appointment.carrierName || "Not specified"}</p>
                               <p class="info">Type: ${appointment.type === "inbound" ? "Inbound" : "Outbound"}</p>
                               <script>
