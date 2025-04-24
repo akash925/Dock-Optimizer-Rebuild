@@ -34,9 +34,13 @@ export function BarcodeGenerator({
   open,
   onOpenChange,
 }: BarcodeGeneratorProps) {
+  // Get organization defaults from localStorage
+  const defaultFormat = localStorage.getItem('defaultBarcodeFormat') || 'CODE128';
+  const defaultPrefix = localStorage.getItem('barcodePrefix') || 'H';
+  
   const [barcodeType, setBarcodeType] = useState<'barcode' | 'qrcode'>('barcode');
-  const [barcodeValue, setBarcodeValue] = useState<string>(currentBarcode || `HANZO-${assetId}`);
-  const [barcodeFormat, setBarcodeFormat] = useState<string>('CODE128');
+  const [barcodeValue, setBarcodeValue] = useState<string>(currentBarcode || `${defaultPrefix}${assetId}`);
+  const [barcodeFormat, setBarcodeFormat] = useState<string>(defaultFormat);
   const [saving, setSaving] = useState<boolean>(false);
   const barcodeRef = useRef<SVGSVGElement>(null);
 
@@ -67,9 +71,12 @@ export function BarcodeGenerator({
   };
 
   const generateRandomBarcode = () => {
-    // Generate a random barcode with prefix
+    // Get the current organization prefix
+    const prefix = localStorage.getItem('barcodePrefix') || 'H';
+    
+    // Generate a random barcode with organization prefix
     const randomPart = Math.floor(10000 + Math.random() * 90000);
-    const newBarcode = `H${randomPart}`;
+    const newBarcode = `${prefix}${randomPart}`;
     setBarcodeValue(newBarcode);
   };
 

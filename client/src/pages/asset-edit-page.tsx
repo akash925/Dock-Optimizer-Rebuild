@@ -218,9 +218,12 @@ export default function AssetEditPage() {
                 <svg ref={(ref) => {
                   if (ref && asset.barcode) {
                     try {
+                      // Get organization's default barcode format
+                      const barcodeFormat = localStorage.getItem('defaultBarcodeFormat') || "CODE128";
+                      
                       import('jsbarcode').then(({ default: JsBarcode }) => {
                         JsBarcode(ref, asset.barcode, {
-                          format: "CODE128",
+                          format: barcodeFormat,
                           width: 1.5,
                           height: 40,
                           displayValue: false,
