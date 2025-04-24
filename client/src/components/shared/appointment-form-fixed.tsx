@@ -357,7 +357,7 @@ export default function AppointmentForm({
     // Create a sanitized copy of the data
     const sanitizedData = { ...data };
     
-    // Ensure date format is correct
+    // Ensure date format is correct - always in YYYY-MM-DD format
     if (sanitizedData.appointmentDate) {
       try {
         // Check if it's in YYYY-MM-DD format
@@ -368,6 +368,8 @@ export default function AppointmentForm({
           // Try to parse and format it correctly
           const dateObj = new Date(sanitizedData.appointmentDate);
           if (!isNaN(dateObj.getTime())) {
+            // Set time to noon to avoid timezone issues
+            dateObj.setHours(12, 0, 0, 0);
             const year = dateObj.getFullYear();
             const month = String(dateObj.getMonth() + 1).padStart(2, '0');
             const day = String(dateObj.getDate()).padStart(2, '0');
@@ -381,9 +383,25 @@ export default function AppointmentForm({
     }
     
     // Extract just the time part from appointmentTime if it includes availability info
-    if (sanitizedData.appointmentTime && sanitizedData.appointmentTime.includes('(')) {
-      sanitizedData.appointmentTime = sanitizedData.appointmentTime.split(' (')[0];
-      console.log("Extracted time for submission:", sanitizedData.appointmentTime);
+    // and ensure it's in the correct format (HH:MM)
+    if (sanitizedData.appointmentTime) {
+      try {
+        if (sanitizedData.appointmentTime.includes('(')) {
+          // Extract just the time part
+          sanitizedData.appointmentTime = sanitizedData.appointmentTime.split(' (')[0].trim();
+        }
+        
+        // Ensure proper format (HH:MM) - many validation errors are due to incorrect time format
+        if (sanitizedData.appointmentTime.match(/^\d{1,2}:\d{2}$/)) {
+          // Make sure the hour portion is zero-padded
+          const [hour, minute] = sanitizedData.appointmentTime.split(':');
+          sanitizedData.appointmentTime = `${hour.padStart(2, '0')}:${minute}`;
+        }
+        
+        console.log("Sanitized time for submission:", sanitizedData.appointmentTime);
+      } catch (e) {
+        console.error("Error processing time for submission:", e);
+      }
     }
     
     console.log("Submitting appointment with sanitized data:", sanitizedData);
@@ -604,12 +622,17 @@ export default function AppointmentForm({
                               selected={field.value ? new Date(field.value) : undefined}
                               onSelect={(date) => {
                                 if (date) {
-                                  // Get the local date parts to avoid timezone shifts
-                                  const localYear = date.getFullYear();
-                                  const localMonth = date.getMonth() + 1; // JavaScript months are 0-based
-                                  const localDay = date.getDate();
+                                  // Set the time to noon to avoid any timezone issues
+                                  // This ensures the date doesn't shift due to timezone conversions
+                                  const selectedDate = new Date(date);
+                                  selectedDate.setHours(12, 0, 0, 0);
                                   
-                                  // Format with yyyy-MM-dd pattern preserving the actual selected day
+                                  // Extract the local date components (not UTC)
+                                  const localYear = selectedDate.getFullYear();
+                                  const localMonth = selectedDate.getMonth() + 1; // JavaScript months are 0-based
+                                  const localDay = selectedDate.getDate();
+                                  
+                                  // Format with yyyy-MM-dd pattern
                                   const formattedDate = `${localYear}-${localMonth.toString().padStart(2, '0')}-${localDay.toString().padStart(2, '0')}`;
                                   field.onChange(formattedDate);
                                   console.log("Selected date (exactly as selected):", formattedDate);
@@ -1034,10 +1057,35 @@ export default function AppointmentForm({
                           const dateVal = form.getValues("appointmentDate");
                           if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
                             const [year, month, day] = dateVal.split('-').map(num => parseInt(num, 10));
-                            // Create date with proper timezone handling
+                            // Create date with proper timezone handling and set time to noon
                             const date = new Date(year, month - 1, day);
-                            return `${format(date, "yyyy-MM-dd")} at ${form.getValues("appointmentTime")}`;
+                            date.setHours(12, 0, 0, 0);
+                            
+                            // Format the time part
+                            let timeString = form.getValues("appointmentTime") || "";
+                            if (timeString.includes('(')) {
+                              timeString = timeString.split(' (')[0].trim();
+                            }
+                            
+                            // Human-readable date format with properly formatted time
+                            return `${format(date, "PPP")} at ${timeString}`;
                           }
+                          
+                          // Handle non-standard format
+                          const date = new Date(dateVal);
+                          if (!isNaN(date.getTime())) {
+                            // Set time to noon to avoid timezone shifts
+                            date.setHours(12, 0, 0, 0);
+                            
+                            // Format the time part
+                            let timeString = form.getValues("appointmentTime") || "";
+                            if (timeString.includes('(')) {
+                              timeString = timeString.split(' (')[0].trim();
+                            }
+                            
+                            return `${format(date, "PPP")} at ${timeString}`;
+                          }
+                          
                           return `${dateVal} at ${form.getValues("appointmentTime")}`;
                         } catch (e) {
                           console.error("Error formatting date in appointment summary:", e);
