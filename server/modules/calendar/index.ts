@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { storage } from '../../storage';
+import { getStorage } from '../../storage';
 import { format, addDays } from 'date-fns';
 import express from 'express';
 import routes, { calendarRouter } from './routes';
@@ -7,6 +7,7 @@ import routes, { calendarRouter } from './routes';
 // Get all schedules with timezone support
 export async function getSchedules(req: Request, res: Response) {
   try {
+    const storage = await getStorage();
     const schedules = await storage.getAllSchedules();
     
     // Return schedules data
@@ -26,6 +27,7 @@ export async function getScheduleById(req: Request, res: Response) {
       return res.status(400).json({ error: 'Invalid schedule ID' });
     }
     
+    const storage = await getStorage();
     const schedule = await storage.getScheduleById(scheduleId);
     
     if (!schedule) {
