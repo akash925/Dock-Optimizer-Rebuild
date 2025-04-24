@@ -325,15 +325,21 @@ export class AssetManagerService implements AssetService {
 
       // Handle photo upload if provided
       if (photoBuffer) {
+        // Create assets directory if it doesn't exist
+        const assetsDir = path.join(UPLOAD_DIR, 'assets');
+        if (!fs.existsSync(assetsDir)) {
+          fs.mkdirSync(assetsDir, { recursive: true });
+        }
+        
         // Generate a unique filename for the photo
-        const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-asset-photo.jpg`;
-        const filePath = path.join(UPLOAD_DIR, uniqueFilename);
+        const uniqueFilename = `asset-${Date.now()}-${Math.random().toString(36).substring(2, 15)}.jpg`;
+        const filePath = path.join(assetsDir, uniqueFilename);
         
         // Save the photo to disk
         await writeFileAsync(filePath, photoBuffer);
         
         // Update the photo URL
-        photoUrl = `/uploads/${uniqueFilename}`;
+        photoUrl = `/uploads/assets/${uniqueFilename}`;
       }
       
       // Add photoUrl to company asset data
@@ -388,15 +394,21 @@ export class AssetManagerService implements AssetService {
           }
         }
 
+        // Create assets directory if it doesn't exist
+        const assetsDir = path.join(UPLOAD_DIR, 'assets');
+        if (!fs.existsSync(assetsDir)) {
+          fs.mkdirSync(assetsDir, { recursive: true });
+        }
+        
         // Generate a unique filename for the new photo
-        const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-asset-photo.jpg`;
-        const filePath = path.join(UPLOAD_DIR, uniqueFilename);
+        const uniqueFilename = `asset-${Date.now()}-${Math.random().toString(36).substring(2, 15)}.jpg`;
+        const filePath = path.join(assetsDir, uniqueFilename);
         
         // Save the new photo to disk
         await writeFileAsync(filePath, photoBuffer);
         
         // Add the new photo URL to the update data
-        updateData.photoUrl = `/uploads/${uniqueFilename}`;
+        updateData.photoUrl = `/uploads/assets/${uniqueFilename}`;
       }
       
       // Update the database record
@@ -462,6 +474,9 @@ export class AssetManagerService implements AssetService {
         try {
           if (fs.existsSync(filePath)) {
             await unlinkAsync(filePath);
+            console.log(`Successfully deleted asset photo file: ${filePath}`);
+          } else {
+            console.warn(`Asset photo file not found: ${filePath}`);
           }
         } catch (error) {
           console.error(`Error deleting photo file ${filePath}:`, error);
