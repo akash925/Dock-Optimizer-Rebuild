@@ -4,6 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './full-calendar.css';
+import './fixes.css'; // Import new CSS fixes
 import { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

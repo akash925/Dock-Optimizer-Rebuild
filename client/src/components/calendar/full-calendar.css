@@ -146,16 +146,11 @@
   margin-right: auto !important;
 }
 
-/* COMPLETELY NEW APPROACH: Reverse order of events */
+/* Simplest approach to fix stacking */
 .fc-timegrid-col-events {
   display: flex !important;
   flex-direction: column-reverse !important;
   position: relative !important;
-  /* important: ensure events don't overflow column */
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
 }
 
 /* Ensure event container takes full width and provides baseline positioning */

@@ -1,0 +1,36 @@
+/* Core stacking fixes */
+.fc-timegrid-col-events {
+  display: flex !important;
+  flex-direction: column-reverse !important;
+}
+
+/* Z-index fixes */
+.fc-timegrid-event:not([data-time="06:00"]) {
+  z-index: 100 !important;
+}
+.fc-timegrid-event[data-time="07:00"] { z-index: 700 !important; }
+.fc-timegrid-event[data-time="08:00"] { z-index: 800 !important; }
+.fc-timegrid-event[data-time="09:00"] { z-index: 900 !important; }
+.fc-timegrid-event[data-time="10:00"] { z-index: 1000 !important; }
+.fc-timegrid-event[data-time="11:00"] { z-index: 1100 !important; }
+.fc-timegrid-event[data-time="12:00"] { z-index: 1200 !important; }
+.fc-timegrid-event[data-time="13:00"] { z-index: 1300 !important; }
+.fc-timegrid-event[data-time="14:00"] { z-index: 1400 !important; }
+.fc-timegrid-event[data-time="15:00"] { z-index: 1500 !important; }
+.fc-timegrid-event[data-time="16:00"] { z-index: 1600 !important; }
+.fc-timegrid-event[data-time="17:00"] { z-index: 1700 !important; }
+.fc-timegrid-event[data-time="18:00"] { z-index: 1800 !important; }
+.fc-timegrid-event[data-time="19:00"] { z-index: 1900 !important; }
+.fc-timegrid-event[data-time="20:00"] { z-index: 2000 !important; }
+
+/* Width fixes */
+.fc {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+.fc-timegrid-event {
+  width: calc(100% - 4px) !important;
+  margin: 2px !important;
+  overflow: hidden !important;
+  border-radius: 4px !important;
+}
