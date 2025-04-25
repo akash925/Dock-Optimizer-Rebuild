@@ -69,24 +69,34 @@
 /* Event styles */
 .fc-event {
   border-radius: 0.25rem;
-  padding: 2px 4px;
+  padding: 4px 6px;
   font-size: 0.875rem;
   border: none;
   cursor: pointer;
+  white-space: normal !important; /* Allow text to wrap */
+  overflow: visible !important; /* Ensure content is not cut off */
+  height: auto !important; /* Allow height to expand based on content */
+  min-height: 24px;
 }
 
 .fc-event-title {
   font-weight: 500;
+  overflow: visible !important;
+  white-space: normal !important;
+  display: block;
+  line-height: 1.2;
 }
 
 .fc-event-time {
   font-size: 0.75rem;
   opacity: 0.9;
+  display: block;
+  white-space: nowrap;
 }
 
 /* Time grid style */
 .fc-timegrid-slot {
-  height: 3rem !important;
+  height: 4rem !important; /* Increase height for more space */
 }
 
 .fc-timegrid-now-indicator-line {
@@ -95,6 +105,12 @@
 
 .fc-timegrid-now-indicator-arrow {
   border-width: 5px;
+}
+
+/* Make sure the events are properly spaced and don't overlap */
+.fc-timegrid-event-harness {
+  margin-top: 1px !important;
+  margin-bottom: 1px !important;
 }
 
 /* Responsive adjustments */

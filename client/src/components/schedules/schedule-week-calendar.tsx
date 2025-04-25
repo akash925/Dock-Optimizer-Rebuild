@@ -19,7 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { utcToUserTime, formatInTimeZone, getUserTimeZone, getCurrentTimeInTimeZone } from "@/lib/timezone-utils";
+import { utcToUserTime, formatInUserTimeZone, getUserTimeZone, getCurrentTimeInTimeZone } from "@/lib/timezone-utils";
 
 interface ScheduleWeekCalendarProps {
   schedules: Schedule[];
@@ -395,7 +395,7 @@ export default function ScheduleWeekCalendar({
           <div 
             ref={calendarGridRef}
             className="overflow-auto relative flex-grow"
-            style={{ height: 'calc(100vh - 210px)' }}
+            style={{ height: 'calc(100vh - 210px)', maxHeight: '600px' }}
           >
             <div 
               ref={calendarContentRef}
@@ -542,10 +542,10 @@ export default function ScheduleWeekCalendar({
                           }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          <div className="font-medium truncate">
+                          <div className="font-medium truncate text-xs">
                             {startTimeStr}-{endTimeStr} {schedule.customerName || "(No customer)"}
                           </div>
-                          <div className="truncate">
+                          <div className="truncate text-xs leading-tight">
                             {carrier?.name || schedule.carrierName || ""} #{schedule.truckNumber} • {isInbound ? "IN" : "OUT"}
                           </div>
                         </div>
