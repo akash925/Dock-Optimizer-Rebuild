@@ -180,7 +180,6 @@ export default function CalendarPage() {
                 variant={currentView === 'dayGridMonth' ? 'default' : 'outline'}
                 size="sm"
                 className="rounded-l-md rounded-r-none calendar-view-button"
-                style={{display: "block", visibility: "visible", opacity: 1}}
                 onClick={() => {
                   setCurrentView('dayGridMonth');
                   const calendar = document.querySelector('.fc') as any;
@@ -196,7 +195,6 @@ export default function CalendarPage() {
                 variant={currentView === 'timeGridWeek' ? 'default' : 'outline'}
                 size="sm"
                 className="rounded-none border-l border-r calendar-view-button"
-                style={{display: "block", visibility: "visible", opacity: 1}}
                 onClick={() => {
                   setCurrentView('timeGridWeek');
                   const calendar = document.querySelector('.fc') as any;
@@ -212,7 +210,6 @@ export default function CalendarPage() {
                 variant={currentView === 'timeGridDay' ? 'default' : 'outline'}
                 size="sm"
                 className="rounded-none border-r calendar-view-button"
-                style={{display: "block", visibility: "visible", opacity: 1}}
                 onClick={() => {
                   setCurrentView('timeGridDay');
                   const calendar = document.querySelector('.fc') as any;
@@ -228,7 +225,6 @@ export default function CalendarPage() {
                 variant={currentView === 'listWeek' ? 'default' : 'outline'}
                 size="sm"
                 className="rounded-l-none rounded-r-md calendar-view-button"
-                style={{display: "block", visibility: "visible", opacity: 1}}
                 onClick={() => {
                   setCurrentView('listWeek');
                   const calendar = document.querySelector('.fc') as any;

@@ -203,12 +203,8 @@ export default function FullCalendarView({
     <div className="space-y-4">
       <Card className="w-full relative border overflow-hidden">
         <CardContent className="p-0">
-          <div className="calendar-container calendar-fixed-container" style={{ 
+          <div className="calendar-container" style={{ 
             height: "70vh",
-            width: "100%",
-            position: "relative",
-            overflow: "auto",
-            zIndex: 1
           }}>
             <FullCalendar
               ref={calendarRef}
@@ -233,8 +229,13 @@ export default function FullCalendarView({
               slotLabelInterval="01:00"
               slotMinTime="06:00:00"
               slotMaxTime="20:00:00"
-              height="100%"
-              contentHeight="auto"
+              
+              // Fixed height settings - critical for proper rendering
+              height="auto"
+              contentHeight={600}
+              aspectRatio={1.8}
+              
+              // View settings
               fixedWeekCount={false}
               stickyHeaderDates={true}
               expandRows={true}
@@ -242,14 +243,23 @@ export default function FullCalendarView({
               dayMinWidth={50}
               viewDidMount={handleViewChange}
               unselectAuto={true}
+              
+              // Fixed order for events
+              eventOrder="-start"
+              
+              // Event sorting
+              eventOrderStrict={true}
+              
+              // Event overlapping
+              eventOverlap={false}
+              forceEventDuration={true}
+              
+              // Event rendering
               eventDidMount={(eventInfo) => {
-                // Simpler logic with less DOM manipulation to avoid errors
+                // Keep this minimal to avoid runtime errors
                 if (eventInfo.el && eventInfo.event.start) {
                   const startHour = eventInfo.event.start.getHours();
-                  
-                  // Set a class based on the hour for CSS targeting
-                  const className = `event-hour-${startHour}`;
-                  eventInfo.el.classList.add(className);
+                  eventInfo.el.classList.add(`event-hour-${startHour}`);
                 }
               }}
               eventContent={(eventInfo) => {
