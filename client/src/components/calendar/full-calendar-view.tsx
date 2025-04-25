@@ -3,6 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import listPlugin from '@fullcalendar/list';
 import './full-calendar.css';
 import './fixes.css'; // Import new CSS fixes
 import './direct-fixes.css'; // Import direct calendar fixes
@@ -177,6 +178,9 @@ export function FullCalendarView({
     }
   };
   
+  // State to track current calendar view
+  const [currentView, setCurrentView] = useState<string>('timeGridWeek');
+  
   // Handle timezone change
   const handleTimezoneChange = (timezone: string) => {
     setSelectedTimezone(timezone);
@@ -187,6 +191,15 @@ export function FullCalendarView({
       calendarApi.setOption('timeZone', timezone);
       // In newer versions of FullCalendar, render() has been removed
       // The calendar will automatically re-render when options change
+    }
+  };
+  
+  // Handle view change from our custom view switcher
+  const handleViewChange = (view: string) => {
+    setCurrentView(view);
+    if (calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.changeView(view);
     }
   };
 
@@ -255,6 +268,44 @@ export function FullCalendarView({
         </div>
       </div>
       
+      {/* Custom view switcher */}
+      <div className="flex justify-end space-x-2 mb-2">
+        <div className="inline-flex rounded-md border">
+          <Button
+            variant={currentView === 'dayGridMonth' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleViewChange('dayGridMonth')}
+            className="rounded-l-md rounded-r-none"
+          >
+            month
+          </Button>
+          <Button
+            variant={currentView === 'timeGridWeek' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleViewChange('timeGridWeek')}
+            className="rounded-none border-l border-r"
+          >
+            week
+          </Button>
+          <Button
+            variant={currentView === 'timeGridDay' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleViewChange('timeGridDay')}
+            className="rounded-none border-r"
+          >
+            day
+          </Button>
+          <Button
+            variant={currentView === 'listWeek' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleViewChange('listWeek')}
+            className="rounded-l-none rounded-r-md"
+          >
+            list
+          </Button>
+        </div>
+      </div>
+      
       <Card className="w-full" style={{ maxWidth: "calc(100vw - 20px)", overflowX: "hidden" }}>
         <CardContent className="p-0">
           <div className="calendar-container" style={{ 
@@ -267,10 +318,10 @@ export function FullCalendarView({
           }}>
             <FullCalendar
               ref={calendarRef}
-              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
               initialView="timeGridWeek"
               headerToolbar={{
-                left: 'dayGridMonth,timeGridWeek,timeGridDay',
+                left: '',
                 center: 'title',
                 right: ''
               }}
