@@ -551,6 +551,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="12:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -567,6 +568,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="13:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -644,6 +646,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="12:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -660,6 +663,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="13:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -737,6 +741,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="12:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -753,6 +758,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="13:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -830,6 +836,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="12:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -846,6 +853,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="13:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -923,6 +931,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="12:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -939,6 +948,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="13:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1016,6 +1026,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="12:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1032,6 +1043,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="13:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1109,6 +1121,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="12:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1125,6 +1138,7 @@ export default function FacilitySettingsPage() {
                                   <Input 
                                     {...field} 
                                     placeholder="13:00"
+                                    value={field.value || ""}
                                   />
                                 </FormControl>
                                 <FormMessage />
