@@ -80,9 +80,15 @@ export function FullCalendarView({
                       schedule.status === 'no-show' ? '#6B7280' : 
                       (isInbound ? '#3B82F6' : '#10B981');
     
-    // Calculate z-index based on start time (later events get higher z-index)
+    // Date utilities
     const startTime = new Date(schedule.startTime);
-    const zIndex = (startTime.getHours() * 100) + startTime.getMinutes();
+    const hour = startTime.getHours();
+    const mins = startTime.getMinutes();
+    
+    // Calculate and store the event hour for z-index calculation
+    const eventHour = hour.toString().padStart(2, '0');
+    const eventMinute = mins.toString().padStart(2, '0');
+    const timeKey = `${eventHour}:${eventMinute}`;
     
     // Get customer and location info if available
     const customerName = schedule.customerName || '';
@@ -118,13 +124,14 @@ export function FullCalendarView({
       backgroundColor: statusColor,
       borderColor: statusColor,
       textColor: '#FFFFFF',
-      classNames: [`event-z-${zIndex}`], // Add class with z-index value
+      classNames: [`time-${timeKey.replace(':', '-')}`],
       extendedProps: {
         type: schedule.type,
         carrierId: schedule.carrierId,
         dockId: schedule.dockId,
         status: schedule.status,
-        zIndex: zIndex // Store z-index for potential use in event render
+        timeKey: timeKey,
+        hourKey: eventHour
       }
     };
   });
@@ -224,14 +231,15 @@ export function FullCalendarView({
         </div>
       </div>
       
-      <Card className="w-full max-w-[100vw] overflow-hidden">
-        <CardContent className="p-4">
-          <div className="calendar-container w-full" style={{ 
+      <Card className="w-full max-w-[100vw] overflow-hidden border-0">
+        <CardContent className="p-2 md:p-4">
+          <div className="calendar-container" style={{ 
             height: "70vh", 
-            maxWidth: "calc(100vw - 3rem)", 
+            width: "100%",
+            maxWidth: "100%",
             overflowY: "auto", 
-            overflowX: "auto",
-            position: "relative" // Add position relative to create a stacking context
+            overflowX: "hidden",
+            position: "relative"
           }}>
             <FullCalendar
               ref={calendarRef}
@@ -258,28 +266,27 @@ export function FullCalendarView({
               slotMaxTime="20:00:00"
               height="auto"
               contentHeight="auto"
+              fixedWeekCount={false}
+              stickyHeaderDates={true}
+              expandRows={true}
+              eventDidMount={(eventInfo) => {
+                // Try to set data-time attribute on the event DOM element for CSS targeting
+                if (eventInfo.el && eventInfo.event.start) {
+                  const startHour = eventInfo.event.start.getHours();
+                  const hourStr = startHour.toString().padStart(2, '0');
+                  // Set data-time to the hour for our CSS stacking selectors
+                  eventInfo.el.setAttribute('data-time', `${hourStr}:00`);
+                  
+                  // Set a higher z-index for events that start later
+                  eventInfo.el.style.zIndex = (startHour * 100).toString();
+                }
+              }}
               eventContent={(eventInfo) => {
-                // Extract the z-index from event props if available
-                const zIndex = eventInfo.event.extendedProps.zIndex || 0;
-                
-                // Calculate dynamic style based on event start time
-                const startDate = new Date(eventInfo.event.start || new Date());
-                const hours = startDate.getHours();
-                const minutes = startDate.getMinutes();
-                
-                // Style with dynamic z-index to ensure proper stacking
-                const style: React.CSSProperties = {
-                  position: 'relative',
-                  zIndex: hours * 100 + minutes, // Later events have higher z-index
-                  width: '100%',
-                  height: '100%'
-                };
+                // Get the start date safely
+                const startDate = eventInfo.event.start || new Date();
                 
                 return (
-                  <div 
-                    className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden" 
-                    style={style}
-                  >
+                  <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
                     <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
                     <div className="text-xs font-medium whitespace-pre-line line-clamp-3 overflow-hidden text-ellipsis">{eventInfo.event.title}</div>
                   </div>

@@ -146,49 +146,53 @@
   margin-right: auto !important;
 }
 
-/* Base stacking context for events */
-.fc-timegrid-event {
-  z-index: 10 !important;
-  position: relative !important;
-}
-
-/* Fix stacking issues - use higher z-index for later events */
-.fc-timegrid-event.event-z-600 { z-index: 600 !important; }
-.fc-timegrid-event.event-z-700 { z-index: 700 !important; }
-.fc-timegrid-event.event-z-800 { z-index: 800 !important; }
-.fc-timegrid-event.event-z-900 { z-index: 900 !important; }
-.fc-timegrid-event.event-z-1000 { z-index: 1000 !important; }
-.fc-timegrid-event.event-z-1100 { z-index: 1100 !important; }
-.fc-timegrid-event.event-z-1200 { z-index: 1200 !important; }
-.fc-timegrid-event.event-z-1300 { z-index: 1300 !important; }
-.fc-timegrid-event.event-z-1400 { z-index: 1400 !important; }
-.fc-timegrid-event.event-z-1500 { z-index: 1500 !important; }
-.fc-timegrid-event.event-z-1600 { z-index: 1600 !important; }
-.fc-timegrid-event.event-z-1700 { z-index: 1700 !important; }
-.fc-timegrid-event.event-z-1800 { z-index: 1800 !important; }
-.fc-timegrid-event.event-z-1900 { z-index: 1900 !important; }
-.fc-timegrid-event.event-z-2000 { z-index: 2000 !important; }
-
-/* Support for time range 6am-8pm */
-.fc-timegrid-event-harness { z-index: 5 !important; }
-.fc-timegrid-event-harness-inset { z-index: 5 !important; }
-
-/* Set position for overlapping events */
+/* COMPLETELY NEW APPROACH: Reverse order of events */
 .fc-timegrid-col-events {
+  display: flex !important;
+  flex-direction: column-reverse !important;
   position: relative !important;
-}
-
-/* Force events to respect container boundaries */
-.fc-timegrid-col-events {
+  /* important: ensure events don't overflow column */
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
+  box-sizing: border-box !important;
 }
 
-/* Mobile and Tablet specific rules for event width */
+/* Ensure event container takes full width and provides baseline positioning */
+.fc-timegrid-event-harness {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  /* Use auto z-index, let the browser stack in DOM order */
+  z-index: auto !important;
+}
+
+/* Most important: force a specific stacking order based on time */
+/* Ensure later appointments always appear above earlier ones */
+.fc-timegrid-event[data-time="08:00"] { z-index: 800 !important; }
+.fc-timegrid-event[data-time="09:00"] { z-index: 900 !important; }
+.fc-timegrid-event[data-time="10:00"] { z-index: 1000 !important; }
+.fc-timegrid-event[data-time="11:00"] { z-index: 1100 !important; }
+.fc-timegrid-event[data-time="12:00"] { z-index: 1200 !important; }
+.fc-timegrid-event[data-time="13:00"] { z-index: 1300 !important; }
+.fc-timegrid-event[data-time="14:00"] { z-index: 1400 !important; }
+.fc-timegrid-event[data-time="15:00"] { z-index: 1500 !important; }
+.fc-timegrid-event[data-time="16:00"] { z-index: 1600 !important; }
+.fc-timegrid-event[data-time="17:00"] { z-index: 1700 !important; }
+.fc-timegrid-event[data-time="18:00"] { z-index: 1800 !important; }
+.fc-timegrid-event[data-time="19:00"] { z-index: 1900 !important; }
+.fc-timegrid-event[data-time="20:00"] { z-index: 2000 !important; }
+
+/* Ensure events have proper constraints and don't expand */
 .fc-timegrid-event {
-  width: calc(100% - 2px) !important;
-  margin: 1px !important;
+  /* Force relative positioning for z-index to work */
+  position: relative !important;
+  /* Set minimum z-index for all events */
+  z-index: 100 !important;
+  /* Control event display - constrain within cell */
+  width: calc(100% - 4px) !important;
+  margin: 0 2px !important;
+  overflow: hidden !important;
 }
 
 /* Event content container fixes */
@@ -197,10 +201,45 @@
   overflow: hidden !important;
 }
 
-/* Fix for event width */
-.fc-timegrid-col {
+/* Force container widths */
+.fc {
   width: 100% !important;
-  min-width: 100px !important;
+  max-width: 100% !important;
+}
+
+.fc-scrollgrid {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: table !important;
+}
+
+.fc-scrollgrid-section-body, 
+.fc-scrollgrid-section-header,
+.fc-scrollgrid-section {
+  width: 100% !important;
+  max-width: 100% !important; 
+}
+
+/* Fix column sizing */
+.fc-timegrid-col, 
+.fc-timegrid-cols,
+.fc-timegrid-body,
+.fc-timegrid {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.fc-col-header-cell {
+  overflow: hidden !important;
+}
+
+/* Ensure events always take proper width */
+.fc-timegrid-event {
+  box-sizing: border-box !important;
+  width: calc(100% - 4px) !important;
+  margin: 2px !important;
+  overflow: hidden !important;
+  border-radius: 4px !important;
 }
 
 /* Responsive adjustments */
