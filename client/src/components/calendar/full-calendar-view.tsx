@@ -186,9 +186,9 @@ export function FullCalendarView({
         </div>
       </div>
       
-      <Card>
-        <CardContent className="p-0 overflow-auto">
-          <div className="max-h-[600px] overflow-auto">
+      <Card className="max-w-full overflow-hidden">
+        <CardContent className="p-0">
+          <div className="calendar-container" style={{ height: "calc(100vh - 200px)", maxWidth: "100%", overflowY: "auto", overflowX: "hidden" }}>
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -212,12 +212,13 @@ export function FullCalendarView({
               slotLabelInterval="01:00"
               slotMinTime="06:00:00"
               slotMaxTime="20:00:00"
-              height="100%"
+              height="auto"
+              contentHeight="auto"
               eventContent={(eventInfo) => {
                 return (
-                  <div className="w-full">
-                    <div className="text-xs font-semibold">{eventInfo.timeText}</div>
-                    <div className="text-sm">{eventInfo.event.title}</div>
+                  <div className="w-full h-full p-1 flex flex-col justify-start">
+                    <div className="text-xs font-semibold mb-1">{eventInfo.timeText}</div>
+                    <div className="text-xs line-clamp-3">{eventInfo.event.title}</div>
                   </div>
                 );
               }}
