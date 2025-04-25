@@ -3,6 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <link rel="stylesheet" href="/css/calendar-fixes.css" />
+    <style>
+      /* Critical calendar fixes - added inline for immediate effect */
+      .fc-timegrid-col-events {
+        display: flex !important;
+        flex-direction: column-reverse !important;
+      }
+      .fc-timegrid-event {
+        z-index: 100 !important;
+        border-radius: 4px !important;
+        width: calc(100% - 4px) !important;
+        margin: 2px !important;
+        overflow: hidden !important;
+      }
+      .fc-timegrid-event[data-time="12:00"] { z-index: 1200 !important; }
+      .fc-timegrid-event[data-time="13:00"] { z-index: 1300 !important; }
+      .fc-timegrid-event[data-time="14:00"] { z-index: 1400 !important; }
+      .fc-timegrid-event[data-time="15:00"] { z-index: 1500 !important; }
+      .fc-timegrid-event[data-time="16:00"] { z-index: 1600 !important; }
+      .fc-timegrid-event[data-time="17:00"] { z-index: 1700 !important; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
