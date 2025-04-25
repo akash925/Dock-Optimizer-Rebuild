@@ -194,90 +194,18 @@ export default function FullCalendarView({
     }
   };
   
-  // Handle view change from our custom view switcher
-  const handleViewChange = (view: string) => {
-    setCurrentView(view);
-    if (calendarRef.current) {
-      const calendarApi = calendarRef.current.getApi();
-      calendarApi.changeView(view);
-    }
+  // Handle calendar view change event from FullCalendar
+  const handleViewChange = (viewInfo: any) => {
+    setCurrentView(viewInfo.view.type);
   };
 
   return (
     <div className="space-y-4">
-      {/* Timezone selector */}
-      <div className="flex items-end justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <div className="flex-col space-y-1.5 w-64">
-            <Label htmlFor="timezone-select">Timezone</Label>
-            <Select 
-              value={selectedTimezone} 
-              onValueChange={handleTimezoneChange}
-            >
-              <SelectTrigger id="timezone-select">
-                <SelectValue placeholder="Select timezone" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={getUserTimeZone()}>
-                  Local: {getUserTimeZone()} ({getTimeZoneAbbreviation(getUserTimeZone())})
-                </SelectItem>
-                {COMMON_TIMEZONES.filter(tz => tz !== getUserTimeZone()).map(timezone => (
-                  <SelectItem key={timezone} value={timezone}>
-                    {timezone} ({getTimeZoneAbbreviation(timezone)})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              if (calendarRef.current) {
-                calendarRef.current.getApi().today();
-              }
-            }}
-          >
-            Today
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              if (calendarRef.current) {
-                calendarRef.current.getApi().prev();
-              }
-            }}
-          >
-            Previous
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              if (calendarRef.current) {
-                calendarRef.current.getApi().next();
-              }
-            }}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-      
-
-      
-      <Card className="w-full" style={{ maxWidth: "calc(100vw - 20px)", overflowX: "hidden" }}>
+      <Card className="w-full relative border overflow-hidden">
         <CardContent className="p-0">
           <div className="calendar-container" style={{ 
             height: "70vh",
-            width: "100%", 
-            maxWidth: "100%",
-            overflowY: "auto", 
-            overflowX: "hidden",
+            width: "100%",
             position: "relative"
           }}>
             <FullCalendar
@@ -303,14 +231,15 @@ export default function FullCalendarView({
               slotLabelInterval="01:00"
               slotMinTime="06:00:00"
               slotMaxTime="20:00:00"
-              height="auto"
+              height="100%"
               contentHeight="auto"
               fixedWeekCount={false}
               stickyHeaderDates={true}
               expandRows={true}
               handleWindowResize={true}
               dayMinWidth={50}
-              aspectRatio={1.8}
+              viewDidMount={handleViewChange}
+              unselectAuto={true}
               eventDidMount={(eventInfo) => {
                 // Try to set data-time attribute on the event DOM element for CSS targeting
                 if (eventInfo.el && eventInfo.event.start) {
