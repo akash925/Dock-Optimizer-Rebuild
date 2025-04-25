@@ -43,7 +43,7 @@ interface FullCalendarViewProps {
   timezone?: string; // Add timezone prop
 }
 
-export function FullCalendarView({ 
+export default function FullCalendarView({ 
   schedules, 
   onEventClick, 
   onDateSelect,
@@ -268,43 +268,7 @@ export function FullCalendarView({
         </div>
       </div>
       
-      {/* Custom view switcher */}
-      <div className="flex justify-end space-x-2 mb-2">
-        <div className="inline-flex rounded-md border">
-          <Button
-            variant={currentView === 'dayGridMonth' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleViewChange('dayGridMonth')}
-            className="rounded-l-md rounded-r-none"
-          >
-            month
-          </Button>
-          <Button
-            variant={currentView === 'timeGridWeek' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleViewChange('timeGridWeek')}
-            className="rounded-none border-l border-r"
-          >
-            week
-          </Button>
-          <Button
-            variant={currentView === 'timeGridDay' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleViewChange('timeGridDay')}
-            className="rounded-none border-r"
-          >
-            day
-          </Button>
-          <Button
-            variant={currentView === 'listWeek' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleViewChange('listWeek')}
-            className="rounded-l-none rounded-r-md"
-          >
-            list
-          </Button>
-        </div>
-      </div>
+
       
       <Card className="w-full" style={{ maxWidth: "calc(100vw - 20px)", overflowX: "hidden" }}>
         <CardContent className="p-0">
@@ -377,5 +341,3 @@ export function FullCalendarView({
     </div>
   );
 }
-
-export default FullCalendarView;

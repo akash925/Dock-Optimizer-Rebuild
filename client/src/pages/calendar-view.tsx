@@ -50,6 +50,68 @@ export default function CalendarPage() {
         </p>
       </div>
 
+      {/* Custom view switcher */}
+      <div className="flex justify-end space-x-2 mb-4">
+        <div className="inline-flex rounded-md border">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-l-md rounded-r-none"
+            onClick={() => {
+              const calendar = document.querySelector('.fc') as any;
+              if (calendar) {
+                const api = calendar.__fullCalendar_instance.getApi();
+                api.changeView('dayGridMonth');
+              }
+            }}
+          >
+            month
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            className="rounded-none border-l border-r"
+            onClick={() => {
+              const calendar = document.querySelector('.fc') as any;
+              if (calendar) {
+                const api = calendar.__fullCalendar_instance.getApi();
+                api.changeView('timeGridWeek');
+              }
+            }}
+          >
+            week
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-none border-r"
+            onClick={() => {
+              const calendar = document.querySelector('.fc') as any;
+              if (calendar) {
+                const api = calendar.__fullCalendar_instance.getApi();
+                api.changeView('timeGridDay');
+              }
+            }}
+          >
+            day
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-l-none rounded-r-md"
+            onClick={() => {
+              const calendar = document.querySelector('.fc') as any;
+              if (calendar) {
+                const api = calendar.__fullCalendar_instance.getApi();
+                api.changeView('listWeek');
+              }
+            }}
+          >
+            list
+          </Button>
+        </div>
+      </div>
+      
       <FullCalendarView
         schedules={schedules || []}
         onEventClick={handleEventClick}
