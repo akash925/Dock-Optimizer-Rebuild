@@ -4,13 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
-import './full-calendar.css';
-import './fixes.css';
-import './direct-fixes.css';
-import './calendar-fixes.css';
-import './event-fix.css';
-import './urgent-fix.css';
-import './final-fix.css'; // Final comprehensive fix with maximum specificity
+import './calendar-clean.css'; // One clean CSS file with all needed fixes
 import { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -203,65 +197,7 @@ export default function FullCalendarView({
     setCurrentView(viewInfo.view.type);
   };
   
-  // Add effect to manually trigger our DOM fixes after component mounts or updates
-  useEffect(() => {
-    const initFixes = () => {
-      // Apply manual fixes
-      setTimeout(() => {
-        // Find and fix events
-        const events = document.querySelectorAll('.fc-timegrid-event');
-        events.forEach(event => {
-          if (event instanceof HTMLElement) {
-            // Apply styling and fix z-index
-            const timeAttr = event.getAttribute('data-time');
-            if (timeAttr) {
-              // Reverse hour logic - earlier times on top
-              if (timeAttr === '06:00') event.style.zIndex = '2400';
-              else if (timeAttr === '07:00') event.style.zIndex = '2300';
-              else if (timeAttr === '08:00') event.style.zIndex = '2200';
-              else if (timeAttr === '09:00') event.style.zIndex = '2100';
-              else if (timeAttr === '10:00') event.style.zIndex = '2000';
-              else if (timeAttr === '11:00') event.style.zIndex = '1900';
-              else if (timeAttr === '12:00') event.style.zIndex = '1800';
-              else if (timeAttr === '13:00') event.style.zIndex = '1700';
-              else if (timeAttr === '14:00') event.style.zIndex = '1600';
-              else if (timeAttr === '15:00') event.style.zIndex = '1500';
-              else if (timeAttr === '16:00') event.style.zIndex = '1400';
-              else if (timeAttr === '17:00') event.style.zIndex = '1300';
-              else if (timeAttr === '18:00') event.style.zIndex = '1200';
-              else if (timeAttr === '19:00') event.style.zIndex = '1100';
-              else if (timeAttr === '20:00') event.style.zIndex = '1000';
-            }
-            event.style.border = '2px solid rgba(255,255,255,0.5)';
-            event.style.boxShadow = '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)';
-          }
-        });
-        
-        // Fix buttons
-        const buttons = document.querySelectorAll('.calendar-view-button');
-        buttons.forEach(button => {
-          if (button instanceof HTMLElement) {
-            button.style.display = 'inline-flex';
-            button.style.visibility = 'visible';
-            button.style.opacity = '1';
-          }
-        });
-        
-        // Fix container
-        const container = document.querySelector('.calendar-container');
-        if (container instanceof HTMLElement) {
-          container.style.height = '70vh';
-          container.style.overflow = 'auto';
-        }
-      }, 300);
-    };
-    
-    // Call immediately and after a short delay to ensure calendar is ready
-    initFixes();
-    const timerId = setTimeout(initFixes, 1000);
-    
-    return () => clearTimeout(timerId);
-  }, [events.length, selectedTimezone, currentView]);
+  // Simplified approach - no DOM manipulation effects
 
   return (
     <div className="space-y-4">
@@ -307,21 +243,13 @@ export default function FullCalendarView({
               viewDidMount={handleViewChange}
               unselectAuto={true}
               eventDidMount={(eventInfo) => {
-                // Try to set data-time attribute on the event DOM element for CSS targeting
+                // Simpler logic with less DOM manipulation to avoid errors
                 if (eventInfo.el && eventInfo.event.start) {
                   const startHour = eventInfo.event.start.getHours();
-                  const hourStr = startHour.toString().padStart(2, '0');
-                  // Set data-time to the hour for our CSS stacking selectors
-                  eventInfo.el.setAttribute('data-time', `${hourStr}:00`);
                   
-                  // REVERSE the z-index logic: earlier times should be on top
-                  // This ensures that events starting at 6AM are on top (z-index: 2400)
-                  // and events starting at 8PM are at the bottom (z-index: 100)
-                  const reverseHour = 24 - startHour;
-                  eventInfo.el.style.zIndex = (reverseHour * 100).toString();
-                  
-                  // Add a border to make events more distinct when stacked
-                  eventInfo.el.style.border = '1px solid rgba(255,255,255,0.5)';
+                  // Set a class based on the hour for CSS targeting
+                  const className = `event-hour-${startHour}`;
+                  eventInfo.el.classList.add(className);
                 }
               }}
               eventContent={(eventInfo) => {

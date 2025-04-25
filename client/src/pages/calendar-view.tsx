@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Loader2, CalendarRange } from 'lucide-react';
 import FullCalendarView from '@/components/calendar/full-calendar-view';
-import '@/components/calendar/direct-dom-fix.js'; // Import direct DOM fix script
 import { Schedule } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -45,20 +44,7 @@ export default function CalendarPage() {
     allDay: boolean;
   } | null>(null);
   
-  // Add the external fix script to the document
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = '/calendar-direct-fix.js';
-    script.async = true;
-    document.body.appendChild(script);
-    
-    return () => {
-      // Clean up on unmount
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    };
-  }, []);
+  // No external script loading - simplified approach
   
   // Save and load timezone preference from localStorage
   useEffect(() => {

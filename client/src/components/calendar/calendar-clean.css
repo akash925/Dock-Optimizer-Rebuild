@@ -1,0 +1,90 @@
+/* Clean calendar styling without DOM manipulations */
+
+/* Main calendar container */
+.calendar-container {
+  height: 70vh !important;
+  width: 100% !important;
+  position: relative !important;
+  overflow: auto !important;
+  z-index: 1 !important;
+}
+
+/* Calendar wrapper */
+.fc {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Calendar toolbar */
+.fc-toolbar {
+  padding: 0.5rem !important;
+}
+
+/* Calendar view harness */
+.fc-view-harness {
+  height: 100% !important;
+  min-height: 400px !important;
+}
+
+/* Event styles - add borders and shadows */
+.fc-event {
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24) !important;
+}
+
+/* Time grid event styles */
+.fc-timegrid-event {
+  padding: 0.25rem !important;
+  overflow: hidden !important;
+}
+
+/* Time grid slots */
+.fc-timegrid-slot {
+  height: 2.5rem !important;
+}
+
+/* View buttons - ensure they're always visible */
+.calendar-view-button {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* View buttons container */
+.view-buttons-container {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 100 !important;
+  background-color: white !important;
+  padding: 1rem 0 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* Event stacking - use CSS classes instead of direct style manipulation */
+/* Earlier events should be on top */
+.event-hour-6 { z-index: 1800 !important; }
+.event-hour-7 { z-index: 1700 !important; }
+.event-hour-8 { z-index: 1600 !important; }
+.event-hour-9 { z-index: 1500 !important; }
+.event-hour-10 { z-index: 1400 !important; }
+.event-hour-11 { z-index: 1300 !important; }
+.event-hour-12 { z-index: 1200 !important; }
+.event-hour-13 { z-index: 1100 !important; }
+.event-hour-14 { z-index: 1000 !important; }
+.event-hour-15 { z-index: 900 !important; }
+.event-hour-16 { z-index: 800 !important; }
+.event-hour-17 { z-index: 700 !important; }
+.event-hour-18 { z-index: 600 !important; }
+.event-hour-19 { z-index: 500 !important; }
+.event-hour-20 { z-index: 400 !important; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .calendar-container {
+    height: 60vh !important;
+  }
+  
+  .fc-timegrid-slot {
+    height: 2rem !important;
+  }
+}
