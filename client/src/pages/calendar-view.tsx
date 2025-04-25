@@ -89,7 +89,14 @@ export default function CalendarPage() {
       </div>
 
       {/* Controls row - timezone selector, view switcher and navigation */}
-      <div className="view-buttons-container mb-4 sticky top-0 z-50 bg-white border-b pb-4">
+      <div className="view-buttons-container mb-4 sticky top-0 z-[1000] bg-white border-b pb-4" style={{
+        position: "sticky",
+        top: "0",
+        zIndex: "1000",
+        backgroundColor: "white",
+        padding: "1rem 0",
+        borderBottom: "1px solid #e5e7eb"
+      }}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           {/* Timezone selector */}
           <div className="flex-col space-y-1">
@@ -170,7 +177,8 @@ export default function CalendarPage() {
               <Button
                 variant={currentView === 'dayGridMonth' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-l-md rounded-r-none"
+                className="rounded-l-md rounded-r-none calendar-view-button"
+                style={{display: "block", visibility: "visible", opacity: 1}}
                 onClick={() => {
                   setCurrentView('dayGridMonth');
                   const calendar = document.querySelector('.fc') as any;
@@ -185,7 +193,8 @@ export default function CalendarPage() {
               <Button
                 variant={currentView === 'timeGridWeek' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-none border-l border-r"
+                className="rounded-none border-l border-r calendar-view-button"
+                style={{display: "block", visibility: "visible", opacity: 1}}
                 onClick={() => {
                   setCurrentView('timeGridWeek');
                   const calendar = document.querySelector('.fc') as any;
@@ -200,7 +209,8 @@ export default function CalendarPage() {
               <Button
                 variant={currentView === 'timeGridDay' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-none border-r"
+                className="rounded-none border-r calendar-view-button"
+                style={{display: "block", visibility: "visible", opacity: 1}}
                 onClick={() => {
                   setCurrentView('timeGridDay');
                   const calendar = document.querySelector('.fc') as any;
@@ -215,7 +225,8 @@ export default function CalendarPage() {
               <Button
                 variant={currentView === 'listWeek' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-l-none rounded-r-md"
+                className="rounded-l-none rounded-r-md calendar-view-button"
+                style={{display: "block", visibility: "visible", opacity: 1}}
                 onClick={() => {
                   setCurrentView('listWeek');
                   const calendar = document.querySelector('.fc') as any;

@@ -7,8 +7,9 @@ import listPlugin from '@fullcalendar/list';
 import './full-calendar.css';
 import './fixes.css';
 import './direct-fixes.css';
-import './calendar-fixes.css'; // Import our newest fixes
-import './event-fix.css'; // Import specific event rendering fixes
+import './calendar-fixes.css';
+import './event-fix.css';
+import './urgent-fix.css'; // Most urgent fixes with !important tags
 import { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
