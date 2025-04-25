@@ -146,14 +146,65 @@
   margin-right: auto !important;
 }
 
-/* Fix stacking order - newer events should be on top */
+/* Base stacking context for events */
+.fc-timegrid-event {
+  z-index: 10 !important;
+  position: relative !important;
+}
+
+/* Fix stacking issues - use higher z-index for later events */
+.fc-timegrid-event.event-z-600 { z-index: 600 !important; }
+.fc-timegrid-event.event-z-700 { z-index: 700 !important; }
+.fc-timegrid-event.event-z-800 { z-index: 800 !important; }
+.fc-timegrid-event.event-z-900 { z-index: 900 !important; }
+.fc-timegrid-event.event-z-1000 { z-index: 1000 !important; }
+.fc-timegrid-event.event-z-1100 { z-index: 1100 !important; }
+.fc-timegrid-event.event-z-1200 { z-index: 1200 !important; }
+.fc-timegrid-event.event-z-1300 { z-index: 1300 !important; }
+.fc-timegrid-event.event-z-1400 { z-index: 1400 !important; }
+.fc-timegrid-event.event-z-1500 { z-index: 1500 !important; }
+.fc-timegrid-event.event-z-1600 { z-index: 1600 !important; }
+.fc-timegrid-event.event-z-1700 { z-index: 1700 !important; }
+.fc-timegrid-event.event-z-1800 { z-index: 1800 !important; }
+.fc-timegrid-event.event-z-1900 { z-index: 1900 !important; }
+.fc-timegrid-event.event-z-2000 { z-index: 2000 !important; }
+
+/* Support for time range 6am-8pm */
+.fc-timegrid-event-harness { z-index: 5 !important; }
+.fc-timegrid-event-harness-inset { z-index: 5 !important; }
+
+/* Set position for overlapping events */
 .fc-timegrid-col-events {
-  display: flex !important;
-  flex-direction: column-reverse !important;
+  position: relative !important;
+}
+
+/* Force events to respect container boundaries */
+.fc-timegrid-col-events {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Mobile and Tablet specific rules for event width */
+.fc-timegrid-event {
+  width: calc(100% - 2px) !important;
+  margin: 1px !important;
+}
+
+/* Event content container fixes */
+.fc-event-main {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Fix for event width */
+.fc-timegrid-col {
+  width: 100% !important;
+  min-width: 100px !important;
 }
 
 /* Responsive adjustments */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .fc .fc-toolbar {
     flex-direction: column;
     align-items: flex-start;
@@ -170,5 +221,15 @@
   /* Smaller time slots on mobile */
   .fc-timegrid-slot {
     height: 3rem !important;
+  }
+  
+  /* Fix day header sizing */
+  .fc .fc-col-header-cell {
+    padding: 2px !important;
+  }
+  
+  /* Increase event z-index on mobile */
+  .fc-timegrid-event {
+    z-index: 20 !important;
   }
 }

@@ -80,6 +80,10 @@ export function FullCalendarView({
                       schedule.status === 'no-show' ? '#6B7280' : 
                       (isInbound ? '#3B82F6' : '#10B981');
     
+    // Calculate z-index based on start time (later events get higher z-index)
+    const startTime = new Date(schedule.startTime);
+    const zIndex = (startTime.getHours() * 100) + startTime.getMinutes();
+    
     // Get customer and location info if available
     const customerName = schedule.customerName || '';
     // Format dock name from ID if needed
@@ -114,11 +118,13 @@ export function FullCalendarView({
       backgroundColor: statusColor,
       borderColor: statusColor,
       textColor: '#FFFFFF',
+      classNames: [`event-z-${zIndex}`], // Add class with z-index value
       extendedProps: {
         type: schedule.type,
         carrierId: schedule.carrierId,
         dockId: schedule.dockId,
-        status: schedule.status
+        status: schedule.status,
+        zIndex: zIndex // Store z-index for potential use in event render
       }
     };
   });
@@ -218,9 +224,15 @@ export function FullCalendarView({
         </div>
       </div>
       
-      <Card className="max-w-full">
+      <Card className="w-full max-w-[100vw] overflow-hidden">
         <CardContent className="p-4">
-          <div className="calendar-container" style={{ height: "70vh", maxWidth: "100%", overflowY: "auto", overflowX: "hidden" }}>
+          <div className="calendar-container w-full" style={{ 
+            height: "70vh", 
+            maxWidth: "calc(100vw - 3rem)", 
+            overflowY: "auto", 
+            overflowX: "auto",
+            position: "relative" // Add position relative to create a stacking context
+          }}>
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -247,8 +259,27 @@ export function FullCalendarView({
               height="auto"
               contentHeight="auto"
               eventContent={(eventInfo) => {
+                // Extract the z-index from event props if available
+                const zIndex = eventInfo.event.extendedProps.zIndex || 0;
+                
+                // Calculate dynamic style based on event start time
+                const startDate = new Date(eventInfo.event.start || new Date());
+                const hours = startDate.getHours();
+                const minutes = startDate.getMinutes();
+                
+                // Style with dynamic z-index to ensure proper stacking
+                const style: React.CSSProperties = {
+                  position: 'relative',
+                  zIndex: hours * 100 + minutes, // Later events have higher z-index
+                  width: '100%',
+                  height: '100%'
+                };
+                
                 return (
-                  <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
+                  <div 
+                    className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden" 
+                    style={style}
+                  >
                     <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
                     <div className="text-xs font-medium whitespace-pre-line line-clamp-3 overflow-hidden text-ellipsis">{eventInfo.event.title}</div>
                   </div>
