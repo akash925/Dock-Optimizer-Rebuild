@@ -80,17 +80,30 @@ export function FullCalendarView({
                       schedule.status === 'no-show' ? '#6B7280' : 
                       (isInbound ? '#3B82F6' : '#10B981');
     
+    // Get customer and location info if available
+    const customerName = schedule.customerName || '';
+    // Format dock name from ID if needed
+    const dockInfo = schedule.dockId ? `Dock #${schedule.dockId}` : '';
+    
     // Format a more detailed title with relevant information
-    let title = `${schedule.carrierName || 'Carrier'} | ${schedule.truckNumber || 'No Truck #'}`;
+    let title = '';
+    
+    // Add customer name if available
+    if (customerName) {
+      title += `${customerName}\n`;
+    }
+    
+    // Add carrier and truck info
+    title += `${schedule.carrierName || 'Carrier'} | ${schedule.truckNumber || 'No Truck #'}`;
     
     // Add dock information if available
-    if (schedule.dockName) {
-      title += ` | ${schedule.dockName}`;
+    if (dockInfo) {
+      title += `\n${dockInfo}`;
     }
     
     // Add status badge to title if not scheduled
     if (schedule.status && schedule.status !== 'scheduled') {
-      title += ` | ${schedule.status.toUpperCase()}`;
+      title += `\n${schedule.status.toUpperCase()}`;
     }
     
     return {
@@ -105,8 +118,7 @@ export function FullCalendarView({
         type: schedule.type,
         carrierId: schedule.carrierId,
         dockId: schedule.dockId,
-        status: schedule.status,
-        dockName: schedule.dockName
+        status: schedule.status
       }
     };
   });
@@ -238,7 +250,7 @@ export function FullCalendarView({
                 return (
                   <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
                     <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
-                    <div className="text-xs font-medium line-clamp-2 overflow-hidden text-ellipsis">{eventInfo.event.title}</div>
+                    <div className="text-xs font-medium whitespace-pre-line line-clamp-3 overflow-hidden text-ellipsis">{eventInfo.event.title}</div>
                   </div>
                 );
               }}

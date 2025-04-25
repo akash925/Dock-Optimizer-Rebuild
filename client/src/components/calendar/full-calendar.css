@@ -139,11 +139,17 @@
   min-height: 600px !important;
 }
 
-/* Fix position of events in the column */
+/* Fix position of events in the column - ensure proper stacking order */
 .fc-timegrid-col-events > * {
-  width: 90% !important;
+  width: 95% !important;
   margin-left: auto !important;
   margin-right: auto !important;
+}
+
+/* Fix stacking order - newer events should be on top */
+.fc-timegrid-col-events {
+  display: flex !important;
+  flex-direction: column-reverse !important;
 }
 
 /* Responsive adjustments */
