@@ -74,7 +74,22 @@ export function FullCalendarView({
   }, [selectedTimezone]);
   
   // Convert schedules to FullCalendar event format
-  const events: EventInput[] = schedules.map(schedule => {
+  // First sort schedules so that later times come first, which ensures they'll be rendered first
+  // and earlier events will overlay them (reverse chronological for the day)
+  const sortedSchedules = [...schedules].sort((a, b) => {
+    const aStartTime = new Date(a.startTime);
+    const bStartTime = new Date(b.startTime);
+    // First check if they're the same day
+    if (aStartTime.toDateString() === bStartTime.toDateString()) {
+      // For events on the same day, sort by hour in DESCENDING order (later events first)
+      return bStartTime.getHours() - aStartTime.getHours();
+    }
+    // For events on different days, sort normally (chronologically)
+    return aStartTime.getTime() - bStartTime.getTime();
+  });
+
+  // Now map the sorted schedules to events
+  const events: EventInput[] = sortedSchedules.map(schedule => {
     const isInbound = schedule.type === 'inbound';
     const statusColor = schedule.status === 'completed' ? '#4ADE80' : 
                       schedule.status === 'checked-in' ? '#F59E0B' :
@@ -118,6 +133,10 @@ export function FullCalendarView({
       title += `\n${schedule.status.toUpperCase()}`;
     }
     
+    // Calculate dynamic z-index based on hour - later hours should be higher
+    // This is critical for proper event stacking
+    const zIndex = 100 + (hour * 100); // 100-2300 range based on 24 hour time
+    
     return {
       id: schedule.id.toString(),
       title: title,
@@ -127,13 +146,16 @@ export function FullCalendarView({
       borderColor: statusColor,
       textColor: '#FFFFFF',
       classNames: [`time-${timeKey.replace(':', '-')}`],
+      // The critical part: assign z-index directly to the event
+      zIndex: zIndex,
       extendedProps: {
         type: schedule.type,
         carrierId: schedule.carrierId,
         dockId: schedule.dockId,
         status: schedule.status,
         timeKey: timeKey,
-        hourKey: eventHour
+        hourKey: eventHour,
+        zIndex: zIndex
       }
     };
   });
@@ -233,11 +255,11 @@ export function FullCalendarView({
         </div>
       </div>
       
-      <Card className="w-full overflow-hidden border-0">
-        <CardContent className="p-0 px-1 md:p-2">
+      <Card className="w-full" style={{ maxWidth: "calc(100vw - 20px)", overflowX: "hidden" }}>
+        <CardContent className="p-0">
           <div className="calendar-container" style={{ 
-            height: "70vh", 
-            width: "100%",
+            height: "70vh",
+            width: "100%", 
             maxWidth: "100%",
             overflowY: "auto", 
             overflowX: "hidden",
@@ -271,6 +293,9 @@ export function FullCalendarView({
               fixedWeekCount={false}
               stickyHeaderDates={true}
               expandRows={true}
+              handleWindowResize={true}
+              dayMinWidth={50}
+              aspectRatio={1.8}
               eventDidMount={(eventInfo) => {
                 // Try to set data-time attribute on the event DOM element for CSS targeting
                 if (eventInfo.el && eventInfo.event.start) {
