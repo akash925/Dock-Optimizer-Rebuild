@@ -5,8 +5,10 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import './full-calendar.css';
-import './fixes.css'; // Import new CSS fixes
-import './direct-fixes.css'; // Import direct calendar fixes
+import './fixes.css';
+import './direct-fixes.css';
+import './calendar-fixes.css'; // Import our newest fixes
+import './event-fix.css'; // Import specific event rendering fixes
 import { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -206,7 +208,8 @@ export default function FullCalendarView({
           <div className="calendar-container" style={{ 
             height: "70vh",
             width: "100%",
-            position: "relative"
+            position: "relative",
+            overflow: "auto"
           }}>
             <FullCalendar
               ref={calendarRef}
@@ -248,8 +251,14 @@ export default function FullCalendarView({
                   // Set data-time to the hour for our CSS stacking selectors
                   eventInfo.el.setAttribute('data-time', `${hourStr}:00`);
                   
-                  // Set a higher z-index for events that start later
-                  eventInfo.el.style.zIndex = (startHour * 100).toString();
+                  // REVERSE the z-index logic: earlier times should be on top
+                  // This ensures that events starting at 6AM are on top (z-index: 2400)
+                  // and events starting at 8PM are at the bottom (z-index: 100)
+                  const reverseHour = 24 - startHour;
+                  eventInfo.el.style.zIndex = (reverseHour * 100).toString();
+                  
+                  // Add a border to make events more distinct when stacked
+                  eventInfo.el.style.border = '1px solid rgba(255,255,255,0.5)';
                 }
               }}
               eventContent={(eventInfo) => {

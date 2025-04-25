@@ -1,0 +1,103 @@
+/* Calendar fixes for responsive layout and event stacking */
+
+/* Fix the viewport responsiveness */
+.calendar-container {
+  width: 100% !important;
+  height: 70vh !important;
+  overflow: auto !important;
+  max-width: 100% !important;
+}
+
+.fc {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100vw !important;
+}
+
+/* Make sure the calendar fits within the screen */
+.fc-view-harness {
+  height: auto !important;
+  max-width: 100% !important;
+}
+
+/* Fix event stacking - later events should appear below earlier ones */
+.fc-timegrid-event-harness {
+  z-index: auto !important;
+}
+
+/* Reverse the z-index logic - earlier times should be on top */
+[data-time="06:00"] { z-index: 24 !important; }
+[data-time="07:00"] { z-index: 23 !important; }
+[data-time="08:00"] { z-index: 22 !important; }
+[data-time="09:00"] { z-index: 21 !important; }
+[data-time="10:00"] { z-index: 20 !important; }
+[data-time="11:00"] { z-index: 19 !important; }
+[data-time="12:00"] { z-index: 18 !important; }
+[data-time="13:00"] { z-index: 17 !important; }
+[data-time="14:00"] { z-index: 16 !important; }
+[data-time="15:00"] { z-index: 15 !important; }
+[data-time="16:00"] { z-index: 14 !important; }
+[data-time="17:00"] { z-index: 13 !important; }
+[data-time="18:00"] { z-index: 12 !important; }
+[data-time="19:00"] { z-index: 11 !important; }
+[data-time="20:00"] { z-index: 10 !important; }
+
+/* Make sure the view buttons stay visible in all views */
+.fc-header-toolbar {
+  display: none !important;
+}
+
+/* Custom view buttons container */
+.calendar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  position: sticky;
+  top: 0;
+  background-color: white;
+  z-index: 100;
+  padding: 0.5rem 0;
+}
+
+/* Make calendar cells more readable */
+.fc-daygrid-day-frame {
+  min-height: 100px !important;
+}
+
+/* Force view buttons to stay visible */
+.view-buttons-container {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: white;
+  padding: 8px 0;
+}
+
+/* Ensure event content is visible */
+.fc-event-title, .fc-event-time {
+  font-weight: 500 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Make month view cells more compact */
+.fc-daygrid-day-events {
+  margin-bottom: 0 !important;
+}
+
+/* Fix month view event display */
+.fc-daygrid-event {
+  white-space: normal !important;
+  overflow: hidden !important;
+  display: block !important;
+  margin-bottom: 2px !important;
+}
+
+/* Ensure popup events display correctly */
+.fc-more-popover {
+  max-height: 80vh !important;
+  overflow-y: auto !important;
+}

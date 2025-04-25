@@ -89,143 +89,145 @@ export default function CalendarPage() {
       </div>
 
       {/* Controls row - timezone selector, view switcher and navigation */}
-      <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Timezone selector */}
-        <div className="flex-col space-y-1">
-          <Label htmlFor="timezone-select">Timezone</Label>
-          <Select 
-            value={selectedTimezone} 
-            onValueChange={(timezone) => {
-              setSelectedTimezone(timezone);
-              const calendar = document.querySelector('.fc') as any;
-              if (calendar) {
-                const api = calendar.__fullCalendar_instance.getApi();
-                api.setOption('timeZone', timezone);
-              }
-            }}
-          >
-            <SelectTrigger id="timezone-select" className="w-full md:w-64">
-              <SelectValue placeholder="Select timezone" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={getUserTimeZone()}>
-                Local: {getUserTimeZone()} ({getTimeZoneAbbreviation(getUserTimeZone())})
-              </SelectItem>
-              {COMMON_TIMEZONES.filter(tz => tz !== getUserTimeZone()).map(timezone => (
-                <SelectItem key={timezone} value={timezone}>
-                  {timezone} ({getTimeZoneAbbreviation(timezone)})
+      <div className="view-buttons-container mb-4 sticky top-0 z-50 bg-white border-b pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          {/* Timezone selector */}
+          <div className="flex-col space-y-1">
+            <Label htmlFor="timezone-select">Timezone</Label>
+            <Select 
+              value={selectedTimezone} 
+              onValueChange={(timezone) => {
+                setSelectedTimezone(timezone);
+                const calendar = document.querySelector('.fc') as any;
+                if (calendar) {
+                  const api = calendar.__fullCalendar_instance.getApi();
+                  api.setOption('timeZone', timezone);
+                }
+              }}
+            >
+              <SelectTrigger id="timezone-select" className="w-full md:w-64">
+                <SelectValue placeholder="Select timezone" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={getUserTimeZone()}>
+                  Local: {getUserTimeZone()} ({getTimeZoneAbbreviation(getUserTimeZone())})
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* Today, prev, next buttons */}
-        <div className="flex items-end justify-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              const calendar = document.querySelector('.fc') as any;
-              if (calendar) {
-                const api = calendar.__fullCalendar_instance.getApi();
-                api.today();
-              }
-            }}
-          >
-            Today
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              const calendar = document.querySelector('.fc') as any;
-              if (calendar) {
-                const api = calendar.__fullCalendar_instance.getApi();
-                api.prev();
-              }
-            }}
-          >
-            Previous
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => {
-              const calendar = document.querySelector('.fc') as any;
-              if (calendar) {
-                const api = calendar.__fullCalendar_instance.getApi();
-                api.next();
-              }
-            }}
-          >
-            Next
-          </Button>
-        </div>
-        
-        {/* Custom view switcher */}
-        <div className="flex items-end justify-end">
-          <div className="inline-flex rounded-md border">
-            <Button
-              variant={currentView === 'dayGridMonth' ? 'default' : 'outline'}
+                {COMMON_TIMEZONES.filter(tz => tz !== getUserTimeZone()).map(timezone => (
+                  <SelectItem key={timezone} value={timezone}>
+                    {timezone} ({getTimeZoneAbbreviation(timezone)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Today, prev, next buttons */}
+          <div className="flex items-end justify-center space-x-2">
+            <Button 
+              variant="outline" 
               size="sm"
-              className="rounded-l-md rounded-r-none"
               onClick={() => {
-                setCurrentView('dayGridMonth');
                 const calendar = document.querySelector('.fc') as any;
                 if (calendar) {
                   const api = calendar.__fullCalendar_instance.getApi();
-                  api.changeView('dayGridMonth');
+                  api.today();
                 }
               }}
             >
-              month
+              Today
             </Button>
-            <Button
-              variant={currentView === 'timeGridWeek' ? 'default' : 'outline'}
+            <Button 
+              variant="outline" 
               size="sm"
-              className="rounded-none border-l border-r"
               onClick={() => {
-                setCurrentView('timeGridWeek');
                 const calendar = document.querySelector('.fc') as any;
                 if (calendar) {
                   const api = calendar.__fullCalendar_instance.getApi();
-                  api.changeView('timeGridWeek');
+                  api.prev();
                 }
               }}
             >
-              week
+              Previous
             </Button>
-            <Button
-              variant={currentView === 'timeGridDay' ? 'default' : 'outline'}
+            <Button 
+              variant="outline" 
               size="sm"
-              className="rounded-none border-r"
               onClick={() => {
-                setCurrentView('timeGridDay');
                 const calendar = document.querySelector('.fc') as any;
                 if (calendar) {
                   const api = calendar.__fullCalendar_instance.getApi();
-                  api.changeView('timeGridDay');
+                  api.next();
                 }
               }}
             >
-              day
+              Next
             </Button>
-            <Button
-              variant={currentView === 'listWeek' ? 'default' : 'outline'}
-              size="sm"
-              className="rounded-l-none rounded-r-md"
-              onClick={() => {
-                setCurrentView('listWeek');
-                const calendar = document.querySelector('.fc') as any;
-                if (calendar) {
-                  const api = calendar.__fullCalendar_instance.getApi();
-                  api.changeView('listWeek');
-                }
-              }}
-            >
-              list
-            </Button>
+          </div>
+          
+          {/* Custom view switcher */}
+          <div className="flex items-end justify-end">
+            <div className="inline-flex rounded-md border">
+              <Button
+                variant={currentView === 'dayGridMonth' ? 'default' : 'outline'}
+                size="sm"
+                className="rounded-l-md rounded-r-none"
+                onClick={() => {
+                  setCurrentView('dayGridMonth');
+                  const calendar = document.querySelector('.fc') as any;
+                  if (calendar) {
+                    const api = calendar.__fullCalendar_instance.getApi();
+                    api.changeView('dayGridMonth');
+                  }
+                }}
+              >
+                month
+              </Button>
+              <Button
+                variant={currentView === 'timeGridWeek' ? 'default' : 'outline'}
+                size="sm"
+                className="rounded-none border-l border-r"
+                onClick={() => {
+                  setCurrentView('timeGridWeek');
+                  const calendar = document.querySelector('.fc') as any;
+                  if (calendar) {
+                    const api = calendar.__fullCalendar_instance.getApi();
+                    api.changeView('timeGridWeek');
+                  }
+                }}
+              >
+                week
+              </Button>
+              <Button
+                variant={currentView === 'timeGridDay' ? 'default' : 'outline'}
+                size="sm"
+                className="rounded-none border-r"
+                onClick={() => {
+                  setCurrentView('timeGridDay');
+                  const calendar = document.querySelector('.fc') as any;
+                  if (calendar) {
+                    const api = calendar.__fullCalendar_instance.getApi();
+                    api.changeView('timeGridDay');
+                  }
+                }}
+              >
+                day
+              </Button>
+              <Button
+                variant={currentView === 'listWeek' ? 'default' : 'outline'}
+                size="sm"
+                className="rounded-l-none rounded-r-md"
+                onClick={() => {
+                  setCurrentView('listWeek');
+                  const calendar = document.querySelector('.fc') as any;
+                  if (calendar) {
+                    const api = calendar.__fullCalendar_instance.getApi();
+                    api.changeView('listWeek');
+                  }
+                }}
+              >
+                list
+              </Button>
+            </div>
           </div>
         </div>
       </div>

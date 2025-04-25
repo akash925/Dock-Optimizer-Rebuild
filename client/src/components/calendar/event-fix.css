@@ -1,0 +1,88 @@
+/* Fix for event stacking and rendering */
+.fc-timegrid-event {
+  overflow: hidden !important;
+}
+
+/* Make sure containers don't overlap */
+.fc-timegrid-col-events {
+  position: relative !important;
+}
+
+/* Fix month view event rendering */
+.fc-daygrid-day-events {
+  min-height: 2em;
+}
+
+/* Format event display on month view */
+.fc-daygrid-event-harness {
+  margin-bottom: 2px !important;
+}
+
+/* Ensure events show in month view */
+.fc-daygrid-block-event .fc-event-time,
+.fc-daygrid-block-event .fc-event-title {
+  padding: 2px !important;
+  display: block !important;
+  font-weight: bold !important;
+}
+
+/* Format event body for week/day view */
+.fc-timegrid-event-harness {
+  overflow: hidden !important;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: rgba(var(--primary), 0.1) !important;
+}
+
+/* Event stacking fix - overriding the reverse z-index from earlier but more specific */
+.fc-timegrid-event[data-time="06:00"] { z-index: 2400 !important; }
+.fc-timegrid-event[data-time="07:00"] { z-index: 2300 !important; }
+.fc-timegrid-event[data-time="08:00"] { z-index: 2200 !important; }
+.fc-timegrid-event[data-time="09:00"] { z-index: 2100 !important; }
+.fc-timegrid-event[data-time="10:00"] { z-index: 2000 !important; }
+.fc-timegrid-event[data-time="11:00"] { z-index: 1900 !important; }
+.fc-timegrid-event[data-time="12:00"] { z-index: 1800 !important; }
+.fc-timegrid-event[data-time="13:00"] { z-index: 1700 !important; }
+.fc-timegrid-event[data-time="14:00"] { z-index: 1600 !important; }
+.fc-timegrid-event[data-time="15:00"] { z-index: 1500 !important; }
+.fc-timegrid-event[data-time="16:00"] { z-index: 1400 !important; }
+.fc-timegrid-event[data-time="17:00"] { z-index: 1300 !important; }
+.fc-timegrid-event[data-time="18:00"] { z-index: 1200 !important; }
+.fc-timegrid-event[data-time="19:00"] { z-index: 1100 !important; }
+.fc-timegrid-event[data-time="20:00"] { z-index: 1000 !important; }
+
+/* When in month view, make controls clearly visible */
+.fc .fc-toolbar {
+  display: none !important; /* Hide built-in toolbar */
+}
+
+/* Make view buttons sticky */
+.view-buttons-container {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1000 !important;
+  background: white !important;
+}
+
+/* Add scroll to the calendar container */
+.calendar-container {
+  overflow: auto !important;
+  max-height: 70vh !important;
+  border-radius: 8px !important;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .fc-toolbar-title {
+    font-size: 1rem !important;
+  }
+  
+  .calendar-container {
+    max-height: 60vh !important;
+  }
+  
+  .fc-col-header-cell-cushion {
+    font-size: 0.75rem !important;
+  }
+}
