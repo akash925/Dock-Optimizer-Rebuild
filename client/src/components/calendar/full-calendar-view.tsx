@@ -74,20 +74,39 @@ export function FullCalendarView({
   // Convert schedules to FullCalendar event format
   const events: EventInput[] = schedules.map(schedule => {
     const isInbound = schedule.type === 'inbound';
+    const statusColor = schedule.status === 'completed' ? '#4ADE80' : 
+                      schedule.status === 'checked-in' ? '#F59E0B' :
+                      schedule.status === 'canceled' ? '#EF4444' : 
+                      schedule.status === 'no-show' ? '#6B7280' : 
+                      (isInbound ? '#3B82F6' : '#10B981');
+    
+    // Format a more detailed title with relevant information
+    let title = `${schedule.carrierName || 'Carrier'} | ${schedule.truckNumber || 'No Truck #'}`;
+    
+    // Add dock information if available
+    if (schedule.dockName) {
+      title += ` | ${schedule.dockName}`;
+    }
+    
+    // Add status badge to title if not scheduled
+    if (schedule.status && schedule.status !== 'scheduled') {
+      title += ` | ${schedule.status.toUpperCase()}`;
+    }
     
     return {
       id: schedule.id.toString(),
-      title: `${schedule.carrierName || 'Carrier'} #${schedule.truckNumber || 'N/A'}`,
+      title: title,
       start: schedule.startTime,
       end: schedule.endTime,
-      backgroundColor: isInbound ? '#3B82F6' : '#10B981', // Blue for inbound, green for outbound
-      borderColor: isInbound ? '#2563EB' : '#059669',
+      backgroundColor: statusColor,
+      borderColor: statusColor,
       textColor: '#FFFFFF',
       extendedProps: {
         type: schedule.type,
         carrierId: schedule.carrierId,
         dockId: schedule.dockId,
-        status: schedule.status
+        status: schedule.status,
+        dockName: schedule.dockName
       }
     };
   });
@@ -117,7 +136,8 @@ export function FullCalendarView({
     if (calendarRef.current) {
       const calendarApi = calendarRef.current.getApi();
       calendarApi.setOption('timeZone', timezone);
-      calendarApi.render(); // Re-render the calendar
+      // In newer versions of FullCalendar, render() has been removed
+      // The calendar will automatically re-render when options change
     }
   };
 
@@ -186,9 +206,9 @@ export function FullCalendarView({
         </div>
       </div>
       
-      <Card className="max-w-full overflow-hidden">
-        <CardContent className="p-0">
-          <div className="calendar-container" style={{ height: "calc(100vh - 200px)", maxWidth: "100%", overflowY: "auto", overflowX: "hidden" }}>
+      <Card className="max-w-full">
+        <CardContent className="p-4">
+          <div className="calendar-container" style={{ height: "70vh", maxWidth: "100%", overflowY: "auto", overflowX: "hidden" }}>
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -216,9 +236,9 @@ export function FullCalendarView({
               contentHeight="auto"
               eventContent={(eventInfo) => {
                 return (
-                  <div className="w-full h-full p-1 flex flex-col justify-start">
-                    <div className="text-xs font-semibold mb-1">{eventInfo.timeText}</div>
-                    <div className="text-xs line-clamp-3">{eventInfo.event.title}</div>
+                  <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
+                    <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
+                    <div className="text-xs font-medium line-clamp-2 overflow-hidden text-ellipsis">{eventInfo.event.title}</div>
                   </div>
                 );
               }}
