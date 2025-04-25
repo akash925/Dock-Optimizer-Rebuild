@@ -202,6 +202,66 @@ export default function FullCalendarView({
   const handleViewChange = (viewInfo: any) => {
     setCurrentView(viewInfo.view.type);
   };
+  
+  // Add effect to manually trigger our DOM fixes after component mounts or updates
+  useEffect(() => {
+    const initFixes = () => {
+      // Apply manual fixes
+      setTimeout(() => {
+        // Find and fix events
+        const events = document.querySelectorAll('.fc-timegrid-event');
+        events.forEach(event => {
+          if (event instanceof HTMLElement) {
+            // Apply styling and fix z-index
+            const timeAttr = event.getAttribute('data-time');
+            if (timeAttr) {
+              // Reverse hour logic - earlier times on top
+              if (timeAttr === '06:00') event.style.zIndex = '2400';
+              else if (timeAttr === '07:00') event.style.zIndex = '2300';
+              else if (timeAttr === '08:00') event.style.zIndex = '2200';
+              else if (timeAttr === '09:00') event.style.zIndex = '2100';
+              else if (timeAttr === '10:00') event.style.zIndex = '2000';
+              else if (timeAttr === '11:00') event.style.zIndex = '1900';
+              else if (timeAttr === '12:00') event.style.zIndex = '1800';
+              else if (timeAttr === '13:00') event.style.zIndex = '1700';
+              else if (timeAttr === '14:00') event.style.zIndex = '1600';
+              else if (timeAttr === '15:00') event.style.zIndex = '1500';
+              else if (timeAttr === '16:00') event.style.zIndex = '1400';
+              else if (timeAttr === '17:00') event.style.zIndex = '1300';
+              else if (timeAttr === '18:00') event.style.zIndex = '1200';
+              else if (timeAttr === '19:00') event.style.zIndex = '1100';
+              else if (timeAttr === '20:00') event.style.zIndex = '1000';
+            }
+            event.style.border = '2px solid rgba(255,255,255,0.5)';
+            event.style.boxShadow = '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)';
+          }
+        });
+        
+        // Fix buttons
+        const buttons = document.querySelectorAll('.calendar-view-button');
+        buttons.forEach(button => {
+          if (button instanceof HTMLElement) {
+            button.style.display = 'inline-flex';
+            button.style.visibility = 'visible';
+            button.style.opacity = '1';
+          }
+        });
+        
+        // Fix container
+        const container = document.querySelector('.calendar-container');
+        if (container instanceof HTMLElement) {
+          container.style.height = '70vh';
+          container.style.overflow = 'auto';
+        }
+      }, 300);
+    };
+    
+    // Call immediately and after a short delay to ensure calendar is ready
+    initFixes();
+    const timerId = setTimeout(initFixes, 1000);
+    
+    return () => clearTimeout(timerId);
+  }, [events.length, selectedTimezone, currentView]);
 
   return (
     <div className="space-y-4">
