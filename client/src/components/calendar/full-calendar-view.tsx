@@ -5,6 +5,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import './full-calendar.css';
 import './fixes.css'; // Import new CSS fixes
+import './direct-fixes.css'; // Import direct calendar fixes
 import { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -232,8 +233,8 @@ export function FullCalendarView({
         </div>
       </div>
       
-      <Card className="w-full max-w-[100vw] overflow-hidden border-0">
-        <CardContent className="p-2 md:p-4">
+      <Card className="w-full overflow-hidden border-0">
+        <CardContent className="p-0 px-1 md:p-2">
           <div className="calendar-container" style={{ 
             height: "70vh", 
             width: "100%",

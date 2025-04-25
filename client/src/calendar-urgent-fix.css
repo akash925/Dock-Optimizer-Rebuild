@@ -1,0 +1,56 @@
+/* CRITICAL FIX: Events appearing later in the day should be on top */
+.fc .fc-timegrid-col-events {
+  /* Invert the stacking order so later events are on top */
+  display: flex !important;
+  flex-direction: column-reverse !important;
+}
+
+/* Set z-index by time slot */
+.fc-timegrid-event[data-time="06:00"] { z-index: 600 !important; }
+.fc-timegrid-event[data-time="07:00"] { z-index: 700 !important; }
+.fc-timegrid-event[data-time="08:00"] { z-index: 800 !important; }
+.fc-timegrid-event[data-time="09:00"] { z-index: 900 !important; }
+.fc-timegrid-event[data-time="10:00"] { z-index: 1000 !important; }
+.fc-timegrid-event[data-time="11:00"] { z-index: 1100 !important; }
+.fc-timegrid-event[data-time="12:00"] { z-index: 1200 !important; }
+.fc-timegrid-event[data-time="13:00"] { z-index: 1300 !important; }
+.fc-timegrid-event[data-time="14:00"] { z-index: 1400 !important; }
+.fc-timegrid-event[data-time="15:00"] { z-index: 1500 !important; }
+.fc-timegrid-event[data-time="16:00"] { z-index: 1600 !important; }
+.fc-timegrid-event[data-time="17:00"] { z-index: 1700 !important; }
+.fc-timegrid-event[data-time="18:00"] { z-index: 1800 !important; }
+.fc-timegrid-event[data-time="19:00"] { z-index: 1900 !important; }
+.fc-timegrid-event[data-time="20:00"] { z-index: 2000 !important; }
+
+/* Force event harness to respect z-index */
+.fc-timegrid-event-harness {
+  z-index: inherit !important;
+}
+
+/* CRITICAL FIX: Constrain calendar to viewport width */
+.fc {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+.fc-scrollgrid {
+  max-width: calc(100vw - 50px) !important;
+  width: auto !important;
+  overflow-x: hidden !important;
+}
+
+.fc-scrollgrid-section-header,
+.fc-scrollgrid-section-body,
+.fc-timegrid-body,
+.fc-timegrid-cols {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Make events look better in the grid */
+.fc-timegrid-event {
+  border-radius: 3px !important;
+  padding: 1px !important;
+  max-width: calc(100% - 2px) !important;
+  width: calc(100% - 2px) !important;
+}
