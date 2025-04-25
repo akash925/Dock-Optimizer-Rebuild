@@ -9,7 +9,8 @@ import './fixes.css';
 import './direct-fixes.css';
 import './calendar-fixes.css';
 import './event-fix.css';
-import './urgent-fix.css'; // Most urgent fixes with !important tags
+import './urgent-fix.css';
+import './final-fix.css'; // Final comprehensive fix with maximum specificity
 import { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -206,11 +207,12 @@ export default function FullCalendarView({
     <div className="space-y-4">
       <Card className="w-full relative border overflow-hidden">
         <CardContent className="p-0">
-          <div className="calendar-container" style={{ 
+          <div className="calendar-container calendar-fixed-container" style={{ 
             height: "70vh",
             width: "100%",
             position: "relative",
-            overflow: "auto"
+            overflow: "auto",
+            zIndex: 1
           }}>
             <FullCalendar
               ref={calendarRef}
