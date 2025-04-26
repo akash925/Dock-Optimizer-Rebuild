@@ -234,27 +234,23 @@ export default function AnalyticsHeatMap() {
     }
   });
   
-  // Fetch companies (customers) from the API
+  // Fetch customers from the API (directly from analytics API)
   const { data: companies = [] } = useQuery({
-    queryKey: ['/api/companies'],
+    queryKey: ['/api/analytics/customers'],
     queryFn: async () => {
       try {
-        // Fetch companies directly from API with proper headers
-        const res = await fetch('/api/companies', {
-          headers: {
-            'Accept': 'application/json'
-          }
-        });
+        const res = await fetch('/api/analytics/customers');
         
         if (!res.ok) {
-          throw new Error('Failed to fetch companies');
+          throw new Error('Failed to fetch customers');
         }
         
+        // Extract customer data from our analytics endpoint
         const data = await res.json();
-        console.log('Successfully loaded companies:', data.length);
-        return data;
+        // Transform to match expected format for select component
+        return data.rows || [];
       } catch (error) {
-        console.error('Error fetching companies:', error);
+        console.error('Error fetching customers:', error);
         return []; // Return empty array instead of fake data
       }
     }
