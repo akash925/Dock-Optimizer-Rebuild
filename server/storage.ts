@@ -885,6 +885,11 @@ export class DatabaseStorage implements IStorage {
     });
   }
   
+  // Add missing getDocksByFacility method
+  async getDocksByFacility(facilityId: number): Promise<Dock[]> {
+    return await db.select().from(docks).where(eq(docks.facilityId, facilityId));
+  }
+  
   // Asset Manager operations
   async getAsset(id: number): Promise<Asset | undefined> {
     const [asset] = await db.select().from(assets).where(eq(assets.id, id));
