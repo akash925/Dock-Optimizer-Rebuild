@@ -79,10 +79,10 @@ export default function AppointmentsPage() {
     start: subDays(new Date(), 7),
     end: new Date(),
   });
-  const [customerFilter, setCustomerFilter] = useState<string>("");
-  const [carrierFilter, setCarrierFilter] = useState<string>("");
-  const [locationFilter, setLocationFilter] = useState<string>("");
-  const [typeFilter, setTypeFilter] = useState<string>("");
+  const [customerFilter, setCustomerFilter] = useState<string>("all");
+  const [carrierFilter, setCarrierFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   
   // Fetch all schedules
@@ -279,14 +279,14 @@ export default function AppointmentsPage() {
       }
       
       // Customer filter
-      if (customerFilter && 
+      if (customerFilter !== "all" && 
           schedule.customerName && 
           !schedule.customerName.toLowerCase().includes(customerFilter.toLowerCase())) {
         return false;
       }
       
       // Carrier filter
-      if (carrierFilter && schedule.carrierId) {
+      if (carrierFilter !== "all" && schedule.carrierId) {
         const carrierName = getCarrierName(schedule.carrierId).toLowerCase();
         if (!carrierName.includes(carrierFilter.toLowerCase())) {
           return false;
@@ -294,7 +294,7 @@ export default function AppointmentsPage() {
       }
       
       // Location/Dock filter
-      if (locationFilter && schedule.dockId) {
+      if (locationFilter !== "all" && schedule.dockId) {
         const dockName = getDockName(schedule.dockId).toLowerCase();
         if (!dockName.includes(locationFilter.toLowerCase())) {
           return false;
@@ -302,7 +302,7 @@ export default function AppointmentsPage() {
       }
       
       // Type filter
-      if (typeFilter && schedule.type && schedule.type !== typeFilter) {
+      if (typeFilter !== "all" && schedule.type && schedule.type !== typeFilter) {
         return false;
       }
       
@@ -631,10 +631,10 @@ export default function AppointmentsPage() {
                     start: subDays(new Date(), 7), 
                     end: new Date() 
                   });
-                  setCustomerFilter("");
-                  setCarrierFilter("");
-                  setLocationFilter("");
-                  setTypeFilter("");
+                  setCustomerFilter("all");
+                  setCarrierFilter("all");
+                  setLocationFilter("all");
+                  setTypeFilter("all");
                   setSearchQuery("");
                 }}
               >
