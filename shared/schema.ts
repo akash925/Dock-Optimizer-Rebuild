@@ -116,7 +116,7 @@ export const insertCarrierSchema = createInsertSchema(carriers).omit({
 export const schedules = pgTable("schedules", {
   id: serial("id").primaryKey(),
   dockId: integer("dock_id"),
-  carrierId: integer("carrier_id").notNull(),
+  carrierId: integer("carrier_id"), // Removing .notNull() to allow null carriers
   appointmentTypeId: integer("appointment_type_id"),
   truckNumber: text("truck_number").notNull(),
   trailerNumber: text("trailer_number"),

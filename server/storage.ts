@@ -1446,7 +1446,7 @@ export class DatabaseStorage implements IStorage {
       
       const values = {
         dock_id: insertSchedule.dockId,
-        carrier_id: insertSchedule.carrierId,
+        carrier_id: insertSchedule.carrierId !== undefined ? insertSchedule.carrierId : null,
         truck_number: insertSchedule.truckNumber || '',
         trailer_number: insertSchedule.trailerNumber || null,
         driver_name: insertSchedule.driverName || null,
@@ -1507,7 +1507,7 @@ export class DatabaseStorage implements IStorage {
       
       // Add each field that exists in the database schema
       if ('dockId' in updateWithoutAppointmentTypeId) updateFields.dock_id = updateWithoutAppointmentTypeId.dockId;
-      if ('carrierId' in updateWithoutAppointmentTypeId) updateFields.carrier_id = updateWithoutAppointmentTypeId.carrierId;
+      if ('carrierId' in updateWithoutAppointmentTypeId) updateFields.carrier_id = updateWithoutAppointmentTypeId.carrierId !== undefined ? updateWithoutAppointmentTypeId.carrierId : null;
       if ('truckNumber' in updateWithoutAppointmentTypeId) updateFields.truck_number = updateWithoutAppointmentTypeId.truckNumber;
       if ('trailerNumber' in updateWithoutAppointmentTypeId) updateFields.trailer_number = updateWithoutAppointmentTypeId.trailerNumber;
       if ('driverName' in updateWithoutAppointmentTypeId) updateFields.driver_name = updateWithoutAppointmentTypeId.driverName;
