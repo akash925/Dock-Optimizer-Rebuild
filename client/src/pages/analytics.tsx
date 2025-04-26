@@ -12,6 +12,267 @@ import AnalyticsHeatMap from "@/components/analytics/heat-map";
 import { Download, Calendar as CalendarIcon, BarChart2, FileText, Clock, BarChart } from "lucide-react";
 import { format, subDays, subMonths, startOfWeek, endOfWeek, addDays } from "date-fns";
 
+// Type definitions for the API responses
+interface FacilityData {
+  id: number;
+  name: string;
+  address: string;
+  appointmentCount: number;
+}
+
+interface CarrierData {
+  id: number;
+  name: string;
+  appointmentCount: number;
+}
+
+interface CustomerData {
+  id: number;
+  name: string;
+  appointmentCount: number;
+}
+
+interface AttendanceData {
+  attendanceStatus: string;
+  count: number;
+}
+
+// Hook to get facility statistics
+function useFacilityStats() {
+  const { data: facilityData, isLoading, error } = useQuery<FacilityData[]>({
+    queryKey: ['/api/analytics/facilities'],
+  });
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Loading facility data...</div>;
+  }
+
+  if (error) {
+    console.error("Error loading facility data:", error);
+    return (
+      <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-700">
+        Error loading facility data. Please try again later.
+      </div>
+    );
+  }
+
+  // If we have data, format it for the chart
+  if (facilityData && facilityData.length > 0) {
+    const chartData = facilityData.map(facility => ({
+      date: facility.name + (facility.address ? ` (${facility.address})` : ''),
+      value: facility.appointmentCount
+    }));
+
+    return (
+      <PerformanceChart 
+        data={chartData}
+        yAxisLabel="Events Count"
+        color="#4285F4"
+        target={0}
+        hideTarget={true}
+        horizontal={true}
+      />
+    );
+  }
+
+  // Fallback for empty data
+  return (
+    <div className="p-4 border border-blue-200 rounded-md bg-blue-50 text-blue-700">
+      No facility data available for the selected period.
+    </div>
+  );
+}
+
+// Hook to get carrier statistics
+function useCarrierStats() {
+  const { data: carrierData, isLoading, error } = useQuery<CarrierData[]>({
+    queryKey: ['/api/analytics/carriers'],
+  });
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Loading carrier data...</div>;
+  }
+
+  if (error) {
+    console.error("Error loading carrier data:", error);
+    return (
+      <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-700">
+        Error loading carrier data. Please try again later.
+      </div>
+    );
+  }
+
+  // If we have data, format it for the chart
+  if (carrierData && carrierData.length > 0) {
+    const chartData = carrierData.map(carrier => ({
+      date: carrier.name,
+      value: carrier.appointmentCount
+    }));
+
+    return (
+      <PerformanceChart 
+        data={chartData}
+        yAxisLabel="Events Count"
+        color="#34A853"
+        target={0}
+        hideTarget={true}
+        horizontal={true}
+      />
+    );
+  }
+
+  // Fallback for empty data
+  return (
+    <div className="p-4 border border-blue-200 rounded-md bg-blue-50 text-blue-700">
+      No carrier data available for the selected period.
+    </div>
+  );
+}
+
+// Hook to get customer statistics
+function useCustomerStats() {
+  const { data: customerData, isLoading, error } = useQuery<CustomerData[]>({
+    queryKey: ['/api/analytics/customers'],
+  });
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Loading customer data...</div>;
+  }
+
+  if (error) {
+    console.error("Error loading customer data:", error);
+    return (
+      <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-700">
+        Error loading customer data. Please try again later.
+      </div>
+    );
+  }
+
+  // If we have data, format it for the chart
+  if (customerData && customerData.length > 0) {
+    const chartData = customerData.map(customer => ({
+      date: customer.name,
+      value: customer.appointmentCount
+    }));
+
+    return (
+      <PerformanceChart 
+        data={chartData}
+        yAxisLabel="Events Count"
+        color="#EA4335"
+        target={0}
+        hideTarget={true}
+        horizontal={true}
+      />
+    );
+  }
+
+  // Fallback for empty data
+  return (
+    <div className="p-4 border border-blue-200 rounded-md bg-blue-50 text-blue-700">
+      No customer data available for the selected period.
+    </div>
+  );
+}
+
+// Hook to get attendance statistics
+function useAttendanceStats() {
+  const { data: attendanceData, isLoading, error } = useQuery<AttendanceData[]>({
+    queryKey: ['/api/analytics/attendance'],
+  });
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Loading attendance data...</div>;
+  }
+
+  if (error) {
+    console.error("Error loading attendance data:", error);
+    return (
+      <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-700">
+        Error loading attendance data. Please try again later.
+      </div>
+    );
+  }
+
+  // If we have data, format it for the chart
+  if (attendanceData && attendanceData.length > 0) {
+    const chartData = attendanceData.map(item => ({
+      date: item.attendanceStatus,
+      value: item.count
+    }));
+
+    return (
+      <PerformanceChart 
+        data={chartData}
+        yAxisLabel="Events Count"
+        color="#FBBC05"
+        target={0}
+        hideTarget={true}
+        horizontal={true}
+      />
+    );
+  }
+
+  // Fallback for empty data
+  return (
+    <div className="p-4 border border-blue-200 rounded-md bg-blue-50 text-blue-700">
+      No attendance data available for the selected period.
+    </div>
+  );
+}
+
+// Function to export data to CSV
+function exportToCSV(dataType: 'facilities' | 'carriers' | 'customers' | 'attendance') {
+  const endpoint = `/api/analytics/${dataType}`;
+  
+  fetch(endpoint)
+    .then(response => response.json())
+    .then(data => {
+      // Convert data to CSV
+      let csvContent = '';
+      
+      // Add headers based on data type
+      if (dataType === 'facilities') {
+        csvContent = 'ID,Facility Name,Address,Appointment Count\n';
+        data.forEach((item: FacilityData) => {
+          csvContent += `${item.id},"${item.name}","${item.address || ''}",${item.appointmentCount}\n`;
+        });
+      } else if (dataType === 'carriers') {
+        csvContent = 'ID,Carrier Name,Appointment Count\n';
+        data.forEach((item: CarrierData) => {
+          csvContent += `${item.id},"${item.name}",${item.appointmentCount}\n`;
+        });
+      } else if (dataType === 'customers') {
+        csvContent = 'ID,Customer Name,Appointment Count\n';
+        data.forEach((item: CustomerData) => {
+          csvContent += `${item.id},"${item.name}",${item.appointmentCount}\n`;
+        });
+      } else if (dataType === 'attendance') {
+        csvContent = 'Attendance Status,Count\n';
+        data.forEach((item: AttendanceData) => {
+          csvContent += `"${item.attendanceStatus}",${item.count}\n`;
+        });
+      }
+      
+      // Create a blob and download it
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${dataType}_report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    })
+    .catch(error => {
+      console.error(`Error exporting ${dataType} data:`, error);
+      alert(`Failed to export ${dataType} data. Please try again later.`);
+    });
+}
+
 export default function Analytics() {
   const [dateRange, setDateRange] = useState<"last7Days" | "last30Days" | "last90Days" | "custom">("last7Days");
   const [metric, setMetric] = useState<"utilization" | "turnaround" | "onTime" | "dwell">("utilization");
@@ -425,111 +686,74 @@ export default function Analytics() {
         </Card>
       </div>
       
+      {/* Facility Stats */}
       <div className="grid grid-cols-1 gap-6 mb-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Location Report</CardTitle>
-            <CardDescription>Appointment counts by facility</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Location Report</CardTitle>
+              <CardDescription>Appointment counts by facility</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => exportToCSV('facilities')}>
+              <Download className="h-4 w-4 mr-2" /> Export
+            </Button>
           </CardHeader>
           <CardContent>
-            <PerformanceChart 
-              data={[
-                { date: "450 Airtech Pkwy", value: 108 },
-                { date: "8370 E Camby Road", value: 114 },
-                { date: "4334 Plainfield Road", value: 55 },
-                { date: "9915 Lacy Knoll Dr", value: 34 }
-              ]}
-              yAxisLabel="Events Count"
-              color="#4285F4"
-              target={0}
-              hideTarget={true}
-              horizontal={true}
-            />
+            {useFacilityStats()}
           </CardContent>
         </Card>
       </div>
       
+      {/* Carrier Stats */}
       <div className="grid grid-cols-1 gap-6 mb-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Carrier Name</CardTitle>
-            <CardDescription>Appointment counts by carrier</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Carrier Name</CardTitle>
+              <CardDescription>Appointment counts by carrier</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => exportToCSV('carriers')}>
+              <Download className="h-4 w-4 mr-2" /> Export
+            </Button>
           </CardHeader>
           <CardContent>
-            <PerformanceChart 
-              data={[
-                { date: "Target Fleet", value: 29 },
-                { date: "Swift", value: 25 },
-                { date: "SETHMAR", value: 18 },
-                { date: "Buds Express Inc", value: 9 },
-                { date: "Western Exp", value: 8 },
-                { date: "caplink logistics", value: 7 },
-                { date: "MIDWEST EXPRESS", value: 6 },
-                { date: "FIRST FLEET", value: 5 },
-                { date: "QR EXPRESS INC", value: 4 },
-                { date: "Western exp", value: 3 }
-              ]}
-              yAxisLabel="Events Count"
-              color="#34A853"
-              target={0}
-              hideTarget={true}
-              horizontal={true}
-            />
+            {useCarrierStats()}
           </CardContent>
         </Card>
       </div>
       
+      {/* Customer Stats */}
       <div className="grid grid-cols-1 gap-6 mb-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Customer</CardTitle>
-            <CardDescription>Appointment counts by customer</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Customer</CardTitle>
+              <CardDescription>Appointment counts by customer</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => exportToCSV('customers')}>
+              <Download className="h-4 w-4 mr-2" /> Export
+            </Button>
           </CardHeader>
           <CardContent>
-            <PerformanceChart 
-              data={[
-                { date: "Event Sales", value: 71 },
-                { date: "event Sales", value: 20 },
-                { date: "MIRKA", value: 16 },
-                { date: "Kramer Electronics", value: 15 },
-                { date: "Chang Chemical", value: 11 },
-                { date: "4334 Plainfield Road Plainfield IN 46231", value: 10 },
-                { date: "CLEAN EARTH SYSTEMS", value: 9 },
-                { date: "mirka", value: 8 },
-                { date: "HANZO METRO // HECTR", value: 8 },
-                { date: "CCS", value: 7 }
-              ]}
-              yAxisLabel="Events Count"
-              color="#EA4335"
-              target={0}
-              hideTarget={true}
-              horizontal={true}
-            />
+            {useCustomerStats()}
           </CardContent>
         </Card>
       </div>
       
+      {/* Attendance Stats */}
       <div className="grid grid-cols-1 gap-6 mb-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Attendance</CardTitle>
-            <CardDescription>Appointment attendance status</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Attendance</CardTitle>
+              <CardDescription>Appointment attendance status</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => exportToCSV('attendance')}>
+              <Download className="h-4 w-4 mr-2" /> Export
+            </Button>
           </CardHeader>
           <CardContent>
-            <PerformanceChart 
-              data={[
-                { date: "Attendance Not Reported", value: 264 },
-                { date: "Coming Late", value: 14 },
-                { date: "Cancelled Event By User", value: 13 },
-                { date: "Coming On Time", value: 3 },
-                { date: "Cancelled Event By Host", value: 0 }
-              ]}
-              yAxisLabel="Events Count"
-              color="#FBBC05"
-              target={0}
-              hideTarget={true}
-              horizontal={true}
-            />
+            {useAttendanceStats()}
           </CardContent>
         </Card>
       </div>
