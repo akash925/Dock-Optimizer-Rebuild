@@ -20,7 +20,6 @@ export default function Analytics() {
   const [endDate, setEndDate] = useState<Date>(new Date());
   
   // State variables for heatmap
-  const [activeView, setActiveView] = useState<"charts" | "heatmap">("charts");
   const [heatmapFilter, setHeatmapFilter] = useState({
     location: "all",
     appointment: "all",
@@ -327,446 +326,247 @@ export default function Analytics() {
       </div>
       
       {/* Heatmap - Always displayed first */}
-      <AnalyticsHeatMap />
+      <div className="mb-8">
+        <AnalyticsHeatMap />
+      </div>
       
-      {activeView === "charts" ? (
-        <>
-          {/* Performance Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <Card className="col-span-1">
-              <CardHeader>
-                <CardTitle className="text-lg">Filters</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Date Range</label>
-                  <Select value={dateRange} onValueChange={(value) => setDateRange(value as any)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select date range" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="last7Days">Last 7 Days</SelectItem>
-                      <SelectItem value="last30Days">Last 30 Days</SelectItem>
-                      <SelectItem value="last90Days">Last 90 Days</SelectItem>
-                      <SelectItem value="custom">Custom Range</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {dateRange === "custom" && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Start Date</label>
-                      <div className="border rounded-md p-3">
-                        <Calendar
-                          mode="single"
-                          selected={startDate}
-                          onSelect={(date) => date && setStartDate(date)}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">End Date</label>
-                      <div className="border rounded-md p-3">
-                        <Calendar
-                          mode="single"
-                          selected={endDate}
-                          onSelect={(date) => date && setEndDate(date)}
-                          disabled={(date) => date < startDate}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Metric</label>
-                  <Select value={metric} onValueChange={(value) => setMetric(value as any)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select metric" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="utilization">Dock Utilization</SelectItem>
-                      <SelectItem value="turnaround">Turnaround Time</SelectItem>
-                      <SelectItem value="onTime">On-Time Arrivals</SelectItem>
-                      <SelectItem value="dwell">Dwell Time Accuracy</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Period</label>
-                  <Select value={period} onValueChange={(value) => setPeriod(value as any)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select period" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Performance Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle className="text-lg">Filters</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Date Range</label>
+              <Select value={dateRange} onValueChange={(value) => setDateRange(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select date range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="last7Days">Last 7 Days</SelectItem>
+                  <SelectItem value="last30Days">Last 30 Days</SelectItem>
+                  <SelectItem value="last90Days">Last 90 Days</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             
-            <Card className="col-span-3">
-              <CardHeader>
-                <CardTitle className="text-lg">{chartConfig.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PerformanceChart 
-                  data={chartConfig.data}
-                  yAxisLabel={chartConfig.yAxisLabel}
-                  color={chartConfig.color}
-                  target={chartConfig.target}
-                  suffix={chartConfig.suffix}
-                />
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Summary Metrics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <MetricBar 
-                  label="Dock Utilization" 
-                  value={summary.utilization} 
-                  target={75}
-                  suffix="%"
-                />
-                <MetricBar 
-                  label="Average Turnaround Time" 
-                  value={summary.turnaround} 
-                  target={35}
-                  suffix=" min"
-                />
-                <MetricBar 
-                  label="On-Time Arrivals" 
-                  value={summary.onTime} 
-                  target={90}
-                  suffix="%"
-                />
-                <MetricBar 
-                  label="Dwell Time Accuracy" 
-                  value={summary.dwell} 
-                  target={85}
-                  suffix="%"
-                />
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Performance Insights</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
-                    <h3 className="font-medium text-blue-800 mb-1">Dock Utilization Trend</h3>
-                    <p className="text-sm text-blue-700">
-                      Dock utilization is {summary.utilization > 75 ? "above" : "below"} the target of 75%. 
-                      {summary.utilization > 75 
-                        ? " This indicates efficient use of available dock doors." 
-                        : " There may be opportunities to improve scheduling and capacity planning."}
-                    </p>
-                  </div>
-                  
-                  <div className="p-4 border rounded-md bg-amber-50 border-amber-200">
-                    <h3 className="font-medium text-amber-800 mb-1">Turnaround Time Analysis</h3>
-                    <p className="text-sm text-amber-700">
-                      The average turnaround time is {summary.turnaround} minutes, 
-                      {summary.turnaround <= 35 
-                        ? " which meets the target of 35 minutes." 
-                        : ` which is ${summary.turnaround - 35} minutes above the target of 35 minutes.`}
-                      {summary.turnaround > 35 
-                        ? " Consider reviewing loading/unloading procedures to improve efficiency." 
-                        : " Great job maintaining efficient operations!"}
-                    </p>
-                  </div>
-                  
-                  <div className="p-4 border rounded-md bg-green-50 border-green-200">
-                    <h3 className="font-medium text-green-800 mb-1">On-Time Performance</h3>
-                    <p className="text-sm text-green-700">
-                      On-time arrival rate is currently at {summary.onTime}%, 
-                      {summary.onTime >= 90 
-                        ? " exceeding the target of 90%. This indicates excellent carrier performance." 
-                        : ` which is below the target of 90%. Consider working with carriers to improve punctuality.`}
-                    </p>
-                  </div>
-                  
-                  <div className="p-4 border rounded-md bg-purple-50 border-purple-200">
-                    <h3 className="font-medium text-purple-800 mb-1">Dwell Time Prediction</h3>
-                    <p className="text-sm text-purple-700">
-                      Dwell time prediction accuracy is {summary.dwell}%, 
-                      {summary.dwell >= 85 
-                        ? " meeting the target of 85%. This helps maintain reliable scheduling." 
-                        : ` falling short of the 85% target. Consider refining your dwell time estimation algorithm.`}
-                    </p>
+            {dateRange === "custom" && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Start Date</label>
+                  <div className="border rounded-md p-3">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={(date) => date && setStartDate(date)}
+                    />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </>
-      ) : (
-        <div className="mb-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Appointment Heatmap Analysis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <div className="col-span-1 space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Date Range</label>
-                    <Select value={dateRange} onValueChange={(value) => setDateRange(value as any)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select date range" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="last7Days">Last 7 Days</SelectItem>
-                        <SelectItem value="last30Days">Last 30 Days</SelectItem>
-                        <SelectItem value="last90Days">Last 90 Days</SelectItem>
-                        <SelectItem value="custom">Custom Range</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">End Date</label>
+                  <div className="border rounded-md p-3">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={(date) => date && setEndDate(date)}
+                      disabled={(date) => date < startDate}
+                    />
                   </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Location</label>
-                    <Select value={heatmapFilter.location} onValueChange={(value) => setHeatmapFilter({...heatmapFilter, location: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select location" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Locations</SelectItem>
-                        <SelectItem value="location1">Main Warehouse</SelectItem>
-                        <SelectItem value="location2">Distribution Center</SelectItem>
-                        <SelectItem value="location3">Cross-Dock Facility</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Appointment Type</label>
-                    <Select value={heatmapFilter.appointment} onValueChange={(value) => setHeatmapFilter({...heatmapFilter, appointment: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select appointment type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        <SelectItem value="inbound">Inbound</SelectItem>
-                        <SelectItem value="outbound">Outbound</SelectItem>
-                        <SelectItem value="container">Container</SelectItem>
-                        <SelectItem value="trailer">Trailer</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Customer</label>
-                    <Select value={heatmapFilter.customer} onValueChange={(value) => setHeatmapFilter({...heatmapFilter, customer: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select customer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Customers</SelectItem>
-                        <SelectItem value="customer1">Acme Inc</SelectItem>
-                        <SelectItem value="customer2">Global Goods</SelectItem>
-                        <SelectItem value="customer3">Quick Ship</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Carrier</label>
-                    <Select value={heatmapFilter.carrier} onValueChange={(value) => setHeatmapFilter({...heatmapFilter, carrier: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select carrier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Carriers</SelectItem>
-                        <SelectItem value="carrier1">FedEx</SelectItem>
-                        <SelectItem value="carrier2">XPO Logistics</SelectItem>
-                        <SelectItem value="carrier3">Estes Express</SelectItem>
-                        <SelectItem value="carrier4">J.B. Hunt</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="mt-8 p-4 border rounded-md bg-blue-50 border-blue-200">
-                    <h3 className="font-medium text-blue-800 mb-1">Heatmap Insights</h3>
-                    <p className="text-sm text-blue-700">
-                      This heatmap visualization helps identify patterns in appointment scheduling and on-time performance across different days and times. Use it to optimize staffing and resource allocation.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="col-span-3">
-                  <Tabs defaultValue="appointments">
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="appointments">Appointment Counts</TabsTrigger>
-                      <TabsTrigger value="ontime">On-Time Percentage</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="appointments">
-                      <AnalyticsHeatMap 
-                        data={[
-                          { day: "Monday", hour: 8, count: 12 },
-                          { day: "Monday", hour: 9, count: 18 },
-                          { day: "Monday", hour: 10, count: 24 },
-                          { day: "Monday", hour: 11, count: 15 },
-                          { day: "Monday", hour: 12, count: 10 },
-                          { day: "Monday", hour: 13, count: 14 },
-                          { day: "Monday", hour: 14, count: 16 },
-                          { day: "Monday", hour: 15, count: 22 },
-                          { day: "Monday", hour: 16, count: 14 },
-                          { day: "Tuesday", hour: 8, count: 8 },
-                          { day: "Tuesday", hour: 9, count: 15 },
-                          { day: "Tuesday", hour: 10, count: 21 },
-                          { day: "Tuesday", hour: 11, count: 25 },
-                          { day: "Tuesday", hour: 12, count: 12 },
-                          { day: "Tuesday", hour: 13, count: 16 },
-                          { day: "Tuesday", hour: 14, count: 20 },
-                          { day: "Tuesday", hour: 15, count: 18 },
-                          { day: "Tuesday", hour: 16, count: 11 },
-                          { day: "Wednesday", hour: 8, count: 10 },
-                          { day: "Wednesday", hour: 9, count: 16 },
-                          { day: "Wednesday", hour: 10, count: 22 },
-                          { day: "Wednesday", hour: 11, count: 28 },
-                          { day: "Wednesday", hour: 12, count: 15 },
-                          { day: "Wednesday", hour: 13, count: 18 },
-                          { day: "Wednesday", hour: 14, count: 26 },
-                          { day: "Wednesday", hour: 15, count: 20 },
-                          { day: "Wednesday", hour: 16, count: 13 },
-                          { day: "Thursday", hour: 8, count: 9 },
-                          { day: "Thursday", hour: 9, count: 17 },
-                          { day: "Thursday", hour: 10, count: 23 },
-                          { day: "Thursday", hour: 11, count: 26 },
-                          { day: "Thursday", hour: 12, count: 14 },
-                          { day: "Thursday", hour: 13, count: 19 },
-                          { day: "Thursday", hour: 14, count: 24 },
-                          { day: "Thursday", hour: 15, count: 17 },
-                          { day: "Thursday", hour: 16, count: 12 },
-                          { day: "Friday", hour: 8, count: 11 },
-                          { day: "Friday", hour: 9, count: 19 },
-                          { day: "Friday", hour: 10, count: 25 },
-                          { day: "Friday", hour: 11, count: 20 },
-                          { day: "Friday", hour: 12, count: 13 },
-                          { day: "Friday", hour: 13, count: 17 },
-                          { day: "Friday", hour: 14, count: 21 },
-                          { day: "Friday", hour: 15, count: 15 },
-                          { day: "Friday", hour: 16, count: 10 },
-                        ]}
-                        mode="appointments"
-                        filter={heatmapFilter}
-                      />
-                    </TabsContent>
-                    <TabsContent value="ontime">
-                      <AnalyticsHeatMap 
-                        data={[
-                          { day: "Monday", hour: 8, count: 12, onTimePercentage: 92 },
-                          { day: "Monday", hour: 9, count: 18, onTimePercentage: 89 },
-                          { day: "Monday", hour: 10, count: 24, onTimePercentage: 83 },
-                          { day: "Monday", hour: 11, count: 15, onTimePercentage: 87 },
-                          { day: "Monday", hour: 12, count: 10, onTimePercentage: 90 },
-                          { day: "Monday", hour: 13, count: 14, onTimePercentage: 86 },
-                          { day: "Monday", hour: 14, count: 16, onTimePercentage: 88 },
-                          { day: "Monday", hour: 15, count: 22, onTimePercentage: 82 },
-                          { day: "Monday", hour: 16, count: 14, onTimePercentage: 86 },
-                          { day: "Tuesday", hour: 8, count: 8, onTimePercentage: 94 },
-                          { day: "Tuesday", hour: 9, count: 15, onTimePercentage: 87 },
-                          { day: "Tuesday", hour: 10, count: 21, onTimePercentage: 81 },
-                          { day: "Tuesday", hour: 11, count: 25, onTimePercentage: 78 },
-                          { day: "Tuesday", hour: 12, count: 12, onTimePercentage: 92 },
-                          { day: "Tuesday", hour: 13, count: 16, onTimePercentage: 88 },
-                          { day: "Tuesday", hour: 14, count: 20, onTimePercentage: 85 },
-                          { day: "Tuesday", hour: 15, count: 18, onTimePercentage: 89 },
-                          { day: "Tuesday", hour: 16, count: 11, onTimePercentage: 91 },
-                          { day: "Wednesday", hour: 8, count: 10, onTimePercentage: 90 },
-                          { day: "Wednesday", hour: 9, count: 16, onTimePercentage: 88 },
-                          { day: "Wednesday", hour: 10, count: 22, onTimePercentage: 82 },
-                          { day: "Wednesday", hour: 11, count: 28, onTimePercentage: 75 },
-                          { day: "Wednesday", hour: 12, count: 15, onTimePercentage: 87 },
-                          { day: "Wednesday", hour: 13, count: 18, onTimePercentage: 83 },
-                          { day: "Wednesday", hour: 14, count: 26, onTimePercentage: 77 },
-                          { day: "Wednesday", hour: 15, count: 20, onTimePercentage: 80 },
-                          { day: "Wednesday", hour: 16, count: 13, onTimePercentage: 85 },
-                          { day: "Thursday", hour: 8, count: 9, onTimePercentage: 93 },
-                          { day: "Thursday", hour: 9, count: 17, onTimePercentage: 88 },
-                          { day: "Thursday", hour: 10, count: 23, onTimePercentage: 83 },
-                          { day: "Thursday", hour: 11, count: 26, onTimePercentage: 79 },
-                          { day: "Thursday", hour: 12, count: 14, onTimePercentage: 86 },
-                          { day: "Thursday", hour: 13, count: 19, onTimePercentage: 84 },
-                          { day: "Thursday", hour: 14, count: 24, onTimePercentage: 80 },
-                          { day: "Thursday", hour: 15, count: 17, onTimePercentage: 82 },
-                          { day: "Thursday", hour: 16, count: 12, onTimePercentage: 88 },
-                          { day: "Friday", hour: 8, count: 11, onTimePercentage: 91 },
-                          { day: "Friday", hour: 9, count: 19, onTimePercentage: 84 },
-                          { day: "Friday", hour: 10, count: 25, onTimePercentage: 76 },
-                          { day: "Friday", hour: 11, count: 20, onTimePercentage: 80 },
-                          { day: "Friday", hour: 12, count: 13, onTimePercentage: 85 },
-                          { day: "Friday", hour: 13, count: 17, onTimePercentage: 82 },
-                          { day: "Friday", hour: 14, count: 21, onTimePercentage: 79 },
-                          { day: "Friday", hour: 15, count: 15, onTimePercentage: 83 },
-                          { day: "Friday", hour: 16, count: 10, onTimePercentage: 90 },
-                        ]}
-                        mode="ontime"
-                        filter={heatmapFilter}
-                      />
-                    </TabsContent>
-                  </Tabs>
                 </div>
               </div>
-            </CardContent>
+            )}
+            
+            <div>
+              <label className="text-sm font-medium mb-1 block">Metric</label>
+              <Select value={metric} onValueChange={(value) => setMetric(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select metric" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="utilization">Dock Utilization</SelectItem>
+                  <SelectItem value="turnaround">Turnaround Time</SelectItem>
+                  <SelectItem value="onTime">On-Time Arrivals</SelectItem>
+                  <SelectItem value="dwell">Dwell Time Accuracy</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-1 block">Period</label>
+              <Select value={period} onValueChange={(value) => setPeriod(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle className="text-lg">{chartConfig.title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PerformanceChart 
+              data={chartConfig.data}
+              yAxisLabel={chartConfig.yAxisLabel}
+              color={chartConfig.color}
+              target={chartConfig.target}
+              suffix={chartConfig.suffix}
+            />
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Summary Metrics</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <MetricBar 
+              label="Dock Utilization" 
+              value={summary.utilization} 
+              target={75}
+              suffix="%"
+            />
+            <MetricBar 
+              label="Average Turnaround Time" 
+              value={summary.turnaround} 
+              target={35}
+              suffix=" min"
+            />
+            <MetricBar 
+              label="On-Time Arrivals" 
+              value={summary.onTime} 
+              target={90}
+              suffix="%"
+            />
+            <MetricBar 
+              label="Dwell Time Accuracy" 
+              value={summary.dwell} 
+              target={85}
+              suffix="%"
+            />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Performance Insights</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
+                <h3 className="font-medium text-blue-800 mb-1">Dock Utilization Trend</h3>
+                <p className="text-sm text-blue-700">
+                  Dock utilization is {summary.utilization > 75 ? "above" : "below"} the target of 75%. 
+                  {summary.utilization > 75 
+                    ? " This indicates efficient use of available dock doors." 
+                    : " There may be opportunities to improve scheduling and capacity planning."}
+                </p>
+              </div>
+              
+              <div className="p-4 border rounded-md bg-amber-50 border-amber-200">
+                <h3 className="font-medium text-amber-800 mb-1">Turnaround Time Analysis</h3>
+                <p className="text-sm text-amber-700">
+                  The average turnaround time is {summary.turnaround} minutes, 
+                  {summary.turnaround <= 35 
+                    ? " which meets the target of 35 minutes." 
+                    : ` which is ${summary.turnaround - 35} minutes above the target of 35 minutes.`}
+                  {summary.turnaround > 35 
+                    ? " Consider reviewing loading/unloading procedures to improve efficiency." 
+                    : " Great job maintaining efficient operations!"}
+                </p>
+              </div>
+              
+              <div className="p-4 border rounded-md bg-green-50 border-green-200">
+                <h3 className="font-medium text-green-800 mb-1">On-Time Performance</h3>
+                <p className="text-sm text-green-700">
+                  On-time arrival rate is currently at {summary.onTime}%, 
+                  {summary.onTime >= 90 
+                    ? " exceeding the target of 90%. This indicates excellent carrier performance." 
+                    : ` which is below the target of 90%. Consider working with carriers to improve punctuality.`}
+                </p>
+              </div>
+              
+              <div className="p-4 border rounded-md bg-purple-50 border-purple-200">
+                <h3 className="font-medium text-purple-800 mb-1">Dwell Time Prediction</h3>
+                <p className="text-sm text-purple-700">
+                  Dwell time prediction accuracy is {summary.dwell}%, 
+                  {summary.dwell >= 85 
+                    ? " meeting the target of 85%. This helps maintain reliable scheduling." 
+                    : ` falling short of the 85% target. Consider refining your dwell time estimation algorithm.`}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Available Reports */}
+      <div>
+        <h2 className="text-xl font-medium mb-4">Available Reports</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center">
+                <FileText className="mr-2 h-5 w-5" /> Daily Operations Summary
+              </CardTitle>
+              <CardDescription>
+                Complete overview of dock operations, schedules, and performance metrics for each day.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="pt-2">
+              <Button variant="outline" size="sm" className="w-full">
+                <Download className="h-4 w-4 mr-2" />
+                Export Report
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center">
+                <BarChart className="mr-2 h-5 w-5" /> Carrier Performance Analysis
+              </CardTitle>
+              <CardDescription>
+                Detailed breakdown of carrier-specific metrics including on-time performance and dwell times.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="pt-2">
+              <Button variant="outline" size="sm" className="w-full">
+                <Download className="h-4 w-4 mr-2" />
+                Export Report
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center">
+                <BarChart2 className="mr-2 h-5 w-5" /> Dock Utilization Report
+              </CardTitle>
+              <CardDescription>
+                Analysis of dock usage patterns, peak times, and opportunities for optimization.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="pt-2">
+              <Button variant="outline" size="sm" className="w-full">
+                <Download className="h-4 w-4 mr-2" />
+                Export Report
+              </Button>
+            </CardFooter>
           </Card>
         </div>
-      )}
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Available Reports</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="border rounded-md p-4 hover:border-primary cursor-pointer transition-colors">
-              <h3 className="font-medium mb-2">Daily Operations Summary</h3>
-              <p className="text-sm text-neutral-500 mb-4">
-                Complete overview of dock operations, schedules, and performance metrics for each day.
-              </p>
-              <div className="flex items-center text-primary text-sm">
-                <Download className="h-4 w-4 mr-1" />
-                Export Report
-              </div>
-            </div>
-            
-            <div className="border rounded-md p-4 hover:border-primary cursor-pointer transition-colors">
-              <h3 className="font-medium mb-2">Carrier Performance Analysis</h3>
-              <p className="text-sm text-neutral-500 mb-4">
-                Detailed breakdown of carrier-specific metrics including on-time performance and dwell times.
-              </p>
-              <div className="flex items-center text-primary text-sm">
-                <Download className="h-4 w-4 mr-1" />
-                Export Report
-              </div>
-            </div>
-            
-            <div className="border rounded-md p-4 hover:border-primary cursor-pointer transition-colors">
-              <h3 className="font-medium mb-2">Dock Utilization Report</h3>
-              <p className="text-sm text-neutral-500 mb-4">
-                Analysis of dock usage patterns, peak times, and opportunities for optimization.
-              </p>
-              <div className="flex items-center text-primary text-sm">
-                <Download className="h-4 w-4 mr-1" />
-                Export Report
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      </div>
     </div>
   );
 }
