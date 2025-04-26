@@ -319,24 +319,6 @@ export default function Analytics() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-medium">Analytics & Reports</h2>
         <div className="flex gap-2">
-          <Tabs defaultValue="charts" className="mr-4">
-            <TabsList>
-              <TabsTrigger 
-                value="charts" 
-                onClick={() => setActiveView("charts")}
-                className={activeView === "charts" ? "bg-primary text-primary-foreground" : ""}
-              >
-                Charts
-              </TabsTrigger>
-              <TabsTrigger 
-                value="heatmap" 
-                onClick={() => setActiveView("heatmap")}
-                className={activeView === "heatmap" ? "bg-primary text-primary-foreground" : ""}
-              >
-                Heatmap
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
           <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Export Report
@@ -344,8 +326,12 @@ export default function Analytics() {
         </div>
       </div>
       
+      {/* Heatmap - Always displayed first */}
+      <AnalyticsHeatMap />
+      
       {activeView === "charts" ? (
         <>
+          {/* Performance Charts */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <Card className="col-span-1">
               <CardHeader>
