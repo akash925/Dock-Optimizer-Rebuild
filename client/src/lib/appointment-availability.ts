@@ -118,7 +118,7 @@ function generateTimeSlotsForRange(
   const lastPossibleStart = endMinutes - duration;
   
   // If buffer time is specified, we need to handle it specially
-  if (bufferTime > 0 && bufferTime >= interval) {
+  if (bufferTime > 0) {
     console.log(`[generateTimeSlotsForRange] Using buffer time: ${bufferTime} minutes`);
     
     // With buffer time, we need to space out slots based on duration + buffer time
@@ -127,20 +127,46 @@ function generateTimeSlotsForRange(
     const intervalsToSkip = Math.ceil(totalTimeNeeded / interval);
     
     // Generate slots with appropriate spacing
-    for (let time = startMinutes; time <= lastPossibleStart; time += (interval * intervalsToSkip)) {
+    // We will generate all slots but mark some as buffer slots
+    let currentTime = startMinutes;
+    
+    while (currentTime <= lastPossibleStart) {
+      // Add the current slot
       slots.push({
-        time: convertMinutesToTime(time),
+        time: convertMinutesToTime(currentTime),
         available: available,
-        remainingCapacity: remainingCapacity
+        remainingCapacity: remainingCapacity,
+        isBufferTime: false // This is not a buffer time slot
       });
+      
+      // Now add buffer time slots
+      for (let i = 1; i < intervalsToSkip && (currentTime + i * interval) <= endMinutes; i++) {
+        const bufferSlotTime = currentTime + (i * interval);
+        
+        // Only add buffer slots if they don't exceed the last possible start
+        if (bufferSlotTime <= lastPossibleStart) {
+          slots.push({
+            time: convertMinutesToTime(bufferSlotTime),
+            available: false, // Buffer slots are not available
+            remainingCapacity: 0,
+            isBufferTime: true // Mark as buffer time slot
+          });
+        }
+      }
+      
+      // Move to the next non-buffer slot
+      currentTime += interval * intervalsToSkip;
     }
+    
+    console.log(`[generateTimeSlotsForRange] Generated ${slots.length} slots with buffer time: ${bufferTime} minutes`);
   } else {
     // Without buffer time, generate slots at each interval
     for (let time = startMinutes; time <= lastPossibleStart; time += interval) {
       slots.push({
         time: convertMinutesToTime(time),
         available: available,
-        remainingCapacity: remainingCapacity
+        remainingCapacity: remainingCapacity,
+        isBufferTime: false
       });
     }
   }

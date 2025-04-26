@@ -2451,10 +2451,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             facilityId: parsedFacilityId,
             maxConcurrent: appointmentType.maxConcurrent || 1,
             maxAppointmentsPerDay: maxAppointments || (appointmentType.maxAppointmentsPerDay || undefined),
-            bufferTime: appointmentType.bufferTime,
+            // Make sure buffer time is correctly included and treated as a number
+            bufferTime: appointmentType.bufferTime ? Number(appointmentType.bufferTime) : 0,
             gracePeriod: appointmentType.gracePeriod,
             showRemainingSlots: appointmentType.showRemainingSlots
           };
+          
+          // Log buffer time to check if it's being correctly passed
+          console.log(`AVAILABILITY RULE: Using buffer time of ${facilityRule.bufferTime} minutes for ${appointmentType.name}`);
           
           // Generate time slots based on facility hours
           timeSlots = generateAvailableTimeSlots(
