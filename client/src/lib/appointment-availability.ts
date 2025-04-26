@@ -50,11 +50,18 @@ export function generateAvailableTimeSlots(
   
   console.log(`[generateAvailableTimeSlots] Found ${applicableRules.length} applicable rules for day ${dayOfWeek}`);
   
-  // If no rules apply or empty rules array was passed, use default business hours: 9am-5pm
+  // If no rules apply or empty rules array was passed, check the day of week
   if (rules.length === 0 || applicableRules.length === 0) {
-    console.log('[generateAvailableTimeSlots] No applicable rules found, generating default business hours');
+    console.log('[generateAvailableTimeSlots] No applicable rules found for this day');
     
-    // Generate slots from 9am to 5pm with specified interval
+    // For weekends (day 0 = Sunday, day 6 = Saturday), don't return any slots
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      console.log('[generateAvailableTimeSlots] Weekend day, returning no slots');
+      return []; // No availability on weekends
+    }
+    
+    // For weekdays, use default business hours: 9am-5pm
+    console.log('[generateAvailableTimeSlots] Weekday with no rules, generating default business hours');
     return generateTimeSlotsForRange('09:00', '17:00', interval, duration, true);
   }
   
@@ -62,14 +69,15 @@ export function generateAvailableTimeSlots(
   let allSlots: AvailabilitySlot[] = [];
   
   for (const rule of applicableRules) {
-    console.log(`[generateAvailableTimeSlots] Processing rule: ${rule.startTime}-${rule.endTime}`);
+    console.log(`[generateAvailableTimeSlots] Processing rule: ${rule.startTime}-${rule.endTime}, bufferTime: ${rule.bufferTime || 0}`);
     const ruleSlots = generateTimeSlotsForRange(
       rule.startTime, 
       rule.endTime, 
       interval, 
       duration,
       true, // Default to available
-      rule.maxConcurrent || 1
+      rule.maxConcurrent || 1,
+      rule.bufferTime || 0 // Pass the buffer time to respect gaps between appointments
     );
     
     // Merge with existing slots
@@ -88,6 +96,7 @@ export function generateAvailableTimeSlots(
  * @param duration - Duration of appointment in minutes
  * @param available - Whether these slots are available
  * @param remainingCapacity - Optional remaining capacity for these slots
+ * @param bufferTime - Optional buffer time between appointments in minutes
  * @returns Array of time slots
  */
 function generateTimeSlotsForRange(
@@ -96,7 +105,8 @@ function generateTimeSlotsForRange(
   interval: number,
   duration: number,
   available: boolean = true,
-  remainingCapacity: number = 1
+  remainingCapacity: number = 1,
+  bufferTime: number = 0
 ): AvailabilitySlot[] {
   const slots: AvailabilitySlot[] = [];
   
@@ -107,13 +117,32 @@ function generateTimeSlotsForRange(
   // Calculate the last possible start time based on appointment duration
   const lastPossibleStart = endMinutes - duration;
   
-  // Generate slots at each interval
-  for (let time = startMinutes; time <= lastPossibleStart; time += interval) {
-    slots.push({
-      time: convertMinutesToTime(time),
-      available: available,
-      remainingCapacity: remainingCapacity
-    });
+  // If buffer time is specified, we need to handle it specially
+  if (bufferTime > 0 && bufferTime >= interval) {
+    console.log(`[generateTimeSlotsForRange] Using buffer time: ${bufferTime} minutes`);
+    
+    // With buffer time, we need to space out slots based on duration + buffer time
+    // Calculate how many intervals we need to skip
+    const totalTimeNeeded = duration + bufferTime;
+    const intervalsToSkip = Math.ceil(totalTimeNeeded / interval);
+    
+    // Generate slots with appropriate spacing
+    for (let time = startMinutes; time <= lastPossibleStart; time += (interval * intervalsToSkip)) {
+      slots.push({
+        time: convertMinutesToTime(time),
+        available: available,
+        remainingCapacity: remainingCapacity
+      });
+    }
+  } else {
+    // Without buffer time, generate slots at each interval
+    for (let time = startMinutes; time <= lastPossibleStart; time += interval) {
+      slots.push({
+        time: convertMinutesToTime(time),
+        available: available,
+        remainingCapacity: remainingCapacity
+      });
+    }
   }
   
   return slots;

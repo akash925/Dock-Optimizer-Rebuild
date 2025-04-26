@@ -2169,8 +2169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
           console.log(`AVAILABILITY CONTEXT: Checking for day ${dayOfWeek} (${dayName})`);
           
-          // Since the DB schema doesn't match the schema.ts definition, we'll use default business hours
-          // based on the day of week (weekdays 8am-5pm, weekend closed)
+          // Use actual facility settings based on day of week
           let isAvailable = false;
           let startTime = "08:00";
           let endTime = "17:00";
@@ -2178,26 +2177,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let breakEndTime = "13:00";
           let maxAppointments = facilitySettings.maxConcurrentInbound + facilitySettings.maxConcurrentOutbound;
           
-          // Default business hours: weekdays open 8am-5pm, weekends closed
-          if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-            // Monday to Friday
-            isAvailable = true;
-          } else {
-            // Weekend
-            isAvailable = false;
+          // Check facility day availability based on the day of the week
+          switch (dayOfWeek) {
+            case 0: // Sunday
+              isAvailable = facilitySettings.sunday || false;
+              startTime = facilitySettings.sundayStartTime || "08:00";
+              endTime = facilitySettings.sundayEndTime || "17:00";
+              breakStartTime = facilitySettings.sundayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.sundayBreakEndTime || "13:00";
+              break;
+            case 1: // Monday
+              isAvailable = facilitySettings.monday || true;
+              startTime = facilitySettings.mondayStartTime || "08:00";
+              endTime = facilitySettings.mondayEndTime || "17:00";
+              breakStartTime = facilitySettings.mondayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.mondayBreakEndTime || "13:00";
+              break;
+            case 2: // Tuesday
+              isAvailable = facilitySettings.tuesday || true;
+              startTime = facilitySettings.tuesdayStartTime || "08:00";
+              endTime = facilitySettings.tuesdayEndTime || "17:00";
+              breakStartTime = facilitySettings.tuesdayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.tuesdayBreakEndTime || "13:00";
+              break;
+            case 3: // Wednesday
+              isAvailable = facilitySettings.wednesday || true;
+              startTime = facilitySettings.wednesdayStartTime || "08:00";
+              endTime = facilitySettings.wednesdayEndTime || "17:00";
+              breakStartTime = facilitySettings.wednesdayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.wednesdayBreakEndTime || "13:00";
+              break;
+            case 4: // Thursday
+              isAvailable = facilitySettings.thursday || true;
+              startTime = facilitySettings.thursdayStartTime || "08:00";
+              endTime = facilitySettings.thursdayEndTime || "17:00";
+              breakStartTime = facilitySettings.thursdayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.thursdayBreakEndTime || "13:00";
+              break;
+            case 5: // Friday
+              isAvailable = facilitySettings.friday || true;
+              startTime = facilitySettings.fridayStartTime || "08:00";
+              endTime = facilitySettings.fridayEndTime || "17:00";
+              breakStartTime = facilitySettings.fridayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.fridayBreakEndTime || "13:00";
+              break;
+            case 6: // Saturday
+              isAvailable = facilitySettings.saturday || false;
+              startTime = facilitySettings.saturdayStartTime || "08:00";
+              endTime = facilitySettings.saturdayEndTime || "13:00";
+              breakStartTime = facilitySettings.saturdayBreakStartTime || "12:00";
+              breakEndTime = facilitySettings.saturdayBreakEndTime || "13:00";
+              break;
           }
           
           // Look for settings in the daily_availability table instead
           // For now, use default values from facility settings
           
-          // INSTRUMENTATION: Log the default day rule
-          console.log(`DAY AVAILABILITY (using default business hours):`, {
+          // INSTRUMENTATION: Log the facility hours for this day
+          console.log(`DAY AVAILABILITY (using facility settings):`, {
             day: dayName,
             isAvailable,
             hours: isAvailable ? `${startTime}-${endTime}` : "Closed",
-            breakTime: isAvailable ? `${breakStartTime}-${breakEndTime}` : "N/A",
+            breakTime: isAvailable && breakStartTime && breakEndTime ? `${breakStartTime}-${breakEndTime}` : "N/A",
             maxAppointments,
-            note: "Using default business hours (weekdays 8am-5pm, weekends closed)"
+            note: "Using facility settings from database"
           });
           
           // Create a facility rule for this specific day
