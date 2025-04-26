@@ -1153,6 +1153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "scheduled",
         dockId: docks[0].id,
         carrierId: carrier.id,
+        carrierName: validatedData.carrierName || carrier.name,
+        mcNumber: validatedData.mcNumber || carrier.mcNumber || null,
         customerName: validatedData.customerName,
         truckNumber: validatedData.truckNumber,
         trailerNumber: validatedData.trailerNumber || null,
