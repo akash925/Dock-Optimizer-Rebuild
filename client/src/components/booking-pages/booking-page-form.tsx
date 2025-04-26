@@ -603,7 +603,8 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         const enrichedData = {
           ...data,
           facilities: selectedFacilities,
-          appointmentTypes: appointmentTypes
+          appointmentTypes: appointmentTypes,
+          excludedAppointmentTypes: [] // For backward compatibility with API
         };
         
         console.log("[BookingPageForm] Preparing update with payload:", JSON.stringify(enrichedData, null, 2));
@@ -632,7 +633,8 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         const enrichedData = {
           ...data,
           facilities: selectedFacilities,
-          appointmentTypes: appointmentTypes
+          appointmentTypes: appointmentTypes,
+          excludedAppointmentTypes: [] // For backward compatibility with API
         };
         
         console.log("[BookingPageForm] Preparing creation with payload:", JSON.stringify(enrichedData, null, 2));
@@ -752,7 +754,8 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       const enrichedData = {
         ...formValues,
         facilities: selectedFacilities,
-        appointmentTypes: appointmentTypes
+        appointmentTypes: appointmentTypes,
+        excludedAppointmentTypes: [] // For backward compatibility with API
       };
       
       console.log("[BookingPageForm] Manual update with payload:", JSON.stringify(enrichedData, null, 2));
@@ -768,7 +771,8 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       const enrichedData = {
         ...formValues,
         facilities: selectedFacilities,
-        appointmentTypes: appointmentTypes
+        appointmentTypes: appointmentTypes,
+        excludedAppointmentTypes: [] // For backward compatibility with API
       };
       
       console.log("[BookingPageForm] Manual creation with payload:", JSON.stringify(enrichedData, null, 2));
@@ -1204,6 +1208,27 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
               <>{bookingPage ? "Update" : "Create"} Booking Page</>
             )}
           </Button>
+          {bookingPage && (
+            <Button 
+              type="button"
+              variant="secondary"
+              disabled={isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                console.log("[BookingPageForm] Manual update button clicked");
+                handleManualSubmit();
+              }}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Force Updating...
+                </>
+              ) : (
+                <>Force Update</>
+              )}
+            </Button>
+          )}
         </div>
       </form>
     </Form>
