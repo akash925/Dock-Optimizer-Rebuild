@@ -950,7 +950,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
       carrierName: bookingData.carrierName || '',
       driverName: bookingData.driverName || '',
       driverPhone: bookingData.driverPhone || '',
-      mcNumber: bookingData.mcNumber || '',
+      mcNumber: bookingData.bolExtractedData?.mcNumber || '',
       truckNumber: bookingData.truckNumber || '',
       trailerNumber: bookingData.trailerNumber || '',
       notes: bookingData.notes || ''

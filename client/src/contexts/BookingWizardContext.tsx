@@ -40,6 +40,7 @@ interface BookingFormData {
   carrierName: string;
   driverName: string;
   driverPhone: string;
+  mcNumber?: string; // MC Number for carrier
   truckNumber: string;
   trailerNumber: string;
   
