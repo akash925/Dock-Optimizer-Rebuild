@@ -18,5 +18,6 @@ router.get('/facilities', controllers.getFacilityStats);
 router.get('/carriers', controllers.getCarrierStats);
 router.get('/customers', controllers.getCustomerStats);
 router.get('/attendance', controllers.getAttendanceStats);
+router.get('/dock-utilization', controllers.getDockUtilizationStats);
 
 export default router;

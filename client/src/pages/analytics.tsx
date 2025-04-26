@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PerformanceChart from "@/components/analytics/performance-chart";
 import MetricBar from "@/components/dashboard/metric-bar";
 import AnalyticsHeatMap from "@/components/analytics/heat-map";
@@ -37,10 +38,28 @@ interface AttendanceData {
   count: number;
 }
 
-// Hook to get facility statistics
-function useFacilityStats() {
+interface DockUtilizationData {
+  dock_id: number;
+  dock_name: string;
+  facility_name: string;
+  used_hours: number;
+  total_hours: number;
+  utilization_percentage: number;
+}
+
+// Hook to get facility statistics with date parameters
+function useFacilityStats(dateParams: { startDate?: string; endDate?: string }) {
   const { data: facilityData, isLoading, error } = useQuery<FacilityData[]>({
-    queryKey: ['/api/analytics/facilities'],
+    queryKey: ['/api/analytics/facilities', dateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (dateParams.startDate) params.append('startDate', dateParams.startDate);
+      if (dateParams.endDate) params.append('endDate', dateParams.endDate);
+      
+      const res = await fetch(`/api/analytics/facilities?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch facility data');
+      return res.json();
+    }
   });
 
   if (isLoading) {
@@ -83,10 +102,19 @@ function useFacilityStats() {
   );
 }
 
-// Hook to get carrier statistics
-function useCarrierStats() {
+// Hook to get carrier statistics with date parameters
+function useCarrierStats(dateParams: { startDate?: string; endDate?: string }) {
   const { data: carrierData, isLoading, error } = useQuery<CarrierData[]>({
-    queryKey: ['/api/analytics/carriers'],
+    queryKey: ['/api/analytics/carriers', dateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (dateParams.startDate) params.append('startDate', dateParams.startDate);
+      if (dateParams.endDate) params.append('endDate', dateParams.endDate);
+      
+      const res = await fetch(`/api/analytics/carriers?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch carrier data');
+      return res.json();
+    }
   });
 
   if (isLoading) {
@@ -129,10 +157,19 @@ function useCarrierStats() {
   );
 }
 
-// Hook to get customer statistics
-function useCustomerStats() {
+// Hook to get customer statistics with date parameters
+function useCustomerStats(dateParams: { startDate?: string; endDate?: string }) {
   const { data: customerData, isLoading, error } = useQuery<CustomerData[]>({
-    queryKey: ['/api/analytics/customers'],
+    queryKey: ['/api/analytics/customers', dateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (dateParams.startDate) params.append('startDate', dateParams.startDate);
+      if (dateParams.endDate) params.append('endDate', dateParams.endDate);
+      
+      const res = await fetch(`/api/analytics/customers?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch customer data');
+      return res.json();
+    }
   });
 
   if (isLoading) {
@@ -175,10 +212,19 @@ function useCustomerStats() {
   );
 }
 
-// Hook to get attendance statistics
-function useAttendanceStats() {
+// Hook to get attendance statistics with date parameters
+function useAttendanceStats(dateParams: { startDate?: string; endDate?: string }) {
   const { data: attendanceData, isLoading, error } = useQuery<AttendanceData[]>({
-    queryKey: ['/api/analytics/attendance'],
+    queryKey: ['/api/analytics/attendance', dateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (dateParams.startDate) params.append('startDate', dateParams.startDate);
+      if (dateParams.endDate) params.append('endDate', dateParams.endDate);
+      
+      const res = await fetch(`/api/analytics/attendance?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch attendance data');
+      return res.json();
+    }
   });
 
   if (isLoading) {
@@ -221,11 +267,70 @@ function useAttendanceStats() {
   );
 }
 
+// Hook to get dock utilization statistics with date parameters
+function useDockUtilizationStats(dateParams: { startDate?: string; endDate?: string }) {
+  const { data: utilizationData, isLoading, error } = useQuery<DockUtilizationData[]>({
+    queryKey: ['/api/analytics/dock-utilization', dateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (dateParams.startDate) params.append('startDate', dateParams.startDate);
+      if (dateParams.endDate) params.append('endDate', dateParams.endDate);
+      
+      const res = await fetch(`/api/analytics/dock-utilization?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch dock utilization data');
+      return res.json();
+    }
+  });
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Loading dock utilization data...</div>;
+  }
+
+  if (error) {
+    console.error("Error loading dock utilization data:", error);
+    return (
+      <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-700">
+        Error loading dock utilization data. Please try again later.
+      </div>
+    );
+  }
+
+  // If we have data, format it for the chart
+  if (utilizationData && utilizationData.length > 0) {
+    const chartData = utilizationData.map(dock => ({
+      date: `${dock.dock_name} (${dock.facility_name})`,
+      value: dock.utilization_percentage
+    }));
+
+    return (
+      <PerformanceChart 
+        data={chartData}
+        yAxisLabel="Utilization %"
+        color="#673AB7"
+        target={75}
+        hideTarget={false}
+        horizontal={true}
+        suffix="%"
+      />
+    );
+  }
+
+  // Fallback for empty data
+  return (
+    <div className="p-4 border border-blue-200 rounded-md bg-blue-50 text-blue-700">
+      No dock utilization data available for the selected period.
+    </div>
+  );
+}
+
 // Function to export data to CSV
-function exportToCSV(dataType: 'facilities' | 'carriers' | 'customers' | 'attendance') {
+function exportToCSV(dataType: 'facilities' | 'carriers' | 'customers' | 'attendance' | 'dock-utilization', dateParams?: any) {
   const endpoint = `/api/analytics/${dataType}`;
+  const params = new URLSearchParams();
+  if (dateParams?.startDate) params.append('startDate', dateParams.startDate);
+  if (dateParams?.endDate) params.append('endDate', dateParams.endDate);
   
-  fetch(endpoint)
+  fetch(`${endpoint}?${params.toString()}`)
     .then(response => response.json())
     .then(data => {
       // Convert data to CSV
@@ -252,6 +357,11 @@ function exportToCSV(dataType: 'facilities' | 'carriers' | 'customers' | 'attend
         data.forEach((item: AttendanceData) => {
           csvContent += `"${item.attendanceStatus}",${item.count}\n`;
         });
+      } else if (dataType === 'dock-utilization') {
+        csvContent = 'Dock ID,Dock Name,Facility Name,Used Hours,Total Hours,Utilization Percentage\n';
+        data.forEach((item: DockUtilizationData) => {
+          csvContent += `${item.dock_id},"${item.dock_name}","${item.facility_name}",${item.used_hours},${item.total_hours},${item.utilization_percentage}\n`;
+        });
       }
       
       // Create a blob and download it
@@ -275,23 +385,9 @@ function exportToCSV(dataType: 'facilities' | 'carriers' | 'customers' | 'attend
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState<"last7Days" | "last30Days" | "last90Days" | "custom">("last7Days");
-  const [metric, setMetric] = useState<"utilization" | "turnaround" | "onTime" | "dwell">("utilization");
-  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
   const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 7));
   const [endDate, setEndDate] = useState<Date>(new Date());
-  
-  // State variables for heatmap
-  const [heatmapFilter, setHeatmapFilter] = useState({
-    location: "all",
-    appointment: "all",
-    customer: "all", 
-    carrier: "all"
-  });
-  
-  // Fetch schedules
-  const { data: schedules = [] } = useQuery<Schedule[]>({
-    queryKey: ["/api/schedules"],
-  });
+  const [showDatePickerDialog, setShowDatePickerDialog] = useState(false);
   
   // Calculate date range for the query
   const getDateRange = () => {
@@ -309,270 +405,23 @@ export default function Analytics() {
     }
   };
   
-  // Calculate performance metrics 
-  const calculateMetrics = () => {
+  // Calculate date range for API params
+  const apiDateRange = () => {
     const { start, end } = getDateRange();
-    
-    // Filter schedules within date range
-    const filteredSchedules = schedules.filter(s => {
-      const scheduleDate = new Date(s.startTime);
-      return scheduleDate >= start && scheduleDate <= end;
-    });
-    
-    // Utilization calculation
-    const utilization = calculateUtilizationData(filteredSchedules, period);
-    
-    // Average turnaround time
-    const turnaround = calculateTurnaroundData(filteredSchedules, period);
-    
-    // On-time percentage
-    const onTime = calculateOnTimeData(filteredSchedules, period);
-    
-    // Dwell time accuracy
-    const dwell = calculateDwellData(filteredSchedules, period);
-    
     return {
-      utilization,
-      turnaround,
-      onTime,
-      dwell
+      startDate: format(start, 'yyyy-MM-dd'),
+      endDate: format(end, 'yyyy-MM-dd')
     };
   };
-  
-  // Generate sample chart data based on the metric and period
-  const calculateUtilizationData = (schedules: Schedule[], period: string) => {
-    // In a real app, this would calculate actual utilization based on schedules
-    // For this example, generate some sample data
+
+  // Date params for API calls
+  const dateParams = apiDateRange();
+
+  // Formatted date range display
+  const dateRangeDisplay = () => {
     const { start, end } = getDateRange();
-    const data = [];
-    
-    if (period === "daily") {
-      let currentDate = new Date(start);
-      while (currentDate <= end) {
-        data.push({
-          date: format(currentDate, "yyyy-MM-dd"),
-          value: Math.floor(65 + Math.random() * 25), // Random value between 65-90%
-        });
-        currentDate = addDays(currentDate, 1);
-      }
-    } else if (period === "weekly") {
-      let currentWeekStart = startOfWeek(start);
-      while (currentWeekStart <= end) {
-        const weekEnd = endOfWeek(currentWeekStart);
-        data.push({
-          date: `${format(currentWeekStart, "MMM d")} - ${format(weekEnd, "MMM d")}`,
-          value: Math.floor(70 + Math.random() * 20), // Random value between 70-90%
-        });
-        currentWeekStart = addDays(currentWeekStart, 7);
-      }
-    } else {
-      // Monthly data
-      for (let i = 0; i < 6; i++) {
-        const monthDate = subMonths(new Date(), i);
-        data.push({
-          date: format(monthDate, "MMM yyyy"),
-          value: Math.floor(75 + Math.random() * 15), // Random value between 75-90%
-        });
-      }
-      data.reverse();
-    }
-    
-    return data;
+    return `${format(start, 'MMM d, yyyy')} - ${format(end, 'MMM d, yyyy')}`;
   };
-  
-  const calculateTurnaroundData = (schedules: Schedule[], period: string) => {
-    // Similar structure to utilization but with turnaround times
-    const { start, end } = getDateRange();
-    const data = [];
-    
-    if (period === "daily") {
-      let currentDate = new Date(start);
-      while (currentDate <= end) {
-        data.push({
-          date: format(currentDate, "yyyy-MM-dd"),
-          value: Math.floor(35 + Math.random() * 15), // Random minutes between 35-50
-        });
-        currentDate = addDays(currentDate, 1);
-      }
-    } else if (period === "weekly") {
-      let currentWeekStart = startOfWeek(start);
-      while (currentWeekStart <= end) {
-        const weekEnd = endOfWeek(currentWeekStart);
-        data.push({
-          date: `${format(currentWeekStart, "MMM d")} - ${format(weekEnd, "MMM d")}`,
-          value: Math.floor(37 + Math.random() * 10), // Random minutes between 37-47
-        });
-        currentWeekStart = addDays(currentWeekStart, 7);
-      }
-    } else {
-      // Monthly data
-      for (let i = 0; i < 6; i++) {
-        const monthDate = subMonths(new Date(), i);
-        data.push({
-          date: format(monthDate, "MMM yyyy"),
-          value: Math.floor(38 + Math.random() * 8), // Random minutes between 38-46
-        });
-      }
-      data.reverse();
-    }
-    
-    return data;
-  };
-  
-  const calculateOnTimeData = (schedules: Schedule[], period: string) => {
-    // Generate on-time percentage data
-    const { start, end } = getDateRange();
-    const data = [];
-    
-    if (period === "daily") {
-      let currentDate = new Date(start);
-      while (currentDate <= end) {
-        data.push({
-          date: format(currentDate, "yyyy-MM-dd"),
-          value: Math.floor(85 + Math.random() * 15), // Random percentage between 85-100%
-        });
-        currentDate = addDays(currentDate, 1);
-      }
-    } else if (period === "weekly") {
-      let currentWeekStart = startOfWeek(start);
-      while (currentWeekStart <= end) {
-        const weekEnd = endOfWeek(currentWeekStart);
-        data.push({
-          date: `${format(currentWeekStart, "MMM d")} - ${format(weekEnd, "MMM d")}`,
-          value: Math.floor(88 + Math.random() * 12), // Random percentage between 88-100%
-        });
-        currentWeekStart = addDays(currentWeekStart, 7);
-      }
-    } else {
-      // Monthly data
-      for (let i = 0; i < 6; i++) {
-        const monthDate = subMonths(new Date(), i);
-        data.push({
-          date: format(monthDate, "MMM yyyy"),
-          value: Math.floor(90 + Math.random() * 10), // Random percentage between 90-100%
-        });
-      }
-      data.reverse();
-    }
-    
-    return data;
-  };
-  
-  const calculateDwellData = (schedules: Schedule[], period: string) => {
-    // Generate dwell time accuracy data
-    const { start, end } = getDateRange();
-    const data = [];
-    
-    if (period === "daily") {
-      let currentDate = new Date(start);
-      while (currentDate <= end) {
-        data.push({
-          date: format(currentDate, "yyyy-MM-dd"),
-          value: Math.floor(75 + Math.random() * 20), // Random percentage between 75-95%
-        });
-        currentDate = addDays(currentDate, 1);
-      }
-    } else if (period === "weekly") {
-      let currentWeekStart = startOfWeek(start);
-      while (currentWeekStart <= end) {
-        const weekEnd = endOfWeek(currentWeekStart);
-        data.push({
-          date: `${format(currentWeekStart, "MMM d")} - ${format(weekEnd, "MMM d")}`,
-          value: Math.floor(78 + Math.random() * 17), // Random percentage between 78-95%
-        });
-        currentWeekStart = addDays(currentWeekStart, 7);
-      }
-    } else {
-      // Monthly data
-      for (let i = 0; i < 6; i++) {
-        const monthDate = subMonths(new Date(), i);
-        data.push({
-          date: format(monthDate, "MMM yyyy"),
-          value: Math.floor(80 + Math.random() * 15), // Random percentage between 80-95%
-        });
-      }
-      data.reverse();
-    }
-    
-    return data;
-  };
-  
-  // Get chart data based on selected metric
-  const getChartData = () => {
-    const metrics = calculateMetrics();
-    
-    switch (metric) {
-      case "utilization":
-        return {
-          data: metrics.utilization,
-          title: "Dock Utilization",
-          yAxisLabel: "Utilization (%)",
-          target: 75,
-          color: "#1976d2", // Primary color
-          suffix: "%"
-        };
-      case "turnaround":
-        return {
-          data: metrics.turnaround,
-          title: "Average Turnaround Time",
-          yAxisLabel: "Minutes",
-          target: 35,
-          color: "#f57c00", // Accent color
-          suffix: " min"
-        };
-      case "onTime":
-        return {
-          data: metrics.onTime,
-          title: "On-Time Arrivals",
-          yAxisLabel: "Percentage (%)",
-          target: 90,
-          color: "#4caf50", // Success color
-          suffix: "%"
-        };
-      case "dwell":
-        return {
-          data: metrics.dwell,
-          title: "Dwell Time Accuracy",
-          yAxisLabel: "Accuracy (%)",
-          target: 85,
-          color: "#2196f3", // Info color
-          suffix: "%"
-        };
-    }
-  };
-  
-  const chartConfig = getChartData();
-  
-  // Calculate summary metrics
-  const calculateSummary = () => {
-    const metrics = calculateMetrics();
-    
-    // Average the values for each metric
-    const avgUtilization = Math.round(
-      metrics.utilization.reduce((sum, item) => sum + item.value, 0) / metrics.utilization.length
-    );
-    
-    const avgTurnaround = Math.round(
-      metrics.turnaround.reduce((sum, item) => sum + item.value, 0) / metrics.turnaround.length
-    );
-    
-    const avgOnTime = Math.round(
-      metrics.onTime.reduce((sum, item) => sum + item.value, 0) / metrics.onTime.length
-    );
-    
-    const avgDwell = Math.round(
-      metrics.dwell.reduce((sum, item) => sum + item.value, 0) / metrics.dwell.length
-    );
-    
-    return {
-      utilization: avgUtilization,
-      turnaround: avgTurnaround,
-      onTime: avgOnTime,
-      dwell: avgDwell
-    };
-  };
-  
-  const summary = calculateSummary();
 
   return (
     <div>
@@ -581,24 +430,20 @@ export default function Analytics() {
         <div className="flex gap-2">
           <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
-            Export Report
+            Export All Reports
           </Button>
         </div>
       </div>
       
-      {/* Heatmap - Always displayed first */}
-      <div className="mb-8">
-        <AnalyticsHeatMap />
-      </div>
-      
-      {/* Performance Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg">Filters</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
+      {/* Main date filter at the top */}
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Report Date Range</CardTitle>
+          <CardDescription>All analytics data will be filtered to this date range</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+            <div className="w-full md:w-64">
               <label className="text-sm font-medium mb-1 block">Date Range</label>
               <Select value={dateRange} onValueChange={(value) => setDateRange(value as any)}>
                 <SelectTrigger>
@@ -614,206 +459,238 @@ export default function Analytics() {
             </div>
             
             {dateRange === "custom" && (
-              <div className="space-y-4">
-                <div>
+              <>
+                <div className="w-full md:w-auto">
                   <label className="text-sm font-medium mb-1 block">Start Date</label>
-                  <div className="border rounded-md p-3">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={(date) => date && setStartDate(date)}
-                    />
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left font-normal"
+                    onClick={() => setShowDatePickerDialog(true)}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(startDate, "MMMM d, yyyy")}
+                  </Button>
                 </div>
-                <div>
+                <div className="w-full md:w-auto">
                   <label className="text-sm font-medium mb-1 block">End Date</label>
-                  <div className="border rounded-md p-3">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={(date) => date && setEndDate(date)}
-                      disabled={(date) => date < startDate}
-                    />
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start text-left font-normal"
+                    onClick={() => setShowDatePickerDialog(true)}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(endDate, "MMMM d, yyyy")}
+                  </Button>
                 </div>
-              </div>
+              </>
             )}
             
-            <div>
-              <label className="text-sm font-medium mb-1 block">Metric</label>
-              <Select value={metric} onValueChange={(value) => setMetric(value as any)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select metric" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="utilization">Dock Utilization</SelectItem>
-                  <SelectItem value="turnaround">Turnaround Time</SelectItem>
-                  <SelectItem value="onTime">On-Time Arrivals</SelectItem>
-                  <SelectItem value="dwell">Dwell Time Accuracy</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex-1 md:text-right">
+              <div className="text-sm text-muted-foreground mb-1 md:mb-2">Current Range</div>
+              <div className="font-medium">{dateRangeDisplay()}</div>
             </div>
-            
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Facility Stats */}
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
             <div>
-              <label className="text-sm font-medium mb-1 block">Period</label>
-              <Select value={period} onValueChange={(value) => setPeriod(value as any)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select period" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="daily">Daily</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                </SelectContent>
-              </Select>
+              <CardTitle className="text-lg">Facility Report</CardTitle>
+              <CardDescription>Appointment counts by facility</CardDescription>
             </div>
+            <Button variant="outline" size="sm" onClick={() => exportToCSV('facilities', dateParams)}>
+              <Download className="h-4 w-4 mr-2" /> Export
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {useFacilityStats(dateParams)}
+        </CardContent>
+      </Card>
+      
+      {/* Heatmap */}
+      <div className="mb-6">
+        <AnalyticsHeatMap />
+      </div>
+      
+      {/* Two-column charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Customer Stats */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg">Customer Report</CardTitle>
+                <CardDescription>Appointment counts by customer</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => exportToCSV('customers', dateParams)}>
+                <Download className="h-4 w-4 mr-2" /> Export
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {useCustomerStats(dateParams)}
           </CardContent>
         </Card>
         
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle className="text-lg">{chartConfig.title}</CardTitle>
+        {/* Carrier Stats */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg">Carrier Report</CardTitle>
+                <CardDescription>Appointment counts by carrier</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => exportToCSV('carriers', dateParams)}>
+                <Download className="h-4 w-4 mr-2" /> Export
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <PerformanceChart 
-              data={chartConfig.data}
-              yAxisLabel={chartConfig.yAxisLabel}
-              color={chartConfig.color}
-              target={chartConfig.target}
-              suffix={chartConfig.suffix}
-            />
+            {useCarrierStats(dateParams)}
           </CardContent>
         </Card>
       </div>
       
-      {/* Facility Stats */}
-      <div className="grid grid-cols-1 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Attendance Stats */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Location Report</CardTitle>
-              <CardDescription>Appointment counts by facility</CardDescription>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg">Attendance Report</CardTitle>
+                <CardDescription>Counts by attendance status</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => exportToCSV('attendance', dateParams)}>
+                <Download className="h-4 w-4 mr-2" /> Export
+              </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={() => exportToCSV('facilities')}>
-              <Download className="h-4 w-4 mr-2" /> Export
-            </Button>
           </CardHeader>
           <CardContent>
-            {useFacilityStats()}
+            {useAttendanceStats(dateParams)}
           </CardContent>
         </Card>
-      </div>
-      
-      {/* Carrier Stats */}
-      <div className="grid grid-cols-1 gap-6 mb-6">
+        
+        {/* Dock Utilization */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Carrier Name</CardTitle>
-              <CardDescription>Appointment counts by carrier</CardDescription>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg">Dock Utilization</CardTitle>
+                <CardDescription>Utilization percentage by dock</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => exportToCSV('dock-utilization', dateParams)}>
+                <Download className="h-4 w-4 mr-2" /> Export
+              </Button>
             </div>
-            <Button variant="outline" size="sm" onClick={() => exportToCSV('carriers')}>
-              <Download className="h-4 w-4 mr-2" /> Export
-            </Button>
           </CardHeader>
           <CardContent>
-            {useCarrierStats()}
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Customer Stats */}
-      <div className="grid grid-cols-1 gap-6 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Customer</CardTitle>
-              <CardDescription>Appointment counts by customer</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => exportToCSV('customers')}>
-              <Download className="h-4 w-4 mr-2" /> Export
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {useCustomerStats()}
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Attendance Stats */}
-      <div className="grid grid-cols-1 gap-6 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Attendance</CardTitle>
-              <CardDescription>Appointment attendance status</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => exportToCSV('attendance')}>
-              <Download className="h-4 w-4 mr-2" /> Export
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {useAttendanceStats()}
+            {useDockUtilizationStats(dateParams)}
           </CardContent>
         </Card>
       </div>
       
       {/* Available Reports */}
       <div>
-        <h2 className="text-xl font-medium mb-4">Report Templates (Coming Soon)</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <h3 className="text-lg font-medium mb-4">Available Reports</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center">
-                <FileText className="mr-2 h-5 w-5" /> Daily Operations Summary
+              <CardTitle className="text-md flex items-center">
+                <FileText className="mr-2 h-5 w-5 text-blue-600" />
+                Daily Activity Report
               </CardTitle>
-              <CardDescription>
-                Complete overview of dock operations, schedules, and performance metrics for each day.
-              </CardDescription>
             </CardHeader>
-            <CardFooter className="pt-2">
-              <Button variant="outline" size="sm" className="w-full" disabled>
-                <Download className="h-4 w-4 mr-2" />
-                Coming Soon
+            <CardContent className="pb-2">
+              <p className="text-sm text-muted-foreground">
+                Summary of all daily appointments and activity. Includes check-ins, check-outs, and dwell times.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" size="sm" className="w-full">
+                <Download className="h-4 w-4 mr-2" /> Generate
               </Button>
             </CardFooter>
           </Card>
           
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center">
-                <BarChart className="mr-2 h-5 w-5" /> Carrier Performance Analysis
+              <CardTitle className="text-md flex items-center">
+                <BarChart2 className="mr-2 h-5 w-5 text-green-600" />
+                Performance Metrics
               </CardTitle>
-              <CardDescription>
-                Detailed breakdown of carrier-specific metrics including on-time performance and dwell times.
-              </CardDescription>
             </CardHeader>
-            <CardFooter className="pt-2">
-              <Button variant="outline" size="sm" className="w-full" disabled>
-                <Download className="h-4 w-4 mr-2" />
-                Coming Soon
+            <CardContent className="pb-2">
+              <p className="text-sm text-muted-foreground">
+                Detailed facility performance metrics including utilization, throughput, and efficiency rates.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" size="sm" className="w-full">
+                <Download className="h-4 w-4 mr-2" /> Generate
               </Button>
             </CardFooter>
           </Card>
           
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center">
-                <BarChart2 className="mr-2 h-5 w-5" /> Dock Utilization Report
+              <CardTitle className="text-md flex items-center">
+                <Clock className="mr-2 h-5 w-5 text-amber-600" />
+                Dwell Time Analysis
               </CardTitle>
-              <CardDescription>
-                Analysis of dock usage patterns, peak times, and opportunities for optimization.
-              </CardDescription>
             </CardHeader>
-            <CardFooter className="pt-2">
-              <Button variant="outline" size="sm" className="w-full" disabled>
-                <Download className="h-4 w-4 mr-2" />
-                Coming Soon
+            <CardContent className="pb-2">
+              <p className="text-sm text-muted-foreground">
+                Detailed analysis of carrier dwell times, tardiness, and efficiency by appointment type.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" size="sm" className="w-full">
+                <Download className="h-4 w-4 mr-2" /> Generate
               </Button>
             </CardFooter>
           </Card>
         </div>
       </div>
+      
+      {/* Date Picker Dialog */}
+      <Dialog open={showDatePickerDialog} onOpenChange={setShowDatePickerDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Select Date Range</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Start Date</label>
+              <div className="border rounded-md p-3">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => date && setStartDate(date)}
+                  initialFocus
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">End Date</label>
+              <div className="border rounded-md p-3">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={(date) => date && setEndDate(date)}
+                  disabled={(date) => date < startDate}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={() => setShowDatePickerDialog(false)}>Apply</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
