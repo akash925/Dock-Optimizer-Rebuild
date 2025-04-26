@@ -82,7 +82,7 @@ function useFacilityStats(dateParams: { startDate?: string; endDate?: string }) 
   if (facilityData && facilityData.length > 0) {
     const chartData = facilityData.map(facility => ({
       date: facility.name + (facility.address ? ` (${facility.address})` : ''),
-      value: facility.appointmentCount
+      value: Number(facility.appointmentCount) // Convert string to number
     }));
 
     return (
@@ -140,7 +140,7 @@ function useCarrierStats(dateParams: { startDate?: string; endDate?: string }) {
   if (carrierData && carrierData.length > 0) {
     const chartData = carrierData.map(carrier => ({
       date: carrier.name,
-      value: carrier.appointmentCount
+      value: Number(carrier.appointmentCount) // Convert string to number
     }));
 
     return (
@@ -195,7 +195,7 @@ function useCustomerStats(dateParams: { startDate?: string; endDate?: string }) 
   if (customerData && customerData.length > 0) {
     const chartData = customerData.map(customer => ({
       date: customer.name,
-      value: customer.appointmentCount
+      value: Number(customer.appointmentCount) // Convert string to number
     }));
 
     return (
@@ -253,7 +253,7 @@ function useAttendanceStats(dateParams: { startDate?: string; endDate?: string }
   if (attendanceData && attendanceData.length > 0) {
     const chartData = attendanceData.map(item => ({
       date: item.attendanceStatus,
-      value: item.count
+      value: Number(item.count) // Convert string to number
     }));
 
     return (
@@ -311,7 +311,7 @@ function useDockUtilizationStats(dateParams: { startDate?: string; endDate?: str
   if (utilizationData && utilizationData.length > 0) {
     const chartData = utilizationData.map(dock => ({
       date: `${dock.dock_name} (${dock.facility_name})`,
-      value: dock.utilization_percentage
+      value: Number(dock.utilization_percentage) // Convert string to number
     }));
 
     return (
