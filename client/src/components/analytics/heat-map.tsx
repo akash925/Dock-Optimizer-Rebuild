@@ -174,17 +174,62 @@ export default function AnalyticsHeatMap() {
   
   const [activeTab, setActiveTab] = useState<"appointments" | "ontime">("appointments");
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   
   // Function to handle fullscreen toggling
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
   
-  // Function to toggle location dropdown
-  const toggleLocationDropdown = () => {
-    setShowLocationDropdown(!showLocationDropdown);
-  };
+  // Fetch facilities from the API
+  const { data: facilities = [] } = useQuery({
+    queryKey: ['/api/facilities'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/facilities');
+        if (!res.ok) {
+          throw new Error('Failed to fetch facilities');
+        }
+        return await res.json();
+      } catch (error) {
+        console.error('Error fetching facilities:', error);
+        return [];
+      }
+    }
+  });
+  
+  // Fetch appointment types from the API
+  const { data: appointmentTypes = [] } = useQuery({
+    queryKey: ['/api/appointment-types'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/appointment-types');
+        if (!res.ok) {
+          throw new Error('Failed to fetch appointment types');
+        }
+        return await res.json();
+      } catch (error) {
+        console.error('Error fetching appointment types:', error);
+        return [];
+      }
+    }
+  });
+  
+  // Fetch carriers from the API
+  const { data: carriers = [] } = useQuery({
+    queryKey: ['/api/carriers'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/carriers');
+        if (!res.ok) {
+          throw new Error('Failed to fetch carriers');
+        }
+        return await res.json();
+      } catch (error) {
+        console.error('Error fetching carriers:', error);
+        return [];
+      }
+    }
+  });
   
   // Fetch data from API endpoint
   const { data: appointments = [] } = useQuery({
@@ -287,9 +332,9 @@ export default function AnalyticsHeatMap() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Facilities</SelectItem>
-                    <SelectItem value="main">Main Warehouse</SelectItem>
-                    <SelectItem value="north">North Facility</SelectItem>
-                    <SelectItem value="south">South Facility</SelectItem>
+                    {facilities.map((facility: any) => (
+                      <SelectItem key={facility.id} value={facility.id.toString()}>{facility.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -305,8 +350,9 @@ export default function AnalyticsHeatMap() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="inbound">Inbound</SelectItem>
-                    <SelectItem value="outbound">Outbound</SelectItem>
+                    {appointmentTypes.map((type: any) => (
+                      <SelectItem key={type.id} value={type.id.toString()}>{type.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
