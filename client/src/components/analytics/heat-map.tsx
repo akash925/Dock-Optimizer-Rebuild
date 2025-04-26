@@ -239,7 +239,7 @@ export default function AnalyticsHeatMap() {
     queryKey: ['/api/companies'],
     queryFn: async () => {
       try {
-        // First check if companies API returns data
+        // Fetch companies directly from API with proper headers
         const res = await fetch('/api/companies', {
           headers: {
             'Accept': 'application/json'
@@ -247,35 +247,15 @@ export default function AnalyticsHeatMap() {
         });
         
         if (!res.ok) {
-          console.log('Companies API did not return data, falling back to static data');
-          // Fallback to static data if API doesn't exist yet
-          return [
-            { id: 'acme', name: 'Acme Inc' },
-            { id: 'globex', name: 'Globex Corp' },
-            { id: 'wayne', name: 'Wayne Enterprises' }
-          ];
+          throw new Error('Failed to fetch companies');
         }
         
-        // Try to parse as JSON
-        try {
-          return await res.json();
-        } catch (e) {
-          console.log('Companies API returned non-JSON data, falling back to static data');
-          // If not JSON, return static data
-          return [
-            { id: 'acme', name: 'Acme Inc' },
-            { id: 'globex', name: 'Globex Corp' },
-            { id: 'wayne', name: 'Wayne Enterprises' }
-          ];
-        }
+        const data = await res.json();
+        console.log('Successfully loaded companies:', data.length);
+        return data;
       } catch (error) {
         console.error('Error fetching companies:', error);
-        // Fallback to static data
-        return [
-          { id: 'acme', name: 'Acme Inc' },
-          { id: 'globex', name: 'Globex Corp' },
-          { id: 'wayne', name: 'Wayne Enterprises' }
-        ];
+        return []; // Return empty array instead of fake data
       }
     }
   });
