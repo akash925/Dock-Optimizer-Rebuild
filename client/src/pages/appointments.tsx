@@ -706,7 +706,7 @@ export default function AppointmentsPage() {
               
               {filteredSchedules.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8">
+                  <TableCell colSpan={11} className="text-center py-8">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <Calendar className="h-10 w-10 mb-2" />
                       <p>No appointments found</p>
@@ -732,9 +732,14 @@ export default function AppointmentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {filteredSchedules.filter((s: Schedule) => 
-                new Date(s.startTime).toDateString() === new Date().toDateString()
-              ).length}
+              {schedules?.filter((s: Schedule) => {
+                const scheduleDate = new Date(s.startTime);
+                const today = new Date();
+                
+                return scheduleDate.toDateString() === today.toDateString() && 
+                       s.status !== "cancelled" && 
+                       s.status !== "completed";
+              }).length || 0}
             </div>
           </CardContent>
         </Card>
@@ -747,13 +752,24 @@ export default function AppointmentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {filteredSchedules.filter((s: Schedule) => {
+              {schedules?.filter((s: Schedule) => {
                 const scheduleDate = new Date(s.startTime);
+                
+                // Set today to start of day
                 const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                // Set nextWeek to end of day 7 days from now
                 const nextWeek = new Date();
                 nextWeek.setDate(today.getDate() + 7);
-                return scheduleDate >= today && scheduleDate <= nextWeek;
-              }).length}
+                nextWeek.setHours(23, 59, 59, 999);
+                
+                // Only include non-cancelled and non-completed appointments
+                return scheduleDate >= today && 
+                       scheduleDate <= nextWeek && 
+                       s.status !== "cancelled" && 
+                       s.status !== "completed";
+              }).length || 0}
             </div>
           </CardContent>
         </Card>
