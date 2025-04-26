@@ -230,36 +230,52 @@ export default function FullCalendarView({
               slotMinTime="06:00:00"
               slotMaxTime="20:00:00"
               
-              // Fixed height settings - critical for proper rendering
+              // Fixed rendering parameters
               height="auto"
-              contentHeight={600}
-              aspectRatio={1.8}
+              contentHeight={650}
+              aspectRatio={2.0}
               
               // View settings
+              titleFormat={{
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              }}
+              
+              // More stable settings
               fixedWeekCount={false}
-              stickyHeaderDates={true}
-              expandRows={true}
-              handleWindowResize={true}
-              dayMinWidth={50}
-              viewDidMount={handleViewChange}
-              unselectAuto={true}
+              navLinks={false}
+              handleWindowResize={false}
+              moreLinkClick="popover"
               
-              // Fixed order for events
-              eventOrder="-start"
+              // Event display options
+              eventDisplay="block"
+              eventTimeFormat={{
+                hour: '2-digit',
+                minute: '2-digit',
+                meridiem: false,
+                hour12: false
+              }}
               
-              // Event sorting
-              eventOrderStrict={true}
+              // Event sorting - later ones on top
+              eventOrder="start" 
               
-              // Event overlapping
+              // Disable overlap to avoid stacking issues
               eventOverlap={false}
+              
+              // Force event duration for better display
               forceEventDuration={true}
               
-              // Event rendering
+              // Capture view change
+              viewDidMount={handleViewChange}
+              
+              // Simple DOM setup without complex manipulation
               eventDidMount={(eventInfo) => {
-                // Keep this minimal to avoid runtime errors
+                // Just set the data attribute for styling
                 if (eventInfo.el && eventInfo.event.start) {
                   const startHour = eventInfo.event.start.getHours();
-                  eventInfo.el.classList.add(`event-hour-${startHour}`);
+                  const hourStr = startHour.toString().padStart(2, '0');
+                  eventInfo.el.setAttribute('data-time', `${hourStr}:00`);
                 }
               }}
               eventContent={(eventInfo) => {

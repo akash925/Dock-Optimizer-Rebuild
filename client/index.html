@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <link rel="stylesheet" href="/css/calendar-fixes.css" />
+    <!-- The most reliable way to apply CSS fixes is to load them here -->
+    <link rel="stylesheet" href="/main.css" />
     <style>
       /* Critical calendar fixes - added inline for immediate effect */
       .fc-timegrid-col-events {
@@ -17,12 +18,29 @@
         margin: 2px !important;
         overflow: hidden !important;
       }
-      .fc-timegrid-event[data-time="12:00"] { z-index: 1200 !important; }
-      .fc-timegrid-event[data-time="13:00"] { z-index: 1300 !important; }
-      .fc-timegrid-event[data-time="14:00"] { z-index: 1400 !important; }
+      /* Stronger z-index override directly in HTML */
+      .fc-timegrid-event[data-time="06:00"] { z-index: 2400 !important; }
+      .fc-timegrid-event[data-time="07:00"] { z-index: 2300 !important; }
+      .fc-timegrid-event[data-time="08:00"] { z-index: 2200 !important; }
+      .fc-timegrid-event[data-time="09:00"] { z-index: 2100 !important; }
+      .fc-timegrid-event[data-time="10:00"] { z-index: 2000 !important; }
+      .fc-timegrid-event[data-time="11:00"] { z-index: 1900 !important; }
+      .fc-timegrid-event[data-time="12:00"] { z-index: 1800 !important; }
+      .fc-timegrid-event[data-time="13:00"] { z-index: 1700 !important; }
+      .fc-timegrid-event[data-time="14:00"] { z-index: 1600 !important; }
       .fc-timegrid-event[data-time="15:00"] { z-index: 1500 !important; }
-      .fc-timegrid-event[data-time="16:00"] { z-index: 1600 !important; }
-      .fc-timegrid-event[data-time="17:00"] { z-index: 1700 !important; }
+      .fc-timegrid-event[data-time="16:00"] { z-index: 1400 !important; }
+      .fc-timegrid-event[data-time="17:00"] { z-index: 1300 !important; }
+      .fc-timegrid-event[data-time="18:00"] { z-index: 1200 !important; }
+      .fc-timegrid-event[data-time="19:00"] { z-index: 1100 !important; }
+      .fc-timegrid-event[data-time="20:00"] { z-index: 1000 !important; }
+      
+      /* Force buttons to be visible */
+      .calendar-view-button {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
     </style>
   </head>
   <body>

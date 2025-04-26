@@ -1,0 +1,116 @@
+/* Global overrides for calendar issues */
+
+/* Fix z-index ordering for events by hour - more important than inline styles */
+.fc-timegrid-event[data-time="06:00"],
+.event-hour-6 {
+  z-index: 24 !important;
+}
+
+.fc-timegrid-event[data-time="07:00"],
+.event-hour-7 {
+  z-index: 23 !important;
+}
+
+.fc-timegrid-event[data-time="08:00"],
+.event-hour-8 {
+  z-index: 22 !important;
+}
+
+.fc-timegrid-event[data-time="09:00"],
+.event-hour-9 {
+  z-index: 21 !important;
+}
+
+.fc-timegrid-event[data-time="10:00"],
+.event-hour-10 {
+  z-index: 20 !important;
+}
+
+.fc-timegrid-event[data-time="11:00"],
+.event-hour-11 {
+  z-index: 19 !important;
+}
+
+.fc-timegrid-event[data-time="12:00"],
+.event-hour-12 {
+  z-index: 18 !important;
+}
+
+.fc-timegrid-event[data-time="13:00"],
+.event-hour-13 {
+  z-index: 17 !important;
+}
+
+.fc-timegrid-event[data-time="14:00"],
+.event-hour-14 {
+  z-index: 16 !important;
+}
+
+.fc-timegrid-event[data-time="15:00"],
+.event-hour-15 {
+  z-index: 15 !important;
+}
+
+.fc-timegrid-event[data-time="16:00"],
+.event-hour-16 {
+  z-index: 14 !important;
+}
+
+.fc-timegrid-event[data-time="17:00"],
+.event-hour-17 {
+  z-index: 13 !important;
+}
+
+.fc-timegrid-event[data-time="18:00"],
+.event-hour-18 {
+  z-index: 12 !important;
+}
+
+.fc-timegrid-event[data-time="19:00"],
+.event-hour-19 {
+  z-index: 11 !important;
+}
+
+.fc-timegrid-event[data-time="20:00"],
+.event-hour-20 {
+  z-index: 10 !important;
+}
+
+/* Container adjustments */
+.calendar-container {
+  height: 70vh !important;
+  width: 100% !important;
+  overflow: auto !important;
+}
+
+/* Button visibility fixes */
+.calendar-view-button {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Button container fixes */
+.view-buttons-container {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1000 !important;
+  background-color: white !important;
+  padding: 1rem 0 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* Calendar core fixes */
+.fc {
+  height: 100% !important;
+}
+
+.fc-view-harness {
+  min-height: 500px !important;
+}
+
+/* Event appearance */
+.fc-event {
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24) !important;
+}
