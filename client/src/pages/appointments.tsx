@@ -81,7 +81,7 @@ export default function AppointmentsPage() {
   });
   const [customerFilter, setCustomerFilter] = useState<string>("all");
   const [carrierFilter, setCarrierFilter] = useState<string>("all");
-  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [facilityFilter, setFacilityFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   
@@ -293,11 +293,15 @@ export default function AppointmentsPage() {
         }
       }
       
-      // Location/Dock filter
-      if (locationFilter !== "all" && schedule.dockId) {
-        const dockName = getDockName(schedule.dockId).toLowerCase();
-        if (!dockName.includes(locationFilter.toLowerCase())) {
-          return false;
+      // Facility filter
+      if (facilityFilter !== "all" && schedule.dockId) {
+        const dock = docks?.find((d: any) => d.id === schedule.dockId);
+        if (dock) {
+          const facility = facilities?.find((f: any) => f.id === dock.facilityId);
+          const facilityName = facility ? facility.name.toLowerCase() : "";
+          if (!facilityName.includes(facilityFilter.toLowerCase())) {
+            return false;
+          }
         }
       }
       
@@ -324,7 +328,7 @@ export default function AppointmentsPage() {
     }).sort((a, b) => 
       new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
     );
-  }, [schedules, dateRange, customerFilter, carrierFilter, locationFilter, typeFilter, searchQuery]);
+  }, [schedules, dateRange, customerFilter, carrierFilter, facilityFilter, typeFilter, searchQuery, facilities]);
   
   // Create list of unique values for filters
   const customerList = useMemo(() => {
@@ -474,54 +478,45 @@ export default function AppointmentsPage() {
             <div className="space-y-2">
               <div className="font-medium text-sm">Date Range</div>
               <div className="flex gap-2 items-center">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange.start ? format(dateRange.start, "MMM dd, yyyy") : "Start date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarComponent
-                      mode="single"
-                      selected={dateRange.start}
-                      onSelect={(date) => setDateRange({ ...dateRange, start: date })}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Input
+                  type="date"
+                  value={dateRange.start ? format(dateRange.start, "yyyy-MM-dd") : ""}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setDateRange({ 
+                        ...dateRange, 
+                        start: new Date(e.target.value) 
+                      });
+                    } else {
+                      setDateRange({ 
+                        ...dateRange, 
+                        start: undefined 
+                      });
+                    }
+                  }}
+                  className="w-full"
+                />
                 <span>to</span>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dateRange.end ? format(dateRange.end, "MMM dd, yyyy") : "End date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarComponent
-                      mode="single"
-                      selected={dateRange.end}
-                      onSelect={(date) => setDateRange({ ...dateRange, end: date })}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                {(dateRange.start || dateRange.end) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDateRange({ start: undefined, end: undefined })}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
+                <Input
+                  type="date"
+                  value={dateRange.end ? format(dateRange.end, "yyyy-MM-dd") : ""}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      const date = new Date(e.target.value);
+                      date.setHours(23, 59, 59, 999); // Set to end of day
+                      setDateRange({ 
+                        ...dateRange, 
+                        end: date 
+                      });
+                    } else {
+                      setDateRange({ 
+                        ...dateRange, 
+                        end: undefined 
+                      });
+                    }
+                  }}
+                  className="w-full"
+                />
               </div>
             </div>
             
@@ -563,20 +558,20 @@ export default function AppointmentsPage() {
               </Select>
             </div>
             
-            {/* Location */}
+            {/* Facility */}
             <div className="space-y-2">
-              <div className="font-medium text-sm">Location</div>
+              <div className="font-medium text-sm">Facility</div>
               <Select
-                value={locationFilter}
-                onValueChange={setLocationFilter}
+                value={facilityFilter}
+                onValueChange={setFacilityFilter}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All locations" />
+                  <SelectValue placeholder="All facilities" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All locations</SelectItem>
-                  {docks?.map((dock: any) => (
-                    <SelectItem key={dock.id} value={dock.name}>{dock.name}</SelectItem>
+                  <SelectItem value="all">All facilities</SelectItem>
+                  {facilities?.map((facility: any) => (
+                    <SelectItem key={facility.id} value={facility.name}>{facility.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -633,7 +628,7 @@ export default function AppointmentsPage() {
                   });
                   setCustomerFilter("all");
                   setCarrierFilter("all");
-                  setLocationFilter("all");
+                  setFacilityFilter("all");
                   setTypeFilter("all");
                   setSearchQuery("");
                 }}
@@ -660,7 +655,7 @@ export default function AppointmentsPage() {
                 <TableHead>Event Date</TableHead>
                 <TableHead>Event Time</TableHead>
                 <TableHead>Event Type</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead>Facility</TableHead>
                 <TableHead>Carrier</TableHead>
                 <TableHead>MC #</TableHead>
                 <TableHead>Truck #</TableHead>
