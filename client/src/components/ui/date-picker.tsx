@@ -14,12 +14,14 @@ export interface DatePickerProps {
   date: Date | undefined;
   onDateChange: (date: Date | undefined) => void;
   disablePastDates?: boolean;
+  disabledDays?: (date: Date) => boolean;
 }
 
 export function DatePicker({
   date,
   onDateChange,
   disablePastDates = false,
+  disabledDays,
 }: DatePickerProps) {
   return (
     <Popover>
@@ -40,7 +42,13 @@ export function DatePicker({
           mode="single"
           selected={date}
           onSelect={onDateChange}
-          disabled={disablePastDates ? { before: new Date() } : undefined}
+          disabled={
+            disabledDays 
+              ? (date) => (disablePastDates && date < new Date()) || disabledDays(date)
+              : disablePastDates 
+                ? { before: new Date() } 
+                : undefined
+          }
           initialFocus
         />
       </PopoverContent>
