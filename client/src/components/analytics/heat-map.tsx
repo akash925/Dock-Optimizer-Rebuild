@@ -231,6 +231,52 @@ export default function AnalyticsHeatMap() {
     }
   });
   
+  // Fetch companies (customers) from the API
+  const { data: companies = [] } = useQuery({
+    queryKey: ['/api/companies'],
+    queryFn: async () => {
+      try {
+        // First check if companies API returns data
+        const res = await fetch('/api/companies', {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (!res.ok) {
+          console.log('Companies API did not return data, falling back to static data');
+          // Fallback to static data if API doesn't exist yet
+          return [
+            { id: 'acme', name: 'Acme Inc' },
+            { id: 'globex', name: 'Globex Corp' },
+            { id: 'wayne', name: 'Wayne Enterprises' }
+          ];
+        }
+        
+        // Try to parse as JSON
+        try {
+          return await res.json();
+        } catch (e) {
+          console.log('Companies API returned non-JSON data, falling back to static data');
+          // If not JSON, return static data
+          return [
+            { id: 'acme', name: 'Acme Inc' },
+            { id: 'globex', name: 'Globex Corp' },
+            { id: 'wayne', name: 'Wayne Enterprises' }
+          ];
+        }
+      } catch (error) {
+        console.error('Error fetching companies:', error);
+        // Fallback to static data
+        return [
+          { id: 'acme', name: 'Acme Inc' },
+          { id: 'globex', name: 'Globex Corp' },
+          { id: 'wayne', name: 'Wayne Enterprises' }
+        ];
+      }
+    }
+  });
+  
   // Fetch data from API endpoint
   const { data: appointments = [] } = useQuery({
     queryKey: ['/api/analytics/heatmap', filter],
@@ -368,9 +414,9 @@ export default function AnalyticsHeatMap() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Customers</SelectItem>
-                    <SelectItem value="acme">Acme Inc</SelectItem>
-                    <SelectItem value="globex">Globex Corp</SelectItem>
-                    <SelectItem value="wayne">Wayne Enterprises</SelectItem>
+                    {companies.map((company: any) => (
+                      <SelectItem key={company.id} value={company.id.toString()}>{company.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -386,9 +432,9 @@ export default function AnalyticsHeatMap() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Carriers</SelectItem>
-                    <SelectItem value="fedex">FedEx</SelectItem>
-                    <SelectItem value="ups">UPS</SelectItem>
-                    <SelectItem value="dhl">DHL</SelectItem>
+                    {carriers.map((carrier: any) => (
+                      <SelectItem key={carrier.id} value={carrier.id.toString()}>{carrier.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
