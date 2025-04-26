@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -130,30 +130,33 @@ const HeatMapView: React.FC<HeatMapViewProps> = ({ data, mode, filter }) => {
           </div>
           
           <div className="grid grid-cols-13">
-            {DAYS.map(day => (
-              <React.Fragment key={day}>
-                {HOURS.map(hour => {
-                  const cellData = dataByDayAndHour[day]?.[hour];
-                  const value = cellData 
-                    ? (mode === "appointments" ? cellData.count : (cellData.onTimePercentage || 0)) 
-                    : 0;
-                  
-                  const displayValue = mode === "appointments" 
-                    ? (value > 0 ? value.toString() : "") 
-                    : (value > 0 ? `${value}%` : "");
-                  
-                  return (
-                    <HeatMapCell 
-                      key={`${day}-${hour}`} 
-                      value={value} 
-                      maxValue={maxValue}
-                      displayValue={displayValue}
-                      onHover={setHoveredValue}
-                    />
-                  );
-                })}
-              </React.Fragment>
-            ))}
+            {DAYS.map(day => {
+              // Using React.Fragment with only a key property is valid
+              return (
+                <React.Fragment key={day}>
+                  {HOURS.map(hour => {
+                    const cellData = dataByDayAndHour[day]?.[hour];
+                    const value = cellData 
+                      ? (mode === "appointments" ? cellData.count : (cellData.onTimePercentage || 0)) 
+                      : 0;
+                    
+                    const displayValue = mode === "appointments" 
+                      ? (value > 0 ? value.toString() : "") 
+                      : (value > 0 ? `${value}%` : "");
+                    
+                    return (
+                      <HeatMapCell 
+                        key={`${day}-${hour}`} 
+                        value={value} 
+                        maxValue={maxValue}
+                        displayValue={displayValue}
+                        onHover={setHoveredValue}
+                      />
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -283,7 +286,7 @@ export default function AnalyticsHeatMap() {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filter.location !== 'all') params.append('facilityId', filter.location);
-      if (filter.appointment !== 'all') params.append('appointmentType', filter.appointment);
+      if (filter.appointment !== 'all') params.append('appointmentTypeId', filter.appointment);
       if (filter.customer !== 'all') params.append('customerId', filter.customer);
       if (filter.carrier !== 'all') params.append('carrierId', filter.carrier);
       
@@ -301,20 +304,31 @@ export default function AnalyticsHeatMap() {
     placeholderData: []
   });
   
+  // Add console log to help debug the API response
+  useEffect(() => {
+    console.log("Query params:", new URLSearchParams(
+      Object.entries(filter)
+        .filter(([key, value]) => value !== 'all')
+        .map(([key, value]) => [key === 'location' ? 'facilityId' : 
+                               key === 'appointment' ? 'appointmentTypeId' : 
+                               key === 'customer' ? 'customerId' : 'carrierId', value])
+    ).toString());
+  }, [filter]);
+  
   // Transform API data for heatmap display
   const heatmapData = useMemo(() => {
-    // If we don't have data yet from the API, generate sample data for immediate display
+    // If we don't have data yet from the API, generate sample data with more realistic numbers
     if (!appointments.length) {
       // Generated fallback data structure but only for UI preview before real data loads
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const hours = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const hours = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
       
       return days.flatMap(day => 
         hours.map(hour => ({
           day,
           hour,
-          count: day === 'Saturday' ? 0 : Math.floor(Math.random() * 16),
-          onTimePercentage: day === 'Saturday' ? 0 : Math.floor(70 + Math.random() * 30)
+          count: day === 'Saturday' || day === 'Sunday' ? 0 : Math.floor(Math.random() * 5) + (Math.random() > 0.7 ? 1 : 0),
+          onTimePercentage: day === 'Saturday' || day === 'Sunday' ? 0 : Math.floor(70 + Math.random() * 30)
         }))
       );
     }
