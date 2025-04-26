@@ -1080,7 +1080,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Find or create carrier
-      let carrier;
+      let carrier = null;
       try {
         // Try to find carrier by name first
         const carriers = await storage.getCarriers();
@@ -1100,12 +1100,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Created new carrier: ${carrier.name} with ID ${carrier.id}`);
         } else {
           // If carrier found but MC Number is different and provided, update it
-          if (validatedData.mcNumber && carrier.mcNumber !== validatedData.mcNumber) {
+          if (carrier && validatedData.mcNumber && carrier.mcNumber !== validatedData.mcNumber) {
             carrier = await storage.updateCarrier(carrier.id, {
               ...carrier,
               mcNumber: validatedData.mcNumber
             });
-            console.log(`Updated carrier ${carrier.name} with MC number: ${validatedData.mcNumber}`);
+            console.log(`Updated carrier ${carrier?.name || 'Unknown'} with MC number: ${validatedData.mcNumber}`);
           }
         }
       } catch (error) {
@@ -1113,12 +1113,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to process carrier information" });
       }
       
+      // Final safety check - if we still don't have a carrier, create a default one
+      if (!carrier) {
+        try {
+          carrier = await storage.createCarrier({
+            name: validatedData.carrierName || "Unknown Carrier",
+            mcNumber: validatedData.mcNumber || "",
+            contactName: validatedData.contactName || "Unknown",
+            contactEmail: validatedData.email || "unknown@example.com",
+            contactPhone: validatedData.phone || "0000000000"
+          });
+          console.log(`Created fallback carrier: ${carrier.name} with ID ${carrier.id}`);
+        } catch (fallbackError) {
+          console.error("Error creating fallback carrier:", fallbackError);
+          return res.status(500).json({ message: "Failed to process carrier information" });
+        }
+      }
+      
       // Find appropriate dock
       let dockId;
       try {
         // Get docks for the facility
         const docks = await storage.getDocksByFacility(validatedData.facilityId);
-        if (docks.length === 0) {
+        if (!docks || docks.length === 0) {
           return res.status(400).json({ message: "No available docks for selected facility" });
         }
         
@@ -1138,7 +1155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         facilityId: validatedData.facilityId,
         dockId: dockId,
         appointmentTypeId: validatedData.appointmentTypeId,
-        carrierId: carrier.id,
+        carrierId: carrier ? carrier.id : null, // Handle null carrier
         carrierName: validatedData.carrierName,
         mcNumber: validatedData.mcNumber || null,
         customerName: validatedData.companyName,
@@ -1327,9 +1344,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: validatedData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound',
         status: "scheduled",
         dockId: docks[0].id,
-        carrierId: carrier.id,
-        carrierName: validatedData.carrierName || carrier.name,
-        mcNumber: validatedData.mcNumber || carrier.mcNumber || null,
+        carrierId: carrier ? carrier.id : null, // Handle null carrier
+        carrierName: validatedData.carrierName || (carrier ? carrier.name : "Unknown Carrier"),
+        mcNumber: validatedData.mcNumber || (carrier && carrier.mcNumber ? carrier.mcNumber : null),
         customerName: validatedData.customerName,
         truckNumber: validatedData.truckNumber,
         trailerNumber: validatedData.trailerNumber || null,
