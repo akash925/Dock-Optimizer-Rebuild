@@ -592,26 +592,42 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
       appointmentTypes.push(...typeIds);
     });
     
-    console.log("Flattened appointment types array:", appointmentTypes);
+    console.log("[BookingPageForm] Flattened appointment types array:", appointmentTypes);
+    console.log("[BookingPageForm] Selected facilities:", selectedFacilities);
     
     try {
       if (bookingPage) {
-        console.log("Updating existing booking page with ID:", bookingPage.id);
+        console.log("[BookingPageForm] Updating existing booking page with ID:", bookingPage.id);
+        
         // Pass both the form data and the appointment types to the API
         const enrichedData = {
           ...data,
           facilities: selectedFacilities,
           appointmentTypes: appointmentTypes
         };
+        
+        console.log("[BookingPageForm] Preparing update with payload:", JSON.stringify(enrichedData, null, 2));
+        
+        // Enhanced logging for tracking payload
+        if (appointmentTypes.length === 0) {
+          console.warn("[BookingPageForm] WARNING: No appointment types selected for update!");
+        }
+        
+        if (selectedFacilities.length === 0) {
+          console.warn("[BookingPageForm] WARNING: No facilities selected for update!");
+        }
+        
         updateMutation.mutate(enrichedData);
       } else {
-        console.log("Creating new booking page");
+        console.log("[BookingPageForm] Creating new booking page");
         // Pass both the form data and the appointment types to the API
         const enrichedData = {
           ...data,
           facilities: selectedFacilities,
           appointmentTypes: appointmentTypes
         };
+        
+        console.log("[BookingPageForm] Preparing creation with payload:", JSON.stringify(enrichedData, null, 2));
         createMutation.mutate(enrichedData);
       }
     } catch (error) {

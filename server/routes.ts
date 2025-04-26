@@ -1681,15 +1681,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/booking-pages/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
+      console.log(`[BookingPage] Processing update request for booking page ID ${id}`);
+      console.log(`[BookingPage] Request body:`, JSON.stringify(req.body, null, 2));
+      
       const bookingPage = await storage.getBookingPage(id);
       if (!bookingPage) {
+        console.log(`[BookingPage] Error: Booking page ${id} not found`);
         return res.status(404).json({ message: "Booking page not found" });
       }
       
       // Validate facilities and appointment types
       const { facilities, appointmentTypes } = req.body;
+      console.log(`[BookingPage] Raw facilities from request:`, facilities);
+      console.log(`[BookingPage] Raw appointmentTypes from request:`, appointmentTypes);
       
       if (!facilities || !Array.isArray(facilities) || facilities.length === 0) {
+        console.log(`[BookingPage] Error: No facilities provided or invalid format`);
         return res.status(400).json({
           error: "Validation error",
           message: "Please select at least one facility"
@@ -1697,11 +1704,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!appointmentTypes || !Array.isArray(appointmentTypes) || appointmentTypes.length === 0) {
+        console.log(`[BookingPage] Error: No appointment types provided or invalid format`);
         return res.status(400).json({
           error: "Validation error",
           message: "Please select at least one appointment type"
         });
       }
+      
+      // Convert any string IDs to numbers to ensure consistent processing
+      const parsedFacilities = facilities.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
+      const parsedAppointmentTypes = appointmentTypes.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
+      
+      console.log(`[BookingPage] Parsed facilities:`, parsedFacilities);
+      console.log(`[BookingPage] Parsed appointment types:`, parsedAppointmentTypes);
       
       // Add the current user to lastModifiedBy field
       const bookingPageData = {
@@ -1713,6 +1728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (bookingPageData.slug && bookingPageData.slug !== bookingPage.slug) {
         const existingBookingPage = await storage.getBookingPageBySlug(bookingPageData.slug);
         if (existingBookingPage && existingBookingPage.id !== id) {
+          console.log(`[BookingPage] Error: Slug '${bookingPageData.slug}' already in use`);
           return res.status(400).json({ message: "Slug already in use" });
         }
       }
@@ -1721,32 +1737,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allAppointmentTypes = await storage.getAppointmentTypes();
       const allAppointmentTypeIds = allAppointmentTypes.map(type => type.id);
       
+      console.log(`[BookingPage] All appointment type IDs in the system:`, allAppointmentTypeIds);
+      
       // Find appointment types to exclude (inverse of included types)
       const excludedAppointmentTypes = allAppointmentTypeIds.filter(
-        id => !appointmentTypes.includes(id)
+        id => !parsedAppointmentTypes.includes(id)
       );
+      
+      console.log(`[BookingPage] Calculated excluded appointment types:`, excludedAppointmentTypes);
       
       // Prepare the data to save with correct structure
       const dataToSave = {
         ...bookingPageData,
-        facilities: facilities, // Array of facility IDs
+        facilities: parsedFacilities, // Array of facility IDs
         excludedAppointmentTypes: excludedAppointmentTypes // For backward compatibility
       };
       
-      console.log(`Updating booking page ${id} with:`, {
-        facilities: facilities.length,
-        appointmentTypes: appointmentTypes.length,
+      // Remove the raw appointmentTypes from the data to save to avoid confusion with excludedAppointmentTypes
+      delete dataToSave.appointmentTypes;
+      
+      console.log(`[BookingPage] Updating booking page ${id} with:`, {
+        facilities: parsedFacilities.length,
+        includedAppointmentTypes: parsedAppointmentTypes.length,
         excludedAppointmentTypes: excludedAppointmentTypes.length
       });
       
+      console.log(`[BookingPage] Full update payload:`, JSON.stringify(dataToSave, null, 2));
+      
       const updatedBookingPage = await storage.updateBookingPage(id, dataToSave);
+      console.log(`[BookingPage] Update successful, response:`, JSON.stringify(updatedBookingPage, null, 2));
       
       res.status(200).json({
         bookingPage: updatedBookingPage,
         success: true
       });
     } catch (err) {
-      console.error("Error updating booking page:", err);
+      console.error("[BookingPage] Error updating booking page:", err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ 
           message: "Invalid booking page data", 
