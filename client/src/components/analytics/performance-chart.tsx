@@ -54,8 +54,8 @@ export default function PerformanceChart({
   // Calculate the appropriate height based on number of items for horizontal layout
   // For horizontal charts in cards, use a more constrained height with a minimum
   const chartHeight = horizontal 
-    ? Math.max(200, Math.min(processedData.length * 25, 350)) // More compact sizing for cards
-    : 300;
+    ? Math.max(200, Math.min(processedData.length * 30, 320)) // Adjusted for better bar spacing
+    : 280;
   
   return (
     <div className="w-full" style={{ height: chartHeight }}>
@@ -66,7 +66,7 @@ export default function PerformanceChart({
           margin={{
             top: 10,
             right: 20,
-            left: horizontal ? 120 : 20, // Reduced space for labels while still maintaining readability
+            left: horizontal ? 100 : 20, // Reduced left margin to shift axis leftward
             bottom: horizontal ? 10 : 60,
           }}
         >
@@ -89,7 +89,7 @@ export default function PerformanceChart({
                 dataKey="date"
                 type="category"
                 tick={{ fontSize: 12 }}
-                width={110}
+                width={90}
               />
             </>
           ) : (
@@ -143,7 +143,7 @@ export default function PerformanceChart({
             dataKey="value" 
             name={yAxisLabel} 
             fill={color} 
-            barSize={horizontal ? 20 : 30}
+            barSize={horizontal ? 25 : 40}
             radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
           />
         </BarChart>
