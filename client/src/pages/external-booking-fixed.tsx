@@ -118,16 +118,45 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
     try {
       setIsLoading(true);
       
+      // Validate essential data before submission
+      const requiredFields = [
+        { field: 'facilityId', label: 'Facility' },
+        { field: 'appointmentTypeId', label: 'Appointment Type' },
+        { field: 'startTime', label: 'Appointment Time' },
+        { field: 'endTime', label: 'Appointment End Time' },
+        { field: 'companyName', label: 'Company Name' },
+        { field: 'contactName', label: 'Contact Name' },
+        { field: 'email', label: 'Email' },
+        { field: 'phone', label: 'Phone' },
+        { field: 'carrierName', label: 'Carrier Name' },
+        { field: 'driverName', label: 'Driver Name' },
+        { field: 'driverPhone', label: 'Driver Phone' },
+        { field: 'truckNumber', label: 'Truck Number' }
+      ];
+      
+      const missingFields = requiredFields.filter(
+        field => !bookingData[field.field as keyof typeof bookingData]
+      );
+      
+      if (missingFields.length > 0) {
+        const missingFieldNames = missingFields.map(f => f.label).join(', ');
+        throw new Error(`Please complete all required fields: ${missingFieldNames}`);
+      }
+      
       // Build the schedule data
       const scheduleData = {
         ...bookingData,
         bookingPageId: bookingPage.id,
         status: 'pending',
-        // Convert dates to UTC for server storage
+        // Ensure dates are properly formatted
         startTime: bookingData.startTime,
         endTime: bookingData.endTime,
         createdVia: 'external',
+        // Ensure MC Number is properly handled (optional but included)
+        mcNumber: bookingData.mcNumber || ''
       };
+      
+      console.log('Submitting appointment data:', scheduleData);
       
       // Submit to API
       const response = await fetch('/api/schedules/external', {
@@ -138,23 +167,25 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
         body: JSON.stringify(scheduleData),
       });
       
+      const responseData = await response.json();
+      
       if (!response.ok) {
-        throw new Error('Failed to create appointment');
+        const errorMessage = responseData.message || 'Failed to create appointment';
+        throw new Error(errorMessage);
       }
       
-      const data = await response.json();
-      
       // Store the confirmation code
-      setConfirmationCode(data.confirmationCode);
+      setConfirmationCode(responseData.confirmationCode);
       
       // Mark as created
       setAppointmentCreated(true);
       
       // Move to confirmation step
       setCurrentStep(4);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating appointment:', error);
-      alert('There was an error creating your appointment. Please try again.');
+      // Use a more user-friendly alert
+      alert(error.message || 'There was an error creating your appointment. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -923,11 +954,11 @@ const customerInfoSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   phone: z.string().min(5, { message: "Phone number is required" }),
   customerRef: z.string().optional(),
-  carrierName: z.string().optional(),
-  driverName: z.string().optional(),
-  driverPhone: z.string().optional(),
-  mcNumber: z.string().optional(),
-  truckNumber: z.string().optional(),
+  carrierName: z.string().min(1, { message: "Carrier name is required" }),
+  driverName: z.string().min(1, { message: "Driver name is required" }),
+  driverPhone: z.string().min(5, { message: "Driver phone is required" }),
+  mcNumber: z.string().optional(), // MC Number remains optional
+  truckNumber: z.string().min(1, { message: "Truck number is required" }),
   trailerNumber: z.string().optional(),
   notes: z.string().optional()
 });
