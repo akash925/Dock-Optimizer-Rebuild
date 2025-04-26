@@ -271,11 +271,32 @@ function ServiceSelectionStepOld({ bookingPage }: { bookingPage: any }) {
   const facilityAppointmentTypes = useMemo(() => {
     if (!appointmentTypes || !bookingData.facilityId) return [];
     
+    console.log("[ExternalBooking] Filtering appointment types for facility:", bookingData.facilityId);
+    console.log("[ExternalBooking] Booking page excludedAppointmentTypes:", bookingPage?.excludedAppointmentTypes);
+    
+    // Get excluded appointment types from booking page
+    const excludedTypes = bookingPage?.excludedAppointmentTypes || [];
+    
     // Filter for the selected facility and sort alphabetically by name
-    return appointmentTypes
-      .filter((type: any) => type.facilityId === bookingData.facilityId)
+    const filteredTypes = appointmentTypes
+      .filter((type: any) => {
+        // First filter by facility ID
+        const matchesFacility = type.facilityId === bookingData.facilityId;
+        
+        // Then check if type is not excluded
+        const typeId = typeof type.id === 'string' ? parseInt(type.id, 10) : type.id;
+        const isExcluded = Array.isArray(excludedTypes) && excludedTypes.includes(typeId);
+        
+        const shouldInclude = matchesFacility && !isExcluded;
+        console.log(`[ExternalBooking] Type ${type.id} (${type.name}): facilityMatch=${matchesFacility}, excluded=${isExcluded}, include=${shouldInclude}`);
+        
+        return shouldInclude;
+      })
       .sort((a: any, b: any) => a.name.localeCompare(b.name));
-  }, [appointmentTypes, bookingData.facilityId]);
+    
+    console.log(`[ExternalBooking] Found ${filteredTypes.length} appointment types for facility ${bookingData.facilityId}`);
+    return filteredTypes;
+  }, [appointmentTypes, bookingData.facilityId, bookingPage?.excludedAppointmentTypes]);
   
   // Handle BOL processing from the BolUpload component
   const handleBolProcessed = (data: ParsedBolData, fileUrl: string) => {

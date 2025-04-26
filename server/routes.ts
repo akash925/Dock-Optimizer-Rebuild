@@ -1305,9 +1305,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/facilities/:id/appointment-types", async (req, res) => {
     try {
       const facilityId = Number(req.params.id);
+      console.log(`[AppointmentTypes] Fetching appointment types for facility ID: ${facilityId}`);
+      
+      const facility = await storage.getFacility(facilityId);
+      if (!facility) {
+        console.log(`[AppointmentTypes] Facility ID ${facilityId} not found`);
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
       const appointmentTypes = await storage.getAppointmentTypesByFacility(facilityId);
-      res.json(appointmentTypes);
+      console.log(`[AppointmentTypes] Found ${appointmentTypes.length} appointment types for facility ID ${facilityId}`);
+      
+      // Optional query parameter to filter by booking page
+      const bookingPageId = req.query.bookingPageId ? Number(req.query.bookingPageId) : null;
+      
+      if (bookingPageId) {
+        console.log(`[AppointmentTypes] Filtering by booking page ID: ${bookingPageId}`);
+        
+        // Get the booking page to check excluded appointment types
+        const bookingPage = await storage.getBookingPage(bookingPageId);
+        
+        if (!bookingPage) {
+          console.log(`[AppointmentTypes] Booking page ID ${bookingPageId} not found`);
+          return res.status(404).json({ message: "Booking page not found" });
+        }
+        
+        // Get the excluded appointment types
+        const excludedTypes = bookingPage.excludedAppointmentTypes || [];
+        console.log(`[AppointmentTypes] Excluded appointment types: `, excludedTypes);
+        
+        // Filter out excluded appointment types
+        const filteredTypes = appointmentTypes.filter(type => {
+          const isExcluded = Array.isArray(excludedTypes) && excludedTypes.includes(type.id);
+          return !isExcluded;
+        });
+        
+        console.log(`[AppointmentTypes] Returning ${filteredTypes.length} appointment types after filtering by booking page`);
+        
+        res.json(filteredTypes);
+      } else {
+        // Return all appointment types for the facility
+        res.json(appointmentTypes);
+      }
     } catch (err) {
+      console.error("[AppointmentTypes] Error fetching appointment types for facility:", err);
       res.status(500).json({ message: "Failed to fetch appointment types for facility" });
     }
   });
@@ -1571,14 +1612,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/booking-pages/slug/:slug", async (req, res) => {
     try {
-      const bookingPage = await storage.getBookingPageBySlug(req.params.slug);
+      const slug = req.params.slug;
+      console.log(`[BookingPage] Retrieving booking page with slug: ${slug}`);
+      
+      const bookingPage = await storage.getBookingPageBySlug(slug);
       if (!bookingPage) {
+        console.log(`[BookingPage] No booking page found with slug: ${slug}`);
         return res.status(404).json({ message: "Booking page not found" });
       }
+      
+      console.log(`[BookingPage] Successfully retrieved booking page:`, {
+        id: bookingPage.id,
+        name: bookingPage.name,
+        facilities: bookingPage.facilities,
+        excludedAppointmentTypes: bookingPage.excludedAppointmentTypes
+      });
+      
+      // Ensure excludedAppointmentTypes is always an array
+      if (!bookingPage.excludedAppointmentTypes) {
+        bookingPage.excludedAppointmentTypes = [];
+      } else if (!Array.isArray(bookingPage.excludedAppointmentTypes)) {
+        // If it's a string (JSON), try to parse it
+        try {
+          const parsed = JSON.parse(bookingPage.excludedAppointmentTypes as unknown as string);
+          bookingPage.excludedAppointmentTypes = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          console.log(`[BookingPage] Error parsing excludedAppointmentTypes, defaulting to empty array`);
+          bookingPage.excludedAppointmentTypes = [];
+        }
+      }
+      
+      // Make sure we're returning numeric IDs for consistency
+      if (bookingPage.excludedAppointmentTypes) {
+        bookingPage.excludedAppointmentTypes = (bookingPage.excludedAppointmentTypes as any[]).map(id => 
+          typeof id === 'string' ? parseInt(id, 10) : id
+        );
+      }
+      
       res.json(bookingPage);
     } catch (err) {
-      console.error("Error fetching booking page by slug:", err);
-      res.status(500).json({ message: "Failed to fetch booking page" });
+      console.error("[BookingPage] Error retrieving booking page:", err);
+      res.status(500).json({ message: "Failed to retrieve booking page" });
     }
   });
 
