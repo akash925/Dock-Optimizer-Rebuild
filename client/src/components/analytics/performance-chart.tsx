@@ -38,18 +38,25 @@ export default function PerformanceChart({
     ? [...data].sort((a, b) => b.value - a.value)
     : data;
   
-  // Process data for display - limit to 10 items and trim long labels
+  // Process data for display - limit to 10 items
   const displayData = horizontal && sortedData.length > 10 
     ? sortedData.slice(0, 10) 
     : sortedData;
   
-  // Trim long labels for better display
-  const processedData = displayData.map(item => ({
-    ...item,
-    date: typeof item.date === 'string' && item.date.length > 25 
-      ? item.date.substring(0, 22) + '...' 
-      : item.date
-  }));
+  // Store original labels for tooltips and create shortened versions for display
+  const processedData = displayData.map(item => {
+    const originalDate = item.date;
+    // Extremely short display text for labels to maximize chart space
+    const shortenedDate = typeof item.date === 'string' && item.date.length > 18
+      ? item.date.substring(0, 15) + '...' 
+      : item.date;
+      
+    return {
+      ...item,
+      originalDate, // Store original for tooltip
+      date: shortenedDate // Display shortened version
+    };
+  });
   
   // Calculate the appropriate height based on number of items for horizontal layout
   // For horizontal charts in cards, use a more constrained height with a minimum
@@ -64,10 +71,10 @@ export default function PerformanceChart({
           data={processedData}
           layout={horizontal ? "vertical" : "horizontal"}
           margin={{
-            top: 10,
-            right: 20,
-            left: horizontal ? 100 : 20, // Reduced left margin to shift axis leftward
-            bottom: horizontal ? 10 : 60,
+            top: 5,
+            right: 15,
+            left: horizontal ? 60 : 20, // Drastically reduced left margin to maximize chart space
+            bottom: horizontal ? 5 : 60,
           }}
         >
           <CartesianGrid strokeDasharray="3 3" horizontal={!horizontal} vertical={horizontal} />
@@ -89,7 +96,7 @@ export default function PerformanceChart({
                 dataKey="date"
                 type="category"
                 tick={{ fontSize: 12 }}
-                width={90}
+                width={55}
               />
             </>
           ) : (
@@ -115,7 +122,11 @@ export default function PerformanceChart({
           )}
           
           <Tooltip 
-            formatter={(value: number) => [`${value}${suffix}`, yAxisLabel]}
+            formatter={(value: any) => [`${value}${suffix}`, yAxisLabel]}
+            labelFormatter={(label: any, payload: any) => {
+              const item = payload?.[0]?.payload;
+              return item?.originalDate || label;
+            }}
             contentStyle={{ 
               backgroundColor: "white", 
               border: "1px solid #e0e0e0",
@@ -143,7 +154,7 @@ export default function PerformanceChart({
             dataKey="value" 
             name={yAxisLabel} 
             fill={color} 
-            barSize={horizontal ? 25 : 40}
+            barSize={horizontal ? 30 : 45}
             radius={horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]}
           />
         </BarChart>
