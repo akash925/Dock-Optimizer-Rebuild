@@ -559,13 +559,13 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
 
   // Handle form submission with enhanced debugging and improved validation
   const onSubmit = (data: z.infer<typeof bookingPageFormSchema>) => {
-    console.log("Form submission triggered with data:", data);
-    console.log("Selected facilities:", selectedFacilities);
-    console.log("Selected appointment types:", selectedAppointmentTypes);
+    console.log("[BookingPageForm] Form submission triggered with data:", data);
+    console.log("[BookingPageForm] Selected facilities:", selectedFacilities);
+    console.log("[BookingPageForm] Selected appointment types:", selectedAppointmentTypes);
     
     // Check if any facilities are selected
     if (selectedFacilities.length === 0) {
-      console.log("Error: No facilities selected");
+      console.log("[BookingPageForm] Error: No facilities selected");
       toast({
         title: "Error",
         description: "Please select at least one facility",
@@ -577,7 +577,7 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     // Check if at least one appointment type is selected across all facilities
     const hasAnyTypeSelected = Object.values(selectedAppointmentTypes).some(types => types.length > 0);
     if (!hasAnyTypeSelected) {
-      console.log("Error: No appointment types selected");
+      console.log("[BookingPageForm] Error: No appointment types selected");
       toast({
         title: "Error",
         description: "Please select at least one appointment type",
@@ -617,7 +617,15 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           console.warn("[BookingPageForm] WARNING: No facilities selected for update!");
         }
         
+        // Manually handle form submission to prevent any middleware issues
         updateMutation.mutate(enrichedData);
+        
+        // Show a toast to indicate the submission is in progress
+        toast({
+          title: "Processing",
+          description: "Updating booking page...",
+          variant: "default",
+        });
       } else {
         console.log("[BookingPageForm] Creating new booking page");
         // Pass both the form data and the appointment types to the API
@@ -628,6 +636,14 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
         };
         
         console.log("[BookingPageForm] Preparing creation with payload:", JSON.stringify(enrichedData, null, 2));
+        
+        // Show a toast to indicate the submission is in progress
+        toast({
+          title: "Processing",
+          description: "Creating booking page...",
+          variant: "default",
+        });
+        
         createMutation.mutate(enrichedData);
       }
     } catch (error) {
@@ -701,6 +717,72 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
     });
   }, []); // Empty dependency array - relies on closures
 
+  // Helper function to manually submit form data
+  const handleManualSubmit = () => {
+    const formValues = form.getValues();
+    console.log("[BookingPageForm] Manual form submission triggered");
+    
+    // Check validations here again
+    if (selectedFacilities.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one facility",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const hasAnyTypeSelected = Object.values(selectedAppointmentTypes).some(types => types.length > 0);
+    if (!hasAnyTypeSelected) {
+      toast({
+        title: "Error",
+        description: "Please select at least one appointment type",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Build the appointment types array
+    const appointmentTypes: number[] = [];
+    Object.values(selectedAppointmentTypes).forEach(typeIds => {
+      appointmentTypes.push(...typeIds);
+    });
+    
+    if (bookingPage) {
+      const enrichedData = {
+        ...formValues,
+        facilities: selectedFacilities,
+        appointmentTypes: appointmentTypes
+      };
+      
+      console.log("[BookingPageForm] Manual update with payload:", JSON.stringify(enrichedData, null, 2));
+      
+      toast({
+        title: "Processing",
+        description: "Updating booking page...",
+        variant: "default",
+      });
+      
+      updateMutation.mutate(enrichedData);
+    } else {
+      const enrichedData = {
+        ...formValues,
+        facilities: selectedFacilities,
+        appointmentTypes: appointmentTypes
+      };
+      
+      console.log("[BookingPageForm] Manual creation with payload:", JSON.stringify(enrichedData, null, 2));
+      
+      toast({
+        title: "Processing",
+        description: "Creating booking page...",
+        variant: "default",
+      });
+      
+      createMutation.mutate(enrichedData);
+    }
+  };
+  
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isLoading = isLoadingFacilities || isLoadingAppointmentTypes;
 
@@ -1101,6 +1183,17 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
           <Button 
             type="submit" // Changed to submit to trigger the form's onSubmit
             disabled={isPending}
+            onClick={() => {
+              // Add additional click handler for debugging
+              console.log("[BookingPageForm] Submit button clicked", {
+                isValidForm: form.formState.isValid,
+                errors: form.formState.errors,
+                isDirty: form.formState.isDirty,
+                selectedFacilities,
+                selectedAppointmentTypesCount: Object.values(selectedAppointmentTypes)
+                  .reduce((sum, types) => sum + types.length, 0)
+              });
+            }}
           >
             {isPending ? (
               <>
