@@ -864,6 +864,51 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                         handleDateChange(date);
                       }}
                       disablePastDates
+                      disabledDays={(date) => {
+                        // Disable days when the facility is closed
+                        if (!selectedFacility) return false;
+                        
+                        // Get the day of the week (0 = Sunday, 6 = Saturday)
+                        const dayOfWeek = date.getDay();
+                        
+                        // Log facility open status for debugging
+                        if (dayOfWeek === 0 || dayOfWeek === 6) {
+                          // First check if we have any data about facility opening days
+                          const hasSundayOpenInfo = selectedFacility.sundayOpen !== undefined && selectedFacility.sundayOpen !== null;
+                          const hasSaturdayOpenInfo = selectedFacility.saturdayOpen !== undefined && selectedFacility.saturdayOpen !== null;
+                          
+                          console.log(`Facility ${selectedFacility.name} (ID: ${selectedFacility.id}):`, {
+                            day: dayOfWeek === 0 ? 'Sunday' : 'Saturday',
+                            sundayOpen: selectedFacility.sundayOpen,
+                            saturdayOpen: selectedFacility.saturdayOpen,
+                            hasSundayOpenInfo,
+                            hasSaturdayOpenInfo
+                          });
+                          
+                          // If we don't have specific info, default to standard behavior (closed on weekends)
+                          if (dayOfWeek === 0 && !hasSundayOpenInfo) {
+                            console.log('No explicit sundayOpen setting for facility - defaulting to closed on Sunday');
+                            return true; // Disable Sunday by default
+                          }
+                          
+                          if (dayOfWeek === 6 && !hasSaturdayOpenInfo) {
+                            console.log('No explicit saturdayOpen setting for facility - defaulting to closed on Saturday');
+                            return true; // Disable Saturday by default
+                          }
+                        }
+                        
+                        // Check if the facility is closed on this day
+                        if (dayOfWeek === 0) {
+                          // Sunday - check if facility is open on Sunday
+                          return selectedFacility.sundayOpen === false;
+                        } else if (dayOfWeek === 6) {
+                          // Saturday - check if facility is open on Saturday
+                          return selectedFacility.saturdayOpen === false;
+                        }
+                        
+                        // Weekdays are usually open
+                        return false;
+                      }}
                     />
                   </div>
                 </FormControl>
