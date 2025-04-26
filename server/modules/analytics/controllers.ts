@@ -61,7 +61,7 @@ export async function getHeatmapData(req: Request, res: Response) {
       ORDER BY day_of_week, hour_of_day
     `);
 
-    return res.json(heatmapData);
+    return res.json(heatmapData.rows);
   } catch (error) {
     console.error('Error fetching heatmap data:', error);
     return res.status(500).json({ error: 'Failed to fetch heatmap data' });
@@ -107,7 +107,7 @@ export async function getFacilityStats(req: Request, res: Response) {
       ORDER BY "appointmentCount" DESC
     `);
 
-    return res.json(facilityStats);
+    return res.json(facilityStats.rows);
   } catch (error) {
     console.error('Error fetching facility stats:', error);
     return res.status(500).json({ error: 'Failed to fetch facility statistics' });
@@ -153,7 +153,7 @@ export async function getCarrierStats(req: Request, res: Response) {
       LIMIT 10
     `);
 
-    return res.json(carrierStats);
+    return res.json(carrierStats.rows);
   } catch (error) {
     console.error('Error fetching carrier stats:', error);
     return res.status(500).json({ error: 'Failed to fetch carrier statistics' });
@@ -198,7 +198,7 @@ export async function getCustomerStats(req: Request, res: Response) {
       LIMIT 10
     `);
 
-    return res.json(customerStats);
+    return res.json(customerStats.rows);
   } catch (error) {
     console.error('Error fetching customer stats:', error);
     return res.status(500).json({ error: 'Failed to fetch customer statistics' });
@@ -241,7 +241,7 @@ export async function getAttendanceStats(req: Request, res: Response) {
       ORDER BY count DESC
     `);
 
-    return res.json(attendanceStats);
+    return res.json(attendanceStats.rows);
   } catch (error) {
     console.error('Error fetching attendance stats:', error);
     return res.status(500).json({ error: 'Failed to fetch attendance statistics' });
@@ -327,7 +327,7 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
       ORDER BY utilization_percentage DESC
     `);
 
-    return res.json(dockUtilizationStats);
+    return res.json(dockUtilizationStats.rows);
   } catch (error) {
     console.error('Error fetching dock utilization stats:', error);
     return res.status(500).json({ error: 'Failed to fetch dock utilization statistics' });
