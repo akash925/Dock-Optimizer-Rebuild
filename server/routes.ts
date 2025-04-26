@@ -2228,13 +2228,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
-      // INSTRUMENTATION: Log the appointment type with override flag
+      // INSTRUMENTATION: Log the appointment type with override flag and buffer time
       console.log("APPOINTMENT TYPE:", {
         id: appointmentType.id,
         name: appointmentType.name,
         facilityId: appointmentType.facilityId,
         duration: appointmentType.duration,
-        overrideFacilityHours: appointmentType.overrideFacilityHours
+        overrideFacilityHours: appointmentType.overrideFacilityHours,
+        bufferTime: appointmentType.bufferTime || 0,
+        gracePeriod: appointmentType.gracePeriod || 0,
+        maxConcurrent: appointmentType.maxConcurrent || 1
       });
       
       // Check if appointment type belongs to the requested facility

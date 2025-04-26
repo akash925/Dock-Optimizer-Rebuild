@@ -48,6 +48,13 @@ export function generateAvailableTimeSlots(
   // Filter rules for this specific day of week
   const applicableRules = rules.filter(rule => rule.dayOfWeek === dayOfWeek && rule.isActive);
   
+  // Log buffer time information for applicable rules
+  if (applicableRules.length > 0) {
+    applicableRules.forEach(rule => {
+      console.log(`[generateAvailableTimeSlots] Rule for day ${dayOfWeek} has bufferTime: ${rule.bufferTime || 0} minutes`);
+    });
+  }
+  
   console.log(`[generateAvailableTimeSlots] Found ${applicableRules.length} applicable rules for day ${dayOfWeek}`);
   
   // If no rules apply or empty rules array was passed, check the day of week
@@ -193,10 +200,16 @@ function mergeTimeSlots(
     const existingSlot = slotMap.get(newSlot.time);
     
     if (existingSlot) {
-      // If there's a conflict, new slot wins
+      // If there's a conflict, new slot wins, but keep buffer time flags
+      // Buffer slots should always remain as buffer (unavailable)
+      const isBuffer = existingSlot.isBufferTime || newSlot.isBufferTime;
+      
       slotMap.set(newSlot.time, {
         ...newSlot,
-        remainingCapacity: Math.max(existingSlot.remainingCapacity || 0, newSlot.remainingCapacity || 0)
+        // Buffer slots are never available
+        available: isBuffer ? false : newSlot.available,
+        isBufferTime: isBuffer,
+        remainingCapacity: isBuffer ? 0 : Math.max(existingSlot.remainingCapacity || 0, newSlot.remainingCapacity || 0)
       });
     } else {
       // If no conflict, add the new slot
