@@ -256,6 +256,16 @@ export default function AppointmentsPage() {
     return dock ? dock.name : `Dock #${dockId}`;
   };
   
+  // Get facility name from dock ID
+  const getFacilityName = (dockId: number | null) => {
+    if (!dockId) return "No facility assigned";
+    if (!docks || !facilities) return "Loading...";
+    const dock = docks.find((d: any) => d.id === dockId);
+    if (!dock) return `Unknown Facility`;
+    const facility = facilities.find((f: any) => f.id === dock.facilityId);
+    return facility ? facility.name : `Facility #${dock.facilityId}`;
+  };
+  
   // Get carrier name from ID
   const getCarrierName = (carrierId: number) => {
     if (!carriers) return "Loading...";
@@ -354,7 +364,7 @@ export default function AppointmentsPage() {
       "Event Date": formatDate(schedule.startTime),
       "Event Time": formatTime(schedule.startTime),
       "Event Type": schedule.type,
-      "Facility": getDockName(schedule.dockId),
+      "Facility": getFacilityName(schedule.dockId),
       "Carrier Name": getCarrierName(schedule.carrierId),
       "MC #": schedule.mcNumber || "",
       "Truck Number": schedule.truckNumber,
@@ -395,7 +405,7 @@ export default function AppointmentsPage() {
       "Event Date": formatDate(schedule.startTime),
       "Event Time": formatTime(schedule.startTime),
       "Event Type": schedule.type,
-      "Facility": getDockName(schedule.dockId),
+      "Facility": getFacilityName(schedule.dockId),
       "Carrier Name": getCarrierName(schedule.carrierId),
       "MC #": schedule.mcNumber || "",
       "Truck Number": schedule.truckNumber,
@@ -449,16 +459,10 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto py-4 space-y-4">
+      <div className="flex justify-between items-center mb-3">
         <h1 className="text-3xl font-bold">Appointments</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportExcel}>
-            <Download className="mr-2 h-4 w-4" /> Export Excel
-          </Button>
-          <Button variant="outline" onClick={handleExportCSV}>
-            <Download className="mr-2 h-4 w-4" /> Export CSV
-          </Button>
           <Button onClick={() => window.location.href = "/schedules"}>
             <Plus className="mr-2 h-4 w-4" /> New Appointment
           </Button>
@@ -466,18 +470,28 @@ export default function AppointmentsPage() {
       </div>
       
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="mr-2 h-5 w-5" /> Filters
-          </CardTitle>
+      <Card className="shadow-sm">
+        <CardHeader className="py-3 px-4">
+          <div className="flex justify-between items-center">
+            <CardTitle className="flex items-center text-base">
+              <Filter className="mr-2 h-4 w-4" /> Filters
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleExportExcel} className="h-8">
+                <Download className="mr-1 h-3 w-3" /> Export Excel
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportCSV} className="h-8">
+                <Download className="mr-1 h-3 w-3" /> Export CSV
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <CardContent className="pt-0 px-4 pb-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {/* Date Range */}
-            <div className="space-y-2">
+            <div className="space-y-1 col-span-2">
               <div className="font-medium text-sm">Date Range</div>
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-1 items-center">
                 <Input
                   type="date"
                   value={dateRange.start ? format(dateRange.start, "yyyy-MM-dd") : ""}
@@ -494,9 +508,9 @@ export default function AppointmentsPage() {
                       });
                     }
                   }}
-                  className="w-full"
+                  className="w-[120px] h-8 text-xs"
                 />
-                <span>to</span>
+                <span className="text-xs mx-1">to</span>
                 <Input
                   type="date"
                   value={dateRange.end ? format(dateRange.end, "yyyy-MM-dd") : ""}
@@ -515,7 +529,7 @@ export default function AppointmentsPage() {
                       });
                     }
                   }}
-                  className="w-full"
+                  className="w-[120px] h-8 text-xs"
                 />
               </div>
             </div>
@@ -656,6 +670,7 @@ export default function AppointmentsPage() {
                 <TableHead>Event Time</TableHead>
                 <TableHead>Event Type</TableHead>
                 <TableHead>Facility</TableHead>
+                <TableHead>Dock Door</TableHead>
                 <TableHead>Carrier</TableHead>
                 <TableHead>MC #</TableHead>
                 <TableHead>Truck #</TableHead>
@@ -674,6 +689,7 @@ export default function AppointmentsPage() {
                     <div className="text-muted-foreground">{formatTime(schedule.startTime)}</div>
                   </TableCell>
                   <TableCell>{getAppointmentTypeBadge(schedule.type)}</TableCell>
+                  <TableCell>{getFacilityName(schedule.dockId)}</TableCell>
                   <TableCell>{getDockName(schedule.dockId)}</TableCell>
                   <TableCell>{getCarrierName(schedule.carrierId)}</TableCell>
                   <TableCell>{schedule.mcNumber || "-"}</TableCell>
