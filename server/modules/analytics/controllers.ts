@@ -42,11 +42,11 @@ export async function getFacilityStats(req: Request, res: Response) {
       SELECT 
         f.id,
         f.name,
-        f.address,
+        f.address1 as address,
         COUNT(s.id) as "appointmentCount"
       FROM ${facilities} f
-      LEFT JOIN ${schedules} s ON f.id = s."facilityId"
-      GROUP BY f.id, f.name, f.address
+      LEFT JOIN ${schedules} s ON f.id = s."facility_id"
+      GROUP BY f.id, f.name, f.address1
       ORDER BY "appointmentCount" DESC
     `);
 
@@ -70,7 +70,7 @@ export async function getCarrierStats(req: Request, res: Response) {
         c.name,
         COUNT(s.id) as "appointmentCount"
       FROM ${carriers} c
-      LEFT JOIN ${schedules} s ON c.id = s."carrierId"
+      LEFT JOIN ${schedules} s ON c.id = s."carrier_id"
       GROUP BY c.id, c.name
       ORDER BY "appointmentCount" DESC
       LIMIT 10
@@ -92,12 +92,12 @@ export async function getCustomerStats(req: Request, res: Response) {
     // Query to get appointment counts by customer company name
     const customerStats = await db.execute(sql`
       SELECT 
-        DISTINCT s."companyName" as id,
-        s."companyName" as name,
+        DISTINCT s."company_name" as id,
+        s."company_name" as name,
         COUNT(s.id) as "appointmentCount"
       FROM ${schedules} s
-      WHERE s."companyName" IS NOT NULL
-      GROUP BY s."companyName"
+      WHERE s."company_name" IS NOT NULL
+      GROUP BY s."company_name"
       ORDER BY "appointmentCount" DESC
       LIMIT 10
     `);
@@ -118,10 +118,10 @@ export async function getAttendanceStats(req: Request, res: Response) {
     // Query to get counts by attendance status
     const attendanceStats = await db.execute(sql`
       SELECT 
-        COALESCE(s."attendanceStatus", 'Not Reported') as "attendanceStatus",
+        COALESCE(s."attendance_status", 'Not Reported') as "attendanceStatus",
         COUNT(*) as count
       FROM ${schedules} s
-      GROUP BY s."attendanceStatus"
+      GROUP BY s."attendance_status"
       ORDER BY count DESC
     `);
 
