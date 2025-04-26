@@ -428,39 +428,32 @@ export default function Analytics() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Summary Metrics</CardTitle>
+            <CardTitle className="text-lg">Analytics Dashboard Under Development</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <MetricBar 
-              label="Dock Utilization" 
-              value={summary.utilization} 
-              target={75}
-              suffix="%"
-            />
-            <MetricBar 
-              label="Average Turnaround Time" 
-              value={summary.turnaround} 
-              target={35}
-              suffix=" min"
-            />
-            <MetricBar 
-              label="On-Time Arrivals" 
-              value={summary.onTime} 
-              target={90}
-              suffix="%"
-            />
-            <MetricBar 
-              label="Dwell Time Accuracy" 
-              value={summary.dwell} 
-              target={85}
-              suffix="%"
-            />
+          <CardContent>
+            <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
+              <h3 className="font-medium text-blue-800 mb-1">Real-Time Metrics Coming Soon</h3>
+              <p className="text-sm text-blue-700">
+                Our engineering team is working on connecting these analytics to real-time data from 
+                your warehouse operations. Soon you'll have access to accurate dock utilization metrics,
+                turnaround times, and on-time arrival performance.
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-center p-6">
+              <div className="text-center">
+                <BarChart2 className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <p className="text-sm text-muted-foreground">
+                  Real-time analytics dashboard will be available in the next release.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Performance Insights</CardTitle>
+            <CardTitle className="text-lg">Upcoming Analytics Features</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
