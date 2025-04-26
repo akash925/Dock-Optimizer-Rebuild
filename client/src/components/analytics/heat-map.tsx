@@ -249,16 +249,25 @@ export default function AnalyticsHeatMap() {
         return await res.json();
       } catch (error) {
         console.error('Error fetching customers:', error);
-        return { rows: [] }; // Return object with empty rows array
+        return []; // Return empty array
       }
     },
-    placeholderData: { rows: [] } // Default data structure
+    placeholderData: [] // Default data structure is now an empty array
   });
   
   // Extract and transform customer data for the dropdown
   const companies = useMemo(() => {
-    if (!customersResponse?.rows) return [];
-    return customersResponse.rows.map((customer: any) => ({
+    if (!customersResponse) return [];
+    
+    // Log what we're getting
+    console.log("Customers response:", customersResponse);
+    
+    // Handle both direct array response and old {rows: []} format for backward compatibility
+    const customersData = Array.isArray(customersResponse) 
+      ? customersResponse 
+      : (customersResponse.rows || []);
+      
+    return customersData.map((customer: any) => ({
       id: customer.id,
       name: customer.name
     }));
@@ -279,7 +288,9 @@ export default function AnalyticsHeatMap() {
         if (!res.ok) {
           throw new Error('Failed to fetch heatmap data');
         }
-        return await res.json();
+        const data = await res.json();
+        console.log("Heatmap data:", data);
+        return data;
       } catch (error) {
         console.error('Error fetching heatmap data:', error);
         return [];

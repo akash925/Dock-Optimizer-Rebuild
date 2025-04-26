@@ -56,9 +56,12 @@ function useFacilityStats(dateParams: { startDate?: string; endDate?: string }) 
       if (dateParams.startDate) params.append('startDate', dateParams.startDate);
       if (dateParams.endDate) params.append('endDate', dateParams.endDate);
       
+      console.log("Query params:", params.toString());
       const res = await fetch(`/api/analytics/facilities?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch facility data');
-      return res.json();
+      const data = await res.json();
+      console.log("Facility data:", data);
+      return data;
     }
   });
 
@@ -111,9 +114,12 @@ function useCarrierStats(dateParams: { startDate?: string; endDate?: string }) {
       if (dateParams.startDate) params.append('startDate', dateParams.startDate);
       if (dateParams.endDate) params.append('endDate', dateParams.endDate);
       
+      console.log("Carrier query params:", params.toString());
       const res = await fetch(`/api/analytics/carriers?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch carrier data');
-      return res.json();
+      const data = await res.json();
+      console.log("Carrier data:", data);
+      return data;
     }
   });
 
@@ -221,9 +227,12 @@ function useAttendanceStats(dateParams: { startDate?: string; endDate?: string }
       if (dateParams.startDate) params.append('startDate', dateParams.startDate);
       if (dateParams.endDate) params.append('endDate', dateParams.endDate);
       
+      console.log("Attendance query params:", params.toString());
       const res = await fetch(`/api/analytics/attendance?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch attendance data');
-      return res.json();
+      const data = await res.json();
+      console.log("Attendance data:", data);
+      return data;
     }
   });
 
@@ -276,9 +285,12 @@ function useDockUtilizationStats(dateParams: { startDate?: string; endDate?: str
       if (dateParams.startDate) params.append('startDate', dateParams.startDate);
       if (dateParams.endDate) params.append('endDate', dateParams.endDate);
       
+      console.log("Dock utilization query params:", params.toString());
       const res = await fetch(`/api/analytics/dock-utilization?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch dock utilization data');
-      return res.json();
+      const data = await res.json();
+      console.log("Dock utilization data:", data);
+      return data;
     }
   });
 
