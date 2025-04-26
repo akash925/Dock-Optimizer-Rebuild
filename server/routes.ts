@@ -2066,10 +2066,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Get facility appointment settings
-      const facilitySettings = await storage.getAppointmentSettings(parsedFacilityId);
-      if (!facilitySettings && !appointmentType.overrideFacilityHours) {
-        console.log("VALIDATION ERROR: Facility appointment settings not found");
-        return res.status(404).json({ message: "Facility appointment settings not found" });
+      let facilitySettings = await storage.getAppointmentSettings(parsedFacilityId);
+      
+      // Create default settings if not found rather than failing
+      if (!facilitySettings) {
+        console.log(`NOTICE: Creating default facility settings for facilityId ${parsedFacilityId}`);
+        facilitySettings = {
+          id: 0, // Temporary ID
+          facilityId: parsedFacilityId,
+          timeInterval: 15,
+          maxConcurrentInbound: 2,
+          maxConcurrentOutbound: 2,
+          shareAvailabilityInfo: true
+        };
       }
       
       // INSTRUMENTATION: Log facility settings (hours)

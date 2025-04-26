@@ -1185,18 +1185,13 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
             Cancel
           </Button>
           <Button 
-            type="submit" // Changed to submit to trigger the form's onSubmit
+            type="button"
             disabled={isPending}
-            onClick={() => {
-              // Add additional click handler for debugging
-              console.log("[BookingPageForm] Submit button clicked", {
-                isValidForm: form.formState.isValid,
-                errors: form.formState.errors,
-                isDirty: form.formState.isDirty,
-                selectedFacilities,
-                selectedAppointmentTypesCount: Object.values(selectedAppointmentTypes)
-                  .reduce((sum, types) => sum + types.length, 0)
-              });
+            onClick={(e) => {
+              e.preventDefault();
+              console.log("[BookingPageForm] Update button clicked");
+              // Always use the manual submit to ensure consistent behavior
+              handleManualSubmit();
             }}
           >
             {isPending ? (
@@ -1208,27 +1203,6 @@ export default function BookingPageForm({ bookingPage, onSuccess, onCancel }: Bo
               <>{bookingPage ? "Update" : "Create"} Booking Page</>
             )}
           </Button>
-          {bookingPage && (
-            <Button 
-              type="button"
-              variant="secondary"
-              disabled={isPending}
-              onClick={(e) => {
-                e.preventDefault();
-                console.log("[BookingPageForm] Manual update button clicked");
-                handleManualSubmit();
-              }}
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Force Updating...
-                </>
-              ) : (
-                <>Force Update</>
-              )}
-            </Button>
-          )}
         </div>
       </form>
     </Form>
