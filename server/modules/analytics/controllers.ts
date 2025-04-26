@@ -16,8 +16,8 @@ export async function getHeatmapData(req: Request, res: Response) {
     // Query to get appointment counts by day and hour
     const heatmapData = await db.execute(sql`
       SELECT 
-        EXTRACT(DOW FROM "startTime") as day_of_week,
-        EXTRACT(HOUR FROM "startTime") as hour_of_day,
+        EXTRACT(DOW FROM "start_time") as day_of_week,
+        EXTRACT(HOUR FROM "start_time") as hour_of_day,
         COUNT(*) as count
       FROM ${schedules}
       GROUP BY day_of_week, hour_of_day

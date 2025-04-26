@@ -297,9 +297,9 @@ export default function AnalyticsHeatMap() {
   
   // Transform API data for heatmap display
   const heatmapData = useMemo(() => {
-    // If we don't have data yet from the API, generate sample data with more realistic numbers
+    // If we don't have data yet from the API, return empty data structure for the UI
     if (!appointments.length) {
-      // Generated fallback data structure but only for UI preview before real data loads
+      // Empty data structure showing all time slots but with zero counts
       const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
       const hours = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
       
@@ -307,19 +307,25 @@ export default function AnalyticsHeatMap() {
         hours.map(hour => ({
           day,
           hour,
-          count: day === 'Saturday' || day === 'Sunday' ? 0 : Math.floor(Math.random() * 5) + (Math.random() > 0.7 ? 1 : 0),
-          onTimePercentage: day === 'Saturday' || day === 'Sunday' ? 0 : Math.floor(70 + Math.random() * 30)
+          count: 0,
+          onTimePercentage: 0
         }))
       );
     }
     
     // Real data transformation from API response
-    return appointments.map((app: any) => ({
-      day: new Date(app.startTime).toLocaleDateString('en-US', { weekday: 'long' }),
-      hour: new Date(app.startTime).getHours(),
-      count: app.count || 1,
-      onTimePercentage: app.onTimePercentage || Math.floor(70 + Math.random() * 30)
-    }));
+    return appointments.map((app: any) => {
+      // Map day_of_week (0-6) to day names
+      const dayMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const day = dayMap[Number(app.day_of_week)];
+      
+      return {
+        day,
+        hour: Number(app.hour_of_day),
+        count: Number(app.count),
+        onTimePercentage: app.on_time_percentage ? Number(app.on_time_percentage) : 85
+      };
+    });
   }, [appointments]);
   
   return (
