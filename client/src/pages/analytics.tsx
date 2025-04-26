@@ -457,46 +457,31 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
-                <h3 className="font-medium text-blue-800 mb-1">Dock Utilization Trend</h3>
-                <p className="text-sm text-blue-700">
-                  Dock utilization is {summary.utilization > 75 ? "above" : "below"} the target of 75%. 
-                  {summary.utilization > 75 
-                    ? " This indicates efficient use of available dock doors." 
-                    : " There may be opportunities to improve scheduling and capacity planning."}
-                </p>
-              </div>
-              
               <div className="p-4 border rounded-md bg-amber-50 border-amber-200">
-                <h3 className="font-medium text-amber-800 mb-1">Turnaround Time Analysis</h3>
+                <h3 className="font-medium text-amber-800 mb-1">Dock Utilization Metrics</h3>
                 <p className="text-sm text-amber-700">
-                  The average turnaround time is {summary.turnaround} minutes, 
-                  {summary.turnaround <= 35 
-                    ? " which meets the target of 35 minutes." 
-                    : ` which is ${summary.turnaround - 35} minutes above the target of 35 minutes.`}
-                  {summary.turnaround > 35 
-                    ? " Consider reviewing loading/unloading procedures to improve efficiency." 
-                    : " Great job maintaining efficient operations!"}
+                  Track dock utilization across all your facilities with target thresholds and optimization suggestions.
                 </p>
               </div>
               
               <div className="p-4 border rounded-md bg-green-50 border-green-200">
-                <h3 className="font-medium text-green-800 mb-1">On-Time Performance</h3>
+                <h3 className="font-medium text-green-800 mb-1">Carrier Performance Insights</h3>
                 <p className="text-sm text-green-700">
-                  On-time arrival rate is currently at {summary.onTime}%, 
-                  {summary.onTime >= 90 
-                    ? " exceeding the target of 90%. This indicates excellent carrier performance." 
-                    : ` which is below the target of 90%. Consider working with carriers to improve punctuality.`}
+                  Monitor and analyze on-time performance by carrier, with detailed trends and historical data.
                 </p>
               </div>
               
               <div className="p-4 border rounded-md bg-purple-50 border-purple-200">
-                <h3 className="font-medium text-purple-800 mb-1">Dwell Time Prediction</h3>
+                <h3 className="font-medium text-purple-800 mb-1">Custom Report Builder</h3>
                 <p className="text-sm text-purple-700">
-                  Dwell time prediction accuracy is {summary.dwell}%, 
-                  {summary.dwell >= 85 
-                    ? " meeting the target of 85%. This helps maintain reliable scheduling." 
-                    : ` falling short of the 85% target. Consider refining your dwell time estimation algorithm.`}
+                  Create custom analytics reports with the metrics that matter most to your operation.
+                </p>
+              </div>
+              
+              <div className="p-4 border rounded-md bg-blue-50 border-blue-200">
+                <h3 className="font-medium text-blue-800 mb-1">Predictive Analytics</h3>
+                <p className="text-sm text-blue-700">
+                  Advanced forecasting to help you predict dock traffic and optimize scheduling based on historical patterns.
                 </p>
               </div>
             </div>
@@ -506,7 +491,7 @@ export default function Analytics() {
       
       {/* Available Reports */}
       <div>
-        <h2 className="text-xl font-medium mb-4">Available Reports</h2>
+        <h2 className="text-xl font-medium mb-4">Report Templates (Coming Soon)</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Card>
             <CardHeader className="pb-3">
@@ -518,9 +503,9 @@ export default function Analytics() {
               </CardDescription>
             </CardHeader>
             <CardFooter className="pt-2">
-              <Button variant="outline" size="sm" className="w-full">
+              <Button variant="outline" size="sm" className="w-full" disabled>
                 <Download className="h-4 w-4 mr-2" />
-                Export Report
+                Coming Soon
               </Button>
             </CardFooter>
           </Card>
@@ -535,9 +520,9 @@ export default function Analytics() {
               </CardDescription>
             </CardHeader>
             <CardFooter className="pt-2">
-              <Button variant="outline" size="sm" className="w-full">
+              <Button variant="outline" size="sm" className="w-full" disabled>
                 <Download className="h-4 w-4 mr-2" />
-                Export Report
+                Coming Soon
               </Button>
             </CardFooter>
           </Card>
@@ -552,9 +537,9 @@ export default function Analytics() {
               </CardDescription>
             </CardHeader>
             <CardFooter className="pt-2">
-              <Button variant="outline" size="sm" className="w-full">
+              <Button variant="outline" size="sm" className="w-full" disabled>
                 <Download className="h-4 w-4 mr-2" />
-                Export Report
+                Coming Soon
               </Button>
             </CardFooter>
           </Card>
