@@ -263,13 +263,168 @@ export default function AppointmentsPage() {
     return carrier ? carrier.name : `Carrier #${carrierId}`;
   };
   
-  // Sort schedules by date (newest first)
-  const sortedSchedules = useMemo(() => {
+  // Filter and sort schedules
+  const filteredSchedules = useMemo(() => {
     if (!schedules) return [];
-    return [...schedules].sort((a, b) => 
+    
+    return schedules.filter(schedule => {
+      const scheduleDate = new Date(schedule.startTime);
+      
+      // Date range filter
+      if (dateRange.start && scheduleDate < dateRange.start) return false;
+      if (dateRange.end) {
+        const endDate = new Date(dateRange.end);
+        endDate.setHours(23, 59, 59, 999); // End of day
+        if (scheduleDate > endDate) return false;
+      }
+      
+      // Customer filter
+      if (customerFilter && 
+          schedule.customerName && 
+          !schedule.customerName.toLowerCase().includes(customerFilter.toLowerCase())) {
+        return false;
+      }
+      
+      // Carrier filter
+      if (carrierFilter && schedule.carrierId) {
+        const carrierName = getCarrierName(schedule.carrierId).toLowerCase();
+        if (!carrierName.includes(carrierFilter.toLowerCase())) {
+          return false;
+        }
+      }
+      
+      // Location/Dock filter
+      if (locationFilter && schedule.dockId) {
+        const dockName = getDockName(schedule.dockId).toLowerCase();
+        if (!dockName.includes(locationFilter.toLowerCase())) {
+          return false;
+        }
+      }
+      
+      // Type filter
+      if (typeFilter && schedule.type && schedule.type !== typeFilter) {
+        return false;
+      }
+      
+      // Search query (searches across multiple fields)
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesQuery = 
+          (schedule.customerName && schedule.customerName.toLowerCase().includes(query)) ||
+          (schedule.truckNumber && schedule.truckNumber.toLowerCase().includes(query)) ||
+          (schedule.trailerNumber && schedule.trailerNumber.toLowerCase().includes(query)) ||
+          (schedule.carrierName && schedule.carrierName.toLowerCase().includes(query)) ||
+          (schedule.poNumber && schedule.poNumber.toLowerCase().includes(query)) ||
+          (schedule.bolNumber && schedule.bolNumber.toLowerCase().includes(query));
+        
+        if (!matchesQuery) return false;
+      }
+      
+      return true;
+    }).sort((a, b) => 
       new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
     );
+  }, [schedules, dateRange, customerFilter, carrierFilter, locationFilter, typeFilter, searchQuery]);
+  
+  // Create list of unique values for filters
+  const customerList = useMemo(() => {
+    if (!schedules) return [];
+    const customers = schedules
+      .map(s => s.customerName)
+      .filter((name): name is string => !!name);
+    return Array.from(new Set(customers)).sort();
   }, [schedules]);
+  
+  // Export to Excel
+  const handleExportExcel = () => {
+    if (!filteredSchedules.length) {
+      toast({
+        title: "No data to export",
+        description: "Please adjust your filters to include some appointments",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const exportData = filteredSchedules.map(schedule => ({
+      "Event Date": formatDate(schedule.startTime),
+      "Event Time": formatTime(schedule.startTime),
+      "Event Type": schedule.type,
+      "Location": getDockName(schedule.dockId),
+      "Carrier Name": getCarrierName(schedule.carrierId),
+      "MC #": schedule.mcNumber || "",
+      "Truck Number": schedule.truckNumber,
+      "Customer Name": schedule.customerName || "",
+      "Is Cancelled": schedule.status === "cancelled" ? "true" : "false",
+      "Is Rescheduled": "false", // We don't have this info currently
+      "BOL Number": schedule.bolNumber || "",
+      "PO Number": schedule.poNumber || "",
+      "Status": schedule.status,
+    }));
+    
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Appointments");
+    
+    // Generate filename with current date
+    const dateStr = format(new Date(), "yyyy-MM-dd");
+    XLSX.writeFile(workbook, `Dock-Appointments-${dateStr}.xlsx`);
+    
+    toast({
+      title: "Export successful",
+      description: `Exported ${exportData.length} appointments to Excel`,
+    });
+  };
+  
+  // Export to CSV
+  const handleExportCSV = () => {
+    if (!filteredSchedules.length) {
+      toast({
+        title: "No data to export",
+        description: "Please adjust your filters to include some appointments",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const exportData = filteredSchedules.map(schedule => ({
+      "Event Date": formatDate(schedule.startTime),
+      "Event Time": formatTime(schedule.startTime),
+      "Event Type": schedule.type,
+      "Location": getDockName(schedule.dockId),
+      "Carrier Name": getCarrierName(schedule.carrierId),
+      "MC #": schedule.mcNumber || "",
+      "Truck Number": schedule.truckNumber,
+      "Customer Name": schedule.customerName || "",
+      "Is Cancelled": schedule.status === "cancelled" ? "true" : "false",
+      "Is Rescheduled": "false", // We don't have this info currently
+      "BOL Number": schedule.bolNumber || "",
+      "PO Number": schedule.poNumber || "",
+      "Status": schedule.status,
+    }));
+    
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const csv = XLSX.utils.sheet_to_csv(worksheet);
+    
+    // Create downloadable blob
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Generate filename with current date
+    const dateStr = format(new Date(), "yyyy-MM-dd");
+    link.setAttribute('download', `Dock-Appointments-${dateStr}.csv`);
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Export successful",
+      description: `Exported ${exportData.length} appointments to CSV`,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -293,56 +448,254 @@ export default function AppointmentsPage() {
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Appointments</h1>
-        <Button onClick={() => window.location.href = "/schedules"}>
-          <Plus className="mr-2 h-4 w-4" /> New Appointment
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportExcel}>
+            <Download className="mr-2 h-4 w-4" /> Export Excel
+          </Button>
+          <Button variant="outline" onClick={handleExportCSV}>
+            <Download className="mr-2 h-4 w-4" /> Export CSV
+          </Button>
+          <Button onClick={() => window.location.href = "/schedules"}>
+            <Plus className="mr-2 h-4 w-4" /> New Appointment
+          </Button>
+        </div>
       </div>
       
+      {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>All Appointments</CardTitle>
+          <CardTitle className="flex items-center">
+            <Filter className="mr-2 h-5 w-5" /> Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Date Range */}
+            <div className="space-y-2">
+              <div className="font-medium text-sm">Date Range</div>
+              <div className="flex gap-2 items-center">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange.start ? format(dateRange.start, "MMM dd, yyyy") : "Start date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={dateRange.start}
+                      onSelect={(date) => setDateRange({ ...dateRange, start: date })}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <span>to</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange.end ? format(dateRange.end, "MMM dd, yyyy") : "End date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={dateRange.end}
+                      onSelect={(date) => setDateRange({ ...dateRange, end: date })}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {(dateRange.start || dateRange.end) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDateRange({ start: undefined, end: undefined })}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {/* Customer */}
+            <div className="space-y-2">
+              <div className="font-medium text-sm">Customer</div>
+              <Select
+                value={customerFilter}
+                onValueChange={setCustomerFilter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All customers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All customers</SelectItem>
+                  {customerList.map(customer => (
+                    <SelectItem key={customer} value={customer}>{customer}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Carrier */}
+            <div className="space-y-2">
+              <div className="font-medium text-sm">Carrier</div>
+              <Select
+                value={carrierFilter}
+                onValueChange={setCarrierFilter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All carriers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All carriers</SelectItem>
+                  {carriers?.map((carrier: any) => (
+                    <SelectItem key={carrier.id} value={carrier.name}>{carrier.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Location */}
+            <div className="space-y-2">
+              <div className="font-medium text-sm">Location</div>
+              <Select
+                value={locationFilter}
+                onValueChange={setLocationFilter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All locations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All locations</SelectItem>
+                  {docks?.map((dock: any) => (
+                    <SelectItem key={dock.id} value={dock.name}>{dock.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Type */}
+            <div className="space-y-2">
+              <div className="font-medium text-sm">Appointment Type</div>
+              <Select
+                value={typeFilter}
+                onValueChange={setTypeFilter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  <SelectItem value="inbound">Inbound</SelectItem>
+                  <SelectItem value="outbound">Outbound</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Search */}
+            <div className="space-y-2 md:col-span-2">
+              <div className="font-medium text-sm">Search</div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Search by customer, truck #, BOL, PO, etc."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {/* Reset Filters */}
+            <div className="md:col-span-2 flex items-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setDateRange({ 
+                    start: subDays(new Date(), 7), 
+                    end: new Date() 
+                  });
+                  setCustomerFilter("");
+                  setCarrierFilter("");
+                  setLocationFilter("");
+                  setTypeFilter("");
+                  setSearchQuery("");
+                }}
+              >
+                Reset Filters
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Appointments Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Appointment Log</CardTitle>
           <CardDescription>
-            Showing {sortedSchedules.length} total appointments
+            Showing {filteredSchedules.length} appointments
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Type</TableHead>
+                <TableHead>Event Date</TableHead>
+                <TableHead>Event Time</TableHead>
+                <TableHead>Event Type</TableHead>
+                <TableHead>Location</TableHead>
                 <TableHead>Carrier</TableHead>
+                <TableHead>MC #</TableHead>
                 <TableHead>Truck #</TableHead>
-                <TableHead>Dock</TableHead>
+                <TableHead>Customer</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedSchedules.map((schedule) => (
+              {filteredSchedules.map((schedule) => (
                 <TableRow key={schedule.id}>
                   <TableCell>
                     <div className="font-medium">{formatDate(schedule.startTime)}</div>
-                    <div className="text-muted-foreground text-sm">{formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-muted-foreground">{formatTime(schedule.startTime)}</div>
                   </TableCell>
                   <TableCell>{getAppointmentTypeBadge(schedule.type)}</TableCell>
-                  <TableCell>{getCarrierName(schedule.carrierId)}</TableCell>
-                  <TableCell>{schedule.truckNumber}</TableCell>
                   <TableCell>{getDockName(schedule.dockId)}</TableCell>
+                  <TableCell>{getCarrierName(schedule.carrierId)}</TableCell>
+                  <TableCell>{schedule.mcNumber || "-"}</TableCell>
+                  <TableCell>{schedule.truckNumber}</TableCell>
+                  <TableCell>{schedule.customerName || "-"}</TableCell>
                   <TableCell>{getAppointmentStatusBadge(schedule.status)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => window.location.href = `/schedules?edit=${schedule.id}`}>
-                        View
-                      </Button>
-                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => window.location.href = `/schedules?edit=${schedule.id}`}>
+                      View
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
               
-              {sortedSchedules.length === 0 && (
+              {filteredSchedules.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={10} className="text-center py-8">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <Calendar className="h-10 w-10 mb-2" />
                       <p>No appointments found</p>
@@ -368,7 +721,7 @@ export default function AppointmentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {sortedSchedules.filter(s => 
+              {filteredSchedules.filter((s: Schedule) => 
                 new Date(s.startTime).toDateString() === new Date().toDateString()
               ).length}
             </div>
@@ -383,7 +736,7 @@ export default function AppointmentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {sortedSchedules.filter(s => {
+              {filteredSchedules.filter((s: Schedule) => {
                 const scheduleDate = new Date(s.startTime);
                 const today = new Date();
                 const nextWeek = new Date();
