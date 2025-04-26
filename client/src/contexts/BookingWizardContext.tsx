@@ -68,6 +68,7 @@ const defaultBookingData: BookingFormData = {
   carrierName: '',
   driverName: '',
   driverPhone: '',
+  mcNumber: '',
   truckNumber: '',
   trailerNumber: '',
   notes: '',

@@ -1151,27 +1151,55 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
           
           <h2 className="booking-form-section-title mt-8">Vehicle Information</h2>
           
-          <FormField
-            control={form.control}
-            name="carrierName"
-            render={({ field }) => (
-              <FormItem className="booking-form-field">
-                <FormLabel className="booking-label">Carrier Name</FormLabel>
-                <FormControl>
-                  <Input
-                    id="carrierName"
-                    className="booking-input"
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      updateBookingData({ carrierName: e.target.value });
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="carrierName"
+              render={({ field }) => (
+                <FormItem className="booking-form-field">
+                  <FormLabel className="booking-label">Carrier Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="carrierName"
+                      className="booking-input"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        updateBookingData({ carrierName: e.target.value });
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="mcNumber"
+              render={({ field }) => (
+                <FormItem className="booking-form-field">
+                  <FormLabel className="booking-label">MC Number</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="mcNumber"
+                      className="booking-input"
+                      placeholder="MC123456"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        updateBookingData({ mcNumber: e.target.value });
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs">
+                    Required for all shipments as of August 1st, 2023
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
@@ -1429,7 +1457,10 @@ function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any;
             {bookingData.carrierName && (
               <div>
                 <h3 className="font-semibold">Vehicle Information</h3>
-                <p>Carrier: {bookingData.carrierName}</p>
+                <p>
+                  Carrier: {bookingData.carrierName}
+                  {bookingData.mcNumber && ` (MC#: ${bookingData.mcNumber})`}
+                </p>
                 {bookingData.driverName && (
                   <p>Driver: {bookingData.driverName} {bookingData.driverPhone ? `| ${bookingData.driverPhone}` : ''}</p>
                 )}
