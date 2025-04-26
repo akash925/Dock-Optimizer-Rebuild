@@ -425,121 +425,110 @@ export default function Analytics() {
         </Card>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 gap-6 mb-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Appointment Volume Trends</CardTitle>
-            <CardDescription>Last 30 days of appointment data by facility</CardDescription>
+            <CardTitle className="text-lg">Location Report</CardTitle>
+            <CardDescription>Appointment counts by facility</CardDescription>
           </CardHeader>
           <CardContent>
             <PerformanceChart 
               data={[
-                { date: "04/01", value: 52 },
-                { date: "04/02", value: 47 },
-                { date: "04/03", value: 61 },
-                { date: "04/04", value: 58 },
-                { date: "04/05", value: 42 },
-                { date: "04/06", value: 15 },
-                { date: "04/07", value: 12 },
-                { date: "04/08", value: 65 },
-                { date: "04/09", value: 70 },
-                { date: "04/10", value: 68 },
-                { date: "04/11", value: 72 },
-                { date: "04/12", value: 55 },
-                { date: "04/13", value: 22 },
-                { date: "04/14", value: 18 },
-                { date: "04/15", value: 59 },
-                { date: "04/16", value: 63 },
-                { date: "04/17", value: 67 },
-                { date: "04/18", value: 71 },
-                { date: "04/19", value: 48 },
-                { date: "04/20", value: 19 },
-                { date: "04/21", value: 14 },
-                { date: "04/22", value: 60 },
-                { date: "04/23", value: 57 },
-                { date: "04/24", value: 53 },
-                { date: "04/25", value: 66 },
-                { date: "04/26", value: 52 }
+                { date: "450 Airtech Pkwy", value: 108 },
+                { date: "8370 E Camby Road", value: 114 },
+                { date: "4334 Plainfield Road", value: 55 },
+                { date: "9915 Lacy Knoll Dr", value: 34 }
               ]}
-              yAxisLabel="Appointment Count"
+              yAxisLabel="Events Count"
               color="#4285F4"
-              target={60}
-            />
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">On-Time Arrival Performance</CardTitle>
-            <CardDescription>Percentage of carriers arriving on time by week</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <PerformanceChart 
-              data={[
-                { date: "Week 1", value: 87 },
-                { date: "Week 2", value: 82 },
-                { date: "Week 3", value: 86 },
-                { date: "Week 4", value: 91 },
-                { date: "Week 5", value: 89 },
-                { date: "Week 6", value: 78 },
-                { date: "Week 7", value: 83 },
-                { date: "Week 8", value: 85 },
-                { date: "Week 9", value: 88 },
-                { date: "Week 10", value: 92 },
-                { date: "Week 11", value: 90 },
-                { date: "Week 12", value: 88 }
-              ]}
-              yAxisLabel="On-Time %"
-              color="#34A853"
-              target={85}
-              suffix="%"
+              target={0}
+              hideTarget={true}
+              horizontal={true}
             />
           </CardContent>
         </Card>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 gap-6 mb-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Average Turnaround Time</CardTitle>
-            <CardDescription>Minutes from check-in to departure by appointment type</CardDescription>
+            <CardTitle className="text-lg">Carrier Name</CardTitle>
+            <CardDescription>Appointment counts by carrier</CardDescription>
           </CardHeader>
           <CardContent>
             <PerformanceChart 
               data={[
-                { date: "Trailer - 1 Hour", value: 48 },
-                { date: "Container - 4 Hour", value: 193 },
-                { date: "Express Unload", value: 32 },
-                { date: "Priority Pickup", value: 28 },
-                { date: "Crossdock", value: 65 },
-                { date: "Standard Delivery", value: 52 }
+                { date: "Target Fleet", value: 29 },
+                { date: "Swift", value: 25 },
+                { date: "SETHMAR", value: 18 },
+                { date: "Buds Express Inc", value: 9 },
+                { date: "Western Exp", value: 8 },
+                { date: "caplink logistics", value: 7 },
+                { date: "MIDWEST EXPRESS", value: 6 },
+                { date: "FIRST FLEET", value: 5 },
+                { date: "QR EXPRESS INC", value: 4 },
+                { date: "Western exp", value: 3 }
               ]}
-              yAxisLabel="Minutes"
-              color="#EA4335"
-              target={45}
-              suffix=" min"
+              yAxisLabel="Events Count"
+              color="#34A853"
+              target={0}
+              hideTarget={true}
+              horizontal={true}
             />
           </CardContent>
         </Card>
-        
+      </div>
+      
+      <div className="grid grid-cols-1 gap-6 mb-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Dock Door Utilization</CardTitle>
-            <CardDescription>Percentage of available time slots filled by facility</CardDescription>
+            <CardTitle className="text-lg">Customer</CardTitle>
+            <CardDescription>Appointment counts by customer</CardDescription>
           </CardHeader>
           <CardContent>
             <PerformanceChart 
               data={[
-                { date: "Sam Pride", value: 82 },
-                { date: "Hanzo Metro", value: 91 },
-                { date: "Camby Road", value: 64 },
-                { date: "450 Airtech Pkwy", value: 78 },
-                { date: "HANZO Cold-Chain", value: 73 }
+                { date: "Event Sales", value: 71 },
+                { date: "event Sales", value: 20 },
+                { date: "MIRKA", value: 16 },
+                { date: "Kramer Electronics", value: 15 },
+                { date: "Chang Chemical", value: 11 },
+                { date: "4334 Plainfield Road Plainfield IN 46231", value: 10 },
+                { date: "CLEAN EARTH SYSTEMS", value: 9 },
+                { date: "mirka", value: 8 },
+                { date: "HANZO METRO // HECTR", value: 8 },
+                { date: "CCS", value: 7 }
               ]}
-              yAxisLabel="Utilization"
+              yAxisLabel="Events Count"
+              color="#EA4335"
+              target={0}
+              hideTarget={true}
+              horizontal={true}
+            />
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-6 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Attendance</CardTitle>
+            <CardDescription>Appointment attendance status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PerformanceChart 
+              data={[
+                { date: "Attendance Not Reported", value: 264 },
+                { date: "Coming Late", value: 14 },
+                { date: "Cancelled Event By User", value: 13 },
+                { date: "Coming On Time", value: 3 },
+                { date: "Cancelled Event By Host", value: 0 }
+              ]}
+              yAxisLabel="Events Count"
               color="#FBBC05"
-              target={80}
-              suffix="%"
+              target={0}
+              hideTarget={true}
+              horizontal={true}
             />
           </CardContent>
         </Card>
