@@ -1,23 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { useMemo } from "react";
 import {
   Calendar,
   Loader2,
   Plus,
-  PenIcon,
-  TrashIcon,
   FileText,
   Truck,
   Clock,
   MapPin,
   Copy,
+  Download,
+  Search,
+  Filter,
+  Calendar as CalendarIcon,
+  X,
 } from "lucide-react";
 import { formatDate, formatTime, getDockStatus } from "@/lib/utils";
 import { Schedule } from "@shared/schema";
+import * as XLSX from 'xlsx';
 
 import {
   Card,
@@ -49,11 +52,38 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format, subDays, addDays } from "date-fns";
 
 export default function AppointmentsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Filter states
+  const [dateRange, setDateRange] = useState<{ start: Date | undefined; end: Date | undefined }>({
+    // Default to previous week
+    start: subDays(new Date(), 7),
+    end: new Date(),
+  });
+  const [customerFilter, setCustomerFilter] = useState<string>("");
+  const [carrierFilter, setCarrierFilter] = useState<string>("");
+  const [locationFilter, setLocationFilter] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   
   // Fetch all schedules
   const { data: schedules, isLoading, error } = useQuery({
@@ -86,6 +116,30 @@ export default function AppointmentsPage() {
       const response = await fetch("/api/carriers");
       if (!response.ok) {
         throw new Error("Failed to fetch carriers");
+      }
+      return response.json();
+    },
+  });
+  
+  // Fetch all facilities for location filter
+  const { data: facilities } = useQuery({
+    queryKey: ["/api/facilities"],
+    queryFn: async () => {
+      const response = await fetch("/api/facilities");
+      if (!response.ok) {
+        throw new Error("Failed to fetch facilities");
+      }
+      return response.json();
+    },
+  });
+  
+  // Fetch appointment types for type filter
+  const { data: appointmentTypes } = useQuery({
+    queryKey: ["/api/appointment-types"],
+    queryFn: async () => {
+      const response = await fetch("/api/appointment-types");
+      if (!response.ok) {
+        throw new Error("Failed to fetch appointment types");
       }
       return response.json();
     },
