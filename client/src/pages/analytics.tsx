@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Schedule } from "@shared/schema";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import PerformanceChart from "@/components/analytics/performance-chart";
 import MetricBar from "@/components/dashboard/metric-bar";
 import AnalyticsHeatMap from "@/components/analytics/heat-map";
-import { Download, Calendar as CalendarIcon } from "lucide-react";
+import { Download, Calendar as CalendarIcon, BarChart2, FileText, Clock, BarChart } from "lucide-react";
 import { format, subDays, subMonths, startOfWeek, endOfWeek, addDays } from "date-fns";
 
 export default function Analytics() {

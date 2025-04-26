@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Filter } from "lucide-react";
+import { Calendar, Clock, Filter, Maximize2, Minimize2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 6); // 6 AM to 6 PM
@@ -22,15 +23,22 @@ const HeatMapCell: React.FC<HeatMapCellProps> = ({ value, maxValue, displayValue
   const intensity = maxValue > 0 ? (value / maxValue) * 100 : 0;
   
   // Calculate color - we'll use a gradient from light blue to dark blue
-  const color = `hsl(210, 100%, ${100 - intensity * 0.5}%)`;
+  // Adjusted to create more contrast for better visibility
+  const color = `hsl(210, 100%, ${Math.max(100 - intensity * 0.7, 30)}%)`;
+  
+  // Determine text color based on background intensity for better readability
+  const textColor = intensity > 50 ? 'white' : 'black';
   
   return (
     <div 
-      className="relative w-full h-12 border border-gray-200 hover:bg-blue-50 cursor-pointer transition-colors"
+      className="relative w-full h-12 border border-gray-200 hover:bg-blue-100 cursor-pointer transition-colors"
       style={{ backgroundColor: color }}
       onMouseEnter={() => onHover && onHover(value)}
     >
-      <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
+      <div 
+        className="absolute inset-0 flex items-center justify-center text-sm font-bold"
+        style={{ color: textColor }}
+      >
         {displayValue || value}
       </div>
     </div>
@@ -164,8 +172,14 @@ export default function AnalyticsHeatMap() {
   });
   
   const [activeTab, setActiveTab] = useState<"appointments" | "ontime">("appointments");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
-  // Sample data - in a real app, this would come from an API
+  // Function to handle fullscreen toggling
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+  
+  // Sample data - this should be fetched from actual database
   const sampleData = [
     // Monday
     { day: "Monday", hour: 8, count: 5, onTimePercentage: 80 },
@@ -224,121 +238,185 @@ export default function AnalyticsHeatMap() {
   ];
   
   return (
-    <Card className="w-full mb-6">
-      <CardHeader className="pb-0">
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle className="text-2xl flex items-center">
-              <Calendar className="mr-2 h-6 w-6" /> Appointment Heatmap
-            </CardTitle>
-            <CardDescription>
-              View appointment distribution and on-time performance
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-6">
-        <div className="mb-6">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "appointments" | "ontime")}>
-            <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
-              <TabsTrigger value="appointments" className="text-sm">
-                Appointment Count
-              </TabsTrigger>
-              <TabsTrigger value="ontime" className="text-sm">
-                On-Time Percentage
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          
-          {/* Filters */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <>
+      <Card className="w-full mb-6">
+        <CardHeader className="pb-0">
+          <div className="flex justify-between items-center">
             <div>
-              <Label htmlFor="location-filter">Location</Label>
-              <Select 
-                value={filter.location} 
-                onValueChange={(value) => setFilter({...filter, location: value})}
-              >
-                <SelectTrigger id="location-filter">
-                  <SelectValue placeholder="All Locations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  <SelectItem value="main">Main Warehouse</SelectItem>
-                  <SelectItem value="north">North Facility</SelectItem>
-                  <SelectItem value="south">South Facility</SelectItem>
-                </SelectContent>
-              </Select>
+              <CardTitle className="text-2xl flex items-center">
+                <Calendar className="mr-2 h-6 w-6" /> Appointment Heatmap
+              </CardTitle>
+              <CardDescription>
+                View appointment distribution and on-time performance
+              </CardDescription>
             </div>
-            
-            <div>
-              <Label htmlFor="appointment-filter">Appointment Type</Label>
-              <Select 
-                value={filter.appointment} 
-                onValueChange={(value) => setFilter({...filter, appointment: value})}
-              >
-                <SelectTrigger id="appointment-filter">
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="inbound">Inbound</SelectItem>
-                  <SelectItem value="outbound">Outbound</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="customer-filter">Customer</Label>
-              <Select 
-                value={filter.customer} 
-                onValueChange={(value) => setFilter({...filter, customer: value})}
-              >
-                <SelectTrigger id="customer-filter">
-                  <SelectValue placeholder="All Customers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Customers</SelectItem>
-                  <SelectItem value="acme">Acme Inc</SelectItem>
-                  <SelectItem value="globex">Globex Corp</SelectItem>
-                  <SelectItem value="wayne">Wayne Enterprises</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="carrier-filter">Carrier</Label>
-              <Select 
-                value={filter.carrier} 
-                onValueChange={(value) => setFilter({...filter, carrier: value})}
-              >
-                <SelectTrigger id="carrier-filter">
-                  <SelectValue placeholder="All Carriers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Carriers</SelectItem>
-                  <SelectItem value="fedex">FedEx</SelectItem>
-                  <SelectItem value="ups">UPS</SelectItem>
-                  <SelectItem value="dhl">DHL</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="mb-4 flex justify-end">
-            <Button variant="outline" size="sm">
-              <Filter className="h-4 w-4 mr-2" />
-              Reset Filters
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={toggleFullscreen}
+              className="h-8 w-8 p-0"
+            >
+              <Maximize2 className="h-5 w-5" />
             </Button>
           </div>
-        </div>
+        </CardHeader>
         
-        <HeatMapView 
-          data={sampleData} 
-          mode={activeTab} 
-          filter={filter} 
-        />
-      </CardContent>
-    </Card>
+        <CardContent className="pt-6">
+          <div className="mb-6">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "appointments" | "ontime")}>
+              <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
+                <TabsTrigger value="appointments" className="text-sm">
+                  Appointment Count
+                </TabsTrigger>
+                <TabsTrigger value="ontime" className="text-sm">
+                  On-Time Percentage
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            {/* Filters */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div>
+                <Label htmlFor="location-filter">Location</Label>
+                <Select 
+                  value={filter.location} 
+                  onValueChange={(value) => setFilter({...filter, location: value})}
+                >
+                  <SelectTrigger id="location-filter">
+                    <SelectValue placeholder="All Locations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Locations</SelectItem>
+                    <SelectItem value="main">Main Warehouse</SelectItem>
+                    <SelectItem value="north">North Facility</SelectItem>
+                    <SelectItem value="south">South Facility</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="appointment-filter">Appointment Type</Label>
+                <Select 
+                  value={filter.appointment} 
+                  onValueChange={(value) => setFilter({...filter, appointment: value})}
+                >
+                  <SelectTrigger id="appointment-filter">
+                    <SelectValue placeholder="All Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="inbound">Inbound</SelectItem>
+                    <SelectItem value="outbound">Outbound</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="customer-filter">Customer</Label>
+                <Select 
+                  value={filter.customer} 
+                  onValueChange={(value) => setFilter({...filter, customer: value})}
+                >
+                  <SelectTrigger id="customer-filter">
+                    <SelectValue placeholder="All Customers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Customers</SelectItem>
+                    <SelectItem value="acme">Acme Inc</SelectItem>
+                    <SelectItem value="globex">Globex Corp</SelectItem>
+                    <SelectItem value="wayne">Wayne Enterprises</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="carrier-filter">Carrier</Label>
+                <Select 
+                  value={filter.carrier} 
+                  onValueChange={(value) => setFilter({...filter, carrier: value})}
+                >
+                  <SelectTrigger id="carrier-filter">
+                    <SelectValue placeholder="All Carriers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Carriers</SelectItem>
+                    <SelectItem value="fedex">FedEx</SelectItem>
+                    <SelectItem value="ups">UPS</SelectItem>
+                    <SelectItem value="dhl">DHL</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="mb-4 flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setFilter({
+                  location: "all",
+                  appointment: "all",
+                  customer: "all",
+                  carrier: "all"
+                })}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Reset Filters
+              </Button>
+            </div>
+          </div>
+          
+          <HeatMapView 
+            data={sampleData} 
+            mode={activeTab} 
+            filter={filter} 
+          />
+        </CardContent>
+      </Card>
+      
+      {/* Fullscreen Dialog */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-screen-xl w-[95vw] max-h-[90vh] flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center">
+                <Calendar className="mr-2 h-6 w-6" /> Appointment Heatmap
+              </h2>
+              <p className="text-muted-foreground">
+                View appointment distribution and on-time performance
+              </p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={toggleFullscreen}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          
+          <div className="flex space-x-4 mb-4">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "appointments" | "ontime")}>
+              <TabsList className="grid grid-cols-2 mb-2">
+                <TabsTrigger value="appointments">
+                  Appointment Count
+                </TabsTrigger>
+                <TabsTrigger value="ontime">
+                  On-Time Percentage
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          
+          <div className="overflow-auto flex-grow">
+            <HeatMapView 
+              data={sampleData} 
+              mode={activeTab} 
+              filter={filter} 
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
