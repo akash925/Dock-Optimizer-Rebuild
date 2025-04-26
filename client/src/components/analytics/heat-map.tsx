@@ -235,7 +235,7 @@ export default function AnalyticsHeatMap() {
   });
   
   // Fetch customers from the API (directly from analytics API)
-  const { data: companies = [] } = useQuery({
+  const { data: customersResponse } = useQuery({
     queryKey: ['/api/analytics/customers'],
     queryFn: async () => {
       try {
@@ -246,15 +246,23 @@ export default function AnalyticsHeatMap() {
         }
         
         // Extract customer data from our analytics endpoint
-        const data = await res.json();
-        // Transform to match expected format for select component
-        return data.rows || [];
+        return await res.json();
       } catch (error) {
         console.error('Error fetching customers:', error);
-        return []; // Return empty array instead of fake data
+        return { rows: [] }; // Return object with empty rows array
       }
-    }
+    },
+    placeholderData: { rows: [] } // Default data structure
   });
+  
+  // Extract and transform customer data for the dropdown
+  const companies = useMemo(() => {
+    if (!customersResponse?.rows) return [];
+    return customersResponse.rows.map((customer: any) => ({
+      id: customer.id,
+      name: customer.name
+    }));
+  }, [customersResponse]);
   
   // Fetch data from API endpoint
   const { data: appointments = [] } = useQuery({
