@@ -2077,7 +2077,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timeInterval: 15,
           maxConcurrentInbound: 2,
           maxConcurrentOutbound: 2,
-          shareAvailabilityInfo: true
+          shareAvailabilityInfo: true,
+          createdAt: new Date(),
+          lastModifiedAt: null,
+          // Day availability settings
+          sunday: false,
+          monday: true,
+          tuesday: true,
+          wednesday: true,
+          thursday: true,
+          friday: true,
+          saturday: false,
+          // Time windows
+          sundayStartTime: "08:00",
+          sundayEndTime: "17:00",
+          mondayStartTime: "08:00",
+          mondayEndTime: "17:00",
+          tuesdayStartTime: "08:00",
+          tuesdayEndTime: "17:00",
+          wednesdayStartTime: "08:00",
+          wednesdayEndTime: "17:00",
+          thursdayStartTime: "08:00",
+          thursdayEndTime: "17:00",
+          fridayStartTime: "08:00",
+          fridayEndTime: "17:00",
+          saturdayStartTime: "08:00",
+          saturdayEndTime: "17:00",
+          // Break times
+          sundayBreakStartTime: "12:00",
+          sundayBreakEndTime: "13:00",
+          mondayBreakStartTime: "12:00",
+          mondayBreakEndTime: "13:00",
+          tuesdayBreakStartTime: "12:00",
+          tuesdayBreakEndTime: "13:00",
+          wednesdayBreakStartTime: "12:00",
+          wednesdayBreakEndTime: "13:00",
+          thursdayBreakStartTime: "12:00",
+          thursdayBreakEndTime: "13:00",
+          fridayBreakStartTime: "12:00",
+          fridayBreakEndTime: "13:00",
+          saturdayBreakStartTime: "12:00",
+          saturdayBreakEndTime: "13:00", 
+          // Additional fields
+          allowAppointmentsThroughBreaks: false,
+          allowAppointmentsPastBusinessHours: false
         };
       }
       
@@ -2098,7 +2141,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use appointment-availability.ts logic by importing it directly
-      const { generateAvailableTimeSlots } = await import('../client/src/lib/appointment-availability');
+      const appointmentAvailability = await import('../client/src/lib/appointment-availability');
+      const generateAvailableTimeSlots = appointmentAvailability.generateAvailableTimeSlots;
       
       let timeSlots;
       
@@ -2157,6 +2201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           // Create a facility rule for this specific day
+          // Using inline type to avoid circular dependency issues
           const facilityRule = {
             id: 0, // Placeholder ID
             appointmentTypeId: parsedAppointmentTypeId,
@@ -2168,7 +2213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isActive: isAvailable,
             facilityId: parsedFacilityId,
             maxConcurrent: appointmentType.maxConcurrent || 1,
-            maxAppointmentsPerDay: maxAppointments || appointmentType.maxAppointmentsPerDay,
+            maxAppointmentsPerDay: maxAppointments || (appointmentType.maxAppointmentsPerDay || undefined),
             bufferTime: appointmentType.bufferTime,
             gracePeriod: appointmentType.gracePeriod,
             showRemainingSlots: appointmentType.showRemainingSlots
@@ -2199,14 +2244,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("GENERATED TIME SLOTS (sample):", timeSlots.slice(0, 5));
       
       // Count available slots
-      const availableSlotCount = timeSlots.filter(slot => slot.available).length;
+      const availableSlotCount = timeSlots.filter((slot: any) => slot.available).length;
       console.log(`AVAILABILITY SUMMARY: Generated ${timeSlots.length} total slots, ${availableSlotCount} available`);
       
       // Include all time slots with their full details (including remaining capacity)
       // For backward compatibility, also include the original availableTimes array
       const availableTimes = timeSlots
-        .filter(slot => slot.available)
-        .map(slot => slot.time);
+        .filter((slot: any) => slot.available)
+        .map((slot: any) => slot.time);
       
       // Create response object
       const responseData = { 
