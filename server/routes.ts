@@ -1008,7 +1008,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // External booking endpoint - no authentication required
+  // External booking API endpoints
+  
+  // New external booking endpoint for the BookingWizard
+  app.post("/api/schedules/external", async (req, res) => {
+    try {
+      // Define validation schema for the BookingWizard data
+      const bookingWizardSchema = z.object({
+        // Step 1: Service Selection
+        facilityId: z.number(),
+        appointmentTypeId: z.number(),
+        pickupOrDropoff: z.enum(["pickup", "dropoff"]),
+        
+        // Step 2: Date/Time
+        startTime: z.date().or(z.string()),
+        endTime: z.date().or(z.string()),
+        
+        // Step 3: Information
+        companyName: z.string().min(1),
+        contactName: z.string().min(1),
+        email: z.string().email(),
+        phone: z.string().min(5),
+        customerRef: z.string().optional(),
+        
+        // Vehicle Information
+        carrierName: z.string().min(1),
+        driverName: z.string().min(1),
+        driverPhone: z.string().min(5),
+        mcNumber: z.string().optional().or(z.literal("")),
+        truckNumber: z.string().min(1),
+        trailerNumber: z.string().optional(),
+        
+        // Notes
+        notes: z.string().optional(),
+        
+        // Metadata
+        bookingPageId: z.number().optional(),
+        status: z.string().optional().default("scheduled"),
+        createdVia: z.string().optional().default("external"),
+        
+        // Any other fields
+        customFields: z.record(z.string()).optional(),
+        bolExtractedData: z.any().optional(),
+        bolFileUploaded: z.boolean().optional()
+      });
+      
+      console.log("[/api/schedules/external] Raw request data:", req.body);
+      
+      // Parse and validate the input data
+      const validatedData = bookingWizardSchema.parse(req.body);
+      
+      // Ensure dates are Date objects
+      const startTime = validatedData.startTime instanceof Date 
+        ? validatedData.startTime 
+        : new Date(validatedData.startTime);
+        
+      const endTime = validatedData.endTime instanceof Date 
+        ? validatedData.endTime 
+        : new Date(validatedData.endTime);
+      
+      // Check if facility exists
+      const facility = await storage.getFacility(validatedData.facilityId);
+      if (!facility) {
+        return res.status(400).json({ message: "Invalid facility" });
+      }
+      
+      // Check if appointment type exists
+      const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId);
+      if (!appointmentType) {
+        return res.status(400).json({ message: "Invalid appointment type" });
+      }
+      
+      // Find or create carrier
+      let carrier;
+      try {
+        // Try to find carrier by name first
+        const carriers = await storage.getCarriers();
+        carrier = carriers.find(c => 
+          c.name.toLowerCase() === validatedData.carrierName.toLowerCase()
+        );
+        
+        // If no carrier found, create a new one
+        if (!carrier) {
+          carrier = await storage.createCarrier({
+            name: validatedData.carrierName,
+            mcNumber: validatedData.mcNumber || "",
+            contactName: validatedData.contactName,
+            contactEmail: validatedData.email,
+            contactPhone: validatedData.phone
+          });
+          console.log(`Created new carrier: ${carrier.name} with ID ${carrier.id}`);
+        } else {
+          // If carrier found but MC Number is different and provided, update it
+          if (validatedData.mcNumber && carrier.mcNumber !== validatedData.mcNumber) {
+            carrier = await storage.updateCarrier(carrier.id, {
+              ...carrier,
+              mcNumber: validatedData.mcNumber
+            });
+            console.log(`Updated carrier ${carrier.name} with MC number: ${validatedData.mcNumber}`);
+          }
+        }
+      } catch (error) {
+        console.error("Error processing carrier:", error);
+        return res.status(500).json({ message: "Failed to process carrier information" });
+      }
+      
+      // Find appropriate dock
+      let dockId;
+      try {
+        // Get docks for the facility
+        const docks = await storage.getDocksByFacility(validatedData.facilityId);
+        if (docks.length === 0) {
+          return res.status(400).json({ message: "No available docks for selected facility" });
+        }
+        
+        // For now, just use the first dock
+        // TODO: Implement dock selection logic based on availability
+        dockId = docks[0].id;
+        
+      } catch (error) {
+        console.error("Error finding dock:", error);
+        return res.status(500).json({ message: "Failed to find an available dock" });
+      }
+      
+      // Prepare the schedule data
+      const scheduleData = {
+        type: validatedData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound',
+        status: validatedData.status,
+        facilityId: validatedData.facilityId,
+        dockId: dockId,
+        appointmentTypeId: validatedData.appointmentTypeId,
+        carrierId: carrier.id,
+        carrierName: validatedData.carrierName,
+        mcNumber: validatedData.mcNumber || null,
+        customerName: validatedData.companyName,
+        customerRef: validatedData.customerRef || null,
+        driverName: validatedData.driverName,
+        driverPhone: validatedData.driverPhone,
+        driverEmail: validatedData.email,
+        truckNumber: validatedData.truckNumber,
+        trailerNumber: validatedData.trailerNumber || null,
+        startTime,
+        endTime,
+        notes: validatedData.notes || null,
+        customFormData: validatedData.customFields || null,
+        createdBy: 1, // System user ID for external bookings
+      };
+      
+      console.log("[/api/schedules/external] Creating schedule with data:", scheduleData);
+      
+      // Create the schedule
+      const schedule = await storage.createSchedule(scheduleData);
+      
+      // Generate confirmation code
+      const confirmationCode = `HC${schedule.id}`;
+      
+      // Return success response with schedule and confirmation code
+      res.status(201).json({
+        success: true,
+        schedule,
+        confirmationCode,
+        message: "Appointment successfully scheduled"
+      });
+      
+    } catch (error) {
+      console.error("Error creating external schedule:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid booking data", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to create appointment" });
+    }
+  });
+  
+  // Legacy External booking endpoint - no authentication required
   app.post("/api/external-booking", async (req, res) => {
     try {
       // Create a schema for external booking validation

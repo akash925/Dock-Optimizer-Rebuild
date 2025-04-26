@@ -37,6 +37,7 @@ export interface IStorage {
   // Dock operations
   getDock(id: number): Promise<Dock | undefined>;
   getDocks(): Promise<Dock[]>;
+  getDocksByFacility(facilityId: number): Promise<Dock[]>;
   createDock(dock: InsertDock): Promise<Dock>;
   updateDock(id: number, dock: Partial<Dock>): Promise<Dock | undefined>;
   deleteDock(id: number): Promise<boolean>;
@@ -287,6 +288,12 @@ export class MemStorage implements IStorage {
 
   async getDocks(): Promise<Dock[]> {
     return Array.from(this.docks.values());
+  }
+  
+  async getDocksByFacility(facilityId: number): Promise<Dock[]> {
+    return Array.from(this.docks.values()).filter(
+      (dock) => dock.facilityId === facilityId
+    );
   }
 
   async createDock(insertDock: InsertDock): Promise<Dock> {

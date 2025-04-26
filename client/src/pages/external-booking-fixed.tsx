@@ -158,20 +158,38 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
       
       console.log('Submitting appointment data:', scheduleData);
       
-      // Submit to API
-      const response = await fetch('/api/schedules/external', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(scheduleData),
-      });
+      let responseData;
       
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        const errorMessage = responseData.message || 'Failed to create appointment';
-        throw new Error(errorMessage);
+      try {
+        // Submit to API
+        console.log('Sending data to API:', JSON.stringify(scheduleData, null, 2));
+        
+        const response = await fetch('/api/schedules/external', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(scheduleData),
+        });
+        
+        // Check for non-JSON responses
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Received non-JSON response:', await response.text());
+          throw new Error('Server returned an invalid response format');
+        }
+        
+        responseData = await response.json();
+        
+        if (!response.ok) {
+          const errorMessage = responseData.message || 'Failed to create appointment';
+          throw new Error(errorMessage);
+        }
+        
+        console.log('Appointment created successfully:', responseData);
+      } catch (parseError) {
+        console.error('Error parsing response:', parseError);
+        throw new Error('Failed to parse server response. Please try again.');
       }
       
       // Store the confirmation code
@@ -1180,7 +1198,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
             )}
           />
           
-          <h2 className="booking-form-section-title mt-8">Vehicle Information</h2>
+          <h2 className="booking-form-section-title mt-8">Carrier Information</h2>
           
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
@@ -1487,7 +1505,7 @@ function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any;
             
             {bookingData.carrierName && (
               <div>
-                <h3 className="font-semibold">Vehicle Information</h3>
+                <h3 className="font-semibold">Carrier Information</h3>
                 <p>
                   Carrier: {bookingData.carrierName}
                   {bookingData.mcNumber && ` (MC#: ${bookingData.mcNumber})`}
