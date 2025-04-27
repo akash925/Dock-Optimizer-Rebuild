@@ -1017,6 +1017,7 @@ const customerInfoSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   phone: z.string().min(5, { message: "Phone number is required" }),
   customerRef: z.string().optional(),
+  carrierId: z.number().optional(), // Carrier ID field for existing carriers
   carrierName: z.string().min(1, { message: "Carrier name is required" }),
   driverName: z.string().min(1, { message: "Driver name is required" }),
   driverPhone: z.string().min(5, { message: "Driver phone is required" }),
