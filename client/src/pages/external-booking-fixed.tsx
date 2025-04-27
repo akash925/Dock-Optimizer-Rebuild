@@ -1137,7 +1137,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
             name="companyName"
             render={({ field }) => (
               <FormItem className="booking-form-field">
-                <FormLabel className="booking-label">Company Name</FormLabel>
+                <FormLabel className="booking-label">Company Name *</FormLabel>
                 <FormControl>
                   <Input
                     id="companyName"
@@ -1159,7 +1159,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
             name="contactName"
             render={({ field }) => (
               <FormItem className="booking-form-field">
-                <FormLabel className="booking-label">Contact Name</FormLabel>
+                <FormLabel className="booking-label">Contact Name *</FormLabel>
                 <FormControl>
                   <Input
                     id="contactName"
@@ -1182,7 +1182,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
               name="email"
               render={({ field }) => (
                 <FormItem className="booking-form-field">
-                  <FormLabel className="booking-label">Email</FormLabel>
+                  <FormLabel className="booking-label">Email *</FormLabel>
                   <FormControl>
                     <Input
                       id="email"
@@ -1205,7 +1205,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
               name="phone"
               render={({ field }) => (
                 <FormItem className="booking-form-field">
-                  <FormLabel className="booking-label">Phone</FormLabel>
+                  <FormLabel className="booking-label">Phone *</FormLabel>
                   <FormControl>
                     <Input
                       id="phone"
@@ -1255,7 +1255,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
               name="carrierId"
               render={({ field }) => (
                 <FormItem className="booking-form-field">
-                  <FormLabel className="booking-label">Carrier</FormLabel>
+                  <FormLabel className="booking-label">Carrier *</FormLabel>
                   <CarrierSelector 
                     form={form}
                     idFieldName="carrierId"
@@ -1383,7 +1383,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
               name="truckNumber"
               render={({ field }) => (
                 <FormItem className="booking-form-field">
-                  <FormLabel className="booking-label">Truck Number</FormLabel>
+                  <FormLabel className="booking-label">Truck Number *</FormLabel>
                   <FormControl>
                     <Input
                       id="truckNumber"
