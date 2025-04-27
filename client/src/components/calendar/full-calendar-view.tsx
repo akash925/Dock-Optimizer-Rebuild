@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, MutableRefObject } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -40,6 +40,17 @@ interface FullCalendarViewProps {
   onDateSelect?: (selectInfo: { start: Date; end: Date; allDay: boolean }) => void;
   timezone?: string; // Add timezone prop
 }
+
+// Export a function for the parent component to get the calendar reference
+export const getCalendarApi = (ref: MutableRefObject<FullCalendar | null>) => {
+  if (!ref.current) return null;
+  try {
+    return ref.current.getApi();
+  } catch (error) {
+    console.error('Error getting calendar API:', error);
+    return null;
+  }
+};
 
 export default function FullCalendarView({ 
   schedules, 
@@ -154,7 +165,14 @@ export default function FullCalendarView({
         status: schedule.status,
         timeKey: timeKey,
         hourKey: eventHour,
-        zIndex: zIndex
+        zIndex: zIndex,
+        // Additional data for improved display
+        facilityName: (schedule as any).facilityName || (schedule as any).locationName || '',
+        customerName: schedule.customerName || '',
+        carrierName: schedule.carrierName || (schedule as any).carrier || '',
+        appointmentType: (schedule as any).appointmentType || '',
+        truckNumber: schedule.truckNumber || '',
+        driverName: schedule.driverName || ''
       }
     };
   });
