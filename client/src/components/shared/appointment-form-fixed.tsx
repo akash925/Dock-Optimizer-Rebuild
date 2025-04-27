@@ -190,12 +190,7 @@ export default function AppointmentForm({
   // Filtered appointment types based on selected facility
   const [filteredAppointmentTypes, setFilteredAppointmentTypes] = useState<AppointmentType[]>([]);
   
-  // Update filtered appointment types when facility changes or appointment types load
-  useEffect(() => {
-    // This effect isn't needed as we handle it in the watchedFacilityId effect below
-  }, []);
-  
-  // Watch for facilityId changes to update filtered appointment types
+  // Watch for facilityId changes to update filtered appointment types and timezone
   const watchedFacilityId = form.watch("facilityId");
   const lastFacilityIdRef = useRef<number | undefined>(watchedFacilityId);
   
@@ -205,13 +200,21 @@ export default function AppointmentForm({
       lastFacilityIdRef.current = watchedFacilityId;
       
       if (watchedFacilityId) {
+        // Filter appointment types for this facility
         const typesForFacility = allAppointmentTypes.filter(type => type.facilityId === watchedFacilityId);
         setFilteredAppointmentTypes(typesForFacility);
+        
+        // Update facility timezone in the form
+        const selectedFacility = facilities.find(f => f.id === watchedFacilityId);
+        if (selectedFacility && selectedFacility.timezone) {
+          console.log(`Updating facility timezone to ${selectedFacility.timezone}`);
+          form.setValue("facilityTimezone", selectedFacility.timezone);
+        }
       } else {
         setFilteredAppointmentTypes(allAppointmentTypes);
       }
     }
-  }, [watchedFacilityId, allAppointmentTypes]);
+  }, [watchedFacilityId, allAppointmentTypes, facilities, form]);
   
   // Watch for appointment type changes - use callback to avoid triggering another render
   const watchedAppointmentTypeId = form.watch("appointmentTypeId");
