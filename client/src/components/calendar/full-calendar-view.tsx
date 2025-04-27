@@ -95,14 +95,53 @@ export default function FullCalendarView({
     return aStartTime.getTime() - bStartTime.getTime();
   });
 
+  // Check if an appointment needs attention (soon to start or unchecked-in)
+  const needsAttention = (schedule: Schedule): { needsAttention: boolean, isUrgent: boolean, reason: string } => {
+    const now = new Date();
+    const startTime = new Date(schedule.startTime);
+    const timeDiff = startTime.getTime() - now.getTime();
+    const minutesUntilStart = Math.floor(timeDiff / (1000 * 60));
+    
+    // If appointment already started but not checked in
+    if (startTime < now && schedule.status === 'scheduled') {
+      return { 
+        needsAttention: true, 
+        isUrgent: true,
+        reason: 'Unchecked-in appointment' 
+      };
+    }
+    
+    // If appointment is starting within 30 minutes
+    if (minutesUntilStart >= 0 && minutesUntilStart <= 30 && schedule.status === 'scheduled') {
+      return { 
+        needsAttention: true, 
+        isUrgent: minutesUntilStart <= 15,
+        reason: `Starting in ${minutesUntilStart} minutes` 
+      };
+    }
+    
+    return { needsAttention: false, isUrgent: false, reason: '' };
+  };
+
   // Now map the sorted schedules to events
   const events: EventInput[] = sortedSchedules.map(schedule => {
     const isInbound = schedule.type === 'inbound';
-    const statusColor = schedule.status === 'completed' ? '#4ADE80' : 
-                      schedule.status === 'checked-in' ? '#F59E0B' :
-                      schedule.status === 'canceled' ? '#EF4444' : 
-                      schedule.status === 'no-show' ? '#6B7280' : 
-                      (isInbound ? '#3B82F6' : '#10B981');
+    
+    // Check if this appointment needs attention
+    const attention = needsAttention(schedule);
+    
+    // Determine color based on status and attention needed
+    let statusColor = '';
+    
+    if (attention.needsAttention) {
+      statusColor = attention.isUrgent ? '#DC2626' : '#F97316'; // Red for urgent, orange for warning
+    } else {
+      statusColor = schedule.status === 'completed' ? '#4ADE80' : 
+                  schedule.status === 'checked-in' ? '#F59E0B' :
+                  schedule.status === 'canceled' ? '#EF4444' : 
+                  schedule.status === 'no-show' ? '#6B7280' : 
+                  (isInbound ? '#3B82F6' : '#10B981');
+    }
     
     // Date utilities
     const startTime = new Date(schedule.startTime);
@@ -138,11 +177,18 @@ export default function FullCalendarView({
     // Add status badge to title if not scheduled
     if (schedule.status && schedule.status !== 'scheduled') {
       title += `\n${schedule.status.toUpperCase()}`;
+    } else if (attention.needsAttention) {
+      title += `\n${attention.reason.toUpperCase()}`;
     }
     
     // Calculate dynamic z-index based on hour - later hours should be higher
     // This is critical for proper event stacking
     const zIndex = 100 + (hour * 100); // 100-2300 range based on 24 hour time
+    
+    // Determine additional classes based on attention needed
+    const attentionClass = attention.needsAttention 
+      ? attention.isUrgent ? 'urgent-attention' : 'needs-attention'
+      : '';
     
     return {
       id: schedule.id.toString(),
@@ -152,7 +198,7 @@ export default function FullCalendarView({
       backgroundColor: statusColor,
       borderColor: statusColor,
       textColor: '#FFFFFF',
-      classNames: [`time-${timeKey.replace(':', '-')}`],
+      classNames: [`time-${timeKey.replace(':', '-')}`, attentionClass],
       // The critical part: assign z-index directly to the event
       zIndex: zIndex,
       extendedProps: {
@@ -169,7 +215,9 @@ export default function FullCalendarView({
         carrierName: schedule.carrierName || (schedule as any).carrier || '',
         appointmentType: (schedule as any).appointmentType || '',
         truckNumber: schedule.truckNumber || '',
-        driverName: schedule.driverName || ''
+        driverName: schedule.driverName || '',
+        needsAttention: attention.needsAttention,
+        attentionReason: attention.reason
       }
     };
   });
