@@ -832,7 +832,7 @@ export default function AppointmentForm({
                     name="appointmentTime"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Time*</FormLabel>
+                        <FormLabel>Time* (Facility Time)</FormLabel>
                         <Select
                           onValueChange={(timeWithCapacity) => {
                             // Extract just the time part from the display string (e.g., "08:00 (3 available)")
@@ -864,6 +864,9 @@ export default function AppointmentForm({
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormDescription>
+                          All times are in the facility's timezone ({form.getValues("facilityTimezone") || facilityTimezone})
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1125,7 +1128,12 @@ export default function AppointmentForm({
                     }
                   </p>
                   <p>
-                    <strong>Time:</strong> {form.getValues("appointmentTime") || "Not selected"}
+                    <strong>Facility Time:</strong> {form.getValues("appointmentTime") || "Not selected"} 
+                    ({form.getValues("facilityTimezone") || facilityTimezone})
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <Clock className="inline-block h-3 w-3 mr-1 align-text-bottom" />
+                    Times are shown in the facility timezone.
                   </p>
                 </div>
               </div>
@@ -1230,7 +1238,7 @@ export default function AppointmentForm({
                     <p><strong>Type:</strong> {
                       allAppointmentTypes.find(t => t.id === form.getValues("appointmentTypeId"))?.name || "Unknown"
                     }</p>
-                    <p><strong>Date/Time:</strong> {
+                    <p><strong>Date:</strong> {
                       (() => {
                         try {
                           // Parse the date string carefully
@@ -1241,14 +1249,8 @@ export default function AppointmentForm({
                             const date = new Date(year, month - 1, day);
                             date.setHours(12, 0, 0, 0);
                             
-                            // Format the time part
-                            let timeString = form.getValues("appointmentTime") || "";
-                            if (timeString.includes('(')) {
-                              timeString = timeString.split(' (')[0].trim();
-                            }
-                            
-                            // Human-readable date format with properly formatted time
-                            return `${format(date, "PPP")} at ${timeString}`;
+                            // Human-readable date format
+                            return format(date, "PPP");
                           }
                           
                           // Handle non-standard format
@@ -1257,22 +1259,26 @@ export default function AppointmentForm({
                             // Set time to noon to avoid timezone shifts
                             date.setHours(12, 0, 0, 0);
                             
-                            // Format the time part
-                            let timeString = form.getValues("appointmentTime") || "";
-                            if (timeString.includes('(')) {
-                              timeString = timeString.split(' (')[0].trim();
-                            }
-                            
-                            return `${format(date, "PPP")} at ${timeString}`;
+                            return format(date, "PPP");
                           }
                           
-                          return `${dateVal} at ${form.getValues("appointmentTime")}`;
+                          return dateVal;
                         } catch (e) {
                           console.error("Error formatting date in appointment summary:", e);
-                          return `${form.getValues("appointmentDate")} at ${form.getValues("appointmentTime")}`;
+                          return form.getValues("appointmentDate");
                         }
                       })()
                     }</p>
+                    <p><strong>Time:</strong> {
+                      (() => {
+                        // Format the time part
+                        let timeString = form.getValues("appointmentTime") || "";
+                        if (timeString.includes('(')) {
+                          timeString = timeString.split(' (')[0].trim();
+                        }
+                        return timeString;
+                      })()
+                    } <span className="text-muted-foreground">({form.getValues("facilityTimezone") || facilityTimezone} - Facility Time)</span></p>
                     <p><strong>Customer:</strong> {form.getValues("customerName")}</p>
                     <p><strong>Direction:</strong> {form.getValues("type") === "inbound" ? "Inbound (Delivery)" : "Outbound (Pickup)"}</p>
                   </div>
