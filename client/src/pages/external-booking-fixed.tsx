@@ -975,7 +975,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                 ? appointmentTypes.find((type: any) => type.id === bookingData.appointmentTypeId)
                                 : undefined;
                               
-                              // Display slots with remaining capacity indicator if the appointment type is configured to show them
+                              // Always show remaining slots, regardless of the showRemainingSlots setting
                               return (
                                 <Button
                                   key={slot.time}
@@ -989,12 +989,10 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                 >
                                   {displayTime}
                                   
-                                  {/* Show capacity badge if appointment type is configured to show remaining slots */}
-                                  {selectedType?.showRemainingSlots && (
-                                    <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
-                                      {slot.remaining}
-                                    </span>
-                                  )}
+                                  {/* Always show capacity badge */}
+                                  <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
+                                    {slot.remaining}
+                                  </span>
                                 </Button>
                               );
                             })}
@@ -1048,14 +1046,23 @@ const customerInfoSchema = z.object({
   phone: z.string().min(5, { message: "Phone number is required" }),
   customerRef: z.string().optional(),
   carrierId: z.number().optional(), // Carrier ID field for existing carriers
-  carrierName: z.string().min(1, { message: "Carrier name is required" }),
+  carrierName: z.string().optional(), // Custom carrier name field
   driverName: z.string().min(1, { message: "Driver name is required" }),
   driverPhone: z.string().min(5, { message: "Driver phone is required" }),
   mcNumber: z.string().optional(), // MC Number remains optional
   truckNumber: z.string().min(1, { message: "Truck number is required" }),
   trailerNumber: z.string().optional(),
   notes: z.string().optional()
-});
+}).refine(
+  (data) => {
+    // Either carrierId or carrierName must be provided
+    return !!data.carrierId || (!!data.carrierName && data.carrierName.trim().length > 0);
+  },
+  {
+    message: "Please select a carrier or enter a custom carrier name",
+    path: ["carrierId"], // Show the error on the carrier field
+  }
+);
 
 type CustomerInfoFormValues = z.infer<typeof customerInfoSchema>;
 
@@ -1306,7 +1313,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
               name="carrierName"
               render={({ field }) => (
                 <FormItem className="booking-form-field">
-                  <FormLabel className="booking-label">Custom Carrier Name</FormLabel>
+                  <FormLabel className="booking-label">Custom Carrier Name (Optional if selected above)</FormLabel>
                   <FormControl>
                     <Input
                       id="carrierName"
