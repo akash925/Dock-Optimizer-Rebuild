@@ -320,10 +320,10 @@ export default function FullCalendarView({
                   <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
                     <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
                     <div className="text-xs font-medium line-clamp-1 overflow-hidden text-ellipsis">
-                      {customerName && <span className="font-bold block">{customerName}</span>}
+                      {facilityName && <span className="font-bold block text-[11px] text-blue-700">{facilityName}</span>}
+                      {customerName && <span className="font-semibold block">{customerName}</span>}
                     </div>
                     <div className="text-[10px] text-gray-700 line-clamp-2 overflow-hidden">
-                      {facilityName && <span className="block">{facilityName}</span>}
                       {carrierName && <span className="block">{carrierName}</span>}
                       {dockId && <span className="block">Dock #{dockId}</span>}
                     </div>

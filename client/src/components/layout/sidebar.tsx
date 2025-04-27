@@ -120,7 +120,7 @@ export default function Sidebar({ className }: SidebarProps) {
         <SidebarItem 
           href="/schedules" 
           icon={<Calendar size={20} />} 
-          label="Schedules" 
+          label="Calendar" 
           active={location === "/schedules" || location.startsWith("/schedules/")}
           onClick={closeSidebar}
         />
