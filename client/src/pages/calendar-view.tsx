@@ -38,6 +38,7 @@ export default function CalendarPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [currentView, setCurrentView] = useState<string>('timeGridWeek');
   const [selectedTimezone, setSelectedTimezone] = useState<string>(getUserTimeZone());
+  const calendarRef = useRef<FullCalendar>(null);
   const [dateSelectInfo, setDateSelectInfo] = useState<{
     start: Date;
     end: Date;
@@ -304,6 +305,8 @@ export default function CalendarPage() {
         onEventClick={handleEventClick}
         onDateSelect={handleDateSelect}
         timezone={selectedTimezone}
+        calendarRef={calendarRef}
+        initialView={currentView}
       />
 
       {/* Appointment details dialog */}

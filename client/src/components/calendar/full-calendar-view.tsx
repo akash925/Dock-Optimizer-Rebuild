@@ -39,24 +39,20 @@ interface FullCalendarViewProps {
   onEventClick: (scheduleId: number) => void;
   onDateSelect?: (selectInfo: { start: Date; end: Date; allDay: boolean }) => void;
   timezone?: string; // Add timezone prop
+  calendarRef?: React.RefObject<FullCalendar>;
+  initialView?: string;
 }
 
 // Export a function for the parent component to get the calendar reference
-export const getCalendarApi = (ref: MutableRefObject<FullCalendar | null>) => {
-  if (!ref.current) return null;
-  try {
-    return ref.current.getApi();
-  } catch (error) {
-    console.error('Error getting calendar API:', error);
-    return null;
-  }
-};
+// Removed separate function export to avoid conflicts with Fast Refresh
 
 export default function FullCalendarView({ 
   schedules, 
   onEventClick, 
   onDateSelect,
-  timezone 
+  timezone,
+  calendarRef: externalCalendarRef,
+  initialView: initialViewProp = 'timeGridWeek'
 }: FullCalendarViewProps) {
   // Get user's timezone and set as default, or use the passed timezone prop
   const [selectedTimezone, setSelectedTimezone] = useState<string>(timezone || getUserTimeZone());
@@ -67,7 +63,8 @@ export default function FullCalendarView({
       setSelectedTimezone(timezone);
     }
   }, [timezone]);
-  const calendarRef = useRef<FullCalendar>(null);
+  // Use the external ref if provided, otherwise create a local one
+  const calendarRef = externalCalendarRef || useRef<FullCalendar>(null);
   
   // Save timezone preference to localStorage
   useEffect(() => {
@@ -233,7 +230,7 @@ export default function FullCalendarView({
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-              initialView="timeGridWeek"
+              initialView={initialViewProp}
               headerToolbar={{
                 left: '',
                 center: 'title',
