@@ -509,6 +509,9 @@ export default function AppointmentForm({
       return ["No time slots available"];
     }
     
+    // Get the facility timezone
+    const facilityTz = form.getValues("facilityTimezone") || facilityTimezone;
+    
     // Format time slots with availability information
     return availableTimeSlots
       .filter(slot => slot.available)
