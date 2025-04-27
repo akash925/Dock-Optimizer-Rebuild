@@ -90,16 +90,17 @@ export default function CalendarPage() {
         </p>
       </div>
 
-      {/* Controls row - timezone selector, view switcher and navigation */}
-      <div className="view-buttons-container mb-4 sticky top-0 z-[1000] bg-white border-b pb-4" style={{
+      {/* Controls row - all filters and controls */}
+      <div className="view-buttons-container mb-6 sticky top-0 z-[1000] bg-white border rounded-lg shadow-sm" style={{
         position: "sticky",
         top: "0",
         zIndex: "1000",
         backgroundColor: "white",
-        padding: "1rem 0",
-        borderBottom: "1px solid #e5e7eb"
+        padding: "1.25rem",
+        borderRadius: "0.5rem",
+        marginBottom: "1.5rem"
       }}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Timezone selector */}
           <div className="flex-col space-y-1">
             <Label htmlFor="timezone-select">Timezone</Label>
@@ -107,11 +108,8 @@ export default function CalendarPage() {
               value={selectedTimezone} 
               onValueChange={(timezone) => {
                 setSelectedTimezone(timezone);
-                const calendar = document.querySelector('.fc') as any;
-                if (calendar) {
-                  const api = calendar.__fullCalendar_instance.getApi();
-                  api.setOption('timeZone', timezone);
-                }
+                // Fixed: Don't try to manipulate the calendar directly
+                // The FullCalendarView component will handle the timezone change via props
               }}
             >
               <SelectTrigger id="timezone-select" className="w-full md:w-64">
@@ -223,6 +221,80 @@ export default function CalendarPage() {
                 list
               </Button>
             </div>
+          </div>
+        </div>
+        
+        {/* Additional filters row */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 pt-4 border-t">
+          {/* Facility filter */}
+          <div className="flex-col space-y-1">
+            <Label htmlFor="facility-select">Facility</Label>
+            <Select defaultValue="all">
+              <SelectTrigger id="facility-select" className="w-full">
+                <SelectValue placeholder="All Facilities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Facilities</SelectItem>
+                <SelectItem value="1">450 Airtech Pkwy</SelectItem>
+                <SelectItem value="2">Camby Road</SelectItem>
+                <SelectItem value="3">HANZO Cold-Chain</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Dock filter */}
+          <div className="flex-col space-y-1">
+            <Label htmlFor="dock-select">Dock</Label>
+            <Select defaultValue="all">
+              <SelectTrigger id="dock-select" className="w-full">
+                <SelectValue placeholder="All Docks" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Docks</SelectItem>
+                <SelectItem value="1">Dock #1</SelectItem>
+                <SelectItem value="2">Dock #2</SelectItem>
+                <SelectItem value="3">Dock #3</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Status filter */}
+          <div className="flex-col space-y-1">
+            <Label htmlFor="status-select">Status</Label>
+            <Select defaultValue="all">
+              <SelectTrigger id="status-select" className="w-full">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="checked-in">Checked In</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="canceled">Canceled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Type filter */}
+          <div className="flex-col space-y-1">
+            <Label htmlFor="type-select">Appointment Type</Label>
+            <Select defaultValue="all">
+              <SelectTrigger id="type-select" className="w-full">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="1">1 Hour Trailer Appointment</SelectItem>
+                <SelectItem value="4">4 Hour Container Appointment</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Clear filters button */}
+          <div className="flex items-end justify-end">
+            <Button variant="outline" size="sm" className="mb-0.5">
+              Clear Filters
+            </Button>
           </div>
         </div>
       </div>

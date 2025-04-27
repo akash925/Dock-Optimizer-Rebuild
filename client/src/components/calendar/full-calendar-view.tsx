@@ -185,10 +185,13 @@ export default function FullCalendarView({
     
     // Force calendar to re-render with new timezone
     if (calendarRef.current) {
-      const calendarApi = calendarRef.current.getApi();
-      calendarApi.setOption('timeZone', timezone);
-      // In newer versions of FullCalendar, render() has been removed
-      // The calendar will automatically re-render when options change
+      try {
+        const calendarApi = calendarRef.current.getApi();
+        calendarApi.setOption('timeZone', timezone);
+      } catch (error) {
+        console.log('Calendar API not available yet, timezone will be applied on next render');
+        // Will rely on the props change to update the timezone
+      }
     }
   };
   
@@ -291,10 +294,24 @@ export default function FullCalendarView({
                 // Get the start date safely
                 const startDate = eventInfo.event.start || new Date();
                 
+                // Extract event data
+                const eventData = eventInfo.event.extendedProps;
+                const facilityName = eventData?.facilityName || '';
+                const customerName = eventData?.customerName || '';
+                const carrierName = eventData?.carrierName || '';
+                const dockId = eventData?.dockId || '';
+                
                 return (
                   <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
                     <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
-                    <div className="text-xs font-medium whitespace-pre-line line-clamp-3 overflow-hidden text-ellipsis">{eventInfo.event.title}</div>
+                    <div className="text-xs font-medium line-clamp-1 overflow-hidden text-ellipsis">
+                      {customerName && <span className="font-bold block">{customerName}</span>}
+                    </div>
+                    <div className="text-[10px] text-gray-700 line-clamp-2 overflow-hidden">
+                      {facilityName && <span className="block">{facilityName}</span>}
+                      {carrierName && <span className="block">{carrierName}</span>}
+                      {dockId && <span className="block">Dock #{dockId}</span>}
+                    </div>
                   </div>
                 );
               }}
