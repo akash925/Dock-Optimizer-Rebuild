@@ -131,6 +131,10 @@ export default function AppointmentForm({
     queryKey: ["/api/appointment-types"],
   });
   
+  // State for available time slots
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<{ time: string; available: boolean; remainingCapacity?: number }[]>([]);
+  const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState(false);
+  
   // Form setup with default values
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentFormSchema),
@@ -235,6 +239,71 @@ export default function AppointmentForm({
       }
     }
   }, [watchedAppointmentTypeId, allAppointmentTypes]);
+  
+  // Watch for date and appointment type changes to fetch available slots
+  const watchedAppointmentDate = form.watch("appointmentDate");
+  
+  // Effect to fetch available time slots when date or appointment type changes
+  useEffect(() => {
+    const fetchAvailableTimes = async () => {
+      // We need date, facility ID, and appointment type ID to fetch availability
+      const facilityId = form.getValues("facilityId");
+      const appointmentTypeId = form.getValues("appointmentTypeId");
+      const appointmentDate = form.getValues("appointmentDate");
+      
+      if (!facilityId || !appointmentTypeId || !appointmentDate) {
+        console.log("[Internal Form] Missing required data for availability:", { 
+          facilityId, appointmentTypeId, appointmentDate 
+        });
+        return;
+      }
+      
+      try {
+        setIsLoadingTimeSlots(true);
+        console.log(`[Internal Form] Fetching available times for facilityId=${facilityId}, typeId=${appointmentTypeId}, date=${appointmentDate}`);
+        
+        // Call the availability API endpoint used by the external booking system
+        const response = await fetch(`/api/availability?date=${appointmentDate}&facilityId=${facilityId}&typeId=${appointmentTypeId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch available times: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("[Internal Form] Available times response:", data);
+        
+        // Process the slots from the API response
+        if (data.slots && Array.isArray(data.slots)) {
+          // Sort time slots by time
+          const sortedSlots = [...data.slots].sort((a, b) => a.time.localeCompare(b.time));
+          setAvailableTimeSlots(sortedSlots);
+        } else if (data.availableTimes && Array.isArray(data.availableTimes)) {
+          // Fallback to the simple time array if no detailed slots
+          const basicSlots = data.availableTimes.map((time: string) => ({
+            time,
+            available: true,
+            remainingCapacity: 1
+          }));
+          setAvailableTimeSlots(basicSlots.sort((a, b) => a.time.localeCompare(b.time)));
+        } else {
+          // If no data, set empty array
+          setAvailableTimeSlots([]);
+        }
+      } catch (error) {
+        console.error("[Internal Form] Error fetching available times:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load available appointment times",
+          variant: "destructive",
+        });
+        setAvailableTimeSlots([]);
+      } finally {
+        setIsLoadingTimeSlots(false);
+      }
+    };
+    
+    fetchAvailableTimes();
+  }, [watchedAppointmentDate, watchedAppointmentTypeId, form.getValues("facilityId")]);
   
   // Create appointment mutation
   const createAppointmentMutation = useMutation({
@@ -427,101 +496,23 @@ export default function AppointmentForm({
   
   // Get available times based on the selected date and appointment type
   const getAvailableTimes = () => {
-    const selectedAppointmentType = form.getValues("appointmentTypeId") 
-      ? allAppointmentTypes.find(type => type.id === form.getValues("appointmentTypeId"))
-      : null;
-    
-    // Get selected facility
-    const selectedFacilityId = form.getValues("facilityId");
-    const selectedFacility = facilities.find(f => f.id === selectedFacilityId);
-    
-    // Default facility hours (8 AM to 5 PM)
-    const facilityOpenHour = 8;
-    const facilityCloseHour = 17;
-    
-    // Use the max concurrent appointments from the selected appointment type
-    const maxConcurrent = selectedAppointmentType?.maxConcurrent || 1;
-    
-    // Get current date and time
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentDay = now.getDate();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    
-    // Check if selected date is today
-    const selectedDate = form.getValues("appointmentDate");
-    let isToday = false;
-    
-    if (selectedDate) {
-      try {
-        if (typeof selectedDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
-          const dateParts = selectedDate.split('-');
-          const year = parseInt(dateParts[0], 10);
-          const month = parseInt(dateParts[1], 10);
-          const day = parseInt(dateParts[2], 10);
-          
-          isToday = (
-            year === currentYear && 
-            month === currentMonth && 
-            day === currentDay
-          );
-        }
-      } catch (e) {
-        console.error("Error parsing date when checking if selected date is today:", e);
-      }
+    // If we're loading, show loading indicator in the first slot
+    if (isLoadingTimeSlots) {
+      return ["Loading available times..."];
     }
     
-    // Get day of week from the selected date (0-6, where 0 is Sunday)
-    let dayOfWeek = 0;
-    if (selectedDate) {
-      try {
-        const dateParts = selectedDate.split('-');
-        const year = parseInt(dateParts[0], 10);
-        const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
-        const day = parseInt(dateParts[2], 10);
-        
-        const date = new Date(year, month, day);
-        dayOfWeek = date.getDay();
-      } catch (e) {
-        console.error("Error determining day of week:", e);
-      }
+    // If we don't have any slots, return a message
+    if (availableTimeSlots.length === 0) {
+      return ["No time slots available"];
     }
     
-    // Determine facility operating hours based on the day of week
-    // For simplicity, using standard hours but this could be extended to use facility-specific settings
-    let openingHour = facilityOpenHour;
-    let closingHour = facilityCloseHour;
-    
-    // Weekend handling - shorter hours on Saturday, closed on Sunday
-    if (dayOfWeek === 0) { // Sunday
-      // No times available
-      return [];
-    } else if (dayOfWeek === 6) { // Saturday
-      openingHour = 9; // Open later
-      closingHour = 14; // Close earlier
-    }
-    
-    // Only show full hour slots for standard appointment booking
-    const times = [];
-    for (let hour = openingHour; hour < closingHour; hour++) {
-      // Check if we need to filter out past times for today
-      if (isToday && hour <= currentHour) {
-        // Skip times that are in the past for today
-        continue;
-      }
-      
-      // Create the time slot with availability indication
-      const timeStr = `${hour.toString().padStart(2, '0')}:00`;
-      
-      // Use the actual max concurrent value from the appointment type
-      const availableSlots = maxConcurrent;
-      
-      // Add a modified display string that includes availability info
-      times.push(`${timeStr} (${availableSlots} available)`);
-    }
-    
-    return times;
+    // Format time slots with availability information
+    return availableTimeSlots
+      .filter(slot => slot.available)
+      .map(slot => {
+        const capacity = slot.remainingCapacity !== undefined ? slot.remainingCapacity : 1;
+        return `${slot.time} (${capacity} available)`;
+      });
   };
   
   // Get the next available time slot (closest full hour)
