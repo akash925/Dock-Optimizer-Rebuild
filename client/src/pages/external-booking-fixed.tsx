@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Clock as ClockIcon } from 'lucide-react';
 import { format, addHours, isValid, parseISO } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -923,7 +923,14 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
             name="selectedTime"
             render={({ field }) => (
               <FormItem className="booking-form-field">
-                <FormLabel className="booking-label">Available Times</FormLabel>
+                <FormLabel className="booking-label">
+                  Available Times
+                  {selectedFacility?.timezone && (
+                    <span className="ml-2 text-sm text-muted-foreground font-normal">
+                      (All times shown in {selectedFacility.timezone.replace(/_/g, ' ')} - Facility's timezone)
+                    </span>
+                  )}
+                </FormLabel>
                 <FormControl>
                   <>
                     {loading ? (
@@ -932,45 +939,58 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                       </div>
                     ) : selectedDate ? (
                       availableTimes.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                          {availabilitySlots.map((slot) => {
-                            // Create a date object from the time string for display formatting
-                            const [hours, minutes] = slot.time.split(':').map(Number);
-                            const timeObj = new Date();
-                            timeObj.setHours(hours, minutes, 0, 0);
-                            
-                            // Format for display (e.g., "9:30 AM")
-                            const displayTime = format(timeObj, 'h:mm a');
-                            
-                            // Get the selected appointment type to check if we should show remaining slots
-                            const selectedType = Array.isArray(appointmentTypes)
-                              ? appointmentTypes.find((type: any) => type.id === bookingData.appointmentTypeId)
-                              : undefined;
-                            
-                            // Display slots with remaining capacity indicator if the appointment type is configured to show them
-                            return (
-                              <Button
-                                key={slot.time}
-                                type="button"
-                                variant={field.value === slot.time ? "default" : "outline"}
-                                className={`relative ${field.value === slot.time ? "booking-button" : "booking-button-secondary"}`}
-                                onClick={() => {
-                                  field.onChange(slot.time);
-                                  handleTimeChange(slot.time);
-                                }}
-                              >
-                                {displayTime}
-                                
-                                {/* Show capacity badge if appointment type is configured to show remaining slots */}
-                                {selectedType?.showRemainingSlots && (
-                                  <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
-                                    {slot.remaining}
-                                  </span>
-                                )}
-                              </Button>
-                            );
-                          })}
-                        </div>
+                        <>
+                          {/* Show timezone information above time selection grid */}
+                          <div className="flex items-center mb-3 p-2 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
+                            <ClockIcon className="h-4 w-4 mr-2" />
+                            <p className="text-sm">
+                              <strong>Note:</strong> Times are displayed in the facility's local timezone. 
+                              {selectedFacility?.timezone && (
+                                <span> ({selectedFacility.timezone.replace(/_/g, ' ')})</span>
+                              )}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                            {availabilitySlots.map((slot) => {
+                              // Create a date object from the time string for display formatting
+                              const [hours, minutes] = slot.time.split(':').map(Number);
+                              const timeObj = new Date();
+                              timeObj.setHours(hours, minutes, 0, 0);
+                              
+                              // Format for display (e.g., "9:30 AM")
+                              const displayTime = format(timeObj, 'h:mm a');
+                              
+                              // Get the selected appointment type to check if we should show remaining slots
+                              const selectedType = Array.isArray(appointmentTypes)
+                                ? appointmentTypes.find((type: any) => type.id === bookingData.appointmentTypeId)
+                                : undefined;
+                              
+                              // Display slots with remaining capacity indicator if the appointment type is configured to show them
+                              return (
+                                <Button
+                                  key={slot.time}
+                                  type="button"
+                                  variant={field.value === slot.time ? "default" : "outline"}
+                                  className={`relative ${field.value === slot.time ? "booking-button" : "booking-button-secondary"}`}
+                                  onClick={() => {
+                                    field.onChange(slot.time);
+                                    handleTimeChange(slot.time);
+                                  }}
+                                >
+                                  {displayTime}
+                                  
+                                  {/* Show capacity badge if appointment type is configured to show remaining slots */}
+                                  {selectedType?.showRemainingSlots && (
+                                    <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
+                                      {slot.remaining}
+                                    </span>
+                                  )}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                        </>
                       ) : (
                         <Alert>
                           <AlertTitle>No Available Times</AlertTitle>

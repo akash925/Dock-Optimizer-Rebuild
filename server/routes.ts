@@ -1152,8 +1152,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Find appropriate dock
-      let dockId;
+      // Change: Initially set dockId to null for "Not scheduled yet" status
+      // This will be assigned later by dock staff
+      let dockId = null;
+      
+      // Verify facility has docks available (but don't assign one yet)
       try {
         // Get docks for the facility
         const docks = await storage.getDocksByFacility(validatedData.facilityId);
@@ -1161,13 +1164,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "No available docks for selected facility" });
         }
         
-        // For now, just use the first dock
-        // TODO: Implement dock selection logic based on availability
-        dockId = docks[0].id;
+        // We just verify docks exist but don't assign one yet
+        // The dock will be assigned by dock staff later
         
       } catch (error) {
-        console.error("Error finding dock:", error);
-        return res.status(500).json({ message: "Failed to find an available dock" });
+        console.error("Error checking facility docks:", error);
+        return res.status(500).json({ message: "Failed to verify facility docks" });
       }
       
       // Prepare the schedule data
@@ -1365,7 +1367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const scheduleData = {
         type: validatedData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound',
         status: "scheduled",
-        dockId: docks[0].id,
+        dockId: null, // Initially set to null for "Not scheduled yet" status
         carrierId: carrier ? carrier.id : null, // Handle null carrier
         carrierName: validatedData.carrierName || (carrier ? carrier.name : "Unknown Carrier"),
         mcNumber: validatedData.mcNumber || (carrier && carrier.mcNumber ? carrier.mcNumber : null),
