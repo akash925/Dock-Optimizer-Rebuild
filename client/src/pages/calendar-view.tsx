@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Loader2, CalendarRange } from 'lucide-react';
 import FullCalendarView from '@/components/calendar/full-calendar-view';
+import FullCalendar from '@fullcalendar/react';
 import { Schedule } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -135,9 +136,14 @@ export default function CalendarPage() {
               variant="outline" 
               size="sm"
               onClick={() => {
-                // We'll use a ref in FullCalendarView instead of direct DOM manipulation
-                // For now, just refresh the page to avoid the error
-                window.location.reload();
+                if (calendarRef.current) {
+                  try {
+                    const api = calendarRef.current.getApi();
+                    api.today();
+                  } catch (error) {
+                    console.error('Error navigating to today:', error);
+                  }
+                }
               }}
             >
               Today
@@ -146,9 +152,14 @@ export default function CalendarPage() {
               variant="outline" 
               size="sm"
               onClick={() => {
-                // We'll use a ref in FullCalendarView instead of direct DOM manipulation
-                // For now, just refresh the page to avoid the error
-                window.location.reload();
+                if (calendarRef.current) {
+                  try {
+                    const api = calendarRef.current.getApi();
+                    api.prev();
+                  } catch (error) {
+                    console.error('Error navigating to previous:', error);
+                  }
+                }
               }}
             >
               Previous
@@ -157,9 +168,14 @@ export default function CalendarPage() {
               variant="outline" 
               size="sm"
               onClick={() => {
-                // We'll use a ref in FullCalendarView instead of direct DOM manipulation
-                // For now, just refresh the page to avoid the error
-                window.location.reload();
+                if (calendarRef.current) {
+                  try {
+                    const api = calendarRef.current.getApi();
+                    api.next();
+                  } catch (error) {
+                    console.error('Error navigating to next:', error);
+                  }
+                }
               }}
             >
               Next
@@ -174,10 +190,15 @@ export default function CalendarPage() {
                 size="sm"
                 className="rounded-l-md rounded-r-none calendar-view-button"
                 onClick={() => {
-                  setCurrentView('dayGridMonth');
-                  // We'll implement a better approach using a ref
-                  // For now, just reload the page to avoid errors
-                  window.location.reload();
+                  if (calendarRef.current) {
+                    try {
+                      const api = calendarRef.current.getApi();
+                      api.changeView('dayGridMonth');
+                      setCurrentView('dayGridMonth');
+                    } catch (error) {
+                      console.error('Error changing to month view:', error);
+                    }
+                  }
                 }}
               >
                 month
@@ -187,10 +208,15 @@ export default function CalendarPage() {
                 size="sm"
                 className="rounded-none border-l border-r calendar-view-button"
                 onClick={() => {
-                  setCurrentView('timeGridWeek');
-                  // We'll implement a better approach using a ref
-                  // For now, just reload the page to avoid errors
-                  window.location.reload();
+                  if (calendarRef.current) {
+                    try {
+                      const api = calendarRef.current.getApi();
+                      api.changeView('timeGridWeek');
+                      setCurrentView('timeGridWeek');
+                    } catch (error) {
+                      console.error('Error changing to week view:', error);
+                    }
+                  }
                 }}
               >
                 week
@@ -200,10 +226,15 @@ export default function CalendarPage() {
                 size="sm"
                 className="rounded-none border-r calendar-view-button"
                 onClick={() => {
-                  setCurrentView('timeGridDay');
-                  // We'll implement a better approach using a ref
-                  // For now, just reload the page to avoid errors
-                  window.location.reload();
+                  if (calendarRef.current) {
+                    try {
+                      const api = calendarRef.current.getApi();
+                      api.changeView('timeGridDay');
+                      setCurrentView('timeGridDay');
+                    } catch (error) {
+                      console.error('Error changing to day view:', error);
+                    }
+                  }
                 }}
               >
                 day
@@ -213,10 +244,15 @@ export default function CalendarPage() {
                 size="sm"
                 className="rounded-l-none rounded-r-md calendar-view-button"
                 onClick={() => {
-                  setCurrentView('listWeek');
-                  // We'll implement a better approach using a ref
-                  // For now, just reload the page to avoid errors
-                  window.location.reload();
+                  if (calendarRef.current) {
+                    try {
+                      const api = calendarRef.current.getApi();
+                      api.changeView('listWeek');
+                      setCurrentView('listWeek');
+                    } catch (error) {
+                      console.error('Error changing to list view:', error);
+                    }
+                  }
                 }}
               >
                 list
