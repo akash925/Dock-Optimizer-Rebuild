@@ -1365,7 +1365,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
               name="driverName"
               render={({ field }) => (
                 <FormItem className="booking-form-field">
-                  <FormLabel className="booking-label">Driver Name</FormLabel>
+                  <FormLabel className="booking-label">Driver Name *</FormLabel>
                   <FormControl>
                     <Input
                       id="driverName"
@@ -1387,7 +1387,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
               name="driverPhone"
               render={({ field }) => (
                 <FormItem className="booking-form-field">
-                  <FormLabel className="booking-label">Driver Phone</FormLabel>
+                  <FormLabel className="booking-label">Driver Phone *</FormLabel>
                   <FormControl>
                     <Input
                       id="driverPhone"
