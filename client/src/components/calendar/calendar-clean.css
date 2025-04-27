@@ -1,72 +1,52 @@
-/* Minimal calendar styling */
+/* Minimal calendar styling - simpler version */
 
-/* Container basics - fix overflow and make it fit viewport */
+/* Container basics */
 .calendar-container {
   height: 70vh;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
 .fc {
   height: 100%;
-  width: 100%; /* Make sure calendar fills container */
-  max-width: 100%;
-  box-sizing: border-box;
+  width: 100%;
 }
 
-/* Fix table layout to prevent horizontal overflow */
-.fc-scrollgrid {
-  width: 100% !important;
-  table-layout: fixed !important;
+/* Calendar header styling */
+.fc-toolbar-title {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
 }
 
-/* Remove white space between date headers and fix header alignment */
-.fc-col-header-cell {
+/* Improve header spacing */
+.fc .fc-col-header-cell-cushion {
+  padding: 8px;
+  text-decoration: none !important;
+  color: inherit;
+}
+
+/* Consistent cell sizing */
+.fc-daygrid-day, .fc-timegrid-slot {
   padding: 0 !important;
 }
 
-.fc-scrollgrid-sync-inner {
-  padding: 8px 0 !important;
+/* Ensure events appear correctly */
+.fc-event {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  margin: 1px 0;
 }
 
-/* Fix cell spacing in day headers to eliminate gaps */
-.fc-col-header-cell-cushion {
-  padding: 8px 4px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  text-align: center !important;
-}
-
-/* Ensure grid columns are evenly sized with no gaps */
-.fc-timegrid-col, .fc-daygrid-day {
-  box-sizing: border-box !important;
-  padding: 0 !important;
-  border-right-width: 1px !important;
-}
-
-/* Fix the overall table layout */
-.fc-scrollgrid-sync-table {
-  width: 100% !important;
-  border-collapse: collapse !important;
-}
-
-/* Make sure each day column takes up equal width */
-.fc-timegrid-cols table col {
-  width: 14.285% !important; /* 100% / 7 days = 14.285% */
-}
-
-/* Fix border issues */
-.fc-theme-standard td, .fc-theme-standard th {
-  border: 1px solid var(--fc-border-color) !important;
-}
-
-/* Container should never be wider than viewport */
+/* Make calendar stay within bounds */
 .fc-view-harness {
-  width: 100% !important;
-  overflow: hidden !important;
-  max-width: 100% !important;
+  max-width: 100%;
+}
+
+/* Improve timegrid event display */
+.fc-timegrid-event {
+  padding: 2px 4px !important;
+  min-height: 25px !important;
 }
 
 /* Calendar nav buttons */

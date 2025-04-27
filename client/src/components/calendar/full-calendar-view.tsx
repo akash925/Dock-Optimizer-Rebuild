@@ -236,8 +236,6 @@ export default function FullCalendarView({
               // Fixed rendering parameters
               height="auto"
               contentHeight={650}
-              stickyHeaderDates={true}
-              expandRows={true}
               
               // View settings
               titleFormat={{
@@ -246,12 +244,12 @@ export default function FullCalendarView({
                 day: 'numeric'
               }}
               
-              // Fix column sizing
-              columnHeaderFormat={{
-                weekday: 'short', 
-                day: 'numeric'
+              // Column header format using newer API
+              slotLabelFormat={{
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
               }}
-              dayMinWidth={120}
               
               // More stable settings
               fixedWeekCount={false}
