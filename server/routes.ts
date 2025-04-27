@@ -751,18 +751,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/carriers/search", async (req, res) => {
     try {
-      const { query } = req.query;
-      if (!query || typeof query !== 'string') {
-        return res.json([]);
-      }
+      const query = req.query.query as string || '';
       
       const carriers = await storage.getCarriers();
+      
+      // If query is empty, return a few carriers for the initial dropdown
+      if (!query || !query.trim()) {
+        console.log("Empty query, returning first 5 carriers");
+        return res.json(carriers.slice(0, 5));
+      }
+      
+      // Filter carriers by name or MC number
       const filteredCarriers = carriers.filter(carrier => 
         carrier.name.toLowerCase().includes(query.toLowerCase()) || 
         (carrier.mcNumber && carrier.mcNumber.toLowerCase().includes(query.toLowerCase()))
       );
+      
+      console.log(`Search query "${query}" returned ${filteredCarriers.length} carrier(s)`);
       res.json(filteredCarriers);
     } catch (err) {
+      console.error("Error searching carriers:", err);
       res.status(500).json({ message: "Failed to search carriers" });
     }
   });
@@ -1032,6 +1040,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerRef: z.string().optional(),
         
         // Vehicle Information
+        carrierId: z.number().optional().nullable(),
         carrierName: z.string().min(1),
         driverName: z.string().min(1),
         driverPhone: z.string().min(5),
@@ -1082,11 +1091,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Find or create carrier
       let carrier = null;
       try {
-        // Try to find carrier by name first
-        const carriers = await storage.getCarriers();
-        carrier = carriers.find(c => 
-          c.name.toLowerCase() === validatedData.carrierName.toLowerCase()
-        );
+        // First try to get the carrier by ID if provided
+        if (validatedData.carrierId && typeof validatedData.carrierId === 'number') {
+          try {
+            carrier = await storage.getCarrier(validatedData.carrierId);
+            console.log(`Found carrier by ID ${validatedData.carrierId}: ${carrier?.name || 'not found'}`);
+          } catch (error) {
+            console.error(`Error looking up carrier by ID ${validatedData.carrierId}:`, error);
+            // Continue to next method
+          }
+        }
+        
+        // If no carrier found by ID, try to find by name
+        if (!carrier) {
+          const carriers = await storage.getCarriers();
+          carrier = carriers.find(c => 
+            c.name.toLowerCase() === validatedData.carrierName.toLowerCase()
+          );
+        }
         
         // If no carrier found, create a new one
         if (!carrier) {
