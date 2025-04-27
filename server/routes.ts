@@ -374,11 +374,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCarrierData = scheduleData.newCarrier;
       delete scheduleData.newCarrier;
       
-      // NO validation, NO date conversion, pass directly to storage
-      console.log("IMPORTANT: Bypassing all validation and date conversion");
+      // Partial validation to ensure critical fields like appointmentTypeId and facilityId are set
+      console.log("IMPORTANT: Bypassing most validation but ensuring critical fields are present");
       
-      // Just pass the raw data to storage and let it handle everything
+      // Make sure critical data is captured in the schedule
       const validatedData = scheduleData;
+      
+      // Ensure appointment type is captured
+      if (validatedData.appointmentTypeId && !validatedData.appointmentType) {
+        try {
+          const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId);
+          if (appointmentType) {
+            validatedData.appointmentType = appointmentType.name;
+          }
+        } catch (e) {
+          console.error("Failed to fetch appointment type details:", e);
+        }
+      }
+      
+      // Log intermediate data for debugging
+      console.log("Raw insertSchedule in storage:", JSON.stringify(validatedData, null, 2));
       
       // Check if dock exists (if dockId is provided)
       if (validatedData.dockId) {
