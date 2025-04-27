@@ -424,7 +424,8 @@ export default function FullCalendarView({
                                     (eventInfo.event as any)._def?.extendedProps?.facilityName ||
                                     eventData?.locationName ||  // Support legacy location name
                                     // Try to find facility by ID from facilities list
-                                    (facilityId && facilities ? facilities.find((f: any) => f.id === facilityId)?.name : null) ||
+                                    (facilityId && facilities && Array.isArray(facilities) ? 
+                                      (facilities as any[]).find((f: any) => f.id === facilityId)?.name : null) ||
                                     // Try global cache as fallback
                                     (facilityId ? (window as any).facilityNames?.[facilityId] : '') || 
                                     // Last resort, try first line of title

@@ -207,6 +207,15 @@ export default function UnifiedAppointmentForm({
         if (!res.ok) throw new Error('Failed to load facilities');
         const facilities = await res.json();
         setFacilities(facilities);
+        
+        // If we have a facilityId but no facility name, set it from this list
+        if (facilityId) {
+          const facilityInfo = facilities.find((f: any) => f.id === facilityId);
+          if (facilityInfo) {
+            console.log("Setting facility name from fetched facilities:", facilityInfo.name);
+            // We don't directly set in form, just make sure it's available for submission
+          }
+        }
       } catch (error) {
         console.error('Error fetching facilities:', error);
         toast({ title: 'Error', description: 'Failed to load facilities', variant: 'destructive' });
@@ -216,9 +225,11 @@ export default function UnifiedAppointmentForm({
     const fetchAppointmentType = async () => {
       if (!appointmentTypeId) return;
       try {
+        console.log(`Fetching appointment type with ID ${appointmentTypeId}`);
         const res = await apiRequest('GET', `/api/appointment-types/${appointmentTypeId}`);
         if (!res.ok) throw new Error('Failed to load appointment type');
         const type = await res.json();
+        console.log("Appointment type loaded:", type);
         setSelectedAppointmentType(type);
         
         // Check if this type requires a dock assignment
@@ -235,9 +246,33 @@ export default function UnifiedAppointmentForm({
       }
     };
 
+    // Load all appointment types too for reference
+    const fetchAllAppointmentTypes = async () => {
+      try {
+        console.log("Fetching all appointment types for reference");
+        const res = await apiRequest('GET', '/api/appointment-types');
+        if (!res.ok) throw new Error('Failed to load appointment types');
+        const types = await res.json();
+        console.log(`Loaded ${types.length} appointment types`);
+        
+        // If we have an appointmentTypeId but haven't loaded the specific type yet,
+        // see if we can get it from this list
+        if (appointmentTypeId && !selectedAppointmentType) {
+          const typeInfo = types.find((t: any) => t.id === appointmentTypeId);
+          if (typeInfo) {
+            console.log("Setting appointment type from fetched list:", typeInfo.name);
+            setSelectedAppointmentType(typeInfo);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching all appointment types:', error);
+      }
+    };
+
     fetchFacilities();
     fetchAppointmentType();
-  }, [appointmentTypeId, toast, truckInfoForm]);
+    fetchAllAppointmentTypes();
+  }, [appointmentTypeId, facilityId, selectedAppointmentType, toast, truckInfoForm]);
 
   // Effect to handle date selection
   useEffect(() => {
@@ -321,9 +356,27 @@ export default function UnifiedAppointmentForm({
       // Calculate end time
       const endTime = getDefaultEndTime(startTime);
       
-      // API payload
+      // Add logging for debugging appointment date/time
+      console.log("Date is already in correct format:", appointmentDate);
+      console.log("Sanitized time for submission:", appointmentTime);
+
+      // Get facility name to ensure it's included in the appointment
+      let facilityName = "";
+      if (selectedFacilityId && facilities && facilities.length > 0) {
+        const facility = facilities.find((f: any) => f.id === selectedFacilityId);
+        facilityName = facility?.name || "";
+      }
+
+      // Make sure we have the appointment type name as well
+      let appointmentTypeName = "";
+      if (appointmentTypeId && selectedAppointmentType) {
+        appointmentTypeName = selectedAppointmentType.name || "";
+      }
+
+      // API payload with enhanced data
       const scheduleData = {
         carrierId: data.carrierId || null,
+        carrierName: data.carrierName || "",
         customerName: data.customerName,
         mcNumber: data.mcNumber || "",
         dockId: data.dockId || null,
@@ -335,17 +388,25 @@ export default function UnifiedAppointmentForm({
         poNumber: data.poNumber || "",
         palletCount: data.palletCount ? parseInt(data.palletCount.toString()) : 0,
         weight: data.weight ? parseInt(data.weight.toString()) : 0,
+        // Use the appointment date & time directly for clarity
+        appointmentDate: appointmentDate,
+        appointmentTime: appointmentTime,
+        // Also include the ISO times for the database
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         type: data.type,
         appointmentTypeId: appointmentTypeId || null,
+        appointmentType: appointmentTypeName, // Include the name as well
         appointmentMode: data.appointmentMode,
         status: "scheduled",
         notes: data.notes || "",
         createdBy: user?.id || null,
         facilityId: selectedFacilityId || null,
+        facilityName: facilityName, // Include the facility name for better display
         facilityTimezone: facilityTimezone,
       };
+      
+      console.log("Submitting appointment with sanitized data:", scheduleData);
       
       if (initialData && editMode === "edit") {
         // Update
