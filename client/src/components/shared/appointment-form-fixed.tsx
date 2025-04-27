@@ -240,10 +240,10 @@ export default function AppointmentForm({
     }
   }, [watchedAppointmentTypeId, allAppointmentTypes]);
   
-  // Watch for date and appointment type changes to fetch available slots
+  // Watch for date changes to fetch available slots
   const watchedAppointmentDate = form.watch("appointmentDate");
   
-  // Effect to fetch available time slots when date or appointment type changes
+  // Effect to fetch available time slots when date, facility or appointment type changes
   useEffect(() => {
     const fetchAvailableTimes = async () => {
       // We need date, facility ID, and appointment type ID to fetch availability
@@ -303,7 +303,7 @@ export default function AppointmentForm({
     };
     
     fetchAvailableTimes();
-  }, [watchedAppointmentDate, watchedAppointmentTypeId, form.getValues("facilityId")]);
+  }, [watchedAppointmentDate, watchedAppointmentTypeId, form]);
   
   // Create appointment mutation
   const createAppointmentMutation = useMutation({
@@ -517,6 +517,19 @@ export default function AppointmentForm({
   
   // Get the next available time slot (closest full hour)
   const getDefaultTimeSlot = () => {
+    // First, check if we have actual available time slots from the API
+    if (availableTimeSlots.length > 0 && availableTimeSlots.some(slot => slot.available)) {
+      // Find the first available slot
+      const firstAvailableSlot = availableTimeSlots.find(slot => slot.available);
+      if (firstAvailableSlot) {
+        const capacity = firstAvailableSlot.remainingCapacity !== undefined 
+          ? firstAvailableSlot.remainingCapacity 
+          : 1;
+        return `${firstAvailableSlot.time} (${capacity} available)`;
+      }
+    }
+    
+    // Fallback to standard time slots if no API data is available
     const now = new Date();
     const currentHour = now.getHours();
     const nextHour = currentHour + 1;
@@ -756,14 +769,19 @@ export default function AppointmentForm({
                               selected={field.value ? new Date(field.value) : undefined}
                               onSelect={(date) => {
                                 if (date) {
-                                  // Create a new date object that preserves the exact date selected
-                                  // Important: We need to use the date passed directly and not create a new Date
-                                  // which may cause timezone issues
-                                  const year = date.getFullYear();
-                                  const month = date.getMonth() + 1; // JavaScript months are 0-based
-                                  const day = date.getDate();
+                                  // Create the date in local timezone to prevent date shifts
+                                  // Clone the selected date to avoid reference issues
+                                  const localDate = new Date(date.getTime());
                                   
-                                  // Format with yyyy-MM-dd pattern - forcing UTC handling to prevent date shifts
+                                  // Set to noon in local timezone to prevent any date shifts due to time adjustments
+                                  localDate.setHours(12, 0, 0, 0);
+                                  
+                                  // Extract components from the local date
+                                  const year = localDate.getFullYear();
+                                  const month = localDate.getMonth() + 1; // JavaScript months are 0-based
+                                  const day = localDate.getDate();
+                                  
+                                  // Format with yyyy-MM-dd pattern with padding
                                   const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                                   
                                   field.onChange(formattedDate);
@@ -772,7 +790,26 @@ export default function AppointmentForm({
                               }}
                               disabled={(date) => {
                                 // Disable dates in the past
-                                return date < new Date(new Date().setHours(0, 0, 0, 0));
+                                if (date < new Date(new Date().setHours(0, 0, 0, 0))) {
+                                  return true;
+                                }
+                                
+                                // Get facility for specific restrictions
+                                const facilityId = form.getValues("facilityId");
+                                const facility = facilities.find(f => f.id === facilityId);
+                                if (!facility) return false; // Allow all future dates if no facility selected
+                                
+                                // Get day of week (0 = Sunday, 1 = Monday, etc.)
+                                const dayOfWeek = date.getDay();
+                                
+                                // Check if this day is a closed day for the facility
+                                // Note: This is a simplified check - in a real scenario you would get this from facility settings
+                                if (dayOfWeek === 0) {
+                                  // Disable Sundays by default unless the facility explicitly allows Sunday appointments
+                                  return facility.sundayOpen !== true;
+                                }
+                                
+                                return false; // Allow all other dates
                               }}
                               initialFocus
                             />
@@ -791,7 +828,12 @@ export default function AppointmentForm({
                       <FormItem>
                         <FormLabel>Time*</FormLabel>
                         <Select
-                          onValueChange={field.onChange}
+                          onValueChange={(timeWithCapacity) => {
+                            // Extract just the time part from the display string (e.g., "08:00 (3 available)")
+                            const timeOnly = timeWithCapacity.split(' (')[0];
+                            field.onChange(timeOnly);
+                            console.log(`Selected time: ${timeOnly} (extracted from ${timeWithCapacity})`);
+                          }}
                           defaultValue={field.value || getDefaultTimeSlot()}
                         >
                           <FormControl>
@@ -809,9 +851,9 @@ export default function AppointmentForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {getAvailableTimes().map((time) => (
-                              <SelectItem key={time} value={time}>
-                                {time}
+                            {getAvailableTimes().map((timeWithCapacity) => (
+                              <SelectItem key={timeWithCapacity} value={timeWithCapacity}>
+                                {timeWithCapacity}
                               </SelectItem>
                             ))}
                           </SelectContent>
