@@ -18,6 +18,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Schedule } from '@shared/schema';
 import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
+import { useQuery } from '@tanstack/react-query';
 
 // List of common timezones that we know are supported by FullCalendar
 const COMMON_TIMEZONES = [
@@ -57,12 +58,35 @@ export default function FullCalendarView({
   // Get user's timezone and set as default, or use the passed timezone prop
   const [selectedTimezone, setSelectedTimezone] = useState<string>(timezone || getUserTimeZone());
   
+  // Fetch all facilities for lookup purposes
+  const { data: facilities } = useQuery({
+    queryKey: ['/api/facilities'],
+  });
+  
+  // Create a global facility name lookup cache for events
+  useEffect(() => {
+    if (facilities && Array.isArray(facilities) && facilities.length > 0) {
+      // Create a lookup object with facilityId -> name mapping
+      const facilityNameMap = (facilities as any[]).reduce((acc: Record<number, string>, facility: any) => {
+        if (facility.id && facility.name) {
+          acc[facility.id] = facility.name;
+        }
+        return acc;
+      }, {} as Record<number, string>);
+      
+      // Add to window for global access by event renderers
+      (window as any).facilityNames = facilityNameMap;
+      console.log('Facility name cache created:', facilityNameMap);
+    }
+  }, [facilities]);
+  
   // Update selectedTimezone when the timezone prop changes
   useEffect(() => {
     if (timezone) {
       setSelectedTimezone(timezone);
     }
   }, [timezone]);
+  
   // Use the external ref if provided, otherwise create a local one
   const calendarRef = externalCalendarRef || useRef<FullCalendar>(null);
   
@@ -393,10 +417,18 @@ export default function FullCalendarView({
                 // Extract event data from both standard and extended props
                 const eventData = eventInfo.event.extendedProps;
                 
-                // Try multiple ways to get facility name
+                // Try multiple ways to get facility name - enhanced to cover more cases
+                const facilityId = eventData?.facilityId;
                 const facilityName = eventData?.facilityName || 
                                     (eventData?.customFormData?.facilityInfo?.facilityName) || 
                                     (eventInfo.event as any)._def?.extendedProps?.facilityName ||
+                                    eventData?.locationName ||  // Support legacy location name
+                                    // Try to find facility by ID from facilities list
+                                    (facilityId && facilities ? facilities.find((f: any) => f.id === facilityId)?.name : null) ||
+                                    // Try global cache as fallback
+                                    (facilityId ? (window as any).facilityNames?.[facilityId] : '') || 
+                                    // Last resort, try first line of title
+                                    eventInfo.event.title?.split('\n')?.[0] || 
                                     '';
                                     
                 // Get other fields from event props
