@@ -1204,6 +1204,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate confirmation code
       const confirmationCode = `HC${schedule.id}`;
       
+      // Send confirmation email
+      try {
+        // Use driverEmail from validated data for the recipient
+        if (validatedData.email) {
+          // Get dock name (or "Not scheduled yet" if null)
+          const dockName = schedule.dockId 
+            ? (await storage.getDock(schedule.dockId))?.name || `Dock ${schedule.dockId}` 
+            : "Not scheduled yet";
+            
+          // Send confirmation email
+          sendScheduleConfirmationEmail(
+            validatedData.email,
+            {
+              id: schedule.id,
+              dockName: dockName,
+              facilityName: facility?.name || 'Main Facility',
+              startTime: new Date(schedule.startTime),
+              endTime: new Date(schedule.endTime),
+              truckNumber: schedule.truckNumber || '',
+              customerName: schedule.customerName || undefined,
+              type: validatedData.pickupOrDropoff === 'pickup' ? 'pickup' : 'delivery'
+            }
+          ).catch(err => {
+            // Just log errors, don't let email failures affect API response
+            console.error('Failed to send confirmation email:', err);
+          });
+        }
+      } catch (emailError) {
+        // Log the error but don't fail the API call
+        console.error('Error preparing confirmation email:', emailError);
+      }
+      
       // Return success response with schedule and confirmation code
       res.status(201).json({
         success: true,
@@ -1391,6 +1423,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create a confirmation number
       const confirmationNumber = `HZL-${Math.floor(100000 + Math.random() * 900000)}`;
+      
+      // Send confirmation email
+      try {
+        // Use contactEmail from validated data for the recipient
+        if (validatedData.contactEmail) {
+          // Get location/facility
+          const locations = await storage.getFacilities();
+          const facility = locations.find(loc => loc.name === validatedData.location);
+          
+          // Send confirmation email
+          sendScheduleConfirmationEmail(
+            validatedData.contactEmail,
+            {
+              id: schedule.id,
+              dockName: "Not scheduled yet", // Default for legacy external bookings
+              facilityName: facility?.name || validatedData.location || 'Main Facility',
+              startTime: startTime,
+              endTime: endTime,
+              truckNumber: schedule.truckNumber || '',
+              customerName: validatedData.customerName || undefined,
+              type: validatedData.pickupOrDropoff === 'pickup' ? 'pickup' : 'delivery'
+            }
+          ).catch(err => {
+            // Just log errors, don't let email failures affect API response
+            console.error('Failed to send confirmation email:', err);
+          });
+        }
+      } catch (emailError) {
+        // Log the error but don't fail the API call
+        console.error('Error preparing confirmation email:', emailError);
+      }
       
       // Return success response
       res.status(201).json({
