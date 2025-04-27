@@ -12,6 +12,7 @@ import { TimePicker } from '@/components/ui/time-picker';
 import { Loader2, Clock as ClockIcon } from 'lucide-react';
 import { format, addHours, isValid, parseISO } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { getUserTimeZone, formatTimeRangeForDualZones, formatDateRangeInTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import BolUpload from '@/components/shared/bol-upload';
 import { ParsedBolData } from '@/lib/ocr-service';
@@ -1575,17 +1576,43 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
 function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any; confirmationCode: string | null }) {
   const { bookingData, resetBookingData } = useBookingWizard();
   
-  // Format the appointment date and time for display
+  // Fetch facilities data to get the facility timezone
+  const { data: facilities } = useQuery({
+    queryKey: ['/api/facilities'],
+  });
+  
+  // Get the selected facility
+  const selectedFacility = Array.isArray(facilities)
+    ? facilities.find((facility: any) => facility.id === bookingData.facilityId)
+    : undefined;
+  
+  // Use the timezone utilities imported at the top of the file
+  
+  // Format the appointment date and time for display with dual timezones
   const formatAppointmentTime = () => {
-    if (!bookingData.startTime || !bookingData.endTime) return '';
+    if (!bookingData.startTime || !bookingData.endTime || !selectedFacility?.timezone) return '';
     
     const start = new Date(bookingData.startTime);
     const end = new Date(bookingData.endTime);
     
+    // Format the date in facility timezone
     const dateStr = format(start, 'EEEE, MMMM d, yyyy');
-    const timeStr = `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
     
-    return `${dateStr} | ${timeStr}`;
+    // Get the time ranges in both user and facility timezones
+    const { userTimeRange, facilityTimeRange, userZoneAbbr, facilityZoneAbbr } = 
+      formatTimeRangeForDualZones(start, end, selectedFacility.timezone);
+    
+    return (
+      <div className="space-y-1">
+        <div>{dateStr}</div>
+        <div>
+          <span className="font-medium">Facility time:</span> {facilityTimeRange} ({facilityZoneAbbr})
+        </div>
+        <div>
+          <span className="font-medium">Your local time:</span> {userTimeRange} ({userZoneAbbr})
+        </div>
+      </div>
+    );
   };
   
   return (
@@ -1608,9 +1635,6 @@ function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any;
             <div>
               <h3 className="font-semibold">Appointment Details</h3>
               <p>{formatAppointmentTime()}</p>
-              <p className="text-sm text-gray-500">
-                Timezone: {bookingData.timezone}
-              </p>
             </div>
             
             <div>
