@@ -96,20 +96,28 @@ export default function AuthPage() {
   // Handle test login for development/debugging 
   async function handleTestLogin() {
     try {
-      const res = await fetch('/api/test-login');
+      const res = await fetch('/api/test-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
       if (res.ok) {
         const data = await res.json();
         toast({
           title: "Test login successful",
           description: `Logged in as ${data.user.username}`,
         });
+        // Refresh the page after successful login to update auth state
+        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
         // Redirect after successful login
         navigate("/");
       } else {
-        const error = await res.text();
+        const errorResponse = await res.json();
         toast({
           title: "Test login failed",
-          description: error,
+          description: errorResponse?.message || "Unknown error",
           variant: "destructive",
         });
       }
