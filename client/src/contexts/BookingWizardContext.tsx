@@ -37,6 +37,7 @@ interface BookingFormData {
   customerRef: string;
   
   // Vehicle Information
+  carrierId?: number | null; // Carrier ID for existing carriers
   carrierName: string;
   driverName: string;
   driverPhone: string;
@@ -65,6 +66,7 @@ const defaultBookingData: BookingFormData = {
   email: '',
   phone: '',
   customerRef: '',
+  carrierId: null,
   carrierName: '',
   driverName: '',
   driverPhone: '',

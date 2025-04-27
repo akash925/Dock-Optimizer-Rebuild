@@ -21,6 +21,7 @@ import { Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, F
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { CarrierSelector } from '@/components/shared/carrier-selector';
 import '../styles/booking-wizard.css';
 import hanzoLogo from '@assets/hanzo logo.jpeg';
 
@@ -1042,6 +1043,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
       email: bookingData.email || '',
       phone: bookingData.phone || '',
       customerRef: bookingData.customerRef || '',
+      carrierId: bookingData.carrierId || undefined,
       carrierName: bookingData.carrierName || '',
       driverName: bookingData.driverName || '',
       driverPhone: bookingData.driverPhone || '',
@@ -1246,24 +1248,56 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
           
           <h2 className="booking-form-section-title mt-8">Carrier Information</h2>
           
+          {/* Carrier Selection Section */}
+          <div className="sm:col-span-2">
+            <FormField
+              control={form.control}
+              name="carrierId"
+              render={({ field }) => (
+                <FormItem className="booking-form-field">
+                  <FormLabel className="booking-label">Carrier</FormLabel>
+                  <CarrierSelector 
+                    form={form}
+                    idFieldName="carrierId"
+                    nameFieldName="carrierName"
+                    mcNumberFieldName="mcNumber"
+                  />
+                  <FormDescription className="text-xs">
+                    Select a carrier from the list or enter a custom carrier name below
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="carrierName"
               render={({ field }) => (
                 <FormItem className="booking-form-field">
-                  <FormLabel className="booking-label">Carrier Name</FormLabel>
+                  <FormLabel className="booking-label">Custom Carrier Name</FormLabel>
                   <FormControl>
                     <Input
                       id="carrierName"
                       className="booking-input"
+                      placeholder="Enter if carrier not in the list"
                       {...field}
                       onChange={(e) => {
                         field.onChange(e);
                         updateBookingData({ carrierName: e.target.value });
+                        // Clear the carrier ID if manually entering a name
+                        if (e.target.value && form.getValues("carrierId")) {
+                          form.setValue("carrierId", undefined);
+                          updateBookingData({ carrierId: undefined });
+                        }
                       }}
                     />
                   </FormControl>
+                  <FormDescription className="text-xs">
+                    Only needed if your carrier is not in the dropdown above
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
