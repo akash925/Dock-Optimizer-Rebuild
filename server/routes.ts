@@ -1156,20 +1156,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This will be assigned later by dock staff
       let dockId = null;
       
-      // Verify facility has docks available (but don't assign one yet)
+      // Always allow booking even if there are no docks available
+      // This allows users to book appointments that will be assigned to docks later
       try {
-        // Get docks for the facility
+        // Get docks for the facility (informational only)
         const docks = await storage.getDocksByFacility(validatedData.facilityId);
-        if (!docks || docks.length === 0) {
-          return res.status(400).json({ message: "No available docks for selected facility" });
-        }
+        console.log(`[/api/schedules/external] Facility has ${docks ? docks.length : 0} docks. Continuing with booking regardless.`);
         
-        // We just verify docks exist but don't assign one yet
-        // The dock will be assigned by dock staff later
+        // We don't assign a dock yet - it will be assigned by dock staff later
+        // even if no docks currently exist for the facility
         
       } catch (error) {
+        // Log the error but don't block the booking
         console.error("Error checking facility docks:", error);
-        return res.status(500).json({ message: "Failed to verify facility docks" });
+        console.log("[/api/schedules/external] Continuing with booking despite dock check error");
       }
       
       // Prepare the schedule data
@@ -1345,10 +1345,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to create or find a carrier" });
       }
       
-      // Find an appropriate dock
-      const docks = await storage.getDocks();
-      if (docks.length === 0) {
-        return res.status(400).json({ message: "No available docks" });
+      // Check if facility has docks (informational only)
+      try {
+        const docks = await storage.getDocks();
+        console.log(`[/api/external-booking] System has ${docks ? docks.length : 0} total docks. Continuing with booking regardless.`);
+        // We don't require docks to be available to allow the booking
+      } catch (error) {
+        // Log the error but don't block the booking
+        console.error("Error checking docks:", error);
+        console.log("[/api/external-booking] Continuing with booking despite dock check error");
       }
       
       // Parse date and time
