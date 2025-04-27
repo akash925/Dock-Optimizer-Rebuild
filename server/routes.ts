@@ -751,23 +751,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/carriers/search", async (req, res) => {
     try {
-      const query = req.query.query as string || '';
+      const query = req.query.query as string;
       
-      const carriers = await storage.getCarriers();
-      
-      // If query is empty, return a few carriers for the initial dropdown
-      if (!query || !query.trim()) {
-        console.log("Empty query, returning first 5 carriers");
+      // If query is undefined or empty, return first 5 carriers
+      if (query === undefined || query === null || query === '') {
+        console.log("Empty carrier search query, returning top carriers");
+        const carriers = await storage.getCarriers();
         return res.json(carriers.slice(0, 5));
       }
       
-      // Filter carriers by name or MC number
+      // If we have a query, filter carriers by name or MC number
+      const carriers = await storage.getCarriers();
       const filteredCarriers = carriers.filter(carrier => 
         carrier.name.toLowerCase().includes(query.toLowerCase()) || 
         (carrier.mcNumber && carrier.mcNumber.toLowerCase().includes(query.toLowerCase()))
       );
       
-      console.log(`Search query "${query}" returned ${filteredCarriers.length} carrier(s)`);
+      console.log(`Carrier search query "${query}" returned ${filteredCarriers.length} result(s)`);
       res.json(filteredCarriers);
     } catch (err) {
       console.error("Error searching carriers:", err);
