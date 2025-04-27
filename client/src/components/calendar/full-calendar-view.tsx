@@ -153,6 +153,32 @@ export default function FullCalendarView({
     const eventMinute = mins.toString().padStart(2, '0');
     const timeKey = `${eventHour}:${eventMinute}`;
     
+    // Extract facility information
+    // Since facilityId and facilityName may be added at runtime and not part of the Schedule type,
+    // use type assertion to access those properties
+    const scheduleCasted = schedule as any;
+    const facilityId = scheduleCasted.facilityId;
+    const facilityName = scheduleCasted.facilityName || scheduleCasted.locationName || '';
+    
+    // Try to get facility info from customFormData if available
+    let extractedFacilityName = facilityName;
+    let extractedFacilityId = facilityId;
+    
+    if (!extractedFacilityName && schedule.customFormData) {
+      try {
+        const customData = schedule.customFormData as any;
+        if (customData && typeof customData === 'object' && 
+            'facilityInfo' in customData && 
+            customData.facilityInfo && 
+            typeof customData.facilityInfo === 'object') {
+          extractedFacilityName = customData.facilityInfo.facilityName || '';
+          extractedFacilityId = customData.facilityInfo.facilityId || null;
+        }
+      } catch (e) {
+        console.error('Error extracting facility info from customFormData', e);
+      }
+    }
+    
     // Get customer and location info if available
     const customerName = schedule.customerName || '';
     // Format dock name from ID if needed
@@ -160,6 +186,11 @@ export default function FullCalendarView({
     
     // Format a more detailed title with relevant information
     let title = '';
+    
+    // Include facility name in title for better visibility
+    if (extractedFacilityName) {
+      title += `${extractedFacilityName}\n`;
+    }
     
     // Add customer name if available
     if (customerName) {
@@ -210,14 +241,16 @@ export default function FullCalendarView({
         hourKey: eventHour,
         zIndex: zIndex,
         // Additional data for improved display
-        facilityName: (schedule as any).facilityName || (schedule as any).locationName || '',
+        facilityId: extractedFacilityId,
+        facilityName: extractedFacilityName,
         customerName: schedule.customerName || '',
         carrierName: schedule.carrierName || (schedule as any).carrier || '',
         appointmentType: (schedule as any).appointmentType || '',
         truckNumber: schedule.truckNumber || '',
         driverName: schedule.driverName || '',
         needsAttention: attention.needsAttention,
-        attentionReason: attention.reason
+        attentionReason: attention.reason,
+        customFormData: schedule.customFormData // Include full customFormData for advanced lookups
       }
     };
   });
@@ -357,15 +390,31 @@ export default function FullCalendarView({
                 // Get the start date safely
                 const startDate = eventInfo.event.start || new Date();
                 
-                // Extract event data
+                // Extract event data from both standard and extended props
                 const eventData = eventInfo.event.extendedProps;
-                const facilityName = eventData?.facilityName || '';
+                
+                // Try multiple ways to get facility name
+                const facilityName = eventData?.facilityName || 
+                                    (eventData?.customFormData?.facilityInfo?.facilityName) || 
+                                    (eventInfo.event as any)._def?.extendedProps?.facilityName ||
+                                    '';
+                                    
+                // Get other fields from event props
                 const customerName = eventData?.customerName || '';
                 const carrierName = eventData?.carrierName || '';
                 const dockId = eventData?.dockId || '';
                 const status = eventData?.status || '';
                 const needsAttention = eventData?.needsAttention || false;
                 const attentionReason = eventData?.attentionReason || '';
+                const truckNumber = eventData?.truckNumber || '';
+                
+                console.log('Event data:', {
+                  id: eventInfo.event.id,
+                  facilityName,
+                  facilityId: eventData?.facilityId,
+                  customerName,
+                  carrierName
+                });
                 
                 // Determine if we need to show a status badge
                 const showStatusBadge = status && status !== 'scheduled';
@@ -374,12 +423,21 @@ export default function FullCalendarView({
                 return (
                   <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
                     <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
+                    
+                    {/* Facility name with highest priority */}
+                    {facilityName && (
+                      <div className="font-bold text-[11px] text-blue-700 bg-blue-50 py-0.5 px-1 rounded-sm mb-0.5">
+                        {facilityName}
+                      </div>
+                    )}
+                    
                     <div className="text-xs font-medium line-clamp-1 overflow-hidden text-ellipsis">
-                      {facilityName && <span className="font-bold block text-[11px] text-blue-700">{facilityName}</span>}
                       {customerName && <span className="font-semibold block">{customerName}</span>}
                     </div>
+                    
                     <div className="text-[10px] text-gray-700 line-clamp-2 overflow-hidden">
                       {carrierName && <span className="block">{carrierName}</span>}
+                      {truckNumber && <span className="block">Truck #{truckNumber}</span>}
                       {dockId && <span className="block">Dock #{dockId}</span>}
                     </div>
                     
