@@ -173,24 +173,33 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
           body: JSON.stringify(scheduleData),
         });
         
-        // Check for non-JSON responses
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          console.error('Received non-JSON response:', await response.text());
-          throw new Error('Server returned an invalid response format');
+        let responseText = '';
+        try {
+          // Try to get the response as text first
+          responseText = await response.text();
+          
+          // Then try to parse it as JSON if possible
+          try {
+            responseData = JSON.parse(responseText);
+          } catch (parseError) {
+            console.error('Failed to parse response as JSON:', responseText);
+            throw new Error('Server returned an invalid response format');
+          }
+        } catch (textError) {
+          console.error('Failed to get response text:', textError);
+          throw new Error('Could not read server response');
         }
         
-        responseData = await response.json();
-        
         if (!response.ok) {
-          const errorMessage = responseData.message || 'Failed to create appointment';
+          const errorMessage = responseData?.message || 'Failed to create appointment';
+          console.error('API error:', errorMessage, responseData);
           throw new Error(errorMessage);
         }
         
         console.log('Appointment created successfully:', responseData);
-      } catch (parseError) {
-        console.error('Error parsing response:', parseError);
-        throw new Error('Failed to parse server response. Please try again.');
+      } catch (error) {
+        console.error('Error during appointment creation:', error);
+        throw error; // Re-throw the error to be caught by the outer catch block
       }
       
       // Store the confirmation code
