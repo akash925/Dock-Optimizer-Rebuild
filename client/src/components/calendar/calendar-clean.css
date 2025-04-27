@@ -1,13 +1,72 @@
 /* Minimal calendar styling */
 
-/* Container basics */
+/* Container basics - fix overflow and make it fit viewport */
 .calendar-container {
   height: 70vh;
   overflow: auto;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .fc {
   height: 100%;
+  width: 100%; /* Make sure calendar fills container */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Fix table layout to prevent horizontal overflow */
+.fc-scrollgrid {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+/* Remove white space between date headers and fix header alignment */
+.fc-col-header-cell {
+  padding: 0 !important;
+}
+
+.fc-scrollgrid-sync-inner {
+  padding: 8px 0 !important;
+}
+
+/* Fix cell spacing in day headers to eliminate gaps */
+.fc-col-header-cell-cushion {
+  padding: 8px 4px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+}
+
+/* Ensure grid columns are evenly sized with no gaps */
+.fc-timegrid-col, .fc-daygrid-day {
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  border-right-width: 1px !important;
+}
+
+/* Fix the overall table layout */
+.fc-scrollgrid-sync-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+
+/* Make sure each day column takes up equal width */
+.fc-timegrid-cols table col {
+  width: 14.285% !important; /* 100% / 7 days = 14.285% */
+}
+
+/* Fix border issues */
+.fc-theme-standard td, .fc-theme-standard th {
+  border: 1px solid var(--fc-border-color) !important;
+}
+
+/* Container should never be wider than viewport */
+.fc-view-harness {
+  width: 100% !important;
+  overflow: hidden !important;
+  max-width: 100% !important;
 }
 
 /* Calendar nav buttons */

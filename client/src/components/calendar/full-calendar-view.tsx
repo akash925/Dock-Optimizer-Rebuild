@@ -205,6 +205,9 @@ export default function FullCalendarView({
         <CardContent className="p-0">
           <div className="calendar-container" style={{ 
             height: "70vh",
+            width: "100%",
+            maxWidth: "100%",
+            overflow: "hidden"
           }}>
             <FullCalendar
               ref={calendarRef}
@@ -233,7 +236,8 @@ export default function FullCalendarView({
               // Fixed rendering parameters
               height="auto"
               contentHeight={650}
-              aspectRatio={2.0}
+              stickyHeaderDates={true}
+              expandRows={true}
               
               // View settings
               titleFormat={{
@@ -241,6 +245,13 @@ export default function FullCalendarView({
                 month: 'short',
                 day: 'numeric'
               }}
+              
+              // Fix column sizing
+              columnHeaderFormat={{
+                weekday: 'short', 
+                day: 'numeric'
+              }}
+              dayMinWidth={120}
               
               // More stable settings
               fixedWeekCount={false}
