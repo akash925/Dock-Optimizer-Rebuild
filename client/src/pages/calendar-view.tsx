@@ -60,11 +60,68 @@ export default function CalendarPage() {
     localStorage.setItem('preferredTimezone', selectedTimezone);
   }, [selectedTimezone]);
 
+  // Fetch facilities
+  const { data: facilities, isLoading: isLoadingFacilities } = useQuery({
+    queryKey: ['/api/facilities'],
+  });
+
   // Fetch schedules
-  const { data: schedules, isLoading } = useQuery<Schedule[]>({
+  const [selectedFacilityId, setSelectedFacilityId] = useState<string>("all");
+  const [selectedDockId, setSelectedDockId] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string>("all");
+
+  const { data: schedules, isLoading: isLoadingSchedules } = useQuery<Schedule[]>({
     queryKey: ['/api/schedules'],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
+
+  // Fetch appointment types
+  const { data: appointmentTypes } = useQuery({
+    queryKey: ['/api/appointment-types'],
+  });
+
+  // Filter schedules based on selected options
+  const filteredSchedules = React.useMemo(() => {
+    if (!schedules) return [];
+    
+    return schedules.filter(schedule => {
+      // Filter by facility
+      if (selectedFacilityId !== "all") {
+        // Check if we have facilityId from the schedule
+        const scheduleFacilityId = schedule.facilityId || 
+          // If not, try to get it from customFormData
+          (schedule.customFormData && 
+           typeof schedule.customFormData === 'object' && 
+           'facilityInfo' in schedule.customFormData && 
+           schedule.customFormData.facilityInfo.facilityId);
+        
+        if (!scheduleFacilityId || scheduleFacilityId.toString() !== selectedFacilityId) {
+          return false;
+        }
+      }
+      
+      // Filter by dock
+      if (selectedDockId !== "all" && 
+          (!schedule.dockId || schedule.dockId.toString() !== selectedDockId)) {
+        return false;
+      }
+      
+      // Filter by status
+      if (selectedStatus !== "all" && schedule.status !== selectedStatus) {
+        return false;
+      }
+      
+      // Filter by appointment type
+      if (selectedType !== "all" && 
+          (!schedule.appointmentTypeId || 
+           schedule.appointmentTypeId.toString() !== selectedType)) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [schedules, selectedFacilityId, selectedDockId, selectedStatus, selectedType]);
 
   const handleEventClick = (scheduleId: number) => {
     setSelectedScheduleId(scheduleId);
@@ -75,7 +132,7 @@ export default function CalendarPage() {
     setIsCreateModalOpen(true);
   };
 
-  if (isLoading) {
+  if (isLoadingFacilities || isLoadingSchedules) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -266,15 +323,20 @@ export default function CalendarPage() {
           {/* Facility filter */}
           <div className="flex-col space-y-1">
             <Label htmlFor="facility-select">Facility</Label>
-            <Select defaultValue="all">
+            <Select 
+              value={selectedFacilityId} 
+              onValueChange={setSelectedFacilityId}
+            >
               <SelectTrigger id="facility-select" className="w-full">
                 <SelectValue placeholder="All Facilities" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Facilities</SelectItem>
-                <SelectItem value="1">450 Airtech Pkwy</SelectItem>
-                <SelectItem value="2">Camby Road</SelectItem>
-                <SelectItem value="3">HANZO Cold-Chain</SelectItem>
+                {facilities && facilities.map(facility => (
+                  <SelectItem key={facility.id} value={facility.id.toString()}>
+                    {facility.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -282,12 +344,16 @@ export default function CalendarPage() {
           {/* Dock filter */}
           <div className="flex-col space-y-1">
             <Label htmlFor="dock-select">Dock</Label>
-            <Select defaultValue="all">
+            <Select 
+              value={selectedDockId}
+              onValueChange={setSelectedDockId}
+            >
               <SelectTrigger id="dock-select" className="w-full">
                 <SelectValue placeholder="All Docks" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Docks</SelectItem>
+                {/* We would need to fetch docks based on selected facility */}
                 <SelectItem value="1">Dock #1</SelectItem>
                 <SelectItem value="2">Dock #2</SelectItem>
                 <SelectItem value="3">Dock #3</SelectItem>
@@ -298,7 +364,10 @@ export default function CalendarPage() {
           {/* Status filter */}
           <div className="flex-col space-y-1">
             <Label htmlFor="status-select">Status</Label>
-            <Select defaultValue="all">
+            <Select 
+              value={selectedStatus}
+              onValueChange={setSelectedStatus}
+            >
               <SelectTrigger id="status-select" className="w-full">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
@@ -315,21 +384,37 @@ export default function CalendarPage() {
           {/* Type filter */}
           <div className="flex-col space-y-1">
             <Label htmlFor="type-select">Appointment Type</Label>
-            <Select defaultValue="all">
+            <Select 
+              value={selectedType}
+              onValueChange={setSelectedType}
+            >
               <SelectTrigger id="type-select" className="w-full">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="1">1 Hour Trailer Appointment</SelectItem>
-                <SelectItem value="4">4 Hour Container Appointment</SelectItem>
+                {appointmentTypes && appointmentTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id.toString()}>
+                    {type.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           
           {/* Clear filters button */}
           <div className="flex items-end justify-end">
-            <Button variant="outline" size="sm" className="mb-0.5">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mb-0.5"
+              onClick={() => {
+                setSelectedFacilityId("all");
+                setSelectedDockId("all");
+                setSelectedStatus("all");
+                setSelectedType("all");
+              }}
+            >
               Clear Filters
             </Button>
           </div>
@@ -337,7 +422,7 @@ export default function CalendarPage() {
       </div>
       
       <FullCalendarView
-        schedules={schedules || []}
+        schedules={filteredSchedules}
         onEventClick={handleEventClick}
         onDateSelect={handleDateSelect}
         timezone={selectedTimezone}
