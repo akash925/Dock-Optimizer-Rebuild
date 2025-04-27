@@ -363,6 +363,13 @@ export default function FullCalendarView({
                 const customerName = eventData?.customerName || '';
                 const carrierName = eventData?.carrierName || '';
                 const dockId = eventData?.dockId || '';
+                const status = eventData?.status || '';
+                const needsAttention = eventData?.needsAttention || false;
+                const attentionReason = eventData?.attentionReason || '';
+                
+                // Determine if we need to show a status badge
+                const showStatusBadge = status && status !== 'scheduled';
+                const showAttentionBadge = !showStatusBadge && needsAttention;
                 
                 return (
                   <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
@@ -375,6 +382,20 @@ export default function FullCalendarView({
                       {carrierName && <span className="block">{carrierName}</span>}
                       {dockId && <span className="block">Dock #{dockId}</span>}
                     </div>
+                    
+                    {/* Status badge */}
+                    {showStatusBadge && (
+                      <div className="mt-1 text-[9px] font-bold bg-white/20 text-white rounded px-1 py-0.5 max-w-fit">
+                        {status.toUpperCase()}
+                      </div>
+                    )}
+                    
+                    {/* Attention badge */}
+                    {showAttentionBadge && (
+                      <div className="mt-1 text-[9px] font-bold bg-white/20 text-white rounded px-1 py-0.5 max-w-fit animate-pulse">
+                        {attentionReason.toUpperCase()}
+                      </div>
+                    )}
                   </div>
                 );
               }}

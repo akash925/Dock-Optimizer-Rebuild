@@ -89,12 +89,24 @@ export default function CalendarPage() {
       // Filter by facility
       if (selectedFacilityId !== "all") {
         // Check if we have facilityId from the schedule
-        const scheduleFacilityId = schedule.facilityId || 
-          // If not, try to get it from customFormData
-          (schedule.customFormData && 
-           typeof schedule.customFormData === 'object' && 
-           'facilityInfo' in schedule.customFormData && 
-           schedule.customFormData.facilityInfo.facilityId);
+        // Use type assertion to handle the facilityId property that might be added by the API
+        const extendedSchedule = schedule as any;
+        const facilityId = extendedSchedule.facilityId;
+        
+        // If not directly available, try to get it from customFormData
+        let scheduleFacilityId = facilityId;
+        
+        if (!scheduleFacilityId && schedule.customFormData) {
+          // Safely access nested properties with type checks
+          const customData = schedule.customFormData as any;
+          if (customData && typeof customData === 'object' && 
+              'facilityInfo' in customData && 
+              customData.facilityInfo && 
+              typeof customData.facilityInfo === 'object' &&
+              'facilityId' in customData.facilityInfo) {
+            scheduleFacilityId = customData.facilityInfo.facilityId;
+          }
+        }
         
         if (!scheduleFacilityId || scheduleFacilityId.toString() !== selectedFacilityId) {
           return false;
@@ -332,7 +344,7 @@ export default function CalendarPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Facilities</SelectItem>
-                {facilities && facilities.map(facility => (
+                {Array.isArray(facilities) && facilities.map((facility: any) => (
                   <SelectItem key={facility.id} value={facility.id.toString()}>
                     {facility.name}
                   </SelectItem>
@@ -393,7 +405,7 @@ export default function CalendarPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                {appointmentTypes && appointmentTypes.map((type) => (
+                {Array.isArray(appointmentTypes) && appointmentTypes.map((type: any) => (
                   <SelectItem key={type.id} value={type.id.toString()}>
                     {type.name}
                   </SelectItem>
