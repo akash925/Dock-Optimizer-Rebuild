@@ -424,9 +424,9 @@ export default function FullCalendarView({
                   <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
                     <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
                     
-                    {/* Facility name with highest priority */}
+                    {/* Facility name with highest priority - HIGHLIGHTED */}
                     {facilityName && (
-                      <div className="font-bold text-[11px] text-blue-700 bg-blue-50 py-0.5 px-1 rounded-sm mb-0.5">
+                      <div className="font-bold text-[11px] text-blue-700 bg-blue-50 py-0.5 px-1 rounded-sm mb-0.5 border border-blue-200">
                         {facilityName}
                       </div>
                     )}

@@ -1,0 +1,209 @@
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { format } from 'date-fns';
+import { Card, CardContent } from '@/components/ui/card';
+import { useLocation } from 'wouter';
+import { Schedule } from '@shared/schema';
+
+interface AppointmentDetailsProps {
+  scheduleId: number | null;
+  onClose: () => void;
+}
+
+export default function AppointmentDetails({ scheduleId, onClose }: AppointmentDetailsProps) {
+  const [, navigate] = useLocation();
+
+  const { data: schedule, isLoading } = useQuery<Schedule>({
+    queryKey: [`/api/schedules/${scheduleId}`],
+    enabled: !!scheduleId,
+  });
+
+  if (isLoading || !schedule) {
+    return (
+      <Dialog open={!!scheduleId} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>Appointment Details</DialogTitle>
+          </DialogHeader>
+          <div className="py-6 flex justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Get facility info, including from customFormData if needed
+  const scheduleCasted = schedule as any;
+  const facilityName = scheduleCasted.facilityName || 
+                     (scheduleCasted.customFormData?.facilityInfo?.facilityName) || 
+                     'No facility assigned';
+
+  const startDate = new Date(schedule.startTime);
+  const endDate = new Date(schedule.endTime);
+  
+  const formattedDate = format(startDate, 'MMM d, yyyy');
+  const formattedStartTime = format(startDate, 'h:mm a');
+  const formattedEndTime = format(endDate, 'h:mm a');
+  
+  const getStatusBadgeColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'checked-in': return 'bg-yellow-500';
+      case 'completed': return 'bg-green-500';
+      case 'canceled': return 'bg-red-500';
+      case 'no-show': return 'bg-gray-500';
+      default: return 'bg-blue-500';
+    }
+  };
+
+  const getTypeBadgeColor = (type: string) => {
+    return type === 'inbound' ? 'bg-blue-600' : 'bg-green-600';
+  };
+
+  return (
+    <Dialog open={!!scheduleId} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[550px]">
+        <DialogHeader>
+          <DialogTitle>
+            <div className="flex flex-col space-y-1">
+              <div className="text-xl">{schedule.customerName || 'No customer name'}</div>
+              <div className="text-sm text-muted-foreground">Appointment #{schedule.id}</div>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="py-4 space-y-4">
+          {/* Key information row */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            <Badge variant="outline" className={getStatusBadgeColor(schedule.status)}>
+              {schedule.status?.toUpperCase() || 'SCHEDULED'}
+            </Badge>
+            <Badge variant="outline" className={getTypeBadgeColor(schedule.type)}>
+              {schedule.type?.toUpperCase() || 'APPOINTMENT'}
+            </Badge>
+            {schedule.appointmentTypeId && (
+              <Badge variant="outline" className="bg-purple-500">
+                {scheduleCasted.appointmentTypeName || `Type ID: ${schedule.appointmentTypeId}`}
+              </Badge>
+            )}
+          </div>
+          
+          {/* Facility information in highlighted card */}
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-3">
+              <div className="text-sm font-semibold text-blue-700">Facility</div>
+              <div className="text-lg font-bold">{facilityName}</div>
+              {scheduleCasted.facilityTimezone && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Timezone: {scheduleCasted.facilityTimezone}
+                </div>
+              )}
+              <div className="mt-2 text-sm">
+                {schedule.dockId ? `Dock #${schedule.dockId}` : 'No dock assigned'}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Schedule information */}
+          <div className="space-y-2">
+            <div className="font-medium">Schedule</div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>Date:</div>
+              <div className="font-medium">{formattedDate}</div>
+              
+              <div>Time:</div>
+              <div className="font-medium">{formattedStartTime} - {formattedEndTime}</div>
+            </div>
+          </div>
+          
+          {/* Carrier information */}
+          <div className="space-y-2">
+            <div className="font-medium">Carrier Information</div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>Carrier:</div>
+              <div className="font-medium">{schedule.carrierName || 'Not specified'}</div>
+              
+              <div>MC Number:</div>
+              <div className="font-medium">{schedule.mcNumber || 'Not specified'}</div>
+              
+              <div>Truck Number:</div>
+              <div className="font-medium">{schedule.truckNumber || 'Not specified'}</div>
+              
+              <div>Trailer Number:</div>
+              <div className="font-medium">{schedule.trailerNumber || 'Not specified'}</div>
+            </div>
+          </div>
+          
+          {/* Driver information */}
+          <div className="space-y-2">
+            <div className="font-medium">Driver Information</div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>Driver Name:</div>
+              <div className="font-medium">{schedule.driverName || 'Not specified'}</div>
+              
+              <div>Driver Phone:</div>
+              <div className="font-medium">{schedule.driverPhone || 'Not specified'}</div>
+            </div>
+          </div>
+          
+          {/* Additional info if present */}
+          {(schedule.notes || schedule.bolNumber || schedule.poNumber) && (
+            <div className="space-y-2">
+              <div className="font-medium">Additional Information</div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {schedule.bolNumber && (
+                  <>
+                    <div>BOL Number:</div>
+                    <div className="font-medium">{schedule.bolNumber}</div>
+                  </>
+                )}
+                
+                {schedule.poNumber && (
+                  <>
+                    <div>PO Number:</div>
+                    <div className="font-medium">{schedule.poNumber}</div>
+                  </>
+                )}
+                
+                {schedule.notes && (
+                  <>
+                    <div>Notes:</div>
+                    <div className="font-medium">{schedule.notes}</div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={onClose}
+          >
+            Close
+          </Button>
+          <Button
+            onClick={() => {
+              if (scheduleId) {
+                navigate(`/schedules/${scheduleId}/edit`);
+              }
+            }}
+          >
+            Edit Appointment
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -6,7 +6,6 @@ import FullCalendarView from '@/components/calendar/full-calendar-view';
 import FullCalendar from '@fullcalendar/react';
 import { Schedule } from '@shared/schema';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Select, 
   SelectContent, 
@@ -17,6 +16,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 import AppointmentForm from '@/components/shared/appointment-form-fixed';
+import AppointmentDetails from '@/components/calendar/appointment-details';
 
 // List of common timezones
 const COMMON_TIMEZONES = [
@@ -442,30 +442,11 @@ export default function CalendarPage() {
         initialView={currentView}
       />
 
-      {/* Appointment details dialog */}
-      <Dialog open={!!selectedScheduleId} onOpenChange={(open) => !open && setSelectedScheduleId(null)}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Appointment Details</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {selectedScheduleId && (
-              <div className="space-y-4">
-                <p>Appointment #{selectedScheduleId}</p>
-                <Button
-                  onClick={() => {
-                    if (selectedScheduleId) {
-                      navigate(`/schedules/${selectedScheduleId}/edit`);
-                    }
-                  }}
-                >
-                  Edit Appointment
-                </Button>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Appointment details dialog - using the enhanced component */}
+      <AppointmentDetails 
+        scheduleId={selectedScheduleId} 
+        onClose={() => setSelectedScheduleId(null)} 
+      />
 
       {/* Create appointment form directly in the dialog */}
       {dateSelectInfo && (
