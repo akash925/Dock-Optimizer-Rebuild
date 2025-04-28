@@ -7,6 +7,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useTimeZoneUtils } from "@/hooks/use-timezone-utils";
 import { Schedule } from "@shared/schema";
+import { EnhancedSchedule, canReschedule } from "@/lib/schedule-helpers";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ export default function ReschedulePage() {
   
   // State for the wizard
   const [currentStep, setCurrentStep] = useState(STEPS.LOADING);
-  const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [schedule, setSchedule] = useState<EnhancedSchedule | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [facilityTimezone, setFacilityTimezone] = useState<string>("America/New_York");
@@ -57,7 +58,7 @@ export default function ReschedulePage() {
       if (!response.ok) {
         throw new Error("Schedule not found");
       }
-      return response.json() as Promise<Schedule>;
+      return response.json() as Promise<EnhancedSchedule>;
     },
     enabled: !!confirmationCode,
     retry: false,
@@ -130,7 +131,7 @@ export default function ReschedulePage() {
         throw new Error("Failed to reschedule appointment");
       }
       
-      return response.json() as Promise<Schedule>;
+      return response.json() as Promise<EnhancedSchedule>;
     },
     onSuccess: (updatedSchedule) => {
       setSchedule(updatedSchedule);

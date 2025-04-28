@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { sendScheduleConfirmationEmail } from './notifications';
+import { sendConfirmationEmail } from './notifications';
 
 /**
  * This is a development utility function to test email templates
@@ -37,10 +37,10 @@ export async function testEmailTemplate() {
   // Call the function to generate the email content
   try {
     // This is just for testing - we don't actually send the email
-    const emailContent = await sendScheduleConfirmationEmail("test@example.com", sampleData);
+    const emailContent = await sendConfirmationEmail("test@example.com", "HC" + sampleData.id, sampleData);
     
     // Save the generated HTML to a file for inspection
-    const emailFunction = sendScheduleConfirmationEmail.toString();
+    const emailFunction = sendConfirmationEmail.toString();
     
     // Extract the HTML template from the function
     const htmlMatch = emailFunction.match(/html: `([\s\S]*?)`,\s*text:/);

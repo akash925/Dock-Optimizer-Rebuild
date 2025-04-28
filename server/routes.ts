@@ -7,7 +7,7 @@ import { getBookingStyles } from "./controllers/admin-controller";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
-import { sendScheduleConfirmationEmail } from "./notifications";
+import { sendConfirmationEmail, sendEmail } from "./notifications";
 import { testEmailTemplate } from "./email-test";
 import {
   insertDockSchema,
@@ -654,7 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Try to send a confirmation email if we have contact information
             // This will log but not fail if SendGrid is not configured
             if (schedule.driverEmail) {
-              sendScheduleConfirmationEmail(
+              sendConfirmationEmail(
                 schedule.driverEmail,
                 {
                   id: schedule.id,

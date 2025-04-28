@@ -1,247 +1,273 @@
-import { MailService } from '@sendgrid/mail';
+import sgMail from '@sendgrid/mail';
+import { Schedule } from '../shared/schema';
+import { format } from 'date-fns';
+import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone';
 
-/**
- * Notification Service
- * 
- * Handles all email and notification functionality with graceful fallbacks
- * when SendGrid API key is not available
- */
- 
-// Configuration state
-let emailEnabled = false;
-const mailService = new MailService();
-
-// Try to initialize SendGrid if API key is available
-try {
-  if (process.env.SENDGRID_API_KEY) {
-    mailService.setApiKey(process.env.SENDGRID_API_KEY);
-    emailEnabled = true;
-    console.log("Email notifications enabled with SendGrid");
-  } else {
-    console.log("SendGrid API key not found. Email notifications will be logged but not sent.");
-  }
-} catch (error) {
-  console.error("Failed to initialize SendGrid:", error);
-  console.log("Email notifications will be logged but not sent.");
+// Enhanced schedule with UI-specific fields
+export interface EnhancedSchedule extends Schedule {
+  facilityId?: number;
+  facilityName?: string;
+  appointmentTypeName?: string;
+  dockName?: string;
+  timezone?: string;
+  carrierName?: string;
 }
 
-// Use SendGrid's mail data interface
-interface EmailData {
+// Initialize SendGrid if API key is available
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('Email notifications enabled with SendGrid');
+} else {
+  console.warn('No SendGrid API key found. Email notifications will be disabled.');
+}
+
+/**
+ * General-purpose email sending function
+ */
+export interface EmailParams {
   to: string;
-  from: string;
   subject: string;
-  text?: string;
   html?: string;
-  // Optional SendGrid-specific fields  
-  templateId?: string;
-  dynamicTemplateData?: {[key: string]: any};
+  text?: string;
+  from?: string;
 }
 
-/**
- * Send an email notification
- * 
- * If SendGrid is not configured, this will log the email content
- * but won't attempt to send it.
- */
-export async function sendEmail(emailData: EmailData): Promise<boolean> {
+export async function sendEmail(params: EmailParams): Promise<boolean> {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn('SendGrid API key not set, skipping email send');
+    return false;
+  }
+
   try {
-    // Always log the email for debugging purposes
-    console.log(`[EMAIL ${emailEnabled ? 'SENDING' : 'WOULD SEND'}]`, {
-      to: emailData.to,
-      subject: emailData.subject
-    });
-    
-    // Only try to send the email if SendGrid is properly configured
-    if (emailEnabled) {
-      // Create a valid mail data object with only defined properties
-      const mailDataToSend: any = {
-        to: emailData.to,
-        from: emailData.from,
-        subject: emailData.subject,
-      };
-      
-      // Only add properties that are defined
-      if (emailData.text) mailDataToSend.text = emailData.text;
-      if (emailData.html) mailDataToSend.html = emailData.html;
-      if (emailData.templateId) mailDataToSend.templateId = emailData.templateId;
-      if (emailData.dynamicTemplateData) mailDataToSend.dynamicTemplateData = emailData.dynamicTemplateData;
-      
-      await mailService.send(mailDataToSend);
-      console.log(`Email sent successfully to ${emailData.to}`);
-    } else {
-      console.log(`Email would be sent to ${emailData.to} (SendGrid not configured)`);
-    }
-    
+    const msg = {
+      to: params.to,
+      from: params.from || 'notifications@dockoptimizer.com',
+      subject: params.subject,
+      text: params.text || '',
+      html: params.html || '',
+    };
+
+    await sgMail.send(msg);
+    console.log(`Email sent successfully to ${params.to}`);
     return true;
   } catch (error) {
-    console.error("Failed to send email:", error);
+    console.error('Error sending email:', error);
     return false;
   }
 }
 
 /**
- * Send a schedule confirmation email
+ * Format a date for a specific timezone
  */
-export async function sendScheduleConfirmationEmail(
-  recipientEmail: string,
-  scheduleData: {
-    id: number;
-    dockName: string;
-    facilityName: string;
-    startTime: Date;
-    endTime: Date;
-    truckNumber: string;
-    customerName?: string;
-    type: string;
-    driverName?: string;
-    driverPhone?: string;
-    carrierName?: string;
-    mcNumber?: string;
-    timezone?: string;
+function formatDateForTimezone(date: Date, timezone: string, formatStr: string): string {
+  try {
+    return formatToTimeZone(date, formatStr, { timeZone: timezone });
+  } catch (error) {
+    console.error(`Error formatting date for timezone ${timezone}:`, error);
+    // Fallback to simple format if timezone formatting fails
+    return format(date, formatStr);
   }
+}
+
+/**
+ * Get the abbreviated timezone name
+ */
+function getTimezoneAbbr(timezone: string, date: Date): string {
+  try {
+    // This will return something like "EST" or "EDT" depending on daylight saving time
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'short'
+    }).formatToParts(date)
+      .find(part => part.type === 'timeZoneName');
+    
+    return parts?.value || timezone.split('/').pop() || 'GMT';
+  } catch (error) {
+    console.error(`Error getting timezone abbreviation for ${timezone}:`, error);
+    return timezone.split('/').pop() || 'GMT';
+  }
+}
+
+/**
+ * Send a confirmation email for a new or rescheduled appointment
+ */
+export async function sendConfirmationEmail(
+  to: string,
+  confirmationCode: string,
+  schedule: EnhancedSchedule
 ): Promise<boolean> {
-  // Don't attempt to send if no recipient email
-  if (!recipientEmail) {
-    console.log("No recipient email provided, skipping confirmation email");
-    return false;
-  }
-  
-  const formattedDate = scheduleData.startTime.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric'
-  });
-  
-  // Format facility time (using the timezone from the facility if provided)
-  const facilityTimezone = scheduleData.timezone || 'America/New_York';
-  
-  // Format start and end times in facility's timezone
-  const facilityStartTime = scheduleData.startTime.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: facilityTimezone
-  });
-  
-  const facilityEndTime = scheduleData.endTime.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: facilityTimezone
-  });
-  
-  // Get the timezone abbreviation (EDT, PDT, etc.)
-  const facilityTzAbbr = new Intl.DateTimeFormat('en-US', {
-    timeZone: facilityTimezone,
-    timeZoneName: 'short'
-  }).formatToParts(scheduleData.startTime)
-    .find(part => part.type === 'timeZoneName')?.value || '';
-  
-  // Format time in recipient's local timezone (best guess, will show server time)
-  const localStartTime = scheduleData.startTime.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  
-  const localEndTime = scheduleData.endTime.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  
-  // Get local timezone abbreviation
-  const localTzAbbr = new Intl.DateTimeFormat('en-US', {
-    timeZoneName: 'short'
-  }).formatToParts(scheduleData.startTime)
-    .find(part => part.type === 'timeZoneName')?.value || '';
-  
-  // Create a confirmation code with HC prefix
-  const confirmationCode = `HC${scheduleData.id}`;
-  
-  const emailData: EmailData = {
-    to: recipientEmail,
-    from: 'noreply@dockoptimizer.com', // This should be your verified SendGrid sender
-    subject: `Dock Appointment Confirmation #${scheduleData.id}`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #4CAF50;">Dock Appointment Confirmed</h2>
-        <p>Your appointment has been successfully scheduled. Please save your confirmation code for reference.</p>
-        
-        <div style="background-color: #f0f9f0; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
-          <h3 style="margin-top: 0;">Confirmation Code</h3>
-          <p style="font-size: 24px; font-weight: bold;">${confirmationCode}</p>
-        </div>
-        
-        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Appointment Details</h3>
-          <p><strong>Date:</strong> ${formattedDate}</p>
-          <p><strong>Facility time:</strong> ${facilityStartTime} - ${facilityEndTime} (${facilityTzAbbr})</p>
-          <p><strong>Your local time:</strong> ${localStartTime} - ${localEndTime} (${localTzAbbr})</p>
-          <p><strong>Facility:</strong> ${scheduleData.facilityName}</p>
-          <p><strong>Dock:</strong> ${scheduleData.dockName === "Not scheduled yet" ? 
-            "<span style='color: #777;'>Not assigned yet</span> (will be assigned prior to your arrival)" : 
-            scheduleData.dockName}
-          </p>
-        </div>
-        
-        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Contact Information</h3>
-          <p><strong>Company:</strong> ${scheduleData.customerName || 'N/A'}</p>
-          <p><strong>Contact:</strong> ${scheduleData.driverName || 'N/A'}</p>
-          <p><strong>Phone:</strong> ${scheduleData.driverPhone || 'N/A'}</p>
-          <p><strong>Email:</strong> ${recipientEmail}</p>
-        </div>
-        
-        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Carrier Information</h3>
-          <p><strong>Carrier:</strong> ${scheduleData.carrierName || 'N/A'} ${scheduleData.mcNumber ? `(MC#: ${scheduleData.mcNumber})` : ''}</p>
-          <p><strong>Driver:</strong> ${scheduleData.driverName || 'N/A'}</p>
-          <p><strong>Truck:</strong> ${scheduleData.truckNumber || 'N/A'}</p>
-        </div>
-        
-        <p>Please arrive at your scheduled time. If you need to modify or cancel this appointment, please use the links below.</p>
-        
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${process.env.APP_URL || 'https://app.dockoptimizer.com'}/reschedule?code=${confirmationCode}" style="display: inline-block; background-color: #2196F3; color: white; padding: 10px 20px; margin: 0 10px; text-decoration: none; border-radius: 4px; font-weight: bold;">Reschedule Appointment</a>
-          <a href="${process.env.APP_URL || 'https://app.dockoptimizer.com'}/cancel?code=${confirmationCode}" style="display: inline-block; background-color: #f44336; color: white; padding: 10px 20px; margin: 0 10px; text-decoration: none; border-radius: 4px; font-weight: bold;">Cancel Appointment</a>
-        </div>
-        
-        <div style="margin-top: 30px; font-size: 12px; color: #666;">
-          <p>This is an automated message from Dock Optimizer. Please do not reply to this email.</p>
-        </div>
+  const facilityTimezone = schedule.timezone || 'America/New_York';
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+
+  // Format times in both facility and user timezone
+  const facilityStart = formatDateForTimezone(
+    new Date(schedule.startTime), 
+    facilityTimezone, 
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+  const facilityEnd = formatDateForTimezone(
+    new Date(schedule.endTime), 
+    facilityTimezone, 
+    'h:mm aa'
+  );
+  const userStart = formatDateForTimezone(
+    new Date(schedule.startTime), 
+    userTimezone, 
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+  const userEnd = formatDateForTimezone(
+    new Date(schedule.endTime), 
+    userTimezone, 
+    'h:mm aa'
+  );
+
+  // Get timezone abbreviations
+  const facilityTzAbbr = getTimezoneAbbr(facilityTimezone, new Date(schedule.startTime));
+  const userTzAbbr = getTimezoneAbbr(userTimezone, new Date(schedule.startTime));
+
+  const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
+  const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
+
+  // Host URL with potential fallback
+  const host = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
+
+  // Create reschedule/cancel links
+  const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
+  const cancelLink = `${host}/cancel?code=${confirmationCode}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #00A86B; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">Dock Appointment Confirmation</h1>
+        <p style="margin-top: 5px;">Confirmation #: ${confirmationCode}</p>
       </div>
-    `,
-    text: `
-      Dock Appointment Confirmed
       
-      Your appointment has been successfully scheduled. Please save your confirmation code for reference.
+      <div style="padding: 20px;">
+        <p>Your dock appointment has been confirmed. Please arrive 15 minutes before your scheduled time.</p>
+
+        <div style="background-color: #f5f5f5; border-left: 4px solid #00A86B; padding: 15px; margin: 20px 0;">
+          <h2 style="margin-top: 0; color: #333;">Appointment Details</h2>
+          
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #666; width: 140px;">Facility:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.facilityName || 'Unknown Facility'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Appointment:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.appointmentTypeName || 'Standard Appointment'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Dock:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.dockName || 'Not scheduled yet'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Facility Time:</td>
+              <td style="padding: 8px 0;"><strong>${facilityTimeRange}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Your Local Time:</td>
+              <td style="padding: 8px 0;"><strong>${userTimeRange}</strong></td>
+            </tr>
+            ${schedule.driverName ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Driver:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.driverName}</strong></td>
+            </tr>` : ''}
+            ${schedule.driverPhone ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Driver Phone:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.driverPhone}</strong></td>
+            </tr>` : ''}
+            ${schedule.carrierId ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Carrier:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.carrierName || 'Unknown Carrier'}</strong></td>
+            </tr>` : ''}
+            ${schedule.truckNumber ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Truck #:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.truckNumber}</strong></td>
+            </tr>` : ''}
+            ${schedule.trailerNumber ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Trailer #:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.trailerNumber}</strong></td>
+            </tr>` : ''}
+            ${schedule.poNumber ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">PO #:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.poNumber}</strong></td>
+            </tr>` : ''}
+            ${schedule.notes ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Notes:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.notes}</strong></td>
+            </tr>` : ''}
+          </table>
+        </div>
+        
+        <div style="margin: 30px 0; text-align: center;">
+          <p style="margin-bottom: 15px;">Need to make changes to your appointment?</p>
+          
+          <a href="${rescheduleLink}" 
+             style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px; display: inline-block;">
+            Reschedule
+          </a>
+          
+          <a href="${cancelLink}" 
+             style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Cancel
+          </a>
+        </div>
+        
+        <p>If you have any questions, please contact the facility directly.</p>
+      </div>
       
-      Confirmation Code: ${confirmationCode}
-      
-      Appointment Details:
-      Date: ${formattedDate}
-      Facility time: ${facilityStartTime} - ${facilityEndTime} (${facilityTzAbbr})
-      Your local time: ${localStartTime} - ${localEndTime} (${localTzAbbr})
-      Facility: ${scheduleData.facilityName}
-      Dock: ${scheduleData.dockName === "Not scheduled yet" ? "Not assigned yet (will be assigned prior to your arrival)" : scheduleData.dockName}
-      
-      Contact Information:
-      Company: ${scheduleData.customerName || 'N/A'}
-      Contact: ${scheduleData.driverName || 'N/A'}
-      Phone: ${scheduleData.driverPhone || 'N/A'}
-      Email: ${recipientEmail}
-      
-      Carrier Information:
-      Carrier: ${scheduleData.carrierName || 'N/A'} ${scheduleData.mcNumber ? `(MC#: ${scheduleData.mcNumber})` : ''}
-      Driver: ${scheduleData.driverName || 'N/A'}
-      Truck: ${scheduleData.truckNumber || 'N/A'}
-      
-      Please arrive at your scheduled time. If you need to modify or cancel this appointment, please use the links below:
-      
-      To reschedule: ${process.env.APP_URL || 'https://app.dockoptimizer.com'}/reschedule?code=${confirmationCode}
-      To cancel: ${process.env.APP_URL || 'https://app.dockoptimizer.com'}/cancel?code=${confirmationCode}
-      
-      This is an automated message from Dock Optimizer. Please do not reply to this email.
-    `
-  };
-  
-  return sendEmail(emailData);
+      <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+        <p>This is an automated message from Dock Optimizer. Please do not reply to this email.</p>
+      </div>
+    </div>
+  `;
+
+  const text = `
+    Dock Appointment Confirmation
+    Confirmation #: ${confirmationCode}
+    
+    Your dock appointment has been confirmed. Please arrive 15 minutes before your scheduled time.
+    
+    APPOINTMENT DETAILS
+    ------------------
+    Facility: ${schedule.facilityName || 'Unknown Facility'}
+    Appointment: ${schedule.appointmentTypeName || 'Standard Appointment'}
+    Dock: ${schedule.dockName || 'Not scheduled yet'}
+    
+    Facility Time: ${facilityTimeRange}
+    Your Local Time: ${userTimeRange}
+    ${schedule.driverName ? `Driver: ${schedule.driverName}` : ''}
+    ${schedule.driverPhone ? `Driver Phone: ${schedule.driverPhone}` : ''}
+    ${schedule.carrierId ? `Carrier: ${schedule.carrierName || 'Unknown Carrier'}` : ''}
+    ${schedule.truckNumber ? `Truck #: ${schedule.truckNumber}` : ''}
+    ${schedule.trailerNumber ? `Trailer #: ${schedule.trailerNumber}` : ''}
+    ${schedule.poNumber ? `PO #: ${schedule.poNumber}` : ''}
+    ${schedule.notes ? `Notes: ${schedule.notes}` : ''}
+    
+    MANAGE YOUR APPOINTMENT
+    ---------------------
+    Need to make changes? 
+    
+    Reschedule: ${rescheduleLink}
+    Cancel: ${cancelLink}
+    
+    If you have any questions, please contact the facility directly.
+    
+    This is an automated message from Dock Optimizer. Please do not reply to this email.
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Dock Appointment Confirmation #${confirmationCode}`,
+    html,
+    text,
+  });
 }
