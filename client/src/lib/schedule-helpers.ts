@@ -5,10 +5,11 @@ import { Schedule } from "@shared/schema";
  */
 export interface EnhancedSchedule extends Schedule {
   // These fields are added by the API in some responses but aren't in the base Schedule type
-  facilityId?: number;
+  // Note: facilityId is now part of the base Schedule type
   facilityName?: string;
   appointmentTypeName?: string;
   dockName?: string;
+  timezone?: string;
 }
 
 /**

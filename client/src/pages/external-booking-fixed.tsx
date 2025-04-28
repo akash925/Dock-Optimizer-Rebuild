@@ -960,12 +960,19 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                           {/* Show timezone information above time selection grid */}
                           <div className="flex items-center mb-3 p-2 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
                             <ClockIcon className="h-4 w-4 mr-2" />
-                            <p className="text-sm">
-                              <strong>Note:</strong> Times are displayed in the facility's local timezone. 
-                              {selectedFacility?.timezone && (
-                                <span> ({selectedFacility.timezone.replace(/_/g, ' ')})</span>
+                            <div className="text-sm">
+                              <p>
+                                <strong>Note:</strong> Times are displayed in the facility's local timezone. 
+                                {selectedFacility?.timezone && (
+                                  <span> ({selectedFacility.timezone.replace(/_/g, ' ')})</span>
+                                )}
+                              </p>
+                              {Intl.DateTimeFormat().resolvedOptions().timeZone !== selectedFacility?.timezone && (
+                                <p className="mt-1">
+                                  <strong>Your timezone:</strong> {Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/_/g, ' ')}
+                                </p>
                               )}
-                            </p>
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -995,7 +1002,31 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                     handleTimeChange(slot.time);
                                   }}
                                 >
-                                  {displayTime}
+                                  <div className="flex flex-col">
+                                    <span>{displayTime}</span>
+                                    {Intl.DateTimeFormat().resolvedOptions().timeZone !== selectedFacility?.timezone && (
+                                      <span className="text-xs text-gray-500 mt-1">
+                                        {/* Convert to user's timezone */}
+                                        {(() => {
+                                          try {
+                                            const [hours, minutes] = slot.time.split(':').map(Number);
+                                            const date = new Date(selectedDate);
+                                            date.setHours(hours, minutes, 0, 0);
+                                            
+                                            // Format this date according to user's timezone
+                                            const userTime = new Date(date.toLocaleString('en-US', {
+                                              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                                            }));
+                                            
+                                            return format(userTime, 'h:mm a');
+                                          } catch (e) {
+                                            console.error("Error converting timezone:", e);
+                                            return "";
+                                          }
+                                        })()}
+                                      </span>
+                                    )}
+                                  </div>
                                   
                                   {/* Always show capacity badge */}
                                   <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">

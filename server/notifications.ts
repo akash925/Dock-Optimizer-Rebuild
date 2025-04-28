@@ -8,6 +8,7 @@ import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone';
 export interface EnhancedSchedule {
   // Core Schedule properties
   id: number;
+  facilityId: number | null; // Now part of core properties
   dockId: number | null;
   carrierId: number | null;
   appointmentTypeId: number | null;
@@ -38,7 +39,6 @@ export interface EnhancedSchedule {
   lastModifiedBy: number | null;
   
   // Enhanced properties for UI and notifications
-  facilityId?: number;
   facilityName?: string;
   appointmentTypeName?: string;
   dockName?: string;
@@ -113,10 +113,10 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
     await sgMail.send(msg);
     console.log(`Email sent successfully to ${params.to}`);
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error sending email:', error);
-    if (error.response) {
-      console.error(`SendGrid API error: ${error.response.body}`);
+    if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'body' in error.response) {
+      console.error(`SendGrid API error: ${JSON.stringify(error.response.body)}`);
     }
     return false;
   }
@@ -153,6 +153,9 @@ function formatDateForTimezone(date: Date, timezone: string, formatStr: string):
 
 /**
  * Get the abbreviated timezone name
+ * @param timezone - The IANA timezone identifier (e.g., 'America/New_York')
+ * @param date - The date to use for determining DST status
+ * @returns The timezone abbreviation (e.g., 'EDT', 'EST')
  */
 function getTimezoneAbbr(timezone: string, date: Date): string {
   try {
@@ -169,6 +172,9 @@ function getTimezoneAbbr(timezone: string, date: Date): string {
       date = new Date();
     }
     
+    // Log input values for debugging
+    console.log(`[getTimezoneAbbr] Using timezone: ${timezone}, date: ${date.toISOString()}`);
+    
     // This will return something like "EST" or "EDT" depending on daylight saving time
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
@@ -177,23 +183,29 @@ function getTimezoneAbbr(timezone: string, date: Date): string {
       .find(part => part.type === 'timeZoneName');
     
     if (parts?.value) {
+      console.log(`[getTimezoneAbbr] Found abbreviation: ${parts.value}`);
       return parts.value;
     }
     
     // Fall back to common abbreviations or region name
     const region = timezone.split('/').pop() || '';
+    console.log(`[getTimezoneAbbr] Falling back to region: ${region}`);
     
     // Return common timezone abbreviations or the region name
+    let abbr: string;
     switch(region) {
-      case 'New_York': return 'ET';
-      case 'Chicago': return 'CT';
-      case 'Denver': return 'MT';
-      case 'Phoenix': return 'MST';
-      case 'Los_Angeles': return 'PT';
-      case 'Anchorage': return 'AKST';
-      case 'Honolulu': return 'HST';
-      default: return region || 'GMT';
+      case 'New_York': abbr = 'ET'; break;
+      case 'Chicago': abbr = 'CT'; break;
+      case 'Denver': abbr = 'MT'; break;
+      case 'Phoenix': abbr = 'MST'; break;
+      case 'Los_Angeles': abbr = 'PT'; break;
+      case 'Anchorage': abbr = 'AKST'; break;
+      case 'Honolulu': abbr = 'HST'; break;
+      default: abbr = region || 'GMT';
     }
+    
+    console.log(`[getTimezoneAbbr] Using abbreviation: ${abbr}`);
+    return abbr;
   } catch (error) {
     console.error(`Error getting timezone abbreviation for ${timezone}:`, error);
     return 'GMT'; // Final fallback
@@ -223,7 +235,7 @@ export async function sendConfirmationEmail(
     try {
       const parsed = new Date(dateInput);
       return isNaN(parsed.getTime()) ? new Date() : parsed;
-    } catch (e) {
+    } catch (e: unknown) {
       console.error(`Failed to parse date: ${dateInput}`, e);
       return new Date();
     }

@@ -159,7 +159,7 @@ export function useAppointmentAvailability({
       // Calculate appointment duration (in minutes)
       const appointmentDuration = duration || (mode === 'trailer' ? 60 : 120);
       
-      // Generate 30-minute time slots from opening to closing
+      // Generate 15-minute time slots from opening to closing
       const slots: AvailabilitySlot[] = [];
       
       // Start with the opening time
@@ -172,11 +172,14 @@ export function useAppointmentAvailability({
         return [];
       }
       
-      // Generate 30-minute time slots until closing time
+      // Generate time slots until closing time
       // Subtract appointment duration to ensure appointments don't go past closing
       const adjustedClosingTime = new Date(closingTime.getTime() - (appointmentDuration * 60 * 1000));
       
+      console.log(`Generating time slots from ${openingHours.start} to ${openingHours.end} (adjusted: ${adjustedClosingTime.toTimeString().substring(0, 5)}) with ${appointmentDuration} minute duration`);
+      
       while (currentTime <= adjustedClosingTime) {
+        // Format as HH:MM
         const timeString = currentTime.toTimeString().substring(0, 5);
         const appointmentEnd = new Date(currentTime.getTime() + (appointmentDuration * 60 * 1000));
         

@@ -40,6 +40,7 @@ export async function testEmailTemplate() {
     // Create a more complete test schedule with required properties
     const testSchedule: EnhancedSchedule = {
       id: sampleData.id,
+      facilityId: 6, // Sam Pride facility ID
       dockId: null,
       carrierId: null,
       appointmentTypeId: null,
