@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRoute } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { queryClient } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -205,6 +206,12 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
         }
         
         console.log('Appointment created successfully:', responseData);
+        
+        // Invalidate schedules query to refresh the calendar
+        if (queryClient) {
+          queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+          console.log('Invalidated schedules query to refresh calendar');
+        }
       } catch (error) {
         console.error('Error during appointment creation:', error);
         throw error; // Re-throw the error to be caught by the outer catch block
