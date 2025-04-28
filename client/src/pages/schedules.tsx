@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
-import { Schedule, Dock, Carrier, Facility, AppointmentType } from "@shared/schema";
+import { Schedule as BaseSchedule, Dock, Carrier, Facility, AppointmentType } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,13 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getUserTimeZone, getTimeZoneAbbreviation } from "@/lib/timezone-utils";
 
+// Extended Schedule interface with additional derived properties
+interface Schedule extends BaseSchedule {
+  dockName?: string;
+  appointmentTypeName?: string;
+  facilityName?: string;
+}
+
 export default function Schedules() {
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -46,10 +53,40 @@ export default function Schedules() {
   const [timezone, setTimezone] = useState<string>(getUserTimeZone());
   const [timeFormat, setTimeFormat] = useState<"12h" | "24h">("12h");
   
-  // Fetch schedules
-  const { data: schedules = [] } = useQuery<Schedule[]>({
+  // Fetch all data first
+  const { data: rawSchedules = [] } = useQuery<BaseSchedule[]>({
     queryKey: ["/api/schedules"]
   });
+  
+  // Fetch docks
+  const { data: docks = [] } = useQuery<Dock[]>({
+    queryKey: ["/api/docks"],
+  });
+  
+  // Fetch carriers
+  const { data: carriers = [] } = useQuery<Carrier[]>({
+    queryKey: ["/api/carriers"],
+  });
+  
+  // Fetch facilities
+  const { data: facilities = [] } = useQuery<Facility[]>({
+    queryKey: ["/api/facilities"],
+  });
+  
+  // Fetch appointment types
+  const { data: appointmentTypes = [], isError: appointmentTypesError } = useQuery<AppointmentType[]>({
+    queryKey: ["/api/appointment-types"]
+  });
+  
+  // Transform raw schedules to extend them with additional properties
+  const schedules: Schedule[] = rawSchedules.map(schedule => ({
+    ...schedule,
+    dockName: schedule.dockId ? docks.find(d => d.id === schedule.dockId)?.name : undefined,
+    appointmentTypeName: schedule.appointmentTypeId ? appointmentTypes.find(t => t.id === schedule.appointmentTypeId)?.name : undefined,
+    facilityName: schedule.facilityId 
+      ? facilities.find(f => f.id === schedule.facilityId)?.name 
+      : undefined
+  }));
   
   // Set the most current schedule as selected on first load
   // Check for schedule ID in URL params
@@ -80,26 +117,6 @@ export default function Schedules() {
       setSelectedSchedule(schedules[0]);
     }
   }, [schedules, selectedSchedule, params]);
-  
-  // Fetch docks
-  const { data: docks = [] } = useQuery<Dock[]>({
-    queryKey: ["/api/docks"],
-  });
-  
-  // Fetch carriers
-  const { data: carriers = [] } = useQuery<Carrier[]>({
-    queryKey: ["/api/carriers"],
-  });
-  
-  // Fetch facilities
-  const { data: facilities = [] } = useQuery<Facility[]>({
-    queryKey: ["/api/facilities"],
-  });
-  
-  // Fetch appointment types
-  const { data: appointmentTypes = [], isError: appointmentTypesError } = useQuery<AppointmentType[]>({
-    queryKey: ["/api/appointment-types"]
-  });
   
   // Get facility name for a dock
   const getFacilityNameForDock = (dockId: number | null, schedule?: Schedule): string => {
@@ -662,7 +679,7 @@ export default function Schedules() {
         appointment={selectedSchedule}
         open={isDetailsDialogOpen}
         onOpenChange={handleDetailsDialogClose}
-        facilityName={selectedSchedule ? getFacilityNameForDock(selectedSchedule.dockId) : ""}
+        facilityName={selectedSchedule ? getFacilityNameForDock(selectedSchedule.dockId, selectedSchedule) : ""}
         timeFormat={timeFormat}
       />
       
