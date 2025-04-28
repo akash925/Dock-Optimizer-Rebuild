@@ -1122,7 +1122,7 @@ export default function AppointmentMaster() {
                   <div className="text-sm text-muted-foreground mb-2">
                     <div className="flex items-center">
                       <span className="text-red-500 mr-1">*</span>
-                      <span>Required fields are marked with a checkbox and will be marked with an asterisk on booking forms</span>
+                      <span>"Included" controls which fields appear on booking forms. "Is Required" fields will be marked with an asterisk and must be filled.</span>
                     </div>
                   </div>
                   
@@ -1133,6 +1133,7 @@ export default function AppointmentMaster() {
                           <TableHead className="w-12 text-center">Sr.No</TableHead>
                           <TableHead>Question</TableHead>
                           <TableHead>Answer Type</TableHead>
+                          <TableHead className="w-24 text-center">Included</TableHead>
                           <TableHead className="w-24 text-center">Is Required</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1145,6 +1146,9 @@ export default function AppointmentMaster() {
                           <TableCell className="text-center">
                             <Checkbox checked={true} disabled />
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell className="text-center">2</TableCell>
@@ -1153,11 +1157,17 @@ export default function AppointmentMaster() {
                           <TableCell className="text-center">
                             <Checkbox checked={true} disabled />
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell className="text-center">3</TableCell>
                           <TableCell>Carrier MC #</TableCell>
                           <TableCell>Number Only</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
                           <TableCell className="text-center">
                             <Checkbox checked={true} disabled />
                           </TableCell>
@@ -1190,6 +1200,17 @@ export default function AppointmentMaster() {
                           <TableCell className="text-center">7</TableCell>
                           <TableCell>BOL Doc</TableCell>
                           <TableCell>File Upload</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox 
+                              checked={true} 
+                              onCheckedChange={(checked) => {
+                                // In a real implementation, this would update the field configuration
+                                toast({
+                                  description: "BOL Doc included setting updated",
+                                });
+                              }}
+                            />
+                          </TableCell>
                           <TableCell className="text-center">
                             <Checkbox 
                               checked={false} 
