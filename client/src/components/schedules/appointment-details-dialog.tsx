@@ -837,7 +837,13 @@ export function AppointmentDetailsDialog({
                 </p>
                 <div className="border border-primary border-2 p-3 rounded-md inline-block bg-white shadow-sm">
                   <AppointmentQRCode 
-                    schedule={appointment} 
+                    schedule={{
+                      ...appointment,
+                      facilityId: appointment.facilityId ?? null,
+                      dockId: appointment.dockId ?? null,
+                      carrierId: appointment.carrierId ?? null,
+                      appointmentTypeId: appointment.appointmentTypeId ?? null
+                    }}
                     confirmationCode={`HC${appointment.id.toString().padStart(6, '0')}`}
                     isExternal={true}
                   />
