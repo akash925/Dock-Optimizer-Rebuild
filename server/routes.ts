@@ -1426,8 +1426,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
             
           // Send confirmation email with enhanced information
-          sendScheduleConfirmationEmail(
+          sendConfirmationEmail(
             validatedData.email,
+            `HC${schedule.id}`,
             {
               id: schedule.id,
               dockName: dockName,
@@ -1657,8 +1658,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           // Send confirmation email with enhanced information
-          sendScheduleConfirmationEmail(
+          sendConfirmationEmail(
             validatedData.contactEmail,
+            `HC${schedule.id}`,
             {
               id: schedule.id,
               dockName: "Not scheduled yet", // Default for legacy external bookings

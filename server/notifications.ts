@@ -95,7 +95,7 @@ export async function sendConfirmationEmail(
   to: string,
   confirmationCode: string,
   schedule: EnhancedSchedule
-): Promise<boolean> {
+): Promise<{ html: string, text: string } | boolean> {
   const facilityTimezone = schedule.timezone || 'America/New_York';
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
 

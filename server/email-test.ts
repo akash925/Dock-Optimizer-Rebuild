@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { sendConfirmationEmail } from './notifications';
+import { sendConfirmationEmail, EnhancedSchedule } from './notifications';
 
 /**
  * This is a development utility function to test email templates
@@ -37,103 +37,39 @@ export async function testEmailTemplate() {
   // Call the function to generate the email content
   try {
     // This is just for testing - we don't actually send the email
-    const emailContent = await sendConfirmationEmail("test@example.com", "HC" + sampleData.id, sampleData);
+    // Create a more complete test schedule with required properties
+    const testSchedule: EnhancedSchedule = {
+      ...sampleData,
+      id: sampleData.id,
+      dockId: null,
+      carrierId: null,
+      appointmentTypeId: null,
+      trailerNumber: null,
+      status: 'scheduled',
+      type: 'inbound',
+      poNumber: null,
+      customerEmail: null,
+      createdAt: new Date(),
+      lastModifiedAt: null,
+      actualStartTime: null,
+      actualEndTime: null,
+      createdBy: 1,
+      lastModifiedBy: null,
+      driverEmail: 'test@example.com',
+      scheduledBy: 'System',
+      bolUrl: null
+    };
+    
+    const emailContent = await sendConfirmationEmail("test@example.com", `HC${sampleData.id}`, testSchedule);
     
     // Save the generated HTML to a file for inspection
     const emailFunction = sendConfirmationEmail.toString();
     
-    // Extract the HTML template from the function
-    const htmlMatch = emailFunction.match(/html: `([\s\S]*?)`,\s*text:/);
-    const textMatch = emailFunction.match(/text: `([\s\S]*?)`\s*\};/);
+    // Just save the email content directly
+    fs.writeFileSync('email-template-test.html', emailContent?.html || 'No HTML content generated');
+    fs.writeFileSync('email-template-test.txt', emailContent?.text || 'No text content generated');
     
-    if (htmlMatch && htmlMatch[1]) {
-      // Replace template variables with actual values
-      let htmlTemplate = htmlMatch[1];
-      
-      // Manually replace variables with sample data
-      // Create a confirmation code with HC prefix
-      const confirmationCode = `HC${sampleData.id}`;
-      
-      // Format dates
-      const formattedDate = sampleData.startTime.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric'
-      });
-      
-      // Format facility time
-      const facilityTimezone = sampleData.timezone || 'America/New_York';
-      
-      // Format start and end times in facility's timezone
-      const facilityStartTime = sampleData.startTime.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: facilityTimezone
-      });
-      
-      const facilityEndTime = sampleData.endTime.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: facilityTimezone
-      });
-      
-      // Get the timezone abbreviation (EDT, PDT, etc.)
-      const facilityTzAbbr = new Intl.DateTimeFormat('en-US', {
-        timeZone: facilityTimezone,
-        timeZoneName: 'short'
-      }).formatToParts(sampleData.startTime)
-        .find(part => part.type === 'timeZoneName')?.value || '';
-      
-      // Format time in recipient's local timezone (best guess, will show server time)
-      const localStartTime = sampleData.startTime.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      
-      const localEndTime = sampleData.endTime.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      
-      // Get local timezone abbreviation
-      const localTzAbbr = new Intl.DateTimeFormat('en-US', {
-        timeZoneName: 'short'
-      }).formatToParts(sampleData.startTime)
-        .find(part => part.type === 'timeZoneName')?.value || '';
-      
-      // Replace variables in the template
-      htmlTemplate = htmlTemplate
-        .replace(/\${confirmationCode}/g, confirmationCode)
-        .replace(/\${formattedDate}/g, formattedDate)
-        .replace(/\${facilityStartTime}/g, facilityStartTime)
-        .replace(/\${facilityEndTime}/g, facilityEndTime)
-        .replace(/\${facilityTzAbbr}/g, facilityTzAbbr)
-        .replace(/\${localStartTime}/g, localStartTime)
-        .replace(/\${localEndTime}/g, localEndTime)
-        .replace(/\${localTzAbbr}/g, localTzAbbr)
-        .replace(/\${scheduleData.facilityName}/g, sampleData.facilityName)
-        .replace(/\${scheduleData.dockName}/g, sampleData.dockName)
-        .replace(/\${scheduleData.customerName \|\| 'N\/A'}/g, sampleData.customerName || 'N/A')
-        .replace(/\${scheduleData.driverName \|\| 'N\/A'}/g, sampleData.driverName || 'N/A')
-        .replace(/\${scheduleData.driverPhone \|\| 'N\/A'}/g, sampleData.driverPhone || 'N/A')
-        .replace(/\${recipientEmail}/g, "test@example.com")
-        .replace(/\${scheduleData.carrierName \|\| 'N\/A'}/g, sampleData.carrierName || 'N/A')
-        .replace(/\${scheduleData.mcNumber \? `\(MC#: \${scheduleData.mcNumber}\)` : ''}/g, 
-          sampleData.mcNumber ? `(MC#: ${sampleData.mcNumber})` : '')
-        .replace(/\${scheduleData.truckNumber \|\| 'N\/A'}/g, sampleData.truckNumber || 'N/A');
-      
-      // Write the rendered template to a file in the project root directory
-      fs.writeFileSync('email-template-test.html', htmlTemplate);
-      console.log("✅ Email template test HTML saved to email-template-test.html in project root");
-    }
-    
-    if (textMatch && textMatch[1]) {
-      // Save the text version too
-      fs.writeFileSync('email-template-test.txt', textMatch[1]);
-      console.log("✅ Email template test TEXT saved to email-template-test.txt in project root");
-    }
-    
+    console.log("✅ Email template test HTML and text saved to project root");
     return true;
   } catch (error) {
     console.error("Error testing email template:", error);
