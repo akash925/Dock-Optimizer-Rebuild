@@ -2672,11 +2672,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (process.env.NODE_ENV === 'development') {
     app.get('/api/test-email-template', async (req, res) => {
       try {
-        const result = await testEmailTemplate();
-        res.json({ 
-          success: result, 
-          message: 'Email template test complete. Check server/email-template-test.html for preview.'
-        });
+        // Create a sample schedule with all the data we need
+        const sampleData = {
+          id: 46,
+          dockName: "Dock 3",
+          facilityName: "Sam Pride",
+          startTime: new Date("2025-04-30T17:00:00Z"), // 5:00 PM UTC
+          endTime: new Date("2025-04-30T18:00:00Z"),   // 6:00 PM UTC
+          truckNumber: "10000",
+          customerName: "Conmitto Inc.",
+          type: "delivery",
+          driverName: "Akash Agarwal",
+          driverPhone: "4082303749",
+          carrierName: "UPS",
+          mcNumber: "MC178930",
+          timezone: "America/New_York" // EDT
+        };
+        
+        // Generate email HTML
+        // Extract function to get email data
+        const getEmailData = (recipientEmail: string, data: any) => {
+          const formattedDate = data.startTime.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric'
+          });
+          
+          const facilityTimezone = data.timezone || 'America/New_York';
+          
+          const facilityStartTime = data.startTime.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: facilityTimezone
+          });
+          
+          const facilityEndTime = data.endTime.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: facilityTimezone
+          });
+          
+          const facilityTzAbbr = new Intl.DateTimeFormat('en-US', {
+            timeZone: facilityTimezone,
+            timeZoneName: 'short'
+          }).formatToParts(data.startTime)
+            .find(part => part.type === 'timeZoneName')?.value || '';
+          
+          const localStartTime = data.startTime.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          const localEndTime = data.endTime.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+          
+          const localTzAbbr = new Intl.DateTimeFormat('en-US', {
+            timeZoneName: 'short'
+          }).formatToParts(data.startTime)
+            .find(part => part.type === 'timeZoneName')?.value || '';
+          
+          const confirmationCode = `HC${data.id}`;
+          
+          return {
+            to: recipientEmail,
+            from: 'noreply@dockoptimizer.com',
+            subject: `Dock Appointment Confirmation #${data.id}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #4CAF50;">Dock Appointment Confirmed</h2>
+                <p>Your appointment has been successfully scheduled. Please save your confirmation code for reference.</p>
+                
+                <div style="background-color: #f0f9f0; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
+                  <h3 style="margin-top: 0;">Confirmation Code</h3>
+                  <p style="font-size: 24px; font-weight: bold;">${confirmationCode}</p>
+                </div>
+                
+                <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">Appointment Details</h3>
+                  <p><strong>Date:</strong> ${formattedDate}</p>
+                  <p><strong>Facility time:</strong> ${facilityStartTime} - ${facilityEndTime} (${facilityTzAbbr})</p>
+                  <p><strong>Your local time:</strong> ${localStartTime} - ${localEndTime} (${localTzAbbr})</p>
+                  <p><strong>Facility:</strong> ${data.facilityName}</p>
+                  <p><strong>Dock:</strong> ${data.dockName}</p>
+                </div>
+                
+                <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">Contact Information</h3>
+                  <p><strong>Company:</strong> ${data.customerName || 'N/A'}</p>
+                  <p><strong>Contact:</strong> ${data.driverName || 'N/A'}</p>
+                  <p><strong>Phone:</strong> ${data.driverPhone || 'N/A'}</p>
+                  <p><strong>Email:</strong> ${recipientEmail}</p>
+                </div>
+                
+                <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                  <h3 style="margin-top: 0;">Carrier Information</h3>
+                  <p><strong>Carrier:</strong> ${data.carrierName || 'N/A'} ${data.mcNumber ? `(MC#: ${data.mcNumber})` : ''}</p>
+                  <p><strong>Driver:</strong> ${data.driverName || 'N/A'}</p>
+                  <p><strong>Truck:</strong> ${data.truckNumber || 'N/A'}</p>
+                </div>
+                
+                <p>Please arrive at your scheduled time. If you need to modify or cancel this appointment, please contact the facility.</p>
+                
+                <div style="margin-top: 30px; font-size: 12px; color: #666;">
+                  <p>This is an automated message from Dock Optimizer. Please do not reply to this email.</p>
+                </div>
+              </div>
+            `,
+          };
+        };
+        
+        const emailData = getEmailData('test@example.com', sampleData);
+        
+        // Set response content type to HTML
+        res.header('Content-Type', 'text/html');
+        
+        // Send the HTML template with a small browser frame
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Email Template Preview</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f0f0; }
+              .container { max-width: 800px; margin: 0 auto; }
+              .header { background-color: #4CAF50; color: white; padding: 15px; border-radius: 5px 5px 0 0; }
+              .preview { border: 1px solid #ddd; border-radius: 0 0 5px 5px; padding: 20px; background-color: white; }
+              .footer { margin-top: 20px; text-align: center; color: #666; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Email Template Preview</h1>
+                <p>This is a preview of the appointment confirmation email template</p>
+              </div>
+              <div class="preview">
+                ${emailData.html}
+              </div>
+              <div class="footer">
+                <p>This template is used for all appointment confirmation emails sent by the system.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `);
       } catch (error) {
         console.error('Error testing email template:', error);
         res.status(500).json({ 
