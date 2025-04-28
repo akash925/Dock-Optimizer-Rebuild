@@ -2571,12 +2571,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`AVAILABILITY RULE: Using buffer time of ${facilityRule.bufferTime} minutes for ${appointmentType.name}`);
           
           // Generate time slots based on facility hours
+          // Use the buffer time as the interval if it exists and is greater than 0
+          const intervalToUse = (appointmentType.bufferTime && appointmentType.bufferTime > 0) 
+            ? appointmentType.bufferTime 
+            : (facilitySettings.timeInterval || 15);
+            
+          console.log(`[generateAvailableTimeSlots] Using interval of ${intervalToUse} minutes based on buffer time ${appointmentType.bufferTime}`);
+          
           timeSlots = generateAvailableTimeSlots(
             parsedDate,
             [facilityRule],
             appointmentType.duration || 60,
             appointmentType.timezone || facility.timezone || 'America/New_York',
-            15 // 15-minute intervals
+            intervalToUse // Use buffer time as the interval if available
           );
         } else {
           // If no facility settings, generate slots with no restrictions

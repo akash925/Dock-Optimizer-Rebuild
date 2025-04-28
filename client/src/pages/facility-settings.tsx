@@ -33,44 +33,100 @@ const facilityEditSchema = z.object({
   mondayOpen: z.boolean(),
   mondayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
   mondayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
-  mondayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
-  mondayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  mondayBreakStart: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
+  mondayBreakEnd: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
   
   tuesdayOpen: z.boolean(),
   tuesdayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
   tuesdayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
-  tuesdayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
-  tuesdayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  tuesdayBreakStart: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
+  tuesdayBreakEnd: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
   
   wednesdayOpen: z.boolean(),
   wednesdayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
   wednesdayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
-  wednesdayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
-  wednesdayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  wednesdayBreakStart: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
+  wednesdayBreakEnd: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
   
   thursdayOpen: z.boolean(),
   thursdayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
   thursdayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
-  thursdayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
-  thursdayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  thursdayBreakStart: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
+  thursdayBreakEnd: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
   
   fridayOpen: z.boolean(),
   fridayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
   fridayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
-  fridayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
-  fridayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  fridayBreakStart: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
+  fridayBreakEnd: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
   
   saturdayOpen: z.boolean(),
   saturdayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
   saturdayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
-  saturdayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
-  saturdayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  saturdayBreakStart: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
+  saturdayBreakEnd: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
   
   sundayOpen: z.boolean(),
   sundayStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
   sundayEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
-  sundayBreakStart: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
-  sundayBreakEnd: z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)").optional().nullable(),
+  sundayBreakStart: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
+  sundayBreakEnd: z.union([
+    z.string().regex(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM (24h)"),
+    z.string().max(0), // empty string
+    z.null()
+  ]),
 }).refine(
   (data) => {
     // For each day that is open, ensure start time is before end time
@@ -104,7 +160,8 @@ const facilityEditSchema = z.object({
 ).refine(
   (data) => {
     // For each day with a break, ensure break start is after day start and before day end
-    if (data.mondayOpen && data.mondayBreakStart && data.mondayBreakEnd) {
+    // Only validate if both break start and end are provided
+    if (data.mondayOpen && data.mondayBreakStart && data.mondayBreakEnd && data.mondayBreakStart.trim() !== "" && data.mondayBreakEnd.trim() !== "") {
       if (data.mondayBreakStart <= data.mondayStart || data.mondayBreakStart >= data.mondayEnd) {
         return false;
       }
@@ -112,7 +169,61 @@ const facilityEditSchema = z.object({
         return false;
       }
     }
-    // Add similar validations for other days
+    
+    if (data.tuesdayOpen && data.tuesdayBreakStart && data.tuesdayBreakEnd && data.tuesdayBreakStart.trim() !== "" && data.tuesdayBreakEnd.trim() !== "") {
+      if (data.tuesdayBreakStart <= data.tuesdayStart || data.tuesdayBreakStart >= data.tuesdayEnd) {
+        return false;
+      }
+      if (data.tuesdayBreakEnd <= data.tuesdayBreakStart || data.tuesdayBreakEnd >= data.tuesdayEnd) {
+        return false;
+      }
+    }
+    
+    if (data.wednesdayOpen && data.wednesdayBreakStart && data.wednesdayBreakEnd && data.wednesdayBreakStart.trim() !== "" && data.wednesdayBreakEnd.trim() !== "") {
+      if (data.wednesdayBreakStart <= data.wednesdayStart || data.wednesdayBreakStart >= data.wednesdayEnd) {
+        return false;
+      }
+      if (data.wednesdayBreakEnd <= data.wednesdayBreakStart || data.wednesdayBreakEnd >= data.wednesdayEnd) {
+        return false;
+      }
+    }
+    
+    if (data.thursdayOpen && data.thursdayBreakStart && data.thursdayBreakEnd && data.thursdayBreakStart.trim() !== "" && data.thursdayBreakEnd.trim() !== "") {
+      if (data.thursdayBreakStart <= data.thursdayStart || data.thursdayBreakStart >= data.thursdayEnd) {
+        return false;
+      }
+      if (data.thursdayBreakEnd <= data.thursdayBreakStart || data.thursdayBreakEnd >= data.thursdayEnd) {
+        return false;
+      }
+    }
+    
+    if (data.fridayOpen && data.fridayBreakStart && data.fridayBreakEnd && data.fridayBreakStart.trim() !== "" && data.fridayBreakEnd.trim() !== "") {
+      if (data.fridayBreakStart <= data.fridayStart || data.fridayBreakStart >= data.fridayEnd) {
+        return false;
+      }
+      if (data.fridayBreakEnd <= data.fridayBreakStart || data.fridayBreakEnd >= data.fridayEnd) {
+        return false;
+      }
+    }
+    
+    if (data.saturdayOpen && data.saturdayBreakStart && data.saturdayBreakEnd && data.saturdayBreakStart.trim() !== "" && data.saturdayBreakEnd.trim() !== "") {
+      if (data.saturdayBreakStart <= data.saturdayStart || data.saturdayBreakStart >= data.saturdayEnd) {
+        return false;
+      }
+      if (data.saturdayBreakEnd <= data.saturdayBreakStart || data.saturdayBreakEnd >= data.saturdayEnd) {
+        return false;
+      }
+    }
+    
+    if (data.sundayOpen && data.sundayBreakStart && data.sundayBreakEnd && data.sundayBreakStart.trim() !== "" && data.sundayBreakEnd.trim() !== "") {
+      if (data.sundayBreakStart <= data.sundayStart || data.sundayBreakStart >= data.sundayEnd) {
+        return false;
+      }
+      if (data.sundayBreakEnd <= data.sundayBreakStart || data.sundayBreakEnd >= data.sundayEnd) {
+        return false;
+      }
+    }
+    
     return true;
   },
   {
