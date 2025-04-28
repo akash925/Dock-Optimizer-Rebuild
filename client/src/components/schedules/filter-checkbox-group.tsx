@@ -1,9 +1,5 @@
 import React from "react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type FilterOption<T> = {
@@ -57,20 +53,13 @@ export function FilterCheckboxGroup<T extends string | number>({
   };
 
   return (
-    <div className={cn("space-y-2", className)}>
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
-        {!selected.includes(allOptionValue) && (
-          <Badge variant="outline" className="text-xs">
-            {selected.length} selected
-          </Badge>
-        )}
-      </div>
+    <div className={cn("mb-4", className)}>
+      <h4 className="text-base font-medium mb-2">{title}</h4>
       <div className="flex flex-wrap gap-2">
         <Button
           variant={selected.includes(allOptionValue) ? "default" : "outline"}
           size="sm"
-          className="h-8 rounded-md"
+          className="h-9 rounded-md bg-green-100 data-[state=open]:bg-green-500 hover:bg-green-200"
           onClick={() => handleToggle(allOptionValue)}
         >
           All
@@ -80,7 +69,7 @@ export function FilterCheckboxGroup<T extends string | number>({
             key={option.id.toString()}
             variant={selected.includes(option.id) ? "default" : "outline"}
             size="sm"
-            className="h-8 rounded-md"
+            className="h-9 rounded-md"
             onClick={() => handleToggle(option.id)}
           >
             {option.name}

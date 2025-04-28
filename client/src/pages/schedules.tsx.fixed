@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusCircle, Calendar as CalendarIcon, ListFilter, Grid, List, Eye, Search, XCircle, Clock, CheckCircle2, Globe } from "lucide-react";
+import { PlusCircle, Calendar as CalendarIcon, ListFilter, Grid, List, Eye, Search, XCircle, Clock, CheckCircle2, Globe, Check } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/ui/data-table";
@@ -25,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getUserTimeZone, getTimeZoneAbbreviation } from "@/lib/timezone-utils";
-import { FilterCheckboxGroup } from "@/components/schedules/filter-checkbox-group";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 // Extended Schedule interface with additional derived properties
 interface Schedule extends BaseSchedule {
@@ -412,155 +412,285 @@ export default function Schedules() {
           )}
         </div>
         
-        {/* Filters using the new checkbox-based filter component */}
-        <div className="grid grid-cols-1 md:grid-cols-6 mr-4 gap-x-4">
-          <div className="col-span-5">
-            {/* Facility Filter */}
-            <FilterCheckboxGroup
-              title="Facilities"
-              options={facilities.map(f => ({ id: f.id, name: f.name }))}
-              selected={filterFacilityId}
-              onSelect={(selected) => {
-                setFilterFacilityId(selected);
-                // If the facility selection changes, reset dock filter to "all"
-                if (!selected.includes("all") && !filterFacilityId.every(id => selected.includes(id))) {
-                  setFilterDockId(["all"]);
-                }
-              }}
-            />
+        {/* Middle: Filters in a single line */}
+        <div className="flex items-center ml-auto space-x-2 sm:justify-end">
+          {/* Facility filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                {filterFacilityId.includes("all") ? "All Facilities" : 
+                  filterFacilityId.length === 1 ? 
+                    facilities.find(f => f.id === filterFacilityId[0])?.name || "Facility" : 
+                    `${filterFacilityId.length} Facilities`}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={() => setFilterFacilityId(["all"])}
+                className="flex items-center justify-between"
+              >
+                All Facilities
+                {filterFacilityId.includes("all") && <Check className="h-4 w-4 ml-2" />}
+              </DropdownMenuItem>
+              {facilities.map(facility => (
+                <DropdownMenuItem 
+                  key={facility.id} 
+                  onClick={() => {
+                    // If all was selected and user is now selecting a specific facility
+                    if (filterFacilityId.includes("all")) {
+                      setFilterFacilityId([facility.id]);
+                    } 
+                    // If this facility is already selected, toggle it off
+                    else if (filterFacilityId.includes(facility.id)) {
+                      const newFilterFacilityId = filterFacilityId.filter(id => id !== facility.id);
+                      // If nothing is selected after toggling, select "all"
+                      if (newFilterFacilityId.length === 0) {
+                        setFilterFacilityId(["all"]);
+                      } else {
+                        setFilterFacilityId(newFilterFacilityId);
+                      }
+                    } 
+                    // Add this facility to the selection
+                    else {
+                      setFilterFacilityId([...filterFacilityId, facility.id]);
+                    }
+                  }}
+                  className="flex items-center justify-between"
+                >
+                  {facility.name}
+                  {filterFacilityId.includes(facility.id) && <Check className="h-4 w-4 ml-2" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {/* Dock Filter */}
-            <FilterCheckboxGroup
-              title="Docks"
-              options={docks
+          {/* Dock filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                {filterDockId.includes("all") ? "All Docks" : 
+                  filterDockId.length === 1 ? 
+                    docks.find(d => d.id === filterDockId[0])?.name || "Dock" : 
+                    `${filterDockId.length} Docks`}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={() => setFilterDockId(["all"])}
+                className="flex items-center justify-between"
+              >
+                All Docks
+                {filterDockId.includes("all") && <Check className="h-4 w-4 ml-2" />}
+              </DropdownMenuItem>
+              {docks
                 .filter(dock => 
                   filterFacilityId.includes("all") || 
                   filterFacilityId.some(facilityId => 
                     typeof facilityId === 'number' && dock.facilityId === facilityId)
                 )
-                .map(d => ({ id: d.id, name: d.name }))}
-              selected={filterDockId}
-              onSelect={setFilterDockId}
-            />
+                .map(dock => (
+                  <DropdownMenuItem 
+                    key={dock.id} 
+                    onClick={() => {
+                      // If all was selected and user is now selecting a specific dock
+                      if (filterDockId.includes("all")) {
+                        setFilterDockId([dock.id]);
+                      } 
+                      // If this dock is already selected, toggle it off
+                      else if (filterDockId.includes(dock.id)) {
+                        const newFilterDockId = filterDockId.filter(id => id !== dock.id);
+                        // If nothing is selected after toggling, select "all"
+                        if (newFilterDockId.length === 0) {
+                          setFilterDockId(["all"]);
+                        } else {
+                          setFilterDockId(newFilterDockId);
+                        }
+                      } 
+                      // Add this dock to the selection
+                      else {
+                        setFilterDockId([...filterDockId, dock.id]);
+                      }
+                    }}
+                    className="flex items-center justify-between"
+                  >
+                    {dock.name}
+                    {filterDockId.includes(dock.id) && <Check className="h-4 w-4 ml-2" />}
+                  </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            {/* Status Filter */}
-            <FilterCheckboxGroup
-              title="Status"
-              options={[
-                { id: "scheduled", name: "Scheduled" },
-                { id: "in-progress", name: "In Progress" },
-                { id: "completed", name: "Completed" },
-                { id: "cancelled", name: "Cancelled" }
-              ]}
-              selected={filterStatus}
-              onSelect={setFilterStatus}
-            />
-
-            {/* Type Filter */}
-            <FilterCheckboxGroup
-              title="Type"
-              options={[
-                { id: "inbound", name: "Inbound" },
-                { id: "outbound", name: "Outbound" }
-              ]}
-              selected={filterType}
-              onSelect={setFilterType}
-            />
-
-            {/* Display Settings */}
-            <div className="mb-4">
-              <h4 className="text-base font-medium mb-2">Display Settings</h4>
-              
-              {/* Timezone Filter */}
-              <Select 
-                value={timezone} 
-                onValueChange={(value) => {
-                  const oldTimezone = timezone;
-                  setTimezone(value);
-                  
-                  // Force a re-render if the timezone has changed
-                  if (oldTimezone !== value) {
-                    // Briefly switch to another view mode and back to force re-render
-                    const currentView = viewMode;
-                    const tempView: "calendar" | "week" | "day" | "month" | "list" = 
-                      currentView === "calendar" ? "week" : "calendar";
-                    
-                    setViewMode(tempView);
-                    setTimeout(() => setViewMode(currentView), 10);
-                  }
-                }}
-                className="mb-2"
-              >
-                <SelectTrigger className="w-full h-9">
-                  <SelectValue placeholder="Timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="America/New_York">Eastern (ET)</SelectItem>
-                  <SelectItem value="America/Chicago">Central (CT)</SelectItem>
-                  <SelectItem value="America/Denver">Mountain (MT)</SelectItem>
-                  <SelectItem value="America/Los_Angeles">Pacific (PT)</SelectItem>
-                  <SelectItem value="America/Anchorage">Alaska (AKT)</SelectItem>
-                  <SelectItem value="Pacific/Honolulu">Hawaii (HAT)</SelectItem>
-                  <SelectItem value="Etc/UTC">UTC</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {/* Time Format Toggle */}
-              <div className="flex gap-2">
-                <Button
-                  variant={timeFormat === "12h" ? "default" : "outline"}
-                  size="sm"
-                  className={`flex-1 ${timeFormat === "12h" ? "bg-green-100 hover:bg-green-200" : ""}`}
-                  onClick={() => setTimeFormat("12h")}
-                >
-                  12-hour
-                </Button>
-                <Button
-                  variant={timeFormat === "24h" ? "default" : "outline"}
-                  size="sm"
-                  className={`flex-1 ${timeFormat === "24h" ? "bg-green-100 hover:bg-green-200" : ""}`}
-                  onClick={() => setTimeFormat("24h")}
-                >
-                  24-hour
-                </Button>
-              </div>
-            </div>
-            
-            {/* Clear Filters */}
-            {(!filterStatus.includes("all") || !filterType.includes("all") || 
-              !filterDockId.includes("all") || !filterFacilityId.includes("all")) && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  setFilterStatus(["all"]);
-                  setFilterType(["all"]);
-                  setFilterFacilityId(["all"]);
-                  setFilterDockId(["all"]);
-                }}
-                className="mb-4"
-              >
-                Clear All Filters
+          {/* Status filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                {filterStatus.includes("all") ? "All Statuses" : 
+                  filterStatus.length === 1 ? 
+                    `${filterStatus[0].charAt(0).toUpperCase() + filterStatus[0].slice(1)}` : 
+                    `${filterStatus.length} Statuses`}
               </Button>
-            )}
-          </div>
-          
-          <div className="md:col-span-1 flex items-start mt-4 md:mt-0 justify-end">
-            {/* New Appointment Button */}
-            <Button 
-              onClick={() => {
-                setEditScheduleId(null);
-                // Skip appointment type dialog and open form directly
-                setClickedCellDate(new Date());
-                setIsFormOpen(true);
-              }}
-              className="bg-primary text-white h-9"
-            >
-              <PlusCircle className="h-4 w-4 mr-2" />
-              New Appointment
-            </Button>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={() => setFilterStatus(["all"])}
+                className="flex items-center justify-between"
+              >
+                All Statuses
+                {filterStatus.includes("all") && <Check className="h-4 w-4 ml-2" />}
+              </DropdownMenuItem>
+              {["scheduled", "in-progress", "completed", "cancelled"].map(status => (
+                <DropdownMenuItem 
+                  key={status} 
+                  onClick={() => {
+                    // If all was selected and user is now selecting a specific status
+                    if (filterStatus.includes("all")) {
+                      setFilterStatus([status]);
+                    } 
+                    // If this status is already selected, toggle it off
+                    else if (filterStatus.includes(status)) {
+                      const newFilterStatus = filterStatus.filter(s => s !== status);
+                      // If nothing is selected after toggling, select "all"
+                      if (newFilterStatus.length === 0) {
+                        setFilterStatus(["all"]);
+                      } else {
+                        setFilterStatus(newFilterStatus);
+                      }
+                    } 
+                    // Add this status to the selection
+                    else {
+                      setFilterStatus([...filterStatus, status]);
+                    }
+                  }}
+                  className="flex items-center justify-between"
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  {filterStatus.includes(status) && <Check className="h-4 w-4 ml-2" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Type filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                {filterType.includes("all") ? "All Types" : 
+                  filterType.length === 1 ? 
+                    `${filterType[0].charAt(0).toUpperCase() + filterType[0].slice(1)}` : 
+                    `${filterType.length} Types`}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={() => setFilterType(["all"])}
+                className="flex items-center justify-between"
+              >
+                All Types
+                {filterType.includes("all") && <Check className="h-4 w-4 ml-2" />}
+              </DropdownMenuItem>
+              {["inbound", "outbound"].map(type => (
+                <DropdownMenuItem 
+                  key={type} 
+                  onClick={() => {
+                    // If all was selected and user is now selecting a specific type
+                    if (filterType.includes("all")) {
+                      setFilterType([type]);
+                    } 
+                    // If this type is already selected, toggle it off
+                    else if (filterType.includes(type)) {
+                      const newFilterType = filterType.filter(t => t !== type);
+                      // If nothing is selected after toggling, select "all"
+                      if (newFilterType.length === 0) {
+                        setFilterType(["all"]);
+                      } else {
+                        setFilterType(newFilterType);
+                      }
+                    } 
+                    // Add this type to the selection
+                    else {
+                      setFilterType([...filterType, type]);
+                    }
+                  }}
+                  className="flex items-center justify-between"
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                  {filterType.includes(type) && <Check className="h-4 w-4 ml-2" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Timezone selector */}
+          <Select value={timezone} onValueChange={setTimezone}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue>
+                {getTimeZoneAbbreviation(timezone)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="America/New_York">ET (New York)</SelectItem>
+              <SelectItem value="America/Chicago">CT (Chicago)</SelectItem>
+              <SelectItem value="America/Denver">MT (Denver)</SelectItem>
+              <SelectItem value="America/Los_Angeles">PT (Los Angeles)</SelectItem>
+              <SelectItem value="Pacific/Honolulu">HT (Honolulu)</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* 12h/24h Time Format Toggle */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-1">
+                <Clock className="h-4 w-4" />
+                {timeFormat === "12h" ? "12h" : "24h"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={() => setTimeFormat("12h")}
+                className="flex items-center justify-between"
+              >
+                12-hour
+                {timeFormat === "12h" && <Check className="h-4 w-4 ml-2" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => setTimeFormat("24h")}
+                className="flex items-center justify-between"
+              >
+                24-hour
+                {timeFormat === "24h" && <Check className="h-4 w-4 ml-2" />}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Clear Filters Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setFilterStatus(["all"]);
+              setFilterType(["all"]);
+              setFilterFacilityId(["all"]);
+              setFilterDockId(["all"]);
+            }}
+            className="rounded-full"
+          >
+            <XCircle className="h-5 w-5" />
+          </Button>
         </div>
+        
+        {/* Right side: New Button */}
+        <Button 
+          onClick={() => {
+            setEditScheduleId(null);
+            // Skip appointment type dialog and open form directly
+            setClickedCellDate(new Date());
+            setIsFormOpen(true);
+          }}
+          className="bg-primary text-white h-9 ml-auto"
+        >
+          <PlusCircle className="h-4 w-4 mr-2" />
+          New Appointment
+        </Button>
       </div>
       
       {/* Schedule View */}
