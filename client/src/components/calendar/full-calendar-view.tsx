@@ -5,7 +5,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import './calendar-clean.css'; // One clean CSS file with all needed fixes
-import { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core';
+import { DateSelectArg, EventClickArg, EventInput, EventHoveringArg } from '@fullcalendar/core';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
@@ -19,6 +19,12 @@ import { Label } from '@/components/ui/label';
 import { Schedule } from '@shared/schema';
 import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 import { useQuery } from '@tanstack/react-query';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // List of common timezones that we know are supported by FullCalendar
 const COMMON_TIMEZONES = [
@@ -299,6 +305,39 @@ export default function FullCalendarView({
   // State to track current calendar view
   const [currentView, setCurrentView] = useState<string>('timeGridWeek');
   
+  // State for tracking hovered event
+  const [activeEvent, setActiveEvent] = useState<any | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  
+  // Handle event hover
+  const handleEventMouseEnter = (mouseEnterInfo: EventHoveringArg) => {
+    const event = mouseEnterInfo.event;
+    const el = mouseEnterInfo.el;
+    
+    // Get position of event element for tooltip
+    const rect = el.getBoundingClientRect();
+    
+    // Center tooltip on event horizontally, position above vertically
+    setTooltipPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top
+    });
+    
+    // Set active event data for tooltip
+    setActiveEvent({
+      id: event.id,
+      title: event.title,
+      startTime: event.start,
+      endTime: event.end,
+      ...event.extendedProps
+    });
+  };
+  
+  // Handle event mouse leave
+  const handleEventMouseLeave = () => {
+    setActiveEvent(null);
+  };
+  
   // Handle timezone change
   const handleTimezoneChange = (timezone: string) => {
     setSelectedTimezone(timezone);
@@ -322,8 +361,82 @@ export default function FullCalendarView({
   
   // Simplified approach - no DOM manipulation effects
 
+  // Format time for tooltip
+  const formatAppointmentTime = (date: Date) => {
+    if (!date) return '';
+    
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).format(date);
+  };
+  
   return (
     <div className="space-y-4">
+      {/* Event tooltip */}
+      {activeEvent && (
+        <div 
+          className="fixed z-50 bg-white shadow-lg rounded-md border p-3 w-72"
+          style={{
+            top: `${tooltipPosition.y - 10}px`,
+            left: `${tooltipPosition.x}px`,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          <div className="text-lg font-bold mb-1">{activeEvent.customerName || 'Appointment'}</div>
+          
+          <div className="space-y-2 text-sm">
+            <div className="flex items-start">
+              <div className="w-24 text-muted-foreground">Time:</div>
+              <div className="font-medium">
+                {activeEvent.startTime && activeEvent.endTime
+                  ? `${formatAppointmentTime(activeEvent.startTime)} - ${formatAppointmentTime(activeEvent.endTime)}`
+                  : 'No time specified'}
+              </div>
+            </div>
+            
+            <div className="flex items-start">
+              <div className="w-24 text-muted-foreground">Facility:</div>
+              <div className="font-medium">{activeEvent.facilityName || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex items-start">
+              <div className="w-24 text-muted-foreground">Carrier:</div>
+              <div className="font-medium">{activeEvent.carrierName || 'Not specified'}</div>
+            </div>
+            
+            {activeEvent.truckNumber && (
+              <div className="flex items-start">
+                <div className="w-24 text-muted-foreground">Truck #:</div>
+                <div className="font-medium">{activeEvent.truckNumber}</div>
+              </div>
+            )}
+            
+            {activeEvent.dockId && (
+              <div className="flex items-start">
+                <div className="w-24 text-muted-foreground">Dock:</div>
+                <div className="font-medium">#{activeEvent.dockId}</div>
+              </div>
+            )}
+            
+            <div className="flex items-start">
+              <div className="w-24 text-muted-foreground">Type:</div>
+              <div className="font-medium capitalize">{activeEvent.type || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex items-start">
+              <div className="w-24 text-muted-foreground">Status:</div>
+              <div className="font-medium capitalize">{activeEvent.status || 'Scheduled'}</div>
+            </div>
+          </div>
+          
+          <div className="mt-2 text-xs text-center text-muted-foreground">
+            Click for more details
+          </div>
+        </div>
+      )}
+      
       <Card className="w-full relative border overflow-hidden">
         <CardContent className="p-0">
           <div className="calendar-container" style={{ 
@@ -350,6 +463,8 @@ export default function FullCalendarView({
               weekends={true}
               eventClick={handleEventClick}
               select={handleDateSelect}
+              eventMouseEnter={handleEventMouseEnter}
+              eventMouseLeave={handleEventMouseLeave}
               allDaySlot={false}
               slotDuration="00:30:00"
               slotLabelInterval="01:00"
