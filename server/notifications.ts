@@ -156,25 +156,30 @@ function formatDateForTimezone(date: Date, timezone: string, formatStr: string):
  */
 function getTimezoneAbbr(timezone: string, date: Date): string {
   try {
-    // Check if the date is valid before formatting
-    if (!(date instanceof Date) || isNaN(date.getTime())) {
-      console.warn(`Invalid date provided to getTimezoneAbbr: ${date}`);
-      return timezone.split('/').pop() || 'GMT';
+    // Ensure timezone is valid
+    if (!timezone) {
+      console.warn('No timezone provided to getTimezoneAbbr, using default');
+      timezone = 'America/New_York';
     }
     
-    // Create a safe copy of the date - using current date if needed
-    const safeDate = new Date();
+    // Check if the date is valid before formatting
+    // If invalid, use current date as a fallback
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      console.warn(`Invalid date provided to getTimezoneAbbr: ${date}, using current date`);
+      date = new Date();
+    }
     
     // This will return something like "EST" or "EDT" depending on daylight saving time
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
       timeZoneName: 'short'
-    }).formatToParts(safeDate)
+    }).formatToParts(date)
       .find(part => part.type === 'timeZoneName');
     
-    return parts?.value || timezone.split('/').pop() || 'GMT';
-  } catch (error) {
-    console.error(`Error getting timezone abbreviation for ${timezone}:`, error);
+    if (parts?.value) {
+      return parts.value;
+    }
+    
     // Fall back to common abbreviations or region name
     const region = timezone.split('/').pop() || '';
     
@@ -189,6 +194,9 @@ function getTimezoneAbbr(timezone: string, date: Date): string {
       case 'Honolulu': return 'HST';
       default: return region || 'GMT';
     }
+  } catch (error) {
+    console.error(`Error getting timezone abbreviation for ${timezone}:`, error);
+    return 'GMT'; // Final fallback
   }
 }
 
@@ -203,31 +211,55 @@ export async function sendConfirmationEmail(
   const facilityTimezone = schedule.timezone || 'America/New_York';
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
 
+  // Safely parse dates
+  const parseDate = (dateInput: Date | string | null): Date => {
+    if (!dateInput) return new Date(); // Fallback to current time if null/undefined
+    
+    if (dateInput instanceof Date) {
+      return isNaN(dateInput.getTime()) ? new Date() : dateInput;
+    }
+    
+    // If it's a string, attempt to parse it
+    try {
+      const parsed = new Date(dateInput);
+      return isNaN(parsed.getTime()) ? new Date() : parsed;
+    } catch (e) {
+      console.error(`Failed to parse date: ${dateInput}`, e);
+      return new Date();
+    }
+  };
+
+  // Get safe date objects
+  const startDate = parseDate(schedule.startTime);
+  const endDate = parseDate(schedule.endTime);
+  
+  console.log(`[Email] Parsed dates: Start=${startDate.toISOString()}, End=${endDate.toISOString()}`);
+  
   // Format times in both facility and user timezone
   const facilityStart = formatDateForTimezone(
-    new Date(schedule.startTime), 
+    startDate, 
     facilityTimezone, 
     'EEEE, MMMM d, yyyy h:mm aa'
   );
   const facilityEnd = formatDateForTimezone(
-    new Date(schedule.endTime), 
+    endDate, 
     facilityTimezone, 
     'h:mm aa'
   );
   const userStart = formatDateForTimezone(
-    new Date(schedule.startTime), 
+    startDate, 
     userTimezone, 
     'EEEE, MMMM d, yyyy h:mm aa'
   );
   const userEnd = formatDateForTimezone(
-    new Date(schedule.endTime), 
+    endDate, 
     userTimezone, 
     'h:mm aa'
   );
 
   // Get timezone abbreviations
-  const facilityTzAbbr = getTimezoneAbbr(facilityTimezone, new Date(schedule.startTime));
-  const userTzAbbr = getTimezoneAbbr(userTimezone, new Date(schedule.startTime));
+  const facilityTzAbbr = getTimezoneAbbr(facilityTimezone, startDate);
+  const userTzAbbr = getTimezoneAbbr(userTimezone, startDate);
 
   const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
   const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
