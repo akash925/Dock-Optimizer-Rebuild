@@ -439,8 +439,8 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   };
 
   return (
-    <Card>
-      <CardContent className="pt-6">
+    <Card className="shadow-sm border-0">
+      <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col space-y-4 mb-4">
           {/* Search and filter row */}
           <div className="flex items-center justify-between">
@@ -631,20 +631,21 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-10"></TableHead>
-                    <TableHead>Asset Name</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Manufacturer</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead>Serial/Barcode</TableHead>
-                    <TableHead>Purchase Price</TableHead>
-                    <TableHead>Purchase Date</TableHead>
-                    <TableHead>Implementation Date</TableHead>
-                    <TableHead>Next Maintenance</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Tags</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="whitespace-nowrap">Asset Name</TableHead>
+                    <TableHead className="whitespace-nowrap">Category</TableHead>
+                    <TableHead className="whitespace-nowrap">Manufacturer</TableHead>
+                    <TableHead className="whitespace-nowrap">Status</TableHead>
+                    <TableHead className="whitespace-nowrap">Location</TableHead>
+                    <TableHead className="whitespace-nowrap">Serial/Barcode</TableHead>
+                    {/* Hide less important columns on smaller screens */}
+                    <TableHead className="hidden lg:table-cell whitespace-nowrap">Owner</TableHead>
+                    <TableHead className="hidden lg:table-cell whitespace-nowrap">Department</TableHead>
+                    <TableHead className="hidden md:table-cell whitespace-nowrap">Purchase Price</TableHead>
+                    <TableHead className="hidden md:table-cell whitespace-nowrap">Purchase Date</TableHead>
+                    <TableHead className="hidden xl:table-cell whitespace-nowrap">Implementation Date</TableHead>
+                    <TableHead className="hidden xl:table-cell whitespace-nowrap">Next Maintenance</TableHead>
+                    <TableHead className="hidden lg:table-cell whitespace-nowrap">Tags</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -656,19 +657,28 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     >
                       <TableCell className="pl-4" onClick={(e) => e.stopPropagation()}>{getCategoryIcon(asset.category)}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
-                      <TableCell>{formatCategory(asset.category)}</TableCell>
-                      <TableCell>{asset.manufacturer || '-'}</TableCell>
-                      <TableCell>{asset.owner || '-'}</TableCell>
-                      <TableCell>{asset.department || '-'}</TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCategory(asset.category)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{asset.manufacturer || '-'}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {asset.status ? (
+                          <Badge variant={getStatusVariant(asset.status)} className="capitalize">
+                            {asset.status}
+                          </Badge>
+                        ) : '-'}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">{asset.location || '-'}</TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {asset.serialNumber && <div className="text-xs">{asset.serialNumber}</div>}
                         {asset.barcode && <div className="text-xs text-muted-foreground">{asset.barcode}</div>}
                         {!asset.serialNumber && !asset.barcode && '-'}
                       </TableCell>
-                      <TableCell>{formatCurrency(asset.purchasePrice)}</TableCell>
-                      <TableCell>{asset.purchaseDate ? formatDate(new Date(asset.purchaseDate)) : '-'}</TableCell>
-                      <TableCell>{asset.implementationDate ? formatDate(new Date(asset.implementationDate)) : '-'}</TableCell>
-                      <TableCell>
+                      {/* Hidden on smaller screens */}
+                      <TableCell className="hidden lg:table-cell whitespace-nowrap">{asset.owner || '-'}</TableCell>
+                      <TableCell className="hidden lg:table-cell whitespace-nowrap">{asset.department || '-'}</TableCell>
+                      <TableCell className="hidden md:table-cell whitespace-nowrap">{formatCurrency(asset.purchasePrice)}</TableCell>
+                      <TableCell className="hidden md:table-cell whitespace-nowrap">{asset.purchaseDate ? formatDate(new Date(asset.purchaseDate)) : '-'}</TableCell>
+                      <TableCell className="hidden xl:table-cell whitespace-nowrap">{asset.implementationDate ? formatDate(new Date(asset.implementationDate)) : '-'}</TableCell>
+                      <TableCell className="hidden xl:table-cell whitespace-nowrap">
                         {asset.nextMaintenanceDate ? (
                           <div className="flex items-center">
                             <Calendar className="h-3 w-3 mr-1 text-muted-foreground" />
@@ -676,15 +686,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                           </div>
                         ) : '-'}
                       </TableCell>
-                      <TableCell>
-                        {asset.status ? (
-                          <Badge variant={getStatusVariant(asset.status)} className="capitalize">
-                            {asset.status}
-                          </Badge>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell>{asset.location || '-'}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell whitespace-nowrap">
                         <div className="flex flex-wrap gap-1 max-w-[150px]">
                           {formatTags(asset.tags).map((tag, i) => (
                             <Badge key={i} variant="outline" className="text-xs">

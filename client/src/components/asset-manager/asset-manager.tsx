@@ -37,15 +37,32 @@ export function AssetManager() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Asset Manager</h2>
-          <p className="text-muted-foreground mt-2">Manage your organization's assets and files in one place</p>
+    <div className="container px-4 sm:px-6 lg:px-8 mx-auto py-4 sm:py-6 lg:py-8 max-w-full">
+      <div className="space-y-2 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Asset Manager</h2>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Manage your organization's assets and files in one place</p>
+          </div>
+          {/* We'll add a quick action button here to improve navigation */}
+          <Button 
+            variant="outline"
+            className="hidden sm:flex items-center gap-2 mt-2 sm:mt-0"
+            onClick={() => {
+              const tabsList = document.querySelector('[role="tablist"]');
+              const addAssetTab = tabsList?.querySelector('[value="add-asset"]') as HTMLElement;
+              if (addAssetTab) {
+                addAssetTab.click();
+              }
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Add New Asset
+          </Button>
         </div>
       </div>
       
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-4 sm:mt-6">
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="assets">Assets</TabsTrigger>
           <TabsTrigger value="add-asset" className="relative group">
