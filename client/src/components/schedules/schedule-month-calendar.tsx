@@ -86,12 +86,14 @@ export default function ScheduleMonthCalendar({
         <h3 className="text-lg font-semibold">{monthDisplay}</h3>
       </div>
 
-      {/* Calendar Grid - Simple Placeholder */}
-      <div className="grid grid-cols-7 gap-1">
+      {/* Responsive Calendar Grid */}
+      <div className="grid grid-cols-7 gap-1 text-sm">
         {/* Day headers */}
         {dayHeaders.map((day, index) => (
-          <div key={index} className="text-center py-2 text-sm font-medium text-gray-500">
-            {day}
+          <div key={index} className="text-center py-2 text-xs sm:text-sm font-medium text-gray-500">
+            {/* Show just the first letter on mobile, full day name on larger screens */}
+            <span className="block sm:hidden">{day.charAt(0)}</span>
+            <span className="hidden sm:block">{day}</span>
           </div>
         ))}
         
