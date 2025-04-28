@@ -808,7 +808,7 @@ export default function Schedules() {
       
       {/* Appointment Details Dialog */}
       <AppointmentDetailsDialog 
-        appointment={selectedSchedule}
+        appointment={selectedSchedule as any}
         open={isDetailsDialogOpen}
         onOpenChange={handleDetailsDialogClose}
         facilityName={selectedSchedule ? getFacilityNameForDock(selectedSchedule.dockId, selectedSchedule) : ""}

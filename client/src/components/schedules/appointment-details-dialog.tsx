@@ -47,7 +47,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import AppointmentQRCode from "./appointment-qr-code";
 
-interface ExtendedSchedule extends Schedule {
+interface ExtendedSchedule extends Omit<Schedule, 'facilityId'> {
   dockName?: string;
   appointmentTypeName?: string;
   facilityName?: string;

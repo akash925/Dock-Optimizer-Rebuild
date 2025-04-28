@@ -22,7 +22,9 @@ export default function ScheduleMonthCalendar({
   date,
   onScheduleClick,
   onCellClick,
-  onDateChange
+  onDateChange,
+  timezone,
+  timeFormat
 }: ScheduleMonthCalendarProps) {
   // Navigation handlers
   const goToPreviousMonth = () => {

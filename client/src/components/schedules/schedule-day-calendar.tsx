@@ -22,7 +22,9 @@ export default function ScheduleDayCalendar({
   date,
   onScheduleClick,
   onCellClick,
-  onDateChange
+  onDateChange,
+  timezone,
+  timeFormat
 }: ScheduleDayCalendarProps) {
   // Navigation handlers
   const goToPreviousDay = () => {
