@@ -722,8 +722,10 @@ export default function Schedules() {
         {viewMode === "month" && (
           <ScheduleMonthCalendar
             schedules={filteredSchedules}
-            docks={filterFacilityId !== "all" 
-              ? docks.filter(dock => dock.facilityId === filterFacilityId)
+            docks={!filterFacilityId.includes("all") 
+              ? docks.filter(dock => 
+                  filterFacilityId.some(facilityId => 
+                    typeof facilityId === 'number' && dock.facilityId === facilityId))
               : docks}
             date={selectedDate}
             timezone={timezone}
@@ -737,8 +739,10 @@ export default function Schedules() {
         {viewMode === "calendar" && (
           <ScheduleCalendar 
             schedules={filteredSchedules}
-            docks={filterFacilityId !== "all" 
-              ? docks.filter(dock => dock.facilityId === filterFacilityId)
+            docks={!filterFacilityId.includes("all") 
+              ? docks.filter(dock => 
+                  filterFacilityId.some(facilityId => 
+                    typeof facilityId === 'number' && dock.facilityId === facilityId))
               : docks}
             date={selectedDate}
             timezone={timezone}
