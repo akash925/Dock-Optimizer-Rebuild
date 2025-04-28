@@ -52,6 +52,7 @@ interface ExtendedSchedule extends Omit<Schedule, 'facilityId'> {
   appointmentTypeName?: string;
   facilityName?: string;
   facilityId?: number;
+  facilityTimezone?: string;
 }
 
 interface AppointmentDetailsDialogProps {

@@ -395,11 +395,11 @@ export default function ScheduleWeekCalendar({
           <div 
             ref={calendarGridRef}
             className="overflow-auto relative flex-grow"
-            style={{ height: 'calc(100vh - 210px)', maxHeight: '600px' }}
+            style={{ height: 'clamp(300px, calc(100vh - 210px), 700px)' }}
           >
             <div 
               ref={calendarContentRef}
-              className="grid grid-cols-7 min-w-max relative"
+              className="grid grid-cols-7 min-w-max w-full relative"
             >
               {/* Day columns with cells */}
               {weekDays.map((day, dayIndex) => (
