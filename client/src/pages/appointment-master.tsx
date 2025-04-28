@@ -26,8 +26,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface QuestionFormField {
   id: number;
   label: string;
-  type: "text" | "textarea" | "select" | "radio" | "checkbox" | "file";
+  type: "text" | "textarea" | "select" | "radio" | "checkbox" | "file" | "email" | "number";
   required: boolean;
+  included?: boolean;
   options?: string[];
   placeholder?: string;
   order: number;
@@ -260,6 +261,7 @@ export default function AppointmentMaster() {
             label: field.label || "Untitled Field",
             type: field.type || "text",
             required: !!field.required,
+            included: field.included !== undefined ? field.included : true,
             options: field.options || [],
             placeholder: field.placeholder || "",
             order: field.order || customFields.length + 1,
@@ -309,6 +311,7 @@ export default function AppointmentMaster() {
       label: field.label,
       type: field.type,
       required: field.required,
+      included: field.included !== undefined ? field.included : true,
       options: field.options || [],
       placeholder: field.placeholder,
       appointmentType: field.appointmentType
