@@ -657,6 +657,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // If we have a facilityId, ensure the facilityName is set correctly
+      if (validatedData.facilityId && !validatedData.facilityName) {
+        const facility = await storage.getFacility(validatedData.facilityId);
+        if (facility) {
+          validatedData.facilityName = facility.name;
+        }
+      }
+      
+      // If we have an appointmentTypeId, ensure the appointmentTypeName is set correctly
+      if (validatedData.appointmentTypeId && !validatedData.appointmentTypeName) {
+        const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId);
+        if (appointmentType) {
+          validatedData.appointmentTypeName = appointmentType.name;
+        }
+      }
+      
       const schedule = await storage.createSchedule(validatedData);
       
       // Get dock and facility information for the email

@@ -324,6 +324,14 @@ export default function AppointmentForm({
         endDate = addHours(startDate, defaultHours);
       }
       
+      // Get facility information
+      const selectedFacility = facilities.find(f => f.id === data.facilityId);
+      const facilityName = selectedFacility?.name || "";
+      
+      // Get appointment type information
+      const selectedAppType = allAppointmentTypes.find(type => type.id === data.appointmentTypeId);
+      const appointmentTypeName = selectedAppType?.name || "";
+      
       // Format for API
       const formattedData = {
         carrierId: data.carrierId || null,
@@ -343,12 +351,13 @@ export default function AppointmentForm({
         endTime: endDate.toISOString(),
         type: data.type,
         appointmentTypeId: data.appointmentTypeId,
+        appointmentTypeName: appointmentTypeName, // Add the appointment type name
         appointmentMode: data.appointmentMode,
         status: data.status || "scheduled",
         notes: data.notes || "",
         createdBy: user?.id || null,
         facilityId: data.facilityId,
-        facilityName: facilities.find(f => f.id === data.facilityId)?.name || "",
+        facilityName: facilityName, // Ensure we're getting the correct facility name
         facilityTimezone: data.facilityTimezone || facilityTimezone,
         // If custom carrier, add the new carrier data
         newCarrier: data.carrierId ? undefined : {
