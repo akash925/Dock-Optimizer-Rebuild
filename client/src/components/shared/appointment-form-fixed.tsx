@@ -134,12 +134,6 @@ export default function AppointmentForm({
     queryKey: ["/api/appointment-types"],
   });
   
-  // Fetch custom questions for selected appointment type
-  const { data: customQuestions = [], isLoading: isLoadingCustomQuestions } = useQuery<any[]>({
-    queryKey: ["/api/custom-questions", watchedAppointmentTypeId],
-    enabled: !!watchedAppointmentTypeId,
-  });
-  
   // State for available time slots
   const [availableTimeSlots, setAvailableTimeSlots] = useState<{ time: string; available: boolean; remainingCapacity?: number }[]>([]);
   const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState(false);
@@ -228,6 +222,12 @@ export default function AppointmentForm({
   // Watch for appointment type changes - use callback to avoid triggering another render
   const watchedAppointmentTypeId = form.watch("appointmentTypeId");
   const lastAppointmentTypeIdRef = useRef<number | undefined>(watchedAppointmentTypeId);
+  
+  // Fetch custom questions for selected appointment type
+  const { data: customQuestions = [], isLoading: isLoadingCustomQuestions } = useQuery<any[]>({
+    queryKey: ["/api/custom-questions", watchedAppointmentTypeId],
+    enabled: !!watchedAppointmentTypeId,
+  });
   
   useEffect(() => {
     // Only run if appointment type actually changed
