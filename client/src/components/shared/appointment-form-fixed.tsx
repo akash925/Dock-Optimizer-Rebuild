@@ -134,6 +134,12 @@ export default function AppointmentForm({
     queryKey: ["/api/appointment-types"],
   });
   
+  // Fetch custom questions for selected appointment type
+  const { data: customQuestions = [], isLoading: isLoadingCustomQuestions } = useQuery<any[]>({
+    queryKey: ["/api/custom-questions", watchedAppointmentTypeId],
+    enabled: !!watchedAppointmentTypeId,
+  });
+  
   // State for available time slots
   const [availableTimeSlots, setAvailableTimeSlots] = useState<{ time: string; available: boolean; remainingCapacity?: number }[]>([]);
   const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState(false);
@@ -1182,10 +1188,13 @@ export default function AppointmentForm({
                   name="bolNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>BOL Number</FormLabel>
+                      <FormLabel>BOL Identifier</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter BOL number" {...field} />
+                        <Input placeholder="Enter BOL identifier" {...field} />
                       </FormControl>
+                      <FormDescription>
+                        Free text field - can include letters, numbers, and special characters
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
