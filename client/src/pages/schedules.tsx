@@ -102,8 +102,20 @@ export default function Schedules() {
   });
   
   // Get facility name for a dock
-  const getFacilityNameForDock = (dockId: number | null): string => {
-    if (!dockId) return "No dock assigned";
+  const getFacilityNameForDock = (dockId: number | null, schedule?: Schedule): string => {
+    // If appointment has facilityId or facilityName directly assigned, use that
+    if (schedule) {
+      if (schedule.facilityName) {
+        return schedule.facilityName;
+      }
+      if (schedule.facilityId) {
+        const facility = facilities.find(f => f.id === schedule.facilityId);
+        if (facility) return facility.name;
+      }
+    }
+    
+    // Fallback to using dock information
+    if (!dockId) return "Unknown Facility"; // Changed from "No dock assigned"
     const dock = docks.find(d => d.id === dockId);
     if (!dock) return "Unknown Facility";
     
