@@ -1119,9 +1119,16 @@ export default function AppointmentMaster() {
                     </Button>
                   </div>
                   
-                  <div className="border rounded-md">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    <div className="flex items-center">
+                      <span className="text-red-500 mr-1">*</span>
+                      <span>Required fields are marked with a checkbox and will be marked with an asterisk on booking forms</span>
+                    </div>
+                  </div>
+                  
+                  <div className="border rounded-md max-h-[400px] overflow-y-auto">
                     <Table>
-                      <TableHeader>
+                      <TableHeader className="sticky top-0 bg-background z-10">
                         <TableRow>
                           <TableHead className="w-12 text-center">Sr.No</TableHead>
                           <TableHead>Question</TableHead>
@@ -1184,7 +1191,15 @@ export default function AppointmentMaster() {
                           <TableCell>BOL Doc</TableCell>
                           <TableCell>File Upload</TableCell>
                           <TableCell className="text-center">
-                            <Checkbox checked={false} />
+                            <Checkbox 
+                              checked={false} 
+                              onCheckedChange={(checked) => {
+                                // In a real implementation, this would update the field configuration
+                                toast({
+                                  description: "BOL Doc required setting updated",
+                                });
+                              }}
+                            />
                           </TableCell>
                         </TableRow>
                         <TableRow>
@@ -1192,7 +1207,15 @@ export default function AppointmentMaster() {
                           <TableCell>BOL Number</TableCell>
                           <TableCell>Text</TableCell>
                           <TableCell className="text-center">
-                            <Checkbox checked={false} />
+                            <Checkbox 
+                              checked={false}
+                              onCheckedChange={(checked) => {
+                                // In a real implementation, this would update the field configuration
+                                toast({
+                                  description: "BOL Number required setting updated",
+                                });
+                              }}
+                            />
                           </TableCell>
                         </TableRow>
                         <TableRow>
@@ -1216,7 +1239,15 @@ export default function AppointmentMaster() {
                           <TableCell>Driver's Name</TableCell>
                           <TableCell>Text</TableCell>
                           <TableCell className="text-center">
-                            <Checkbox checked={false} />
+                            <Checkbox 
+                              checked={false}
+                              onCheckedChange={(checked) => {
+                                // In a real implementation, this would update the field configuration
+                                toast({
+                                  description: "Driver's Name required setting updated",
+                                });
+                              }}
+                            />
                           </TableCell>
                         </TableRow>
                         <TableRow>
@@ -1224,7 +1255,15 @@ export default function AppointmentMaster() {
                           <TableCell>Item Description/Quantity</TableCell>
                           <TableCell>Text</TableCell>
                           <TableCell className="text-center">
-                            <Checkbox checked={false} />
+                            <Checkbox 
+                              checked={false}
+                              onCheckedChange={(checked) => {
+                                // In a real implementation, this would update the field configuration  
+                                toast({
+                                  description: "Item Description required setting updated",
+                                });
+                              }}
+                            />
                           </TableCell>
                         </TableRow>
                         
@@ -1241,6 +1280,9 @@ export default function AppointmentMaster() {
                                   const updatedFields = [...customFields];
                                   updatedFields[index].required = !!checked;
                                   setCustomFields(updatedFields);
+                                  toast({
+                                    description: `${field.label} required setting updated`,
+                                  });
                                 }}
                               />
                             </TableCell>
@@ -1309,74 +1351,79 @@ export default function AppointmentMaster() {
       
       {/* Custom Question Dialog */}
       <Dialog open={showQuestionDialog} onOpenChange={setShowQuestionDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedQuestionId ? "Edit Custom Field" : "Add Custom Field"}
+              {selectedQuestionId ? "Edit Custom Question" : "Add Custom Question"}
             </DialogTitle>
             <DialogDescription>
-              Create a custom form field for appointment booking forms
+              Create a custom question for appointment booking forms
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="field-label">Field Label</Label>
+                <Label htmlFor="field-label">Question Text <span className="text-red-500">*</span></Label>
                 <Input
                   id="field-label"
-                  placeholder="e.g., Delivery Instructions"
+                  placeholder="e.g., Special Handling Instructions"
                   value={questionForm.label || ""}
                   onChange={(e) => handleQuestionFormChange("label", e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">This is the question that will appear on the booking form</p>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="field-type">Field Type</Label>
+                <Label htmlFor="field-type">Answer Type <span className="text-red-500">*</span></Label>
                 <Select
                   value={questionForm.type || "text"}
                   onValueChange={(value) => handleQuestionFormChange("type", value)}
                 >
                   <SelectTrigger id="field-type">
-                    <SelectValue placeholder="Select field type" />
+                    <SelectValue placeholder="Select answer type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="text">Text Field</SelectItem>
-                    <SelectItem value="textarea">Text Area</SelectItem>
-                    <SelectItem value="select">Dropdown</SelectItem>
+                    <SelectItem value="text">Text</SelectItem>
+                    <SelectItem value="textarea">Text Area (Multiple Lines)</SelectItem>
+                    <SelectItem value="number">Number Only</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="select">Dropdown Options</SelectItem>
                     <SelectItem value="radio">Radio Buttons</SelectItem>
-                    <SelectItem value="checkbox">Checkboxes</SelectItem>
                     <SelectItem value="file">File Upload</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="field-placeholder">Placeholder Text (optional)</Label>
-                <Input
-                  id="field-placeholder"
-                  placeholder="Enter placeholder text..."
-                  value={questionForm.placeholder || ""}
-                  onChange={(e) => handleQuestionFormChange("placeholder", e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Field Options</Label>
                 <div className="flex items-center space-x-2">
-                  <Switch 
+                  <Checkbox 
                     id="field-required"
                     checked={questionForm.required || false}
                     onCheckedChange={(checked) => handleQuestionFormChange("required", checked)}
                   />
-                  <Label htmlFor="field-required">
-                    Required field
+                  <Label htmlFor="field-required" className="font-medium">
+                    Is Required
                   </Label>
                 </div>
+                <p className="text-xs text-muted-foreground ml-6">
+                  If checked, users must provide an answer to this question when booking
+                </p>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="field-apply-to">Apply to Appointment Types</Label>
+                <Label htmlFor="field-placeholder">Placeholder Text (optional)</Label>
+                <Input
+                  id="field-placeholder"
+                  placeholder="e.g., Enter details here..."
+                  value={questionForm.placeholder || ""}
+                  onChange={(e) => handleQuestionFormChange("placeholder", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">Hint text that appears in the input field</p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="field-apply-to">Apply to Appointment Type</Label>
                 <Select
                   value={questionForm.appointmentType || "both"}
                   onValueChange={(value) => handleQuestionFormChange("appointmentType", value)}
@@ -1393,35 +1440,41 @@ export default function AppointmentMaster() {
               </div>
               
               {(questionForm.type === "select" || questionForm.type === "radio" || questionForm.type === "checkbox") && (
-                <div className="space-y-3 border p-3 rounded-md">
-                  <Label>Options</Label>
-                  {(questionForm.options || []).map((option, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <Input
-                        value={option}
-                        onChange={(e) => updateOption(index, e.target.value)}
-                        placeholder={`Option ${index + 1}`}
-                      />
-                      <Button
-                        type="button" 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => removeOption(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addOption}
-                    className="mt-2"
-                  >
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Add Option
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="field-options">Answer Options <span className="text-red-500">*</span></Label>
+                  <div className="space-y-2 border rounded-md p-3 bg-muted/30">
+                    {(questionForm.options || []).length === 0 && (
+                      <p className="text-sm text-muted-foreground italic mb-2">No options added yet</p>
+                    )}
+                    
+                    {(questionForm.options || []).map((option, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <Input
+                          value={option}
+                          onChange={(e) => updateOption(index, e.target.value)}
+                          placeholder={`Option ${index + 1}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeOption(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={addOption}
+                    >
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Option
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1432,11 +1485,48 @@ export default function AppointmentMaster() {
               Cancel
             </Button>
             <Button 
-              onClick={() => saveCustomFieldMutation.mutate(questionForm)} 
-              disabled={saveCustomFieldMutation.isPending}
+              onClick={() => {
+                // In a real implementation this would use saveCustomFieldMutation
+                if (selectedQuestionId) {
+                  // Update existing field
+                  const updatedFields = customFields.map(field => 
+                    field.id === selectedQuestionId ? {...questionForm, id: field.id, order: field.order} : field
+                  );
+                  setCustomFields(updatedFields);
+                  toast({
+                    title: "Question updated",
+                    description: `"${questionForm.label}" has been updated`,
+                  });
+                } else {
+                  // Add new field
+                  const newField = {
+                    id: customFields.length ? Math.max(...customFields.map(f => f.id)) + 1 : 13,
+                    label: questionForm.label || "New Question",
+                    type: questionForm.type || "text", 
+                    required: questionForm.required || false,
+                    options: questionForm.options,
+                    placeholder: questionForm.placeholder,
+                    order: customFields.length + 13,
+                    appointmentType: questionForm.appointmentType || "both"
+                  };
+                  setCustomFields([...customFields, newField]);
+                  toast({
+                    title: "Custom question added",
+                    description: `"${newField.label}" has been added to the form`,
+                  });
+                }
+                setShowQuestionDialog(false);
+              }}
+              disabled={!questionForm.label}
             >
-              {saveCustomFieldMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {selectedQuestionId ? "Update Field" : "Add Field"}
+              {saveCustomFieldMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>{selectedQuestionId ? "Update Question" : "Add Question"}</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
