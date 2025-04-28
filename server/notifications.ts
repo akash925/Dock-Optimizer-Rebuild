@@ -65,18 +65,32 @@ export interface EmailParams {
 }
 
 export async function sendEmail(params: EmailParams): Promise<{ html: string, text: string } | boolean> {
+  if (!params.to || !params.subject) {
+    console.error('Missing required email parameters (to, subject)');
+    return false;
+  }
+
+  // Validate email address format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(params.to)) {
+    console.error(`Invalid email address format: ${params.to}`);
+    return false;
+  }
+
   // Prepare the email message
   const msg = {
     to: params.to,
     from: params.from || process.env.SENDGRID_FROM_EMAIL || 'notifications@dockoptimizer.com',
     subject: params.subject,
-    text: params.text || '',
-    html: params.html || '',
+    text: params.text || 'No content provided',
+    html: params.html || '<p>No content provided</p>',
   };
 
   // In development mode, just return the content for testing
   if (process.env.NODE_ENV === 'development') {
     console.log(`[DEV MODE] Email would be sent to: ${params.to} with subject: ${params.subject}`);
+    console.log('Email HTML preview:');
+    console.log(msg.html.substring(0, 500) + (msg.html.length > 500 ? '...' : ''));
     return {
       html: msg.html,
       text: msg.text
@@ -89,12 +103,21 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
     return false;
   }
 
+  // Check that from email is valid and configured correctly
+  if (!emailRegex.test(msg.from)) {
+    console.error(`Invalid sender email address format: ${msg.from}. Using default.`);
+    msg.from = 'notifications@dockoptimizer.com';
+  }
+
   try {
     await sgMail.send(msg);
     console.log(`Email sent successfully to ${params.to}`);
     return true;
   } catch (error) {
     console.error('Error sending email:', error);
+    if (error.response) {
+      console.error(`SendGrid API error: ${error.response.body}`);
+    }
     return false;
   }
 }
@@ -104,11 +127,27 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
  */
 function formatDateForTimezone(date: Date, timezone: string, formatStr: string): string {
   try {
-    return formatToTimeZone(date, formatStr, { timeZone: timezone });
+    // Check if date is valid before proceeding
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      console.warn(`Invalid date provided to formatDateForTimezone: ${date}`);
+      // Return current date/time as fallback
+      const now = new Date();
+      return formatToTimeZone(now, formatStr, { timeZone: timezone });
+    }
+    
+    // Create a safe copy of the date
+    const safeDate = new Date(date.getTime());
+    return formatToTimeZone(safeDate, formatStr, { timeZone: timezone });
   } catch (error) {
     console.error(`Error formatting date for timezone ${timezone}:`, error);
     // Fallback to simple format if timezone formatting fails
-    return format(date, formatStr);
+    try {
+      return format(date, formatStr);
+    } catch (fallbackError) {
+      console.error('Fallback formatting also failed:', fallbackError);
+      // Ultimate fallback - return basic ISO string or formatted current date
+      return new Date().toLocaleString();
+    }
   }
 }
 
@@ -117,17 +156,39 @@ function formatDateForTimezone(date: Date, timezone: string, formatStr: string):
  */
 function getTimezoneAbbr(timezone: string, date: Date): string {
   try {
+    // Check if the date is valid before formatting
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      console.warn(`Invalid date provided to getTimezoneAbbr: ${date}`);
+      return timezone.split('/').pop() || 'GMT';
+    }
+    
+    // Create a safe copy of the date - using current date if needed
+    const safeDate = new Date();
+    
     // This will return something like "EST" or "EDT" depending on daylight saving time
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
       timeZoneName: 'short'
-    }).formatToParts(date)
+    }).formatToParts(safeDate)
       .find(part => part.type === 'timeZoneName');
     
     return parts?.value || timezone.split('/').pop() || 'GMT';
   } catch (error) {
     console.error(`Error getting timezone abbreviation for ${timezone}:`, error);
-    return timezone.split('/').pop() || 'GMT';
+    // Fall back to common abbreviations or region name
+    const region = timezone.split('/').pop() || '';
+    
+    // Return common timezone abbreviations or the region name
+    switch(region) {
+      case 'New_York': return 'ET';
+      case 'Chicago': return 'CT';
+      case 'Denver': return 'MT';
+      case 'Phoenix': return 'MST';
+      case 'Los_Angeles': return 'PT';
+      case 'Anchorage': return 'AKST';
+      case 'Honolulu': return 'HST';
+      default: return region || 'GMT';
+    }
   }
 }
 
