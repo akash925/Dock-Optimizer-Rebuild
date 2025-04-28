@@ -334,6 +334,7 @@ export default function AppointmentForm({
         trailerNumber: data.trailerNumber || "",
         driverName: data.driverName,
         driverPhone: data.driverPhone,
+        driverEmail: data.driverEmail || "", // Add driver email for notifications
         bolNumber: data.bolNumber || "",
         poNumber: data.poNumber || "",
         palletCount: data.palletCount ? parseInt(data.palletCount) : 0,

@@ -49,6 +49,7 @@ const appointmentFormSchema = z.object({
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
   driverPhone: z.string().min(1, "Driver phone is required"),
+  driverEmail: z.string().email("Please enter a valid email").optional(),
   
   // Schedule details
   appointmentDate: z.string().min(1, "Date is required"),
@@ -762,6 +763,23 @@ export default function FixedAppointmentForm({
                           <FormControl>
                             <Input placeholder="Enter driver name" {...field} />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="driverEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Driver Email <span className="text-xs text-muted-foreground">(for confirmations)</span></FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="Enter driver email" {...field} />
+                          </FormControl>
+                          <FormDescription className="text-xs">
+                            Email address is needed to send appointment confirmations
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
