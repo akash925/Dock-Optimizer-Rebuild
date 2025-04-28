@@ -34,35 +34,53 @@ import { utcToFacilityTime, facilityTimeToUtc, utcToUserTime, formatInFacilityTi
  * to prevent FormContext null errors.
  */
 
-// Validation schemas
-const appointmentFormSchema = z.object({
-  // Carrier and customer info
-  carrierId: z.number().optional(),
-  carrierName: z.string().optional(),
-  mcNumber: z.string().optional(),
-  customerName: z.string().min(1, "Customer name is required"),
+// Validation schemas - separate schemas for internal and external modes
+const createAppointmentFormSchema = (mode: AppointmentFormMode) => {
+  // Base schema - common to both modes
+  const baseSchema = {
+    // Carrier and customer info
+    carrierId: z.number().optional(),
+    carrierName: z.string().optional(),
+    mcNumber: z.string().optional(),
+    customerName: z.string().min(1, "Customer name is required"),
+    
+    // Truck/appointment details
+    type: z.enum(["inbound", "outbound"]),
+    appointmentMode: z.enum(["trailer", "container"]),
+    truckNumber: z.string().min(1, "Truck number is required"),
+    trailerNumber: z.string().optional(),
+    driverName: z.string().min(1, "Driver name is required"),
+    driverPhone: z.string().min(1, "Driver phone is required"),
+    
+    // Schedule details
+    appointmentDate: z.string().min(1, "Date is required"),
+    appointmentTime: z.string().min(1, "Time is required"),
+    dockId: z.number().optional(),
+    bolNumber: z.string().optional(),
+    poNumber: z.string().optional(),
+    palletCount: z.union([z.string(), z.number()]).optional(),
+    weight: z.union([z.string(), z.number()]).optional(),
+    notes: z.string().optional(),
+  };
   
-  // Truck/appointment details
-  type: z.enum(["inbound", "outbound"]),
-  appointmentMode: z.enum(["trailer", "container"]),
-  truckNumber: z.string().min(1, "Truck number is required"),
-  trailerNumber: z.string().optional(),
-  driverName: z.string().min(1, "Driver name is required"),
-  driverPhone: z.string().min(1, "Driver phone is required"),
-  driverEmail: z.string().email("Please enter a valid email").optional(),
-  
-  // Schedule details
-  appointmentDate: z.string().min(1, "Date is required"),
-  appointmentTime: z.string().min(1, "Time is required"),
-  dockId: z.number().optional(),
-  bolNumber: z.string().optional(),
-  poNumber: z.string().optional(),
-  palletCount: z.union([z.string(), z.number()]).optional(),
-  weight: z.union([z.string(), z.number()]).optional(),
-  notes: z.string().optional(),
-});
+  // For external booking, driver email is required
+  if (mode === "external") {
+    return z.object({
+      ...baseSchema,
+      driverEmail: z.string().email("Please enter a valid email").min(1, "Email is required for confirmations"),
+    });
+  } 
+  // For internal booking, driver email is optional
+  else {
+    return z.object({
+      ...baseSchema,
+      driverEmail: z.string().email("Please enter a valid email").optional(),
+    });
+  }
+};
 
-type AppointmentFormValues = z.infer<typeof appointmentFormSchema>;
+// Type for the values in the form
+type AppointmentFormValues = z.infer<ReturnType<typeof createAppointmentFormSchema>>;
 
 type AppointmentFormMode = "internal" | "external";
 
@@ -162,8 +180,11 @@ export default function FixedAppointmentForm({
   
   // Initialize form with all fields - THIS IS THE KEY CHANGE
   // No separate forms for different steps, just ONE form
+  // Create the schema for the current mode
+  const schema = createAppointmentFormSchema(mode);
+
   const form = useForm<AppointmentFormValues>({
-    resolver: zodResolver(appointmentFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: initialData
       ? {
           carrierId: initialData.carrierId || undefined,
@@ -174,6 +195,7 @@ export default function FixedAppointmentForm({
           trailerNumber: initialData.trailerNumber || "",
           driverName: initialData.driverName || "",
           driverPhone: initialData.driverPhone || "",
+          driverEmail: initialData.driverEmail || "",
           type: initialData.type as "inbound" | "outbound",
           appointmentMode: initialData.appointmentMode as "trailer" | "container",
           appointmentDate: (() => {
