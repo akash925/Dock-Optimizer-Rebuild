@@ -194,8 +194,18 @@ export default function AppointmentMaster() {
     mutationFn: async (appointmentType: any) => {
       // Remove any <!DOCTYPE> or HTML-like content that might be causing parsing issues
       const cleanedData = JSON.parse(JSON.stringify(appointmentType));
-      const response = await apiRequest("PUT", `/api/appointment-types/${cleanedData.id}`, cleanedData);
-      return await response.json();
+      try {
+        const response = await apiRequest("PUT", `/api/appointment-types/${cleanedData.id}`, cleanedData);
+        return await response.json();
+      } catch (error: any) {
+        // Handle authentication errors
+        if (error.message.includes("401") || error.message.includes("Unauthorized")) {
+          // Trigger a page refresh to redirect to login
+          window.location.href = "/auth";
+          throw new Error("Your session has expired. Please log in again.");
+        }
+        throw error;
+      }
     },
     onSuccess: (data) => {
       toast({
@@ -217,8 +227,18 @@ export default function AppointmentMaster() {
   // Create appointment type
   const createAppointmentTypeMutation = useMutation({
     mutationFn: async (appointmentType: any) => {
-      const response = await apiRequest("POST", `/api/appointment-types`, appointmentType);
-      return await response.json();
+      try {
+        const response = await apiRequest("POST", `/api/appointment-types`, appointmentType);
+        return await response.json();
+      } catch (error: any) {
+        // Handle authentication errors
+        if (error.message.includes("401") || error.message.includes("Unauthorized")) {
+          // Trigger a page refresh to redirect to login
+          window.location.href = "/auth";
+          throw new Error("Your session has expired. Please log in again.");
+        }
+        throw error;
+      }
     },
     onSuccess: (data) => {
       toast({
@@ -251,8 +271,18 @@ export default function AppointmentMaster() {
         id: undefined // Remove ID so the server creates a new one
       };
       
-      const response = await apiRequest("POST", `/api/appointment-types`, duplicateData);
-      return await response.json();
+      try {
+        const response = await apiRequest("POST", `/api/appointment-types`, duplicateData);
+        return await response.json();
+      } catch (error: any) {
+        // Handle authentication errors
+        if (error.message.includes("401") || error.message.includes("Unauthorized")) {
+          // Trigger a page refresh to redirect to login
+          window.location.href = "/auth";
+          throw new Error("Your session has expired. Please log in again.");
+        }
+        throw error;
+      }
     },
     onSuccess: (data) => {
       toast({
