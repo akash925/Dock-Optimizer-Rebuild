@@ -149,7 +149,7 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
       const scheduleData = {
         ...bookingData,
         bookingPageId: bookingPage.id,
-        status: 'pending',
+        status: 'scheduled',
         // Ensure dates are properly formatted
         startTime: bookingData.startTime,
         endTime: bookingData.endTime,
@@ -1300,7 +1300,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
                     mcNumberFieldName="mcNumber"
                   />
                   <FormDescription className="text-xs">
-                    Select a carrier from the list or enter a custom carrier name below
+                    Select from the list or type to search. If your carrier isn't listed, type a new name to create it.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -1308,63 +1308,10 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="carrierName"
-              render={({ field }) => (
-                <FormItem className="booking-form-field">
-                  <FormLabel className="booking-label">Custom Carrier Name (Optional if selected above)</FormLabel>
-                  <FormControl>
-                    <Input
-                      id="carrierName"
-                      className="booking-input"
-                      placeholder="Enter if carrier not in the list"
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        updateBookingData({ carrierName: e.target.value });
-                        // Clear the carrier ID if manually entering a name
-                        if (e.target.value && form.getValues("carrierId")) {
-                          form.setValue("carrierId", undefined);
-                          updateBookingData({ carrierId: undefined });
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription className="text-xs">
-                    Only needed if your carrier is not in the dropdown above
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="mcNumber"
-              render={({ field }) => (
-                <FormItem className="booking-form-field">
-                  <FormLabel className="booking-label">MC Number</FormLabel>
-                  <FormControl>
-                    <Input
-                      id="mcNumber"
-                      className="booking-input"
-                      placeholder="MC123456"
-                      {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        updateBookingData({ mcNumber: e.target.value });
-                      }}
-                    />
-                  </FormControl>
-                  <FormDescription className="text-xs">
-                    Required for all shipments as of August 1st, 2023
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200 mb-4">
+            <p className="text-sm text-yellow-800">
+              <strong>Important:</strong> MC Numbers are required for all shipments as of August 1st, 2023.
+            </p>
           </div>
           
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
