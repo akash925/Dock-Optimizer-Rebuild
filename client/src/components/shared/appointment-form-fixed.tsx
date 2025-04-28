@@ -168,6 +168,7 @@ export default function AppointmentForm({
       weight: initialData.weight?.toString() || "",
       notes: initialData.notes || "",
       facilityTimezone: facilityTimezone,
+      customFields: initialData.customFields || {},
     } : {
       // Default values for new appointment
       facilityId: initialFacilityId || undefined,
@@ -191,6 +192,7 @@ export default function AppointmentForm({
       weight: "",
       notes: "",
       facilityTimezone: facilityTimezone,
+      customFields: {},
     }
   });
   
@@ -372,6 +374,8 @@ export default function AppointmentForm({
         facilityId: data.facilityId,
         facilityName: facilityName, // Ensure we're getting the correct facility name
         facilityTimezone: data.facilityTimezone || facilityTimezone,
+        // Include custom fields data
+        customFields: data.customFields || {},
         // If custom carrier, add the new carrier data
         newCarrier: data.carrierId ? undefined : {
           name: data.carrierName || "Custom Carrier",
@@ -418,6 +422,7 @@ export default function AppointmentForm({
         weight: "",
         notes: "",
         facilityTimezone: facilityTimezone,
+        customFields: {},
       });
 
       // Reset step to 1
@@ -1493,6 +1498,28 @@ export default function AppointmentForm({
                     } <span className="text-muted-foreground">({form.getValues("facilityTimezone") || facilityTimezone} - Facility Time)</span></p>
                     <p><strong>Customer:</strong> {form.getValues("customerName")}</p>
                     <p><strong>Direction:</strong> {form.getValues("type") === "inbound" ? "Inbound (Delivery)" : "Outbound (Pickup)"}</p>
+                    
+                    {/* Show custom fields if any are filled */}
+                    {form.getValues("customFields") && Object.keys(form.getValues("customFields") || {}).length > 0 && (
+                      <>
+                        <div className="mt-2 pt-2 border-t border-border">
+                          <p className="font-medium">Additional Information:</p>
+                          <div className="mt-1 space-y-1">
+                            {Object.entries(form.getValues("customFields") || {}).map(([key, value]) => {
+                              // Extract the question ID from the key (format: customQuestion_ID)
+                              const questionId = key.split('_')[1];
+                              const question = customQuestions.find(q => q.id.toString() === questionId);
+                              
+                              return (
+                                <p key={key}>
+                                  <strong>{question?.label || key}:</strong> {value?.toString() || ""}
+                                </p>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </AlertDescription>
               </Alert>
