@@ -455,23 +455,30 @@ export default function FullCalendarView({
                 
                 return (
                   <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
+                    {/* Time with more prominence */}
                     <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
                     
-                    {/* Facility name with highest priority - HIGHLIGHTED */}
+                    {/* Facility/Location Name with highest priority */}
                     {facilityName && (
                       <div className="font-bold text-[11px] text-blue-700 bg-blue-50 py-0.5 px-1 rounded-sm mb-0.5 border border-blue-200">
                         {facilityName}
                       </div>
                     )}
                     
+                    {/* Customer Name - Prominent */}
                     <div className="text-xs font-medium line-clamp-1 overflow-hidden text-ellipsis">
                       {customerName && <span className="font-semibold block">{customerName}</span>}
                     </div>
                     
-                    <div className="text-[10px] text-gray-700 line-clamp-2 overflow-hidden">
+                    {/* Carrier Name - Prominent */}
+                    <div className="text-[10px] font-medium line-clamp-1 overflow-hidden text-ellipsis">
                       {carrierName && <span className="block">{carrierName}</span>}
-                      {truckNumber && <span className="block">Truck #{truckNumber}</span>}
-                      {dockId && <span className="block">Dock #{dockId}</span>}
+                    </div>
+                    
+                    {/* Additional details with lower priority */}
+                    <div className="text-[9px] text-gray-700 line-clamp-1 overflow-hidden">
+                      {truckNumber && <span className="inline-block mr-1">#{truckNumber}</span>}
+                      {dockId && <span className="inline-block">Dock #{dockId}</span>}
                     </div>
                     
                     {/* Status badge */}
