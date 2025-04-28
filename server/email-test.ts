@@ -39,24 +39,41 @@ export async function testEmailTemplate() {
     // This is just for testing - we don't actually send the email
     // Create a more complete test schedule with required properties
     const testSchedule: EnhancedSchedule = {
-      ...sampleData,
       id: sampleData.id,
       dockId: null,
       carrierId: null,
       appointmentTypeId: null,
+      truckNumber: "10000",
       trailerNumber: null,
-      status: 'scheduled',
-      type: 'inbound',
+      driverName: "Akash Agarwal",
+      driverPhone: "4082303749",
+      driverEmail: 'test@example.com',
+      customerName: null,
+      carrierName: null,
+      mcNumber: null,
+      bolNumber: null,
       poNumber: null,
-      createdAt: new Date(),
-      lastModifiedAt: null,
+      palletCount: null,
+      weight: null,
+      appointmentMode: "trailer",
+      startTime: new Date("2023-04-03T13:00:00"),
+      endTime: new Date("2023-04-03T14:00:00"),
       actualStartTime: null,
       actualEndTime: null,
+      type: 'inbound',
+      status: 'scheduled',
+      notes: null,
+      customFormData: null,
       createdBy: 1,
+      createdAt: new Date(),
+      lastModifiedAt: null,
       lastModifiedBy: null,
-      driverEmail: 'test@example.com',
-      scheduledBy: 'System',
-      bolUrl: null
+      
+      // Enhanced properties for UI display
+      facilityName: "Sam Pride",
+      appointmentTypeName: "Standard Appointment",
+      dockName: "Dock 3",
+      timezone: "America/New_York"
     };
     
     const emailContent = await sendConfirmationEmail("test@example.com", `HC${sampleData.id}`, testSchedule);

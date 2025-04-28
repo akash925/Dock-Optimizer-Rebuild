@@ -10,8 +10,8 @@
     Appointment: Standard Appointment
     Dock: Dock 3
     
-    Facility Time: 3333, April 3, yyyy 1:00 p.m. - 2:00 p.m. EDT
-    Your Local Time: 3333, April 3, yyyy 5:00 p.m. - 6:00 p.m. UTC
+    Facility Time: 1111, April 1, yyyy 9:00 a.m. - 10:00 a.m. EDT
+    Your Local Time: 1111, April 1, yyyy 1:00 p.m. - 2:00 p.m. UTC
     Driver: Akash Agarwal
     Driver Phone: 4082303749
     

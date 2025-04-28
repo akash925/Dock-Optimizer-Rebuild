@@ -3,14 +3,46 @@ import { Schedule } from '../shared/schema';
 import { format } from 'date-fns';
 import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone';
 
-// Enhanced schedule with UI-specific fields
-export interface EnhancedSchedule extends Schedule {
+// Enhanced schedule with UI-specific fields - extends the base Schedule type
+// This type is used for email templates and notifications that need additional context
+export interface EnhancedSchedule {
+  // Core Schedule properties
+  id: number;
+  dockId: number | null;
+  carrierId: number | null;
+  appointmentTypeId: number | null;
+  truckNumber: string;
+  trailerNumber: string | null;
+  driverName: string | null;
+  driverPhone: string | null;
+  driverEmail: string | null;
+  customerName: string | null;
+  carrierName: string | null;
+  mcNumber: string | null;
+  bolNumber: string | null;
+  poNumber: string | null;
+  palletCount: string | null;
+  weight: string | null;
+  appointmentMode: string | null;
+  startTime: Date;
+  endTime: Date;
+  actualStartTime: Date | null;
+  actualEndTime: Date | null;
+  type: string;
+  status: string;
+  notes: string | null;
+  customFormData: any | null;
+  createdBy: number;
+  createdAt: Date;
+  lastModifiedAt: Date | null;
+  lastModifiedBy: number | null;
+  
+  // Enhanced properties for UI and notifications
   facilityId?: number;
   facilityName?: string;
   appointmentTypeName?: string;
   dockName?: string;
   timezone?: string;
-  carrierName?: string;
 }
 
 // Initialize SendGrid if API key is available
