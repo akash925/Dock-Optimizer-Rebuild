@@ -43,10 +43,10 @@ export default function Schedules() {
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [filterFacilityId, setFilterFacilityId] = useState<number | "all">("all");
-  const [filterDockId, setFilterDockId] = useState<number | "all">("all");
+  const [filterStatus, setFilterStatus] = useState<string[]>(["all"]);
+  const [filterType, setFilterType] = useState<string[]>(["all"]);
+  const [filterFacilityId, setFilterFacilityId] = useState<(number | "all")[]>(["all"]);
+  const [filterDockId, setFilterDockId] = useState<(number | "all")[]>(["all"]);
   const [selectedDockId, setSelectedDockId] = useState<number | undefined>(undefined);
   const [isAppointmentTypeDialogOpen, setIsAppointmentTypeDialogOpen] = useState(false);
   const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState<number | undefined>(undefined);
@@ -324,29 +324,35 @@ export default function Schedules() {
     // For week view (handled by the calendar component) and list view, don't filter by date
     
     // Status filter
-    const statusMatches = filterStatus === "all" || schedule.status === filterStatus;
+    const statusMatches = filterStatus.includes("all") || filterStatus.includes(schedule.status);
     
     // Type filter
-    const typeMatches = filterType === "all" || schedule.type === filterType;
+    const typeMatches = filterType.includes("all") || filterType.includes(schedule.type);
 
     // Facility filter - this requires looking up the dock's facility
     let facilityMatches = true;
-    if (filterFacilityId !== "all") {
+    if (!filterFacilityId.includes("all")) {
       // We need to check both direct facilityId (if present) and also via dock's facility
-      const directFacilityMatch = schedule.facilityId === filterFacilityId;
+      let directFacilityMatch = false;
+      
+      if (schedule.facilityId) {
+        directFacilityMatch = filterFacilityId.includes(schedule.facilityId);
+      }
       
       let dockFacilityMatch = false;
       if (schedule.dockId) {
-        // Get dock and check if it belongs to the selected facility
+        // Get dock and check if its facility is in selected facilities
         const dock = docks.find(d => d.id === schedule.dockId);
-        dockFacilityMatch = dock?.facilityId === filterFacilityId;
+        if (dock && dock.facilityId) {
+          dockFacilityMatch = filterFacilityId.includes(dock.facilityId);
+        }
       }
       
       facilityMatches = directFacilityMatch || dockFacilityMatch;
     }
     
     // Dock filter
-    const dockMatches = filterDockId === "all" || schedule.dockId === filterDockId;
+    const dockMatches = filterDockId.includes("all") || (schedule.dockId && filterDockId.includes(schedule.dockId));
     
     // Search query - check multiple fields
     let searchMatches = true;
@@ -409,22 +415,49 @@ export default function Schedules() {
         <div className="flex items-center gap-2">
           {/* Facility Filter */}
           <Select 
-            value={filterFacilityId === "all" ? "all" : filterFacilityId.toString()} 
+            value={filterFacilityId.includes("all") ? "all" : filterFacilityId.map(f => f.toString())[0]} 
             onValueChange={(value) => {
-              const newFacilityId = value === "all" ? "all" : parseInt(value);
-              setFilterFacilityId(newFacilityId);
-              // Reset dock filter when facility changes
-              setFilterDockId("all");
+              if (value === "all") {
+                setFilterFacilityId(["all"]);
+                // Reset dock filter when facility changes
+                setFilterDockId(["all"]);
+              } else {
+                const newFacilityId = parseInt(value);
+                
+                // Toggle selection
+                if (filterFacilityId.includes(newFacilityId)) {
+                  // If it's the only selected facility, set back to "all"
+                  if (filterFacilityId.length === 1) {
+                    setFilterFacilityId(["all"]);
+                    setFilterDockId(["all"]);
+                  } else {
+                    setFilterFacilityId(filterFacilityId.filter(id => id !== newFacilityId));
+                  }
+                } else {
+                  // Remove "all" if present and add the new facility
+                  const newFilters = filterFacilityId.filter(id => id !== "all");
+                  setFilterFacilityId([...newFilters, newFacilityId]);
+                  
+                  // Reset dock filter when facility changes
+                  setFilterDockId(["all"]);
+                }
+              }
             }}
           >
             <SelectTrigger className="w-[140px] h-9">
-              <SelectValue placeholder="All Facilities" />
+              <SelectValue placeholder="All Facilities">
+                {filterFacilityId.includes("all") 
+                  ? "All Facilities" 
+                  : filterFacilityId.length > 1 
+                    ? `${filterFacilityId.length} Facilities` 
+                    : facilities.find(f => f.id === filterFacilityId[0])?.name}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Facilities</SelectItem>
               {facilities.map((facility) => (
                 <SelectItem key={facility.id} value={facility.id.toString()}>
-                  {facility.name}
+                  {facility.name} {filterFacilityId.includes(facility.id) && "✓"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -432,19 +465,47 @@ export default function Schedules() {
           
           {/* Dock Filter */}
           <Select 
-            value={filterDockId === "all" ? "all" : filterDockId.toString()} 
-            onValueChange={(value) => setFilterDockId(value === "all" ? "all" : parseInt(value))}
+            value={filterDockId.includes("all") ? "all" : filterDockId.map(d => d.toString())[0]} 
+            onValueChange={(value) => {
+              if (value === "all") {
+                setFilterDockId(["all"]);
+              } else {
+                const newDockId = parseInt(value);
+                
+                // Toggle selection
+                if (filterDockId.includes(newDockId)) {
+                  // If it's the only selected dock, set back to "all"
+                  if (filterDockId.length === 1) {
+                    setFilterDockId(["all"]);
+                  } else {
+                    setFilterDockId(filterDockId.filter(id => id !== newDockId));
+                  }
+                } else {
+                  // Remove "all" if present and add the new dock
+                  const newFilters = filterDockId.filter(id => id !== "all");
+                  setFilterDockId([...newFilters, newDockId]);
+                }
+              }
+            }}
           >
             <SelectTrigger className="w-[120px] h-9">
-              <SelectValue placeholder="All Docks" />
+              <SelectValue placeholder="All Docks">
+                {filterDockId.includes("all") 
+                  ? "All Docks" 
+                  : filterDockId.length > 1 
+                    ? `${filterDockId.length} Docks` 
+                    : docks.find(d => d.id === filterDockId[0])?.name}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Docks</SelectItem>
               {docks
-                .filter(dock => filterFacilityId === "all" || dock.facilityId === filterFacilityId)
+                .filter(dock => filterFacilityId.includes("all") || 
+                  filterFacilityId.some(facilityId => 
+                    typeof facilityId === 'number' && dock.facilityId === facilityId))
                 .map((dock) => (
                   <SelectItem key={dock.id} value={dock.id.toString()}>
-                    {dock.name}
+                    {dock.name} {filterDockId.includes(dock.id) && "✓"}
                   </SelectItem>
                 ))
               }
@@ -452,28 +513,82 @@ export default function Schedules() {
           </Select>
           
           {/* Status Filter */}
-          <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value)}>
+          <Select 
+            value={filterStatus.includes("all") ? "all" : filterStatus[0]} 
+            onValueChange={(value) => {
+              if (value === "all") {
+                setFilterStatus(["all"]);
+              } else {
+                // Toggle selection
+                if (filterStatus.includes(value)) {
+                  // If it's the only selected status, set back to "all"
+                  if (filterStatus.length === 1) {
+                    setFilterStatus(["all"]);
+                  } else {
+                    setFilterStatus(filterStatus.filter(status => status !== value));
+                  }
+                } else {
+                  // Remove "all" if present and add the new status
+                  const newFilters = filterStatus.filter(status => status !== "all");
+                  setFilterStatus([...newFilters, value]);
+                }
+              }
+            }}
+          >
             <SelectTrigger className="w-[120px] h-9">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder="Status">
+                {filterStatus.includes("all") 
+                  ? "All Statuses" 
+                  : filterStatus.length > 1 
+                    ? `${filterStatus.length} Statuses` 
+                    : filterStatus[0].charAt(0).toUpperCase() + filterStatus[0].slice(1)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="scheduled">Scheduled {filterStatus.includes("scheduled") && "✓"}</SelectItem>
+              <SelectItem value="in-progress">In Progress {filterStatus.includes("in-progress") && "✓"}</SelectItem>
+              <SelectItem value="completed">Completed {filterStatus.includes("completed") && "✓"}</SelectItem>
+              <SelectItem value="cancelled">Cancelled {filterStatus.includes("cancelled") && "✓"}</SelectItem>
             </SelectContent>
           </Select>
           
           {/* Type Filter */}
-          <Select value={filterType} onValueChange={(value) => setFilterType(value)}>
+          <Select 
+            value={filterType.includes("all") ? "all" : filterType[0]} 
+            onValueChange={(value) => {
+              if (value === "all") {
+                setFilterType(["all"]);
+              } else {
+                // Toggle selection
+                if (filterType.includes(value)) {
+                  // If it's the only selected type, set back to "all"
+                  if (filterType.length === 1) {
+                    setFilterType(["all"]);
+                  } else {
+                    setFilterType(filterType.filter(type => type !== value));
+                  }
+                } else {
+                  // Remove "all" if present and add the new type
+                  const newFilters = filterType.filter(type => type !== "all");
+                  setFilterType([...newFilters, value]);
+                }
+              }
+            }}
+          >
             <SelectTrigger className="w-[120px] h-9">
-              <SelectValue placeholder="Type" />
+              <SelectValue placeholder="Type">
+                {filterType.includes("all") 
+                  ? "All Types" 
+                  : filterType.length > 1 
+                    ? `${filterType.length} Types` 
+                    : filterType[0].charAt(0).toUpperCase() + filterType[0].slice(1)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="inbound">Inbound</SelectItem>
-              <SelectItem value="outbound">Outbound</SelectItem>
+              <SelectItem value="inbound">Inbound {filterType.includes("inbound") && "✓"}</SelectItem>
+              <SelectItem value="outbound">Outbound {filterType.includes("outbound") && "✓"}</SelectItem>
             </SelectContent>
           </Select>
           
@@ -532,17 +647,17 @@ export default function Schedules() {
           </div>
           
           {/* Clear Filters */}
-          {(searchQuery || filterStatus !== "all" || filterType !== "all" || 
-            filterDockId !== "all" || filterFacilityId !== "all") && (
+          {(searchQuery || !filterStatus.includes("all") || !filterType.includes("all") || 
+            !filterDockId.includes("all") || !filterFacilityId.includes("all")) && (
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={() => {
                 setSearchQuery("");
-                setFilterStatus("all");
-                setFilterType("all");
-                setFilterFacilityId("all");
-                setFilterDockId("all");
+                setFilterStatus(["all"]);
+                setFilterType(["all"]);
+                setFilterFacilityId(["all"]);
+                setFilterDockId(["all"]);
               }}
               className="text-xs h-9"
             >
@@ -571,8 +686,10 @@ export default function Schedules() {
         {viewMode === "week" && (
           <ScheduleWeekCalendar
             schedules={filteredSchedules}
-            docks={filterFacilityId !== "all" 
-              ? docks.filter(dock => dock.facilityId === filterFacilityId)
+            docks={!filterFacilityId.includes("all") 
+              ? docks.filter(dock => 
+                  filterFacilityId.some(facilityId => 
+                    typeof facilityId === 'number' && dock.facilityId === facilityId))
               : docks}
             carriers={carriers}
             date={selectedDate}
@@ -588,8 +705,10 @@ export default function Schedules() {
         {viewMode === "day" && (
           <ScheduleDayCalendar
             schedules={filteredSchedules}
-            docks={filterFacilityId !== "all" 
-              ? docks.filter(dock => dock.facilityId === filterFacilityId)
+            docks={!filterFacilityId.includes("all") 
+              ? docks.filter(dock => 
+                  filterFacilityId.some(facilityId => 
+                    typeof facilityId === 'number' && dock.facilityId === facilityId))
               : docks}
             date={selectedDate}
             timezone={timezone}
