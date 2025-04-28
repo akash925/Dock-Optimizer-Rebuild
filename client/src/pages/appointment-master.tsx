@@ -1179,6 +1179,9 @@ export default function AppointmentMaster() {
                           <TableCell className="text-center">
                             <Checkbox checked={true} disabled />
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell className="text-center">5</TableCell>
@@ -1187,11 +1190,17 @@ export default function AppointmentMaster() {
                           <TableCell className="text-center">
                             <Checkbox checked={true} disabled />
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell className="text-center">6</TableCell>
                           <TableCell>Driver's License Number</TableCell>
                           <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
                           <TableCell className="text-center">
                             <Checkbox checked={true} disabled />
                           </TableCell>
@@ -1229,6 +1238,17 @@ export default function AppointmentMaster() {
                           <TableCell>Text</TableCell>
                           <TableCell className="text-center">
                             <Checkbox 
+                              checked={true}
+                              onCheckedChange={(checked) => {
+                                // In a real implementation, this would update the field configuration
+                                toast({
+                                  description: "BOL Identifier included setting updated",
+                                });
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox 
                               checked={false}
                               onCheckedChange={(checked) => {
                                 // In a real implementation, this would update the field configuration
@@ -1246,6 +1266,9 @@ export default function AppointmentMaster() {
                           <TableCell className="text-center">
                             <Checkbox checked={true} disabled />
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell className="text-center">10</TableCell>
@@ -1254,11 +1277,25 @@ export default function AppointmentMaster() {
                           <TableCell className="text-center">
                             <Checkbox checked={true} disabled />
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell className="text-center">11</TableCell>
                           <TableCell>Driver's Name</TableCell>
                           <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox 
+                              checked={true}
+                              onCheckedChange={(checked) => {
+                                // In a real implementation, this would update the field configuration
+                                toast({
+                                  description: "Driver's Name included setting updated",
+                                });
+                              }}
+                            />
+                          </TableCell>
                           <TableCell className="text-center">
                             <Checkbox 
                               checked={false}
@@ -1275,6 +1312,17 @@ export default function AppointmentMaster() {
                           <TableCell className="text-center">12</TableCell>
                           <TableCell>Item Description/Quantity</TableCell>
                           <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox 
+                              checked={true}
+                              onCheckedChange={(checked) => {
+                                // In a real implementation, this would update the field configuration  
+                                toast({
+                                  description: "Item Description included setting updated",
+                                });
+                              }}
+                            />
+                          </TableCell>
                           <TableCell className="text-center">
                             <Checkbox 
                               checked={false}
@@ -1294,6 +1342,19 @@ export default function AppointmentMaster() {
                             <TableCell className="text-center">{13 + index}</TableCell>
                             <TableCell>{field.label}</TableCell>
                             <TableCell>{field.type.charAt(0).toUpperCase() + field.type.slice(1)}</TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox 
+                                checked={true} 
+                                onCheckedChange={(checked) => {
+                                  const updatedFields = [...customFields];
+                                  updatedFields[index].included = !!checked;
+                                  setCustomFields(updatedFields);
+                                  toast({
+                                    description: `${field.label} included setting updated`,
+                                  });
+                                }}
+                              />
+                            </TableCell>
                             <TableCell className="text-center">
                               <Checkbox 
                                 checked={field.required} 
