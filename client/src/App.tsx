@@ -10,6 +10,8 @@ import BasicDoorManager from "@/pages/basic-door-manager";
 import ExternalBooking from "@/pages/external-booking-fixed";
 import BookingConfirmation from "@/pages/booking-confirmation";
 import DriverCheckIn from "@/pages/driver-check-in";
+import Reschedule from "@/pages/reschedule";
+import Cancel from "@/pages/cancel";
 import Analytics from "@/pages/analytics";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
@@ -38,6 +40,8 @@ function App() {
         <Route path="/external/:slug" component={ExternalBooking} />
         <Route path="/booking-confirmation" component={BookingConfirmation} />
         <Route path="/driver-check-in" component={DriverCheckIn} />
+        <Route path="/reschedule" component={Reschedule} />
+        <Route path="/cancel" component={Cancel} />
         <Route path="/auth-debug" component={AuthDebugPage} />
         <Route path="/test-fixed-appointment" component={TestFixedAppointment} />
         <Route path="/test-fixed-appointment-v2" component={TestFixedAppointmentV2} />
