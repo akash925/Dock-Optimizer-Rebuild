@@ -220,23 +220,41 @@ export async function sendConfirmationEmail(
   confirmationCode: string,
   schedule: EnhancedSchedule
 ): Promise<{ html: string, text: string } | boolean> {
+  // Safely get timezones with fallbacks
   const facilityTimezone = schedule.timezone || 'America/New_York';
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
 
-  // Safely parse dates
+  // Log the timezones for debugging
+  console.log(`[EMAIL] Using timezones: Facility=${facilityTimezone}, User=${userTimezone}`);
+  console.log(`[EMAIL] Sending to: ${to}, confirmationCode: ${confirmationCode}`);
+  console.log(`[EMAIL] Schedule: ID=${schedule.id}, facilityName=${schedule.facilityName}`);
+
+  // Safely parse dates - handling both Date objects and string inputs
   const parseDate = (dateInput: Date | string | null): Date => {
-    if (!dateInput) return new Date(); // Fallback to current time if null/undefined
+    if (!dateInput) {
+      console.warn('[EMAIL] Null date provided, using current time as fallback');
+      return new Date();
+    }
     
+    // If it's already a Date object
     if (dateInput instanceof Date) {
-      return isNaN(dateInput.getTime()) ? new Date() : dateInput;
+      if (isNaN(dateInput.getTime())) {
+        console.warn('[EMAIL] Invalid Date object provided, using current time as fallback');
+        return new Date();
+      }
+      return dateInput;
     }
     
     // If it's a string, attempt to parse it
     try {
       const parsed = new Date(dateInput);
-      return isNaN(parsed.getTime()) ? new Date() : parsed;
+      if (isNaN(parsed.getTime())) {
+        console.warn(`[EMAIL] Invalid date string: ${dateInput}, using current time as fallback`);
+        return new Date();
+      }
+      return parsed;
     } catch (e: unknown) {
-      console.error(`Failed to parse date: ${dateInput}`, e);
+      console.error(`[EMAIL] Failed to parse date: ${dateInput}`, e);
       return new Date();
     }
   };
@@ -245,9 +263,11 @@ export async function sendConfirmationEmail(
   const startDate = parseDate(schedule.startTime);
   const endDate = parseDate(schedule.endTime);
   
-  console.log(`[Email] Parsed dates: Start=${startDate.toISOString()}, End=${endDate.toISOString()}`);
+  // Log the original and parsed dates for debugging
+  console.log(`[EMAIL] Original dates: Start=${JSON.stringify(schedule.startTime)}, End=${JSON.stringify(schedule.endTime)}`);
+  console.log(`[EMAIL] Parsed dates: Start=${startDate.toISOString()}, End=${endDate.toISOString()}`);
   
-  // Format times in both facility and user timezone
+  // Format times in facility timezone (location where appointment is scheduled)
   const facilityStart = formatDateForTimezone(
     startDate, 
     facilityTimezone, 
@@ -258,6 +278,8 @@ export async function sendConfirmationEmail(
     facilityTimezone, 
     'h:mm aa'
   );
+  
+  // Format times in user's local timezone
   const userStart = formatDateForTimezone(
     startDate, 
     userTimezone, 
@@ -269,10 +291,15 @@ export async function sendConfirmationEmail(
     'h:mm aa'
   );
 
-  // Get timezone abbreviations
+  // Get timezone abbreviations (EDT, PDT, etc.)
   const facilityTzAbbr = getTimezoneAbbr(facilityTimezone, startDate);
   const userTzAbbr = getTimezoneAbbr(userTimezone, startDate);
+  
+  // Log the formatted times for debugging
+  console.log(`[EMAIL] Facility time: ${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`);
+  console.log(`[EMAIL] User time: ${userStart} - ${userEnd} ${userTzAbbr}`);
 
+  // Create the final time strings for the email
   const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
   const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
 
