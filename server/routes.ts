@@ -2756,7 +2756,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   <p><strong>Facility time:</strong> ${facilityStartTime} - ${facilityEndTime} (${facilityTzAbbr})</p>
                   <p><strong>Your local time:</strong> ${localStartTime} - ${localEndTime} (${localTzAbbr})</p>
                   <p><strong>Facility:</strong> ${data.facilityName}</p>
-                  <p><strong>Dock:</strong> ${data.dockName}</p>
+                  <p><strong>Dock:</strong> ${data.dockName === "Not scheduled yet" ? 
+                    "<span style='color: #777;'>Not assigned yet</span> (will be assigned prior to your arrival)" : 
+                    data.dockName}
+                  </p>
                 </div>
                 
                 <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -2774,7 +2777,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   <p><strong>Truck:</strong> ${data.truckNumber || 'N/A'}</p>
                 </div>
                 
-                <p>Please arrive at your scheduled time. If you need to modify or cancel this appointment, please contact the facility.</p>
+                <p>Please arrive at your scheduled time. If you need to modify or cancel this appointment, please use the links below.</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="https://app.dockoptimizer.com/reschedule?code=${confirmationCode}" style="display: inline-block; background-color: #2196F3; color: white; padding: 10px 20px; margin: 0 10px; text-decoration: none; border-radius: 4px; font-weight: bold;">Reschedule Appointment</a>
+                  <a href="https://app.dockoptimizer.com/cancel?code=${confirmationCode}" style="display: inline-block; background-color: #f44336; color: white; padding: 10px 20px; margin: 0 10px; text-decoration: none; border-radius: 4px; font-weight: bold;">Cancel Appointment</a>
+                </div>
                 
                 <div style="margin-top: 30px; font-size: 12px; color: #666;">
                   <p>This is an automated message from Dock Optimizer. Please do not reply to this email.</p>
