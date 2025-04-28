@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, ControllerRenderProps } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Facility } from "@shared/schema";
@@ -16,6 +16,29 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Clock, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// Helper function to ensure Input value is always a string
+const safeValueAsString = (value: string | null | undefined): string => {
+  if (value === null || value === undefined) return "";
+  return value;
+};
+
+// Reusable component for time inputs that handles null values
+interface TimeInputProps {
+  field: ControllerRenderProps<any, any>;
+  placeholder: string;
+}
+
+const TimeInput = ({ field, placeholder }: TimeInputProps) => (
+  <Input 
+    onChange={field.onChange}
+    onBlur={field.onBlur}
+    name={field.name}
+    ref={field.ref}
+    value={safeValueAsString(field.value)}
+    placeholder={placeholder}
+  />
+);
 
 // Define facility edit schema with operating hours validation
 const facilityEditSchema = z.object({
@@ -659,10 +682,7 @@ export default function FacilitySettingsPage() {
                               <FormItem className="flex-1">
                                 <FormLabel>Break Start</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    {...field} 
-                                    placeholder="12:00"
-                                  />
+                                  <TimeInput field={field} placeholder="12:00" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -675,10 +695,7 @@ export default function FacilitySettingsPage() {
                               <FormItem className="flex-1">
                                 <FormLabel>Break End</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    {...field} 
-                                    placeholder="13:00"
-                                  />
+                                  <TimeInput field={field} placeholder="13:00" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
