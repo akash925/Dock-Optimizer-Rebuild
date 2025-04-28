@@ -1007,11 +1007,25 @@ export default function UnifiedAppointmentForm({
                                     key={slot.time}
                                     value={slot.time}
                                     disabled={!slot.available}
-                                    className={!slot.available ? "opacity-50" : ""}
+                                    className={`${!slot.available ? "opacity-50" : ""} ${slot.isBufferTime ? "bg-yellow-50" : ""}`}
                                   >
-                                    {slot.time} {!slot.available && `(${slot.reason || "Unavailable"})`}
-                                    {slot.available && slot.remaining !== undefined && 
-                                      slot.remaining > 0 && ` (${slot.remaining} slots remaining)`}
+                                    <div className="flex items-center justify-between w-full">
+                                      <span className="font-medium">{slot.time}</span>
+                                      <span className="text-sm ml-2">
+                                        {!slot.available && slot.isBufferTime && (
+                                          <span className="text-amber-600 text-xs">(Buffer time)</span>
+                                        )}
+                                        {!slot.available && !slot.isBufferTime && (
+                                          <span className="text-red-600 text-xs">({slot.reason || "Unavailable"})</span>
+                                        )}
+                                        {slot.available && slot.remaining !== undefined && 
+                                          slot.remaining > 0 && (
+                                          <span className="text-green-600 text-xs">
+                                            ({slot.remaining} {slot.remaining === 1 ? "slot" : "slots"} left)
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
                                   </SelectItem>
                                 ))
                               )}

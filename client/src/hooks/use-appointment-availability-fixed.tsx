@@ -19,6 +19,7 @@ export interface AvailabilitySlot {
   available: boolean;
   reason?: string;
   remaining?: number;
+  isBufferTime?: boolean;
 }
 
 export interface UseAppointmentAvailabilityProps {
@@ -194,6 +195,14 @@ export function useAppointmentAvailability({
           return currentTime >= ruleStart && appointmentEnd <= ruleEnd;
         });
         
+        // Find the buffer time from the relevant rules (if any)
+        let bufferTime = 0; // Default no buffer
+        for (const rule of relevantRules) {
+          if (rule.bufferTime && rule.bufferTime > bufferTime) {
+            bufferTime = rule.bufferTime;
+          }
+        }
+        
         // If no relevant rules for this time slot, it's unavailable
         if (relevantRules.length === 0) {
           isAvailable = false;
@@ -204,10 +213,25 @@ export function useAppointmentAvailability({
             const appStart = new Date(app.startTime);
             const appEnd = new Date(app.endTime);
             
-            return (
+            // Calculate buffer windows around existing appointments
+            let bufferStart = new Date(appStart);
+            bufferStart.setMinutes(bufferStart.getMinutes() - bufferTime);
+            
+            let bufferEnd = new Date(appEnd);
+            bufferEnd.setMinutes(bufferEnd.getMinutes() + bufferTime);
+            
+            // Check if current time slot overlaps with appointment OR buffer zone
+            const overlapsAppointment = (
               (currentTime < appEnd && appointmentEnd > appStart) ||
               (appStart < appointmentEnd && appEnd > currentTime)
             );
+            
+            const overlapsBuffer = (
+              (currentTime < bufferEnd && appointmentEnd > bufferStart) || 
+              (bufferStart < appointmentEnd && bufferEnd > currentTime)
+            );
+            
+            return overlapsAppointment || (bufferTime > 0 && overlapsBuffer);
           });
           
           // Check max concurrent constraints from rules
@@ -229,12 +253,16 @@ export function useAppointmentAvailability({
           }
         }
         
+        // Determine if this is a buffer time slot
+        const isBufferTime = !isAvailable && reason === 'No available slots' && bufferTime > 0;
+        
         // Add the slot
         slots.push({
           time: timeString,
           available: isAvailable,
           reason: !isAvailable ? reason : undefined,
-          remaining: isAvailable ? remainingSlots : 0
+          remaining: isAvailable ? remainingSlots : 0,
+          isBufferTime // Add this property to identify buffer time slots
         });
         
         // Move to next 30-minute slot
