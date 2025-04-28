@@ -130,7 +130,8 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
         { field: 'contactName', label: 'Contact Name' },
         { field: 'email', label: 'Email' },
         { field: 'phone', label: 'Phone' },
-        { field: 'carrierName', label: 'Carrier Name' },
+        // Carrier name is now handled differently to prevent duplicate prompts
+        // Either carrierId OR carrierName must be present
         { field: 'driverName', label: 'Driver Name' },
         { field: 'driverPhone', label: 'Driver Phone' },
         { field: 'truckNumber', label: 'Truck Number' }
@@ -139,6 +140,12 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
       const missingFields = requiredFields.filter(
         field => !bookingData[field.field as keyof typeof bookingData]
       );
+      
+      // Special validation for carrier: need either carrierId or carrierName
+      const hasCarrierInfo = bookingData.carrierId || bookingData.carrierName;
+      if (!hasCarrierInfo) {
+        missingFields.push({ field: 'carrierName', label: 'Carrier Name' });
+      }
       
       if (missingFields.length > 0) {
         const missingFieldNames = missingFields.map(f => f.label).join(', ');

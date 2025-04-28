@@ -115,6 +115,7 @@ export const insertCarrierSchema = createInsertSchema(carriers).omit({
 // Schedule Model
 export const schedules = pgTable("schedules", {
   id: serial("id").primaryKey(),
+  facilityId: integer("facility_id"), // Adding facility ID field
   dockId: integer("dock_id"),
   carrierId: integer("carrier_id"), // Removing .notNull() to allow null carriers
   appointmentTypeId: integer("appointment_type_id"),
@@ -443,6 +444,11 @@ export const schedulesRelations = relations(schedules, ({ one, many }) => ({
     references: [docks.id],
     relationName: "dock_schedules",
   }),
+  facility: one(facilities, {
+    fields: [schedules.facilityId],
+    references: [facilities.id],
+    relationName: "facility_schedules",
+  }),
   carrier: one(carriers, {
     fields: [schedules.carrierId],
     references: [carriers.id],
@@ -477,6 +483,7 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
 
 export const facilitiesRelations = relations(facilities, ({ many }) => ({
   docks: many(docks),
+  schedules: many(schedules, { relationName: "facility_schedules" }),
   holidays: many(holidays, { relationName: "facility_holidays" }),
   appointmentSettings: many(appointmentSettings, { relationName: "facility_appointment_settings" }),
   appointmentTypes: many(appointmentTypes, { relationName: "facility_appointment_types" }),
