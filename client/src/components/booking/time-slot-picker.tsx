@@ -2,7 +2,7 @@ import React from "react";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTimeZoneUtils } from "@/hooks/use-timezone-utils";
-import { formatTimeRangeForDualZones, toZonedTime } from "@/lib/timezone-utils";
+import { formatInTimeZone } from "date-fns-tz";
 
 interface TimeSlotPickerProps {
   availableTimes: string[]; // array of times in "HH:MM" format
@@ -56,28 +56,34 @@ export function TimeSlotPicker({
       facilityTz: timezone
     });
     
-    // Use our enhanced timezone utilities
-    const { facilityTimeRange, userTimeRange, facilityZoneAbbr, userZoneAbbr, showBothTimezones } = 
-      formatTimeRangeForDualZones(slotTime, endTime, timezone);
+    // Format facility time (in facility timezone)
+    const facilityTime = formatInTimeZone(slotTime, timezone, "h:mm a");
+    const facilityTzAbbr = getTzAbbreviation(timezone);
     
-    // Extract just the start time from the range for display in the button
-    const facilityStartTime = facilityTimeRange.split(' - ')[0];
-    const userStartTime = userTimeRange.split(' - ')[0];
+    // Format user time (in user timezone)
+    const userTime = format(slotTime, "h:mm a", { timeZone: userTimezone });
+    const userTzAbbr = getTzAbbreviation(userTimezone);
     
     // Show both timezones if they differ
-    if (showBothTimezones) {
-      return (
-        <div className="flex flex-col">
-          <span>{facilityStartTime}</span>
-          <span className="text-xs opacity-70">
-            {userStartTime} {userZoneAbbr}
-          </span>
-        </div>
-      );
+    if (userTimezone !== timezone) {
+      const userOffset = new Date().getTimezoneOffset();
+      const facilityOffset = new Date(formatInTimeZone(new Date(), timezone, "yyyy-MM-dd'T'HH:mm:ss")).getTimezoneOffset();
+      
+      // Only show both if there's an actual time difference
+      if (userOffset !== facilityOffset) {
+        return (
+          <div className="flex flex-col">
+            <span>{facilityTime}</span>
+            <span className="text-xs opacity-70">
+              {userTime} {userTzAbbr}
+            </span>
+          </div>
+        );
+      }
     }
     
     // Otherwise just show facility time
-    return facilityStartTime;
+    return facilityTime;
   };
   
   // Group times into morning, afternoon, evening

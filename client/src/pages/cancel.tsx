@@ -64,6 +64,12 @@ export default function CancelPage() {
     enabled: !!schedule?.facilityId,
   });
   
+  // Query to fetch appointment types
+  const appointmentTypes = useQuery({
+    queryKey: ["/api/appointment-types"],
+    enabled: !!schedule?.appointmentTypeId,
+  });
+  
   // Mutation to cancel the appointment
   const cancelMutation = useMutation({
     mutationFn: async () => {
@@ -150,6 +156,50 @@ export default function CancelPage() {
     );
   };
   
+  // Helper to get facility name, handling data model inconsistencies
+  const getFacilityName = (schedule: any): string => {
+    // Try all possible property names for facility
+    if (typeof schedule.facilityName === 'string') {
+      return schedule.facilityName;
+    }
+    
+    if (typeof schedule.facility?.name === 'string') {
+      return schedule.facility.name;
+    }
+    
+    if (facilitiesQuery.data && schedule.facilityId) {
+      const facility = facilitiesQuery.data.find((f: any) => f.id === schedule.facilityId);
+      if (facility) {
+        return facility.name;
+      }
+    }
+    
+    return "Unknown Facility";
+  };
+  
+  // Helper to get appointment type name, handling data model inconsistencies
+  const getAppointmentTypeName = (schedule: any): string => {
+    // Try all possible property names for appointment type
+    if (typeof schedule.appointmentTypeName === 'string') {
+      return schedule.appointmentTypeName;
+    }
+    
+    if (typeof schedule.appointmentType?.name === 'string') {
+      return schedule.appointmentType.name;
+    }
+    
+    if (appointmentTypes.data && schedule.appointmentTypeId) {
+      const appointmentType = appointmentTypes.data.find((t: any) => t.id === schedule.appointmentTypeId);
+      if (appointmentType) {
+        return appointmentType.name;
+      }
+    }
+    
+    return schedule.type === "inbound" ? "Inbound Appointment" : 
+           schedule.type === "outbound" ? "Outbound Appointment" : 
+           "Standard Appointment";
+  };
+  
   // Render based on the current step
   const renderStep = () => {
     switch (currentStep) {
@@ -195,10 +245,10 @@ export default function CancelPage() {
                 <div>{formatScheduleTime(schedule)}</div>
                 
                 <div className="font-medium text-muted-foreground">Facility:</div>
-                <div>{schedule.facilityName}</div>
+                <div>{getFacilityName(schedule)}</div>
                 
                 <div className="font-medium text-muted-foreground">Appointment:</div>
-                <div>{schedule.appointmentTypeName}</div>
+                <div>{getAppointmentTypeName(schedule)}</div>
                 
                 <div className="font-medium text-muted-foreground">Status:</div>
                 <div>
