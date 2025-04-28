@@ -1228,7 +1228,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? (await storage.getDock(schedule.dockId))?.name || `Dock ${schedule.dockId}` 
             : "Not scheduled yet";
             
-          // Send confirmation email
+          // Log email sending data
+          console.log("[EMAIL SENDING]", {
+            to: validatedData.email,
+            subject: `Dock Appointment Confirmation #${schedule.id}`
+          });
+            
+          // Send confirmation email with enhanced information
           sendScheduleConfirmationEmail(
             validatedData.email,
             {
@@ -1239,7 +1245,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               endTime: new Date(schedule.endTime),
               truckNumber: schedule.truckNumber || '',
               customerName: schedule.customerName || undefined,
-              type: validatedData.pickupOrDropoff === 'pickup' ? 'pickup' : 'delivery'
+              type: validatedData.pickupOrDropoff === 'pickup' ? 'pickup' : 'delivery',
+              // Add additional fields for enhanced email
+              driverName: validatedData.driverName || schedule.driverName || undefined,
+              driverPhone: validatedData.driverPhone || schedule.driverPhone || undefined,
+              carrierName: validatedData.carrierName || schedule.carrierName || undefined,
+              mcNumber: validatedData.mcNumber || schedule.mcNumber || undefined,
+              timezone: facility?.timezone || 'America/New_York'
             }
           ).catch(err => {
             // Just log errors, don't let email failures affect API response
@@ -1447,7 +1459,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const locations = await storage.getFacilities();
           const facility = locations.find(loc => loc.name === validatedData.location);
           
-          // Send confirmation email
+          // Log email sending
+          console.log("[EMAIL SENDING]", {
+            to: validatedData.contactEmail,
+            subject: `Dock Appointment Confirmation #${schedule.id}`
+          });
+          
+          // Send confirmation email with enhanced information
           sendScheduleConfirmationEmail(
             validatedData.contactEmail,
             {
@@ -1458,7 +1476,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               endTime: endTime,
               truckNumber: schedule.truckNumber || '',
               customerName: validatedData.customerName || undefined,
-              type: validatedData.pickupOrDropoff === 'pickup' ? 'pickup' : 'delivery'
+              type: validatedData.pickupOrDropoff === 'pickup' ? 'pickup' : 'delivery',
+              // Add additional fields for enhanced email
+              driverName: validatedData.driverName || schedule.driverName || undefined,
+              driverPhone: validatedData.driverPhone || schedule.driverPhone || undefined,
+              carrierName: validatedData.carrierName || schedule.carrierName || undefined,
+              mcNumber: validatedData.mcNumber || schedule.mcNumber || undefined,
+              timezone: facility?.timezone || 'America/New_York'
             }
           ).catch(err => {
             // Just log errors, don't let email failures affect API response

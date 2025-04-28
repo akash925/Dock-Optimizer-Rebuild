@@ -93,6 +93,11 @@ export async function sendScheduleConfirmationEmail(
     truckNumber: string;
     customerName?: string;
     type: string;
+    driverName?: string;
+    driverPhone?: string;
+    carrierName?: string;
+    mcNumber?: string;
+    timezone?: string;
   }
 ): Promise<boolean> {
   // Don't attempt to send if no recipient email
@@ -108,15 +113,48 @@ export async function sendScheduleConfirmationEmail(
     day: 'numeric'
   });
   
-  const formattedStartTime = scheduleData.startTime.toLocaleTimeString('en-US', {
+  // Format facility time (using the timezone from the facility if provided)
+  const facilityTimezone = scheduleData.timezone || 'America/New_York';
+  
+  // Format start and end times in facility's timezone
+  const facilityStartTime = scheduleData.startTime.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: facilityTimezone
+  });
+  
+  const facilityEndTime = scheduleData.endTime.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: facilityTimezone
+  });
+  
+  // Get the timezone abbreviation (EDT, PDT, etc.)
+  const facilityTzAbbr = new Intl.DateTimeFormat('en-US', {
+    timeZone: facilityTimezone,
+    timeZoneName: 'short'
+  }).formatToParts(scheduleData.startTime)
+    .find(part => part.type === 'timeZoneName')?.value || '';
+  
+  // Format time in recipient's local timezone (best guess, will show server time)
+  const localStartTime = scheduleData.startTime.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
   });
   
-  const formattedEndTime = scheduleData.endTime.toLocaleTimeString('en-US', {
+  const localEndTime = scheduleData.endTime.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit'
   });
+  
+  // Get local timezone abbreviation
+  const localTzAbbr = new Intl.DateTimeFormat('en-US', {
+    timeZoneName: 'short'
+  }).formatToParts(scheduleData.startTime)
+    .find(part => part.type === 'timeZoneName')?.value || '';
+  
+  // Create a confirmation code with HC prefix
+  const confirmationCode = `HC${scheduleData.id}`;
   
   const emailData: EmailData = {
     to: recipientEmail,
@@ -125,17 +163,35 @@ export async function sendScheduleConfirmationEmail(
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #4CAF50;">Dock Appointment Confirmed</h2>
-        <p>Your ${scheduleData.type} appointment has been scheduled successfully.</p>
+        <p>Your appointment has been successfully scheduled. Please save your confirmation code for reference.</p>
+        
+        <div style="background-color: #f0f9f0; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
+          <h3 style="margin-top: 0;">Confirmation Code</h3>
+          <p style="font-size: 24px; font-weight: bold;">${confirmationCode}</p>
+        </div>
         
         <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Appointment Details</h3>
-          <p><strong>Confirmation #:</strong> ${scheduleData.id}</p>
           <p><strong>Date:</strong> ${formattedDate}</p>
-          <p><strong>Time:</strong> ${formattedStartTime} - ${formattedEndTime}</p>
+          <p><strong>Facility time:</strong> ${facilityStartTime} - ${facilityEndTime} (${facilityTzAbbr})</p>
+          <p><strong>Your local time:</strong> ${localStartTime} - ${localEndTime} (${localTzAbbr})</p>
           <p><strong>Facility:</strong> ${scheduleData.facilityName}</p>
           <p><strong>Dock:</strong> ${scheduleData.dockName}</p>
-          <p><strong>Truck Number:</strong> ${scheduleData.truckNumber}</p>
-          ${scheduleData.customerName ? `<p><strong>Customer:</strong> ${scheduleData.customerName}</p>` : ''}
+        </div>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Contact Information</h3>
+          <p><strong>Company:</strong> ${scheduleData.customerName || 'N/A'}</p>
+          <p><strong>Contact:</strong> ${scheduleData.driverName || 'N/A'}</p>
+          <p><strong>Phone:</strong> ${scheduleData.driverPhone || 'N/A'}</p>
+          <p><strong>Email:</strong> ${recipientEmail}</p>
+        </div>
+        
+        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Carrier Information</h3>
+          <p><strong>Carrier:</strong> ${scheduleData.carrierName || 'N/A'} ${scheduleData.mcNumber ? `(MC#: ${scheduleData.mcNumber})` : ''}</p>
+          <p><strong>Driver:</strong> ${scheduleData.driverName || 'N/A'}</p>
+          <p><strong>Truck:</strong> ${scheduleData.truckNumber || 'N/A'}</p>
         </div>
         
         <p>Please arrive at your scheduled time. If you need to modify or cancel this appointment, please contact the facility.</p>
@@ -148,16 +204,27 @@ export async function sendScheduleConfirmationEmail(
     text: `
       Dock Appointment Confirmed
       
-      Your ${scheduleData.type} appointment has been scheduled successfully.
+      Your appointment has been successfully scheduled. Please save your confirmation code for reference.
+      
+      Confirmation Code: ${confirmationCode}
       
       Appointment Details:
-      Confirmation #: ${scheduleData.id}
       Date: ${formattedDate}
-      Time: ${formattedStartTime} - ${formattedEndTime}
+      Facility time: ${facilityStartTime} - ${facilityEndTime} (${facilityTzAbbr})
+      Your local time: ${localStartTime} - ${localEndTime} (${localTzAbbr})
       Facility: ${scheduleData.facilityName}
       Dock: ${scheduleData.dockName}
-      Truck Number: ${scheduleData.truckNumber}
-      ${scheduleData.customerName ? `Customer: ${scheduleData.customerName}` : ''}
+      
+      Contact Information:
+      Company: ${scheduleData.customerName || 'N/A'}
+      Contact: ${scheduleData.driverName || 'N/A'}
+      Phone: ${scheduleData.driverPhone || 'N/A'}
+      Email: ${recipientEmail}
+      
+      Carrier Information:
+      Carrier: ${scheduleData.carrierName || 'N/A'} ${scheduleData.mcNumber ? `(MC#: ${scheduleData.mcNumber})` : ''}
+      Driver: ${scheduleData.driverName || 'N/A'}
+      Truck: ${scheduleData.truckNumber || 'N/A'}
       
       Please arrive at your scheduled time. If you need to modify or cancel this appointment, please contact the facility.
       
