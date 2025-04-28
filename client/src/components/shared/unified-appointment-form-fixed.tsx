@@ -82,6 +82,7 @@ const appointmentFormSchema = z.object({
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
   driverPhone: z.string().min(1, "Driver phone is required"),
+  driverEmail: z.string().email("Valid email required for appointment confirmations").optional(),
   type: z.enum(["inbound", "outbound"]),
   appointmentMode: z.enum(["trailer", "container"]),
   
@@ -171,6 +172,7 @@ export default function UnifiedAppointmentForm({
       trailerNumber: initialData?.trailerNumber || "",
       driverName: initialData?.driverName || "",
       driverPhone: initialData?.driverPhone || "",
+      driverEmail: initialData?.driverEmail || "",
       type: initialData?.type || "inbound",
       appointmentMode: initialData?.appointmentMode || "trailer",
       bolNumber: initialData?.bolNumber || "",
@@ -404,6 +406,7 @@ export default function UnifiedAppointmentForm({
         trailerNumber: data.trailerNumber || "",
         driverName: data.driverName,
         driverPhone: data.driverPhone,
+        driverEmail: data.driverEmail || "", // Include driver email for notifications
         bolNumber: data.bolNumber || "",
         poNumber: data.poNumber || "",
         palletCount: data.palletCount ? parseInt(data.palletCount.toString()) : 0,
@@ -765,6 +768,23 @@ export default function UnifiedAppointmentForm({
                       <FormControl>
                         <Input placeholder="Enter driver phone" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={truckInfoForm.control}
+                  name="driverEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Driver Email <span className="text-xs text-muted-foreground">(for confirmations)</span></FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="Enter driver email" {...field} />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Email address is needed to send appointment confirmations
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
