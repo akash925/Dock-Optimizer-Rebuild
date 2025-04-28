@@ -1584,7 +1584,7 @@ function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any;
     const dateStr = format(start, 'EEEE, MMMM d, yyyy');
     
     // Get the time ranges in both user and facility timezones
-    const { userTimeRange, facilityTimeRange, userZoneAbbr, facilityZoneAbbr } = 
+    const { userTimeRange, facilityTimeRange, userZoneAbbr, facilityZoneAbbr, showBothTimezones } = 
       formatTimeRangeForDualZones(start, end, selectedFacility.timezone);
     
     return (
@@ -1593,9 +1593,11 @@ function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any;
         <div>
           <span className="font-medium">Facility time:</span> {facilityTimeRange} ({facilityZoneAbbr})
         </div>
-        <div>
-          <span className="font-medium">Your local time:</span> {userTimeRange} ({userZoneAbbr})
-        </div>
+        {showBothTimezones && (
+          <div>
+            <span className="font-medium">Your local time:</span> {userTimeRange} ({userZoneAbbr})
+          </div>
+        )}
       </div>
     );
   };

@@ -204,16 +204,40 @@ export const formatForDualTimeZoneDisplay = (
  * const tzAbbr = getTimeZoneAbbreviation('America/New_York'); // 'EDT' (during daylight saving time)
  */
 export const getTimeZoneAbbreviation = (timeZone: string, date: Date = new Date()): string => {
-  // Extract abbreviation from formatted date
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    timeZoneName: 'short',
-  });
-  
-  const formatted = formatter.format(date);
-  // Extract abbreviation (usually the last 3-4 characters after a space)
-  const parts = formatted.split(' ');
-  return parts[parts.length - 1] || timeZone;
+  try {
+    // Extract abbreviation from formatted date
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      timeZoneName: 'short',
+    });
+    
+    // This gives a format like "4/28/25, 6:07 PM EDT"
+    const formatted = formatter.format(date);
+    
+    // Extract abbreviation (usually the last 3-4 characters after a space)
+    const parts = formatted.split(' ');
+    const abbr = parts[parts.length - 1];
+    
+    if (abbr && /^[A-Z]{3,4}$/.test(abbr)) {
+      // Return if we have a proper abbreviation (3-4 uppercase letters)
+      return abbr;
+    }
+    
+    // Try another approach - using formatToParts
+    const formattedParts = formatter.formatToParts(date);
+    const timeZonePart = formattedParts.find(part => part.type === 'timeZoneName');
+    if (timeZonePart?.value) {
+      return timeZonePart.value;
+    }
+    
+    // If all else fails, return a simplified timezone name
+    return timeZone.split('/').pop()?.replace('_', ' ') || timeZone;
+  } catch (error) {
+    console.error(`Error getting timezone abbreviation for ${timeZone}:`, error);
+    
+    // Fallback to returning the last part of the timezone as an abbreviation
+    return timeZone.split('/').pop()?.replace('_', ' ') || timeZone;
+  }
 };
 
 /**
@@ -324,6 +348,20 @@ export const getCurrentTimeInTimeZone = (timeZone?: string): Date => {
   return toZonedTime(now, tz);
 };
 
+/**
+ * Formats a time range for display in both user's and facility's time zones.
+ * Handles different timezone conversions properly.
+ * 
+ * @param {Date | string} start - The start time (Date object or ISO string)
+ * @param {Date | string} end - The end time (Date object or ISO string)
+ * @param {string} facilityTimeZone - The IANA time zone identifier for the facility
+ * @returns {Object} An object containing formatted time ranges and time zone abbreviations
+ * @returns {string} .userTimeRange - The time range formatted in the user's time zone (e.g., "9:00 AM - 10:00 AM")
+ * @returns {string} .facilityTimeRange - The time range formatted in the facility's time zone
+ * @returns {string} .userZoneAbbr - The user's time zone abbreviation (e.g., "EDT")
+ * @returns {string} .facilityZoneAbbr - The facility's time zone abbreviation
+ * @returns {boolean} .showBothTimezones - Whether to show both timezones (true if they differ)
+ */
 export const formatTimeRangeForDualZones = (
   start: Date | string,
   end: Date | string,
@@ -333,14 +371,22 @@ export const formatTimeRangeForDualZones = (
   facilityTimeRange: string;
   userZoneAbbr: string;
   facilityZoneAbbr: string;
+  showBothTimezones: boolean;
 } => {
+  const userTimeZone = getUserTimeZone();
+  const showBothTimezones = userTimeZone !== facilityTimeZone;
+  
+  // Default return object for error cases
+  const defaultReturn = {
+    userTimeRange: '—',
+    facilityTimeRange: '—',
+    userZoneAbbr: getTimeZoneAbbreviation(userTimeZone),
+    facilityZoneAbbr: getTimeZoneAbbreviation(facilityTimeZone),
+    showBothTimezones
+  };
+  
   if (!start || !end) {
-    return {
-      userTimeRange: '—',
-      facilityTimeRange: '—',
-      userZoneAbbr: getTimeZoneAbbreviation(getUserTimeZone()),
-      facilityZoneAbbr: getTimeZoneAbbreviation(facilityTimeZone)
-    };
+    return defaultReturn;
   }
   
   try {
@@ -350,48 +396,42 @@ export const formatTimeRangeForDualZones = (
     // Check if dates are valid
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       console.error('Invalid date provided to formatTimeRangeForDualZones:', { start, end });
-      return {
-        userTimeRange: '—',
-        facilityTimeRange: '—',
-        userZoneAbbr: getTimeZoneAbbreviation(getUserTimeZone()),
-        facilityZoneAbbr: getTimeZoneAbbreviation(facilityTimeZone)
-      };
+      return defaultReturn;
     }
     
-    const userTimeZone = getUserTimeZone();
+    // Safe approach for timezone formatting using date-fns-tz
     const timeFormat = 'h:mm a';
     
     try {
+      // Format start and end times in both timezones
       const userStartTime = formatInTimeZone(startDate, userTimeZone, timeFormat);
       const userEndTime = formatInTimeZone(endDate, userTimeZone, timeFormat);
       const facilityStartTime = formatInTimeZone(startDate, facilityTimeZone, timeFormat);
       const facilityEndTime = formatInTimeZone(endDate, facilityTimeZone, timeFormat);
       
+      // Get timezone abbreviations
       const userZoneAbbr = getTimeZoneAbbreviation(userTimeZone, startDate);
       const facilityZoneAbbr = getTimeZoneAbbreviation(facilityTimeZone, startDate);
+      
+      // Log debug info
+      console.log(`Time range in ${facilityTimeZone} (facility): ${facilityStartTime} - ${facilityEndTime} ${facilityZoneAbbr}`);
+      if (showBothTimezones) {
+        console.log(`Time range in ${userTimeZone} (user): ${userStartTime} - ${userEndTime} ${userZoneAbbr}`);
+      }
       
       return {
         userTimeRange: `${userStartTime} - ${userEndTime}`,
         facilityTimeRange: `${facilityStartTime} - ${facilityEndTime}`,
         userZoneAbbr,
-        facilityZoneAbbr
+        facilityZoneAbbr,
+        showBothTimezones
       };
     } catch (formatError) {
       console.error('Error formatting time in formatTimeRangeForDualZones:', formatError);
-      return {
-        userTimeRange: '—',
-        facilityTimeRange: '—',
-        userZoneAbbr: getTimeZoneAbbreviation(userTimeZone),
-        facilityZoneAbbr: getTimeZoneAbbreviation(facilityTimeZone)
-      };
+      return defaultReturn;
     }
   } catch (error) {
     console.error('Error in formatTimeRangeForDualZones:', error);
-    return {
-      userTimeRange: '—',
-      facilityTimeRange: '—',
-      userZoneAbbr: getTimeZoneAbbreviation(getUserTimeZone()),
-      facilityZoneAbbr: getTimeZoneAbbreviation(facilityTimeZone)
-    };
+    return defaultReturn;
   }
 };
