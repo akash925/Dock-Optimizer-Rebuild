@@ -190,7 +190,8 @@ export default function Dashboard() {
       
       // Calculate comparison metrics (previous period or targets)
       // For trucks: compare with previous day/week/month depending on selection
-      let prevPeriodStart, prevPeriodEnd;
+      let prevPeriodStart: Date = new Date();
+      let prevPeriodEnd: Date = new Date();
       let truckChangeText = "from yesterday";
       
       switch (dateRange) {
@@ -223,7 +224,7 @@ export default function Dashboard() {
           prevPeriodStart = new Date(start);
           prevPeriodStart.setMonth(prevPeriodStart.getMonth() - 1);
           prevPeriodEnd = new Date(end);
-          prevPeriodEnd.setMonth(prevPeriodEnd.getDate() - 1);
+          prevPeriodEnd.setMonth(prevPeriodEnd.getMonth() - 1); // Fixed a bug: was changing date not month
           truckChangeText = "from last month";
           break;
       }
@@ -378,7 +379,7 @@ export default function Dashboard() {
       
       setUpcomingArrivals(arrivals);
     }
-  }, [docks, schedules, carriers, selectedFacilityId]);
+  }, [docks, schedules, carriers, selectedFacilityId, dateRange]);
 
   return (
     <div className="mb-6">
