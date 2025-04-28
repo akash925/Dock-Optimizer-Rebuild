@@ -48,7 +48,6 @@ export async function testEmailTemplate() {
       status: 'scheduled',
       type: 'inbound',
       poNumber: null,
-      customerEmail: null,
       createdAt: new Date(),
       lastModifiedAt: null,
       actualStartTime: null,
@@ -65,9 +64,14 @@ export async function testEmailTemplate() {
     // Save the generated HTML to a file for inspection
     const emailFunction = sendConfirmationEmail.toString();
     
-    // Just save the email content directly
-    fs.writeFileSync('email-template-test.html', emailContent?.html || 'No HTML content generated');
-    fs.writeFileSync('email-template-test.txt', emailContent?.text || 'No text content generated');
+    // Handle both boolean and object returns from sendConfirmationEmail
+    if (typeof emailContent === 'object' && emailContent !== null) {
+      fs.writeFileSync('email-template-test.html', emailContent.html || 'No HTML content generated');
+      fs.writeFileSync('email-template-test.txt', emailContent.text || 'No text content generated');
+    } else {
+      fs.writeFileSync('email-template-test.html', 'Email would be sent in production environment');
+      fs.writeFileSync('email-template-test.txt', 'Email would be sent in production environment');
+    }
     
     console.log("✅ Email template test HTML and text saved to project root");
     return true;

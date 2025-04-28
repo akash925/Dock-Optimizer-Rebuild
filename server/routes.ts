@@ -656,6 +656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (schedule.driverEmail) {
               sendConfirmationEmail(
                 schedule.driverEmail,
+                `HC${schedule.id}`,
                 {
                   id: schedule.id,
                   dockName: dock.name || `Dock ${schedule.dockId}`,

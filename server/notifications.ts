@@ -32,21 +32,32 @@ export interface EmailParams {
   from?: string;
 }
 
-export async function sendEmail(params: EmailParams): Promise<boolean> {
+export async function sendEmail(params: EmailParams): Promise<{ html: string, text: string } | boolean> {
+  // Prepare the email message
+  const msg = {
+    to: params.to,
+    from: params.from || process.env.SENDGRID_FROM_EMAIL || 'notifications@dockoptimizer.com',
+    subject: params.subject,
+    text: params.text || '',
+    html: params.html || '',
+  };
+
+  // In development mode, just return the content for testing
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[DEV MODE] Email would be sent to: ${params.to} with subject: ${params.subject}`);
+    return {
+      html: msg.html,
+      text: msg.text
+    };
+  }
+
+  // In production, attempt to send via SendGrid
   if (!process.env.SENDGRID_API_KEY) {
     console.warn('SendGrid API key not set, skipping email send');
     return false;
   }
 
   try {
-    const msg = {
-      to: params.to,
-      from: params.from || 'notifications@dockoptimizer.com',
-      subject: params.subject,
-      text: params.text || '',
-      html: params.html || '',
-    };
-
     await sgMail.send(msg);
     console.log(`Email sent successfully to ${params.to}`);
     return true;
