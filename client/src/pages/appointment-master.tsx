@@ -1092,14 +1092,185 @@ export default function AppointmentMaster() {
                   </div>
                 </div>
                 
-                <div className="p-4 border rounded-md bg-muted/50 space-y-2">
-                  <div className="flex items-center">
-                    <InfoIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                    <h3 className="font-medium">Form Questions</h3>
+                <div className="p-4 border rounded-md space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <InfoIcon className="h-5 w-5 text-muted-foreground mr-2" />
+                      <h3 className="font-medium">Appointment Form Questions</h3>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedQuestionId(null);
+                        setQuestionForm({
+                          label: "",
+                          type: "text",
+                          required: false,
+                          options: [],
+                          placeholder: "",
+                          appointmentType: "both"
+                        });
+                        setShowQuestionDialog(true);
+                      }}
+                    >
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Custom Question
+                    </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    You can add custom form fields for this appointment type from the "Custom Questions" tab.
-                  </p>
+                  
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12 text-center">Sr.No</TableHead>
+                          <TableHead>Question</TableHead>
+                          <TableHead>Answer Type</TableHead>
+                          <TableHead className="w-24 text-center">Is Required</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {/* Standard/Built-in Fields */}
+                        <TableRow>
+                          <TableCell className="text-center">1</TableCell>
+                          <TableCell>Customer Name</TableCell>
+                          <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">2</TableCell>
+                          <TableCell>Carrier Name</TableCell>
+                          <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">3</TableCell>
+                          <TableCell>Carrier MC #</TableCell>
+                          <TableCell>Number Only</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">4</TableCell>
+                          <TableCell>Driver/Dispatcher Email</TableCell>
+                          <TableCell>Email</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">5</TableCell>
+                          <TableCell>Driver/Dispatcher Phone Number</TableCell>
+                          <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">6</TableCell>
+                          <TableCell>Driver's License Number</TableCell>
+                          <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">7</TableCell>
+                          <TableCell>BOL Doc</TableCell>
+                          <TableCell>File Upload</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={false} />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">8</TableCell>
+                          <TableCell>BOL Number</TableCell>
+                          <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={false} />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">9</TableCell>
+                          <TableCell>Truck Number</TableCell>
+                          <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">10</TableCell>
+                          <TableCell>Trailer Number</TableCell>
+                          <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={true} disabled />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">11</TableCell>
+                          <TableCell>Driver's Name</TableCell>
+                          <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={false} />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="text-center">12</TableCell>
+                          <TableCell>Item Description/Quantity</TableCell>
+                          <TableCell>Text</TableCell>
+                          <TableCell className="text-center">
+                            <Checkbox checked={false} />
+                          </TableCell>
+                        </TableRow>
+                        
+                        {/* Custom Fields - would map from actual data */}
+                        {customFields.map((field, index) => (
+                          <TableRow key={field.id}>
+                            <TableCell className="text-center">{13 + index}</TableCell>
+                            <TableCell>{field.label}</TableCell>
+                            <TableCell>{field.type.charAt(0).toUpperCase() + field.type.slice(1)}</TableCell>
+                            <TableCell className="text-center">
+                              <Checkbox 
+                                checked={field.required} 
+                                onCheckedChange={(checked) => {
+                                  const updatedFields = [...customFields];
+                                  updatedFields[index].required = !!checked;
+                                  setCustomFields(updatedFields);
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  <div className="flex justify-center mt-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedQuestionId(null);
+                        setQuestionForm({
+                          label: "",
+                          type: "text",
+                          required: false,
+                          options: [],
+                          placeholder: "",
+                          appointmentType: "both"
+                        });
+                        setShowQuestionDialog(true);
+                      }}
+                    >
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Custom Question
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
