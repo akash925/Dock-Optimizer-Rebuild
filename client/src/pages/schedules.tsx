@@ -310,12 +310,18 @@ export default function Schedules() {
   
   // Filter and search schedules
   const filteredSchedules = schedules.filter((schedule: Schedule) => {
-    // Date filter - always applied
-    const scheduleDate = new Date(schedule.startTime);
-    const dateMatches = 
-      scheduleDate.getDate() === selectedDate.getDate() &&
-      scheduleDate.getMonth() === selectedDate.getMonth() &&
-      scheduleDate.getFullYear() === selectedDate.getFullYear();
+    // We should disable exact date matching for week view to show all appointments for the week
+    let dateMatches = true;
+    
+    if (viewMode === "day") {
+      // For day view, we need exact date match
+      const scheduleDate = new Date(schedule.startTime);
+      dateMatches = 
+        scheduleDate.getDate() === selectedDate.getDate() &&
+        scheduleDate.getMonth() === selectedDate.getMonth() &&
+        scheduleDate.getFullYear() === selectedDate.getFullYear();
+    }
+    // For week view (handled by the calendar component) and list view, don't filter by date
     
     // Status filter
     const statusMatches = filterStatus === "all" || schedule.status === filterStatus;
@@ -326,14 +332,17 @@ export default function Schedules() {
     // Facility filter - this requires looking up the dock's facility
     let facilityMatches = true;
     if (filterFacilityId !== "all") {
-      if (!schedule.dockId) {
-        // If no dock assigned and filtering by facility, don't show
-        facilityMatches = false;
-      } else {
+      // We need to check both direct facilityId (if present) and also via dock's facility
+      const directFacilityMatch = schedule.facilityId === filterFacilityId;
+      
+      let dockFacilityMatch = false;
+      if (schedule.dockId) {
         // Get dock and check if it belongs to the selected facility
         const dock = docks.find(d => d.id === schedule.dockId);
-        facilityMatches = dock?.facilityId === filterFacilityId;
+        dockFacilityMatch = dock?.facilityId === filterFacilityId;
       }
+      
+      facilityMatches = directFacilityMatch || dockFacilityMatch;
     }
     
     // Dock filter

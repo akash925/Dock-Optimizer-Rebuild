@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Schedule } from "@shared/schema";
 import { formatTime } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, parse, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 
 interface ScheduleCalendarProps {
   schedules: Schedule[];
   docks: { id: number; name: string }[];
   date: Date;
+  timezone: string;
+  timeFormat: "12h" | "24h";
   onScheduleClick: (scheduleId: number) => void;
   onCellClick?: (date: Date, dockId?: number) => void;
 }
@@ -16,23 +19,31 @@ export default function ScheduleCalendar({
   schedules,
   docks,
   date,
+  timezone,
+  timeFormat,
   onScheduleClick,
   onCellClick,
 }: ScheduleCalendarProps) {
-  const [dailySchedules, setDailySchedules] = useState<Schedule[]>([]);
+  const [displaySchedules, setDisplaySchedules] = useState<Schedule[]>([]);
   
-  // Filter schedules for the selected date
+  // Filter schedules for the selected view (week)
   useEffect(() => {
-    const selectedDateStr = date.toISOString().split('T')[0];
+    // For the calendar view, we want to show the entire week containing the selected date
+    const weekStart = startOfWeek(date);
+    const weekEnd = endOfWeek(date);
     
-    const filteredSchedules = schedules.filter(schedule => {
-      const scheduleStartDate = new Date(schedule.startTime).toISOString().split('T')[0];
-      const scheduleEndDate = new Date(schedule.endTime).toISOString().split('T')[0];
+    // Filter schedules that fall within the week's range
+    const schedulesForWeek = schedules.filter(schedule => {
+      const scheduleStart = new Date(schedule.startTime);
+      const scheduleEnd = new Date(schedule.endTime);
       
-      return scheduleStartDate === selectedDateStr || scheduleEndDate === selectedDateStr;
+      // Check if schedule overlaps with the week
+      return isWithinInterval(scheduleStart, { start: weekStart, end: weekEnd }) ||
+             isWithinInterval(scheduleEnd, { start: weekStart, end: weekEnd }) ||
+             (scheduleStart < weekStart && scheduleEnd > weekEnd);
     });
     
-    setDailySchedules(filteredSchedules);
+    setDisplaySchedules(schedulesForWeek);
   }, [schedules, date]);
 
   // Generate the hours for the calendar
@@ -106,7 +117,7 @@ export default function ScheduleCalendar({
         ))}
         
         {/* Schedule events */}
-        {dailySchedules.map((schedule) => {
+        {displaySchedules.map((schedule) => {
           const dockName = docks.find(d => d.id === schedule.dockId)?.name || '';
           const isInbound = schedule.type === "inbound";
           const startTimeStr = formatTime(schedule.startTime);
