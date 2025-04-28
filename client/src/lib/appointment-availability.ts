@@ -128,42 +128,25 @@ function generateTimeSlotsForRange(
   if (bufferTime > 0) {
     console.log(`[generateTimeSlotsForRange] Using buffer time: ${bufferTime} minutes`);
     
-    // With buffer time, we need to space out slots based on duration + buffer time
-    // Calculate how many intervals we need to skip
-    const totalTimeNeeded = duration + bufferTime;
-    const intervalsToSkip = Math.ceil(totalTimeNeeded / interval);
-    
-    // Generate slots with appropriate spacing
-    // We will generate all slots but mark some as buffer slots
-    let currentTime = startMinutes;
-    
-    while (currentTime <= lastPossibleStart) {
-      // Add the current slot
+    // Always generate all slots, but mark some as buffer slots
+    // First, create slots at every interval
+    for (let time = startMinutes; time <= lastPossibleStart; time += interval) {
+      // Determine if this is a valid appointment start time
+      // To be valid, there must be no overlap with buffer time around other appointments
+      const appointmentEndMinutes = time + duration;
+      
+      // By default, all slots are available unless they're within a buffer zone
       slots.push({
-        time: convertMinutesToTime(currentTime),
+        time: convertMinutesToTime(time),
         available: available,
         remainingCapacity: remainingCapacity,
-        isBufferTime: false // This is not a buffer time slot
+        isBufferTime: false // Not a buffer time slot by default
       });
-      
-      // Now add buffer time slots
-      for (let i = 1; i < intervalsToSkip && (currentTime + i * interval) <= endMinutes; i++) {
-        const bufferSlotTime = currentTime + (i * interval);
-        
-        // Only add buffer slots if they don't exceed the last possible start
-        if (bufferSlotTime <= lastPossibleStart) {
-          slots.push({
-            time: convertMinutesToTime(bufferSlotTime),
-            available: false, // Buffer slots are not available
-            remainingCapacity: 0,
-            isBufferTime: true // Mark as buffer time slot
-          });
-        }
-      }
-      
-      // Move to the next non-buffer slot
-      currentTime += interval * intervalsToSkip;
     }
+    
+    // Post-process slots to handle buffer zone overlaps
+    // Real buffer enforcement happens in appointment-availability-fixed.tsx
+    // Here we just report the buffer information correctly
     
     console.log(`[generateTimeSlotsForRange] Generated ${slots.length} slots with buffer time: ${bufferTime} minutes`);
   } else {

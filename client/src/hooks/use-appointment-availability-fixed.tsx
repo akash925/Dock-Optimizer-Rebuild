@@ -213,25 +213,29 @@ export function useAppointmentAvailability({
             const appStart = new Date(app.startTime);
             const appEnd = new Date(app.endTime);
             
-            // Calculate buffer windows around existing appointments
-            let bufferStart = new Date(appStart);
-            bufferStart.setMinutes(bufferStart.getMinutes() - bufferTime);
-            
-            let bufferEnd = new Date(appEnd);
-            bufferEnd.setMinutes(bufferEnd.getMinutes() + bufferTime);
-            
-            // Check if current time slot overlaps with appointment OR buffer zone
+            // Check direct overlap with the appointment
             const overlapsAppointment = (
               (currentTime < appEnd && appointmentEnd > appStart) ||
               (appStart < appointmentEnd && appEnd > currentTime)
             );
             
-            const overlapsBuffer = (
-              (currentTime < bufferEnd && appointmentEnd > bufferStart) || 
-              (bufferStart < appointmentEnd && bufferEnd > currentTime)
-            );
+            // If we don't overlap the appointment directly, check buffer zones
+            if (!overlapsAppointment && bufferTime > 0) {
+              // Calculate buffer windows around existing appointments
+              const bufferBefore = new Date(appStart);
+              bufferBefore.setMinutes(bufferBefore.getMinutes() - bufferTime);
+              
+              const bufferAfter = new Date(appEnd);
+              bufferAfter.setMinutes(bufferAfter.getMinutes() + bufferTime);
+              
+              // Check if our appointment overlaps with the buffer zones
+              const overlapsBufferBefore = (currentTime < appStart && appointmentEnd > bufferBefore);
+              const overlapsBufferAfter = (currentTime < bufferAfter && appointmentEnd > appEnd);
+              
+              return overlapsBufferBefore || overlapsBufferAfter;
+            }
             
-            return overlapsAppointment || (bufferTime > 0 && overlapsBuffer);
+            return overlapsAppointment;
           });
           
           // Check max concurrent constraints from rules
@@ -265,8 +269,8 @@ export function useAppointmentAvailability({
           isBufferTime // Add this property to identify buffer time slots
         });
         
-        // Move to next 30-minute slot
-        currentTime = new Date(currentTime.getTime() + 30 * 60 * 1000);
+        // Move to next 15-minute slot for more granular scheduling
+        currentTime = new Date(currentTime.getTime() + 15 * 60 * 1000);
       }
       
       return slots;
