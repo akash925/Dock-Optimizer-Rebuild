@@ -1204,7 +1204,7 @@ export default function AppointmentMaster() {
                         </TableRow>
                         <TableRow>
                           <TableCell className="text-center">8</TableCell>
-                          <TableCell>BOL Number</TableCell>
+                          <TableCell>BOL Identifier</TableCell>
                           <TableCell>Text</TableCell>
                           <TableCell className="text-center">
                             <Checkbox 
@@ -1212,7 +1212,7 @@ export default function AppointmentMaster() {
                               onCheckedChange={(checked) => {
                                 // In a real implementation, this would update the field configuration
                                 toast({
-                                  description: "BOL Number required setting updated",
+                                  description: "BOL Identifier required setting updated",
                                 });
                               }}
                             />
