@@ -653,12 +653,24 @@ export default function AppointmentForm({
                           field.onChange(parseInt(value));
                           // Reset appointment type when facility changes
                           form.setValue("appointmentTypeId", undefined as any);
-                          // Update filtered appointment types
+                          // Reset time-related fields as they depend on facility and appointment type
+                          form.setValue("appointmentDate", format(new Date(), "yyyy-MM-dd"));
+                          form.setValue("appointmentTime", "");
+                          // Reset available time slots
+                          setAvailableTimeSlots([]);
+                          // Update filtered appointment types for the selected facility
                           const facilityId = parseInt(value);
                           const typesForFacility = allAppointmentTypes.filter(type => 
                             type.facilityId === facilityId
                           );
                           setFilteredAppointmentTypes(typesForFacility);
+                          
+                          // Set facility name for later use
+                          const selectedFacility = facilities.find(f => f.id === facilityId);
+                          if (selectedFacility) {
+                            form.setValue("facilityName", selectedFacility.name);
+                            form.setValue("facilityTimezone", selectedFacility.timezone || "America/New_York");
+                          }
                         }}
                         value={field.value?.toString()}
                         defaultValue={field.value?.toString()}
