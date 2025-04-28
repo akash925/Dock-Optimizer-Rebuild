@@ -2,10 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=0" />
     <!-- The most reliable way to apply CSS fixes is to load them here -->
     <link rel="stylesheet" href="/main.css" />
     <style>
+      /* Responsive layout fixes */
+      @media (max-width: 768px) {
+        .fc .fc-toolbar {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+          gap: 0.5rem !important;
+        }
+        
+        .fc .fc-toolbar-title {
+          font-size: 1rem !important;
+        }
+        
+        .fc-event-title {
+          font-size: 0.7rem !important;
+        }
+        
+        .fc-col-header-cell-cushion {
+          font-size: 0.75rem !important;
+        }
+      }
+      
+      /* Make sure content adapts to viewport */
+      .fc-view-harness {
+        flex-grow: 1 !important;
+        min-height: 50vh !important;
+      }
+      
       /* Critical calendar fixes - added inline for immediate effect */
       .fc-timegrid-col-events {
         display: flex !important;

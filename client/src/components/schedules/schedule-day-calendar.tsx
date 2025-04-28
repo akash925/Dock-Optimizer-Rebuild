@@ -10,8 +10,10 @@ interface ScheduleDayCalendarProps {
   docks: Dock[];
   date: Date;
   onScheduleClick: (scheduleId: number) => void;
-  onCellClick?: (date: Date, dockId: number) => void;
+  onCellClick?: (date: Date, dockId?: number) => void;
   onDateChange: (date: Date) => void;
+  timezone?: string;
+  timeFormat?: "12h" | "24h";
 }
 
 export default function ScheduleDayCalendar({
