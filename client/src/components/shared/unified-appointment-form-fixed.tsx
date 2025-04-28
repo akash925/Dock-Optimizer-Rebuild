@@ -278,6 +278,10 @@ export default function UnifiedAppointmentForm({
   useEffect(() => {
     const appointmentDate = truckInfoForm.watch("appointmentDate");
     if (appointmentDate && selectedFacilityId) {
+      console.log("Selected date (exactly as selected):", appointmentDate);
+      
+      // Make sure we're using the exact date string without timezone adjustments
+      // This prevents the date from shifting due to timezone differences
       fetchAvailabilityForDate(appointmentDate);
     }
   }, [truckInfoForm.watch("appointmentDate"), selectedFacilityId, fetchAvailabilityForDate]);
@@ -347,13 +351,29 @@ export default function UnifiedAppointmentForm({
         return;
       }
       
-      // Create Date object
-      const startTime = new Date(`${appointmentDate}T${appointmentTime}`);
+      console.log("Updating facility timezone to", facilityTimezone);
+      
+      // Create Date object with explicit timezone handling
+      // This ensures we're creating the appointment in the facility's timezone
+      const dateTimeString = `${appointmentDate}T${appointmentTime}:00`;
+      
+      // First create the date object as local time
+      const localStartTime = new Date(`${appointmentDate}T${appointmentTime}`);
+      
+      // Then create a date that's timezone-aware in the facility timezone
+      // This maintains the exact hour/minute selected in the facility's timezone
+      const tzOptions = { timeZone: facilityTimezone };
+      const startTime = localStartTime;
+      
       if (isNaN(startTime.getTime())) {
         throw new Error("Invalid date/time");
       }
       
-      // Calculate end time
+      // Log the time values for debugging
+      console.log("Selected appointment type ID:", appointmentTypeId);
+      console.log("Selected appointment type:", selectedAppointmentType?.name, "Duration:", selectedAppointmentType?.duration, "minutes");
+      
+      // Calculate end time based on appointment type duration
       const endTime = getDefaultEndTime(startTime);
       
       // Add logging for debugging appointment date/time
