@@ -123,15 +123,15 @@ export async function testEmailTemplate() {
           sampleData.mcNumber ? `(MC#: ${sampleData.mcNumber})` : '')
         .replace(/\${scheduleData.truckNumber \|\| 'N\/A'}/g, sampleData.truckNumber || 'N/A');
       
-      // Write the rendered template to a file
-      fs.writeFileSync(path.join(__dirname, 'email-template-test.html'), htmlTemplate);
-      console.log("✅ Email template test HTML saved to server/email-template-test.html");
+      // Write the rendered template to a file in the project root directory
+      fs.writeFileSync('email-template-test.html', htmlTemplate);
+      console.log("✅ Email template test HTML saved to email-template-test.html in project root");
     }
     
     if (textMatch && textMatch[1]) {
       // Save the text version too
-      fs.writeFileSync(path.join(__dirname, 'email-template-test.txt'), textMatch[1]);
-      console.log("✅ Email template test TEXT saved to server/email-template-test.txt");
+      fs.writeFileSync('email-template-test.txt', textMatch[1]);
+      console.log("✅ Email template test TEXT saved to email-template-test.txt in project root");
     }
     
     return true;
@@ -141,5 +141,11 @@ export async function testEmailTemplate() {
   }
 }
 
-// Uncomment to run the test directly
-// testEmailTemplate();
+// Run the test automatically when imported
+testEmailTemplate().then(result => {
+  if (result) {
+    console.log("✅ Email template test generated successfully");
+  } else {
+    console.error("❌ Email template test failed");
+  }
+});

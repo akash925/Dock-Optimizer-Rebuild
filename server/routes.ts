@@ -8,6 +8,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import { sendScheduleConfirmationEmail } from "./notifications";
+import { testEmailTemplate } from "./email-test";
 import {
   insertDockSchema,
   // Removing insertScheduleSchema as we're handling date validation manually
@@ -2666,6 +2667,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Test email template (development only)
+  if (process.env.NODE_ENV === 'development') {
+    app.get('/api/test-email-template', async (req, res) => {
+      try {
+        const result = await testEmailTemplate();
+        res.json({ 
+          success: result, 
+          message: 'Email template test complete. Check server/email-template-test.html for preview.'
+        });
+      } catch (error) {
+        console.error('Error testing email template:', error);
+        res.status(500).json({ 
+          success: false, 
+          message: 'Error testing email template',
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    });
+  }
 
   const httpServer = createServer(app);
   
