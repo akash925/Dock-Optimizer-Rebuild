@@ -107,41 +107,60 @@ export default function AppointmentMaster() {
     };
   });
   
-  // Mock data for question form fields
+  // Standard fields configuration - these fields are part of every appointment type
+  const [standardFields, setStandardFields] = useState([
+    { id: 1, label: "Customer Name", type: "text", included: true, required: true },
+    { id: 2, label: "Carrier Name", type: "text", included: true, required: true },
+    { id: 3, label: "PO Number", type: "number", included: true, required: true },
+    { id: 4, label: "Driver/Dispatcher Email", type: "email", included: true, required: true },
+    { id: 5, label: "Driver/Dispatcher Phone Number", type: "text", included: true, required: true },
+    { id: 6, label: "Driver's License Number", type: "text", included: true, required: true },
+    { id: 7, label: "BOL Doc", type: "file", included: true, required: false },
+    { id: 8, label: "BOL Identifier", type: "text", included: true, required: false },
+    { id: 9, label: "Truck Number", type: "text", included: true, required: true },
+    { id: 10, label: "Trailer Number", type: "text", included: true, required: true },
+    { id: 11, label: "Driver's Name", type: "text", included: true, required: false },
+    { id: 12, label: "Item Description/Quantity", type: "text", included: true, required: false }
+  ]);
+  
+  // Mock data for custom question form fields
   const [customFields, setCustomFields] = useState<QuestionFormField[]>([
     { 
       id: 1, 
-      label: "Customer Name", 
-      type: "text", 
+      label: "Hazardous Materials", 
+      type: "radio", 
       required: true, 
-      placeholder: "Enter customer name", 
+      included: true,
+      options: ["Yes", "No"], 
       order: 1,
       appointmentType: "both"
     },
     { 
       id: 2, 
-      label: "Hazardous Materials", 
-      type: "radio", 
-      required: true, 
-      options: ["Yes", "No"], 
-      order: 2,
-      appointmentType: "inbound"
-    },
-    { 
-      id: 3, 
       label: "Packaging Type", 
       type: "select", 
       required: true, 
+      included: true,
       options: ["Pallets", "Boxes", "Containers", "Loose Items"], 
-      order: 3,
-      appointmentType: "outbound"
+      order: 2,
+      appointmentType: "both"
     },
     { 
-      id: 4, 
+      id: 3, 
       label: "Temperature Requirements", 
       type: "select", 
       required: false, 
+      included: true,
       options: ["Ambient", "Refrigerated", "Frozen"], 
+      order: 3,
+      appointmentType: "both"
+    },
+    { 
+      id: 4, 
+      label: "Special Handling Instructions", 
+      type: "textarea", 
+      required: false, 
+      included: true,
       order: 4,
       appointmentType: "both"
     }
@@ -1142,212 +1161,59 @@ export default function AppointmentMaster() {
                       </TableHeader>
                       <TableBody>
                         {/* Standard/Built-in Fields */}
-                        <TableRow>
-                          <TableCell className="text-center">1</TableCell>
-                          <TableCell>Customer Name</TableCell>
-                          <TableCell>Text</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">2</TableCell>
-                          <TableCell>Carrier Name</TableCell>
-                          <TableCell>Text</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">3</TableCell>
-                          <TableCell>Carrier MC #</TableCell>
-                          <TableCell>Number Only</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">4</TableCell>
-                          <TableCell>Driver/Dispatcher Email</TableCell>
-                          <TableCell>Email</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">5</TableCell>
-                          <TableCell>Driver/Dispatcher Phone Number</TableCell>
-                          <TableCell>Text</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">6</TableCell>
-                          <TableCell>Driver's License Number</TableCell>
-                          <TableCell>Text</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">7</TableCell>
-                          <TableCell>BOL Doc</TableCell>
-                          <TableCell>File Upload</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox 
-                              checked={true} 
-                              onCheckedChange={(checked) => {
-                                // In a real implementation, this would update the field configuration
-                                toast({
-                                  description: "BOL Doc included setting updated",
-                                });
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox 
-                              checked={false} 
-                              onCheckedChange={(checked) => {
-                                // In a real implementation, this would update the field configuration
-                                toast({
-                                  description: "BOL Doc required setting updated",
-                                });
-                              }}
-                            />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">8</TableCell>
-                          <TableCell>BOL Identifier</TableCell>
-                          <TableCell>Text</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox 
-                              checked={true}
-                              onCheckedChange={(checked) => {
-                                // In a real implementation, this would update the field configuration
-                                toast({
-                                  description: "BOL Identifier included setting updated",
-                                });
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox 
-                              checked={false}
-                              onCheckedChange={(checked) => {
-                                // In a real implementation, this would update the field configuration
-                                toast({
-                                  description: "BOL Identifier required setting updated",
-                                });
-                              }}
-                            />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">9</TableCell>
-                          <TableCell>Truck Number</TableCell>
-                          <TableCell>Text</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">10</TableCell>
-                          <TableCell>Trailer Number</TableCell>
-                          <TableCell>Text</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox checked={true} disabled />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">11</TableCell>
-                          <TableCell>Driver's Name</TableCell>
-                          <TableCell>Text</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox 
-                              checked={true}
-                              onCheckedChange={(checked) => {
-                                // In a real implementation, this would update the field configuration
-                                toast({
-                                  description: "Driver's Name included setting updated",
-                                });
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox 
-                              checked={false}
-                              onCheckedChange={(checked) => {
-                                // In a real implementation, this would update the field configuration
-                                toast({
-                                  description: "Driver's Name required setting updated",
-                                });
-                              }}
-                            />
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="text-center">12</TableCell>
-                          <TableCell>Item Description/Quantity</TableCell>
-                          <TableCell>Text</TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox 
-                              checked={true}
-                              onCheckedChange={(checked) => {
-                                // In a real implementation, this would update the field configuration  
-                                toast({
-                                  description: "Item Description included setting updated",
-                                });
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Checkbox 
-                              checked={false}
-                              onCheckedChange={(checked) => {
-                                // In a real implementation, this would update the field configuration  
-                                toast({
-                                  description: "Item Description required setting updated",
-                                });
-                              }}
-                            />
-                          </TableCell>
-                        </TableRow>
+                        {standardFields.map((field, index) => (
+                          <TableRow key={field.id}>
+                            <TableCell className="text-center">{field.id}</TableCell>
+                            <TableCell>{field.label}</TableCell>
+                            <TableCell>{field.type.charAt(0).toUpperCase() + field.type.slice(1)}</TableCell>
+                            <TableCell className="text-center">
+                              {field.id <= 6 || field.id === 9 || field.id === 10 ? (
+                                // Required system fields that can't be toggled
+                                <Checkbox checked={true} disabled />
+                              ) : (
+                                <Checkbox 
+                                  checked={field.included}
+                                  onCheckedChange={(checked) => {
+                                    const updatedFields = [...standardFields];
+                                    updatedFields[index].included = !!checked;
+                                    setStandardFields(updatedFields);
+                                    toast({
+                                      description: `${field.label} included setting updated`,
+                                    });
+                                  }}
+                                />
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {field.id <= 6 || field.id === 9 || field.id === 10 ? (
+                                // System-required fields can't be changed
+                                <Checkbox checked={field.required} disabled />
+                              ) : (
+                                <Checkbox 
+                                  checked={field.required}
+                                  onCheckedChange={(checked) => {
+                                    const updatedFields = [...standardFields];
+                                    updatedFields[index].required = !!checked;
+                                    setStandardFields(updatedFields);
+                                    toast({
+                                      description: `${field.label} required setting updated`,
+                                    });
+                                  }}
+                                />
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
                         
                         {/* Custom Fields - would map from actual data */}
                         {customFields.map((field, index) => (
                           <TableRow key={field.id}>
-                            <TableCell className="text-center">{13 + index}</TableCell>
+                            <TableCell className="text-center">{standardFields.length + index + 1}</TableCell>
                             <TableCell>{field.label}</TableCell>
                             <TableCell>{field.type.charAt(0).toUpperCase() + field.type.slice(1)}</TableCell>
                             <TableCell className="text-center">
                               <Checkbox 
-                                checked={true} 
+                                checked={field.included !== undefined ? field.included : true} 
                                 onCheckedChange={(checked) => {
                                   const updatedFields = [...customFields];
                                   updatedFields[index].included = !!checked;
