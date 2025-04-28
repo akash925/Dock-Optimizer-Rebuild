@@ -2169,6 +2169,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete custom question" });
     }
   });
+  
+  // Get custom questions for a specific appointment type
+  app.get("/api/custom-questions/:appointmentTypeId", async (req, res) => {
+    try {
+      const appointmentTypeId = parseInt(req.params.appointmentTypeId);
+      if (isNaN(appointmentTypeId)) {
+        return res.status(400).send("Invalid appointment type ID");
+      }
+      
+      const questions = await storage.getCustomQuestionsByAppointmentType(appointmentTypeId);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching custom questions:", error);
+      res.status(500).send("Error fetching custom questions");
+    }
+  });
 
   // Booking Pages routes
   app.get("/api/booking-pages", async (req, res) => {
