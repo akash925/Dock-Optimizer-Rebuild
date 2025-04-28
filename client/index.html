@@ -2,11 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=1" />
     <!-- The most reliable way to apply CSS fixes is to load them here -->
     <link rel="stylesheet" href="/main.css" />
     <style>
-      /* Responsive layout fixes */
+      /* Responsive layout fixes - strongly enforced */
+      .calendar-container {
+        height: 100% !important;
+        min-height: 50vh !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+
+      .fc {
+        height: 100% !important;
+        width: 100% !important;
+        flex-grow: 1 !important;
+      }
+      
+      /* Force responsive calendar regardless of login state */
       @media (max-width: 768px) {
         .fc .fc-toolbar {
           flex-direction: column !important;
@@ -25,12 +42,41 @@
         .fc-col-header-cell-cushion {
           font-size: 0.75rem !important;
         }
+        
+        .fc-header-toolbar {
+          margin-bottom: 0.5rem !important;
+        }
+        
+        .fc-col-header {
+          font-size: 0.7rem !important;
+        }
+        
+        .fc-daygrid-day-number {
+          font-size: 0.7rem !important;
+        }
+      }
+      
+      /* Mobile styles for extra small screens */
+      @media (max-width: 475px) {
+        .fc-toolbar-chunk {
+          margin-bottom: 0.25rem !important;
+        }
+        
+        .fc-col-header-cell-cushion {
+          font-size: 0.65rem !important;
+          padding: 4px !important;
+        }
+        
+        .fc-timegrid-slot-label {
+          font-size: 0.65rem !important;
+        }
       }
       
       /* Make sure content adapts to viewport */
       .fc-view-harness {
         flex-grow: 1 !important;
         min-height: 50vh !important;
+        max-width: 100% !important; 
       }
       
       /* Critical calendar fixes - added inline for immediate effect */
