@@ -99,7 +99,7 @@ export default function ScheduleMonthCalendar({
         
         {/* Empty cells before the first day of the month */}
         {Array.from({ length: startDay }).map((_, index) => (
-          <div key={`empty-start-${index}`} className="p-2 h-20 bg-gray-50 border border-gray-100 rounded-md"></div>
+          <div key={`empty-start-${index}`} className="p-1 sm:p-2 h-16 sm:h-20 lg:h-24 bg-gray-50 border border-gray-100 rounded-md"></div>
         ))}
         
         {/* Days of the month */}
@@ -113,21 +113,21 @@ export default function ScheduleMonthCalendar({
           return (
             <div 
               key={index}
-              className={`p-2 h-20 border ${isToday(day) ? 'border-primary bg-primary/5' : 'border-gray-100'} 
+              className={`p-1 sm:p-2 h-16 sm:h-20 lg:h-24 border ${isToday(day) ? 'border-primary bg-primary/5' : 'border-gray-100'} 
                           rounded-md overflow-hidden relative hover:bg-gray-50 cursor-pointer transition-colors`}
               onClick={() => onCellClick && onCellClick(day)}
             >
               <div className={`text-right mb-1 ${!isSameMonth(day, date) ? 'text-gray-400' : ''}`}>
-                <span className={`inline-block rounded-full w-6 h-6 text-center leading-6 text-sm 
+                <span className={`inline-block rounded-full w-5 h-5 sm:w-6 sm:h-6 text-center leading-5 sm:leading-6 text-xs sm:text-sm
                                ${isToday(day) ? 'bg-primary text-white' : ''}`}>
                   {format(day, 'd')}
                 </span>
               </div>
               
               {dailySchedules.length > 0 && (
-                <div className="absolute bottom-2 left-2 right-2">
-                  <div className="text-xs font-medium text-primary">
-                    {dailySchedules.length} appointment{dailySchedules.length !== 1 ? 's' : ''}
+                <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 right-1 sm:right-2">
+                  <div className="text-xs font-medium text-primary bg-primary/5 px-1 py-0.5 rounded text-center">
+                    {dailySchedules.length} <span className="hidden xs:inline">appointment{dailySchedules.length !== 1 ? 's' : ''}</span>
                   </div>
                 </div>
               )}
