@@ -32,10 +32,13 @@ const appointmentFormSchema = z.object({
     required_error: "Please select a location",
     invalid_type_error: "Please select a valid location",
   }),
+  facilityName: z.string().optional(),
+  facilityTimezone: z.string().optional(),
   appointmentTypeId: z.coerce.number({
     required_error: "Please select an appointment type",
     invalid_type_error: "Please select a valid appointment type",
   }),
+  appointmentTypeName: z.string().optional(),
   
   // Carrier & truck information
   carrierId: z.coerce.number().optional(),
@@ -46,6 +49,7 @@ const appointmentFormSchema = z.object({
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
   driverPhone: z.string().min(6, "Valid phone number is required"),
+  driverEmail: z.string().email().optional(),
   
   // Appointment details
   type: z.enum(["inbound", "outbound"]),
@@ -60,7 +64,6 @@ const appointmentFormSchema = z.object({
   notes: z.string().optional(),
   
   // Other details
-  facilityTimezone: z.string().optional(),
   createdBy: z.number().optional(),
   status: z.string().optional().default("scheduled"),
 }).refine(
@@ -278,7 +281,7 @@ export default function AppointmentForm({
         // Process the slots from the API response
         if (data.slots && Array.isArray(data.slots)) {
           // Sort time slots by time
-          const sortedSlots = [...data.slots].sort((a, b) => a.time.localeCompare(b.time));
+          const sortedSlots = [...data.slots].sort((a: {time: string}, b: {time: string}) => a.time.localeCompare(b.time));
           setAvailableTimeSlots(sortedSlots);
         } else if (data.availableTimes && Array.isArray(data.availableTimes)) {
           // Fallback to the simple time array if no detailed slots
@@ -287,7 +290,7 @@ export default function AppointmentForm({
             available: true,
             remainingCapacity: 1
           }));
-          setAvailableTimeSlots(basicSlots.sort((a, b) => a.time.localeCompare(b.time)));
+          setAvailableTimeSlots(basicSlots.sort((a: {time: string}, b: {time: string}) => a.time.localeCompare(b.time)));
         } else {
           // If no data, set empty array
           setAvailableTimeSlots([]);
@@ -709,9 +712,20 @@ export default function AppointmentForm({
                             console.log("Selected appointment type ID:", typeId);
                             console.log("Selected appointment type:", selectedType.name, "Duration:", selectedType.duration, "minutes");
                             setSelectedAppointmentType(selectedType);
+                            
+                            // Store the appointment type name for later use
+                            form.setValue("appointmentTypeName", selectedType.name);
+                            
                             // Set the appointment mode based on duration
                             const recommendedMode = selectedType.duration <= 60 ? "trailer" : "container";
                             form.setValue("appointmentMode", recommendedMode);
+                            
+                            // Reset time-related fields as they depend on appointment type
+                            form.setValue("appointmentDate", format(new Date(), "yyyy-MM-dd"));
+                            form.setValue("appointmentTime", "");
+                            
+                            // Reset available time slots to force fetching new ones for this type
+                            setAvailableTimeSlots([]);
                           }
                         }}
                         value={field.value?.toString()}
