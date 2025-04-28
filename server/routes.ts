@@ -2828,9 +2828,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               endDate: null,
               startTime: breakStartTime,
               endTime: breakEndTime,
-              isActive: false, // This makes the time slots unavailable during this period
+              isActive: true, // Rule is active, but with maxConcurrent: 0 to block the time
               facilityId: parsedFacilityId,
-              maxConcurrent: 0,
+              maxConcurrent: 0, // Set to 0 to make this time period unavailable
               maxAppointmentsPerDay: 0, 
               bufferTime: 0,
               gracePeriod: 0,

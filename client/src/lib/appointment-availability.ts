@@ -46,7 +46,13 @@ export function generateAvailableTimeSlots(
   const dayOfWeek = dateObj.getDay(); // 0-6, Sunday-Saturday
   
   // Filter rules for this specific day of week
-  const applicableRules = rules.filter(rule => rule.dayOfWeek === dayOfWeek && rule.isActive);
+  // We need to get both active and inactive rules
+  // Active rules define available slots, inactive rules with maxConcurrent=0 define unavailable slots (like break times)
+  const applicableRules = rules.filter(rule => rule.dayOfWeek === dayOfWeek);
+  
+  // Separate active and inactive rules for processing
+  const activeRules = applicableRules.filter(rule => rule.isActive);
+  const breakRules = applicableRules.filter(rule => !rule.isActive || rule.maxConcurrent === 0);
   
   // Log buffer time information for applicable rules
   if (applicableRules.length > 0) {
@@ -75,20 +81,38 @@ export function generateAvailableTimeSlots(
   // Process each applicable rule to generate available time slots
   let allSlots: AvailabilitySlot[] = [];
   
-  for (const rule of applicableRules) {
-    console.log(`[generateAvailableTimeSlots] Processing rule: ${rule.startTime}-${rule.endTime}, bufferTime: ${rule.bufferTime || 0}`);
+  // First process active rules to mark available slots
+  for (const rule of activeRules) {
+    console.log(`[generateAvailableTimeSlots] Processing active rule: ${rule.startTime}-${rule.endTime}, bufferTime: ${rule.bufferTime || 0}, maxConcurrent: ${rule.maxConcurrent || 1}`);
     const ruleSlots = generateTimeSlotsForRange(
       rule.startTime, 
       rule.endTime, 
       interval, 
       duration,
-      true, // Default to available
+      true, // Available slots
       rule.maxConcurrent || 1,
       rule.bufferTime || 0 // Pass the buffer time to respect gaps between appointments
     );
     
     // Merge with existing slots
     allSlots = mergeTimeSlots(allSlots, ruleSlots);
+  }
+  
+  // Then process break rules to mark unavailable slots
+  for (const rule of breakRules) {
+    console.log(`[generateAvailableTimeSlots] Processing break rule: ${rule.startTime}-${rule.endTime}`);
+    const breakSlots = generateTimeSlotsForRange(
+      rule.startTime, 
+      rule.endTime, 
+      interval, 
+      duration,
+      false, // Unavailable slots
+      0, // Zero capacity for break times
+      0 // No buffer needed for break times
+    );
+    
+    // Merge with existing slots, break rules override active rules
+    allSlots = mergeTimeSlots(allSlots, breakSlots);
   }
   
   // Sort slots by time
