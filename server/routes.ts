@@ -331,7 +331,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send confirmation email if email is available
       if (existingSchedule.driverEmail) {
         try {
-          const facility = await storage.getFacility(existingSchedule.facilityId);
+          // Find the facility by getting the dock first (if available)
+          let facility = null;
+          if (existingSchedule.dockId) {
+            const dock = await storage.getDock(existingSchedule.dockId);
+            if (dock && dock.facilityId) {
+              facility = await storage.getFacility(dock.facilityId);
+            }
+          }
+          
           const appointmentType = existingSchedule.appointmentTypeId 
             ? await storage.getAppointmentType(existingSchedule.appointmentTypeId)
             : null;
@@ -414,7 +422,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send cancellation email if email is available
       if (existingSchedule.driverEmail) {
         try {
-          const facility = await storage.getFacility(existingSchedule.facilityId);
+          // Find the facility by getting the dock first (if available)
+          let facility = null;
+          if (existingSchedule.dockId) {
+            const dock = await storage.getDock(existingSchedule.dockId);
+            if (dock && dock.facilityId) {
+              facility = await storage.getFacility(dock.facilityId);
+            }
+          }
           
           // Simple email for cancellation notification
           await sendEmail({
