@@ -943,10 +943,7 @@ export default function FacilitySettingsPage() {
                               <FormItem className="flex-1">
                                 <FormLabel>Break Start</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    {...field} 
-                                    placeholder="12:00"
-                                  />
+                                  <TimeInput field={field} placeholder="12:00" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -959,10 +956,7 @@ export default function FacilitySettingsPage() {
                               <FormItem className="flex-1">
                                 <FormLabel>Break End</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    {...field} 
-                                    placeholder="13:00"
-                                  />
+                                  <TimeInput field={field} placeholder="13:00" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1036,10 +1030,7 @@ export default function FacilitySettingsPage() {
                               <FormItem className="flex-1">
                                 <FormLabel>Break Start</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    {...field} 
-                                    placeholder="12:00"
-                                  />
+                                  <TimeInput field={field} placeholder="12:00" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1052,10 +1043,7 @@ export default function FacilitySettingsPage() {
                               <FormItem className="flex-1">
                                 <FormLabel>Break End</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    {...field} 
-                                    placeholder="13:00"
-                                  />
+                                  <TimeInput field={field} placeholder="13:00" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1216,10 +1204,7 @@ export default function FacilitySettingsPage() {
                               <FormItem className="flex-1">
                                 <FormLabel>Break Start</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    {...field} 
-                                    placeholder="12:00"
-                                  />
+                                  <TimeInput field={field} placeholder="12:00" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1232,10 +1217,7 @@ export default function FacilitySettingsPage() {
                               <FormItem className="flex-1">
                                 <FormLabel>Break End</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    {...field} 
-                                    placeholder="13:00"
-                                  />
+                                  <TimeInput field={field} placeholder="13:00" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
