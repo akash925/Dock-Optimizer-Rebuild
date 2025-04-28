@@ -47,7 +47,28 @@ export default function Dashboard() {
     todayTrucks: 0,
     dockUtilization: 0,
     avgTurnaround: 0,
-    onTimeArrivals: 0
+    onTimeArrivals: 0,
+    // Add comparison metrics
+    truckChange: {
+      value: 0,
+      trend: "neutral" as "up" | "down" | "neutral",
+      text: "from yesterday"
+    },
+    utilizationChange: {
+      value: 0,
+      trend: "neutral" as "up" | "down" | "neutral",
+      text: "from target"
+    },
+    turnaroundChange: {
+      value: 0,
+      trend: "neutral" as "up" | "down" | "neutral",
+      text: "from target"
+    },
+    arrivalsChange: {
+      value: 0,
+      trend: "neutral" as "up" | "down" | "neutral",
+      text: "from last week"
+    }
   });
   
   // Calculate dock status
@@ -70,31 +91,68 @@ export default function Dashboard() {
     status: "on-time" | "delayed" | "possible-delay";
     eta: string;
   }>>([]);
+
+  // Calculated date range parameters
+  const getDateRangeParams = () => {
+    const now = new Date();
+    let start, end;
+    
+    switch (dateRange) {
+      case "today":
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+        break;
+      case "yesterday":
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+        break;
+      case "thisWeek":
+        // Start of current week (Sunday)
+        start = new Date(now);
+        start.setDate(now.getDate() - now.getDay());
+        start.setHours(0, 0, 0, 0);
+        
+        // End of current week (Saturday)
+        end = new Date(now);
+        end.setDate(now.getDate() + (6 - now.getDay()));
+        end.setHours(23, 59, 59, 999);
+        break;
+      case "thisMonth":
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        break;
+      default:
+        // Default to today
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    }
+    
+    return { start, end };
+  };
   
   // Process data for dashboard components
   useEffect(() => {
     if (docks.length > 0 && schedules.length > 0 && carriers.length > 0) {
-      // Calculate KPI metrics
+      // Get date range based on selected option
+      const { start, end } = getDateRangeParams();
       const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
       
-      // Filter today's schedules
-      const todaySchedules = schedules.filter(s => 
-        new Date(s.startTime) >= today && new Date(s.startTime) < tomorrow
-      );
+      // Filter schedules for the selected date range
+      const dateRangeSchedules = schedules.filter(s => {
+        const scheduleDate = new Date(s.startTime);
+        return scheduleDate >= start && scheduleDate <= end;
+      });
       
       // Filter by facility if specific facility is selected
-      const facilityTodaySchedules = selectedFacilityId === "all"
-        ? todaySchedules
-        : todaySchedules.filter(s => {
+      const filteredSchedules = selectedFacilityId === "all"
+        ? dateRangeSchedules
+        : dateRangeSchedules.filter(s => {
             // Find the dock for this schedule to get its facility
             const dock = docks.find(d => d.id === s.dockId);
             return dock?.facilityId === selectedFacilityId;
           });
       
-      const todayTrucks = facilityTodaySchedules.length;
+      const truckCount = filteredSchedules.length;
       
       // Filter docks by facility if a specific facility is selected
       const filteredDocks = selectedFacilityId === "all" 
@@ -109,14 +167,8 @@ export default function Dashboard() {
         ? Math.round((occupiedDocks / filteredDocks.length) * 100) 
         : 0;
       
-      // Filter completed schedules by facility
-      const completedSchedules = selectedFacilityId === "all"
-        ? schedules.filter(s => s.status === "completed")
-        : schedules.filter(s => {
-            // Find the dock for this schedule to get its facility
-            const dock = docks.find(d => d.id === s.dockId);
-            return s.status === "completed" && dock?.facilityId === selectedFacilityId;
-          });
+      // Filter completed schedules
+      const completedSchedules = filteredSchedules.filter(s => s.status === "completed");
       
       const totalTurnaround = completedSchedules.reduce((acc, schedule) => {
         const start = new Date(schedule.startTime);
@@ -128,19 +180,111 @@ export default function Dashboard() {
         ? Math.round(totalTurnaround / completedSchedules.length) 
         : 0;
       
-      const onTimeSchedules = facilityTodaySchedules.filter(s => 
+      const onTimeSchedules = filteredSchedules.filter(s => 
         new Date(s.startTime) >= now || s.status === "completed"
       ).length;
       
-      const onTimeArrivals = facilityTodaySchedules.length > 0 
-        ? Math.round((onTimeSchedules / facilityTodaySchedules.length) * 100) 
+      const onTimeArrivals = filteredSchedules.length > 0 
+        ? Math.round((onTimeSchedules / filteredSchedules.length) * 100) 
         : 0;
       
+      // Calculate comparison metrics (previous period or targets)
+      // For trucks: compare with previous day/week/month depending on selection
+      let prevPeriodStart, prevPeriodEnd;
+      let truckChangeText = "from yesterday";
+      
+      switch (dateRange) {
+        case "today":
+          // Compare with yesterday
+          prevPeriodStart = new Date(start);
+          prevPeriodStart.setDate(prevPeriodStart.getDate() - 1);
+          prevPeriodEnd = new Date(end);
+          prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 1);
+          truckChangeText = "from yesterday";
+          break;
+        case "yesterday":
+          // Compare with 2 days ago
+          prevPeriodStart = new Date(start);
+          prevPeriodStart.setDate(prevPeriodStart.getDate() - 1);
+          prevPeriodEnd = new Date(end);
+          prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 1);
+          truckChangeText = "from previous day";
+          break;
+        case "thisWeek":
+          // Compare with last week
+          prevPeriodStart = new Date(start);
+          prevPeriodStart.setDate(prevPeriodStart.getDate() - 7);
+          prevPeriodEnd = new Date(end);
+          prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 7);
+          truckChangeText = "from last week";
+          break;
+        case "thisMonth":
+          // Compare with last month
+          prevPeriodStart = new Date(start);
+          prevPeriodStart.setMonth(prevPeriodStart.getMonth() - 1);
+          prevPeriodEnd = new Date(end);
+          prevPeriodEnd.setMonth(prevPeriodEnd.getDate() - 1);
+          truckChangeText = "from last month";
+          break;
+      }
+      
+      // Get prev period schedules
+      const prevPeriodSchedules = schedules.filter(s => {
+        const scheduleDate = new Date(s.startTime);
+        return scheduleDate >= prevPeriodStart && scheduleDate <= prevPeriodEnd;
+      });
+      
+      // Filter by facility for previous period
+      const filteredPrevSchedules = selectedFacilityId === "all"
+        ? prevPeriodSchedules
+        : prevPeriodSchedules.filter(s => {
+            const dock = docks.find(d => d.id === s.dockId);
+            return dock?.facilityId === selectedFacilityId;
+          });
+      
+      const prevTruckCount = filteredPrevSchedules.length;
+      
+      // Calculate percent change
+      let truckChange = 0;
+      if (prevTruckCount > 0) {
+        truckChange = Math.round(((truckCount - prevTruckCount) / prevTruckCount) * 100);
+      }
+      
+      // Target values for comparison
+      const dockUtilizationTarget = 75; // 75% utilization target
+      const avgTurnaroundTarget = 35; // 35 min target
+      const onTimeArrivalsTarget = 90; // 90% on-time target
+      
+      // Calculate difference from targets
+      const utilizationDiff = dockUtilization - dockUtilizationTarget;
+      const turnaroundDiff = avgTurnaround - avgTurnaroundTarget;
+      const onTimeDiff = onTimeArrivals - onTimeArrivalsTarget;
+      
       setKpiMetrics({
-        todayTrucks,
+        todayTrucks: truckCount,
         dockUtilization,
         avgTurnaround,
-        onTimeArrivals
+        onTimeArrivals,
+        truckChange: {
+          value: Math.abs(truckChange),
+          trend: truckChange > 0 ? "up" : truckChange < 0 ? "down" : "neutral",
+          text: truckChangeText
+        },
+        utilizationChange: {
+          value: Math.abs(utilizationDiff),
+          trend: utilizationDiff > 0 ? "up" : utilizationDiff < 0 ? "down" : "neutral",
+          text: "from target"
+        },
+        turnaroundChange: {
+          value: Math.abs(turnaroundDiff),
+          trend: turnaroundDiff < 0 ? "up" : turnaroundDiff > 0 ? "down" : "neutral", // Lower is better for turnaround
+          text: "from target"
+        },
+        arrivalsChange: {
+          value: Math.abs(onTimeDiff),
+          trend: onTimeDiff > 0 ? "up" : onTimeDiff < 0 ? "down" : "neutral",
+          text: "from target"
+        }
       });
       
       // Calculate dock statuses
@@ -270,10 +414,13 @@ export default function Dashboard() {
       {/* KPI Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <KPICard 
-          title="Today's Trucks" 
+          title={dateRange === "today" ? "Today's Trucks" : 
+                 dateRange === "yesterday" ? "Yesterday's Trucks" : 
+                 dateRange === "thisWeek" ? "This Week's Trucks" : 
+                 dateRange === "thisMonth" ? "This Month's Trucks" : "Trucks"} 
           value={kpiMetrics.todayTrucks} 
-          change="+12% from yesterday" 
-          trend="up" 
+          change={`${kpiMetrics.truckChange.value > 0 ? '+' : ''}${kpiMetrics.truckChange.value}% ${kpiMetrics.truckChange.text}`} 
+          trend={kpiMetrics.truckChange.trend} 
           icon={TruckIcon} 
           variant="primary"
         />
@@ -281,8 +428,8 @@ export default function Dashboard() {
         <KPICard 
           title="Dock Utilization" 
           value={`${kpiMetrics.dockUtilization}%`} 
-          change="+5% from target" 
-          trend="up" 
+          change={`${kpiMetrics.utilizationChange.value > 0 ? '+' : ''}${kpiMetrics.utilizationChange.value}% ${kpiMetrics.utilizationChange.text}`} 
+          trend={kpiMetrics.utilizationChange.trend} 
           icon={DoorOpen} 
           variant="secondary"
         />
@@ -290,8 +437,8 @@ export default function Dashboard() {
         <KPICard 
           title="Avg. Turnaround" 
           value={`${kpiMetrics.avgTurnaround} min`} 
-          change="+8 min from target" 
-          trend="down" 
+          change={`${kpiMetrics.turnaroundChange.value > 0 ? '+' : ''}${kpiMetrics.turnaroundChange.value} min ${kpiMetrics.turnaroundChange.text}`}
+          trend={kpiMetrics.turnaroundChange.trend} 
           icon={Clock} 
           variant="accent"
         />
@@ -299,8 +446,8 @@ export default function Dashboard() {
         <KPICard 
           title="On-Time Arrivals" 
           value={`${kpiMetrics.onTimeArrivals}%`} 
-          change="+3% from last week" 
-          trend="up" 
+          change={`${kpiMetrics.arrivalsChange.value > 0 ? '+' : ''}${kpiMetrics.arrivalsChange.value}% ${kpiMetrics.arrivalsChange.text}`}
+          trend={kpiMetrics.arrivalsChange.trend} 
           icon={BarChart3} 
           variant="info"
         />
