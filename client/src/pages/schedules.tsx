@@ -25,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getUserTimeZone, getTimeZoneAbbreviation } from "@/lib/timezone-utils";
+import { FilterPopover } from "@/components/schedules/filter-popover";
 
 // Extended Schedule interface with additional derived properties
 interface Schedule extends BaseSchedule {
