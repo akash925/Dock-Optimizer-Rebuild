@@ -439,12 +439,7 @@ export default function FullCalendarView({
       
       <Card className="w-full relative border overflow-hidden">
         <CardContent className="p-0">
-          <div className="calendar-container" style={{ 
-            height: "70vh",
-            width: "100%",
-            maxWidth: "100%",
-            overflow: "hidden"
-          }}>
+          <div className="calendar-container">
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
@@ -471,9 +466,9 @@ export default function FullCalendarView({
               slotMinTime="06:00:00"
               slotMaxTime="20:00:00"
               
-              // Fixed rendering parameters
+              // Responsive rendering parameters
               height="auto"
-              contentHeight={650}
+              aspectRatio={1.5}
               
               // View settings
               titleFormat={{
