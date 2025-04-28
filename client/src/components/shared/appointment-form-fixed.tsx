@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { format, addHours, addMinutes } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -62,6 +63,9 @@ const appointmentFormSchema = z.object({
   palletCount: z.string().optional(),
   weight: z.string().optional(),
   notes: z.string().optional(),
+  
+  // Custom questions/fields
+  customFields: z.record(z.string(), z.any()).optional(),
   
   // Other details
   createdBy: z.number().optional(),
@@ -1271,6 +1275,169 @@ export default function AppointmentForm({
                   </FormItem>
                 )}
               />
+              
+              {/* Custom Questions Section */}
+              {customQuestions && customQuestions.length > 0 && (
+                <div className="space-y-4 mt-4">
+                  <h4 className="font-medium">Additional Information</h4>
+                  <div className="border border-border rounded-md p-4 space-y-4">
+                    {customQuestions.map((question) => {
+                      const fieldName = `customQuestion_${question.id}`;
+                      
+                      switch (question.type) {
+                        case 'text':
+                        case 'email':
+                          return (
+                            <div key={question.id} className="space-y-2">
+                              <label className="text-sm font-medium">
+                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
+                              </label>
+                              <Input 
+                                type={question.type} 
+                                placeholder={question.placeholder || `Enter ${question.label}`}
+                                onChange={(e) => {
+                                  // Store in form data under a dynamic field name
+                                  const customFields = form.getValues('customFields') || {};
+                                  form.setValue('customFields', {
+                                    ...customFields,
+                                    [fieldName]: e.target.value
+                                  });
+                                }} 
+                                required={question.is_required}
+                              />
+                            </div>
+                          );
+                          
+                        case 'textarea':
+                          return (
+                            <div key={question.id} className="space-y-2">
+                              <label className="text-sm font-medium">
+                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
+                              </label>
+                              <Textarea 
+                                placeholder={question.placeholder || `Enter ${question.label}`}
+                                onChange={(e) => {
+                                  const customFields = form.getValues('customFields') || {};
+                                  form.setValue('customFields', {
+                                    ...customFields,
+                                    [fieldName]: e.target.value
+                                  });
+                                }}
+                                required={question.is_required}
+                              />
+                            </div>
+                          );
+                          
+                        case 'select':
+                          return (
+                            <div key={question.id} className="space-y-2">
+                              <label className="text-sm font-medium">
+                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
+                              </label>
+                              <Select
+                                onValueChange={(value) => {
+                                  const customFields = form.getValues('customFields') || {};
+                                  form.setValue('customFields', {
+                                    ...customFields,
+                                    [fieldName]: value
+                                  });
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder={`Select ${question.label}`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {question.options && Array.isArray(question.options) && 
+                                    question.options.map((option: string, index: number) => (
+                                      <SelectItem key={index} value={option}>
+                                        {option}
+                                      </SelectItem>
+                                    ))
+                                  }
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          );
+                          
+                        case 'checkbox':
+                          return (
+                            <div key={question.id} className="flex items-center space-x-2">
+                              <Checkbox 
+                                id={`checkbox-${question.id}`}
+                                onCheckedChange={(checked) => {
+                                  const customFields = form.getValues('customFields') || {};
+                                  form.setValue('customFields', {
+                                    ...customFields,
+                                    [fieldName]: checked
+                                  });
+                                }}
+                                required={question.is_required}
+                              />
+                              <label 
+                                htmlFor={`checkbox-${question.id}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
+                              </label>
+                            </div>
+                          );
+                          
+                        case 'radio':
+                          return (
+                            <div key={question.id} className="space-y-3">
+                              <label className="text-sm font-medium">
+                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
+                              </label>
+                              <RadioGroup
+                                onValueChange={(value) => {
+                                  const customFields = form.getValues('customFields') || {};
+                                  form.setValue('customFields', {
+                                    ...customFields,
+                                    [fieldName]: value
+                                  });
+                                }}
+                                required={question.is_required}
+                              >
+                                {question.options && Array.isArray(question.options) && 
+                                  question.options.map((option: string, index: number) => (
+                                    <div key={index} className="flex items-center space-x-2">
+                                      <RadioGroupItem value={option} id={`radio-${question.id}-${index}`} />
+                                      <Label htmlFor={`radio-${question.id}-${index}`}>{option}</Label>
+                                    </div>
+                                  ))
+                                }
+                              </RadioGroup>
+                            </div>
+                          );
+                        
+                        case 'number':
+                          return (
+                            <div key={question.id} className="space-y-2">
+                              <label className="text-sm font-medium">
+                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
+                              </label>
+                              <Input 
+                                type="number" 
+                                placeholder={question.placeholder || `Enter ${question.label}`}
+                                onChange={(e) => {
+                                  const customFields = form.getValues('customFields') || {};
+                                  form.setValue('customFields', {
+                                    ...customFields,
+                                    [fieldName]: e.target.value
+                                  });
+                                }}
+                                required={question.is_required}
+                              />
+                            </div>
+                          );
+                          
+                        default:
+                          return null;
+                      }
+                    })}
+                  </div>
+                </div>
+              )}
               
               {/* Show a summary of the appointment */}
               <Alert className="mt-4">
