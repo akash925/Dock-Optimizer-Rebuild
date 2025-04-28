@@ -2,6 +2,7 @@ import React from "react";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTimeZoneUtils } from "@/hooks/use-timezone-utils";
+import { formatTimeRangeForDualZones, toZonedTime } from "@/lib/timezone-utils";
 
 interface TimeSlotPickerProps {
   availableTimes: string[]; // array of times in "HH:MM" format
@@ -18,7 +19,11 @@ export function TimeSlotPicker({
   timezone = "America/New_York",
   className 
 }: TimeSlotPickerProps) {
-  const { getTzAbbreviation, formatTimeInUserTimezone } = useTimeZoneUtils();
+  const { getTzAbbreviation, formatTimeInUserTimezone, getUserTimeZone } = useTimeZoneUtils();
+  const userTimezone = getUserTimeZone();
+  
+  // Debug timezone info
+  console.log(`TimeSlotPicker - Facility timezone: ${timezone}, User timezone: ${userTimezone}`);
   
   // Sort times chronologically
   const sortedTimes = [...availableTimes].sort((a, b) => {
@@ -29,32 +34,50 @@ export function TimeSlotPicker({
   
   // Format time to show both time zones if necessary
   const formatTimeSlot = (timeStr: string) => {
-    // Parse the time string into a Date object (just for today's date)
-    const time = parse(timeStr, "HH:mm", new Date());
+    // Create a date object for today with this time
+    const today = new Date();
+    const [hours, minutes] = timeStr.split(":").map(Number);
     
-    // Format for display
-    const facilityTimeFormatted = format(time, "h:mm a");
+    // Create a Date with current date but with the time slot time
+    const slotTime = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      hours,
+      minutes
+    );
     
-    // If timezone is provided, also show user local time
-    if (timezone) {
-      const userTime = formatTimeInUserTimezone(time, timezone);
-      const facilityTzAbbr = getTzAbbreviation(timezone);
-      const userTzAbbr = getTzAbbreviation();
-      
-      // Only show user time if it's different from facility time
-      if (userTime !== facilityTimeFormatted) {
-        return (
-          <div className="flex flex-col">
-            <span>{facilityTimeFormatted}</span>
-            <span className="text-xs opacity-70">
-              {userTime} {userTzAbbr}
-            </span>
-          </div>
-        );
-      }
+    // Calculate end time (1 hour later by default)
+    const endTime = new Date(slotTime.getTime() + 60 * 60 * 1000);
+    
+    console.log(`TimeSlotPicker - Processing time slot: ${timeStr}`, {
+      slotTime: slotTime.toISOString(),
+      endTime: endTime.toISOString(),
+      facilityTz: timezone
+    });
+    
+    // Use our enhanced timezone utilities
+    const { facilityTimeRange, userTimeRange, facilityZoneAbbr, userZoneAbbr, showBothTimezones } = 
+      formatTimeRangeForDualZones(slotTime, endTime, timezone);
+    
+    // Extract just the start time from the range for display in the button
+    const facilityStartTime = facilityTimeRange.split(' - ')[0];
+    const userStartTime = userTimeRange.split(' - ')[0];
+    
+    // Show both timezones if they differ
+    if (showBothTimezones) {
+      return (
+        <div className="flex flex-col">
+          <span>{facilityStartTime}</span>
+          <span className="text-xs opacity-70">
+            {userStartTime} {userZoneAbbr}
+          </span>
+        </div>
+      );
     }
     
-    return facilityTimeFormatted;
+    // Otherwise just show facility time
+    return facilityStartTime;
   };
   
   // Group times into morning, afternoon, evening

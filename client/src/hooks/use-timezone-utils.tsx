@@ -2,20 +2,29 @@ import { useState, useEffect } from "react";
 import { format, formatInTimeZone } from "date-fns-tz";
 import { formatToTimeZone } from "date-fns-timezone";
 
+// Function to get user's timezone
+const getUserTimeZoneFromBrowser = (): string => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York";
+  } catch (error) {
+    console.error("Error detecting timezone:", error);
+    return "America/New_York";
+  }
+};
+
 export function useTimeZoneUtils() {
   const [userTimezone, setUserTimezone] = useState<string>("America/New_York");
   
   useEffect(() => {
     // Try to get user's timezone from browser
-    try {
-      const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      if (detectedTimezone) {
-        setUserTimezone(detectedTimezone);
-      }
-    } catch (error) {
-      console.error("Error detecting timezone:", error);
-    }
+    const detectedTimezone = getUserTimeZoneFromBrowser();
+    setUserTimezone(detectedTimezone);
   }, []);
+  
+  // Allow components to get the current user timezone
+  const getUserTimeZone = (): string => {
+    return userTimezone;
+  };
   
   // Get timezone abbreviation (e.g., EST, PDT)
   const getTzAbbreviation = (timezone?: string) => {
