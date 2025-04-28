@@ -2795,7 +2795,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             maxConcurrent: appointmentType.maxConcurrent || 1,
             maxAppointmentsPerDay: maxAppointments || (appointmentType.maxAppointmentsPerDay || undefined),
             // Make sure buffer time is correctly included and treated as a number
-            bufferTime: appointmentType.bufferTime ? Number(appointmentType.bufferTime) : 0,
+            // Default to 60 minutes if not specified
+            bufferTime: appointmentType.bufferTime ? Number(appointmentType.bufferTime) : 60,
             gracePeriod: appointmentType.gracePeriod,
             showRemainingSlots: appointmentType.showRemainingSlots
           };
@@ -2811,9 +2812,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
           console.log(`[generateAvailableTimeSlots] Using interval of ${intervalToUse} minutes based on buffer time ${appointmentType.bufferTime}`);
           
+          // Create a second rule for break times if we're not allowed to schedule through breaks
+          const rules = [facilityRule];
+          
+          // Add an "unavailable" rule for break time if needed
+          if (!appointmentType.allowAppointmentsThroughBreaks && breakStartTime && breakEndTime) {
+            console.log(`AVAILABILITY RULE: Adding lunch break rule from ${breakStartTime} to ${breakEndTime}`);
+            
+            // Add a rule that makes the break time unavailable
+            rules.push({
+              id: 999, // Placeholder ID for break rule
+              appointmentTypeId: parsedAppointmentTypeId,
+              dayOfWeek,
+              startDate: null,
+              endDate: null,
+              startTime: breakStartTime,
+              endTime: breakEndTime,
+              isActive: false, // This makes the time slots unavailable during this period
+              facilityId: parsedFacilityId,
+              maxConcurrent: 0,
+              maxAppointmentsPerDay: 0, 
+              bufferTime: 0,
+              gracePeriod: 0,
+              showRemainingSlots: false
+            });
+          }
+          
           timeSlots = generateAvailableTimeSlots(
             parsedDate,
-            [facilityRule],
+            rules,
             appointmentType.duration || 60,
             appointmentType.timezone || facility.timezone || 'America/New_York',
             intervalToUse // Use buffer time as the interval if available
