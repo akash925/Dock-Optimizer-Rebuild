@@ -236,6 +236,7 @@ export default function FixedAppointmentForm({
           trailerNumber: "",
           driverName: "",
           driverPhone: "",
+          driverEmail: "",
           type: "inbound",
           appointmentMode: "trailer",
           appointmentDate: (() => {
@@ -361,12 +362,20 @@ export default function FixedAppointmentForm({
   
   // For next step transition
   const handleNextStep = async () => {
-    // Validate only the first step fields
-    const result = await form.trigger([
+    // Create field list based on mode - external requires driverEmail validation
+    const fieldsToValidate = [
       "carrierId", "carrierName", "customerName", "mcNumber", 
       "truckNumber", "trailerNumber", "driverName", "driverPhone",
       "type", "appointmentMode"
-    ]);
+    ];
+    
+    // Add driverEmail validation for external mode only
+    if (mode === "external") {
+      fieldsToValidate.push("driverEmail");
+    }
+    
+    // Validate only the first step fields
+    const result = await form.trigger(fieldsToValidate);
     
     if (result) {
       setStep(2);
@@ -495,6 +504,7 @@ export default function FixedAppointmentForm({
         trailerNumber: data.trailerNumber || "",
         driverName: data.driverName,
         driverPhone: data.driverPhone,
+        driverEmail: data.driverEmail || "",
         bolNumber: data.bolNumber || "",
         poNumber: data.poNumber || "",
         palletCount: data.palletCount ? parseInt(data.palletCount.toString()) : 0,
