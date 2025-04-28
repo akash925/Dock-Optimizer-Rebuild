@@ -287,6 +287,196 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Reschedule an appointment
+  app.patch("/api/schedules/:id/reschedule", async (req, res) => {
+    try {
+      const scheduleId = Number(req.params.id);
+      
+      if (isNaN(scheduleId)) {
+        return res.status(400).json({ error: "Invalid schedule ID" });
+      }
+      
+      const { startTime, endTime } = req.body;
+      
+      if (!startTime || !endTime) {
+        return res.status(400).json({ error: "Start time and end time are required" });
+      }
+      
+      // Check if schedule exists
+      const existingSchedule = await storage.getSchedule(scheduleId);
+      if (!existingSchedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+      
+      // Only allow rescheduling if the appointment is in 'scheduled' status
+      if (existingSchedule.status !== 'scheduled') {
+        return res.status(400).json({ 
+          error: "Only scheduled appointments can be rescheduled",
+          status: existingSchedule.status
+        });
+      }
+      
+      // Update the schedule with new times
+      const updatedSchedule = await storage.updateSchedule(scheduleId, {
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        lastModifiedAt: new Date(),
+        // Add any other fields that need to be updated
+      });
+      
+      if (!updatedSchedule) {
+        return res.status(500).json({ error: "Failed to reschedule appointment" });
+      }
+      
+      // Send confirmation email if email is available
+      if (existingSchedule.driverEmail) {
+        try {
+          const facility = await storage.getFacility(existingSchedule.facilityId);
+          const appointmentType = existingSchedule.appointmentTypeId 
+            ? await storage.getAppointmentType(existingSchedule.appointmentTypeId)
+            : null;
+            
+          // Get dock name or use placeholder if not assigned
+          const dock = existingSchedule.dockId ? await storage.getDock(existingSchedule.dockId) : null;
+          const dockName = dock ? dock.name : "Not scheduled yet";
+          
+          await sendConfirmationEmail(
+            existingSchedule.driverEmail,
+            `HC${existingSchedule.id}`,
+            { 
+              ...existingSchedule,
+              dockName,
+              facilityName: facility ? facility.name : "Unknown Facility",
+              appointmentTypeName: appointmentType ? appointmentType.name : "Standard Appointment",
+              timezone: facility ? facility.timezone : "America/New_York"
+            }
+          ).catch(err => {
+            // Just log errors, don't let email failures affect API response
+            console.error('Failed to send reschedule confirmation email:', err);
+          });
+        } catch (emailError) {
+          // Log the error but don't fail the API call
+          console.error('Error preparing reschedule confirmation email:', emailError);
+        }
+      }
+      
+      res.json({
+        success: true,
+        schedule: updatedSchedule,
+        message: "Appointment successfully rescheduled"
+      });
+      
+    } catch (error) {
+      console.error("Error rescheduling appointment:", error);
+      res.status(500).json({ 
+        error: "Failed to reschedule appointment",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Cancel an appointment
+  app.patch("/api/schedules/:id/cancel", async (req, res) => {
+    try {
+      const scheduleId = Number(req.params.id);
+      
+      if (isNaN(scheduleId)) {
+        return res.status(400).json({ error: "Invalid schedule ID" });
+      }
+      
+      const { reason } = req.body;
+      
+      // Check if schedule exists
+      const existingSchedule = await storage.getSchedule(scheduleId);
+      if (!existingSchedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+      
+      // Only allow cancellation if the appointment is in 'scheduled' status
+      if (existingSchedule.status !== 'scheduled') {
+        return res.status(400).json({ 
+          error: "Only scheduled appointments can be cancelled",
+          status: existingSchedule.status
+        });
+      }
+      
+      // Update the schedule to cancelled status
+      const updatedSchedule = await storage.updateSchedule(scheduleId, {
+        status: 'cancelled',
+        notes: reason ? `${existingSchedule.notes || ''}\n\nCancellation reason: ${reason}`.trim() : existingSchedule.notes,
+        lastModifiedAt: new Date(),
+      });
+      
+      if (!updatedSchedule) {
+        return res.status(500).json({ error: "Failed to cancel appointment" });
+      }
+      
+      // Send cancellation email if email is available
+      if (existingSchedule.driverEmail) {
+        try {
+          const facility = await storage.getFacility(existingSchedule.facilityId);
+          
+          // Simple email for cancellation notification
+          await sendEmail({
+            to: existingSchedule.driverEmail,
+            subject: `Appointment Cancelled - Confirmation #HC${existingSchedule.id}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background-color: #f44336; color: white; padding: 20px; text-align: center;">
+                  <h1 style="margin: 0;">Appointment Cancelled</h1>
+                </div>
+                
+                <div style="padding: 20px;">
+                  <p>Your appointment with confirmation code <strong>HC${existingSchedule.id}</strong> has been cancelled.</p>
+                  <p><strong>Facility:</strong> ${facility ? facility.name : "Unknown Facility"}</p>
+                  <p><strong>Original Date/Time:</strong> ${new Date(existingSchedule.startTime).toLocaleString()}</p>
+                  ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+                  <p>If you need to schedule a new appointment, please visit our booking portal or contact the facility directly.</p>
+                </div>
+                
+                <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+                  <p>This is an automated message from Dock Optimizer. Please do not reply to this email.</p>
+                </div>
+              </div>
+            `,
+            text: `
+              Appointment Cancelled
+              
+              Your appointment with confirmation code HC${existingSchedule.id} has been cancelled.
+              
+              Facility: ${facility ? facility.name : "Unknown Facility"}
+              Original Date/Time: ${new Date(existingSchedule.startTime).toLocaleString()}
+              ${reason ? `Reason: ${reason}` : ''}
+              
+              If you need to schedule a new appointment, please visit our booking portal or contact the facility directly.
+              
+              This is an automated message from Dock Optimizer. Please do not reply to this email.
+            `
+          }).catch(err => {
+            // Just log errors, don't let email failures affect API response
+            console.error('Failed to send cancellation email:', err);
+          });
+        } catch (emailError) {
+          // Log the error but don't fail the API call
+          console.error('Error preparing cancellation email:', emailError);
+        }
+      }
+      
+      res.json({
+        success: true,
+        schedule: updatedSchedule,
+        message: "Appointment successfully cancelled"
+      });
+      
+    } catch (error) {
+      console.error("Error cancelling appointment:", error);
+      res.status(500).json({ 
+        error: "Failed to cancel appointment",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   app.get("/api/schedules", async (req, res) => {
     try {
       // Handle date range filtering
