@@ -570,11 +570,7 @@ export default function Schedules() {
       <div className="w-full">
         {viewMode === "week" && (
           <ScheduleWeekCalendar
-            schedules={(filterStatus !== "all" || filterType !== "all" || 
-                      filterDockId !== "all" || filterFacilityId !== "all" || 
-                      searchQuery.trim() !== "") 
-              ? filteredSchedules 
-              : (schedules as Schedule[])}
+            schedules={filteredSchedules}
             docks={filterFacilityId !== "all" 
               ? docks.filter(dock => dock.facilityId === filterFacilityId)
               : docks}
@@ -591,11 +587,7 @@ export default function Schedules() {
         
         {viewMode === "day" && (
           <ScheduleDayCalendar
-            schedules={(filterStatus !== "all" || filterType !== "all" || 
-                      filterDockId !== "all" || filterFacilityId !== "all" || 
-                      searchQuery.trim() !== "") 
-              ? filteredSchedules 
-              : (schedules as Schedule[])}
+            schedules={filteredSchedules}
             docks={filterFacilityId !== "all" 
               ? docks.filter(dock => dock.facilityId === filterFacilityId)
               : docks}
@@ -610,11 +602,7 @@ export default function Schedules() {
         
         {viewMode === "month" && (
           <ScheduleMonthCalendar
-            schedules={(filterStatus !== "all" || filterType !== "all" || 
-                      filterDockId !== "all" || filterFacilityId !== "all" || 
-                      searchQuery.trim() !== "") 
-              ? filteredSchedules 
-              : (schedules as Schedule[])}
+            schedules={filteredSchedules}
             docks={filterFacilityId !== "all" 
               ? docks.filter(dock => dock.facilityId === filterFacilityId)
               : docks}
@@ -657,7 +645,7 @@ export default function Schedules() {
             <CardContent>
               <DataTable 
                 columns={columns} 
-                data={schedules as Schedule[]} 
+                data={filteredSchedules} 
                 searchKey="truckNumber"
                 searchPlaceholder="Search by truck number..."
               />
