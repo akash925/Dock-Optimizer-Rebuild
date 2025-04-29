@@ -25,7 +25,14 @@ export default function OrganizationsPage() {
 
   // Fetch organizations data
   const { data: organizations, isLoading, error } = useQuery<EnhancedTenant[]>({
-    queryKey: ['/api/admin/orgs'], // Using the existing endpoint
+    queryKey: ['/api/admin/organizations'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/organizations');
+      if (!response.ok) {
+        throw new Error('Failed to fetch organizations');
+      }
+      return response.json();
+    },
     onSuccess: (data) => {
       setFilteredOrganizations(data || []);
     }

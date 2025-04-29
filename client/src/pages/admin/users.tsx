@@ -53,7 +53,10 @@ export default function UsersPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      setFilteredUsers(data?.items || []);
+      console.log("Received users data:", data);
+      if (data && data.items) {
+        setFilteredUsers(data.items);
+      }
     }
   });
 

@@ -53,8 +53,8 @@ const updateUserSchema = z.object({
 });
 
 export const organizationsRoutes = (app: Express) => {
-  // Get all organizations with count information
-  app.get('/api/admin/organizations', isSuperAdmin, async (req, res) => {
+  // Get all organizations with count information (support both URLs for backward compatibility)
+  const getAllOrganizations = async (req: Request, res: Response) => {
     try {
       const storage = await getStorage();
       const orgs = await storage.getAllTenants();
@@ -81,7 +81,11 @@ export const organizationsRoutes = (app: Express) => {
       console.error('Error fetching organizations:', error);
       res.status(500).json({ message: 'Failed to fetch organizations' });
     }
-  });
+  };
+
+  // Register both endpoints for backward compatibility
+  app.get('/api/admin/organizations', isSuperAdmin, getAllOrganizations);
+  app.get('/api/admin/orgs', isSuperAdmin, getAllOrganizations);
 
   // Get single organization with all details
   app.get('/api/admin/organizations/:id', isSuperAdmin, async (req, res) => {
