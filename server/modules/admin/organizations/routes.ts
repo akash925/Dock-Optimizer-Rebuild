@@ -125,8 +125,7 @@ export const organizationsRoutes = (app: Express) => {
       // Create the organization
       const newOrg = await storage.createTenant({
         ...validationResult.data,
-        createdBy: req.user.id,
-        createdAt: new Date(),
+        createdBy: req.user?.id, // Use optional chaining
         status: req.body.status || TenantStatus.ACTIVE
       });
       
@@ -172,8 +171,7 @@ export const organizationsRoutes = (app: Express) => {
       // Update the organization
       const updatedOrg = await storage.updateTenant(id, {
         ...validationResult.data,
-        updatedBy: req.user.id,
-        updatedAt: new Date()
+        updatedBy: req.user?.id // Use optional chaining
       });
       
       res.json(updatedOrg);

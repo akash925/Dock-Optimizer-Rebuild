@@ -29,7 +29,7 @@ export default function OrganizationsPage() {
 
   // Fetch organizations data
   const { data: organizations, isLoading, error } = useQuery<EnhancedTenant[]>({
-    queryKey: ['/api/admin/orgs'],
+    queryKey: ['/api/admin/orgs'], // Using the existing endpoint
   });
 
   // Handle add organization
