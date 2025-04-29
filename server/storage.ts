@@ -16,7 +16,7 @@ import {
   Tenant, InsertTenant,
   RoleRecord, InsertRoleRecord,
   OrganizationUser, InsertOrganizationUser,
-  OrganizationModule, InsertOrganizationModule,
+  OrganizationModule, InsertOrganizationModule, AvailableModule,
   ScheduleStatus, DockStatus, HolidayScope, TimeInterval, AssetCategory,
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
   appointmentTypes, dailyAvailability, customQuestions, bookingPages, assets, companyAssets,
@@ -1484,6 +1484,45 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return results;
+  }
+  
+  async updateOrganizationModule(organizationId: number, moduleName: AvailableModule, enabled: boolean): Promise<OrganizationModule | undefined> {
+    try {
+      // Check if module exists for this organization
+      const [existingModule] = await db.select()
+        .from(organizationModules)
+        .where(and(
+          eq(organizationModules.organizationId, organizationId),
+          eq(organizationModules.moduleName, moduleName)
+        ));
+      
+      if (existingModule) {
+        // Update existing module
+        const [updatedModule] = await db.update(organizationModules)
+          .set({ enabled })
+          .where(and(
+            eq(organizationModules.organizationId, organizationId),
+            eq(organizationModules.moduleName, moduleName)
+          ))
+          .returning();
+        
+        return updatedModule;
+      } else {
+        // Create new module
+        const [newModule] = await db.insert(organizationModules)
+          .values({
+            organizationId,
+            moduleName,
+            enabled
+          })
+          .returning();
+        
+        return newModule;
+      }
+    } catch (error) {
+      console.error(`Error updating module ${moduleName} for organization ${organizationId}:`, error);
+      return undefined;
+    }
   }
   
   // Organization Activity Logging
