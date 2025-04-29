@@ -1,24 +1,24 @@
 /** @type {import('jest').Config} */
-export default {
-  preset: 'ts-jest',
+module.exports = {
+  preset: 'ts-jest/presets/js-with-ts-esm',
   testEnvironment: 'node',
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      useESM: true,
     }],
   },
   moduleNameMapper: {
-    '^@shared/(.*)$': '<rootDir>/shared/$1',
     '^@/(.*)$': '<rootDir>/client/src/$1',
+    '^@shared/(.*)$': '<rootDir>/shared/$1',
+    '^@server/(.*)$': '<rootDir>/server/$1',
   },
-  testMatch: [
-    '**/__tests__/**/*.ts?(x)',
-    '**/?(*.)+(spec|test).ts?(x)'
-  ],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/cypress/'],
+  setupFilesAfterEnv: ['<rootDir>/server/tests/setup.ts'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   globals: {
     'ts-jest': {
-      isolatedModules: true,
+      useESM: true,
     },
   },
-  setupFilesAfterEnv: ['<rootDir>/server/tests/setup.ts'],
 };

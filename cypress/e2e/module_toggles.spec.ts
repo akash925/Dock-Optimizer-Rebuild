@@ -1,17 +1,25 @@
-describe('Module Toggles', () => {
-  beforeEach(() => {
-    // Mock admin login
-    cy.intercept('POST', '/api/login', { 
-      statusCode: 200,
-      body: { 
-        id: 3, 
-        username: 'akash.agarwal@conmitto.io',
-        email: 'akash.agarwal@conmitto.io',
-        role: 'super-admin'
-      }
-    }).as('loginRequest');
+/**
+ * End-to-End Tests for Organization Module Toggles
+ * 
+ * These tests verify the functionality of enabling/disabling organization modules
+ * by administrators for tenant management.
+ */
 
-    // Mock getting organization details
+describe('Organization Module Toggles', () => {
+  beforeEach(() => {
+    // Spy on API calls to monitor interactions
+    cy.intercept('GET', '/api/user').as('getUser');
+    cy.intercept('POST', '/api/login').as('loginRequest');
+    cy.intercept('GET', '/api/admin/orgs/*/detail').as('getOrgDetail');
+    cy.intercept('POST', '/api/admin/orgs/*/modules/*').as('toggleModule');
+    
+    // Reset any mocks or state modifications from previous tests
+    cy.clearAllCookies();
+    cy.clearAllLocalStorage();
+  });
+  
+  it('should allow admins to access module toggles', () => {
+    // Mock API responses
     cy.intercept('GET', '/api/admin/orgs/*/detail', {
       statusCode: 200,
       body: {
@@ -28,9 +36,8 @@ describe('Module Toggles', () => {
         ]
       }
     }).as('getOrgDetail');
-
-    // Mock toggle module API
-    cy.intercept('PUT', '/api/admin/orgs/*/modules/*', {
+    
+    cy.intercept('POST', '/api/admin/orgs/*/modules/*', {
       statusCode: 200,
       body: { success: true }
     }).as('toggleModule');
