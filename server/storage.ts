@@ -1349,6 +1349,50 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
   
+  // Tenant (Organization) operations
+  async getAllTenants(): Promise<Tenant[]> {
+    return await db.select().from(tenants);
+  }
+  
+  async getTenantById(id: number): Promise<Tenant | undefined> {
+    const [result] = await db.select()
+      .from(tenants)
+      .where(eq(tenants.id, id));
+    return result;
+  }
+  
+  async getTenantBySubdomain(subdomain: string): Promise<Tenant | undefined> {
+    const [result] = await db.select()
+      .from(tenants)
+      .where(eq(tenants.subdomain, subdomain));
+    return result;
+  }
+  
+  async getTenantByName(name: string): Promise<Tenant | undefined> {
+    const [result] = await db.select()
+      .from(tenants)
+      .where(eq(tenants.name, name));
+    return result;
+  }
+  
+  async createTenant(tenant: InsertTenant): Promise<Tenant> {
+    const [result] = await db.insert(tenants)
+      .values(tenant)
+      .returning();
+    return result;
+  }
+  
+  async updateTenant(id: number, tenantUpdate: Partial<Tenant>): Promise<Tenant | undefined> {
+    const [result] = await db.update(tenants)
+      .set({
+        ...tenantUpdate,
+        updatedAt: new Date()
+      })
+      .where(eq(tenants.id, id))
+      .returning();
+    return result;
+  }
+  
   // Asset Manager operations
   async getAsset(id: number): Promise<Asset | undefined> {
     const [asset] = await db.select().from(assets).where(eq(assets.id, id));
