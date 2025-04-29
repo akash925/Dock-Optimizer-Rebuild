@@ -73,9 +73,11 @@ const adminApi = {
   /**
    * Get organization list
    */
-  async getOrganizations() {
-    const res = await apiRequest("GET", "/api/admin/organizations");
-    return await res.json();
+  async getOrganizations(page: number = 1, limit: number = 20) {
+    const res = await apiRequest("GET", `/api/admin/orgs?page=${page}&limit=${limit}`);
+    const data = await res.json();
+    // Return the organizations array, unwrapping from "orgs" if present
+    return data.orgs ?? data;
   },
   
   /**
@@ -91,7 +93,9 @@ const adminApi = {
    */
   async getOrgDetail(orgId: string | number): Promise<OrganizationDetail> {
     const res = await apiRequest("GET", `/api/admin/orgs/${orgId}/detail`);
-    return await res.json();
+    const data = await res.json();
+    // Return the organization object, unwrapping from "organization" if present
+    return data.organization ?? data;
   },
 
   /**
@@ -184,7 +188,10 @@ const adminApi = {
    * Get all roles (alias for settings page)
    */
   async getAllRoles() {
-    return this.getRoles();
+    const res = await apiRequest("GET", "/api/admin/settings/roles");
+    const data = await res.json();
+    // Return the roles array, unwrapping from "roles" if present
+    return data.roles ?? data;
   },
   
   /**

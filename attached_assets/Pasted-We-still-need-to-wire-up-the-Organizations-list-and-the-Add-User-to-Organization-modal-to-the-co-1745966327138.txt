@@ -1,0 +1,82 @@
+We still need to wire up the “Organizations” list and the “Add User to Organization” modal to the correct admin APIs and unwrap their data arrays. Please update your client code as follows:
+
+1. **Inspect the raw API**  
+   - In DevTools → Network, verify `GET /api/admin/orgs?page=1&limit=20` returns either  
+     ```json
+     { "orgs": [ … ], "count": 2 }
+     ```  
+     or a bare array:  
+     ```json
+     [ { … }, { … } ]
+     ```
+
+2. **Fix `getOrgs` in** `client/src/api/admin.ts`  
+   ```ts
+   export const getOrgs = (page = 1, limit = 20) =>
+     axios
+       .get(`/api/admin/orgs?page=${page}&limit=${limit}`)
+       .then(res => res.data.orgs ?? res.data)
+   ```
+
+3. **Fix `getOrgDetail` in** `client/src/api/admin.ts`  
+   ```ts
+   export const getOrgDetail = (id: string) =>
+     axios
+       .get(`/api/admin/orgs/${id}/detail`)
+       .then(res => res.data.organization ?? res.data)
+   ```
+
+4. **Wire the global orgs page** in `client/src/pages/admin/organizations.tsx`  
+   ```ts
+   const { data: orgs = [], isLoading } = useQuery(
+     ['adminOrgs', page, limit],
+     () => api.admin.getOrgs(page, limit)
+   )
+   return (
+     <Table>
+       {orgs.map(o => (
+         <Row key={o.id}>
+           <Cell>{o.name}</Cell>
+           <Cell>{o.subdomain}</Cell>
+           <Cell>{o.status}</Cell>
+           …actions…
+         </Row>
+       ))}
+     </Table>
+   )
+   ```
+
+5. **Wire the org-detail “Users” tab** in `client/src/pages/admin/orgs/[orgId].tsx`  
+   ```ts
+   const { data: org = {} } = useQuery(
+     ['orgDetail', orgId],
+     () => api.admin.getOrgDetail(orgId)
+   )
+   // org.users must be an array
+   const members = org.users ?? []
+
+   const { data: allUsers = [] } = useQuery('adminUsers', api.admin.getUsers)
+
+   // “Add User” modal:
+   <Select onChange={…}>
+     {allUsers.map(u => (
+       <SelectItem key={u.id} value={u.id.toString()}>
+         {u.email} — {u.firstName} {u.lastName}
+       </SelectItem>
+     ))}
+   </Select>
+   ```
+
+6. **Invalidate & refetch** after mutations:  
+   ```ts
+   queryClient.invalidateQueries(['adminOrgs'])
+   queryClient.invalidateQueries(['orgDetail', orgId])
+   queryClient.invalidateQueries('adminUsers')
+   ```
+
+Reload the Admin Console. You should now see:
+
+- **Global Orgs** list populated.  
+- **Org → Users** tab lists its members.  
+- **Add User** dropdown shows all global users.  
+- Adding/removing a member immediately updates the UI.

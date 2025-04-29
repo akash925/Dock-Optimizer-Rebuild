@@ -1,0 +1,110 @@
+We need to fix two issues in our Admin Console in one sweep: (1) the global “Organizations” list stays empty, and (2) the “Modules” switches on the Organization Detail page don’t actually toggle.
+
+---
+
+## 1) Update API client (`client/src/api/admin.ts`)
+
+```ts
+// 1. getOrgs: page & limit, unwrap "orgs" array
+export const getOrgs = (page = 1, limit = 20) =>
+  axios
+    .get(`/api/admin/orgs?page=${page}&limit=${limit}`)
+    .then(res => res.data.orgs ?? res.data)
+
+// 2. getOrgDetail: unwrap the "organization" object
+export const getOrgDetail = (id: string) =>
+  axios
+    .get(`/api/admin/orgs/${id}/detail`)
+    .then(res => res.data.organization ?? res.data)
+
+// 3. updateOrgModules: toggle a single module
+export const updateOrgModules = (orgId: string, body: { moduleName: string; enabled: boolean }) =>
+  axios
+    .put(`/api/admin/orgs/${orgId}/modules`, body)
+    .then(res => res.data)
+
+// 4. getUsers: page & limit, unwrap "users" array
+export const getUsers = (page = 1, limit = 100) =>
+  axios
+    .get(`/api/admin/users?page=${page}&limit=${limit}`)
+    .then(res => res.data.users ?? res.data)
+
+// 5. getAllRoles: unwrap "roles" array
+export const getAllRoles = () =>
+  axios
+    .get('/api/admin/settings/roles')
+    .then(res => res.data.roles ?? res.data)
+2) Wire the “Organizations” List page (client/src/pages/admin/organizations.tsx)
+tsx
+Copy
+Edit
+const { data: orgs = [], isLoading } = useQuery(
+  ['adminOrgs', page, limit],
+  () => api.admin.getOrgs(page, limit)
+)
+
+// Render:
+return (
+  <Table>
+    {orgs.map(org => (
+      <TableRow key={org.id}>
+        <TableCell>{org.name}</TableCell>
+        <TableCell>{org.subdomain}</TableCell>
+        <TableCell>{org.status}</TableCell>
+        {/* …other columns & Edit button linking to /admin/orgs/{org.id} */}
+      </TableRow>
+    ))}
+  </Table>
+)
+3) Fix Modules (and Users) on Org Detail (client/src/pages/admin/orgs/[orgId].tsx)
+tsx
+Copy
+Edit
+const queryClient = useQueryClient()
+
+// Fetch full org detail:
+const { data: org = {}, isLoading } = useQuery(
+  ['orgDetail', orgId],
+  () => api.admin.getOrgDetail(orgId)
+)
+
+// USERS tab:
+const members = org.users ?? []
+const { data: allUsers = [] } = useQuery('adminUsers', () => api.admin.getUsers())
+
+// MODULES tab:
+const modules = org.modules ?? []
+const handleToggleModule = async (moduleName: string, enabled: boolean) => {
+  await api.admin.updateOrgModules(orgId, { moduleName, enabled })
+  queryClient.invalidateQueries(['orgDetail', orgId])
+  queryClient.invalidateQueries(['adminOrgs'])
+}
+
+// Render Modules:
+<TabPanel value="modules">
+  {isLoading ? <Spinner/> : (
+    modules.length ? modules.map(m => (
+      <div key={m.moduleName} className="flex justify-between items-center p-2">
+        <span className="capitalize">{m.moduleName.replace('-', ' ')}</span>
+        <Switch
+          checked={m.enabled}
+          onCheckedChange={enabled => handleToggleModule(m.moduleName, enabled)}
+        />
+      </div>
+    )) : <p>No modules configured.</p>
+  )}
+</TabPanel>
+4) Debugging / Context Requests
+If after applying these changes you still see empty lists or non-working toggles, please share:
+
+Network requests: the full Request URL & Payload and the Response JSON for
+
+GET /api/admin/orgs?page=…
+
+GET /api/admin/orgs/{orgId}/detail
+
+PUT /api/admin/orgs/{orgId}/modules
+
+Console errors: exact error messages and stack traces from your browser DevTools.
+
+Relevant code snippets: the updated API client methods and the React code around useQuery and handleToggleModule.

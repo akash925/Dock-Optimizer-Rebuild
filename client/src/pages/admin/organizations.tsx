@@ -10,6 +10,7 @@ import { TenantStatus } from "@shared/schema";
 import AdminLayout from "@/components/layout/admin-layout";
 import OrganizationsTable from "@/components/admin/OrganizationsTable";
 import debounce from "lodash.debounce";
+import adminApi from "@/api/admin";
 
 // Enhanced tenant type with counts
 interface EnhancedTenant {
@@ -28,16 +29,10 @@ export default function OrganizationsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredOrganizations, setFilteredOrganizations] = useState<EnhancedTenant[]>([]);
 
-  // Fetch organizations data
-  const { data: organizations, isLoading, error } = useQuery<EnhancedTenant[]>({
-    queryKey: ['/api/admin/organizations'],
-    queryFn: async () => {
-      const response = await fetch('/api/admin/organizations');
-      if (!response.ok) {
-        throw new Error('Failed to fetch organizations');
-      }
-      return response.json();
-    }
+  // Fetch organizations data with the admin API client
+  const { data: organizations = [], isLoading, error } = useQuery<EnhancedTenant[]>({
+    queryKey: ['adminOrgs'],
+    queryFn: () => adminApi.getOrganizations()
   });
   
   // Update filtered organizations when organizations data changes
