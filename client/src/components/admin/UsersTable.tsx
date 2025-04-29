@@ -1,6 +1,5 @@
-import React from 'react';
-import { useLocation } from 'wouter';
-import { Edit } from 'lucide-react';
+import React from "react";
+import { useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -8,10 +7,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Edit } from "lucide-react";
 
-// Type for user with roles
+// User type with roles
 interface UserWithRoles {
   userId: number;
   email: string;
@@ -29,15 +29,14 @@ interface UsersTableProps {
   users: UserWithRoles[];
 }
 
-// Format the roles as a comma-separated list
-const formatRoles = (roles: UserWithRoles['roles']) => {
-  if (!roles || roles.length === 0) return 'None';
-  return roles.map(role => `${role.orgName} (${role.roleName})`).join(', ');
-};
-
-// Memoized UsersTable component
-const UsersTable = React.memo(function UsersTable({ users }: UsersTableProps) {
+const UsersTable: React.FC<UsersTableProps> = React.memo(({ users }) => {
   const [, navigate] = useLocation();
+
+  // Format roles as a comma-separated list
+  const formatRoles = (roles: UserWithRoles["roles"]) => {
+    if (!roles || roles.length === 0) return "None";
+    return roles.map((role) => `${role.orgName} (${role.roleName})`).join(", ");
+  };
 
   return (
     <Table>
@@ -54,10 +53,10 @@ const UsersTable = React.memo(function UsersTable({ users }: UsersTableProps) {
           users.map((user) => (
             <TableRow key={user.userId}>
               <TableCell className="font-medium">{user.email}</TableCell>
-              <TableCell>{user.firstName} {user.lastName}</TableCell>
               <TableCell>
-                {formatRoles(user.roles)}
+                {user.firstName} {user.lastName}
               </TableCell>
+              <TableCell>{formatRoles(user.roles)}</TableCell>
               <TableCell>
                 <Button
                   variant="outline"
@@ -82,5 +81,7 @@ const UsersTable = React.memo(function UsersTable({ users }: UsersTableProps) {
     </Table>
   );
 });
+
+UsersTable.displayName = "UsersTable";
 
 export default UsersTable;

@@ -1,7 +1,5 @@
-import React from 'react';
-import { useLocation } from 'wouter';
-import { Edit, Users, Package } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import React from "react";
+import { useLocation } from "wouter";
 import {
   Table,
   TableBody,
@@ -9,41 +7,60 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Tenant } from '@shared/schema';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Edit } from "lucide-react";
+import { TenantStatus } from "@shared/schema";
 
-// Extended tenant type with additional counts
-type EnhancedTenant = Tenant & {
+// Interface for orgs with module information
+interface EnhancedTenant {
+  id: number;
+  name: string;
+  subdomain: string;
+  status: TenantStatus | null;
+  modules: {
+    moduleName: string;
+    enabled: boolean;
+  }[];
   userCount: number;
-  moduleCount: number;
-};
+  createdAt: string;
+}
 
 interface OrganizationsTableProps {
   organizations: EnhancedTenant[];
 }
 
-// Get status badge variant
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'ACTIVE':
-      return <Badge className="bg-green-500">Active</Badge>;
-    case 'SUSPENDED':
-      return <Badge variant="destructive">Suspended</Badge>;
-    case 'TRIAL':
-      return <Badge className="bg-blue-500">Trial</Badge>;
-    case 'PENDING':
-      return <Badge variant="outline">Pending</Badge>;
-    case 'INACTIVE':
-      return <Badge variant="secondary">Inactive</Badge>;
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-};
-
-// Memoized OrganizationsTable component
-const OrganizationsTable = React.memo(function OrganizationsTable({ organizations }: OrganizationsTableProps) {
+const OrganizationsTable: React.FC<OrganizationsTableProps> = React.memo(({ organizations }) => {
   const [, navigate] = useLocation();
+
+  // Format badge color based on status
+  const getStatusBadge = (status: TenantStatus | null) => {
+    switch (status) {
+      case TenantStatus.ACTIVE:
+        return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>;
+      case TenantStatus.INACTIVE:
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600">Inactive</Badge>;
+      case TenantStatus.SUSPENDED:
+        return <Badge className="bg-red-500 hover:bg-red-600">Suspended</Badge>;
+      case TenantStatus.TRIAL:
+        return <Badge className="bg-blue-500 hover:bg-blue-600">Trial</Badge>;
+      default:
+        return <Badge className="bg-gray-500 hover:bg-gray-600">Unknown</Badge>;
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  // Count active modules
+  const getActiveModulesCount = (modules: EnhancedTenant["modules"]) => {
+    if (!modules || !modules.length) return "0";
+    return modules.filter(m => m.enabled).length.toString();
+  };
 
   return (
     <Table>
@@ -51,16 +68,9 @@ const OrganizationsTable = React.memo(function OrganizationsTable({ organization
         <TableRow>
           <TableHead>Name</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4" /> Users
-            </div>
-          </TableHead>
-          <TableHead>
-            <div className="flex items-center gap-1">
-              <Package className="h-4 w-4" /> Modules
-            </div>
-          </TableHead>
+          <TableHead>Active Modules</TableHead>
+          <TableHead>Users</TableHead>
+          <TableHead>Created</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -69,9 +79,10 @@ const OrganizationsTable = React.memo(function OrganizationsTable({ organization
           organizations.map((org) => (
             <TableRow key={org.id}>
               <TableCell className="font-medium">{org.name}</TableCell>
-              <TableCell>{getStatusBadge(org.status || 'ACTIVE')}</TableCell>
+              <TableCell>{getStatusBadge(org.status)}</TableCell>
+              <TableCell>{getActiveModulesCount(org.modules)}</TableCell>
               <TableCell>{org.userCount}</TableCell>
-              <TableCell>{org.moduleCount}</TableCell>
+              <TableCell>{formatDate(org.createdAt)}</TableCell>
               <TableCell>
                 <Button
                   variant="outline"
@@ -87,7 +98,7 @@ const OrganizationsTable = React.memo(function OrganizationsTable({ organization
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={5} className="h-24 text-center">
+            <TableCell colSpan={6} className="h-24 text-center">
               No organizations found
             </TableCell>
           </TableRow>
@@ -96,5 +107,7 @@ const OrganizationsTable = React.memo(function OrganizationsTable({ organization
     </Table>
   );
 });
+
+OrganizationsTable.displayName = "OrganizationsTable";
 
 export default OrganizationsTable;
