@@ -2,6 +2,8 @@ import { Express, Request, Response } from 'express';
 import { getStorage } from '../../../storage';
 import { z } from 'zod';
 import { TenantStatus } from '@shared/schema';
+import { db } from '../../../db';
+import { users } from '@shared/schema';
 
 // Define organization validation schemas
 const createOrgSchema = z.object({
@@ -471,44 +473,32 @@ export const organizationsRoutes = (app: Express) => {
       // Get user data with detailed info
       const orgUsers = await storage.getOrganizationUsers(orgId);
       
-      // Enhanced user data with extra fields
-      const users = await Promise.all(orgUsers.map(async (user) => {
-        try {
-          const userData = await storage.getUserById?.(user.userId) || null;
-          return {
-            userId: user.userId,
-            email: userData?.username || 'Unknown',
-            firstName: userData?.firstName || '',
-            lastName: userData?.lastName || '',
-            roleName: user.roleId === 1 ? 'Admin' : 
-                     user.roleId === 2 ? 'Manager' : 
-                     user.roleId === 3 ? 'User' : 'Unknown',
-          };
-        } catch (e) {
-          // Fallback if getUserById doesn't exist or fails
-          return {
-            userId: user.userId,
-            email: 'User ' + user.userId,
-            firstName: '',
-            lastName: '',
-            roleName: user.roleId ? `Role ${user.roleId}` : 'Unknown',
-          };
-        }
-      }));
-      
       // Get module data
       const modules = await storage.getOrganizationModules(orgId);
       
+      // Format users with simple role names
+      const enhancedUsers = orgUsers.map((user) => {
+        return {
+          userId: user.userId,
+          email: `User ${user.userId}`,
+          firstName: "",
+          lastName: "",
+          roleName: user.roleId === 1 ? 'Admin' : 
+                   user.roleId === 2 ? 'Manager' : 
+                   user.roleId === 3 ? 'User' : 'Unknown',
+        };
+      });
+      
       // Empty logs array for now since we don't have the implementation yet
-      const logs = [];
+      const logs: Array<{id: number, timestamp: string, action: string, details: string}> = [];
       
       // For debugging
-      console.log(`Got detail for org ${orgId}: ${users.length} users, ${modules.length} modules`);
+      console.log(`Got detail for org ${orgId}: ${enhancedUsers.length} users, ${modules.length} modules`);
       
       // Format response
       const result = {
         ...org,
-        users,
+        users: enhancedUsers,
         modules,
         logs,
       };

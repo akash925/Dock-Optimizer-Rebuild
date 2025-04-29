@@ -369,8 +369,9 @@ export default function OrganizationDetailPage() {
                             </SelectTrigger>
                             <SelectContent>
                               {allUsers?.map((user: any) => (
-                                <SelectItem key={user.id} value={user.id.toString()}>
-                                  {user.username} - {user.firstName} {user.lastName}
+                                <SelectItem key={user.id ?? user.userId} value={(user.id ?? user.userId).toString()}>
+                                  {user.username || user.email || `User ${user.id ?? user.userId}`} 
+                                  {user.firstName && user.lastName ? ` - ${user.firstName} ${user.lastName}` : ''}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -392,8 +393,11 @@ export default function OrganizationDetailPage() {
                             </SelectTrigger>
                             <SelectContent>
                               {allRoles?.map((role: any) => (
-                                <SelectItem key={role.id} value={role.id.toString()}>
-                                  {role.name}
+                                <SelectItem 
+                                  key={role.id ?? role.roleId ?? role.name} 
+                                  value={(role.id ?? role.roleId ?? "1").toString()}
+                                >
+                                  {role.name || "Unknown Role"}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -519,7 +523,7 @@ export default function OrganizationDetailPage() {
                   </div>
                 ) : (
                   <>
-                    {(organization.logs && organization.logs.length > 0) || (logsData && logsData.logs.length > 0) ? (
+                    {((organization.logs && organization.logs.length > 0) || (logsData?.logs && logsData.logs.length > 0)) ? (
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -529,15 +533,15 @@ export default function OrganizationDetailPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {(logsData?.logs || organization.logs)?.map((log) => (
-                            <TableRow key={log.id}>
+                          {(logsData?.logs || organization.logs || []).map((log) => (
+                            <TableRow key={log.id || Math.random()}>
                               <TableCell className="font-mono text-xs">
-                                {new Date(log.timestamp).toLocaleString()}
+                                {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'Unknown date'}
                               </TableCell>
                               <TableCell>
-                                <Badge variant="outline">{log.action}</Badge>
+                                <Badge variant="outline">{log.action || 'Unknown'}</Badge>
                               </TableCell>
-                              <TableCell>{log.details}</TableCell>
+                              <TableCell>{log.details || 'No details'}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -589,7 +593,7 @@ export default function OrganizationDetailPage() {
                               );
                             })}
                             
-                            {logsData.pagination.totalPages > 5 && logsPage < logsData.pagination.totalPages - 2 && (
+                            {logsData?.pagination?.totalPages > 5 && logsPage < logsData?.pagination?.totalPages - 2 && (
                               <PaginationItem>
                                 <PaginationEllipsis />
                               </PaginationItem>
