@@ -146,9 +146,32 @@ const adminApi = {
   async getUsers(page: number = 1, limit: number = 100) {
     const res = await apiRequest("GET", `/api/admin/users?page=${page}&limit=${limit}`);
     const data = await res.json();
-    // Return only the users array from the response
-    return Array.isArray(data) ? data : 
-           (data && data.items && Array.isArray(data.items)) ? data.items.rows || data.items : [];
+    
+    // Safely handle various response formats
+    if (Array.isArray(data)) {
+      return data;
+    }
+    
+    if (data && typeof data === 'object') {
+      // If data has a users property, return that
+      if (Array.isArray(data.users)) {
+        return data.users;
+      }
+      
+      // If data has an items property, return that
+      if (Array.isArray(data.items)) {
+        return data.items;
+      }
+      
+      // If data has an items.rows property, return that
+      if (data.items && Array.isArray(data.items.rows)) {
+        return data.items.rows;
+      }
+    }
+    
+    // Default to empty array if no valid data found
+    console.warn('Unexpected users data format:', data);
+    return [];
   },
   
   /**
@@ -181,17 +204,35 @@ const adminApi = {
   async getRoles() {
     const res = await apiRequest("GET", "/api/admin/settings/roles");
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    
+    // Safely handle various response formats
+    if (Array.isArray(data)) {
+      return data;
+    }
+    
+    if (data && typeof data === 'object') {
+      // If data has a roles property, return that
+      if (Array.isArray(data.roles)) {
+        return data.roles;
+      }
+      
+      // If data has an items property that's an array, return that
+      if (Array.isArray(data.items)) {
+        return data.items;
+      }
+    }
+    
+    // Default to empty array if no valid data found
+    console.warn('Unexpected roles data format:', data);
+    return [];
   },
   
   /**
    * Get all roles (alias for settings page)
    */
   async getAllRoles() {
-    const res = await apiRequest("GET", "/api/admin/settings/roles");
-    const data = await res.json();
-    // Return the roles array, unwrapping from "roles" if present
-    return data.roles ?? data;
+    // Reuse the getRoles method for consistency
+    return this.getRoles();
   },
   
   /**

@@ -392,15 +392,21 @@ export default function OrganizationDetailPage() {
                               <SelectValue placeholder="Select a user" />
                             </SelectTrigger>
                             <SelectContent>
-                              {Array.isArray(allUsers) && allUsers.map((user: any) => (
-                                <SelectItem 
-                                  key={user.id || user.userId} 
-                                  value={(user.id || user.userId).toString()}
-                                >
-                                  {user.email} 
-                                  {user.firstName && user.lastName ? ` - ${user.firstName} ${user.lastName}` : ''}
-                                </SelectItem>
-                              ))}
+                              {Array.isArray(allUsers) && allUsers.map((user: any) => {
+                                // Ensure we have a valid user ID before rendering
+                                const userId = user.id || user.userId;
+                                if (!userId) return null;
+                                
+                                return (
+                                  <SelectItem 
+                                    key={userId} 
+                                    value={userId.toString()}
+                                  >
+                                    {user.email || user.username || 'Unknown'} 
+                                    {user.firstName && user.lastName ? ` - ${user.firstName} ${user.lastName}` : ''}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                           {addUserForm.formState.errors.userId && (
@@ -419,14 +425,19 @@ export default function OrganizationDetailPage() {
                               <SelectValue placeholder="Select a role" />
                             </SelectTrigger>
                             <SelectContent>
-                              {Array.isArray(allRoles) && allRoles.map((role: any) => (
-                                <SelectItem 
-                                  key={role.id} 
-                                  value={role.id.toString()}
-                                >
-                                  {role.name || "Unknown Role"}
-                                </SelectItem>
-                              ))}
+                              {Array.isArray(allRoles) && allRoles.map((role: any) => {
+                                // Ensure we have a valid role ID before rendering
+                                if (!role.id) return null;
+                                
+                                return (
+                                  <SelectItem 
+                                    key={role.id} 
+                                    value={role.id.toString()}
+                                  >
+                                    {role.name || "Unknown Role"}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                           {addUserForm.formState.errors.roleId && (
