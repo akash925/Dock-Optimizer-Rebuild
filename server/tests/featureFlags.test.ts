@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { FeatureFlagService } from '../modules/featureFlags/service';
-import { organizationModules } from '@shared/schema';
+import { organizationModules } from '../schema';
 import { eq, and } from 'drizzle-orm';
 import { cleanupTestData } from './test-db';
 
@@ -35,42 +35,42 @@ describe('Feature Flags Service', () => {
 
   describe('isModuleEnabled', () => {
     it('returns true for enabled modules', async () => {
-      const result = await featureFlagsService.isModuleEnabled(testOrgId, 'calendar');
+      const result = await featureFlagService.isModuleEnabled(testOrgId, 'calendar');
       expect(result).toBe(true);
     });
 
     it('returns false for disabled modules', async () => {
-      const result = await featureFlagsService.isModuleEnabled(testOrgId, 'assetManager');
+      const result = await featureFlagService.isModuleEnabled(testOrgId, 'assetManager');
       expect(result).toBe(false);
     });
 
     it('returns false for non-existent modules', async () => {
-      const result = await featureFlagsService.isModuleEnabled(testOrgId, 'nonExistentModule');
+      const result = await featureFlagService.isModuleEnabled(testOrgId, 'nonExistentModule');
       expect(result).toBe(false);
     });
 
     it('returns false for non-existent organizations', async () => {
-      const result = await featureFlagsService.isModuleEnabled(99999, 'calendar');
+      const result = await featureFlagService.isModuleEnabled(99999, 'calendar');
       expect(result).toBe(false);
     });
   });
 
   describe('getEnabledModules', () => {
     it('returns only enabled modules', async () => {
-      const result = await featureFlagsService.getEnabledModules(testOrgId);
+      const result = await featureFlagService.getEnabledModules(testOrgId);
       expect(result).toContain('calendar');
       expect(result).not.toContain('assetManager');
     });
 
     it('returns empty array for non-existent organizations', async () => {
-      const result = await featureFlagsService.getEnabledModules(99999);
+      const result = await featureFlagService.getEnabledModules(99999);
       expect(result).toEqual([]);
     });
   });
 
-  describe('getAllModulesWithStatus', () => {
+  describe('getModulesWithStatus', () => {
     it('returns modules with their status', async () => {
-      const result = await featureFlagsService.getAllModulesWithStatus(testOrgId);
+      const result = await featureFlagService.getModulesWithStatus(testOrgId);
       
       // Find the calendar module in results
       const calendarModule = result.find(m => m.moduleName === 'calendar');
@@ -84,9 +84,9 @@ describe('Feature Flags Service', () => {
     });
   });
 
-  describe('toggleModule', () => {
+  describe('updateModuleStatus', () => {
     it('can enable a disabled module', async () => {
-      await featureFlagsService.toggleModule(testOrgId, 'assetManager', true);
+      await featureFlagService.updateModuleStatus(testOrgId, 'assetManager', true);
       
       // Verify it's now enabled
       const module = await db.select()
@@ -101,7 +101,7 @@ describe('Feature Flags Service', () => {
     });
 
     it('can disable an enabled module', async () => {
-      await featureFlagsService.toggleModule(testOrgId, 'calendar', false);
+      await featureFlagService.updateModuleStatus(testOrgId, 'calendar', false);
       
       // Verify it's now disabled
       const module = await db.select()
@@ -117,7 +117,7 @@ describe('Feature Flags Service', () => {
 
     it('creates a module entry if it does not exist', async () => {
       // Try toggling a module that doesn't exist yet
-      await featureFlagsService.toggleModule(testOrgId, 'newModule', true);
+      await featureFlagService.updateModuleStatus(testOrgId, 'newModule', true);
       
       // Verify it was created and enabled
       const module = await db.select()
