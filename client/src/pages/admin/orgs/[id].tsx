@@ -125,8 +125,9 @@ export default function OrganizationDetailPage() {
     staleTime: 300000, // Cache for 5 minutes
   });
   
-  // Extract users from response
-  const allUsers = usersResponse?.items || [];
+  // Extract users from response, ensuring we have an array
+  const allUsers = Array.isArray(usersResponse) ? usersResponse : 
+                 (usersResponse?.items && Array.isArray(usersResponse.items)) ? usersResponse.items : [];
 
   // Fetch all roles for role dropdown
   const { data: allRoles } = useQuery({

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Search, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -51,15 +51,19 @@ export default function UsersPage() {
         throw new Error('Failed to fetch users');
       }
       return response.json();
-    },
-    onSuccess: (data) => {
+    }
+  });
+  
+  // Handle data in a useEffect to avoid the onSuccess callback issue
+  useEffect(() => {
+    if (data) {
       console.log("Received users data:", data);
       // Ensure we have an array of users
       const usersArray = Array.isArray(data) ? data : 
                         (data && data.items && Array.isArray(data.items)) ? data.items : [];
       setFilteredUsers(usersArray);
     }
-  });
+  }, [data]);
 
   // Make sure users is always an array
   const users = Array.isArray(data) ? data : 
