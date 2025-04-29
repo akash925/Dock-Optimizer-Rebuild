@@ -1,10 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Edit, Users, Package, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -15,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Tenant } from "@shared/schema";
-import Layout from "@/components/layout/layout";
+import AdminLayout from "@/components/layout/admin-layout";
 
 // Extended tenant type with additional counts
 type EnhancedTenant = Tenant & {
@@ -57,22 +56,22 @@ export default function OrganizationsPage() {
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="flex flex-col space-y-6 p-6">
+      <AdminLayout>
+        <div className="flex flex-col space-y-6">
           <h2 className="text-2xl font-semibold tracking-tight">Organizations</h2>
           <p className="text-sm text-muted-foreground">Manage tenant organizations</p>
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </div>
-      </Layout>
+      </AdminLayout>
     );
   }
 
   if (error) {
     return (
-      <Layout>
-        <div className="flex flex-col space-y-6 p-6">
+      <AdminLayout>
+        <div className="flex flex-col space-y-6">
           <h2 className="text-2xl font-semibold tracking-tight">Organizations</h2>
           <p className="text-sm text-muted-foreground">Manage tenant organizations</p>
           <Card className="border-red-200 bg-red-50">
@@ -84,13 +83,13 @@ export default function OrganizationsPage() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
+      </AdminLayout>
     );
   }
 
   return (
-    <Layout>
-      <div className="flex flex-col space-y-6 p-6">
+    <AdminLayout>
+      <div className="flex flex-col space-y-6">
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Organizations</h2>
@@ -160,6 +159,6 @@ export default function OrganizationsPage() {
           </CardContent>
         </Card>
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }
