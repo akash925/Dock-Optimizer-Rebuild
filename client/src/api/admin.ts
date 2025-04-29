@@ -98,10 +98,10 @@ const adminApi = {
   },
 
   /**
-   * Get all users
+   * Get all users with pagination
    */
-  async getUsers() {
-    const res = await apiRequest("GET", "/api/admin/users");
+  async getUsers(page: number = 1, limit: number = 20) {
+    const res = await apiRequest("GET", `/api/admin/users?page=${page}&limit=${limit}`);
     return await res.json();
   },
 

@@ -112,11 +112,14 @@ export default function OrganizationDetailPage() {
   });
 
   // Fetch all users for add user dropdown
-  const { data: allUsers } = useQuery({
+  const { data: usersResponse } = useQuery({
     queryKey: ['allUsers'],
-    queryFn: adminApi.getUsers,
+    queryFn: () => adminApi.getUsers(1, 100), // Fetch 100 users for dropdown
     staleTime: 300000, // Cache for 5 minutes
   });
+  
+  // Extract users from response
+  const allUsers = usersResponse?.items || [];
 
   // Fetch all roles for role dropdown
   const { data: allRoles } = useQuery({
@@ -376,9 +379,9 @@ export default function OrganizationDetailPage() {
                               <SelectValue placeholder="Select a user" />
                             </SelectTrigger>
                             <SelectContent>
-                              {allUsers?.map((user: any) => (
-                                <SelectItem key={user.id ?? user.userId} value={(user.id ?? user.userId).toString()}>
-                                  {user.username || user.email || `User ${user.id ?? user.userId}`} 
+                              {Array.isArray(allUsers) && allUsers.map((user: any) => (
+                                <SelectItem key={user.userId} value={user.userId.toString()}>
+                                  {user.email} 
                                   {user.firstName && user.lastName ? ` - ${user.firstName} ${user.lastName}` : ''}
                                 </SelectItem>
                               ))}
@@ -400,10 +403,10 @@ export default function OrganizationDetailPage() {
                               <SelectValue placeholder="Select a role" />
                             </SelectTrigger>
                             <SelectContent>
-                              {allRoles?.map((role: any) => (
+                              {Array.isArray(allRoles) && allRoles.map((role: any) => (
                                 <SelectItem 
-                                  key={role.id ?? role.roleId ?? role.name} 
-                                  value={(role.id ?? role.roleId ?? "1").toString()}
+                                  key={role.id} 
+                                  value={role.id.toString()}
                                 >
                                   {role.name || "Unknown Role"}
                                 </SelectItem>
