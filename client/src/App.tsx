@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
@@ -35,6 +35,17 @@ import { ProtectedRoute } from "./lib/protected-route";
 import { AdminProtectedRoute } from "./lib/admin-protected-route";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Loader2 } from "lucide-react";
+import { ModuleProvider, useModules } from "@/contexts/ModuleContext";
+import { AuthProvider } from "@/hooks/use-auth";
+
+// Define route config with module dependencies
+export interface RouteConfig {
+  path: string;
+  component: React.ComponentType<any>;
+  module?: string;
+  roles?: string[];
+  isAdmin?: boolean;
+}
 
 // Use lazy loading for admin routes
 const AdminOrgsPage = lazy(() => import("@/pages/admin/orgs"));
@@ -53,100 +64,164 @@ const AdminOrgDetailPage = lazy(() => {
   });
 });
 
+// Define all routes with their module dependencies
+const protectedRoutes: RouteConfig[] = [
+  { path: "/", component: Dashboard, module: null },
+  { path: "/schedules", component: Schedules, module: "appointments" },
+  { path: "/schedules/:id", component: Schedules, module: "appointments" },
+  { path: "/appointments", component: Appointments, module: "appointments" },
+  { path: "/calendar", component: CalendarView, module: "calendar" },
+  { path: "/facility-master", component: FacilityMaster, roles: ["admin", "manager"], module: "facilityManagement" },
+  { path: "/facilities", component: Facilities, roles: ["admin", "manager"], module: "facilityManagement" },
+  { path: "/facility-settings/:id", component: FacilitySettings, roles: ["admin", "manager"], module: "facilityManagement" },
+  { path: "/facility-settings", component: FacilitySettings, roles: ["admin", "manager"], module: "facilityManagement" },
+  { path: "/appointment-master", component: AppointmentMaster, roles: ["admin", "manager"], module: "appointments" },
+  { path: "/dock-status", component: DockStatus, module: "doorManager" },
+  { path: "/door-manager", component: DoorManager, module: "doorManager" },
+  { path: "/analytics", component: Analytics, module: "analytics" },
+  { path: "/users", component: Users, roles: ["admin"], module: "userManagement" },
+  { path: "/booking-pages", component: BookingPages, roles: ["admin", "manager"], module: "bookingPages" },
+  { path: "/asset-manager", component: AssetManagerPage, roles: ["admin", "manager"], module: "assetManager" },
+  { path: "/asset-manager/assets/:id/edit", component: AssetEditPage, roles: ["admin", "manager"], module: "assetManager" },
+  { path: "/settings", component: Settings, roles: ["admin", "manager"], module: null }
+];
+
+// Define admin routes
+const adminRoutes: RouteConfig[] = [
+  { path: "/admin", component: AdminDashboard, isAdmin: true },
+  { 
+    path: "/admin/orgs", 
+    component: () => (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <AdminOrgsPage />
+      </Suspense>
+    ),
+    isAdmin: true
+  },
+  { 
+    path: "/admin/orgs/new", 
+    component: () => (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <AdminNewOrgPage />
+      </Suspense>
+    ),
+    isAdmin: true
+  },
+  { 
+    path: "/admin/orgs/:id", 
+    component: () => (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <AdminOrgDetailPage />
+      </Suspense>
+    ),
+    isAdmin: true
+  },
+  { 
+    path: "/admin/organizations", 
+    component: () => (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <AdminOrganizationsPage />
+      </Suspense>
+    ),
+    isAdmin: true
+  },
+  { 
+    path: "/admin/users", 
+    component: () => (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <AdminUsersPage />
+      </Suspense>
+    ),
+    isAdmin: true
+  },
+  { 
+    path: "/admin/users/:id", 
+    component: () => (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <AdminUserDetailPage />
+      </Suspense>
+    ),
+    isAdmin: true
+  },
+  { 
+    path: "/admin/settings", 
+    component: () => (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <AdminSettingsPage />
+      </Suspense>
+    ),
+    isAdmin: true
+  }
+];
+
+// Define public routes that don't require authentication or modules
+const publicRoutes: RouteConfig[] = [
+  { path: "/auth", component: AuthPage },
+  { path: "/door-manager-demo", component: BasicDoorManager },
+  { path: "/external/:slug", component: ExternalBooking },
+  { path: "/booking-confirmation", component: BookingConfirmation },
+  { path: "/driver-check-in", component: DriverCheckIn },
+  { path: "/reschedule", component: Reschedule },
+  { path: "/cancel", component: Cancel },
+  { path: "/auth-debug", component: AuthDebugPage },
+  { path: "/test-fixed-appointment", component: TestFixedAppointment },
+  { path: "/test-fixed-appointment-v2", component: TestFixedAppointmentV2 },
+  { path: "/test-appointment-patched", component: TestAppointmentPatchedPage },
+  { path: "/debug-auth", component: DebugAuthPage }
+];
+
+// Router component that filters routes based on modules
+function AppRouter() {
+  const { modules, isModuleEnabled } = useModules();
+  
+  // Memoize the filtered routes to prevent unnecessary re-renders
+  const filteredProtectedRoutes = useMemo(() => {
+    return protectedRoutes.filter(route => 
+      !route.module || isModuleEnabled(route.module)
+    );
+  }, [modules, isModuleEnabled]);
+  
+  return (
+    <Switch>
+      {/* Public routes that don't require authentication */}
+      {publicRoutes.map(route => (
+        <Route key={route.path} path={route.path} component={route.component} />
+      ))}
+      
+      {/* Protected routes filtered by module availability */}
+      {filteredProtectedRoutes.map(route => (
+        <ProtectedRoute 
+          key={route.path} 
+          path={route.path} 
+          component={route.component} 
+          roles={route.roles} 
+        />
+      ))}
+      
+      {/* Admin routes that don't depend on modules */}
+      {adminRoutes.map(route => (
+        <AdminProtectedRoute 
+          key={route.path} 
+          path={route.path} 
+          component={route.component} 
+        />
+      ))}
+      
+      {/* Not found route */}
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="hanzo-dock-theme">
-      <Switch>
-        <Route path="/auth" component={AuthPage} />
-        <Route path="/door-manager-demo" component={BasicDoorManager} />
-        <Route path="/external/:slug" component={ExternalBooking} />
-        <Route path="/booking-confirmation" component={BookingConfirmation} />
-        <Route path="/driver-check-in" component={DriverCheckIn} />
-        <Route path="/reschedule" component={Reschedule} />
-        <Route path="/cancel" component={Cancel} />
-        <Route path="/auth-debug" component={AuthDebugPage} />
-        <Route path="/test-fixed-appointment" component={TestFixedAppointment} />
-        <Route path="/test-fixed-appointment-v2" component={TestFixedAppointmentV2} />
-        <Route path="/test-appointment-patched" component={TestAppointmentPatchedPage} />
-        <Route path="/debug-auth" component={DebugAuthPage} />
-        <ProtectedRoute path="/" component={Dashboard} />
-        <ProtectedRoute path="/schedules" component={Schedules} />
-        <ProtectedRoute path="/schedules/:id" component={Schedules} />
-        <ProtectedRoute path="/appointments" component={Appointments} />
-        <ProtectedRoute path="/calendar" component={CalendarView} />
-        <ProtectedRoute path="/facility-master" component={FacilityMaster} roles={["admin", "manager"]} />
-        <ProtectedRoute path="/facilities" component={Facilities} roles={["admin", "manager"]} />
-        <ProtectedRoute path="/facility-settings/:id" component={FacilitySettings} roles={["admin", "manager"]} />
-        <ProtectedRoute path="/facility-settings" component={FacilitySettings} roles={["admin", "manager"]} />
-        <ProtectedRoute path="/appointment-master" component={AppointmentMaster} roles={["admin", "manager"]} />
-        <ProtectedRoute path="/dock-status" component={DockStatus} />
-        <ProtectedRoute path="/door-manager" component={DoorManager} />
-        <ProtectedRoute path="/analytics" component={Analytics} />
-        <ProtectedRoute path="/users" component={Users} roles={["admin"]} />
-        <ProtectedRoute path="/booking-pages" component={BookingPages} roles={["admin", "manager"]} />
-        <ProtectedRoute path="/asset-manager" component={AssetManagerPage} roles={["admin", "manager"]} />
-        <ProtectedRoute path="/asset-manager/assets/:id/edit" component={AssetEditPage} roles={["admin", "manager"]} />
-        <ProtectedRoute path="/settings" component={Settings} roles={["admin", "manager"]} />
-        <AdminProtectedRoute path="/admin" component={AdminDashboard} />
-        <AdminProtectedRoute 
-          path="/admin/orgs" 
-          component={() => (
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-              <AdminOrgsPage />
-            </Suspense>
-          )} 
-        />
-        <AdminProtectedRoute 
-          path="/admin/orgs/new" 
-          component={() => (
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-              <AdminNewOrgPage />
-            </Suspense>
-          )} 
-        />
-        <AdminProtectedRoute 
-          path="/admin/orgs/:id" 
-          component={() => (
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-              <AdminOrgDetailPage />
-            </Suspense>
-          )} 
-        />
-        <AdminProtectedRoute 
-          path="/admin/organizations" 
-          component={() => (
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-              <AdminOrganizationsPage />
-            </Suspense>
-          )} 
-        />
-        <AdminProtectedRoute 
-          path="/admin/users" 
-          component={() => (
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-              <AdminUsersPage />
-            </Suspense>
-          )} 
-        />
-        <AdminProtectedRoute 
-          path="/admin/users/:id" 
-          component={() => (
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-              <AdminUserDetailPage />
-            </Suspense>
-          )} 
-        />
-        <AdminProtectedRoute 
-          path="/admin/settings" 
-          component={() => (
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-              <AdminSettingsPage />
-            </Suspense>
-          )} 
-        />
-        <Route component={NotFound} />
-      </Switch>
-      <Toaster />
+      <AuthProvider>
+        <ModuleProvider>
+          <AppRouter />
+          <Toaster />
+        </ModuleProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
