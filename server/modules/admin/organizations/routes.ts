@@ -1,10 +1,25 @@
 import { Express, Request, Response } from 'express';
 import { getStorage } from '../../../storage';
 import { z } from 'zod';
-import { TenantStatus, AvailableModule } from '@shared/schema';
+import { TenantStatus, AvailableModule, activityLogs } from '@shared/schema';
 import { db } from '../../../db';
 import { eq, sql } from 'drizzle-orm';
 import { users, tenants, organizationUsers, organizationModules, roles } from '@shared/schema';
+
+// Helper function to log organization activity
+async function logOrganizationActivity(orgId: number, userId: number, action: string, details: string) {
+  try {
+    await db.insert(activityLogs).values({
+      organizationId: orgId,
+      userId,
+      action,
+      details
+    });
+    console.log(`Activity logged for org ${orgId}: ${action}`);
+  } catch (error) {
+    console.error('Failed to log organization activity:', error);
+  }
+}
 
 // Define organization validation schemas
 const createOrgSchema = z.object({
@@ -331,15 +346,13 @@ export const organizationsRoutes = (app: Express) => {
       // For logging
       const updatedModule = result.find(m => m.moduleName === moduleName);
       
-      // Log the action in a try-catch to not fail if logging fails
+      // Log the action using our helper function
       try {
-        // Add activity log through direct SQL query for now
-        await db.execute(sql`
-          INSERT INTO activity_logs 
-            (organization_id, user_id, action, details, timestamp) 
-          VALUES 
-            (${orgId}, ${req.user?.id || 0}, ${enabled ? 'module_enabled' : 'module_disabled'}, ${`Module ${moduleName} ${enabled ? 'enabled' : 'disabled'}`}, ${new Date()})
-        `);
+        const userId = req.user?.id || 0;
+        const action = enabled ? 'module_enabled' : 'module_disabled';
+        const details = `Module "${moduleName}" was ${enabled ? 'enabled' : 'disabled'} for organization "${org.name}"`;
+        
+        await logOrganizationActivity(orgId, userId, action, details);
       } catch (logError) {
         console.warn('Failed to log module update activity:', logError);
         // Continue even if logging fails
@@ -399,15 +412,13 @@ export const organizationsRoutes = (app: Express) => {
         // Add user to organization with the specified role
         result = await storage.addUserToOrganizationWithRole(userId, orgId, roleId);
         
-        // Log the action
+        // Log the action using our helper function
         try {
-          // Add activity log through direct SQL query
-          await db.execute(sql`
-            INSERT INTO activity_logs 
-              (organization_id, user_id, action, details, timestamp) 
-            VALUES 
-              (${orgId}, ${req.user?.id || 0}, ${'user_added'}, ${`User ${user.username} added with role ${role.name}`}, ${new Date()})
-          `);
+          const adminUserId = req.user?.id || 0;
+          const action = 'user_added';
+          const details = `User "${user.username}" added with role "${role.name}" to organization "${org.name}"`;
+          
+          await logOrganizationActivity(orgId, adminUserId, action, details);
         } catch (logError) {
           console.warn('Failed to log user add activity:', logError);
           // Continue even if logging fails
@@ -416,15 +427,13 @@ export const organizationsRoutes = (app: Express) => {
         // Remove user from organization
         result = await storage.removeUserFromOrganization(userId, orgId);
         
-        // Log the action
+        // Log the action using our helper function
         try {
-          // Add activity log through direct SQL query
-          await db.execute(sql`
-            INSERT INTO activity_logs 
-              (organization_id, user_id, action, details, timestamp) 
-            VALUES 
-              (${orgId}, ${req.user?.id || 0}, ${'user_removed'}, ${`User ${user.username} removed from organization`}, ${new Date()})
-          `);
+          const adminUserId = req.user?.id || 0;
+          const action = 'user_removed';
+          const details = `User "${user.username}" removed from organization "${org.name}"`;
+          
+          await logOrganizationActivity(orgId, adminUserId, action, details);
         } catch (logError) {
           console.warn('Failed to log user remove activity:', logError);
           // Continue even if logging fails
