@@ -3,7 +3,8 @@ import { getStorage } from '../../../storage';
 import { z } from 'zod';
 import { TenantStatus, AvailableModule } from '@shared/schema';
 import { db } from '../../../db';
-import { users } from '@shared/schema';
+import { eq, sql } from 'drizzle-orm';
+import { users, tenants, organizationUsers, organizationModules, roles } from '@shared/schema';
 
 // Define organization validation schemas
 const createOrgSchema = z.object({
@@ -313,16 +314,32 @@ export const organizationsRoutes = (app: Express) => {
       
       // Update module status
       const { moduleName, enabled } = validationResult.data;
-      const updatedModule = await storage.updateOrganizationModule(orgId, moduleName, enabled);
       
-      // Log the action
+      // Get current modules for this organization
+      const existingModules = await storage.getOrganizationModules(orgId);
+      
+      // Prepare updated modules list
+      const updatedModules = existingModules.map(module => ({
+        organizationId: orgId,
+        moduleName: module.moduleName,
+        enabled: module.moduleName === moduleName ? enabled : module.enabled
+      }));
+      
+      // Update all modules at once
+      const result = await storage.updateOrganizationModules(orgId, updatedModules);
+      
+      // For logging
+      const updatedModule = result.find(m => m.moduleName === moduleName);
+      
+      // Log the action in a try-catch to not fail if logging fails
       try {
-        await storage.logOrganizationActivity(
-          orgId,
-          req.user?.id || 0,
-          enabled ? 'module_enabled' : 'module_disabled',
-          `Module ${moduleName} ${enabled ? 'enabled' : 'disabled'}`
-        );
+        // Add activity log through direct SQL query for now
+        await db.execute(sql`
+          INSERT INTO activity_logs 
+            (organization_id, user_id, action, details, timestamp) 
+          VALUES 
+            (${orgId}, ${req.user?.id || 0}, ${enabled ? 'module_enabled' : 'module_disabled'}, ${`Module ${moduleName} ${enabled ? 'enabled' : 'disabled'}`}, ${new Date()})
+        `);
       } catch (logError) {
         console.warn('Failed to log module update activity:', logError);
         // Continue even if logging fails
@@ -384,12 +401,13 @@ export const organizationsRoutes = (app: Express) => {
         
         // Log the action
         try {
-          await storage.logOrganizationActivity(
-            orgId,
-            req.user?.id || 0,
-            'user_added',
-            `User ${user.username} added with role ${role.name}`
-          );
+          // Add activity log through direct SQL query
+          await db.execute(sql`
+            INSERT INTO activity_logs 
+              (organization_id, user_id, action, details, timestamp) 
+            VALUES 
+              (${orgId}, ${req.user?.id || 0}, ${'user_added'}, ${`User ${user.username} added with role ${role.name}`}, ${new Date()})
+          `);
         } catch (logError) {
           console.warn('Failed to log user add activity:', logError);
           // Continue even if logging fails
@@ -400,12 +418,13 @@ export const organizationsRoutes = (app: Express) => {
         
         // Log the action
         try {
-          await storage.logOrganizationActivity(
-            orgId,
-            req.user?.id || 0,
-            'user_removed',
-            `User ${user.username} removed from organization`
-          );
+          // Add activity log through direct SQL query
+          await db.execute(sql`
+            INSERT INTO activity_logs 
+              (organization_id, user_id, action, details, timestamp) 
+            VALUES 
+              (${orgId}, ${req.user?.id || 0}, ${'user_removed'}, ${`User ${user.username} removed from organization`}, ${new Date()})
+          `);
         } catch (logError) {
           console.warn('Failed to log user remove activity:', logError);
           // Continue even if logging fails
@@ -439,10 +458,45 @@ export const organizationsRoutes = (app: Express) => {
         return res.status(404).json({ message: 'Organization not found' });
       }
       
-      // Since we don't have actual logs implementation yet, return empty array
-      // Later we'll replace this with real storage calls
-      const logs: Array<{id: number, timestamp: string, action: string, details: string}> = [];
-      const totalLogs = 0;
+      // Get logs from database directly
+      let logs: Array<{id: number, timestamp: string, action: string, details: string}> = [];
+      let totalLogs = 0;
+      
+      try {
+        // Calculate offset based on pagination
+        const offset = (page - 1) * limit;
+        
+        // Get logs with pagination
+        const result = await db.execute(sql`
+          SELECT id, timestamp, action, details 
+          FROM activity_logs 
+          WHERE organization_id = ${orgId} 
+          ORDER BY timestamp DESC
+          LIMIT ${limit} OFFSET ${offset}
+        `);
+        
+        // Parse the results
+        if (result.rows) {
+          logs = result.rows.map(row => ({
+            id: Number(row.id),
+            timestamp: new Date(row.timestamp).toISOString(),
+            action: String(row.action),
+            details: String(row.details)
+          }));
+        }
+        
+        // Get total count for pagination
+        const countResult = await db.execute(sql`
+          SELECT COUNT(*) as total FROM activity_logs WHERE organization_id = ${orgId}
+        `);
+        
+        if (countResult.rows?.[0]) {
+          totalLogs = Number(countResult.rows[0].total) || 0;
+        }
+      } catch (logError) {
+        console.warn('Error fetching activity logs:', logError);
+        // If there's an error, return empty logs but don't fail the request
+      }
       
       res.json({
         logs,
@@ -528,8 +582,30 @@ export const organizationsRoutes = (app: Express) => {
         };
       });
       
-      // Empty logs array for now since we don't have the implementation yet
-      const logs: Array<{id: number, timestamp: string, action: string, details: string}> = [];
+      // Get recent logs from database directly (limited to 10 most recent)
+      let logs: Array<{id: number, timestamp: string, action: string, details: string}> = [];
+      try {
+        const result = await db.execute(sql`
+          SELECT id, timestamp, action, details 
+          FROM activity_logs 
+          WHERE organization_id = ${orgId} 
+          ORDER BY timestamp DESC
+          LIMIT 10
+        `);
+        
+        // Parse the results
+        if (result.rows) {
+          logs = result.rows.map(row => ({
+            id: Number(row.id),
+            timestamp: new Date(row.timestamp).toISOString(),
+            action: String(row.action),
+            details: String(row.details)
+          }));
+        }
+      } catch (logError) {
+        console.warn('Error fetching activity logs for org detail:', logError);
+        // If there's an error, return empty logs but don't fail the request
+      }
       
       // For debugging
       console.log(`Got detail for org ${orgId}: ${enhancedUsers.length} users, ${modules.length} modules`);
