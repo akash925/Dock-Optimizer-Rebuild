@@ -910,12 +910,31 @@ export const insertOrgModuleSchema = createInsertSchema(organizationModules).omi
 export type OrganizationModule = typeof organizationModules.$inferSelect;
 export type InsertOrganizationModule = z.infer<typeof insertOrgModuleSchema>;
 
+// Activity Logs for tracking organization changes
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull(),
+  action: text("action").notNull(), // e.g., 'module_enabled', 'user_added', etc.
+  details: text("details").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
+  id: true,
+  timestamp: true,
+});
+
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+
 // Tenant relations
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   featureFlags: many(featureFlags),
   users: many(users),
   organizationUsers: many(organizationUsers),
   organizationModules: many(organizationModules),
+  activityLogs: many(activityLogs),
 }));
 
 // Feature flags relations
@@ -966,5 +985,16 @@ export const organizationModulesRelations = relations(organizationModules, ({ on
   organization: one(tenants, {
     fields: [organizationModules.organizationId],
     references: [tenants.id],
+  }),
+}));
+
+export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
+  organization: one(tenants, {
+    fields: [activityLogs.organizationId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [activityLogs.userId],
+    references: [users.id],
   }),
 }));
