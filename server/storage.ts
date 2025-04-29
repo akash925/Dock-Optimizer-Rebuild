@@ -38,6 +38,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userUpdate: Partial<User>): Promise<User | undefined>;
+  updateUserPassword(id: number, hashedPassword: string): Promise<boolean>;
   getUsers(): Promise<User[]>;
   
   // Dock operations
@@ -482,6 +483,15 @@ export class MemStorage implements IStorage {
   
   async getUsers(): Promise<User[]> {
     return Array.from(this.users.values());
+  }
+  
+  async updateUserPassword(id: number, hashedPassword: string): Promise<boolean> {
+    const user = this.users.get(id);
+    if (!user) return false;
+    
+    user.password = hashedPassword;
+    this.users.set(id, user);
+    return true;
   }
 
   // Dock operations
@@ -1476,6 +1486,15 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+  
+  async updateUserPassword(id: number, hashedPassword: string): Promise<boolean> {
+    const result = await db
+      .update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.id, id))
+      .returning();
+    return result.length > 0;
   }
   
   async getUsers(): Promise<User[]> {

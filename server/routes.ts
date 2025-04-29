@@ -25,6 +25,7 @@ import {
 
 // Import the super-admin creation script
 import { createSuperAdmin } from "./create-super-admin";
+import { fixAdminPassword } from "./fix-admin-password";
 import { hashPassword as authHashPassword } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -41,6 +42,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Super-admin creation script completed");
   } catch (error) {
     console.error("Error running super-admin creation script:", error);
+  }
+  
+  // Fix admin password
+  try {
+    console.log("Running fix-admin-password script...");
+    await fixAdminPassword();
+    console.log("Admin password fix completed");
+  } catch (error) {
+    console.error("Error fixing admin password:", error);
   }
   
   // Register admin routes
