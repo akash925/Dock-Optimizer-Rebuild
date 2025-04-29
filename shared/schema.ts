@@ -30,7 +30,18 @@ export const AvailableModule = {
 export type AvailableModule = (typeof AvailableModule)[keyof typeof AvailableModule];
 
 // User Roles
-export type Role = "super-admin" | "admin" | "manager" | "worker";
+export enum RoleName {
+  super_admin       = "super-admin",
+  admin             = "admin",
+  manager           = "manager",
+  facility_manager  = "facility-manager",
+  staff             = "staff",
+  facility_staff    = "facility-staff",
+  maintenance       = "maintenance",
+  worker            = "worker"
+}
+
+export type Role = RoleName | string;
 
 // Role model for more granular permissions
 export const roles = pgTable("roles", {

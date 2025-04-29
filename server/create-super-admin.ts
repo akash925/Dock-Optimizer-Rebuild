@@ -54,6 +54,23 @@ export async function createSuperAdmin() {
       console.log("Created super-admin role:", superAdminRole.id);
     }
     
+    // Add the new roles
+    const extraRoles = [
+      { name: "manager",           description: "Can edit all data but cannot delete orgs or users" },
+      { name: "facility-manager",  description: "Can edit data for assigned facilities only" },
+      { name: "staff",             description: "Read‐only across all functionality" },
+      { name: "facility-staff",    description: "Read‐only for assigned facilities only" },
+      { name: "maintenance",       description: "Access only the Asset Manager module" },
+    ];
+
+    for (const { name, description } of extraRoles) {
+      let role = await storage.getRoleByName(name);
+      if (!role) {
+        role = await storage.createRole({ name, description });
+        console.log(`Created ${name} role:`, role.id);
+      }
+    }
+    
     // Add the user to the organization with super-admin role
     await storage.addUserToOrganization({
       organizationId: organization.id, 
