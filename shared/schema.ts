@@ -30,7 +30,23 @@ export const AvailableModule = {
 export type AvailableModule = (typeof AvailableModule)[keyof typeof AvailableModule];
 
 // User Roles
-export type Role = "admin" | "manager" | "worker";
+export type Role = "super-admin" | "admin" | "manager" | "worker";
+
+// Role model for more granular permissions
+export const roles = pgTable("roles", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertRoleSchema = createInsertSchema(roles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type RoleRecord = typeof roles.$inferSelect;
+export type InsertRoleRecord = z.infer<typeof insertRoleSchema>;
 
 // Enum for Schedule Type
 export const ScheduleType = {
@@ -457,7 +473,20 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     fields: [users.tenantId],
     references: [tenants.id],
   }),
+  // Organization memberships
+  organizationUsers: many(organizationUsers),
 }));
+
+// Role relations
+export const rolesRelations = relations(roles, ({ many }) => ({
+  organizationUsers: many(organizationUsers),
+}));
+
+// Organization Users relations - we'll define this after the schema is complete to avoid circular references
+// Will be defined at the end of the file
+
+// Organization Modules relations - defined after all schemas to avoid circular references
+// Will be defined at the end of the file
 
 export const docksRelations = relations(docks, ({ many, one }) => ({
   schedules: many(schedules, { relationName: "dock_schedules" }),
@@ -828,10 +857,54 @@ export const featureFlags = pgTable("feature_flags", {
   };
 });
 
+// Organization-Users join table
+export const organizationUsers = pgTable("organization_users", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  roleId: integer("role_id").notNull().references(() => roles.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    orgUserUnique: unique().on(table.organizationId, table.userId),
+  };
+});
+
+export const insertOrgUserSchema = createInsertSchema(organizationUsers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type OrganizationUser = typeof organizationUsers.$inferSelect;
+export type InsertOrganizationUser = z.infer<typeof insertOrgUserSchema>;
+
+// Organization-Modules join table
+export const organizationModules = pgTable("organization_modules", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  moduleName: text("module_name").notNull().$type<AvailableModule>(),
+  enabled: boolean("enabled").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    orgModuleUnique: unique().on(table.organizationId, table.moduleName),
+  };
+});
+
+export const insertOrgModuleSchema = createInsertSchema(organizationModules).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type OrganizationModule = typeof organizationModules.$inferSelect;
+export type InsertOrganizationModule = z.infer<typeof insertOrgModuleSchema>;
+
 // Tenant relations
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   featureFlags: many(featureFlags),
   users: many(users),
+  organizationUsers: many(organizationUsers),
+  organizationModules: many(organizationModules),
 }));
 
 // Feature flags relations
