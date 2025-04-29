@@ -175,30 +175,49 @@ export async function setupAuth(app: Express) {
   // Add a test route to create a user and auto-login (for development)
   app.get("/api/test-login", async (req, res, next) => {
     try {
+      console.log("Test login endpoint called");
+      
       // Check if we already have a test admin user
       const storage = await getStorage();
       let testUser = await storage.getUserByUsername("testadmin");
       
       if (testUser) {
+        console.log("Found existing test user:", testUser.id);
+        
         // Update with correct password format if needed
-        if (!testUser.password.includes('.')) {
+        if (!testUser.password || !testUser.password.includes('.')) {
           console.log("Updating test admin user with proper password format");
           const hashedPassword = await hashPassword("password123");
-          testUser = await storage.updateUser(testUser.id, {
+          
+          const updatedUser = await storage.updateUser(testUser.id, {
             password: hashedPassword
           });
+          
+          if (updatedUser) {
+            testUser = updatedUser;
+            console.log("User password updated successfully");
+          } else {
+            console.error("Failed to update user password");
+          }
         }
         
         // Log in with existing user
         req.login(testUser, (loginErr) => {
-          if (loginErr) return next(loginErr);
+          if (loginErr) {
+            console.error("Login error:", loginErr);
+            return next(loginErr);
+          }
+          
+          console.log("Login successful with test user");
           const { password, ...userWithoutPassword } = testUser;
+          
           return res.status(200).json({
             message: "Logged in with existing test user",
             user: userWithoutPassword
           });
         });
       } else {
+        console.log("Creating new test admin user");
         // Create a test admin user
         const hashedPassword = await hashPassword("password123");
         const newUser = await storage.createUser({
@@ -207,13 +226,22 @@ export async function setupAuth(app: Express) {
           email: "testadmin@example.com",
           firstName: "Test",
           lastName: "Admin",
-          role: "admin"
+          role: "admin",
+          tenantId: null
         });
+        
+        console.log("New test user created:", newUser.id);
         
         // Log in with the new user
         req.login(newUser, (loginErr) => {
-          if (loginErr) return next(loginErr);
+          if (loginErr) {
+            console.error("Login error for new user:", loginErr);
+            return next(loginErr);
+          }
+          
+          console.log("Login successful with new test user");
           const { password, ...userWithoutPassword } = newUser;
+          
           return res.status(200).json({
             message: "Created and logged in with new test user",
             user: userWithoutPassword
@@ -221,7 +249,11 @@ export async function setupAuth(app: Express) {
         });
       }
     } catch (err) {
-      next(err);
+      console.error("Test login error:", err);
+      res.status(500).json({ 
+        message: "An error occurred during test login", 
+        error: err instanceof Error ? err.message : String(err) 
+      });
     }
   });
 

@@ -97,10 +97,8 @@ export default function AuthPage() {
   async function handleTestLogin() {
     try {
       const res = await fetch('/api/test-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        method: 'GET',
+        credentials: 'include'
       });
       
       if (res.ok) {
@@ -122,6 +120,7 @@ export default function AuthPage() {
         });
       }
     } catch (err) {
+      console.error("Test login error:", err);
       toast({
         title: "Error during test login",
         description: String(err),
