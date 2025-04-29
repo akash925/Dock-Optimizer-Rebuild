@@ -13,9 +13,14 @@ import {
   BookingPage, InsertBookingPage,
   Asset, InsertAsset,
   CompanyAsset, InsertCompanyAsset, UpdateCompanyAsset,
+  Tenant, InsertTenant,
+  RoleRecord, InsertRoleRecord,
+  OrganizationUser, InsertOrganizationUser,
+  OrganizationModule, InsertOrganizationModule,
   ScheduleStatus, DockStatus, HolidayScope, TimeInterval, AssetCategory,
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
-  appointmentTypes, dailyAvailability, customQuestions, bookingPages, assets, companyAssets
+  appointmentTypes, dailyAvailability, customQuestions, bookingPages, assets, companyAssets,
+  tenants, roles, organizationUsers, organizationModules
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -123,6 +128,29 @@ export interface IStorage {
   updateCompanyAsset(id: number, companyAsset: UpdateCompanyAsset): Promise<CompanyAsset | undefined>;
   deleteCompanyAsset(id: number): Promise<boolean>;
   
+  // Organization (Tenant) operations
+  getAllTenants(): Promise<Tenant[]>;
+  getTenantById(id: number): Promise<Tenant | undefined>;
+  getTenantBySubdomain(subdomain: string): Promise<Tenant | undefined>;
+  createTenant(tenant: InsertTenant): Promise<Tenant>;
+  updateTenant(id: number, tenant: Partial<Tenant>): Promise<Tenant | undefined>;
+  deleteTenant(id: number): Promise<boolean>;
+  
+  // Role operations
+  getRole(id: number): Promise<RoleRecord | undefined>;
+  getRoleByName(name: string): Promise<RoleRecord | undefined>;
+  getRoles(): Promise<RoleRecord[]>;
+  createRole(role: InsertRoleRecord): Promise<RoleRecord>;
+  
+  // Organization User operations
+  getUsersByOrganizationId(organizationId: number): Promise<User[]>;
+  addUserToOrganization(orgUser: InsertOrganizationUser): Promise<OrganizationUser>;
+  removeUserFromOrganization(organizationId: number, userId: number): Promise<boolean>;
+  
+  // Organization Module operations
+  getModulesByOrganizationId(organizationId: number): Promise<OrganizationModule[]>;
+  updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]>;
+  
   // Session store
   sessionStore: any; // Type-safe session store
 }
@@ -141,6 +169,14 @@ export class MemStorage implements IStorage {
   private customQuestions: Map<number, CustomQuestion>;
   private bookingPages: Map<number, BookingPage>;
   private assets: Map<number, Asset>;
+  private companyAssets: Map<number, CompanyAsset>;
+  
+  // Admin console related
+  private tenants: Map<number, Tenant>;
+  private roles: Map<number, RoleRecord>;
+  private organizationUsers: Map<number, OrganizationUser>;
+  private organizationModules: Map<number, OrganizationModule>;
+  
   sessionStore: any;
   
   private userIdCounter: number = 1;
@@ -156,7 +192,10 @@ export class MemStorage implements IStorage {
   private bookingPageIdCounter: number = 1;
   private assetIdCounter: number = 1;
   private companyAssetIdCounter: number = 1;
-  private companyAssets: Map<number, CompanyAsset>;
+  private tenantIdCounter: number = 1;
+  private roleIdCounter: number = 1;
+  private organizationUserIdCounter: number = 1;
+  private organizationModuleIdCounter: number = 1;
 
   constructor() {
     this.users = new Map();

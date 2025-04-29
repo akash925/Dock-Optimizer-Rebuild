@@ -65,6 +65,7 @@ function App() {
         <ProtectedRoute path="/asset-manager" component={AssetManagerPage} roles={["admin", "manager"]} />
         <ProtectedRoute path="/asset-manager/assets/:id/edit" component={AssetEditPage} roles={["admin", "manager"]} />
         <ProtectedRoute path="/settings" component={Settings} roles={["admin", "manager"]} />
+        <ProtectedRoute path="/admin" component={AdminDashboard} roles={["super-admin", "admin"]} />
         <Route component={NotFound} />
       </Switch>
       <Toaster />
