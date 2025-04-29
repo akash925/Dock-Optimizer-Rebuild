@@ -38,6 +38,7 @@ import { Loader2 } from "lucide-react";
 // Use lazy loading for admin routes
 const AdminOrgsPage = lazy(() => import("@/pages/admin/orgs"));
 const AdminNewOrgPage = lazy(() => import("@/pages/admin/orgs/new"));
+const AdminOrganizationsPage = lazy(() => import("@/pages/admin/organizations"));
 // Need to handle the special character in filename
 const AdminOrgDetailPage = lazy(() => {
   return new Promise((resolve) => {
@@ -106,6 +107,15 @@ function App() {
           component={() => (
             <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
               <AdminOrgDetailPage />
+            </Suspense>
+          )} 
+          roles={["super-admin"]}
+        />
+        <ProtectedRoute 
+          path="/admin/organizations" 
+          component={() => (
+            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+              <AdminOrganizationsPage />
             </Suspense>
           )} 
           roles={["super-admin"]}
