@@ -2,13 +2,14 @@ import React from 'react';
 import { format, addDays, subDays, startOfDay, addHours } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Schedule } from '@shared/schema';
+import { Schedule, Facility } from '@shared/schema';
 import { Dock } from '@shared/schema';
 import { cn } from '@/lib/utils';
 
 interface ScheduleDayCalendarProps {
   schedules: Schedule[];
   docks: Dock[];
+  facilities: Facility[];
   date: Date;
   onScheduleClick: (scheduleId: number) => void;
   onCellClick?: (date: Date, dockId?: number) => void;
@@ -27,6 +28,7 @@ type SchedulesByHourAndDock = Record<number, Record<number, ScheduleWithTime[]>>
 export default function ScheduleDayCalendar({
   schedules,
   docks,
+  facilities,
   date,
   onScheduleClick,
   onCellClick,
@@ -216,14 +218,25 @@ export default function ScheduleDayCalendar({
                   Object.entries(organizedSchedules[hour.value]).flatMap(([dockId, dockSchedules]) => {
                     return dockSchedules.map((schedule) => {
                       const dock = docks.find(d => d.id === schedule.dockId);
-                      const dockName = dock ? dock.name : "";
+                      const facilityId = dock?.facilityId;
+                      const facility = facilities?.find(f => f.id === facilityId);
+                      const facilityName = facility?.name || "";
                       const isInbound = schedule.type === "inbound";
+                      
+                      // Calculate duration in hours (difference between start and end time)
+                      const startTime = new Date(schedule.startTime);
+                      const endTime = new Date(schedule.endTime);
+                      const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+                      
+                      // Make 4-hour appointments taller
+                      const heightClass = durationHours >= 4 ? "h-auto min-h-[6rem]" : "h-auto min-h-[4rem]";
                       
                       return (
                         <div
                           key={schedule.id}
                           className={cn(
-                            "p-2 rounded-sm text-xs cursor-pointer border transition-colors overflow-hidden h-full flex flex-col",
+                            "p-2 rounded-sm text-xs cursor-pointer border transition-colors overflow-hidden flex flex-col",
+                            heightClass,
                             schedule.status === "completed" 
                               ? "bg-green-50 border-green-200"
                               : schedule.status === "cancelled" 
@@ -236,8 +249,11 @@ export default function ScheduleDayCalendar({
                           )}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          <div className="font-bold truncate text-sm">
+                          <div className="font-bold truncate text-sm mb-1">
                             {schedule.formattedTime}
+                          </div>
+                          <div className="truncate text-xs mt-0.5 font-medium">
+                            {facilityName}
                           </div>
                           <div className="truncate font-medium mt-1">
                             {schedule.customerName || "Unnamed"}
