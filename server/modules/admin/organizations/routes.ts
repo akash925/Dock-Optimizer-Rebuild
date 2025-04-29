@@ -468,19 +468,43 @@ export const organizationsRoutes = (app: Express) => {
         return res.status(404).json({ message: 'Organization not found' });
       }
       
-      // Fetch all data in parallel for better performance
-      const [users, modules, logs] = await Promise.all([
-        storage.getOrganizationUsersWithRoles(orgId).catch(() => {
-          console.warn(`Organization users with roles not available for ${orgId}, falling back to basic users.`);
-          return storage.getOrganizationUsers(orgId);
-        }),
-        storage.getOrganizationModules(orgId),
-        storage.getOrganizationLogs(orgId).catch((e) => {
-          console.warn(`Activity logs not available for organization ${orgId}:`, e);
-          return []; // Return empty logs array if not implemented
-        })
-      ]);
-
+      // Get user data with detailed info
+      const orgUsers = await storage.getOrganizationUsers(orgId);
+      
+      // Enhanced user data with extra fields
+      const users = await Promise.all(orgUsers.map(async (user) => {
+        try {
+          const userData = await storage.getUserById?.(user.userId) || null;
+          return {
+            userId: user.userId,
+            email: userData?.username || 'Unknown',
+            firstName: userData?.firstName || '',
+            lastName: userData?.lastName || '',
+            roleName: user.roleId === 1 ? 'Admin' : 
+                     user.roleId === 2 ? 'Manager' : 
+                     user.roleId === 3 ? 'User' : 'Unknown',
+          };
+        } catch (e) {
+          // Fallback if getUserById doesn't exist or fails
+          return {
+            userId: user.userId,
+            email: 'User ' + user.userId,
+            firstName: '',
+            lastName: '',
+            roleName: user.roleId ? `Role ${user.roleId}` : 'Unknown',
+          };
+        }
+      }));
+      
+      // Get module data
+      const modules = await storage.getOrganizationModules(orgId);
+      
+      // Empty logs array for now since we don't have the implementation yet
+      const logs = [];
+      
+      // For debugging
+      console.log(`Got detail for org ${orgId}: ${users.length} users, ${modules.length} modules`);
+      
       // Format response
       const result = {
         ...org,
