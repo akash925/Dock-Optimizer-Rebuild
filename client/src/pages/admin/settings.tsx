@@ -281,7 +281,7 @@ export default function AdminSettingsPage() {
                       <div className="flex-1">
                         <div className="flex items-center">
                           <span className="font-medium mr-2">{flag.name}</span>
-                          <Badge variant={flag.enabled ? "success" : "secondary"}>
+                          <Badge variant={flag.enabled ? "default" : "secondary"} className={flag.enabled ? "bg-green-500 hover:bg-green-600" : ""}>
                             {flag.enabled ? "Enabled" : "Disabled"}
                           </Badge>
                         </div>
