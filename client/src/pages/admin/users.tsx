@@ -1,21 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Edit, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Plus, Search, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/layout/admin-layout";
-import { FixedSizeList as List } from "react-window";
+import UsersTable from "@/components/admin/UsersTable";
+import debounce from "lodash.debounce";
 
 // Type for user with roles
 interface UserWithRoles {
@@ -46,6 +39,8 @@ export default function UsersPage() {
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredUsers, setFilteredUsers] = useState<UserWithRoles[]>([]);
 
   // Fetch paginated users data
   const { data, isLoading, error } = useQuery<PaginatedResponse>({
@@ -57,9 +52,36 @@ export default function UsersPage() {
       }
       return response.json();
     },
+    onSuccess: (data) => {
+      setFilteredUsers(data?.items || []);
+    }
   });
 
   const users = data?.items || [];
+
+  // Handle search with debounce
+  const handleSearch = useCallback(
+    debounce((searchValue: string) => {
+      if (!users || users.length === 0) return;
+      
+      setSearchTerm(searchValue);
+      if (!searchValue.trim()) {
+        setFilteredUsers(users);
+        return;
+      }
+      
+      const lowerCaseSearch = searchValue.toLowerCase();
+      const filtered = users.filter(user => 
+        user.email.toLowerCase().includes(lowerCaseSearch) || 
+        (user.firstName && user.firstName.toLowerCase().includes(lowerCaseSearch)) ||
+        (user.lastName && user.lastName.toLowerCase().includes(lowerCaseSearch)) ||
+        user.username.toLowerCase().includes(lowerCaseSearch)
+      );
+      
+      setFilteredUsers(filtered);
+    }, 300),
+    [users]
+  );
 
   // Future enhancement: add a new user
   const handleAddUser = () => {
@@ -68,13 +90,6 @@ export default function UsersPage() {
       title: "Not implemented",
       description: "Adding new users will be implemented in a future update",
     });
-  };
-
-  // Format the roles as a comma-separated list
-  const formatRoles = (roles: UserWithRoles['roles']) => {
-    if (!roles || roles.length === 0) return 'None';
-    
-    return roles.map(role => `${role.orgName} (${role.roleName})`).join(', ');
   };
 
   if (isLoading) {
@@ -131,46 +146,38 @@ export default function UsersPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Organizations & Roles</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users && users.length > 0 ? (
-                  users.map((user) => (
-                    <TableRow key={user.userId}>
-                      <TableCell className="font-medium">{user.email}</TableCell>
-                      <TableCell>{user.firstName} {user.lastName}</TableCell>
-                      <TableCell>
-                        {formatRoles(user.roles)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/admin/users/${user.userId}`)}
-                          className="flex items-center gap-1"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                      No users found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <div className="flex items-center mb-4">
+              <div className="relative w-full max-w-sm">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search users..."
+                  className="pl-8 w-full"
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            {/* Memoized users table component */}
+            <UsersTable users={filteredUsers} />
+            
+            {/* Empty state when filtered results are empty */}
+            {filteredUsers.length === 0 && searchTerm && (
+              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                <Search className="h-8 w-8 mb-2 opacity-50" />
+                <p>No users found matching "{searchTerm}"</p>
+                <Button 
+                  variant="link" 
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilteredUsers(users);
+                  }}
+                >
+                  Clear search
+                </Button>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">

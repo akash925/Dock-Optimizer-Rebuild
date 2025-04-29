@@ -1,20 +1,15 @@
+import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Edit, Users, Package, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, Search, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Tenant } from "@shared/schema";
 import AdminLayout from "@/components/layout/admin-layout";
+import OrganizationsTable from "@/components/admin/OrganizationsTable";
+import debounce from "lodash.debounce";
 
 // Extended tenant type with additional counts
 type EnhancedTenant = Tenant & {
@@ -25,10 +20,15 @@ type EnhancedTenant = Tenant & {
 export default function OrganizationsPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredOrganizations, setFilteredOrganizations] = useState<EnhancedTenant[]>([]);
 
   // Fetch organizations data
   const { data: organizations, isLoading, error } = useQuery<EnhancedTenant[]>({
     queryKey: ['/api/admin/orgs'], // Using the existing endpoint
+    onSuccess: (data) => {
+      setFilteredOrganizations(data || []);
+    }
   });
 
   // Handle add organization
@@ -36,23 +36,28 @@ export default function OrganizationsPage() {
     navigate('/admin/orgs/new');
   };
 
-  // Get status badge variant
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return <Badge className="bg-green-500">Active</Badge>;
-      case 'SUSPENDED':
-        return <Badge variant="destructive">Suspended</Badge>;
-      case 'TRIAL':
-        return <Badge className="bg-blue-500">Trial</Badge>;
-      case 'PENDING':
-        return <Badge variant="outline">Pending</Badge>;
-      case 'INACTIVE':
-        return <Badge variant="secondary">Inactive</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+  // Handle search with debounce
+  const handleSearch = useCallback(
+    debounce((searchValue: string) => {
+      if (!organizations) return;
+      
+      setSearchTerm(searchValue);
+      if (!searchValue.trim()) {
+        setFilteredOrganizations(organizations);
+        return;
+      }
+      
+      const lowerCaseSearch = searchValue.toLowerCase();
+      const filtered = organizations.filter(org => 
+        org.name.toLowerCase().includes(lowerCaseSearch) || 
+        org.subdomain?.toLowerCase().includes(lowerCaseSearch) ||
+        org.status?.toLowerCase().includes(lowerCaseSearch)
+      );
+      
+      setFilteredOrganizations(filtered);
+    }, 300),
+    [organizations]
+  );
 
   if (isLoading) {
     return (
@@ -101,61 +106,47 @@ export default function OrganizationsPage() {
         </div>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle>Organization List</CardTitle>
             <CardDescription>
               View and manage all organizations in the platform
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" /> Users
-                    </div>
-                  </TableHead>
-                  <TableHead>
-                    <div className="flex items-center gap-1">
-                      <Package className="h-4 w-4" /> Modules
-                    </div>
-                  </TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {organizations && organizations.length > 0 ? (
-                  organizations.map((org) => (
-                    <TableRow key={org.id}>
-                      <TableCell className="font-medium">{org.name}</TableCell>
-                      <TableCell>{getStatusBadge(org.status || 'ACTIVE')}</TableCell>
-                      <TableCell>{org.userCount}</TableCell>
-                      <TableCell>{org.moduleCount}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/admin/orgs/${org.id}`)}
-                          className="flex items-center gap-1"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      No organizations found
-                    </TableCell>
-                  </TableRow>
+            <div className="flex items-center mb-4">
+              <div className="relative w-full max-w-sm">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search organizations..."
+                  className="pl-8 w-full"
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            {/* Memoized organizations table component */}
+            <OrganizationsTable organizations={filteredOrganizations} />
+            
+            {/* Empty state when filtered results are empty */}
+            {filteredOrganizations.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                <Search className="h-8 w-8 mb-2 opacity-50" />
+                <p>No organizations found matching "{searchTerm}"</p>
+                {searchTerm && (
+                  <Button 
+                    variant="link" 
+                    onClick={() => {
+                      setSearchTerm("");
+                      setFilteredOrganizations(organizations || []);
+                    }}
+                  >
+                    Clear search
+                  </Button>
                 )}
-              </TableBody>
-            </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
