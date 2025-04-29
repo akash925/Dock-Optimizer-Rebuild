@@ -35,6 +35,37 @@ export interface OrganizationDetail {
   logs: ActivityLog[];
 }
 
+export interface UserWithMemberships {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  memberships: {
+    orgId: number;
+    orgName: string;
+    roleName: string;
+  }[];
+}
+
+export interface CreateUserData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface UpdateUserOrgData {
+  orgId: number;
+  roleName: string;
+  action: 'add' | 'remove';
+}
+
+export interface CreateOrgData {
+  name: string;
+  subdomain: string;
+  status?: string;
+}
+
 /**
  * Admin API client
  */
@@ -44,6 +75,14 @@ const adminApi = {
    */
   async getOrganizations() {
     const res = await apiRequest("GET", "/api/admin/organizations");
+    return await res.json();
+  },
+  
+  /**
+   * Create a new organization
+   */
+  async createOrg(data: CreateOrgData) {
+    const res = await apiRequest("POST", "/api/admin/orgs", data);
     return await res.json();
   },
 
@@ -98,10 +137,34 @@ const adminApi = {
   },
 
   /**
-   * Get all users with pagination
+   * Get all users with their organization memberships
    */
   async getUsers(page: number = 1, limit: number = 20) {
     const res = await apiRequest("GET", `/api/admin/users?page=${page}&limit=${limit}`);
+    return await res.json();
+  },
+  
+  /**
+   * Get a specific user with their organization memberships
+   */
+  async getUserDetail(userId: string | number): Promise<UserWithMemberships> {
+    const res = await apiRequest("GET", `/api/admin/users/${userId}`);
+    return await res.json();
+  },
+  
+  /**
+   * Create a new user
+   */
+  async createUser(data: CreateUserData) {
+    const res = await apiRequest("POST", "/api/admin/users", data);
+    return await res.json();
+  },
+  
+  /**
+   * Update user organization membership
+   */
+  async updateUserOrg(userId: string | number, data: UpdateUserOrgData) {
+    const res = await apiRequest("PUT", `/api/admin/users/${userId}/orgs`, data);
     return await res.json();
   },
 
@@ -109,7 +172,7 @@ const adminApi = {
    * Get all roles
    */
   async getRoles() {
-    const res = await apiRequest("GET", "/api/admin/roles");
+    const res = await apiRequest("GET", "/api/admin/settings/roles");
     return await res.json();
   },
   
@@ -118,6 +181,14 @@ const adminApi = {
    */
   async getAllRoles() {
     return this.getRoles();
+  },
+  
+  /**
+   * Update a role
+   */
+  async updateRole(roleId: number, data: { name: string, description?: string }) {
+    const res = await apiRequest("PUT", `/api/admin/settings/roles/${roleId}`, data);
+    return await res.json();
   }
 };
 
