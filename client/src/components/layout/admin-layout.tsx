@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "wouter";
 import { ChevronLeft, Users, LayoutDashboard, Building2, Settings } from "lucide-react";
-import TopNav from "./top-nav";
+import AdminTopNav from "./admin-top-nav";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -43,7 +43,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
       </div>
       <div className="flex-1 flex flex-col">
-        <TopNav />
+        <AdminTopNav />
         <main className="flex-1 p-6 overflow-y-auto">
           {children}
         </main>
