@@ -490,6 +490,35 @@ export const adminRoutes = (app: Express) => {
     }
   });
 
+  // Get admin dashboard stats
+  app.get('/api/admin/stats', isSuperAdmin, async (req, res) => {
+    try {
+      const storage = await getStorage();
+      
+      // Get organizations count
+      const orgs = await storage.getAllTenants();
+      const organizationsCount = orgs.length;
+      
+      // Get users count
+      const users = await storage.getUsers();
+      const usersCount = users.length;
+      
+      // Get unique modules count
+      const availableModules = Object.values(AvailableModule);
+      const modulesCount = availableModules.length;
+      
+      res.json({
+        organizationsCount,
+        usersCount,
+        modulesCount,
+        lastUpdated: new Date()
+      });
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+      res.status(500).json({ message: 'Failed to fetch admin stats' });
+    }
+  });
+  
   // Get all roles (for role selection)
   app.get('/api/admin/roles', isSuperAdmin, async (req, res) => {
     try {
