@@ -165,13 +165,35 @@ export interface IStorage {
   // Organization User operations
   getUsersByOrganizationId(organizationId: number): Promise<User[]>;
   getOrganizationUsers(organizationId: number): Promise<OrganizationUser[]>;
+  getOrganizationUsersWithRoles(organizationId: number): Promise<Array<OrganizationUser & { 
+    user?: User;
+    role?: RoleRecord;
+  }>>;
   getUserOrganizationRole(userId: number, organizationId: number): Promise<OrganizationUser | undefined>;
   addUserToOrganization(orgUser: InsertOrganizationUser): Promise<OrganizationUser>;
+  addUserToOrganizationWithRole(userId: number, organizationId: number, roleId: number): Promise<OrganizationUser>;
   removeUserFromOrganization(userId: number, organizationId: number): Promise<boolean>;
   
   // Organization Module operations
   getOrganizationModules(organizationId: number): Promise<OrganizationModule[]>;
   updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]>;
+  
+  // Organization Activity operations
+  logOrganizationActivity(data: { 
+    organizationId: number;
+    userId: number;
+    action: string;
+    details: string;
+  }): Promise<{ id: number; timestamp: Date }>;
+  getOrganizationLogs(organizationId: number, page?: number, pageSize?: number): Promise<Array<{
+    id: number;
+    timestamp: Date;
+    userId: number;
+    organizationId: number;
+    action: string;
+    details: string;
+    username?: string;
+  }>>;
   
   // Session store
   sessionStore: any; // Type-safe session store
@@ -1339,6 +1361,52 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(organizationUsers)
       .where(eq(organizationUsers.organizationId, organizationId));
+  }
+  
+  // Get organization users with their role details
+  async getOrganizationUsersWithRoles(organizationId: number): Promise<Array<OrganizationUser & { 
+    user?: User;
+    role?: RoleRecord;
+  }>> {
+    try {
+      // Using raw query for complex join operation
+      const result = await pool.query(`
+        SELECT ou.*, u.*, r.* 
+        FROM organization_users ou
+        LEFT JOIN users u ON ou.user_id = u.id
+        LEFT JOIN roles r ON ou.role_id = r.id
+        WHERE ou.organization_id = $1
+      `, [organizationId]);
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        userId: row.user_id,
+        organizationId: row.organization_id,
+        roleId: row.role_id,
+        isPrimary: row.is_primary,
+        createdAt: row.created_at,
+        user: row.username ? {
+          id: row.user_id,
+          username: row.username,
+          email: row.email,
+          firstName: row.first_name,
+          lastName: row.last_name,
+          password: '', // Don't expose password
+          role: row.role,
+          tenantId: row.tenant_id,
+          createdAt: row.created_at
+        } : undefined,
+        role: row.name ? {
+          id: row.role_id,
+          name: row.name,
+          description: row.description,
+          createdAt: row.role_created_at || row.created_at
+        } : undefined
+      }));
+    } catch (error) {
+      console.error('Error getting organization users with roles:', error);
+      return [];
+    }
   }
   
   async getUserOrganizationRole(userId: number, organizationId: number): Promise<OrganizationUser | undefined> {
