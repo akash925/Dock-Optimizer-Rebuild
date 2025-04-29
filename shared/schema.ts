@@ -1,7 +1,33 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, date, varchar, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Tenant status enum
+export const TenantStatus = {
+  ACTIVE: "ACTIVE",
+  SUSPENDED: "SUSPENDED",
+  TRIAL: "TRIAL",
+  PENDING: "PENDING",
+  INACTIVE: "INACTIVE",
+} as const;
+
+export type TenantStatus = (typeof TenantStatus)[keyof typeof TenantStatus];
+
+// Available modules that can be enabled per tenant
+export const AvailableModule = {
+  APPOINTMENTS: "appointments",
+  CALENDAR: "calendar",
+  ASSET_MANAGER: "assetManager",
+  EMAIL_NOTIFICATIONS: "emailNotifications",
+  ANALYTICS: "analytics",
+  BOOKING_PAGES: "bookingPages",
+  FACILITY_MANAGEMENT: "facilityManagement",
+  DOOR_MANAGER: "doorManager",
+  USER_MANAGEMENT: "userManagement",
+} as const;
+
+export type AvailableModule = (typeof AvailableModule)[keyof typeof AvailableModule];
 
 // User Roles
 export type Role = "admin" | "manager" | "worker";
@@ -72,6 +98,8 @@ export const users = pgTable("users", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   role: text("role").notNull().$type<Role>(),
+  // Adding tenant support
+  tenantId: integer("tenant_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -420,10 +448,15 @@ export const insertCustomQuestionSchema = createInsertSchema(customQuestions).om
 });
 
 // Define relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   createdSchedules: many(schedules, { relationName: "user_created_schedules" }),
   modifiedSchedules: many(schedules, { relationName: "user_modified_schedules" }),
   notifications: many(notifications),
+  // Adding tenant relation for multi-tenancy
+  tenant: one(tenants, {
+    fields: [users.tenantId],
+    references: [tenants.id],
+  }),
 }));
 
 export const docksRelations = relations(docks, ({ many, one }) => ({
@@ -753,3 +786,78 @@ export const updateCompanyAssetSchema = createInsertSchema(companyAssets).omit({
 export type CompanyAsset = typeof companyAssets.$inferSelect;
 export type InsertCompanyAsset = z.infer<typeof insertCompanyAssetSchema>;
 export type UpdateCompanyAsset = z.infer<typeof updateCompanyAssetSchema>;
+
+// Multi-tenant support - Tenants table
+export const tenants = pgTable("tenants", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  subdomain: text("subdomain").notNull().unique(),
+  status: text("status").$type<TenantStatus>().default(TenantStatus.ACTIVE),
+  primaryContact: text("primary_contact"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  billingEmail: text("billing_email"),
+  billingAddress: text("billing_address"),
+  subscription: text("subscription").default("basic"),
+  planStartDate: date("plan_start_date"),
+  planEndDate: date("plan_end_date"),
+  timezone: text("timezone").default("America/New_York"),
+  logo: text("logo_url"),
+  settings: jsonb("settings").default({}),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: integer("created_by"),
+  updatedBy: integer("updated_by"),
+});
+
+// Feature flags for tenants - which modules are enabled
+export const featureFlags = pgTable("feature_flags", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  module: text("module").$type<AvailableModule>().notNull(),
+  enabled: boolean("enabled").default(false),
+  settings: jsonb("settings").default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdBy: integer("created_by"),
+  updatedBy: integer("updated_by"),
+}, (table) => {
+  return {
+    tenantModuleUnique: unique().on(table.tenantId, table.module),
+  };
+});
+
+// Tenant relations
+export const tenantsRelations = relations(tenants, ({ many }) => ({
+  featureFlags: many(featureFlags),
+  users: many(users),
+}));
+
+// Feature flags relations
+export const featureFlagsRelations = relations(featureFlags, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [featureFlags.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+// Create insert schemas
+export const insertTenantSchema = createInsertSchema(tenants).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFeatureFlagSchema = createInsertSchema(featureFlags).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Export types
+export type Tenant = typeof tenants.$inferSelect;
+export type InsertTenant = z.infer<typeof insertTenantSchema>;
+
+export type FeatureFlag = typeof featureFlags.$inferSelect;
+export type InsertFeatureFlag = z.infer<typeof insertFeatureFlagSchema>;
