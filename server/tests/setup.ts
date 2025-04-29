@@ -1,5 +1,6 @@
 // Jest setup file
 import dotenv from 'dotenv';
+import { jest, beforeEach } from '@jest/globals';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -13,21 +14,32 @@ if (!process.env.TEST_DATABASE_URL) {
 // Increase timeout for database operations
 jest.setTimeout(30000);
 
-// Mock console.error and console.warn to keep test output clean
-// but still allow for debugging by preserving to global variables
-global.consoleErrors = [];
-global.consoleWarnings = [];
+// Set up global variables for error tracking
+declare global {
+  var consoleErrors: any[];
+  var consoleWarnings: any[];
+}
 
-console.error = (...args) => {
-  global.consoleErrors.push(args);
+// Initialize error tracking arrays
+globalThis.consoleErrors = [];
+globalThis.consoleWarnings = [];
+
+// Mock console.error and console.warn to keep test output clean
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.error = (...args: any[]) => {
+  globalThis.consoleErrors.push(args);
+  originalError(...args);
 };
 
-console.warn = (...args) => {
-  global.consoleWarnings.push(args);
+console.warn = (...args: any[]) => {
+  globalThis.consoleWarnings.push(args);
+  originalWarn(...args);
 };
 
 // Clear mocks between tests
 beforeEach(() => {
-  global.consoleErrors = [];
-  global.consoleWarnings = [];
+  globalThis.consoleErrors = [];
+  globalThis.consoleWarnings = [];
 });

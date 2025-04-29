@@ -1,5 +1,6 @@
 import { testDb, cleanupTestData, createTestTenant, closeTestDb } from './test-db';
-import { AvailableModule, organizationModules } from '@shared/schema';
+import { AvailableModule, organizationModules } from '../../shared/schema';
+import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import { eq, and } from 'drizzle-orm';
 
 // Mock storage service for organization modules

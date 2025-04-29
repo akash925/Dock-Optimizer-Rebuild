@@ -1,6 +1,7 @@
 import { featureFlagService } from '../modules/featureFlags/service';
-import { AvailableModule } from '@shared/schema';
+import { AvailableModule } from '../../shared/schema';
 import { testDb, cleanupTestData, createTestTenant, closeTestDb } from './test-db';
+import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 
 describe('Feature Flag Service', () => {
   let testTenantId: number;

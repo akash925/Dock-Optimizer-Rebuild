@@ -1,3 +1,3 @@
 #!/bin/bash
 echo "Running unit tests..."
-npx jest --config jest.config.js --runInBand
+NODE_OPTIONS="--experimental-vm-modules" npx jest --config jest.config.js --runInBand
