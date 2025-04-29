@@ -819,7 +819,7 @@ export function AssetImport() {
               <CheckCircle2 className="h-5 w-5" />
               Import Complete
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription asChild>
               <div className="py-2">
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div className="bg-slate-50 p-3 rounded-md">

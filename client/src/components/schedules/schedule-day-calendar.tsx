@@ -43,9 +43,9 @@ export default function ScheduleDayCalendar({
   const dateDisplay = format(date, 'EEEE, MMMM d, yyyy');
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-4">
-      {/* Calendar Header */}
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white rounded-lg shadow p-4 mb-4 max-w-full overflow-hidden">
+      {/* Calendar Header with view mode toggle */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline" 
@@ -72,16 +72,55 @@ export default function ScheduleDayCalendar({
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <h3 className="text-lg font-semibold">{dateDisplay}</h3>
+        
+        {/* View Mode Switch */}
+        <div className="flex items-center space-x-2 ml-auto">
+          <div className="bg-muted rounded-md p-1 flex space-x-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 px-3 text-xs"
+              onClick={() => onDateChange(date)} // Just refresh current date
+            >
+              Day
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 px-3 text-xs"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/schedules?view=week';
+                }
+              }}
+            >
+              Week
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 px-3 text-xs"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/schedules?view=month';
+                }
+              }}
+            >
+              Month
+            </Button>
+          </div>
+        </div>
+        
+        <h3 className="text-lg font-semibold w-full sm:w-auto text-center sm:text-left">{dateDisplay}</h3>
       </div>
 
       {/* Responsive day view calendar */}
-      <div className="p-4 border rounded-lg overflow-hidden">
-        <div className="flex flex-col md:flex-row">
+      <div className="p-2 sm:p-4 border rounded-lg overflow-x-auto max-w-full">
+        <div className="flex flex-col md:flex-row min-w-max md:min-w-0">
           {/* Left side - Docks list */}
-          <div className="w-full md:w-1/4 lg:w-1/5 border-r mb-4 md:mb-0 pr-2">
+          <div className="w-full md:w-1/4 lg:w-1/5 border-r mb-4 md:mb-0 pr-2 min-w-[120px]">
             <h4 className="font-medium text-sm mb-2 sticky top-0 bg-white py-1">Docks</h4>
-            <div className="space-y-1 overflow-auto max-h-[calc(100vh-350px)] md:max-h-[500px]">
+            <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-350px)] md:max-h-[500px]">
               {docks.map((dock) => (
                 <div 
                   key={dock.id}
@@ -95,8 +134,8 @@ export default function ScheduleDayCalendar({
           </div>
           
           {/* Right side - Appointments */}
-          <div className="w-full md:w-3/4 lg:w-4/5 pl-0 md:pl-4 overflow-auto">
-            <div className="space-y-3">
+          <div className="w-full md:w-3/4 lg:w-4/5 pl-0 md:pl-4 overflow-x-auto">
+            <div className="space-y-3 min-w-[300px]">
               {docks.map((dock) => {
                 // Filter schedules for this dock and date
                 const dockSchedules = schedules.filter((schedule) => {
@@ -129,7 +168,7 @@ export default function ScheduleDayCalendar({
                               {new Date(schedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                             <div>{schedule.customerName || "Unnamed"}</div>
-                            <div>{schedule.carrierName} • {schedule.truckNumber}</div>
+                            <div>{schedule.carrierName || "No carrier"} • {schedule.truckNumber}</div>
                           </div>
                         ))}
                       </div>

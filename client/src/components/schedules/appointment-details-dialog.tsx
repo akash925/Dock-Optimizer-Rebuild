@@ -524,12 +524,10 @@ export function AppointmentDetailsDialog({
                 </Badge>
               </div>
             </DialogTitle>
-            <DialogDescription>
-              <div className="flex flex-col space-y-1 mt-1">
-                <span>{displayFacilityName ? `Facility: ${displayFacilityName}` : ""}</span>
-                <span>{appointment.dockId ? `Dock: ${appointment.dockName || "Unknown"}` : "No dock assigned"}</span>
-                <span>{appointment.type === "inbound" ? "Inbound" : "Outbound"} appointment</span>
-              </div>
+            <DialogDescription className="flex flex-col space-y-1 mt-1">
+                {displayFacilityName ? `Facility: ${displayFacilityName}` : ""}
+                {appointment.dockId ? `Dock: ${appointment.dockName || "Unknown"}` : "No dock assigned"}
+                {appointment.type === "inbound" ? "Inbound" : "Outbound"} appointment
             </DialogDescription>
           </DialogHeader>
 
