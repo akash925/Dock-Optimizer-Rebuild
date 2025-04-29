@@ -3,6 +3,7 @@ import { getStorage } from '../../storage';
 import { z } from 'zod';
 import { TenantStatus, AvailableModule } from '@shared/schema';
 import { organizationsRoutes } from './organizations/routes';
+import usersRoutes from './users/routes';
 
 // Define the organization validation schema
 const createOrgSchema = z.object({
