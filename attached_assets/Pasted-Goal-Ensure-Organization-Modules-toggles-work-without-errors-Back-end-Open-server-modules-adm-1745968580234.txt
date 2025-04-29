@@ -1,0 +1,80 @@
+Goal: Ensure “Organization Modules” toggles work without errors.
+
+Back-end:
+
+Open server/modules/admin/organizations/routes.ts.
+
+Add or update this handler:
+
+ts
+Copy
+Edit
+router.put(
+  '/api/admin/orgs/:orgId/modules/:moduleName',
+  async (req, res, next) => {
+    try {
+      const orgId = Number(req.params.orgId);
+      const moduleName = req.params.moduleName as AvailableModule;
+      const { enabled } = req.body as { enabled: boolean };
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ message: 'enabled must be boolean' });
+      }
+      const updated = await storage.updateOrganizationModule(
+        orgId,
+        moduleName,
+        enabled
+      );
+      res.json(updated);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+Make sure storage.updateOrganizationModule exists and toggles the flag in your DB.
+
+Front-end:
+
+Open client/src/pages/admin/orgs/[id].tsx (or wherever your Modules tab lives).
+
+Locate the toggle switch render loop (something like modules.map(m => <Switch ... />)).
+
+Replace its onCheckedChange with:
+
+tsx
+Copy
+Edit
+onCheckedChange={async (checked) => {
+  try {
+    await fetch(
+      `/api/admin/orgs/${orgId}/modules/${m.name}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: checked }),
+      }
+    );
+    // invalidate/react-query refetch your orgModules query here
+    queryClient.invalidateQueries(['orgModules', orgId]);
+  } catch (err) {
+    toast.error('Failed to update module');
+  }
+}}
+Ensure you import useQueryClient from react-query (or @tanstack/react-query) and call const queryClient = useQueryClient().
+
+Validation:
+
+Toggle each module on/off in the UI.
+
+Confirm your Network tab shows a PUT with a JSON body {"enabled":true} or false, and returns 200.
+
+Verify the switch’s state immediately matches the new setting.
+
+If you hit any errors, please share the Network request payload/response and any console error so I can help debug further.
+
+
+
+
+
+
+
+

@@ -378,7 +378,54 @@ export const organizationsRoutes = (app: Express) => {
     }
   });
 
-  // Add/remove user from organization
+  // Toggle a specific module for an organization
+  app.put('/api/admin/orgs/:orgId/modules/:moduleName', isSuperAdmin, async (req, res) => {
+    try {
+      const orgId = Number(req.params.orgId);
+      const moduleName = req.params.moduleName as AvailableModule;
+      
+      if (isNaN(orgId)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      // Parse the enabled status from the request body
+      const { enabled } = req.body;
+      
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ message: 'enabled must be boolean' });
+      }
+      
+      const storage = await getStorage();
+      
+      // Check if organization exists
+      const org = await storage.getTenantById(orgId);
+      if (!org) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Update the module status
+      const updatedModule = await storage.updateOrganizationModule(orgId, moduleName, enabled);
+      
+      // Log the activity
+      try {
+        const userId = req.user?.id || 0;
+        const action = enabled ? 'module_enabled' : 'module_disabled';
+        const details = `Module "${moduleName}" was ${enabled ? 'enabled' : 'disabled'} for organization "${org.name}"`;
+        
+        await logOrganizationActivity(orgId, userId, action, details);
+      } catch (logError) {
+        console.warn('Failed to log module update activity:', logError);
+        // Continue even if logging fails
+      }
+      
+      res.json(updatedModule);
+    } catch (error) {
+      console.error('Error updating organization module:', error);
+      res.status(500).json({ message: 'Failed to update organization module' });
+    }
+  });
+
+// Add/remove user from organization
   app.put('/api/admin/orgs/:orgId/users', isSuperAdmin, async (req, res) => {
     try {
       const orgId = Number(req.params.orgId);

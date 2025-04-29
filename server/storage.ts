@@ -177,6 +177,7 @@ export interface IStorage {
   // Organization Module operations
   getOrganizationModules(organizationId: number): Promise<OrganizationModule[]>;
   updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]>;
+  updateOrganizationModule(organizationId: number, moduleName: AvailableModule, enabled: boolean): Promise<OrganizationModule | undefined>;
   
   // Organization Activity operations
   logOrganizationActivity(data: { 
