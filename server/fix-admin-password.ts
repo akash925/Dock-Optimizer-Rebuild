@@ -75,7 +75,22 @@ export async function fixAdminPassword() {
     }
     
     // Check if user is already associated with the organization
-    const existingOrgUser = await storage.getUserOrganizationByIds(userId, hanzoOrg.id);
+    let existingOrgUser = null;
+    try {
+      // Try different methods as the storage interface might vary
+      if (typeof storage.getUserOrganizations === 'function') {
+        const orgs = await storage.getUserOrganizations(userId);
+        existingOrgUser = orgs.find(org => org.organizationId === hanzoOrg.id);
+      } else if (typeof storage.getUserOrganizationRoles === 'function') {
+        const orgs = await storage.getUserOrganizationRoles(userId);
+        existingOrgUser = orgs.find(org => org.organizationId === hanzoOrg.id);
+      } else {
+        console.log("No method found to check user organization association, assuming it doesn't exist");
+      }
+    } catch (error) {
+      console.error("Error checking user organization association:", error);
+      console.log("Continuing with user creation...");
+    }
     if (!existingOrgUser) {
       console.log("User not associated with Hanzo Logistics, adding association");
       await storage.addUserToOrganization({
