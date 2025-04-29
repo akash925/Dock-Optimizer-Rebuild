@@ -1301,6 +1301,118 @@ export class MemStorage implements IStorage {
     
     return updatedModules;
   }
+  
+  async updateOrganizationModule(organizationId: number, moduleName: AvailableModule, enabled: boolean): Promise<OrganizationModule | undefined> {
+    try {
+      // Find existing module
+      const existingModule = Array.from(this.organizationModules.values())
+        .find(module => module.organizationId === organizationId && module.moduleName === moduleName);
+      
+      if (existingModule) {
+        // Update existing module
+        const updatedModule: OrganizationModule = {
+          ...existingModule,
+          enabled,
+          updatedAt: new Date()
+        };
+        this.organizationModules.set(existingModule.id, updatedModule);
+        return updatedModule;
+      } else {
+        // Create new module
+        const id = this.organizationModuleIdCounter++;
+        const now = new Date();
+        const newModule: OrganizationModule = {
+          id,
+          organizationId,
+          moduleName,
+          enabled,
+          createdAt: now,
+          updatedAt: now
+        };
+        this.organizationModules.set(id, newModule);
+        return newModule;
+      }
+    } catch (error) {
+      console.error(`Error updating module ${moduleName} for organization ${organizationId}:`, error);
+      return undefined;
+    }
+  }
+  
+  // Organization Activity Logging
+  private activityLogs: Map<number, {
+    id: number;
+    organizationId: number;
+    userId: number;
+    action: string;
+    details: string;
+    timestamp: Date;
+  }> = new Map();
+  private activityLogIdCounter: number = 1;
+  
+  async logOrganizationActivity(data: { 
+    organizationId: number; 
+    userId: number; 
+    action: string; 
+    details: string;
+  }): Promise<{ id: number; timestamp: Date }> {
+    try {
+      const id = this.activityLogIdCounter++;
+      const timestamp = new Date();
+      
+      const log = {
+        id,
+        organizationId: data.organizationId,
+        userId: data.userId,
+        action: data.action,
+        details: data.details,
+        timestamp
+      };
+      
+      this.activityLogs.set(id, log);
+      
+      return {
+        id,
+        timestamp
+      };
+    } catch (error) {
+      console.error('Error logging organization activity:', error);
+      throw error;
+    }
+  }
+  
+  async getOrganizationLogs(organizationId: number, page = 1, pageSize = 20): Promise<Array<{
+    id: number;
+    timestamp: Date;
+    userId: number;
+    organizationId: number;
+    action: string;
+    details: string;
+    username?: string;
+  }>> {
+    try {
+      // Filter logs by organization ID
+      const orgLogs = Array.from(this.activityLogs.values())
+        .filter(log => log.organizationId === organizationId)
+        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Sort by timestamp DESC
+      
+      // Apply pagination
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedLogs = orgLogs.slice(startIndex, endIndex);
+      
+      // Enhance logs with username information
+      return await Promise.all(paginatedLogs.map(async log => {
+        const user = await this.getUser(log.userId);
+        return {
+          ...log,
+          username: user?.username
+        };
+      }));
+    } catch (error) {
+      console.error('Error retrieving organization activity logs:', error);
+      return [];
+    }
+  }
 }
 
 // Database Storage Implementation

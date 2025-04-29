@@ -519,14 +519,24 @@ export const adminRoutes = (app: Express) => {
         return res.status(404).json({ message: 'Organization not found' });
       }
       
-      // Update the module status
-      const moduleUpdate = [{
-        organizationId: orgId,
-        moduleName: moduleName as AvailableModule,
-        enabled: enabled
-      }];
+      // Validate moduleName as a proper AvailableModule
+      if (!Object.values(AvailableModule).includes(moduleName as AvailableModule)) {
+        return res.status(400).json({ 
+          message: 'Invalid module name',
+          availableModules: Object.values(AvailableModule)
+        });
+      }
       
-      await storage.updateOrganizationModules(orgId, moduleUpdate);
+      // Use the new single module update method for better performance
+      const updatedModule = await storage.updateOrganizationModule(
+        orgId, 
+        moduleName as AvailableModule, 
+        enabled
+      );
+      
+      if (!updatedModule) {
+        return res.status(500).json({ message: 'Failed to update module' });
+      }
       
       // Log the activity
       try {
@@ -541,13 +551,7 @@ export const adminRoutes = (app: Express) => {
         // Continue even if logging fails
       }
       
-      // Get the updated modules list
-      const modules = await storage.getOrganizationModules(orgId);
-      
-      // Find the updated module
-      const updatedModule = modules.find(m => m.moduleName === moduleName);
-      
-      res.json(updatedModule || { moduleName, enabled });
+      res.json(updatedModule);
     } catch (error) {
       console.error('Error updating organization module:', error);
       res.status(500).json({ message: 'Failed to update organization module' });
