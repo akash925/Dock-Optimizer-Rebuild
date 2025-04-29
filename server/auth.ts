@@ -123,8 +123,16 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
-      done(null, user);
+      
+      // Import the enrichUserWithRole function using dynamic import to avoid circular dependencies
+      const { enrichUserWithRole } = await import('./enrich-user-role');
+      
+      // Enrich the user object with the correct role information
+      const enrichedUser = await enrichUserWithRole(user);
+      
+      done(null, enrichedUser);
     } catch (err) {
+      console.error("Error in deserializeUser:", err);
       done(err);
     }
   });
@@ -173,7 +181,7 @@ export async function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     console.log("Login attempt:", req.body.username);
     
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", async (err, user, info) => {
       if (err) {
         console.error("Login error:", err);
         return next(err);
@@ -183,18 +191,39 @@ export async function setupAuth(app: Express) {
         return res.status(401).json({ message: info?.message || "Authentication failed" });
       }
       
-      console.log("User authenticated:", user.username);
-      req.login(user, (loginErr) => {
-        if (loginErr) {
-          console.error("Login session error:", loginErr);
-          return next(loginErr);
-        }
+      try {
+        // Enrich user with role information before login
+        const { enrichUserWithRole } = await import('./enrich-user-role');
+        const enrichedUser = await enrichUserWithRole(user);
         
-        console.log("Login successful, session created:", req.sessionID);
-        // Don't send password in response
-        const { password, ...userWithoutPassword } = user;
-        res.status(200).json(userWithoutPassword);
-      });
+        console.log("User authenticated:", enrichedUser.username, "with role:", enrichedUser.role);
+        
+        req.login(enrichedUser, (loginErr) => {
+          if (loginErr) {
+            console.error("Login session error:", loginErr);
+            return next(loginErr);
+          }
+          
+          console.log("Login successful, session created:", req.sessionID);
+          // Don't send password in response
+          const { password, ...userWithoutPassword } = enrichedUser;
+          res.status(200).json(userWithoutPassword);
+        });
+      } catch (enrichErr) {
+        console.error("Error enriching user data:", enrichErr);
+        
+        // Fall back to regular login if enrichment fails
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            console.error("Login session error:", loginErr);
+            return next(loginErr);
+          }
+          
+          console.log("Login successful with original user data, session created:", req.sessionID);
+          const { password, ...userWithoutPassword } = user;
+          res.status(200).json(userWithoutPassword);
+        });
+      }
     })(req, res, next);
   });
   
@@ -202,6 +231,7 @@ export async function setupAuth(app: Express) {
   app.get("/api/test-login", async (req, res, next) => {
     try {
       console.log("Test login endpoint called");
+      const { enrichUserWithRole } = await import('./enrich-user-role');
       
       // Try to find the super-admin account
       const storage = await getStorage();
@@ -227,15 +257,19 @@ export async function setupAuth(app: Express) {
           }
         }
         
+        // Enrich the super-admin user with the correct role
+        const enrichedSuperAdmin = await enrichUserWithRole(superAdmin);
+        console.log("Enriched super-admin with role:", enrichedSuperAdmin.role);
+        
         // Log in as super-admin
-        req.login(superAdmin, (loginErr) => {
+        req.login(enrichedSuperAdmin, (loginErr) => {
           if (loginErr) {
             console.error("Login error:", loginErr);
             return next(loginErr);
           }
           
           console.log("Login successful as super-admin");
-          const { password, ...userWithoutPassword } = superAdmin;
+          const { password, ...userWithoutPassword } = enrichedSuperAdmin;
           
           return res.status(200).json({
             message: "Logged in as super-admin",
@@ -266,15 +300,19 @@ export async function setupAuth(app: Express) {
             }
           }
           
+          // Enrich the test user with the correct role
+          const enrichedTestUser = await enrichUserWithRole(testUser);
+          console.log("Enriched test user with role:", enrichedTestUser.role);
+          
           // Log in with existing user
-          req.login(testUser, (loginErr) => {
+          req.login(enrichedTestUser, (loginErr) => {
             if (loginErr) {
               console.error("Login error:", loginErr);
               return next(loginErr);
             }
             
             console.log("Login successful with test user");
-            const { password, ...userWithoutPassword } = testUser;
+            const { password, ...userWithoutPassword } = enrichedTestUser;
             
             return res.status(200).json({
               message: "Logged in with existing test user",
@@ -297,15 +335,18 @@ export async function setupAuth(app: Express) {
           
           console.log("New test user created:", newUser.id);
           
+          // Enrich the new user with the correct role
+          const enrichedNewUser = await enrichUserWithRole(newUser);
+          
           // Log in with the new user
-          req.login(newUser, (loginErr) => {
+          req.login(enrichedNewUser, (loginErr) => {
             if (loginErr) {
               console.error("Login error for new user:", loginErr);
               return next(loginErr);
             }
             
             console.log("Login successful with new test user");
-            const { password, ...userWithoutPassword } = newUser;
+            const { password, ...userWithoutPassword } = enrichedNewUser;
             
             return res.status(200).json({
               message: "Created and logged in with new test user",
