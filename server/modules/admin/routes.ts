@@ -56,6 +56,9 @@ const isSuperAdmin = async (req: Request, res: Response, next: Function) => {
 export const adminRoutes = (app: Express) => {
   // Register organization-specific routes
   organizationsRoutes(app);
+  
+  // Register users routes
+  app.use('/api/admin/users', usersRoutes);
   // Get all organizations (tenants)
   app.get('/api/admin/orgs', isSuperAdmin, async (req, res) => {
     try {

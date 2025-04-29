@@ -1,14 +1,14 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import { getStorage } from "../../../storage";
 import { db } from "../../../db";
 import { eq } from "drizzle-orm";
 import { users, organizationUsers, roles } from "@shared/schema";
-import { organizations } from "@shared/schema";
+import { tenants as organizations } from "@shared/schema";
 
 const router = express.Router();
 
 // Middleware to check if user is a super-admin
-const requireSuperAdmin = (req, res, next) => {
+const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: "Unauthorized" });
   }
@@ -23,7 +23,7 @@ const requireSuperAdmin = (req, res, next) => {
 router.use(requireSuperAdmin);
 
 // GET /admin/users - Get all users with their roles across organizations
-router.get("/", async (req, res) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
     // Get all users
     const allUsers = await db.select().from(users);
@@ -60,9 +60,10 @@ router.get("/", async (req, res) => {
     );
 
     res.json(usersWithRoles);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error fetching users:", error);
-    res.status(500).json({ message: "Failed to fetch users", error: error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ message: "Failed to fetch users", error: errorMessage });
   }
 });
 

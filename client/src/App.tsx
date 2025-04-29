@@ -40,6 +40,7 @@ import { Loader2 } from "lucide-react";
 const AdminOrgsPage = lazy(() => import("@/pages/admin/orgs"));
 const AdminNewOrgPage = lazy(() => import("@/pages/admin/orgs/new"));
 const AdminOrganizationsPage = lazy(() => import("@/pages/admin/organizations"));
+const AdminUsersPage = lazy(() => import("@/pages/admin/users"));
 // Need to handle the special character in filename
 const AdminOrgDetailPage = lazy(() => {
   return new Promise((resolve) => {
