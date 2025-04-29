@@ -86,9 +86,9 @@ describe('Feature Flag Service', () => {
   test('should return all enabled modules', async () => {
     // Arrange
     const modules = [
-      AvailableModule.ANALYTICS,
-      AvailableModule.BOOKING_PAGES,
-      AvailableModule.DOOR_MANAGER
+      schema.AvailableModule.ANALYTICS,
+      schema.AvailableModule.BOOKING_PAGES,
+      schema.AvailableModule.DOOR_MANAGER
     ];
     
     // Enable multiple modules
@@ -109,7 +109,7 @@ describe('Feature Flag Service', () => {
   // Test module settings
   test('should update module settings', async () => {
     // Arrange
-    const moduleName = AvailableModule.ANALYTICS;
+    const moduleName = schema.AvailableModule.ANALYTICS;
     const settings = {
       retention: 30,
       enableRealTimeReporting: true,
