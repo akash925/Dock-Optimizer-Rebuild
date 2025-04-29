@@ -201,20 +201,20 @@ export class MemStorage implements IStorage {
       role: "manager",
     });
     
-    // Create testadmin user for testing
+    // Create testadmin user for testing with plain password - it will be hashed automatically on login
     this.createUser({
       username: "testadmin",
-      password: "6e9dcc3d14d59ab539d6b8ab2d50d61cbc7fa4fc7acd3040b81ca719db681e9fb88e5465e6bc3fd166b38ebcd9d59dbc98a4976af4e1ba9753bcf56b09886d00.c8ba269aafe1f86c21f5e7976c8c98c4", // "password123"
+      password: "password123", 
       email: "testadmin@example.com",
       firstName: "Test",
       lastName: "Admin",
       role: "admin",
     });
     
-    // Create test dock worker
+    // Create test dock worker with plain password
     this.createUser({
       username: "worker",
-      password: "7cb3b8bc8352aa5a85b23147cc448a1a25178aef1eb461629d5d7a8e8a9a9cedbc97136db7fa21e3d429650f45940bd585c384ea9a4131464523ea8c8605d548.e8a3cb0e6b61f12db23b383022eb5878", // "admin123"
+      password: "admin123", 
       email: "worker@example.com",
       firstName: "Dock",
       lastName: "Worker",
@@ -2009,20 +2009,22 @@ export async function initializeDatabase() {
       role: "manager",
     });
     
-    // Create testadmin user for testing
+    // Create testadmin user for testing with plain password
+    const hashedPasswordAdmin = await hashPassword("password123");
     await dbStorage.createUser({
       username: "testadmin",
-      password: "6e9dcc3d14d59ab539d6b8ab2d50d61cbc7fa4fc7acd3040b81ca719db681e9fb88e5465e6bc3fd166b38ebcd9d59dbc98a4976af4e1ba9753bcf56b09886d00.c8ba269aafe1f86c21f5e7976c8c98c4", // "password123" 
+      password: hashedPasswordAdmin, 
       email: "testadmin@example.com",
       firstName: "Test",
       lastName: "Admin",
       role: "admin",
     });
     
-    // Create test dock worker
+    // Create test dock worker with plain password
+    const hashedPasswordWorker = await hashPassword("admin123");
     await dbStorage.createUser({
       username: "worker",
-      password: "7cb3b8bc8352aa5a85b23147cc448a1a25178aef1eb461629d5d7a8e8a9a9cedbc97136db7fa21e3d429650f45940bd585c384ea9a4131464523ea8c8605d548.e8a3cb0e6b61f12db23b383022eb5878", // "admin123"
+      password: hashedPasswordWorker,
       email: "worker@example.com",
       firstName: "Dock",
       lastName: "Worker",
