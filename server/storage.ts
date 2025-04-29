@@ -211,6 +211,13 @@ export class MemStorage implements IStorage {
     this.bookingPages = new Map();
     this.assets = new Map();
     this.companyAssets = new Map();
+    
+    // Admin console related
+    this.tenants = new Map();
+    this.roles = new Map();
+    this.organizationUsers = new Map();
+    this.organizationModules = new Map();
+    
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 24 hours
     });
@@ -220,6 +227,17 @@ export class MemStorage implements IStorage {
   }
 
   private setupInitialData() {
+    // Create super-admin user
+    this.createUser({
+      username: "superadmin",
+      password: "$2b$10$NrM4S5VFRWKxIFBdSvGQVObcUQZrsquxA3KH9RBKuHKpHHFQXsNGe", // "admin123"
+      email: "superadmin@example.com",
+      firstName: "Super",
+      lastName: "Admin",
+      role: "super-admin",
+      tenantId: null // Super-admin is not linked to any specific tenant
+    });
+    
     // Create default admin user
     this.createUser({
       username: "admin",
@@ -258,6 +276,130 @@ export class MemStorage implements IStorage {
       firstName: "Dock",
       lastName: "Worker",
       role: "worker",
+    });
+    
+    // Create default tenants/organizations
+    const hanzoOrg = this.createTenant({
+      name: "Hanzo Logistics",
+      subdomain: "hanzo",
+      status: "active",
+      planLevel: "enterprise",
+      contactName: "Hanzo Admin",
+      contactEmail: "admin@hanzo.com",
+      contactPhone: "555-123-4567",
+      maxUsers: 100,
+      billingEmail: "billing@hanzo.com"
+    });
+    
+    const acmeOrg = this.createTenant({
+      name: "Acme Shipping",
+      subdomain: "acme",
+      status: "active",
+      planLevel: "professional",
+      contactName: "Acme Admin",
+      contactEmail: "admin@acme.com",
+      contactPhone: "555-987-6543",
+      maxUsers: 25,
+      billingEmail: "billing@acme.com"
+    });
+    
+    // Create role records
+    this.createRole({
+      name: "super-admin",
+      description: "System-wide administrator with access to all organizations and features",
+      permissions: { all: true }
+    });
+    
+    this.createRole({
+      name: "admin",
+      description: "Organization administrator with full access to all organization features",
+      permissions: { 
+        users: { read: true, create: true, update: true, delete: true },
+        facilities: { read: true, create: true, update: true, delete: true },
+        docks: { read: true, create: true, update: true, delete: true },
+        schedules: { read: true, create: true, update: true, delete: true },
+        settings: { read: true, update: true }
+      }
+    });
+    
+    this.createRole({
+      name: "manager",
+      description: "Organization manager with access to scheduling and reporting",
+      permissions: { 
+        facilities: { read: true },
+        docks: { read: true },
+        schedules: { read: true, create: true, update: true },
+        reports: { read: true },
+      }
+    });
+    
+    this.createRole({
+      name: "worker",
+      description: "Dock worker with limited access to schedules",
+      permissions: { 
+        schedules: { read: true, update: true }
+      }
+    });
+    
+    // Link users to organizations
+    this.addUserToOrganization({
+      userId: 2, // admin user
+      organizationId: 1, // Hanzo
+      role: "admin",
+      isPrimary: true,
+    });
+    
+    this.addUserToOrganization({
+      userId: 3, // manager user
+      organizationId: 1, // Hanzo
+      role: "manager",
+      isPrimary: true,
+    });
+    
+    this.addUserToOrganization({
+      userId: 5, // worker user
+      organizationId: 1, // Hanzo
+      role: "worker",
+      isPrimary: true,
+    });
+    
+    // Enable modules for organizations
+    const hanzoModules = [
+      { name: "doorManager", enabled: true, settings: { maxDoors: 50 } },
+      { name: "appointmentManager", enabled: true, settings: { enableExternalBooking: true } },
+      { name: "assetManager", enabled: true, settings: { maxAssets: 1000 } },
+      { name: "analytics", enabled: true, settings: { enableAdvancedReports: true } }
+    ];
+    
+    const acmeModules = [
+      { name: "doorManager", enabled: true, settings: { maxDoors: 20 } },
+      { name: "appointmentManager", enabled: true, settings: { enableExternalBooking: true } },
+      { name: "assetManager", enabled: false, settings: {} },
+      { name: "analytics", enabled: true, settings: { enableAdvancedReports: false } }
+    ];
+    
+    hanzoModules.forEach(module => {
+      this.organizationModules.set(this.organizationModuleIdCounter++, {
+        id: this.organizationModuleIdCounter,
+        organizationId: 1,
+        name: module.name,
+        enabled: module.enabled,
+        settings: module.settings,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    });
+    
+    acmeModules.forEach(module => {
+      this.organizationModules.set(this.organizationModuleIdCounter++, {
+        id: this.organizationModuleIdCounter,
+        organizationId: 2,
+        name: module.name,
+        enabled: module.enabled,
+        settings: module.settings,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
     });
     
     // Create a default facility
@@ -929,6 +1071,170 @@ export class MemStorage implements IStorage {
 
   async deleteCompanyAsset(id: number): Promise<boolean> {
     return this.companyAssets.delete(id);
+  }
+  
+  // Organization (Tenant) operations
+  async getAllTenants(): Promise<Tenant[]> {
+    return Array.from(this.tenants.values());
+  }
+  
+  async getTenantById(id: number): Promise<Tenant | undefined> {
+    return this.tenants.get(id);
+  }
+  
+  async getTenantBySubdomain(subdomain: string): Promise<Tenant | undefined> {
+    return Array.from(this.tenants.values()).find(
+      (tenant) => tenant.subdomain === subdomain,
+    );
+  }
+  
+  async createTenant(tenant: InsertTenant): Promise<Tenant> {
+    const id = this.tenantIdCounter++;
+    const createdAt = new Date();
+    const newTenant: Tenant = { 
+      ...tenant, 
+      id, 
+      createdAt,
+      updatedAt: createdAt
+    };
+    this.tenants.set(id, newTenant);
+    return newTenant;
+  }
+  
+  async updateTenant(id: number, tenantUpdate: Partial<Tenant>): Promise<Tenant | undefined> {
+    const tenant = this.tenants.get(id);
+    if (!tenant) return undefined;
+    
+    const updatedAt = new Date();
+    const updatedTenant = { 
+      ...tenant, 
+      ...tenantUpdate,
+      updatedAt
+    };
+    this.tenants.set(id, updatedTenant);
+    return updatedTenant;
+  }
+  
+  async deleteTenant(id: number): Promise<boolean> {
+    // First delete all organization modules
+    const modulesToDelete = Array.from(this.organizationModules.values())
+      .filter(module => module.organizationId === id);
+    
+    modulesToDelete.forEach(module => {
+      this.organizationModules.delete(module.id);
+    });
+    
+    // Delete all organization users
+    const orgUsersToDelete = Array.from(this.organizationUsers.values())
+      .filter(orgUser => orgUser.organizationId === id);
+    
+    orgUsersToDelete.forEach(orgUser => {
+      // Do not delete the actual user, just the organization link
+      this.organizationUsers.delete(orgUser.id);
+    });
+    
+    // Finally delete the tenant
+    return this.tenants.delete(id);
+  }
+  
+  // Role operations
+  async getRole(id: number): Promise<RoleRecord | undefined> {
+    return this.roles.get(id);
+  }
+  
+  async getRoleByName(name: string): Promise<RoleRecord | undefined> {
+    return Array.from(this.roles.values()).find(
+      (role) => role.name === name,
+    );
+  }
+  
+  async getRoles(): Promise<RoleRecord[]> {
+    return Array.from(this.roles.values());
+  }
+  
+  async createRole(role: InsertRoleRecord): Promise<RoleRecord> {
+    const id = this.roleIdCounter++;
+    const createdAt = new Date();
+    const newRole: RoleRecord = { 
+      ...role, 
+      id, 
+      createdAt,
+      updatedAt: createdAt
+    };
+    this.roles.set(id, newRole);
+    return newRole;
+  }
+  
+  // Organization User operations
+  async getUsersByOrganizationId(organizationId: number): Promise<User[]> {
+    // Find all organization user links for this organization
+    const orgUsers = Array.from(this.organizationUsers.values())
+      .filter(orgUser => orgUser.organizationId === organizationId);
+    
+    // Get the user objects for each link
+    const users = orgUsers
+      .map(orgUser => this.users.get(orgUser.userId))
+      .filter((user): user is User => !!user);
+    
+    return users;
+  }
+  
+  async addUserToOrganization(orgUser: InsertOrganizationUser): Promise<OrganizationUser> {
+    const id = this.organizationUserIdCounter++;
+    const createdAt = new Date();
+    const newOrgUser: OrganizationUser = { 
+      ...orgUser, 
+      id, 
+      createdAt,
+      updatedAt: createdAt 
+    };
+    this.organizationUsers.set(id, newOrgUser);
+    return newOrgUser;
+  }
+  
+  async removeUserFromOrganization(organizationId: number, userId: number): Promise<boolean> {
+    // Find the organization user entry
+    const orgUser = Array.from(this.organizationUsers.values()).find(
+      ou => ou.organizationId === organizationId && ou.userId === userId
+    );
+    
+    if (!orgUser) return false;
+    
+    // Remove the entry
+    return this.organizationUsers.delete(orgUser.id);
+  }
+  
+  // Organization Module operations
+  async getModulesByOrganizationId(organizationId: number): Promise<OrganizationModule[]> {
+    return Array.from(this.organizationModules.values())
+      .filter(module => module.organizationId === organizationId);
+  }
+  
+  async updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]> {
+    // Delete existing modules for this organization
+    const existingModules = Array.from(this.organizationModules.values())
+      .filter(module => module.organizationId === organizationId);
+    
+    existingModules.forEach(module => {
+      this.organizationModules.delete(module.id);
+    });
+    
+    // Create new modules
+    const updatedModules: OrganizationModule[] = [];
+    modules.forEach(module => {
+      const id = this.organizationModuleIdCounter++;
+      const now = new Date();
+      const newModule: OrganizationModule = {
+        ...module,
+        id,
+        createdAt: now,
+        updatedAt: now
+      };
+      this.organizationModules.set(id, newModule);
+      updatedModules.push(newModule);
+    });
+    
+    return updatedModules;
   }
 }
 
