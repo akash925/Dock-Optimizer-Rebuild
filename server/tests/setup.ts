@@ -1,34 +1,74 @@
-// Set up Node.js environment variables for testing
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+
+// Configure Neon WebSockets for serverless environments
+neonConfig.webSocketConstructor = ws;
+
+// Set environment to test mode
 process.env.NODE_ENV = 'test';
 
-// Import required Jest globals
-import { expect, jest, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
-
-// Set longer timeout for database-related tests
+// Increase Jest timeout for database operations
 jest.setTimeout(30000);
 
-// Global imports for all tests
-import { cleanupTestDatabase, setupTestDatabase, closeTestDatabase } from './test-db';
-
-// Setup and teardown for all tests
+// Global setup before all tests
 beforeAll(async () => {
-  // Initialize the test database
-  await setupTestDatabase();
-});
-
-afterAll(async () => {
-  // Close database connections
-  await closeTestDatabase();
-});
-
-// Clean state between tests
-afterEach(async () => {
-  // Clean up test data
-  await cleanupTestDatabase();
+  // Ensure we have the test database connection
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL must be set for tests to work');
+  }
   
-  // Reset all mocks between tests
-  jest.resetAllMocks();
+  // Make sure we're not using the production database
+  if (process.env.DATABASE_URL.includes('production') || 
+      !process.env.DATABASE_URL.includes('test')) {
+    throw new Error('Tests must use a test database to avoid data loss');
+  }
+  
+  console.log('🔧 Setting up test environment...');
+  
+  // Initial connection test
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  try {
+    const { rows } = await pool.query('SELECT 1 as test');
+    if (rows[0].test !== 1) {
+      throw new Error('Database connection test failed');
+    }
+    console.log('✅ Database connection successful');
+  } catch (error) {
+    console.error('❌ Database connection failed:', error);
+    throw error;
+  } finally {
+    await pool.end();
+  }
 });
 
-// Make Jest globals available in tests
-Object.assign(global, { expect, jest, beforeAll, afterAll, beforeEach, afterEach });
+// Cleanup after all tests
+afterAll(async () => {
+  console.log('🧹 Cleaning up test environment...');
+  
+  // Any global cleanup here
+  
+  console.log('✅ Test environment cleanup complete');
+});
+
+// Mock console methods for cleaner test output
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+console.log = (...args) => {
+  if (process.env.DEBUG === 'true') {
+    originalConsoleLog(...args);
+  }
+};
+
+console.error = (...args) => {
+  if (process.env.DEBUG === 'true') {
+    originalConsoleError(...args);
+  }
+};
+
+console.warn = (...args) => {
+  if (process.env.DEBUG === 'true') {
+    originalConsoleWarn(...args);
+  }
+};
