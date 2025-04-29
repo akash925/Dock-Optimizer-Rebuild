@@ -17,10 +17,12 @@ interface ScheduleDayCalendarProps {
   timeFormat?: "12h" | "24h";
 }
 
-// Extended schedule with formatted time
 interface ScheduleWithTime extends Schedule {
   formattedTime: string;
 }
+
+// Helper type for our schedules by hour and dock
+type SchedulesByHourAndDock = Record<number, Record<number, ScheduleWithTime[]>>;
 
 export default function ScheduleDayCalendar({
   schedules,
@@ -64,37 +66,42 @@ export default function ScheduleDayCalendar({
     };
   });
 
-  // Get schedules for this day
-  const daySchedules = schedules.filter((schedule) => {
-    const scheduleDate = new Date(schedule.startTime);
-    return scheduleDate.getDate() === date.getDate() &&
-      scheduleDate.getMonth() === date.getMonth() &&
-      scheduleDate.getFullYear() === date.getFullYear();
-  });
-
-  // Group schedules by hour and dock
-  const schedulesByTime = new Map<number, Map<number, ScheduleWithTime[]>>();
+  // Get schedules for this day and organize them by hour and dock
+  const organizedSchedules: SchedulesByHourAndDock = {};
   
-  daySchedules.forEach(schedule => {
-    const startTime = new Date(schedule.startTime);
-    const hour = startTime.getHours();
-    const formattedTime = `${startTime.getHours().toString().padStart(2, '0')}:${startTime.getMinutes().toString().padStart(2, '0')} - ${new Date(schedule.endTime).getHours().toString().padStart(2, '0')}:${new Date(schedule.endTime).getMinutes().toString().padStart(2, '0')}`;
+  schedules.forEach(schedule => {
+    const scheduleDate = new Date(schedule.startTime);
     
-    // Skip if the hour is outside our display range
-    if (hour < hourStart || hour > hourEnd) return;
-    
-    if (!schedulesByTime.has(hour)) {
-      schedulesByTime.set(hour, new Map<number, ScheduleWithTime[]>());
+    // Check if the schedule is for the selected date
+    if (
+      scheduleDate.getDate() === date.getDate() &&
+      scheduleDate.getMonth() === date.getMonth() &&
+      scheduleDate.getFullYear() === date.getFullYear()
+    ) {
+      const hour = scheduleDate.getHours();
+      
+      // Skip if the hour is outside our display range
+      if (hour < hourStart || hour > hourEnd) return;
+      
+      // Format time for display
+      const formattedTime = `${scheduleDate.getHours().toString().padStart(2, '0')}:${scheduleDate.getMinutes().toString().padStart(2, '0')} - ${new Date(schedule.endTime).getHours().toString().padStart(2, '0')}:${new Date(schedule.endTime).getMinutes().toString().padStart(2, '0')}`;
+      
+      // Initialize hour object if it doesn't exist
+      if (!organizedSchedules[hour]) {
+        organizedSchedules[hour] = {};
+      }
+      
+      // Initialize dock array if it doesn't exist
+      if (!organizedSchedules[hour][schedule.dockId]) {
+        organizedSchedules[hour][schedule.dockId] = [];
+      }
+      
+      // Add schedule to the proper hour and dock
+      organizedSchedules[hour][schedule.dockId].push({
+        ...schedule,
+        formattedTime
+      });
     }
-    
-    if (!schedulesByTime.get(hour)?.has(schedule.dockId)) {
-      schedulesByTime.get(hour)?.set(schedule.dockId, []);
-    }
-    
-    schedulesByTime.get(hour)?.get(schedule.dockId)?.push({
-      ...schedule,
-      formattedTime
-    });
   });
 
   return (
@@ -142,7 +149,8 @@ export default function ScheduleDayCalendar({
               className="h-7 px-3 text-xs rounded-none border-r"
               onClick={() => {
                 if (typeof window !== 'undefined') {
-                  window.location.href = '/schedules?view=month';
+                  const dateParam = `&date=${date.toISOString().split('T')[0]}`;
+                  window.location.href = `/schedules?view=month${dateParam}`;
                 }
               }}
             >
@@ -154,7 +162,8 @@ export default function ScheduleDayCalendar({
               className="h-7 px-3 text-xs rounded-none border-r"
               onClick={() => {
                 if (typeof window !== 'undefined') {
-                  window.location.href = '/schedules?view=week';
+                  const dateParam = `&date=${date.toISOString().split('T')[0]}`;
+                  window.location.href = `/schedules?view=week${dateParam}`;
                 }
               }}
             >
@@ -174,7 +183,8 @@ export default function ScheduleDayCalendar({
               className="h-7 px-3 text-xs rounded-none"
               onClick={() => {
                 if (typeof window !== 'undefined') {
-                  window.location.href = '/schedules?view=list';
+                  const dateParam = `&date=${date.toISOString().split('T')[0]}`;
+                  window.location.href = `/schedules?view=list${dateParam}`;
                 }
               }}
             >
@@ -202,48 +212,47 @@ export default function ScheduleDayCalendar({
               
               {/* Appointments for this hour */}
               <div className="ml-16 sm:ml-20 min-h-[3rem] p-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-                {schedulesByTime.has(hour.value) && [...schedulesByTime.get(hour.value)?.entries() || []].map(entry => {
-                  const dockId = entry[0];
-                  const dockSchedules = entry[1];
-                  
-                  return dockSchedules.map(schedule => {
-                    const dock = docks.find(d => d.id === schedule.dockId);
-                    const dockName = dock ? dock.name : "Unknown Dock";
-                    const isInbound = schedule.type === "inbound";
-                    
-                    return (
-                      <div
-                        key={schedule.id}
-                        className={cn(
-                          "p-1 rounded-sm text-xs cursor-pointer border transition-colors overflow-hidden",
-                          schedule.status === "completed" 
-                            ? "bg-green-50 border-green-200"
-                            : schedule.status === "cancelled" 
-                              ? "bg-gray-100 border-gray-300"
-                              : schedule.status === "in-progress"
-                                ? "bg-yellow-50 border-yellow-300"
-                                : isInbound 
-                                  ? "bg-blue-50 border-blue-200" 
-                                  : "bg-purple-50 border-purple-200"
-                        )}
-                        onClick={() => onScheduleClick(schedule.id)}
-                      >
-                        <div className="font-medium truncate">
-                          {schedule.formattedTime}
+                {organizedSchedules[hour.value] && 
+                  Object.entries(organizedSchedules[hour.value]).flatMap(([dockId, dockSchedules]) => {
+                    return dockSchedules.map((schedule) => {
+                      const dock = docks.find(d => d.id === schedule.dockId);
+                      const dockName = dock ? dock.name : "Unknown Dock";
+                      const isInbound = schedule.type === "inbound";
+                      
+                      return (
+                        <div
+                          key={schedule.id}
+                          className={cn(
+                            "p-1 rounded-sm text-xs cursor-pointer border transition-colors overflow-hidden",
+                            schedule.status === "completed" 
+                              ? "bg-green-50 border-green-200"
+                              : schedule.status === "cancelled" 
+                                ? "bg-gray-100 border-gray-300"
+                                : schedule.status === "in-progress"
+                                  ? "bg-yellow-50 border-yellow-300"
+                                  : isInbound 
+                                    ? "bg-blue-50 border-blue-200" 
+                                    : "bg-purple-50 border-purple-200"
+                          )}
+                          onClick={() => onScheduleClick(schedule.id)}
+                        >
+                          <div className="font-medium truncate">
+                            {schedule.formattedTime}
+                          </div>
+                          <div className="truncate">
+                            {dockName} - {schedule.customerName || "Unnamed"}
+                          </div>
+                          <div className="truncate">
+                            {schedule.carrierName || "No carrier"} - {schedule.truckNumber}
+                          </div>
                         </div>
-                        <div className="truncate">
-                          {dockName} - {schedule.customerName || "Unnamed"}
-                        </div>
-                        <div className="truncate">
-                          {schedule.carrierName || "No carrier"} • {schedule.truckNumber}
-                        </div>
-                      </div>
-                    );
-                  });
-                })}
+                      );
+                    });
+                  })
+                }
                 
                 {/* Add empty cell with click handler if no appointments */}
-                {(!schedulesByTime.has(hour.value) || schedulesByTime.get(hour.value)?.size === 0) && (
+                {(!organizedSchedules[hour.value] || Object.keys(organizedSchedules[hour.value]).length === 0) && (
                   <div 
                     className="h-10 w-full cursor-pointer"
                     onClick={() => onCellClick && onCellClick(hour.date)}
