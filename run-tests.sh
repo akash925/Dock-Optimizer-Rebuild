@@ -1,53 +1,50 @@
 #!/bin/bash
 
-# Colors for output formatting
+# Define colors for better readability
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}===================================================${NC}"
-echo -e "${BLUE}Running Tests for Dock Optimizer Platform${NC}"
-echo -e "${BLUE}===================================================${NC}"
+# Display a nice header
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}Running Jest Unit and Integration Tests${NC}"
+echo -e "${BLUE}========================================${NC}"
 
-# Run Jest unit tests
-echo -e "\n${BLUE}Running unit tests...${NC}"
-npx jest --runInBand
-UNIT_TEST_RESULT=$?
-
-# Display unit test results
-if [ $UNIT_TEST_RESULT -eq 0 ]; then
-  echo -e "\n${GREEN}✓ Unit tests passed${NC}"
-else
-  echo -e "\n${RED}✗ Unit tests failed${NC}"
+# Check if database is available
+echo -e "${YELLOW}Checking database connection...${NC}"
+if ! psql "$DATABASE_URL" -c '\q' &>/dev/null; then
+  echo -e "${RED}Error: Cannot connect to PostgreSQL database. Please ensure the database is running.${NC}"
+  exit 1
 fi
 
-# Run E2E tests if explicitly requested with --e2e flag
-if [[ "$*" == *"--e2e"* ]]; then
-  echo -e "\n${BLUE}Running E2E tests...${NC}"
-  npx cypress run
-  E2E_TEST_RESULT=$?
-  
-  # Display E2E test results
-  if [ $E2E_TEST_RESULT -eq 0 ]; then
-    echo -e "\n${GREEN}✓ E2E tests passed${NC}"
-  else
-    echo -e "\n${RED}✗ E2E tests failed${NC}"
-  fi
-  
-  # Set overall test result based on both unit and E2E tests
-  TEST_RESULT=$((UNIT_TEST_RESULT || E2E_TEST_RESULT))
+# Setup test environment variables
+export NODE_ENV=test
+
+# Run the tests with proper output formatting
+echo -e "${GREEN}Starting tests...${NC}"
+
+if [ $# -eq 0 ]; then
+  # Run all tests if no specific arguments provided
+  npx jest --verbose
 else
-  # Set overall test result based only on unit tests
-  TEST_RESULT=$UNIT_TEST_RESULT
+  # Run tests with provided arguments
+  npx jest "$@"
 fi
 
-echo -e "\n${BLUE}===================================================${NC}"
-if [ $TEST_RESULT -eq 0 ]; then
-  echo -e "${GREEN}All requested tests passed successfully!${NC}"
-else
-  echo -e "${RED}Some tests failed. Please check the output above.${NC}"
-fi
-echo -e "${BLUE}===================================================${NC}"
+TEST_EXIT_CODE=$?
 
-exit $TEST_RESULT
+# Report status
+if [ $TEST_EXIT_CODE -eq 0 ]; then
+  echo -e "${GREEN}All tests passed!${NC}"
+else
+  echo -e "${RED}Tests failed with exit code $TEST_EXIT_CODE!${NC}"
+fi
+
+# Reset test data if needed
+echo -e "${YELLOW}Cleaning up test data...${NC}"
+npx tsx server/tests/clean-test-db.ts || echo -e "${RED}Failed to clean test database${NC}"
+
+# Exit with the appropriate code
+exit $TEST_EXIT_CODE

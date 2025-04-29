@@ -1,33 +1,53 @@
 #!/bin/bash
 
-# Colors for output formatting
+# Define colors for better readability
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}===================================================${NC}"
-echo -e "${BLUE}Running E2E Tests for Dock Optimizer Platform${NC}"
-echo -e "${BLUE}===================================================${NC}"
+# Display a nice header
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}Running Cypress End-to-End Tests${NC}"
+echo -e "${BLUE}========================================${NC}"
 
-# Run Cypress E2E tests
-echo -e "\n${BLUE}Starting Cypress tests...${NC}"
-npx cypress run
-E2E_TEST_RESULT=$?
-
-# Display E2E test results
-if [ $E2E_TEST_RESULT -eq 0 ]; then
-  echo -e "\n${GREEN}✓ E2E tests passed${NC}"
-else
-  echo -e "\n${RED}✗ E2E tests failed${NC}"
+# Ensure the application is running
+if ! curl -s http://localhost:5000 > /dev/null; then
+  echo -e "${YELLOW}Warning: Application doesn't seem to be running. Starting it now...${NC}"
+  npm run dev & 
+  APP_PID=$!
+  echo -e "${YELLOW}Waiting for the application to start...${NC}"
+  sleep 10
+  
+  # Check if app started successfully
+  if ! curl -s http://localhost:5000 > /dev/null; then
+    echo -e "${RED}Error: Failed to start application. Please run 'npm run dev' manually and try again.${NC}"
+    kill $APP_PID 2>/dev/null
+    exit 1
+  fi
+  
+  # Flag that we started the app ourselves
+  STARTED_APP=true
 fi
 
-echo -e "\n${BLUE}===================================================${NC}"
-if [ $E2E_TEST_RESULT -eq 0 ]; then
-  echo -e "${GREEN}All E2E tests completed successfully!${NC}"
-else
-  echo -e "${RED}Some E2E tests failed. Please check the output above.${NC}"
-fi
-echo -e "${BLUE}===================================================${NC}"
+# Run the tests
+echo -e "${GREEN}Starting E2E tests...${NC}"
+npx cypress run "$@"
+TEST_EXIT_CODE=$?
 
-exit $E2E_TEST_RESULT
+# Report status
+if [ $TEST_EXIT_CODE -eq 0 ]; then
+  echo -e "${GREEN}All E2E tests passed!${NC}"
+else
+  echo -e "${RED}E2E tests failed with exit code $TEST_EXIT_CODE!${NC}"
+fi
+
+# Stop the application if we started it
+if [ "$STARTED_APP" = true ]; then
+  echo -e "${YELLOW}Stopping application...${NC}"
+  kill $APP_PID 2>/dev/null
+fi
+
+# Exit with the appropriate code
+exit $TEST_EXIT_CODE

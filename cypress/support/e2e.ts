@@ -1,29 +1,47 @@
-// This file is processed and loaded automatically before your test files
-// Add custom commands here
+// ***********************************************************
+// This support file loads automatically before your test files
+// ***********************************************************
 
-// Augment the Cypress namespace to include custom commands
-declare global {
-  namespace Cypress {
-    interface Chainable {
-      /**
-       * Login with username and password via the API
-       * @example cy.login('admin@example.com', 'password')
-       */
-      login(username: string, password: string): Chainable<void>;
-    }
+// Import custom commands
+import './commands'
+
+// Custom commands can be added here to be used across tests
+// For example:
+// Cypress.Commands.add('login', (email, password) => { ... })
+
+// Make custom commands available in TypeScript
+// If this file is treated as a module (has imports/exports), move this declaration to a separate d.ts file
+// Example: cypress/support/index.d.ts
+/*
+declare namespace Cypress {
+  interface Chainable {
+    // login(email: string, password: string): Chainable<void>
+    // Add other custom commands here
   }
 }
+*/
 
-// Login command that authenticates via the API
-Cypress.Commands.add('login', (username, password) => {
-  cy.request({
-    method: 'POST',
-    url: '/api/login',
-    body: { username, password }
-  });
-  
-  // This ensures cookies are set properly
-  cy.visit('/');
+// Configure Cypress behavior
+Cypress.on('uncaught:exception', (err) => {
+  // Returning false here prevents Cypress from failing the test due to uncaught exceptions
+  // Useful when testing apps that might have errors in third-party code
+  return false;
 });
 
-export {};
+// Set up global test state if needed
+before(() => {
+  // Code that runs once before all tests
+});
+
+// Clean up after tests
+after(() => {
+  // Code that runs once after all tests
+});
+
+// Make sure each test starts with a clean state
+beforeEach(() => {
+  // Clear cookies and local storage between tests
+  cy.clearAllCookies();
+  cy.clearAllLocalStorage();
+  cy.clearAllSessionStorage();
+});

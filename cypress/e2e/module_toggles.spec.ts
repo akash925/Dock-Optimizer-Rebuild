@@ -35,14 +35,11 @@ describe('Module Toggles', () => {
       body: { success: true }
     }).as('toggleModule');
 
-    // Log in and visit the organization detail page
-    cy.visit('/auth');
-    cy.get('input[name="username"]').type('akash.agarwal@conmitto.io');
-    cy.get('input[name="password"]').type('password');
-    cy.get('button[type="submit"]').click();
+    // Log in and visit the organization detail page using custom commands
+    cy.login('akash.agarwal@conmitto.io', 'password');
     cy.wait('@loginRequest');
     
-    cy.visit('/admin/orgs/2');
+    cy.visitOrgDetail(2);
     cy.wait('@getOrgDetail');
     
     // Navigate to Modules tab
