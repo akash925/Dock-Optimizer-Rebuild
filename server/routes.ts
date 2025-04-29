@@ -23,9 +23,10 @@ import {
   insertBookingPageSchema,
 } from "@shared/schema";
 
-// Import the super-admin creation script
+// Import the super-admin creation script and seed roles
 import { createSuperAdmin } from "./create-super-admin";
 import { fixAdminPassword } from "./fix-admin-password";
+import { seedRoles } from "./seed-roles";
 import { hashPassword as authHashPassword } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -42,6 +43,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Super-admin creation script completed");
   } catch (error) {
     console.error("Error running super-admin creation script:", error);
+  }
+  
+  // Seed roles
+  try {
+    console.log("Running seed-roles script...");
+    await seedRoles();
+    console.log("Roles seeding completed");
+  } catch (error) {
+    console.error("Error seeding roles:", error);
   }
   
   // Fix admin password
