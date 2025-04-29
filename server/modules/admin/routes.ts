@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { TenantStatus, AvailableModule } from '@shared/schema';
 import { organizationsRoutes } from './organizations/routes';
 import usersRoutes from './users/routes';
+import settingsRoutes from './settings/routes';
 
 // Define the organization validation schema
 const createOrgSchema = z.object({
@@ -59,6 +60,9 @@ export const adminRoutes = (app: Express) => {
   
   // Register users routes
   app.use('/api/admin/users', usersRoutes);
+  
+  // Register settings routes
+  app.use('/api/admin/settings', settingsRoutes);
   // Get all organizations (tenants)
   app.get('/api/admin/orgs', isSuperAdmin, async (req, res) => {
     try {
