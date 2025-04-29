@@ -56,7 +56,7 @@ export default function UsersPage() {
       // If there's a search term, apply filtering, otherwise show all users
       if (searchTerm) {
         const lowerCaseSearch = searchTerm.toLowerCase();
-        const filtered = users.filter(user => 
+        const filtered = users.filter((user: UserWithRoles) => 
           user.email?.toLowerCase().includes(lowerCaseSearch) || 
           (user.firstName && user.firstName.toLowerCase().includes(lowerCaseSearch)) ||
           (user.lastName && user.lastName.toLowerCase().includes(lowerCaseSearch)) ||
@@ -81,11 +81,11 @@ export default function UsersPage() {
       }
       
       const lowerCaseSearch = searchValue.toLowerCase();
-      const filtered = users.filter(user => 
-        user.email.toLowerCase().includes(lowerCaseSearch) || 
+      const filtered = users.filter((user: UserWithRoles) => 
+        user.email?.toLowerCase().includes(lowerCaseSearch) || 
         (user.firstName && user.firstName.toLowerCase().includes(lowerCaseSearch)) ||
         (user.lastName && user.lastName.toLowerCase().includes(lowerCaseSearch)) ||
-        user.username.toLowerCase().includes(lowerCaseSearch)
+        user.username?.toLowerCase().includes(lowerCaseSearch)
       );
       
       setFilteredUsers(filtered);
@@ -169,29 +169,34 @@ export default function UsersPage() {
               </div>
             </div>
             
-            {/* Memoized users table component */}
-            <UsersTable users={filteredUsers} />
-            
-            {/* Empty state when filtered results are empty */}
-            {filteredUsers.length === 0 && searchTerm && (
+            {/* Render users table or empty state */}
+            {Array.isArray(filteredUsers) && filteredUsers.length > 0 ? (
+              <UsersTable users={filteredUsers} />
+            ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
                 <Search className="h-8 w-8 mb-2 opacity-50" />
-                <p>No users found matching "{searchTerm}"</p>
-                <Button 
-                  variant="link" 
-                  onClick={() => {
-                    setSearchTerm("");
-                    setFilteredUsers(users);
-                  }}
-                >
-                  Clear search
-                </Button>
+                {searchTerm ? (
+                  <>
+                    <p>No users found matching "{searchTerm}"</p>
+                    <Button 
+                      variant="link" 
+                      onClick={() => {
+                        setSearchTerm("");
+                        setFilteredUsers(Array.isArray(users) ? users : []);
+                      }}
+                    >
+                      Clear search
+                    </Button>
+                  </>
+                ) : (
+                  <p>No users available. Click "Add User" to create one.</p>
+                )}
               </div>
             )}
           </CardContent>
           <CardFooter className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Showing {filteredUsers.length} users
+              Showing {Array.isArray(filteredUsers) ? filteredUsers.length : 0} users
             </div>
             <div className="flex items-center space-x-2">
               <Button
@@ -211,7 +216,7 @@ export default function UsersPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setPage(prev => prev + 1)}
-                disabled={users.length < limit}
+                disabled={!Array.isArray(users) || users.length < limit}
                 className="h-8 w-8 p-0"
               >
                 <ChevronRight className="h-4 w-4" />
