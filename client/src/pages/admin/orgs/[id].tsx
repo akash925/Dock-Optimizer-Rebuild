@@ -216,9 +216,12 @@ export default function OrganizationDetailPage() {
         title: "Success",
         description: "Module updated successfully",
       });
-      // Invalidate the cached organization detail
+      // Invalidate the cached organization detail and organization list
       queryClient.invalidateQueries({
         queryKey: ['orgDetail', orgId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['adminOrgs'],
       });
     },
     onError: (error) => {
