@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Edit, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Plus, Edit, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/layout/admin-layout";
+import { FixedSizeList as List } from "react-window";
 
 // Type for user with roles
 interface UserWithRoles {
@@ -29,14 +31,35 @@ interface UserWithRoles {
   }[];
 }
 
+interface PaginatedResponse {
+  items: UserWithRoles[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 export default function UsersPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
 
-  // Fetch all users data
-  const { data: users, isLoading, error } = useQuery<UserWithRoles[]>({
-    queryKey: ['/api/admin/users'],
+  // Fetch paginated users data
+  const { data, isLoading, error } = useQuery<PaginatedResponse>({
+    queryKey: ['/api/admin/users', page, limit],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/users?page=${page}&limit=${limit}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      return response.json();
+    },
   });
+
+  const users = data?.items || [];
 
   // Future enhancement: add a new user
   const handleAddUser = () => {

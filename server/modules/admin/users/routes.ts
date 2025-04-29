@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import { getStorage } from "../../../storage";
 import { db } from "../../../db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { users, organizationUsers, roles } from "@shared/schema";
 import { tenants as organizations } from "@shared/schema";
 
@@ -22,15 +22,29 @@ const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
 
 router.use(requireSuperAdmin);
 
-// GET /admin/users - Get all users with their roles across organizations
+// GET /admin/users - Get all users with their roles across organizations (with pagination)
 router.get("/", async (req: Request, res: Response) => {
   try {
-    // Get all users
-    const allUsers = await db.select().from(users);
+    // Parse pagination parameters
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    
+    // Get total count for pagination
+    const totalUsers = await db.select({ count: sql`count(*)` }).from(users);
+    const total = Number(totalUsers[0]?.count || 0);
+    
+    // Get paginated users
+    const paginatedUsers = await db
+      .select()
+      .from(users)
+      .limit(limit)
+      .offset(offset)
+      .orderBy(users.id);
     
     // For each user, get their organization roles
     const usersWithRoles = await Promise.all(
-      allUsers.map(async (user) => {
+      paginatedUsers.map(async (user) => {
         // Get all organization associations for this user
         const userOrgs = await db
           .select({
@@ -59,7 +73,15 @@ router.get("/", async (req: Request, res: Response) => {
       })
     );
 
-    res.json(usersWithRoles);
+    res.json({
+      items: usersWithRoles,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error: unknown) {
     console.error("Error fetching users:", error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
