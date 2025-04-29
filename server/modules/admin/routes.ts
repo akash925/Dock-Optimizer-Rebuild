@@ -490,6 +490,163 @@ export const adminRoutes = (app: Express) => {
     }
   });
 
+  // Get all roles
+  app.get('/api/admin/roles', isSuperAdmin, async (req, res) => {
+    try {
+      const storage = await getStorage();
+      const roles = await storage.getRoles();
+      res.json(roles);
+    } catch (error) {
+      console.error('Error fetching roles:', error);
+      res.status(500).json({ message: 'Failed to fetch roles' });
+    }
+  });
+  
+  // Get organization detail
+  app.get('/api/admin/orgs/:id', isSuperAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const orgId = parseInt(id, 10);
+      
+      if (isNaN(orgId)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      const storage = await getStorage();
+      const organization = await storage.getTenantById(orgId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Get organization users with roles
+      const orgUsers = await storage.getOrganizationUsers(orgId);
+      
+      // Get organization modules
+      const orgModules = await storage.getOrganizationModules(orgId);
+      
+      // Format response
+      const response = {
+        ...organization,
+        users: orgUsers,
+        modules: orgModules
+      };
+      
+      res.json(response);
+    } catch (error) {
+      console.error('Error fetching organization detail:', error);
+      res.status(500).json({ message: 'Failed to fetch organization details' });
+    }
+  });
+  
+  // Add user to organization
+  app.post('/api/admin/orgs/:id/users', isSuperAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userId, roleId } = req.body;
+      const orgId = parseInt(id, 10);
+      
+      if (isNaN(orgId) || !userId || !roleId) {
+        return res.status(400).json({ message: 'Invalid request parameters' });
+      }
+      
+      const storage = await getStorage();
+      const organization = await storage.getTenantById(orgId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Add user to organization
+      const userOrg = await storage.addUserToOrganization({
+        userId,
+        organizationId: orgId,
+        roleId
+      });
+      
+      res.status(201).json(userOrg);
+    } catch (error) {
+      console.error('Error adding user to organization:', error);
+      res.status(500).json({ message: 'Failed to add user to organization' });
+    }
+  });
+  
+  // Remove user from organization
+  app.delete('/api/admin/orgs/:id/users/:userId', isSuperAdmin, async (req, res) => {
+    try {
+      const { id, userId } = req.params;
+      const orgId = parseInt(id, 10);
+      const userIdNum = parseInt(userId, 10);
+      
+      if (isNaN(orgId) || isNaN(userIdNum)) {
+        return res.status(400).json({ message: 'Invalid request parameters' });
+      }
+      
+      const storage = await getStorage();
+      const organization = await storage.getTenantById(orgId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Check if user exists in organization
+      const orgUsers = await storage.getOrganizationUsers(orgId);
+      const userExists = orgUsers.some(u => u.userId === userIdNum);
+      
+      if (!userExists) {
+        return res.status(404).json({ message: 'User not found in organization' });
+      }
+      
+      // Remove user from organization
+      await storage.removeUserFromOrganization(userIdNum, orgId);
+      
+      res.sendStatus(204);
+    } catch (error) {
+      console.error('Error removing user from organization:', error);
+      res.status(500).json({ message: 'Failed to remove user from organization' });
+    }
+  });
+  
+  // Update organization modules
+  app.put('/api/admin/orgs/:id/modules', isSuperAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const modules = req.body;
+      const orgId = parseInt(id, 10);
+      
+      if (isNaN(orgId) || !Array.isArray(modules)) {
+        return res.status(400).json({ message: 'Invalid request parameters' });
+      }
+      
+      const storage = await getStorage();
+      const organization = await storage.getTenantById(orgId);
+      
+      if (!organization) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Update modules
+      const updatedModules = await storage.updateOrganizationModules(orgId, modules);
+      
+      res.json(updatedModules);
+    } catch (error) {
+      console.error('Error updating organization modules:', error);
+      res.status(500).json({ message: 'Failed to update organization modules' });
+    }
+  });
+  
+  // Get all users
+  app.get('/api/admin/users', isSuperAdmin, async (req, res) => {
+    try {
+      const storage = await getStorage();
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+  
   // Get admin dashboard stats
   app.get('/api/admin/stats', isSuperAdmin, async (req, res) => {
     try {
@@ -519,16 +676,5 @@ export const adminRoutes = (app: Express) => {
     }
   });
   
-  // Get all roles (for role selection)
-  app.get('/api/admin/roles', isSuperAdmin, async (req, res) => {
-    try {
-      const storage = await getStorage();
-      const roles = await storage.getRoles();
-      
-      res.json(roles);
-    } catch (error) {
-      console.error('Error fetching roles:', error);
-      res.status(500).json({ message: 'Failed to fetch roles' });
-    }
-  });
+
 };
