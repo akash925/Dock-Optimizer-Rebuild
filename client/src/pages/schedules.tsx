@@ -750,6 +750,7 @@ export default function Schedules() {
                   filterFacilityId.some(facilityId => 
                     typeof facilityId === 'number' && dock.facilityId === facilityId))
               : docks}
+            facilities={facilities}
             date={selectedDate}
             timezone={timezone}
             timeFormat={timeFormat}
