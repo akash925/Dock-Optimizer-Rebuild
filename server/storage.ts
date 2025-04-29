@@ -145,11 +145,13 @@ export interface IStorage {
   
   // Organization User operations
   getUsersByOrganizationId(organizationId: number): Promise<User[]>;
+  getOrganizationUsers(organizationId: number): Promise<OrganizationUser[]>;
+  getUserOrganizationRole(userId: number, organizationId: number): Promise<OrganizationUser | undefined>;
   addUserToOrganization(orgUser: InsertOrganizationUser): Promise<OrganizationUser>;
-  removeUserFromOrganization(organizationId: number, userId: number): Promise<boolean>;
+  removeUserFromOrganization(userId: number, organizationId: number): Promise<boolean>;
   
   // Organization Module operations
-  getModulesByOrganizationId(organizationId: number): Promise<OrganizationModule[]>;
+  getOrganizationModules(organizationId: number): Promise<OrganizationModule[]>;
   updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]>;
   
   // Session store
