@@ -177,9 +177,18 @@ export async function setupAuth(app: Express) {
     try {
       // Check if we already have a test admin user
       const storage = await getStorage();
-      const testUser = await storage.getUserByUsername("testadmin");
+      let testUser = await storage.getUserByUsername("testadmin");
       
       if (testUser) {
+        // Update with correct password format if needed
+        if (!testUser.password.includes('.')) {
+          console.log("Updating test admin user with proper password format");
+          const hashedPassword = await hashPassword("password123");
+          testUser = await storage.updateUser(testUser.id, {
+            password: hashedPassword
+          });
+        }
+        
         // Log in with existing user
         req.login(testUser, (loginErr) => {
           if (loginErr) return next(loginErr);
@@ -191,7 +200,7 @@ export async function setupAuth(app: Express) {
         });
       } else {
         // Create a test admin user
-        const hashedPassword = await hashPassword("testpassword");
+        const hashedPassword = await hashPassword("password123");
         const newUser = await storage.createUser({
           username: "testadmin",
           password: hashedPassword,

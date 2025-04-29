@@ -286,6 +286,15 @@ export class MemStorage implements IStorage {
     this.users.set(id, user);
     return user;
   }
+
+  async updateUser(id: number, userUpdate: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, ...userUpdate };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
   
   async getUsers(): Promise<User[]> {
     return Array.from(this.users.values());
@@ -1041,6 +1050,20 @@ export class DatabaseStorage implements IStorage {
   
   async getUsers(): Promise<User[]> {
     return await db.select().from(users);
+  }
+  
+  async updateUser(id: number, userUpdate: Partial<User>): Promise<User | undefined> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set(userUpdate)
+        .where(eq(users.id, id))
+        .returning();
+      return updatedUser;
+    } catch (error) {
+      console.error(`Error updating user ${id}:`, error);
+      return undefined;
+    }
   }
 
   // Dock operations
