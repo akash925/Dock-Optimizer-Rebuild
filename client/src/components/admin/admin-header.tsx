@@ -1,108 +1,83 @@
 import React from 'react';
-import { useLocation, Link as WouterLink } from 'wouter';
-import { useAuth } from '@/hooks/use-auth';
-import { 
-  ArrowLeftIcon,
-  HomeIcon,
-  LogOut,
-  User
-} from 'lucide-react';
+import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
+import { PlusCircle, Home, Settings, Users, Grid, Package } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 export const AdminHeader = () => {
-  const { user, logoutMutation } = useAuth();
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
+  const { user } = useAuth();
 
-  const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        setLocation('/auth');
-      }
-    });
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase();
-  };
-
-  const userInitials = user?.firstName && user?.lastName 
-    ? getInitials(`${user.firstName} ${user.lastName}`) 
-    : 'U';
+  if (!user || user.role !== 'super-admin') {
+    return null;
+  }
 
   return (
-    <header className="flex items-center justify-between pb-4 border-b">
-      <div className="flex items-center space-x-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setLocation('/')}
-          className="mr-2"
-        >
-          <ArrowLeftIcon className="w-5 h-5" />
-        </Button>
-        
-        <h1 className="text-2xl font-bold">Admin Console</h1>
-        
-        <div className="hidden ml-4 sm:flex sm:items-center sm:space-x-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-8 gap-1"
-            onClick={() => setLocation('/')}
-          >
-            <HomeIcon className="w-4 h-4" />
-            Dashboard
+    <div className="border-b pb-4 mb-6">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Admin Console</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage organizations, users, and system settings
+          </p>
+        </div>
+        <div>
+          <Button asChild variant="default">
+            <Link href="/admin/orgs/new">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Organization
+            </Link>
           </Button>
         </div>
       </div>
 
-      <div className="flex items-center space-x-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>{userInitials}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {user && (
-              <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">{user.firstName} {user.lastName}</p>
-                <p className="text-xs text-muted-foreground">{user.email}</p>
-                <p className="mt-1 text-xs text-muted-foreground capitalize">Role: {user.role}</p>
-              </div>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <WouterLink href="/profile" className="cursor-pointer">
-                <User className="w-4 h-4 mr-2" />
-                <span>Profile</span>
-              </WouterLink>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
-              <LogOut className="w-4 h-4 mr-2" />
-              <span>Log out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </header>
+      <nav className="flex items-center space-x-6 text-sm font-medium">
+        <Link 
+          href="/admin" 
+          className={`flex items-center transition-colors hover:text-primary ${
+            location === '/admin' ? 'text-primary font-semibold' : 'text-muted-foreground'
+          }`}
+        >
+          <Home className="h-4 w-4 mr-1" />
+          Dashboard
+        </Link>
+        <Link 
+          href="/admin/orgs" 
+          className={`flex items-center transition-colors hover:text-primary ${
+            location.startsWith('/admin/orgs') ? 'text-primary font-semibold' : 'text-muted-foreground'
+          }`}
+        >
+          <Grid className="h-4 w-4 mr-1" />
+          Organizations
+        </Link>
+        <Link 
+          href="/admin/users" 
+          className={`flex items-center transition-colors hover:text-primary ${
+            location.startsWith('/admin/users') ? 'text-primary font-semibold' : 'text-muted-foreground'
+          }`}
+        >
+          <Users className="h-4 w-4 mr-1" />
+          Users
+        </Link>
+        <Link 
+          href="/admin/modules" 
+          className={`flex items-center transition-colors hover:text-primary ${
+            location.startsWith('/admin/modules') ? 'text-primary font-semibold' : 'text-muted-foreground'
+          }`}
+        >
+          <Package className="h-4 w-4 mr-1" />
+          Modules
+        </Link>
+        <Link 
+          href="/admin/settings" 
+          className={`flex items-center transition-colors hover:text-primary ${
+            location.startsWith('/admin/settings') ? 'text-primary font-semibold' : 'text-muted-foreground'
+          }`}
+        >
+          <Settings className="h-4 w-4 mr-1" />
+          Settings
+        </Link>
+      </nav>
+    </div>
   );
 };

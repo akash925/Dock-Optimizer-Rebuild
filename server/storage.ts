@@ -1182,6 +1182,17 @@ export class MemStorage implements IStorage {
     return users;
   }
   
+  async getOrganizationUsers(organizationId: number): Promise<OrganizationUser[]> {
+    return Array.from(this.organizationUsers.values())
+      .filter(orgUser => orgUser.organizationId === organizationId);
+  }
+  
+  async getUserOrganizationRole(userId: number, organizationId: number): Promise<OrganizationUser | undefined> {
+    return Array.from(this.organizationUsers.values()).find(
+      ou => ou.userId === userId && ou.organizationId === organizationId
+    );
+  }
+  
   async addUserToOrganization(orgUser: InsertOrganizationUser): Promise<OrganizationUser> {
     const id = this.organizationUserIdCounter++;
     const createdAt = new Date();
@@ -1208,7 +1219,7 @@ export class MemStorage implements IStorage {
   }
   
   // Organization Module operations
-  async getModulesByOrganizationId(organizationId: number): Promise<OrganizationModule[]> {
+  async getOrganizationModules(organizationId: number): Promise<OrganizationModule[]> {
     return Array.from(this.organizationModules.values())
       .filter(module => module.organizationId === organizationId);
   }
@@ -1255,6 +1266,77 @@ export class DatabaseStorage implements IStorage {
   // Add missing getDocksByFacility method
   async getDocksByFacility(facilityId: number): Promise<Dock[]> {
     return await db.select().from(docks).where(eq(docks.facilityId, facilityId));
+  }
+  
+  // Organization User operations
+  async getUsersByOrganizationId(organizationId: number): Promise<User[]> {
+    const orgUsers = await db.select()
+      .from(organizationUsers)
+      .where(eq(organizationUsers.organizationId, organizationId));
+    
+    const userIds = orgUsers.map(ou => ou.userId);
+    if (userIds.length === 0) return [];
+    
+    return await db.select()
+      .from(users)
+      .where(inArray(users.id, userIds));
+  }
+  
+  async getOrganizationUsers(organizationId: number): Promise<OrganizationUser[]> {
+    return await db.select()
+      .from(organizationUsers)
+      .where(eq(organizationUsers.organizationId, organizationId));
+  }
+  
+  async getUserOrganizationRole(userId: number, organizationId: number): Promise<OrganizationUser | undefined> {
+    const [result] = await db.select()
+      .from(organizationUsers)
+      .where(and(
+        eq(organizationUsers.userId, userId),
+        eq(organizationUsers.organizationId, organizationId)
+      ));
+    return result;
+  }
+  
+  async addUserToOrganization(orgUser: InsertOrganizationUser): Promise<OrganizationUser> {
+    const [result] = await db.insert(organizationUsers)
+      .values(orgUser)
+      .returning();
+    return result;
+  }
+  
+  async removeUserFromOrganization(userId: number, organizationId: number): Promise<boolean> {
+    const result = await db.delete(organizationUsers)
+      .where(and(
+        eq(organizationUsers.userId, userId),
+        eq(organizationUsers.organizationId, organizationId)
+      ));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+  
+  // Organization Module operations
+  async getOrganizationModules(organizationId: number): Promise<OrganizationModule[]> {
+    return await db.select()
+      .from(organizationModules)
+      .where(eq(organizationModules.organizationId, organizationId));
+  }
+  
+  async updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]> {
+    // Delete existing modules for this organization
+    await db.delete(organizationModules)
+      .where(eq(organizationModules.organizationId, organizationId));
+    
+    if (modules.length === 0) return [];
+    
+    // Insert new modules
+    const results = await db.insert(organizationModules)
+      .values(modules.map(module => ({
+        ...module,
+        organizationId
+      })))
+      .returning();
+    
+    return results;
   }
   
   // Asset Manager operations
