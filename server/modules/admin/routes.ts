@@ -425,6 +425,135 @@ export const adminRoutes = (app: Express) => {
     }
   });
 
+  // Add user to organization with role name
+  app.post('/api/admin/orgs/:orgId/users', isSuperAdmin, async (req, res) => {
+    try {
+      const orgId = Number(req.params.orgId);
+      if (isNaN(orgId)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      // Parse the request body for userId and role
+      const { userId, role } = req.body;
+      
+      if (!userId || !role) {
+        return res.status(400).json({ message: 'User ID and role are required' });
+      }
+      
+      const storage = await getStorage();
+      
+      // Check if organization exists
+      const org = await storage.getTenantById(orgId);
+      if (!org) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // Get the role ID from the role name
+      const roleRecord = await storage.getRoleByName(role);
+      if (!roleRecord) {
+        return res.status(404).json({ message: 'Role not found' });
+      }
+      
+      // Add or update the user-organization relationship
+      await storage.addUserToOrganizationWithRole(userId, orgId, roleRecord.id);
+      
+      // Get the updated users list
+      const orgUsers = await storage.getOrganizationUsers(orgId);
+      
+      // Format users with role information
+      const enhancedUsers = await Promise.all(orgUsers.map(async (orgUser) => {
+        const userDetail = await storage.getUser(orgUser.userId);
+        const roleDetail = await storage.getRole(orgUser.roleId);
+        
+        if (!userDetail || !roleDetail) {
+          return null; // Skip invalid entries
+        }
+        
+        return {
+          userId: userDetail.id,
+          email: userDetail.username,
+          firstName: userDetail.firstName || '',
+          lastName: userDetail.lastName || '',
+          roleName: roleDetail.name
+        };
+      }));
+      
+      // Filter out null entries
+      const validUsers = enhancedUsers.filter(user => user !== null);
+      
+      res.json({ success: true, users: validUsers });
+    } catch (error) {
+      console.error('Error adding user to organization:', error);
+      res.status(500).json({ message: 'Failed to update organization user' });
+    }
+  });
+  
+  // Toggle a specific module for an organization
+  app.put('/api/admin/orgs/:orgId/modules/:moduleName', isSuperAdmin, async (req, res) => {
+    try {
+      const orgId = Number(req.params.orgId);
+      const moduleName = req.params.moduleName;
+      
+      if (isNaN(orgId)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      // Parse the enabled status from the request body
+      const { enabled } = req.body;
+      
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ message: 'Enabled status must be a boolean' });
+      }
+      
+      const storage = await getStorage();
+      
+      // Check if organization exists
+      const org = await storage.getTenantById(orgId);
+      if (!org) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Update the module status
+      const moduleUpdate = [{
+        organizationId: orgId,
+        moduleName: moduleName as AvailableModule,
+        enabled: enabled
+      }];
+      
+      await storage.updateOrganizationModules(orgId, moduleUpdate);
+      
+      // Log the activity
+      try {
+        await storage.logOrganizationActivity({
+          organizationId: orgId,
+          userId: req.user?.id || 0,
+          action: enabled ? 'module_enabled' : 'module_disabled',
+          details: `Module "${moduleName}" ${enabled ? 'enabled' : 'disabled'} for organization "${org.name}"`
+        });
+      } catch (logError) {
+        console.warn('Failed to log module update activity:', logError);
+        // Continue even if logging fails
+      }
+      
+      // Get the updated modules list
+      const modules = await storage.getOrganizationModules(orgId);
+      
+      // Find the updated module
+      const updatedModule = modules.find(m => m.moduleName === moduleName);
+      
+      res.json(updatedModule || { moduleName, enabled });
+    } catch (error) {
+      console.error('Error updating organization module:', error);
+      res.status(500).json({ message: 'Failed to update organization module' });
+    }
+  });
+  
   // Get modules for an organization
   app.get('/api/admin/orgs/:id/modules', isSuperAdmin, async (req, res) => {
     try {

@@ -392,7 +392,7 @@ export const organizationsRoutes = (app: Express) => {
       const { userId, roleId, action } = validationResult.data;
       
       // Check if user exists
-      const user = await storage.getUserById(userId);
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
