@@ -4,21 +4,39 @@ import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
+import { tenantMiddleware } from "./middleware/tenant";
 
 // Load environment variables from .env file
 dotenv.config();
 
-// Check if Asset Manager module is enabled
+// Default system modules (always loaded)
+const SYSTEM_MODULES = ['tenants', 'featureFlags'];
+
+// Tenant-specific modules (loaded based on tenant configuration)
+const AVAILABLE_MODULES = [
+  'assetManager',
+  'calendar',
+  'analytics',
+  'bookingPages',
+  'emailNotifications'
+];
+
+// Check if Asset Manager module is enabled globally (legacy support)
 const ENABLE_ASSET_MANAGER = process.env.ENABLE_ASSET_MANAGER === 'true';
-// Get list of enabled modules from environment variable
+
+// Get list of enabled modules from environment variable (legacy support)
 const ENABLED_MODULES = (process.env.ENABLED_MODULES || '').split(',').filter(Boolean);
 
+// Log enabled modules for backward compatibility
 console.log(`Asset Manager module is ${ENABLE_ASSET_MANAGER ? 'enabled' : 'disabled'}`);
 console.log(`Enabled modules: ${ENABLED_MODULES.length ? ENABLED_MODULES.join(', ') : 'none'}`);
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add tenant identification middleware
+app.use(tenantMiddleware);
 
 // Serve files from the uploads directory
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -57,13 +75,30 @@ app.use((req, res, next) => {
   // Register core routes
   const server = await registerRoutes(app);
   
-  // Load enabled modules dynamically
+  // First, load system modules (tenant management and feature flags)
+  for (const moduleName of SYSTEM_MODULES) {
+    console.log(`Loading system module: ${moduleName}...`);
+    try {
+      const modulePath = `./modules/${moduleName}/index`;
+      const module = await import(modulePath);
+      if (module.default && typeof module.default.initialize === 'function') {
+        module.default.initialize(app);
+      } else {
+        console.warn(`Module ${moduleName} doesn't have a valid initialize function`);
+      }
+    } catch (error) {
+      console.error(`Failed to load system module ${moduleName}:`, error);
+    }
+  }
+  
+  // Load tenant-specific enabled modules
+  // For backward compatibility, load modules from environment
   const modulesToLoad = [...ENABLED_MODULES];
   if (ENABLE_ASSET_MANAGER && !modulesToLoad.includes('assetManager')) {
     modulesToLoad.push('assetManager');
   }
   
-  // Load each enabled module
+  // Load modules based on legacy configuration
   for (const moduleName of modulesToLoad) {
     console.log(`Loading ${moduleName} module...`);
     try {

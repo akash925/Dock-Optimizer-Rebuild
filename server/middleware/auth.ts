@@ -12,6 +12,21 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
 }
 
 /**
+ * Middleware to check if the user is an admin
+ */
+export function isAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  
+  return res.status(403).json({ error: 'Forbidden - Admin access required' });
+}
+
+/**
  * Middleware to check if the user has the required role(s)
  * @param role A single role or array of roles that are allowed to access the route
  */

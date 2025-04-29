@@ -47,7 +47,13 @@ export class TenantService {
    */
   async createTenant(tenantData: InsertTenant, initialModules: AvailableModule[] = []) {
     try {
-      const [newTenant] = await db.insert(tenants).values(tenantData).returning();
+      // Cast status to TenantStatus type if present
+      const dataToInsert = {
+        ...tenantData,
+        status: tenantData.status as TenantStatus
+      };
+      
+      const [newTenant] = await db.insert(tenants).values([dataToInsert]).returning();
       
       if (newTenant && initialModules.length > 0) {
         // Enable initial modules for the tenant
@@ -68,12 +74,20 @@ export class TenantService {
    */
   async updateTenant(id: number, tenantData: Partial<InsertTenant>) {
     try {
+      // Prepare the update data with proper type casting
+      const updateData: any = {
+        ...tenantData,
+        updatedAt: new Date(),
+      };
+      
+      // Cast status to TenantStatus if present
+      if (updateData.status) {
+        updateData.status = updateData.status as TenantStatus;
+      }
+      
       const [updatedTenant] = await db
         .update(tenants)
-        .set({
-          ...tenantData,
-          updatedAt: new Date(),
-        })
+        .set(updateData)
         .where(eq(tenants.id, id))
         .returning();
       

@@ -201,6 +201,16 @@ export class MemStorage implements IStorage {
       role: "manager",
     });
     
+    // Create testadmin user for testing
+    this.createUser({
+      username: "testadmin",
+      password: "$2b$10$2BlGrYNL2i2s2.2ZrXs.7ussMvR8xQ56HfdGARFY6tAPQY/F/ZRs.", // "password123"
+      email: "testadmin@example.com",
+      firstName: "Test",
+      lastName: "Admin",
+      role: "admin",
+    });
+    
     // Create test dock worker
     this.createUser({
       username: "worker",
@@ -1997,6 +2007,16 @@ export async function initializeDatabase() {
       firstName: "Manager",
       lastName: "User",
       role: "manager",
+    });
+    
+    // Create testadmin user for testing
+    await dbStorage.createUser({
+      username: "testadmin",
+      password: "$2b$10$2BlGrYNL2i2s2.2ZrXs.7ussMvR8xQ56HfdGARFY6tAPQY/F/ZRs.", // "password123"
+      email: "testadmin@example.com",
+      firstName: "Test",
+      lastName: "Admin",
+      role: "admin",
     });
     
     // Create test dock worker
