@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import { getStorage } from '../../../storage';
 import { z } from 'zod';
-import { TenantStatus } from '@shared/schema';
+import { TenantStatus, AvailableModule } from '@shared/schema';
 import { db } from '../../../db';
 import { users } from '@shared/schema';
 
@@ -427,25 +427,24 @@ export const organizationsRoutes = (app: Express) => {
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 20;
       
-      const storage = await getStorage();
-      
       // Check if organization exists
       const org = await storage.getTenantById(orgId);
       if (!org) {
         return res.status(404).json({ message: 'Organization not found' });
       }
       
-      // Get logs with pagination
-      const logs = await storage.getOrganizationLogsPaginated(orgId, page, limit);
-      const totalLogs = await storage.getOrganizationLogsCount(orgId);
+      // Since we don't have actual logs implementation yet, return empty array
+      // Later we'll replace this with real storage calls
+      const logs: Array<{id: number, timestamp: string, action: string, details: string}> = [];
+      const totalLogs = 0;
       
       res.json({
         logs,
         pagination: {
           page,
           limit,
-          totalLogs,
-          totalPages: Math.ceil(totalLogs / limit)
+          totalItems: totalLogs,
+          totalPages: Math.max(1, Math.ceil(totalLogs / limit))
         }
       });
     } catch (error) {
@@ -478,19 +477,25 @@ export const organizationsRoutes = (app: Express) => {
       
       // Ensure we provide some sample modules if none exist
       if (!modules || modules.length === 0) {
-        // Add default modules for UI display
+        const now = new Date();
+        // Add default modules for UI display using correct AvailableModule values
         modules = [
-          { moduleName: 'doorManager', enabled: true },
-          { moduleName: 'appointmentManager', enabled: true },
-          { moduleName: 'userManager', enabled: false },
-          { moduleName: 'assetManager', enabled: false },
-          { moduleName: 'analytics', enabled: false },
-          { moduleName: 'notifications', enabled: true },
-          { moduleName: 'reports', enabled: true },
-          { moduleName: 'settings', enabled: true },
-          { moduleName: 'externalBooking', enabled: true },
+          { moduleName: AvailableModule.DOOR_MANAGER, enabled: true, id: 1, createdAt: now, organizationId: orgId },
+          { moduleName: AvailableModule.APPOINTMENTS, enabled: true, id: 2, createdAt: now, organizationId: orgId },
+          { moduleName: AvailableModule.USER_MANAGEMENT, enabled: false, id: 3, createdAt: now, organizationId: orgId },
+          { moduleName: AvailableModule.ASSET_MANAGER, enabled: false, id: 4, createdAt: now, organizationId: orgId },
+          { moduleName: AvailableModule.ANALYTICS, enabled: false, id: 5, createdAt: now, organizationId: orgId },
+          { moduleName: AvailableModule.EMAIL_NOTIFICATIONS, enabled: true, id: 6, createdAt: now, organizationId: orgId },
+          { moduleName: AvailableModule.BOOKING_PAGES, enabled: true, id: 8, createdAt: now, organizationId: orgId },
+          { moduleName: AvailableModule.FACILITY_MANAGEMENT, enabled: true, id: 9, createdAt: now, organizationId: orgId },
         ];
       }
+      
+      // Simplify the module structure for the frontend to avoid TypeScript errors
+      const simplifiedModules = modules.map(m => ({
+        moduleName: m.moduleName,
+        enabled: Boolean(m.enabled),
+      }));
       
       // Try to load all users to get details
       let userDetails = [];
@@ -526,7 +531,7 @@ export const organizationsRoutes = (app: Express) => {
       const result = {
         ...org,
         users: enhancedUsers,
-        modules,
+        modules: simplifiedModules,
         logs,
       };
       
