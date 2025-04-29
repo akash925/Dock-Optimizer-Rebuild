@@ -38,6 +38,18 @@ const isSuperAdmin = async (req: Request, res: Response, next: Function) => {
   next();
 };
 
+// Schemas for organization modules and users
+const updateModuleSchema = z.object({
+  moduleName: z.string().min(1, "Module name is required"),
+  enabled: z.boolean()
+});
+
+const updateUserSchema = z.object({
+  userId: z.number().int().positive("User ID must be a positive integer"),
+  roleId: z.number().int().positive("Role ID must be a positive integer").optional(),
+  action: z.enum(["add", "remove"])
+});
+
 export const organizationsRoutes = (app: Express) => {
   // Get all organizations with count information
   app.get('/api/admin/organizations', isSuperAdmin, async (req, res) => {
@@ -209,6 +221,234 @@ export const organizationsRoutes = (app: Express) => {
     } catch (error) {
       console.error('Error deleting organization:', error);
       res.status(500).json({ message: 'Failed to delete organization' });
+    }
+  });
+
+  // Get detailed organization data for edit page
+  app.get('/api/admin/orgs/:orgId', isSuperAdmin, async (req, res) => {
+    try {
+      const orgId = Number(req.params.orgId);
+      if (isNaN(orgId)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      const storage = await getStorage();
+      
+      // Get organization details
+      const org = await storage.getTenantById(orgId);
+      if (!org) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Get organization users with role information
+      const users = await storage.getOrganizationUsersWithRoles(orgId);
+      
+      // Get organization modules
+      const modules = await storage.getOrganizationModules(orgId);
+
+      // Get organization activity logs (if implemented)
+      let logs = [];
+      try {
+        logs = await storage.getOrganizationLogs(orgId);
+      } catch (logError) {
+        console.warn(`Activity logs not available for organization ${orgId}:`, logError);
+        // Continue without logs if not implemented
+      }
+      
+      res.json({
+        id: org.id,
+        name: org.name,
+        subdomain: org.subdomain,
+        status: org.status,
+        createdAt: org.createdAt,
+        contactEmail: org.contactEmail,
+        primaryContact: org.primaryContact,
+        contactPhone: org.contactPhone,
+        address: org.address,
+        city: org.city,
+        state: org.state,
+        country: org.country,
+        zipCode: org.zipCode,
+        timezone: org.timezone,
+        logoUrl: org.logoUrl,
+        modules,
+        users,
+        logs
+      });
+    } catch (error) {
+      console.error('Error fetching organization details:', error);
+      res.status(500).json({ message: 'Failed to fetch organization details' });
+    }
+  });
+
+  // Toggle organization module
+  app.put('/api/admin/orgs/:orgId/modules', isSuperAdmin, async (req, res) => {
+    try {
+      const orgId = Number(req.params.orgId);
+      if (isNaN(orgId)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      const validationResult = updateModuleSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: 'Invalid module data', 
+          errors: validationResult.error.format() 
+        });
+      }
+      
+      const storage = await getStorage();
+      
+      // Check if organization exists
+      const org = await storage.getTenantById(orgId);
+      if (!org) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Update module status
+      const { moduleName, enabled } = validationResult.data;
+      const updatedModule = await storage.updateOrganizationModule(orgId, moduleName, enabled);
+      
+      // Log the action
+      try {
+        await storage.logOrganizationActivity(
+          orgId,
+          req.user?.id || 0,
+          enabled ? 'module_enabled' : 'module_disabled',
+          `Module ${moduleName} ${enabled ? 'enabled' : 'disabled'}`
+        );
+      } catch (logError) {
+        console.warn('Failed to log module update activity:', logError);
+        // Continue even if logging fails
+      }
+      
+      res.json(updatedModule);
+    } catch (error) {
+      console.error('Error updating organization module:', error);
+      res.status(500).json({ message: 'Failed to update organization module' });
+    }
+  });
+
+  // Add/remove user from organization
+  app.put('/api/admin/orgs/:orgId/users', isSuperAdmin, async (req, res) => {
+    try {
+      const orgId = Number(req.params.orgId);
+      if (isNaN(orgId)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      const validationResult = updateUserSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: 'Invalid user data', 
+          errors: validationResult.error.format() 
+        });
+      }
+      
+      const storage = await getStorage();
+      
+      // Check if organization exists
+      const org = await storage.getTenantById(orgId);
+      if (!org) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      const { userId, roleId, action } = validationResult.data;
+      
+      // Check if user exists
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      let result;
+      if (action === 'add') {
+        if (!roleId) {
+          return res.status(400).json({ message: 'Role ID is required for adding users' });
+        }
+        
+        // Check if role exists
+        const role = await storage.getRoleById(roleId);
+        if (!role) {
+          return res.status(404).json({ message: 'Role not found' });
+        }
+        
+        // Add user to organization with the specified role
+        result = await storage.addUserToOrganizationWithRole(userId, orgId, roleId);
+        
+        // Log the action
+        try {
+          await storage.logOrganizationActivity(
+            orgId,
+            req.user?.id || 0,
+            'user_added',
+            `User ${user.username} added with role ${role.name}`
+          );
+        } catch (logError) {
+          console.warn('Failed to log user add activity:', logError);
+          // Continue even if logging fails
+        }
+      } else {
+        // Remove user from organization
+        result = await storage.removeUserFromOrganization(userId, orgId);
+        
+        // Log the action
+        try {
+          await storage.logOrganizationActivity(
+            orgId,
+            req.user?.id || 0,
+            'user_removed',
+            `User ${user.username} removed from organization`
+          );
+        } catch (logError) {
+          console.warn('Failed to log user remove activity:', logError);
+          // Continue even if logging fails
+        }
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating organization user:', error);
+      res.status(500).json({ message: 'Failed to update organization user' });
+    }
+  });
+
+  // Get organization activity logs (paginated)
+  app.get('/api/admin/orgs/:orgId/logs', isSuperAdmin, async (req, res) => {
+    try {
+      const orgId = Number(req.params.orgId);
+      if (isNaN(orgId)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      // Parse pagination parameters
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 20;
+      
+      const storage = await getStorage();
+      
+      // Check if organization exists
+      const org = await storage.getTenantById(orgId);
+      if (!org) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Get logs with pagination
+      const logs = await storage.getOrganizationLogsPaginated(orgId, page, limit);
+      const totalLogs = await storage.getOrganizationLogsCount(orgId);
+      
+      res.json({
+        logs,
+        pagination: {
+          page,
+          limit,
+          totalLogs,
+          totalPages: Math.ceil(totalLogs / limit)
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching organization logs:', error);
+      res.status(500).json({ message: 'Failed to fetch organization logs' });
     }
   });
 };

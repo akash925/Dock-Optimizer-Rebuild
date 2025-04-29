@@ -4,7 +4,10 @@ import { useParams, useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Users, Package, ArrowLeft, UserPlus, Save, Trash2 } from "lucide-react";
+import { 
+  Loader2, Users, Package, ArrowLeft, UserPlus, 
+  Trash2, Activity, Calendar, Building 
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import AdminLayout from "@/components/layout/admin-layout";
@@ -32,6 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -40,6 +44,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Tenant, AvailableModule } from "@shared/schema";
 
 // Type definitions
@@ -56,9 +77,17 @@ interface OrgModule {
   enabled: boolean;
 }
 
+interface ActivityLog {
+  id: number;
+  timestamp: string;
+  action: string;
+  details: string;
+}
+
 interface OrganizationDetail extends Tenant {
   users: OrgUser[];
   modules: OrgModule[];
+  logs: ActivityLog[];
 }
 
 // Form validation schemas
@@ -118,15 +147,32 @@ export default function OrganizationDetailPage() {
     },
   });
 
+  // Pagination state for logs
+  const [logsPage, setLogsPage] = useState(1);
+  const [logsData, setLogsData] = useState<{ logs: ActivityLog[], pagination: any } | null>(null);
+
+  // Fetch paginated logs
+  const { isLoading: logsLoading } = useQuery({
+    queryKey: [`/api/admin/orgs/${orgId}/logs`, logsPage],
+    enabled: activeTab === 'logs',
+    onSuccess: (data) => {
+      setLogsData(data);
+    },
+  });
+
   // Mutations
   const addUserMutation = useMutation({
     mutationFn: async (values: { userId: number; roleId: number }) => {
       const res = await apiRequest(
-        "POST",
+        "PUT",
         `/api/admin/orgs/${orgId}/users`,
-        values
+        {
+          userId: values.userId,
+          roleId: values.roleId,
+          action: "add"
+        }
       );
-      return res.json();
+      return await res.json();
     },
     onSuccess: () => {
       toast({
@@ -151,8 +197,12 @@ export default function OrganizationDetailPage() {
   const removeUserMutation = useMutation({
     mutationFn: async (userId: number) => {
       await apiRequest(
-        "DELETE",
-        `/api/admin/orgs/${orgId}/users/${userId}`
+        "PUT",
+        `/api/admin/orgs/${orgId}/users`,
+        {
+          userId,
+          action: "remove"
+        }
       );
     },
     onSuccess: () => {
@@ -173,19 +223,19 @@ export default function OrganizationDetailPage() {
     },
   });
 
-  const updateModulesMutation = useMutation({
-    mutationFn: async (moduleUpdates: OrgModule[]) => {
+  const toggleModuleMutation = useMutation({
+    mutationFn: async ({ moduleName, enabled }: { moduleName: string, enabled: boolean }) => {
       const res = await apiRequest(
         "PUT",
         `/api/admin/orgs/${orgId}/modules`,
-        moduleUpdates
+        { moduleName, enabled }
       );
-      return res.json();
+      return await res.json();
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Organization modules updated",
+        description: "Module updated successfully",
       });
       queryClient.invalidateQueries({
         queryKey: [`/api/admin/orgs/${orgId}`],
@@ -194,7 +244,7 @@ export default function OrganizationDetailPage() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Failed to update modules: ${error.message}`,
+        description: `Failed to update module: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -215,6 +265,7 @@ export default function OrganizationDetailPage() {
   };
 
   const handleModuleToggle = (moduleName: string, checked: boolean) => {
+    // Update the modules state for UI
     const updatedModules = modules.map((m) => {
       if (m.moduleName === moduleName) {
         return { ...m, enabled: checked };
@@ -222,10 +273,13 @@ export default function OrganizationDetailPage() {
       return m;
     });
     setModules(updatedModules);
+    
+    // Save immediately with the new API
+    toggleModuleMutation.mutate({ moduleName, enabled: checked });
   };
-
-  const handleSaveModules = () => {
-    updateModulesMutation.mutate(modules);
+  
+  const handlePageChange = (page: number) => {
+    setLogsPage(page);
   };
 
   // Helper to get module display name
