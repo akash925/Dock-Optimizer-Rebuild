@@ -111,6 +111,13 @@ const adminApi = {
   async getRoles() {
     const res = await apiRequest("GET", "/api/admin/roles");
     return await res.json();
+  },
+  
+  /**
+   * Get all roles (alias for settings page)
+   */
+  async getAllRoles() {
+    return this.getRoles();
   }
 };
 
