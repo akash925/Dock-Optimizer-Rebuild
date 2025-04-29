@@ -23,6 +23,10 @@ import {
   insertBookingPageSchema,
 } from "@shared/schema";
 
+// Import the super-admin creation script
+import { createSuperAdmin } from "./create-super-admin";
+import { hashPassword as authHashPassword } from "./auth";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get storage instance
   const storage = await getStorage();
@@ -30,30 +34,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   await setupAuth(app);
   
+  // Run super-admin creation script
+  try {
+    console.log("Running create-super-admin script...");
+    await createSuperAdmin();
+    console.log("Super-admin creation script completed");
+  } catch (error) {
+    console.error("Error running super-admin creation script:", error);
+  }
+  
   // Register admin routes
   adminRoutes(app);
   
   // Test login for development and debugging
-  app.post("/api/test-login", async (req, res) => {
+  app.get("/api/test-login", async (req, res, next) => {
     try {
-      console.log("Test login requested");
-      const user = await storage.getUserByUsername("testadmin");
+      console.log("Test login endpoint called");
       
-      if (!user) {
-        return res.status(404).json({ message: "Test user not found" });
-      }
+      // Try to find the super-admin account
+      let superAdmin = await storage.getUserByUsername("akash.agarwal@conmitto.io");
       
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Test login error:", err);
-          return res.status(500).json({ message: "Login failed", error: err.message });
+      if (superAdmin) {
+        console.log("Found super-admin user:", superAdmin.id);
+        
+        // Update with correct password format if needed
+        if (!superAdmin.password || !superAdmin.password.includes('.')) {
+          console.log("Updating super-admin user with proper password format");
+          const hashedPassword = await authHashPassword("password123");
+          
+          const updatedUser = await storage.updateUser(superAdmin.id, {
+            password: hashedPassword
+          });
+          
+          if (updatedUser) {
+            superAdmin = updatedUser;
+            console.log("Super-admin password updated successfully");
+          } else {
+            console.error("Failed to update super-admin password");
+          }
         }
-        console.log("Test login successful for user:", user.username);
-        return res.status(200).json({ message: "Test login successful", user });
+        
+        // Log in as super-admin
+        req.login(superAdmin, (loginErr) => {
+          if (loginErr) {
+            console.error("Login error:", loginErr);
+            return next(loginErr);
+          }
+          
+          console.log("Login successful as super-admin");
+          const { password, ...userWithoutPassword } = superAdmin;
+          
+          return res.status(200).json({
+            message: "Logged in as super-admin",
+            user: userWithoutPassword
+          });
+        });
+      } else {
+        // Fallback to regular test admin if super-admin doesn't exist
+        let testUser = await storage.getUserByUsername("testadmin");
+        
+        if (testUser) {
+          console.log("Found existing test user:", testUser.id);
+          
+          // Update with correct password format if needed
+          if (!testUser.password || !testUser.password.includes('.')) {
+            console.log("Updating test admin user with proper password format");
+            const hashedPassword = await authHashPassword("password123");
+            
+            const updatedUser = await storage.updateUser(testUser.id, {
+              password: hashedPassword
+            });
+            
+            if (updatedUser) {
+              testUser = updatedUser;
+              console.log("User password updated successfully");
+            } else {
+              console.error("Failed to update user password");
+            }
+          }
+          
+          // Log in with existing user
+          req.login(testUser, (loginErr) => {
+            if (loginErr) {
+              console.error("Login error:", loginErr);
+              return next(loginErr);
+            }
+            
+            console.log("Login successful with test user");
+            const { password, ...userWithoutPassword } = testUser;
+            
+            return res.status(200).json({
+              message: "Logged in with existing test user",
+              user: userWithoutPassword
+            });
+          });
+        } else {
+          console.log("Creating new test admin user");
+          // Create a test admin user
+          const hashedPassword = await authHashPassword("password123");
+          const newUser = await storage.createUser({
+            username: "testadmin",
+            password: hashedPassword,
+            email: "testadmin@example.com",
+            firstName: "Test",
+            lastName: "Admin",
+            role: "admin",
+            tenantId: null
+          });
+          
+          console.log("New test user created:", newUser.id);
+          
+          // Log in with the new user
+          req.login(newUser, (loginErr) => {
+            if (loginErr) {
+              console.error("Login error for new user:", loginErr);
+              return next(loginErr);
+            }
+            
+            console.log("Login successful with new test user");
+            const { password, ...userWithoutPassword } = newUser;
+            
+            return res.status(200).json({
+              message: "Created and logged in with new test user",
+              user: userWithoutPassword
+            });
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Test login error:", err);
+      res.status(500).json({ 
+        message: "An error occurred during test login", 
+        error: err instanceof Error ? err.message : String(err) 
       });
-    } catch (error) {
-      console.error("Error in test login:", error);
-      res.status(500).json({ message: "Test login error", error: error instanceof Error ? error.message : String(error) });
     }
   });
   

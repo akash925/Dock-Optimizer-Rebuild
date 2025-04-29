@@ -6,7 +6,8 @@ import { hashPassword as authHashPassword } from './auth';
 
 const scryptAsync = promisify(scrypt);
 
-async function createSuperAdmin() {
+// Export the function for use in other files
+export async function createSuperAdmin() {
   console.log("Creating super-admin account...");
   
   try {
@@ -75,14 +76,6 @@ async function createSuperAdmin() {
     console.log("Super-admin account and organization setup completed successfully");
   } catch (error) {
     console.error("Error creating super-admin account:", error);
+    throw error; // Re-throw to allow calling code to handle the error
   }
 }
-
-// Execute the function
-createSuperAdmin().then(() => {
-  console.log("Script completed");
-  process.exit(0);
-}).catch(error => {
-  console.error("Script failed:", error);
-  process.exit(1);
-});
