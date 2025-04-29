@@ -9,6 +9,7 @@ import fs from "fs";
 import multer from "multer";
 import { sendConfirmationEmail, sendEmail } from "./notifications";
 import { testEmailTemplate } from "./email-test";
+import adminRoutes from "./modules/admin/routes";
 import {
   insertDockSchema,
   // Removing insertScheduleSchema as we're handling date validation manually
@@ -28,6 +29,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup authentication routes
   await setupAuth(app);
+  
+  // Register admin routes
+  adminRoutes(app);
   
   // Test login for development and debugging
   app.post("/api/test-login", async (req, res) => {

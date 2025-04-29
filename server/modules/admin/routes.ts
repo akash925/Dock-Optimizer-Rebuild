@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { storage } from '../../storage';
+import { getStorage } from '../../storage';
 import { z } from 'zod';
 import { insertOrgUserSchema, insertOrgModuleSchema } from '@shared/schema';
 
@@ -9,7 +9,7 @@ function checkAdminAccess(req: any, res: any, next: any) {
     return res.status(401).json({ message: 'Not authenticated' });
   }
   
-  if (req.user.role !== 'super-admin' && req.user.role !== 'admin') {
+  if (!req.user || (req.user.role !== 'super-admin' && req.user.role !== 'admin')) {
     return res.status(403).json({ message: 'Access denied. Requires admin privileges.' });
   }
   
@@ -30,14 +30,11 @@ const router = Router();
 router.use(checkAdminAccess);
 
 // Get all organizations
-router.get('/orgs', async (req, res) => {
-  try {
+router.get('/orgs', (req, res) => {
+  return withStorage(req, res, async (storage) => {
     const organizations = await storage.getAllTenants();
     return res.json(organizations);
-  } catch (error: any) {
-    console.error('Error fetching organizations:', error);
-    return res.status(500).json({ message: 'Failed to fetch organizations', error: error.message });
-  }
+  });
 });
 
 // Get a single organization by ID
@@ -213,4 +210,21 @@ router.get('/users', async (req, res) => {
   }
 });
 
-export default router;
+// Helper function to get storage in each route handler
+async function withStorage(req: any, res: any, callback: (storage: any) => Promise<void>) {
+  try {
+    const storage = await getStorage();
+    return callback(storage);
+  } catch (error: any) {
+    console.error('Error accessing storage:', error);
+    return res.status(500).json({ 
+      message: 'Internal server error accessing storage', 
+      error: error.message 
+    });
+  }
+}
+
+// Export the router
+export default (app: any) => {
+  app.use('/api/admin', router);
+};
