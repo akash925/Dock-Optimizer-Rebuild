@@ -1,0 +1,58 @@
+# Optimize Admin Console UI: Memoization & Input Throttling
+
+## Frontend Improvements
+
+1. **Wrap heavy lists/tables in `React.memo`**  
+   - Identify any large data tables (e.g., Users table, Logs table, Modules list) and wrap their component definitions in `React.memo` to prevent unnecessary re-renders:  
+     ```js
+     import React from 'react';
+     
+     const UserTable = React.memo(function UserTable({ users }) {
+       return (
+         <table>{/* render rows */}</table>
+       );
+     });
+     export default UserTable;
+     ```
+   - Do the same for `OrgLogsTable`, `ModulesList`, etc.
+
+2. **Debounce form inputs and search fields**  
+   - Install `lodash.debounce` if not already present:  
+     ```bash
+     npm install lodash.debounce
+     ```
+   - In any `<Input>` or search component, wrap the onChange in a debounced callback:  
+     ```js
+     import { useCallback } from 'react';
+     import debounce from 'lodash.debounce';
+
+     function OrgSearch({ onSearch }) {
+       const debounced = useCallback(
+         debounce((q) => onSearch(q), 300),
+         [onSearch]
+       );
+       return (
+         <input
+           placeholder="Search organizations…"
+           onChange={(e) => debounced(e.target.value)}
+         />
+       );
+     }
+     ```
+   - Repeat for any other form fields that fire rapid updates (e.g. table filters, live validation).
+
+3. **Isolate state changes with `useCallback` and `useMemo`**  
+   - For any handler functions you pass down to memoized components, wrap them in `useCallback` to maintain stable references:  
+     ```js
+     const handleToggle = useCallback((moduleName, enabled) => {
+       updateOrgModule(orgId, { moduleName, enabled });
+     }, [orgId, updateOrgModule]);
+     ```
+   - Memoize expensive computed props with `useMemo` where appropriate.
+
+4. **Verify no full-app re-renders**  
+   - Use React DevTools Profiler to confirm that toggling a module or changing unrelated state (e.g. theme toggle) does not re-render memoized tables or lists.
+
+---
+
+Drop this prompt into Replit so it can automatically wrap your heavy UI components in `React.memo`, install and wire up `lodash.debounce` for inputs, and refactor your callbacks with `useCallback`/`useMemo` to dramatically improve responsiveness.```
