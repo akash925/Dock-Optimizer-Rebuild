@@ -172,6 +172,36 @@ export default function UsersPage() {
               </TableBody>
             </Table>
           </CardContent>
+          <CardFooter className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {data?.pagination && `Showing ${(data.pagination.page - 1) * data.pagination.limit + 1}-${Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of ${data.pagination.total} users`}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+                disabled={page <= 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="sr-only">Previous page</span>
+              </Button>
+              <div className="text-sm">
+                Page {data?.pagination?.page} of {data?.pagination?.totalPages || 1}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(prev => Math.min(prev + 1, data?.pagination?.totalPages || 1))}
+                disabled={page >= (data?.pagination?.totalPages || 1)}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+                <span className="sr-only">Next page</span>
+              </Button>
+            </div>
+          </CardFooter>
         </Card>
       </div>
     </AdminLayout>
