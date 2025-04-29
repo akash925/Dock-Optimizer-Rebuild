@@ -399,12 +399,12 @@ export default function Schedules() {
   });
 
   return (
-    <div>
+    <div className="max-w-full overflow-x-hidden">
       {/* Consolidated Header Row */}
-      <div className="flex items-center mb-6 gap-3">
+      <div className="flex flex-wrap items-center mb-6 gap-3">
         {/* Left side: Title and Search */}
-        <h2 className="text-xl font-medium whitespace-nowrap">Calendar</h2>
-        <div className="relative flex-grow max-w-xs">
+        <h2 className="text-xl font-medium whitespace-nowrap mr-2">Calendar</h2>
+        <div className="relative flex-grow max-w-xs min-w-[200px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search appointments..."
@@ -436,8 +436,8 @@ export default function Schedules() {
           )}
         </div>
         
-        {/* Middle: Filters in a single line */}
-        <div className="flex items-center ml-auto space-x-2 sm:justify-end">
+        {/* Middle: Filters in a single line - scrollable on small screens */}
+        <div className="flex items-center ml-auto space-x-2 overflow-x-auto pb-2 scrollbar-none sm:justify-end">
           {/* Facility filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
