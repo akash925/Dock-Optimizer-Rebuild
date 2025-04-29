@@ -42,9 +42,9 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredUsers, setFilteredUsers] = useState<UserWithRoles[]>([]);
 
-  // Fetch paginated users data
-  const { data, isLoading, error } = useQuery<PaginatedResponse>({
-    queryKey: ['/api/admin/users', page, limit],
+  // Fetch users data with proper array handling
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['users'],
     queryFn: async () => {
       const response = await fetch(`/api/admin/users?page=${page}&limit=${limit}`);
       if (!response.ok) {
@@ -54,13 +54,16 @@ export default function UsersPage() {
     },
     onSuccess: (data) => {
       console.log("Received users data:", data);
-      if (data && data.items) {
-        setFilteredUsers(data.items);
-      }
+      // Ensure we have an array of users
+      const usersArray = Array.isArray(data) ? data : 
+                        (data && data.items && Array.isArray(data.items)) ? data.items : [];
+      setFilteredUsers(usersArray);
     }
   });
 
-  const users = data?.items || [];
+  // Make sure users is always an array
+  const users = Array.isArray(data) ? data : 
+              (data && data.items && Array.isArray(data.items)) ? data.items : [];
 
   // Handle search with debounce
   const handleSearch = useCallback(

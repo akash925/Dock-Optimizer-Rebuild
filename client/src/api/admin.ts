@@ -141,7 +141,8 @@ const adminApi = {
    */
   async getUsers(page: number = 1, limit: number = 20) {
     const res = await apiRequest("GET", `/api/admin/users?page=${page}&limit=${limit}`);
-    return await res.json();
+    const data = await res.json();
+    return data.items || []; // Return just the array of users instead of the wrapped response
   },
   
   /**
@@ -173,7 +174,8 @@ const adminApi = {
    */
   async getRoles() {
     const res = await apiRequest("GET", "/api/admin/settings/roles");
-    return await res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   },
   
   /**
