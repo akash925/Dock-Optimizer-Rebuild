@@ -934,3 +934,26 @@ export type InsertTenant = z.infer<typeof insertTenantSchema>;
 
 export type FeatureFlag = typeof featureFlags.$inferSelect;
 export type InsertFeatureFlag = z.infer<typeof insertFeatureFlagSchema>;
+
+// Now define the relations that were postponed due to circular references
+export const organizationUsersRelations = relations(organizationUsers, ({ one }) => ({
+  organization: one(tenants, {
+    fields: [organizationUsers.organizationId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [organizationUsers.userId],
+    references: [users.id],
+  }),
+  role: one(roles, {
+    fields: [organizationUsers.roleId],
+    references: [roles.id],
+  }),
+}));
+
+export const organizationModulesRelations = relations(organizationModules, ({ one }) => ({
+  organization: one(tenants, {
+    fields: [organizationModules.organizationId],
+    references: [tenants.id],
+  }),
+}));

@@ -28,6 +28,7 @@ import AuthDebugPage from "@/pages/auth-debug-page";
 import TestFixedAppointment from "@/pages/test-fixed-appointment";
 import TestFixedAppointmentV2 from "@/pages/test-fixed-appointment-v2";
 import TestAppointmentPatchedPage from "@/pages/test-appointment-patched";
+import AdminDashboard from "@/pages/admin";
 import { ProtectedRoute } from "./lib/protected-route";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 
