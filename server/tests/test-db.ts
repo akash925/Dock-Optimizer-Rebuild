@@ -1,7 +1,8 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import { sql } from 'drizzle-orm';
 import ws from "ws";
-import * as schema from "@shared/schema";
+import * as schema from "../../shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
@@ -18,11 +19,11 @@ export async function cleanupTestData() {
     // This assumes we're using a test-specific database or test-specific identifiers
     
     // Clean up feature flags and organization modules
-    await testDb.delete(schema.featureFlags).where("1=1");
-    await testDb.delete(schema.organizationModules).where("1=1");
+    await testDb.delete(schema.featureFlags).where(sql`1=1`);
+    await testDb.delete(schema.organizationModules).where(sql`1=1`);
     
     // Clean up organizations (tenants)
-    await testDb.delete(schema.tenants).where("1=1");
+    await testDb.delete(schema.tenants).where(sql`1=1`);
     
   } catch (error) {
     console.error('Error cleaning up test data:', error);

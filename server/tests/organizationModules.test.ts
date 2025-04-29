@@ -1,7 +1,7 @@
 import { testDb, cleanupTestData, createTestTenant, closeTestDb } from './test-db';
-import { AvailableModule, organizationModules } from '../../shared/schema';
+import * as schema from '../../shared/schema';
 import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 
 // Mock storage service for organization modules
 const storage = {
@@ -10,27 +10,27 @@ const storage = {
       // Check if module exists for this organization
       const [existingModule] = await testDb
         .select()
-        .from(organizationModules)
+        .from(schema.organizationModules)
         .where(
           and(
-            eq(organizationModules.organizationId, orgId),
-            eq(organizationModules.moduleName, moduleName)
+            eq(schema.organizationModules.organizationId, orgId),
+            eq(schema.organizationModules.moduleName, moduleName)
           )
         );
       
       if (existingModule) {
         // Update existing module
         const [updated] = await testDb
-          .update(organizationModules)
+          .update(schema.organizationModules)
           .set({ enabled })
-          .where(eq(organizationModules.id, existingModule.id))
+          .where(eq(schema.organizationModules.id, existingModule.id))
           .returning();
         
         return updated;
       } else {
         // Create new module record
         const [created] = await testDb
-          .insert(organizationModules)
+          .insert(schema.organizationModules)
           .values({
             organizationId: orgId,
             moduleName,
@@ -50,8 +50,8 @@ const storage = {
     try {
       const modules = await testDb
         .select()
-        .from(organizationModules)
-        .where(eq(organizationModules.organizationId, orgId));
+        .from(schema.organizationModules)
+        .where(eq(schema.organizationModules.organizationId, orgId));
       
       return modules;
     } catch (error) {
@@ -88,7 +88,7 @@ describe('Organization Modules', () => {
   // Test enabling a module
   test('should enable a module for an organization', async () => {
     // Arrange
-    const moduleName = AvailableModule.ASSET_MANAGER;
+    const moduleName = schema.AvailableModule.ASSET_MANAGER;
     
     // Act
     const result = await storage.updateOrganizationModule(testTenantId, moduleName, true);
@@ -108,7 +108,7 @@ describe('Organization Modules', () => {
   // Test disabling a module
   test('should disable a module for an organization', async () => {
     // Arrange
-    const moduleName = AvailableModule.CALENDAR;
+    const moduleName = schema.AvailableModule.CALENDAR;
     
     // First enable the module
     await storage.updateOrganizationModule(testTenantId, moduleName, true);
@@ -132,8 +132,8 @@ describe('Organization Modules', () => {
   test('should correctly manage multiple module states', async () => {
     // Arrange
     const modulesToEnable = [
-      AvailableModule.ANALYTICS,
-      AvailableModule.BOOKING_PAGES,
+      schema.AvailableModule.ANALYTICS,
+      schema.AvailableModule.BOOKING_PAGES,
     ];
     
     const modulesToDisable = [
