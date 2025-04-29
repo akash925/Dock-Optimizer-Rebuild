@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Users, Package, ArrowLeft, UserPlus, Save, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import Layout from "@/components/layout/layout";
+import AdminLayout from "@/components/layout/admin-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -240,18 +240,18 @@ export default function OrganizationDetailPage() {
   // Loading state
   if (isLoading) {
     return (
-      <Layout>
+      <AdminLayout>
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </Layout>
+      </AdminLayout>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <Layout>
+      <AdminLayout>
         <div className="p-6">
           <div className="flex items-center mb-6">
             <Button variant="ghost" onClick={() => navigate("/admin/organizations")} className="mr-2">
@@ -265,13 +265,13 @@ export default function OrganizationDetailPage() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
+      </AdminLayout>
     );
   }
 
   if (!organization) {
     return (
-      <Layout>
+      <AdminLayout>
         <div className="p-6">
           <div className="flex items-center mb-6">
             <Button variant="ghost" onClick={() => navigate("/admin/organizations")} className="mr-2">
@@ -285,12 +285,12 @@ export default function OrganizationDetailPage() {
             </CardContent>
           </Card>
         </div>
-      </Layout>
+      </AdminLayout>
     );
   }
 
   return (
-    <Layout>
+    <AdminLayout>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
@@ -492,6 +492,6 @@ export default function OrganizationDetailPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }
