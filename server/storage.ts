@@ -25,11 +25,28 @@ import {
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
-import { eq, and, gte, lte, or, ilike, SQL, sql } from "drizzle-orm";
+import { eq, and, gte, lte, or, ilike, SQL, sql, inArray } from "drizzle-orm";
 import { db, pool } from "./db";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 
+const scryptAsync = promisify(scrypt);
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
+
+// Password hashing functions
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+
+async function comparePasswords(supplied: string, stored: string) {
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
+}
 
 // Storage Interface
 export interface IStorage {
