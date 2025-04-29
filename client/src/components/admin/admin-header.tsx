@@ -1,14 +1,21 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
+import { 
+  Building2, 
+  Users, 
+  Package, 
+  Settings, 
+  Home,
+  LogOut,
+  User,
+  Gauge,
+  BarChart3,
+  ChevronDown,
+  Moon,
+  Sun,
+  Laptop
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,119 +23,150 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { 
-  Building2, 
-  ChevronDown, 
-  Users, 
-  Settings, 
-  Layers, 
-  Package, 
-  LogOut,
-  BarChart4,
-  MoveRight
-} from 'lucide-react';
+} from '@/components/ui/dropdown-menu';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle
+} from '@/components/ui/navigation-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useTheme } from '@/components/ui/theme-provider';
 import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 
-export const AdminHeader = () => {
-  const [location] = useLocation();
+export const AdminHeader: React.FC = () => {
   const { user, logoutMutation } = useAuth();
+  const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
+  const [location] = useLocation();
   
-  const handleLogout = () => {
-    logoutMutation.mutate();
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+      toast({
+        title: 'Logged out',
+        description: 'You have been successfully logged out.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to log out. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
-  
-  // Get user initials for avatar
-  const getInitials = (): string => {
-    if (!user) return '?';
-    const firstName = user.firstName || '';
-    const lastName = user.lastName || '';
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+
+  const getInitials = () => {
+    if (!user) return 'U';
+    return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
+  };
+
+  const isActive = (path: string) => {
+    return location === path || location.startsWith(`${path}/`);
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="mr-4 flex">
-          <Link 
-            href="/admin" 
-            className="mr-8 flex items-center space-x-2 font-bold"
-          >
-            <Layers className="h-5 w-5" />
-            <span className="hidden sm:inline-block">Admin Console</span>
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center gap-6 md:gap-10">
+          <Link href="/admin" className="flex items-center space-x-2">
+            <div className="flex items-center justify-center h-8 w-8 rounded-md bg-primary text-white shadow-sm">
+              <Gauge className="h-4 w-4" />
+            </div>
+            <span className="hidden font-bold sm:inline-block">
+              Admin Console
+            </span>
           </Link>
           
           <NavigationMenu>
             <NavigationMenuList>
               <NavigationMenuItem>
-                <Link href="/admin">
-                  <NavigationMenuLink
-                    className={navigationMenuTriggerStyle()}
-                    active={location === "/admin"}
-                  >
-                    Dashboard
-                  </NavigationMenuLink>
-                </Link>
+                <NavigationMenuTrigger className={isActive('/admin') && !isActive('/admin/orgs') && !isActive('/admin/users') ? 'bg-accent text-accent-foreground' : ''}>
+                  Dashboard
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid gap-3 p-4 w-[400px] md:w-[500px] lg:w-[600px] grid-cols-2">
+                    <li>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                          href="/admin"
+                        >
+                          <Gauge className="h-6 w-6 mb-2" />
+                          <div className="mb-2 mt-4 text-lg font-medium">
+                            Admin Dashboard
+                          </div>
+                          <p className="text-sm leading-tight text-muted-foreground">
+                            View platform metrics and quick actions
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                    </li>
+                    
+                    <li>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                          href="/admin/analytics"
+                        >
+                          <BarChart3 className="h-6 w-6 mb-2" />
+                          <div className="mb-2 mt-4 text-lg font-medium">
+                            Platform Analytics
+                          </div>
+                          <p className="text-sm leading-tight text-muted-foreground">
+                            View detailed analytics and reports
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                    </li>
+                  </ul>
+                </NavigationMenuContent>
               </NavigationMenuItem>
               
               <NavigationMenuItem>
-                <NavigationMenuTrigger>
-                  <div className="flex items-center">
-                    <Building2 className="mr-2 h-4 w-4" />
-                    Organizations
-                  </div>
+                <NavigationMenuTrigger className={isActive('/admin/orgs') ? 'bg-accent text-accent-foreground' : ''}>
+                  Organizations
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                  <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px] grid-cols-1">
                     <li className="row-span-3">
-                      <Link href="/admin/orgs">
-                        <NavigationMenuLink
+                      <NavigationMenuLink asChild>
+                        <Link
                           className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                          href="/admin/orgs"
                         >
-                          <Building2 className="h-6 w-6" />
+                          <Building2 className="h-6 w-6 mb-2" />
                           <div className="mb-2 mt-4 text-lg font-medium">
                             Organizations
                           </div>
                           <p className="text-sm leading-tight text-muted-foreground">
-                            Manage tenant organizations, their users, and enabled modules
+                            Manage tenant organizations and their settings
                           </p>
-                          <div className="mt-3 flex items-center text-sm text-primary">
-                            View all organizations
-                            <MoveRight className="ml-1 h-4 w-4" />
-                          </div>
-                        </NavigationMenuLink>
-                      </Link>
+                        </Link>
+                      </NavigationMenuLink>
                     </li>
                     <li>
                       <Link href="/admin/orgs/new">
-                        <NavigationMenuLink className="group block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Create Organization</div>
+                        <div className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <div className="text-sm font-medium leading-none">Create New</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Add a new tenant organization to the platform
+                            Add a new tenant organization
                           </p>
-                        </NavigationMenuLink>
+                        </div>
                       </Link>
                     </li>
                     <li>
                       <Link href="/admin/modules">
-                        <NavigationMenuLink className="group block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                        <div className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
                           <div className="text-sm font-medium leading-none">Module Management</div>
                           <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Configure which modules are available to organizations
+                            Configure available modules for each organization
                           </p>
-                        </NavigationMenuLink>
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/admin/users">
-                        <NavigationMenuLink className="group block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">User Management</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Manage user accounts across all organizations
-                          </p>
-                        </NavigationMenuLink>
+                        </div>
                       </Link>
                     </li>
                   </ul>
@@ -136,81 +174,106 @@ export const AdminHeader = () => {
               </NavigationMenuItem>
               
               <NavigationMenuItem>
-                <Link href="/admin/users">
-                  <NavigationMenuLink 
-                    className={navigationMenuTriggerStyle()}
-                    active={location.startsWith("/admin/users")}
-                  >
-                    <div className="flex items-center">
-                      <Users className="mr-2 h-4 w-4" />
-                      Users
-                    </div>
-                  </NavigationMenuLink>
-                </Link>
+                <NavigationMenuTrigger className={isActive('/admin/users') ? 'bg-accent text-accent-foreground' : ''}>
+                  Users
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px] grid-cols-1">
+                    <li className="row-span-3">
+                      <NavigationMenuLink asChild>
+                        <Link
+                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                          href="/admin/users"
+                        >
+                          <Users className="h-6 w-6 mb-2" />
+                          <div className="mb-2 mt-4 text-lg font-medium">
+                            User Management
+                          </div>
+                          <p className="text-sm leading-tight text-muted-foreground">
+                            Manage all users across the platform
+                          </p>
+                        </Link>
+                      </NavigationMenuLink>
+                    </li>
+                    <li>
+                      <Link href="/admin/users/new">
+                        <div className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <div className="text-sm font-medium leading-none">Create User</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Add a new user to the platform
+                          </p>
+                        </div>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/admin/roles">
+                        <div className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+                          <div className="text-sm font-medium leading-none">Roles & Permissions</div>
+                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                            Manage user roles and permissions
+                          </p>
+                        </div>
+                      </Link>
+                    </li>
+                  </ul>
+                </NavigationMenuContent>
               </NavigationMenuItem>
               
               <NavigationMenuItem>
-                <Link href="/admin/modules">
-                  <NavigationMenuLink 
-                    className={navigationMenuTriggerStyle()}
-                    active={location.startsWith("/admin/modules")}
-                  >
-                    <div className="flex items-center">
-                      <Package className="mr-2 h-4 w-4" />
-                      Modules
-                    </div>
-                  </NavigationMenuLink>
-                </Link>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Link href="/admin/analytics">
-                  <NavigationMenuLink 
-                    className={navigationMenuTriggerStyle()}
-                    active={location.startsWith("/admin/analytics")}
-                  >
-                    <div className="flex items-center">
-                      <BarChart4 className="mr-2 h-4 w-4" />
-                      Analytics
-                    </div>
-                  </NavigationMenuLink>
-                </Link>
+                <NavigationMenuLink className={navigationMenuTriggerStyle() + (isActive('/admin/settings') ? ' bg-accent text-accent-foreground' : '')} asChild>
+                  <Link href="/admin/settings">
+                    Settings
+                  </Link>
+                </NavigationMenuLink>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
         </div>
         
-        <div className="ml-auto flex items-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            asChild 
-            className="mr-2"
-          >
-            <Link href="/">
-              Exit Admin
-            </Link>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+            {theme === 'light' ? (
+              <Moon className="h-5 w-5" />
+            ) : (
+              <Sun className="h-5 w-5" />
+            )}
+            <span className="sr-only">Toggle theme</span>
           </Button>
+          
+          <Link href="/">
+            <Button variant="ghost" size="sm">
+              <Home className="mr-2 h-4 w-4" />
+              Back to App
+            </Button>
+          </Link>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                <Avatar className="h-9 w-9">
+                  <AvatarImage src="" alt={user?.firstName || 'User'} />
                   <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {user && (
-                <div className="px-2 py-1.5 text-sm">
-                  <div className="font-medium">{user.firstName} {user.lastName}</div>
-                  <div className="text-xs text-muted-foreground">{user.email}</div>
-                  <div className="mt-1 text-xs font-medium text-primary">{user.role || 'Super Admin'}</div>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email}
+                  </p>
                 </div>
-              )}
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin/profile">
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/admin/settings">
                   <Settings className="mr-2 h-4 w-4" />
