@@ -20,13 +20,13 @@ describe('Organization Modules', () => {
       // Insert test module entries
       await db.insert(organizationModules).values([
         { 
-          organization_id: testOrgId, 
-          module_name: 'calendar', 
+          organizationId: testOrgId, 
+          moduleName: 'calendar', 
           enabled: true 
         },
         { 
-          organization_id: testOrgId, 
-          module_name: 'assetManager', 
+          organizationId: testOrgId, 
+          moduleName: 'assetManager', 
           enabled: false 
         }
       ]);
