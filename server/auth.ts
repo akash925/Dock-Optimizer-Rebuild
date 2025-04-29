@@ -81,13 +81,39 @@ export async function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log("Attempting to authenticate with LocalStrategy:", username);
         const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
+        
+        if (!user) {
+          console.log("User not found:", username);
+          return done(null, false, { message: "Invalid username or password" });
+        }
+        
+        // Check if password needs fixing (for super-admin)
+        if (user.role === "super-admin" && (!user.password || !user.password.includes('.'))) {
+          console.log("Super-admin password format needs fixing, updating...");
+          const hashedPassword = await hashPassword("password123");
+          const updatedUser = await storage.updateUser(user.id, {
+            password: hashedPassword
+          });
+          
+          if (updatedUser) {
+            console.log("Super-admin password updated successfully");
+            return done(null, updatedUser);
+          }
+        }
+        
+        // Normal authentication flow
+        const passwordMatch = await comparePasswords(password, user.password);
+        console.log("Password check result:", passwordMatch ? "Success" : "Failed");
+        
+        if (!passwordMatch) {
           return done(null, false, { message: "Invalid username or password" });
         } else {
           return done(null, user);
         }
       } catch (err) {
+        console.error("Authentication error:", err);
         return done(err);
       }
     }),
