@@ -13,17 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { Edit } from "lucide-react";
 import { TenantStatus } from "@shared/schema";
 
-// Interface for orgs with module information
+// Interface for orgs with count information
 interface EnhancedTenant {
   id: number;
   name: string;
   subdomain: string;
   status: TenantStatus | null;
-  modules: {
-    moduleName: string;
-    enabled: boolean;
-  }[];
   userCount: number;
+  moduleCount: number;
   createdAt: string;
 }
 
@@ -56,10 +53,9 @@ const OrganizationsTable: React.FC<OrganizationsTableProps> = React.memo(({ orga
     return new Date(dateString).toLocaleDateString();
   };
 
-  // Count active modules
-  const getActiveModulesCount = (modules: EnhancedTenant["modules"]) => {
-    if (!modules || !modules.length) return "0";
-    return modules.filter(m => m.enabled).length.toString();
+  // Display module count
+  const displayModuleCount = (moduleCount: number) => {
+    return moduleCount ? moduleCount.toString() : "0";
   };
 
   return (
@@ -80,7 +76,7 @@ const OrganizationsTable: React.FC<OrganizationsTableProps> = React.memo(({ orga
             <TableRow key={org.id}>
               <TableCell className="font-medium">{org.name}</TableCell>
               <TableCell>{getStatusBadge(org.status)}</TableCell>
-              <TableCell>{getActiveModulesCount(org.modules)}</TableCell>
+              <TableCell>{displayModuleCount(org.moduleCount)}</TableCell>
               <TableCell>{org.userCount}</TableCell>
               <TableCell>{formatDate(org.createdAt)}</TableCell>
               <TableCell>

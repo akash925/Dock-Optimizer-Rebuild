@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -32,11 +32,15 @@ export default function OrganizationsPage() {
         throw new Error('Failed to fetch organizations');
       }
       return response.json();
-    },
-    onSuccess: (data) => {
-      setFilteredOrganizations(data || []);
     }
   });
+  
+  // Update filtered organizations when organizations data changes
+  useEffect(() => {
+    if (organizations) {
+      setFilteredOrganizations(organizations);
+    }
+  }, [organizations]);
 
   // Handle add organization
   const handleAddOrganization = () => {
