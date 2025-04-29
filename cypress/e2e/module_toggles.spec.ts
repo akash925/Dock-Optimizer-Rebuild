@@ -1,124 +1,93 @@
 /**
- * End-to-End Tests for Organization Module Toggles
+ * Dock Optimizer Module Toggles E2E Test
  * 
- * These tests verify the functionality of enabling/disabling organization modules
- * by administrators for tenant management.
+ * These tests verify that module functionality is properly toggled
+ * based on feature flags and organization settings.
  */
 
-describe('Organization Module Toggles', () => {
+describe('Module Toggle Tests', () => {
   beforeEach(() => {
-    // Spy on API calls to monitor interactions
-    cy.intercept('GET', '/api/user').as('getUser');
-    cy.intercept('POST', '/api/login').as('loginRequest');
-    cy.intercept('GET', '/api/admin/orgs/*/detail').as('getOrgDetail');
-    cy.intercept('POST', '/api/admin/orgs/*/modules/*').as('toggleModule');
+    // Mock the authentication - in a real test we'd log in first
+    cy.intercept('GET', '/api/user', { fixture: 'admin-user.json' }).as('getUser');
     
-    // Reset any mocks or state modifications from previous tests
-    cy.clearAllCookies();
-    cy.clearAllLocalStorage();
+    // Mock the organizations request
+    cy.intercept('GET', '/api/admin/organizations', { fixture: 'organizations-list.json' }).as('getOrgs');
+    
+    // Visit the admin page
+    cy.visit('/admin/organizations');
+    cy.wait('@getUser');
+    cy.wait('@getOrgs');
   });
-  
-  it('should allow admins to access module toggles', () => {
-    // Mock API responses
-    cy.intercept('GET', '/api/admin/orgs/*/detail', {
-      statusCode: 200,
-      body: {
-        id: 2,
-        name: 'Hanzo Logistics',
-        modules: [
-          { moduleName: 'calendar', enabled: true },
-          { moduleName: 'assetManager', enabled: true },
-          { moduleName: 'analytics', enabled: true }
-        ],
-        users: [
-          { userId: 1, email: 'admin@example.com', role: 'admin' },
-          { userId: 2, email: 'user@example.com', role: 'user' }
-        ]
-      }
-    }).as('getOrgDetail');
-    
-    cy.intercept('POST', '/api/admin/orgs/*/modules/*', {
-      statusCode: 200,
-      body: { success: true }
-    }).as('toggleModule');
 
-    // Log in and visit the organization detail page using custom commands
-    cy.login('akash.agarwal@conmitto.io', 'password');
-    cy.wait('@loginRequest');
+  it('should display organization module settings', () => {
+    // Click on first org in the list to view details
+    cy.get('table tbody tr').first().click();
     
-    cy.visitOrgDetail(2);
+    // Wait for organization detail to load
+    cy.intercept('GET', '/api/admin/organizations/*', { fixture: 'organization-detail.json' }).as('getOrgDetail');
     cy.wait('@getOrgDetail');
     
-    // Navigate to Modules tab
+    // Navigate to the modules tab
     cy.contains('button', 'Modules').click();
+    
+    // Verify that module toggles are displayed
+    cy.get('[data-test="module-toggle"]').should('exist');
+    cy.contains('Asset Manager').should('exist');
+    cy.contains('Calendar').should('exist');
+    cy.contains('Analytics').should('exist');
   });
 
-  it('should display module toggles', () => {
-    // Verify the modules section shows correct modules
-    cy.contains('h3', 'Modules').should('be.visible');
-    cy.contains('Calendar').should('be.visible');
-    cy.contains('Asset Manager').should('be.visible');
-    cy.contains('Analytics').should('be.visible');
-  });
-
-  it('should toggle module status', () => {
-    // Toggle the Calendar module
-    cy.contains('Calendar')
-      .parent()
-      .within(() => {
-        cy.get('button[role="switch"]').click();
-      });
+  it('should toggle module state when switch is clicked', () => {
+    // Click on first org in the list to view details
+    cy.get('table tbody tr').first().click();
     
-    // Verify the API was called
-    cy.wait('@toggleModule');
+    // Wait for organization detail to load
+    cy.intercept('GET', '/api/admin/organizations/*', { fixture: 'organization-detail.json' }).as('getOrgDetail');
+    cy.wait('@getOrgDetail');
     
-    // Mock the updated organization detail
-    cy.intercept('GET', '/api/admin/orgs/*/detail', {
+    // Navigate to the modules tab
+    cy.contains('button', 'Modules').click();
+    
+    // Intercept the update request
+    cy.intercept('PATCH', '/api/admin/organizations/*/modules', {
       statusCode: 200,
-      body: {
-        id: 2,
-        name: 'Hanzo Logistics',
-        modules: [
-          { moduleName: 'calendar', enabled: false }, // Calendar now disabled
-          { moduleName: 'assetManager', enabled: true },
-          { moduleName: 'analytics', enabled: true }
-        ],
-        users: [
-          { userId: 1, email: 'admin@example.com', role: 'admin' },
-          { userId: 2, email: 'user@example.com', role: 'user' }
-        ]
-      }
-    }).as('getUpdatedOrgDetail');
+      body: { success: true }
+    }).as('updateModule');
     
-    // Refresh the page
-    cy.visit('/admin/orgs/2');
-    cy.wait('@getUpdatedOrgDetail');
-    cy.contains('button', 'Modules').click();
+    // Toggle a module (e.g., Asset Manager)
+    cy.contains('div', 'Asset Manager')
+      .find('button[role="switch"]')
+      .click();
     
-    // Verify the toggle is now off
-    cy.contains('Calendar')
-      .parent()
-      .within(() => {
-        cy.get('button[role="switch"]').should('have.attr', 'data-state', 'unchecked');
-      });
+    // Verify that the update request was made
+    cy.wait('@updateModule');
+    
+    // Verify that the UI reflects the change
+    cy.contains('div', 'Asset Manager')
+      .find('button[role="switch"][data-state="checked"]')
+      .should('exist');
   });
 
-  it('should show success notification when toggling module', () => {
-    // Mock the toast notification system
-    cy.window().then((win) => {
-      cy.spy(win.console, 'log').as('consoleLog');
-    });
+  it('should show access denied when navigating to disabled module', () => {
+    // Mock a user with a disabled module
+    cy.intercept('GET', '/api/user', { 
+      fixture: 'limited-user.json' 
+    }).as('getLimitedUser');
     
-    // Toggle a module
-    cy.contains('Asset Manager')
-      .parent()
-      .within(() => {
-        cy.get('button[role="switch"]').click();
-      });
+    // Mock feature flags check
+    cy.intercept('GET', '/api/feature-flags', {
+      assetManager: false,
+      calendar: true,
+      analytics: true
+    }).as('getFeatureFlags');
     
-    cy.wait('@toggleModule');
+    // Visit the asset manager page
+    cy.visit('/assets');
+    cy.wait('@getLimitedUser');
+    cy.wait('@getFeatureFlags');
     
-    // Verify success notification appears
-    cy.contains('Module status updated').should('be.visible');
+    // Should show access denied message
+    cy.contains('Module Access Restricted').should('exist');
+    cy.contains('You do not have access to the Asset Manager module.').should('exist');
   });
 });
