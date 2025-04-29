@@ -6,16 +6,21 @@ import { Loader2, Plus, Search, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Tenant } from "@shared/schema";
+import { TenantStatus } from "@shared/schema";
 import AdminLayout from "@/components/layout/admin-layout";
 import OrganizationsTable from "@/components/admin/OrganizationsTable";
 import debounce from "lodash.debounce";
 
-// Extended tenant type with additional counts
-type EnhancedTenant = Tenant & {
+// Enhanced tenant type with counts
+interface EnhancedTenant {
+  id: number;
+  name: string;
+  subdomain: string;
+  status: TenantStatus | null;
   userCount: number;
   moduleCount: number;
-};
+  createdAt: string;
+}
 
 export default function OrganizationsPage() {
   const [, navigate] = useLocation();
