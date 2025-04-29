@@ -563,9 +563,9 @@ export default function OrganizationDetailPage() {
                               />
                             </PaginationItem>
                             
-                            {Array.from({ length: Math.min(5, logsData.pagination.totalPages) }, (_, i) => {
+                            {Array.from({ length: Math.min(5, logsData?.pagination?.totalPages || 1) }, (_, i) => {
                               // Show pages around current page
-                              const totalPages = logsData.pagination.totalPages;
+                              const totalPages = logsData?.pagination?.totalPages || 1;
                               const currentPage = logsPage;
                               let pageNum = i + 1;
                               
@@ -601,8 +601,8 @@ export default function OrganizationDetailPage() {
                             
                             <PaginationItem>
                               <PaginationNext 
-                                onClick={() => handlePageChange(Math.min(logsData.pagination.totalPages, logsPage + 1))}
-                                disabled={logsPage === logsData.pagination.totalPages}
+                                onClick={() => handlePageChange(Math.min(logsData?.pagination?.totalPages || 1, logsPage + 1))}
+                                disabled={logsPage === (logsData?.pagination?.totalPages || 1)}
                               />
                             </PaginationItem>
                           </PaginationContent>
