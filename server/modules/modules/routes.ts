@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { storage } from '../../storage';
-import { requireAuth } from '../../auth-middleware';
+import { getStorage } from '../../storage';
+import { isAuthenticated } from '../../middleware/auth';
 
 export const modulesRouter = Router();
 
@@ -8,7 +8,7 @@ export const modulesRouter = Router();
  * GET /api/modules
  * Returns the list of modules enabled for the authenticated user's organization
  */
-modulesRouter.get('/', requireAuth, async (req, res) => {
+modulesRouter.get('/', isAuthenticated, async (req, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
