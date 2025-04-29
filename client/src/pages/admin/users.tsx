@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/layout/admin-layout";
 import UsersTable from "@/components/admin/UsersTable";
 import debounce from "lodash.debounce";
+import adminApi from "@/api/admin";
 
 // Type for user with roles
 interface UserWithRoles {
@@ -42,32 +43,31 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredUsers, setFilteredUsers] = useState<UserWithRoles[]>([]);
 
-  // Fetch users data with proper array handling
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['users'],
-    queryFn: async () => {
-      const response = await fetch(`/api/admin/users?page=${page}&limit=${limit}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-      return response.json();
-    }
+  // Fetch users data using the admin API
+  const { data: users = [], isLoading, error } = useQuery({
+    queryKey: ['adminUsers'],
+    queryFn: () => adminApi.getUsers(page, limit)
   });
   
-  // Handle data in a useEffect to avoid the onSuccess callback issue
+  // Handle data in a useEffect to update filtered users when data changes
   useEffect(() => {
-    if (data) {
-      console.log("Received users data:", data);
-      // Ensure we have an array of users
-      const usersArray = Array.isArray(data) ? data : 
-                        (data && data.items && Array.isArray(data.items)) ? data.items : [];
-      setFilteredUsers(usersArray);
+    if (users) {
+      console.log("Received users data:", users);
+      // If there's a search term, apply filtering, otherwise show all users
+      if (searchTerm) {
+        const lowerCaseSearch = searchTerm.toLowerCase();
+        const filtered = users.filter(user => 
+          user.email?.toLowerCase().includes(lowerCaseSearch) || 
+          (user.firstName && user.firstName.toLowerCase().includes(lowerCaseSearch)) ||
+          (user.lastName && user.lastName.toLowerCase().includes(lowerCaseSearch)) ||
+          user.username?.toLowerCase().includes(lowerCaseSearch)
+        );
+        setFilteredUsers(filtered);
+      } else {
+        setFilteredUsers(users);
+      }
     }
-  }, [data]);
-
-  // Make sure users is always an array
-  const users = Array.isArray(data) ? data : 
-              (data && data.items && Array.isArray(data.items)) ? data.items : [];
+  }, [users, searchTerm]);
 
   // Handle search with debounce
   const handleSearch = useCallback(
@@ -191,7 +191,7 @@ export default function UsersPage() {
           </CardContent>
           <CardFooter className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              {data?.pagination && `Showing ${(data.pagination.page - 1) * data.pagination.limit + 1}-${Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of ${data.pagination.total} users`}
+              Showing {filteredUsers.length} users
             </div>
             <div className="flex items-center space-x-2">
               <Button
@@ -205,13 +205,13 @@ export default function UsersPage() {
                 <span className="sr-only">Previous page</span>
               </Button>
               <div className="text-sm">
-                Page {data?.pagination?.page} of {data?.pagination?.totalPages || 1}
+                Page {page}
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPage(prev => Math.min(prev + 1, data?.pagination?.totalPages || 1))}
-                disabled={page >= (data?.pagination?.totalPages || 1)}
+                onClick={() => setPage(prev => prev + 1)}
+                disabled={users.length < limit}
                 className="h-8 w-8 p-0"
               >
                 <ChevronRight className="h-4 w-4" />

@@ -139,10 +139,12 @@ const adminApi = {
   /**
    * Get all users with their organization memberships
    */
-  async getUsers(page: number = 1, limit: number = 20) {
+  async getUsers(page: number = 1, limit: number = 100) {
     const res = await apiRequest("GET", `/api/admin/users?page=${page}&limit=${limit}`);
     const data = await res.json();
-    return data.items || []; // Return just the array of users instead of the wrapped response
+    // Return only the users array from the response
+    return Array.isArray(data) ? data : 
+           (data && data.items && Array.isArray(data.items)) ? data.items.rows || data.items : [];
   },
   
   /**

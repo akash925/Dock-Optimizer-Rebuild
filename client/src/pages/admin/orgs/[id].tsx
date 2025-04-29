@@ -119,15 +119,11 @@ export default function OrganizationDetailPage() {
   }, [organization]);
 
   // Fetch all users for add user dropdown
-  const { data: usersResponse } = useQuery({
-    queryKey: ['allUsers'],
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['adminUsers'],
     queryFn: () => adminApi.getUsers(1, 100), // Fetch 100 users for dropdown
     staleTime: 300000, // Cache for 5 minutes
   });
-  
-  // Extract users from response, ensuring we have an array
-  const allUsers = Array.isArray(usersResponse) ? usersResponse : 
-                 (usersResponse?.items && Array.isArray(usersResponse.items)) ? usersResponse.items : [];
 
   // Fetch all roles for role dropdown
   const { data: allRoles } = useQuery({
@@ -168,9 +164,12 @@ export default function OrganizationDetailPage() {
         title: "Success",
         description: "User added to organization",
       });
-      // Invalidate the cached organization detail
+      // Invalidate the cached organization detail and users list
       queryClient.invalidateQueries({
         queryKey: ['orgDetail', orgId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['adminUsers'],
       });
       setIsAddUserOpen(false);
       addUserForm.reset();
@@ -192,9 +191,12 @@ export default function OrganizationDetailPage() {
         title: "Success",
         description: "User removed from organization",
       });
-      // Invalidate the cached organization detail
+      // Invalidate the cached organization detail and users list
       queryClient.invalidateQueries({
         queryKey: ['orgDetail', orgId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['adminUsers'],
       });
     },
     onError: (error) => {
@@ -388,7 +390,10 @@ export default function OrganizationDetailPage() {
                             </SelectTrigger>
                             <SelectContent>
                               {Array.isArray(allUsers) && allUsers.map((user: any) => (
-                                <SelectItem key={user.userId} value={user.userId.toString()}>
+                                <SelectItem 
+                                  key={user.id || user.userId} 
+                                  value={(user.id || user.userId).toString()}
+                                >
                                   {user.email} 
                                   {user.firstName && user.lastName ? ` - ${user.firstName} ${user.lastName}` : ''}
                                 </SelectItem>
