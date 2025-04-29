@@ -14,15 +14,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { 
-  BuildingIcon, 
-  UsersIcon, 
+  Building2, 
+  Users, 
   PuzzleIcon, 
   ArrowLeftIcon,
   HomeIcon,
-  SettingsIcon,
+  Settings,
 } from 'lucide-react';
-import OrganizationsList from '@/components/admin/organizations-list';
-import AdminHeader from '@/components/admin/admin-header';
+import { OrganizationsList } from '@/components/admin/organizations-list';
+import { AdminHeader } from '@/components/admin/admin-header';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -53,11 +53,11 @@ const AdminDashboard = () => {
       <Tabs defaultValue="organizations" className="mt-6">
         <TabsList className="grid w-full grid-cols-3 lg:w-auto">
           <TabsTrigger value="organizations" className="flex items-center gap-2">
-            <BuildingIcon className="w-4 h-4" />
+            <Building2 className="w-4 h-4" />
             Organizations
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
-            <UsersIcon className="w-4 h-4" />
+            <Users className="w-4 h-4" />
             Users
           </TabsTrigger>
           <TabsTrigger value="modules" className="flex items-center gap-2">
