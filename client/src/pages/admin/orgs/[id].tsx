@@ -1,26 +1,21 @@
-import React, { useState } from 'react';
-import { useRoute } from 'wouter';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  ArrowLeft, 
-  Building2, 
-  Users, 
-  Package, 
-  Edit, 
-  Trash2, 
-  Check, 
-  X, 
-  Plus,
-  RefreshCw,
-  Save
-} from 'lucide-react';
-import { AdminHeader } from '@/components/admin/admin-header';
-import { Link } from 'wouter';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2, Users, Package, ArrowLeft, UserPlus, Save, Trash2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import Layout from "@/components/layout/layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -28,7 +23,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -37,665 +32,466 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+} from "@/components/ui/select";
+import { Tenant, AvailableModule } from "@shared/schema";
 
-import { AvailableModule } from '@shared/schema';
-
-// Types
-interface OrganizationDetail {
-  id: number;
-  name: string;
-  subdomain: string;
-  status: string;
-  createdAt: Date;
-  contactEmail: string | null;
-  contactPhone: string | null;
-  logoUrl: string | null;
-  users: OrganizationUser[];
-  modules: OrganizationModule[];
-}
-
-interface OrganizationUser {
+// Type definitions
+interface OrgUser {
   userId: number;
-  organizationId: number;
-  roleId: number;
-  user: User;
-  role: Role;
-}
-
-interface User {
-  id: number;
-  username: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
+  roleName: string;
 }
 
-interface Role {
-  id: number;
-  name: string;
-  description: string | null;
-}
-
-interface OrganizationModule {
-  id: number;
-  organizationId: number;
-  moduleName: string;
+interface OrgModule {
+  moduleName: AvailableModule;
   enabled: boolean;
-  createdAt: Date;
 }
 
-interface AssignUserForm {
-  userId: number;
-  roleId: number;
+interface OrganizationDetail extends Tenant {
+  users: OrgUser[];
+  modules: OrgModule[];
 }
+
+// Form validation schemas
+const addUserSchema = z.object({
+  userId: z.string().min(1, "User is required"),
+  roleId: z.string().min(1, "Role is required"),
+});
+
+const moduleUpdateSchema = z.object({
+  moduleName: z.string().min(1, "Module name is required"),
+  enabled: z.boolean(),
+});
+
+const moduleUpdatesSchema = z.array(moduleUpdateSchema);
+
+type AddUserFormValues = z.infer<typeof addUserSchema>;
 
 export default function OrganizationDetailPage() {
-  const [, params] = useRoute<{ id: string }>('/admin/orgs/:id');
-  const id = params?.id ? parseInt(params.id, 10) : 0;
+  const params = useParams<{ id: string }>();
+  const orgId = params.id;
+  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
-  
-  const [userDialogOpen, setUserDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<AssignUserForm>({ userId: 0, roleId: 0 });
-  
-  // Fetch organization detail
-  const { 
-    data: org, 
-    isLoading: isLoadingOrg, 
-    error: orgError 
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("users");
+  const [modules, setModules] = useState<OrgModule[]>([]);
+
+  // Fetch organization data
+  const {
+    data: organization,
+    isLoading,
+    error,
   } = useQuery<OrganizationDetail>({
-    queryKey: [`/api/admin/orgs/${id}`],
-    enabled: !!id,
+    queryKey: [`/api/admin/orgs/${orgId}`],
+    onSuccess: (data) => {
+      if (data?.modules) {
+        setModules([...data.modules]);
+      }
+    },
   });
-  
-  // Fetch all users (for user assignment)
-  const { 
-    data: allUsers, 
-    isLoading: isLoadingUsers 
-  } = useQuery<User[]>({
+
+  // Fetch all users for add user dropdown
+  const { data: allUsers } = useQuery({
     queryKey: ['/api/admin/users'],
-    enabled: userDialogOpen,
   });
-  
-  // Fetch all roles
-  const { 
-    data: allRoles, 
-    isLoading: isLoadingRoles 
-  } = useQuery<Role[]>({
+
+  // Fetch all roles for role dropdown
+  const { data: allRoles } = useQuery({
     queryKey: ['/api/admin/roles'],
-    enabled: userDialogOpen,
   });
-  
-  // Mutation to add user to organization
+
+  // Add user form
+  const addUserForm = useForm<AddUserFormValues>({
+    resolver: zodResolver(addUserSchema),
+    defaultValues: {
+      userId: "",
+      roleId: "",
+    },
+  });
+
+  // Mutations
   const addUserMutation = useMutation({
-    mutationFn: async (data: AssignUserForm) => {
-      const response = await apiRequest('POST', `/api/admin/orgs/${id}/users`, data);
-      return await response.json();
+    mutationFn: async (values: { userId: number; roleId: number }) => {
+      const res = await apiRequest(
+        "POST",
+        `/api/admin/orgs/${orgId}/users`,
+        values
+      );
+      return res.json();
     },
     onSuccess: () => {
       toast({
-        title: 'User added successfully',
-        description: 'The user has been added to the organization',
+        title: "Success",
+        description: "User added to organization",
       });
-      setUserDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/orgs/${id}`] });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/admin/orgs/${orgId}`],
+      });
+      setIsAddUserOpen(false);
+      addUserForm.reset();
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
-        title: 'Failed to add user',
-        description: error.message,
-        variant: 'destructive',
+        title: "Error",
+        description: `Failed to add user: ${error.message}`,
+        variant: "destructive",
       });
     },
   });
-  
-  // Mutation to remove user from organization
+
   const removeUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      await apiRequest('DELETE', `/api/admin/orgs/${id}/users/${userId}`);
+      await apiRequest(
+        "DELETE",
+        `/api/admin/orgs/${orgId}/users/${userId}`
+      );
     },
     onSuccess: () => {
       toast({
-        title: 'User removed successfully',
-        description: 'The user has been removed from the organization',
+        title: "Success",
+        description: "User removed from organization",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/orgs/${id}`] });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/admin/orgs/${orgId}`],
+      });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
-        title: 'Failed to remove user',
-        description: error.message,
-        variant: 'destructive',
+        title: "Error",
+        description: `Failed to remove user: ${error.message}`,
+        variant: "destructive",
       });
     },
   });
-  
-  // Mutation to update organization modules
+
   const updateModulesMutation = useMutation({
-    mutationFn: async (modules: { moduleName: string; enabled: boolean }[]) => {
-      const response = await apiRequest('PUT', `/api/admin/orgs/${id}/modules`, modules);
-      return await response.json();
+    mutationFn: async (moduleUpdates: OrgModule[]) => {
+      const res = await apiRequest(
+        "PUT",
+        `/api/admin/orgs/${orgId}/modules`,
+        moduleUpdates
+      );
+      return res.json();
     },
     onSuccess: () => {
       toast({
-        title: 'Modules updated successfully',
-        description: 'The organization modules have been updated',
+        title: "Success",
+        description: "Organization modules updated",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/orgs/${id}`] });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/admin/orgs/${orgId}`],
+      });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
-        title: 'Failed to update modules',
-        description: error.message,
-        variant: 'destructive',
+        title: "Error",
+        description: `Failed to update modules: ${error.message}`,
+        variant: "destructive",
       });
     },
   });
-  
-  // Function to handle module toggle
-  const handleModuleToggle = (moduleName: string, enabled: boolean) => {
-    if (!org) return;
-    
-    // Create a new array with updated module status
-    const updatedModules = org.modules.map(module => {
-      if (module.moduleName === moduleName) {
-        return { ...module, enabled };
-      }
-      return module;
+
+  // Form handlers
+  const onAddUserSubmit = (values: AddUserFormValues) => {
+    addUserMutation.mutate({
+      userId: parseInt(values.userId),
+      roleId: parseInt(values.roleId),
     });
-    
-    // Format for API
-    const modulesForUpdate = updatedModules.map(module => ({
-      moduleName: module.moduleName,
-      enabled: module.enabled
-    }));
-    
-    // Update via mutation
-    updateModulesMutation.mutate(modulesForUpdate);
   };
-  
-  // Function to handle add user form submission
-  const handleAddUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedUser.userId && selectedUser.roleId) {
-      addUserMutation.mutate(selectedUser);
-    } else {
-      toast({
-        title: 'Invalid form data',
-        description: 'Please select both a user and a role',
-        variant: 'destructive',
-      });
-    }
-  };
-  
+
   const handleRemoveUser = (userId: number) => {
-    if (confirm('Are you sure you want to remove this user from the organization?')) {
+    if (confirm("Are you sure you want to remove this user from the organization?")) {
       removeUserMutation.mutate(userId);
     }
   };
-  
-  // Filter out users that are already in the organization
-  const availableUsers = allUsers?.filter(
-    user => !org?.users.some(ou => ou.userId === user.id)
-  );
-  
-  // Helper to display a user's full name
-  const getUserFullName = (user: User) => {
-    return `${user.firstName} ${user.lastName}`;
+
+  const handleModuleToggle = (moduleName: string, checked: boolean) => {
+    const updatedModules = modules.map((m) => {
+      if (m.moduleName === moduleName) {
+        return { ...m, enabled: checked };
+      }
+      return m;
+    });
+    setModules(updatedModules);
   };
-  
-  // Format module name for display
-  const formatModuleName = (name: string) => {
-    // Convert camelCase to space-separated words
-    return name
+
+  const handleSaveModules = () => {
+    updateModulesMutation.mutate(modules);
+  };
+
+  // Helper to get module display name
+  const getModuleDisplayName = (moduleName: string) => {
+    // Convert camelCase to Title Case
+    return moduleName
       .replace(/([A-Z])/g, ' $1')
-      .replace(/^./, str => str.toUpperCase());
+      .replace(/^./, (str) => str.toUpperCase())
+      .trim();
   };
-  
-  // Get module description
-  const getModuleDescription = (moduleName: string) => {
-    const descriptions: Record<string, string> = {
-      appointments: 'Schedule and manage dock appointments',
-      calendar: 'Visual calendar interface for appointments',
-      assetManager: 'Track and manage physical assets',
-      emailNotifications: 'Send email notifications for events',
-      analytics: 'View usage and performance analytics',
-      bookingPages: 'Create external booking pages',
-      facilityManagement: 'Manage facilities and locations',
-      doorManager: 'Control and monitor dock doors',
-      userManagement: 'Manage users and permissions',
-    };
-    
-    return descriptions[moduleName] || 'Module functionality';
-  };
-  
-  if (isLoadingOrg) {
+
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-muted/30">
-        <AdminHeader />
-        <main className="container py-6">
-          <div className="flex items-center space-x-4 mb-6">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Link>
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Layout>
+        <div className="p-6">
+          <div className="flex items-center mb-6">
+            <Button variant="ghost" onClick={() => navigate("/admin/organizations")} className="mr-2">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-            <div className="flex-1">
-              <div className="h-6 w-64 bg-muted animate-pulse rounded-md"></div>
+            <h1 className="text-2xl font-bold">Organization Details</h1>
+          </div>
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="text-red-600">Failed to load organization: {error.message}</div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!organization) {
+    return (
+      <Layout>
+        <div className="p-6">
+          <div className="flex items-center mb-6">
+            <Button variant="ghost" onClick={() => navigate("/admin/organizations")} className="mr-2">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+            <h1 className="text-2xl font-bold">Organization Details</h1>
+          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div>Organization not found</div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <Button variant="ghost" onClick={() => navigate("/admin/organizations")} className="mr-2">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">{organization.name}</h1>
+              <div className="text-sm text-muted-foreground flex items-center">
+                <span>Subdomain: {organization.subdomain}</span>
+                <span className="mx-2">•</span>
+                <Badge variant={organization.status === 'ACTIVE' ? "default" : "secondary"}>
+                  {organization.status}
+                </Badge>
+              </div>
             </div>
           </div>
-          
-          <div className="space-y-6">
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="users" className="flex items-center">
+              <Users className="mr-2 h-4 w-4" /> Users
+            </TabsTrigger>
+            <TabsTrigger value="modules" className="flex items-center">
+              <Package className="mr-2 h-4 w-4" /> Modules
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Organization Users</CardTitle>
+                  <CardDescription>Manage users in this organization</CardDescription>
+                </div>
+                <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="flex items-center">
+                      <UserPlus className="mr-2 h-4 w-4" /> Add User
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add User to Organization</DialogTitle>
+                      <DialogDescription>
+                        Select a user and assign a role within this organization.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={addUserForm.handleSubmit(onAddUserSubmit)}>
+                      <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="userId">User</Label>
+                          <Select
+                            onValueChange={(value) => addUserForm.setValue("userId", value)}
+                            defaultValue={addUserForm.watch("userId")}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a user" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allUsers?.map((user: any) => (
+                                <SelectItem key={user.id} value={user.id.toString()}>
+                                  {user.username} - {user.firstName} {user.lastName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {addUserForm.formState.errors.userId && (
+                            <p className="text-sm text-red-600">
+                              {addUserForm.formState.errors.userId.message}
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="roleId">Role</Label>
+                          <Select
+                            onValueChange={(value) => addUserForm.setValue("roleId", value)}
+                            defaultValue={addUserForm.watch("roleId")}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {allRoles?.map((role: any) => (
+                                <SelectItem key={role.id} value={role.id.toString()}>
+                                  {role.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {addUserForm.formState.errors.roleId && (
+                            <p className="text-sm text-red-600">
+                              {addUserForm.formState.errors.roleId.message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <DialogFooter className="mt-4">
+                        <Button type="button" variant="outline" onClick={() => setIsAddUserOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={addUserMutation.isPending}>
+                          {addUserMutation.isPending && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
+                          Add User
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {organization.users && organization.users.length > 0 ? (
+                      organization.users.map((user) => (
+                        <TableRow key={user.userId}>
+                          <TableCell className="font-medium">
+                            {user.firstName} {user.lastName}
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.roleName}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveUser(user.userId)}
+                              disabled={removeUserMutation.isPending}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Remove</span>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                          No users found in this organization.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="modules">
             <Card>
               <CardHeader>
-                <div className="h-8 w-48 bg-muted animate-pulse rounded-md"></div>
-                <div className="h-4 w-64 bg-muted animate-pulse rounded-md"></div>
+                <CardTitle>Organization Modules</CardTitle>
+                <CardDescription>
+                  Enable or disable modules for this organization
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {Array(4).fill(0).map((_, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="h-4 w-32 bg-muted animate-pulse rounded-md"></div>
-                      <div className="h-4 w-48 bg-muted animate-pulse rounded-md"></div>
+                  {modules.map((module) => (
+                    <div key={module.moduleName} className="flex items-center justify-between">
+                      <Label htmlFor={`module-${module.moduleName}`} className="flex-1">
+                        {getModuleDisplayName(module.moduleName)}
+                      </Label>
+                      <Switch
+                        id={`module-${module.moduleName}`}
+                        checked={module.enabled}
+                        onCheckedChange={(checked) =>
+                          handleModuleToggle(module.moduleName, checked)
+                        }
+                      />
                     </div>
                   ))}
                 </div>
+                <div className="mt-6 flex justify-end">
+                  <Button
+                    onClick={handleSaveModules}
+                    disabled={updateModulesMutation.isPending}
+                    className="flex items-center"
+                  >
+                    {updateModulesMutation.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    <Save className="mr-2 h-4 w-4" /> Save Changes
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-          </div>
-        </main>
+          </TabsContent>
+        </Tabs>
       </div>
-    );
-  }
-  
-  if (orgError || !org) {
-    return (
-      <div className="min-h-screen bg-muted/30">
-        <AdminHeader />
-        <main className="container py-6">
-          <div className="flex items-center space-x-4 mb-6">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/admin">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Link>
-            </Button>
-            <h1 className="text-3xl font-bold tracking-tight">Organization Not Found</h1>
-          </div>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Error</CardTitle>
-              <CardDescription>Failed to load organization details</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                The organization you are looking for does not exist or there was an error loading it.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" asChild>
-                <Link href="/admin">Go Back</Link>
-              </Button>
-            </CardFooter>
-          </Card>
-        </main>
-      </div>
-    );
-  }
-  
-  return (
-    <div className="min-h-screen bg-muted/30">
-      <AdminHeader />
-      <main className="container py-6">
-        <div className="flex items-center space-x-4 mb-6">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/admin">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Link>
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold tracking-tight flex items-center">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-muted text-muted-foreground mr-2">
-                {org.logoUrl ? (
-                  <img src={org.logoUrl} alt={org.name} className="h-6 w-6" />
-                ) : (
-                  <Building2 className="h-5 w-5" />
-                )}
-              </span>
-              {org.name}
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              <Badge variant="outline" className={
-                org.status === 'ACTIVE' ? 'bg-green-100 text-green-800 hover:bg-green-100' :
-                org.status === 'INACTIVE' ? 'bg-gray-100 text-gray-800 hover:bg-gray-100' :
-                org.status === 'SUSPENDED' ? 'bg-amber-100 text-amber-800 hover:bg-amber-100' :
-                'bg-blue-100 text-blue-800 hover:bg-blue-100'
-              }>
-                {org.status === 'ACTIVE' ? (
-                  <Check className="mr-1 h-3 w-3" />
-                ) : org.status === 'INACTIVE' || org.status === 'SUSPENDED' ? (
-                  <X className="mr-1 h-3 w-3" />
-                ) : null}
-                {org.status}
-              </Badge>
-              <span className="mx-2">•</span>
-              <span className="text-sm">{org.subdomain}.example.com</span>
-            </p>
-          </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/admin/orgs/${id}/edit`}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit
-            </Link>
-          </Button>
-        </div>
-        
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Organization Details</CardTitle>
-              <CardDescription>Basic information about the organization</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Contact</h3>
-                  <p className="mt-1">{org.contactEmail || 'No contact email'}</p>
-                  <p>{org.contactPhone || 'No contact phone'}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Details</h3>
-                  <p className="mt-1">Created on {new Date(org.createdAt).toLocaleDateString()}</p>
-                  <p>URL: {org.subdomain}.example.com</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Tabs defaultValue="users">
-            <TabsList className="mb-4">
-              <TabsTrigger value="users" className="flex items-center">
-                <Users className="mr-2 h-4 w-4" />
-                Users ({org.users.length})
-              </TabsTrigger>
-              <TabsTrigger value="modules" className="flex items-center">
-                <Package className="mr-2 h-4 w-4" />
-                Modules ({org.modules.filter(m => m.enabled).length})
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="users">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Users</CardTitle>
-                    <CardDescription>
-                      Manage users assigned to this organization
-                    </CardDescription>
-                  </div>
-                  <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add User
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add User to Organization</DialogTitle>
-                        <DialogDescription>
-                          Assign a user to this organization and set their role.
-                        </DialogDescription>
-                      </DialogHeader>
-                      
-                      <form onSubmit={handleAddUser}>
-                        <div className="space-y-4 py-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="user">Select User</Label>
-                            <Select
-                              value={selectedUser.userId.toString()}
-                              onValueChange={(value) => setSelectedUser({
-                                ...selectedUser,
-                                userId: parseInt(value, 10)
-                              })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a user" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {isLoadingUsers ? (
-                                  <div className="flex items-center justify-center p-4">
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                  </div>
-                                ) : availableUsers && availableUsers.length > 0 ? (
-                                  availableUsers.map((user) => (
-                                    <SelectItem key={user.id} value={user.id.toString()}>
-                                      {getUserFullName(user)} ({user.email})
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <div className="p-2 text-center text-muted-foreground">
-                                    No available users
-                                  </div>
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="role">Select Role</Label>
-                            <Select
-                              value={selectedUser.roleId.toString()}
-                              onValueChange={(value) => setSelectedUser({
-                                ...selectedUser,
-                                roleId: parseInt(value, 10)
-                              })}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {isLoadingRoles ? (
-                                  <div className="flex items-center justify-center p-4">
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
-                                  </div>
-                                ) : allRoles && allRoles.length > 0 ? (
-                                  allRoles.map((role) => (
-                                    <SelectItem key={role.id} value={role.id.toString()}>
-                                      {role.name}
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <div className="p-2 text-center text-muted-foreground">
-                                    No roles available
-                                  </div>
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        
-                        <DialogFooter>
-                          <Button 
-                            type="submit" 
-                            disabled={addUserMutation.isPending}
-                          >
-                            {addUserMutation.isPending && (
-                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                            )}
-                            Add User
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
-                </CardHeader>
-                <CardContent>
-                  {org.users.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>User</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {org.users.map((orgUser) => (
-                          <TableRow key={orgUser.userId}>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src="" />
-                                  <AvatarFallback>
-                                    {orgUser.user.firstName[0]}{orgUser.user.lastName[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="text-sm font-medium">{getUserFullName(orgUser.user)}</p>
-                                  <p className="text-xs text-muted-foreground">@{orgUser.user.username}</p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{orgUser.user.email}</TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">
-                                {orgUser.role.name}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                    <span className="sr-only">Open menu</span>
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    className="text-destructive focus:text-destructive"
-                                    onClick={() => handleRemoveUser(orgUser.userId)}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Remove
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="flex items-center justify-center h-32 border rounded-md border-dashed">
-                      <div className="flex flex-col items-center text-center text-muted-foreground">
-                        <Users className="h-10 w-10 mb-2" />
-                        <p>No users assigned to this organization</p>
-                        <p className="text-sm">Add users to give them access to this organization</p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="modules">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Modules</CardTitle>
-                    <CardDescription>
-                      Configure which modules are available for this organization
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={updateModulesMutation.isPending}
-                    onClick={() => {
-                      const modulesForUpdate = org.modules.map(module => ({
-                        moduleName: module.moduleName,
-                        enabled: module.enabled
-                      }));
-                      updateModulesMutation.mutate(modulesForUpdate);
-                    }}
-                  >
-                    {updateModulesMutation.isPending ? (
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="mr-2 h-4 w-4" />
-                    )}
-                    Save Changes
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {org.modules.map((module) => (
-                      <Card key={module.id} className="overflow-hidden">
-                        <div className="flex items-center p-4">
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center">
-                              <h3 className="text-sm font-medium">
-                                {formatModuleName(module.moduleName)}
-                              </h3>
-                              <Badge 
-                                variant={module.enabled ? "default" : "outline"} 
-                                className="ml-2"
-                              >
-                                {module.enabled ? "Enabled" : "Disabled"}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              {getModuleDescription(module.moduleName)}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Label htmlFor={`module-${module.id}`} className="sr-only">
-                              Toggle {formatModuleName(module.moduleName)}
-                            </Label>
-                            <Switch
-                              id={`module-${module.id}`}
-                              checked={module.enabled}
-                              onCheckedChange={(checked) => 
-                                handleModuleToggle(module.moduleName, checked)
-                              }
-                            />
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
-    </div>
+    </Layout>
   );
 }
