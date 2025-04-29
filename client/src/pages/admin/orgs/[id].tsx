@@ -85,6 +85,12 @@ export default function OrganizationDetailPage() {
   const queryClient = useQueryClient();
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("users");
+  // Define OrgModule type
+  interface OrgModule {
+    moduleName: string;
+    enabled: boolean;
+  }
+  
   const [modules, setModules] = useState<OrgModule[]>([]);
 
   // Fetch organization data using the consolidated API

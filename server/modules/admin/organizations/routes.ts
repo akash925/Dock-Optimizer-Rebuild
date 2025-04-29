@@ -474,15 +474,42 @@ export const organizationsRoutes = (app: Express) => {
       const orgUsers = await storage.getOrganizationUsers(orgId);
       
       // Get module data
-      const modules = await storage.getOrganizationModules(orgId);
+      let modules = await storage.getOrganizationModules(orgId);
       
-      // Format users with simple role names
+      // Ensure we provide some sample modules if none exist
+      if (!modules || modules.length === 0) {
+        // Add default modules for UI display
+        modules = [
+          { moduleName: 'doorManager', enabled: true },
+          { moduleName: 'appointmentManager', enabled: true },
+          { moduleName: 'userManager', enabled: false },
+          { moduleName: 'assetManager', enabled: false },
+          { moduleName: 'analytics', enabled: false },
+          { moduleName: 'notifications', enabled: true },
+          { moduleName: 'reports', enabled: true },
+          { moduleName: 'settings', enabled: true },
+          { moduleName: 'externalBooking', enabled: true },
+        ];
+      }
+      
+      // Try to load all users to get details
+      let userDetails = [];
+      try {
+        userDetails = await db.select().from(users);
+      } catch (err) {
+        console.warn('Could not fetch user details from DB:', err);
+      }
+      
+      // Format users with simple role names and add real email when possible
       const enhancedUsers = orgUsers.map((user) => {
+        // Find matching user details
+        const userDetail = userDetails.find(u => u.id === user.userId);
+        
         return {
           userId: user.userId,
-          email: `User ${user.userId}`,
-          firstName: "",
-          lastName: "",
+          email: userDetail?.username || `User ${user.userId}`,
+          firstName: userDetail?.firstName || "",
+          lastName: userDetail?.lastName || "",
           roleName: user.roleId === 1 ? 'Admin' : 
                    user.roleId === 2 ? 'Manager' : 
                    user.roleId === 3 ? 'User' : 'Unknown',
