@@ -1,135 +1,135 @@
-import { featureFlagService } from '../modules/featureFlags/service';
-import * as schema from '../../shared/schema';
-import { testDb, cleanupTestData, createTestTenant, closeTestDb } from './test-db';
-import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
+import { db } from '../db';
+import { FeatureFlagService } from '../modules/featureFlags/service';
+import { organizationModules } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
+import { cleanupTestData } from './test-db';
 
-describe('Feature Flag Service', () => {
-  let testTenantId: number;
+describe('Feature Flags Service', () => {
+  const testOrgId = 9999;
+  let featureFlagService: FeatureFlagService;
 
-  // Set up a test tenant before running tests
   beforeAll(async () => {
-    try {
-      // Clean up any previous test data
-      await cleanupTestData();
-      
-      // Create a test tenant
-      const tenant = await createTestTenant('Feature Flag Test Org');
-      testTenantId = tenant.id;
-    } catch (error) {
-      console.error('Error in test setup:', error);
-      throw error;
-    }
+    featureFlagService = new FeatureFlagService();
+
+    // Clean up any existing test data
+    await cleanupTestData();
+
+    // Initialize test data
+    await db.insert(organizationModules).values([
+      { 
+        organization_id: testOrgId, 
+        module_name: 'calendar', 
+        enabled: true 
+      },
+      { 
+        organization_id: testOrgId, 
+        module_name: 'assetManager', 
+        enabled: false 
+      }
+    ]);
   });
 
-  // Clean up after all tests are done
   afterAll(async () => {
     await cleanupTestData();
-    await closeTestDb();
   });
 
-  // Test enabling a module
-  test('should enable a module', async () => {
-    // Arrange
-    const moduleName = schema.AvailableModule.ASSET_MANAGER;
-    
-    // Act
-    const result = await featureFlagService.enableModule(testTenantId, moduleName);
-    
-    // Assert
-    expect(result).toBe(true);
-    
-    // Verify by checking if module is enabled
-    const isEnabled = await featureFlagService.isModuleEnabled(testTenantId, moduleName);
-    expect(isEnabled).toBe(true);
+  describe('isModuleEnabled', () => {
+    it('returns true for enabled modules', async () => {
+      const result = await featureFlagsService.isModuleEnabled(testOrgId, 'calendar');
+      expect(result).toBe(true);
+    });
+
+    it('returns false for disabled modules', async () => {
+      const result = await featureFlagsService.isModuleEnabled(testOrgId, 'assetManager');
+      expect(result).toBe(false);
+    });
+
+    it('returns false for non-existent modules', async () => {
+      const result = await featureFlagsService.isModuleEnabled(testOrgId, 'nonExistentModule');
+      expect(result).toBe(false);
+    });
+
+    it('returns false for non-existent organizations', async () => {
+      const result = await featureFlagsService.isModuleEnabled(99999, 'calendar');
+      expect(result).toBe(false);
+    });
   });
 
-  // Test disabling a module
-  test('should disable a module', async () => {
-    // Arrange
-    const moduleName = schema.AvailableModule.CALENDAR;
-    
-    // First enable the module
-    await featureFlagService.enableModule(testTenantId, moduleName);
-    
-    // Act
-    const result = await featureFlagService.disableModule(testTenantId, moduleName);
-    
-    // Assert
-    expect(result).toBe(true);
-    
-    // Verify by checking if module is disabled
-    const isEnabled = await featureFlagService.isModuleEnabled(testTenantId, moduleName);
-    expect(isEnabled).toBe(false);
+  describe('getEnabledModules', () => {
+    it('returns only enabled modules', async () => {
+      const result = await featureFlagsService.getEnabledModules(testOrgId);
+      expect(result).toContain('calendar');
+      expect(result).not.toContain('assetManager');
+    });
+
+    it('returns empty array for non-existent organizations', async () => {
+      const result = await featureFlagsService.getEnabledModules(99999);
+      expect(result).toEqual([]);
+    });
   });
 
-  // Test toggling a module from true to false
-  test('should toggle a module from true to false', async () => {
-    // Arrange
-    const moduleName = schema.AvailableModule.EMAIL_NOTIFICATIONS;
-    
-    // First enable the module
-    await featureFlagService.enableModule(testTenantId, moduleName);
-    
-    // Verify it's enabled
-    let isEnabled = await featureFlagService.isModuleEnabled(testTenantId, moduleName);
-    expect(isEnabled).toBe(true);
-    
-    // Act - disable it
-    await featureFlagService.disableModule(testTenantId, moduleName);
-    
-    // Assert
-    isEnabled = await featureFlagService.isModuleEnabled(testTenantId, moduleName);
-    expect(isEnabled).toBe(false);
+  describe('getAllModulesWithStatus', () => {
+    it('returns modules with their status', async () => {
+      const result = await featureFlagsService.getAllModulesWithStatus(testOrgId);
+      
+      // Find the calendar module in results
+      const calendarModule = result.find(m => m.moduleName === 'calendar');
+      expect(calendarModule).toBeDefined();
+      expect(calendarModule?.enabled).toBe(true);
+      
+      // Find the assetManager module in results
+      const assetManagerModule = result.find(m => m.moduleName === 'assetManager');
+      expect(assetManagerModule).toBeDefined();
+      expect(assetManagerModule?.enabled).toBe(false);
+    });
   });
 
-  // Test getting all enabled modules
-  test('should return all enabled modules', async () => {
-    // Arrange
-    const modules = [
-      schema.AvailableModule.ANALYTICS,
-      schema.AvailableModule.BOOKING_PAGES,
-      schema.AvailableModule.DOOR_MANAGER
-    ];
-    
-    // Enable multiple modules
-    for (const module of modules) {
-      await featureFlagService.enableModule(testTenantId, module);
-    }
-    
-    // Act
-    const enabledModules = await featureFlagService.getEnabledModules(testTenantId);
-    
-    // Assert
-    expect(enabledModules.length).toBeGreaterThanOrEqual(modules.length);
-    for (const module of modules) {
-      expect(enabledModules).toContain(module);
-    }
-  });
+  describe('toggleModule', () => {
+    it('can enable a disabled module', async () => {
+      await featureFlagsService.toggleModule(testOrgId, 'assetManager', true);
+      
+      // Verify it's now enabled
+      const module = await db.select()
+        .from(organizationModules)
+        .where(and(
+          eq(organizationModules.organization_id, testOrgId),
+          eq(organizationModules.module_name, 'assetManager')
+        ))
+        .then(result => result[0]);
+      
+      expect(module.enabled).toBe(true);
+    });
 
-  // Test module settings
-  test('should update module settings', async () => {
-    // Arrange
-    const moduleName = schema.AvailableModule.ANALYTICS;
-    const settings = {
-      retention: 30,
-      enableRealTimeReporting: true,
-      customReports: ['utilization', 'performance']
-    };
-    
-    // Enable the module first
-    await featureFlagService.enableModule(testTenantId, moduleName);
-    
-    // Act
-    const result = await featureFlagService.updateModuleSettings(
-      testTenantId, 
-      moduleName, 
-      settings
-    );
-    
-    // Assert
-    expect(result).toBe(true);
-    
-    // We can't directly verify the settings since there's no getter method in the service
-    // A more comprehensive test would require extending the service or querying the DB directly
+    it('can disable an enabled module', async () => {
+      await featureFlagsService.toggleModule(testOrgId, 'calendar', false);
+      
+      // Verify it's now disabled
+      const module = await db.select()
+        .from(organizationModules)
+        .where(and(
+          eq(organizationModules.organization_id, testOrgId),
+          eq(organizationModules.module_name, 'calendar')
+        ))
+        .then(result => result[0]);
+      
+      expect(module.enabled).toBe(false);
+    });
+
+    it('creates a module entry if it does not exist', async () => {
+      // Try toggling a module that doesn't exist yet
+      await featureFlagsService.toggleModule(testOrgId, 'newModule', true);
+      
+      // Verify it was created and enabled
+      const module = await db.select()
+        .from(organizationModules)
+        .where(and(
+          eq(organizationModules.organization_id, testOrgId),
+          eq(organizationModules.module_name, 'newModule')
+        ))
+        .then(result => result[0]);
+      
+      expect(module).toBeDefined();
+      expect(module.enabled).toBe(true);
+    });
   });
 });
