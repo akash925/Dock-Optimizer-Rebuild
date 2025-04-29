@@ -372,6 +372,9 @@ export default function OrganizationDetailPage() {
             <TabsTrigger value="modules" className="flex items-center">
               <Package className="mr-2 h-4 w-4" /> Modules
             </TabsTrigger>
+            <TabsTrigger value="logs" className="flex items-center">
+              <Activity className="mr-2 h-4 w-4" /> Activity Logs
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -514,6 +517,12 @@ export default function OrganizationDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
+                  {toggleModuleMutation.isPending && (
+                    <div className="mb-2 text-sm text-muted-foreground flex items-center">
+                      <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                      Saving changes...
+                    </div>
+                  )}
                   {modules.map((module) => (
                     <div key={module.moduleName} className="flex items-center justify-between">
                       <Label htmlFor={`module-${module.moduleName}`} className="flex-1">
@@ -528,19 +537,117 @@ export default function OrganizationDetailPage() {
                       />
                     </div>
                   ))}
+                  <div className="mt-6 text-sm text-muted-foreground">
+                    Changes are saved automatically
+                  </div>
                 </div>
-                <div className="mt-6 flex justify-end">
-                  <Button
-                    onClick={handleSaveModules}
-                    disabled={updateModulesMutation.isPending}
-                    className="flex items-center"
-                  >
-                    {updateModulesMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="logs">
+            <Card>
+              <CardHeader>
+                <CardTitle>Activity Logs</CardTitle>
+                <CardDescription>
+                  View organization activity history
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {logsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                  </div>
+                ) : (
+                  <>
+                    {(organization.logs && organization.logs.length > 0) || (logsData && logsData.logs.length > 0) ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[180px]">Timestamp</TableHead>
+                            <TableHead className="w-[150px]">Action</TableHead>
+                            <TableHead>Details</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(logsData?.logs || organization.logs)?.map((log) => (
+                            <TableRow key={log.id}>
+                              <TableCell className="font-mono text-xs">
+                                {new Date(log.timestamp).toLocaleString()}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{log.action}</Badge>
+                              </TableCell>
+                              <TableCell>{log.details}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No activity logs available
+                      </div>
                     )}
-                    <Save className="mr-2 h-4 w-4" /> Save Changes
-                  </Button>
-                </div>
+
+                    {logsData?.pagination && logsData.pagination.totalPages > 1 && (
+                      <div className="mt-4">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious 
+                                onClick={() => handlePageChange(Math.max(1, logsPage - 1))}
+                                disabled={logsPage === 1}
+                              />
+                            </PaginationItem>
+                            
+                            {Array.from({ length: Math.min(5, logsData.pagination.totalPages) }, (_, i) => {
+                              // Show pages around current page
+                              const totalPages = logsData.pagination.totalPages;
+                              const currentPage = logsPage;
+                              let pageNum = i + 1;
+                              
+                              if (totalPages > 5) {
+                                if (currentPage > 3 && currentPage < totalPages - 1) {
+                                  // Show current page in the middle
+                                  pageNum = currentPage + i - 2;
+                                  if (pageNum < 1) pageNum = 1;
+                                  if (pageNum > totalPages) pageNum = totalPages;
+                                } else if (currentPage >= totalPages - 1) {
+                                  // Near the end
+                                  pageNum = totalPages - 4 + i;
+                                }
+                              }
+                              
+                              return (
+                                <PaginationItem key={i}>
+                                  <PaginationLink
+                                    onClick={() => handlePageChange(pageNum)}
+                                    isActive={pageNum === logsPage}
+                                  >
+                                    {pageNum}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              );
+                            })}
+                            
+                            {logsData.pagination.totalPages > 5 && logsPage < logsData.pagination.totalPages - 2 && (
+                              <PaginationItem>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            )}
+                            
+                            <PaginationItem>
+                              <PaginationNext 
+                                onClick={() => handlePageChange(Math.min(logsData.pagination.totalPages, logsPage + 1))}
+                                disabled={logsPage === logsData.pagination.totalPages}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
