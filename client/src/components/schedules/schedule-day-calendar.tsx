@@ -216,14 +216,14 @@ export default function ScheduleDayCalendar({
                   Object.entries(organizedSchedules[hour.value]).flatMap(([dockId, dockSchedules]) => {
                     return dockSchedules.map((schedule) => {
                       const dock = docks.find(d => d.id === schedule.dockId);
-                      const dockName = dock ? dock.name : "Unknown Dock";
+                      const dockName = dock ? dock.name : "";
                       const isInbound = schedule.type === "inbound";
                       
                       return (
                         <div
                           key={schedule.id}
                           className={cn(
-                            "p-1 rounded-sm text-xs cursor-pointer border transition-colors overflow-hidden",
+                            "p-2 rounded-sm text-xs cursor-pointer border transition-colors overflow-hidden h-full flex flex-col",
                             schedule.status === "completed" 
                               ? "bg-green-50 border-green-200"
                               : schedule.status === "cancelled" 
@@ -236,14 +236,14 @@ export default function ScheduleDayCalendar({
                           )}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          <div className="font-medium truncate">
+                          <div className="font-bold truncate text-sm">
                             {schedule.formattedTime}
                           </div>
-                          <div className="truncate">
-                            {dockName} - {schedule.customerName || "Unnamed"}
+                          <div className="truncate font-medium mt-1">
+                            {schedule.customerName || "Unnamed"}
                           </div>
-                          <div className="truncate">
-                            {schedule.carrierName || "No carrier"} - {schedule.truckNumber}
+                          <div className="truncate text-gray-600 mt-0.5">
+                            {schedule.carrierName || "No carrier"} {schedule.truckNumber ? `• ${schedule.truckNumber}` : ""}
                           </div>
                         </div>
                       );

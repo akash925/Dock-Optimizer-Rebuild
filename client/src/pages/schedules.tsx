@@ -404,37 +404,41 @@ export default function Schedules() {
       <div className="flex flex-wrap items-center mb-6 gap-3">
         {/* Left side: Title and Search */}
         <h2 className="text-xl font-medium whitespace-nowrap mr-2">Calendar</h2>
-        <div className="relative flex-grow max-w-xs min-w-[200px]">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search appointments..."
-            className="pl-8 h-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && searchQuery.trim()) {
-                // Find and navigate to the closest matching appointment
-                const matchedAppointment = schedules.find(s => 
-                  s.truckNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  s.carrierName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  s.customerName?.toLowerCase().includes(searchQuery.toLowerCase())
-                );
-                
-                if (matchedAppointment) {
-                  handleScheduleClick(matchedAppointment.id);
+        
+        {/* Only show search in day and month views, not in week view */}
+        {viewMode !== "week" && (
+          <div className="relative flex-grow max-w-xs min-w-[200px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search appointments..."
+              className="pl-8 h-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  // Find and navigate to the closest matching appointment
+                  const matchedAppointment = schedules.find(s => 
+                    s.truckNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    s.carrierName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    s.customerName?.toLowerCase().includes(searchQuery.toLowerCase())
+                  );
+                  
+                  if (matchedAppointment) {
+                    handleScheduleClick(matchedAppointment.id);
+                  }
                 }
-              }
-            }}
-          />
-          {searchQuery && (
-            <button 
-              className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-              onClick={() => setSearchQuery("")}
-            >
-              <XCircle className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+              }}
+            />
+            {searchQuery && (
+              <button 
+                className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                onClick={() => setSearchQuery("")}
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
         
         {/* Middle: Filters in a single line - scrollable on small screens */}
         <div className="flex items-center ml-auto space-x-2 overflow-x-auto pb-2 scrollbar-none sm:justify-end">
