@@ -9,7 +9,6 @@ import {
   Trash2, Activity, Calendar, Building 
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import AdminLayout from "@/components/layout/admin-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,33 +61,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Tenant, AvailableModule } from "@shared/schema";
-
-// Type definitions
-interface OrgUser {
-  userId: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  roleName: string;
-}
-
-interface OrgModule {
-  moduleName: AvailableModule;
-  enabled: boolean;
-}
-
-interface ActivityLog {
-  id: number;
-  timestamp: string;
-  action: string;
-  details: string;
-}
-
-interface OrganizationDetail extends Tenant {
-  users: OrgUser[];
-  modules: OrgModule[];
-  logs: ActivityLog[];
-}
+import adminApi, { OrganizationDetail } from "@/api/admin";
 
 // Form validation schemas
 const addUserSchema = z.object({
@@ -114,13 +87,15 @@ export default function OrganizationDetailPage() {
   const [activeTab, setActiveTab] = useState("users");
   const [modules, setModules] = useState<OrgModule[]>([]);
 
-  // Fetch organization data
+  // Fetch organization data using the consolidated API
   const {
     data: organization,
     isLoading,
     error,
-  } = useQuery<OrganizationDetail>({
-    queryKey: [`/api/admin/orgs/${orgId}`],
+  } = useQuery({
+    queryKey: ['orgDetail', orgId],
+    queryFn: () => adminApi.getOrgDetail(orgId),
+    staleTime: 300000, // Cache for 5 minutes
     onSuccess: (data) => {
       if (data?.modules) {
         setModules([...data.modules]);
@@ -130,12 +105,16 @@ export default function OrganizationDetailPage() {
 
   // Fetch all users for add user dropdown
   const { data: allUsers } = useQuery({
-    queryKey: ['/api/admin/users'],
+    queryKey: ['allUsers'],
+    queryFn: adminApi.getUsers,
+    staleTime: 300000, // Cache for 5 minutes
   });
 
   // Fetch all roles for role dropdown
   const { data: allRoles } = useQuery({
-    queryKey: ['/api/admin/roles'],
+    queryKey: ['allRoles'],
+    queryFn: adminApi.getRoles,
+    staleTime: 300000, // Cache for 5 minutes
   });
 
   // Add user form
@@ -151,9 +130,10 @@ export default function OrganizationDetailPage() {
   const [logsPage, setLogsPage] = useState(1);
   const [logsData, setLogsData] = useState<{ logs: ActivityLog[], pagination: any } | null>(null);
 
-  // Fetch paginated logs
+  // Fetch paginated logs using our API client
   const { isLoading: logsLoading } = useQuery({
-    queryKey: [`/api/admin/orgs/${orgId}/logs`, logsPage],
+    queryKey: ['orgLogs', orgId, logsPage],
+    queryFn: () => adminApi.getOrgLogs(orgId, logsPage),
     enabled: activeTab === 'logs',
     onSuccess: (data) => {
       setLogsData(data);
@@ -162,25 +142,16 @@ export default function OrganizationDetailPage() {
 
   // Mutations
   const addUserMutation = useMutation({
-    mutationFn: async (values: { userId: number; roleId: number }) => {
-      const res = await apiRequest(
-        "PUT",
-        `/api/admin/orgs/${orgId}/users`,
-        {
-          userId: values.userId,
-          roleId: values.roleId,
-          action: "add"
-        }
-      );
-      return await res.json();
-    },
+    mutationFn: (values: { userId: number; roleId: number }) => 
+      adminApi.addUserToOrg(orgId, values.userId, values.roleId),
     onSuccess: () => {
       toast({
         title: "Success",
         description: "User added to organization",
       });
+      // Invalidate the cached organization detail
       queryClient.invalidateQueries({
-        queryKey: [`/api/admin/orgs/${orgId}`],
+        queryKey: ['orgDetail', orgId],
       });
       setIsAddUserOpen(false);
       addUserForm.reset();
@@ -195,23 +166,16 @@ export default function OrganizationDetailPage() {
   });
 
   const removeUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      await apiRequest(
-        "PUT",
-        `/api/admin/orgs/${orgId}/users`,
-        {
-          userId,
-          action: "remove"
-        }
-      );
-    },
+    mutationFn: (userId: number) => 
+      adminApi.removeUserFromOrg(orgId, userId),
     onSuccess: () => {
       toast({
         title: "Success",
         description: "User removed from organization",
       });
+      // Invalidate the cached organization detail
       queryClient.invalidateQueries({
-        queryKey: [`/api/admin/orgs/${orgId}`],
+        queryKey: ['orgDetail', orgId],
       });
     },
     onError: (error) => {
@@ -224,21 +188,16 @@ export default function OrganizationDetailPage() {
   });
 
   const toggleModuleMutation = useMutation({
-    mutationFn: async ({ moduleName, enabled }: { moduleName: string, enabled: boolean }) => {
-      const res = await apiRequest(
-        "PUT",
-        `/api/admin/orgs/${orgId}/modules`,
-        { moduleName, enabled }
-      );
-      return await res.json();
-    },
+    mutationFn: ({ moduleName, enabled }: { moduleName: string, enabled: boolean }) => 
+      adminApi.toggleOrgModule(orgId, moduleName, enabled),
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Module updated successfully",
       });
+      // Invalidate the cached organization detail
       queryClient.invalidateQueries({
-        queryKey: [`/api/admin/orgs/${orgId}`],
+        queryKey: ['orgDetail', orgId],
       });
     },
     onError: (error) => {

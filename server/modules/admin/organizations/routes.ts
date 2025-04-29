@@ -451,4 +451,48 @@ export const organizationsRoutes = (app: Express) => {
       res.status(500).json({ message: 'Failed to fetch organization logs' });
     }
   });
+  
+  // Consolidated organization detail endpoint that combines all org data
+  app.get('/api/admin/orgs/:orgId/detail', isSuperAdmin, async (req, res) => {
+    try {
+      const orgId = Number(req.params.orgId);
+      if (isNaN(orgId)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      const storage = await getStorage();
+      
+      // Get organization details
+      const org = await storage.getTenantById(orgId);
+      if (!org) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Fetch all data in parallel for better performance
+      const [users, modules, logs] = await Promise.all([
+        storage.getOrganizationUsersWithRoles(orgId).catch(() => {
+          console.warn(`Organization users with roles not available for ${orgId}, falling back to basic users.`);
+          return storage.getOrganizationUsers(orgId);
+        }),
+        storage.getOrganizationModules(orgId),
+        storage.getOrganizationLogs(orgId).catch((e) => {
+          console.warn(`Activity logs not available for organization ${orgId}:`, e);
+          return []; // Return empty logs array if not implemented
+        })
+      ]);
+
+      // Format response
+      const result = {
+        ...org,
+        users,
+        modules,
+        logs,
+      };
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching detailed organization data:', error);
+      res.status(500).json({ message: 'Failed to fetch organization details' });
+    }
+  });
 };
