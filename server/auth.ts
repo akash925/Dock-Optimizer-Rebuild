@@ -172,81 +172,121 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
   
-  // Add a test route to create a user and auto-login (for development)
+  // Add a test route to log in as super-admin (for development)
   app.get("/api/test-login", async (req, res, next) => {
     try {
       console.log("Test login endpoint called");
       
-      // Check if we already have a test admin user
+      // Try to find the super-admin account
       const storage = await getStorage();
-      let testUser = await storage.getUserByUsername("testadmin");
+      let superAdmin = await storage.getUserByUsername("akash.agarwal@conmitto.io");
       
-      if (testUser) {
-        console.log("Found existing test user:", testUser.id);
+      if (superAdmin) {
+        console.log("Found super-admin user:", superAdmin.id);
         
         // Update with correct password format if needed
-        if (!testUser.password || !testUser.password.includes('.')) {
-          console.log("Updating test admin user with proper password format");
+        if (!superAdmin.password || !superAdmin.password.includes('.')) {
+          console.log("Updating super-admin user with proper password format");
           const hashedPassword = await hashPassword("password123");
           
-          const updatedUser = await storage.updateUser(testUser.id, {
+          const updatedUser = await storage.updateUser(superAdmin.id, {
             password: hashedPassword
           });
           
           if (updatedUser) {
-            testUser = updatedUser;
-            console.log("User password updated successfully");
+            superAdmin = updatedUser;
+            console.log("Super-admin password updated successfully");
           } else {
-            console.error("Failed to update user password");
+            console.error("Failed to update super-admin password");
           }
         }
         
-        // Log in with existing user
-        req.login(testUser, (loginErr) => {
+        // Log in as super-admin
+        req.login(superAdmin, (loginErr) => {
           if (loginErr) {
             console.error("Login error:", loginErr);
             return next(loginErr);
           }
           
-          console.log("Login successful with test user");
-          const { password, ...userWithoutPassword } = testUser;
+          console.log("Login successful as super-admin");
+          const { password, ...userWithoutPassword } = superAdmin;
           
           return res.status(200).json({
-            message: "Logged in with existing test user",
+            message: "Logged in as super-admin",
             user: userWithoutPassword
           });
         });
       } else {
-        console.log("Creating new test admin user");
-        // Create a test admin user
-        const hashedPassword = await hashPassword("password123");
-        const newUser = await storage.createUser({
-          username: "testadmin",
-          password: hashedPassword,
-          email: "testadmin@example.com",
-          firstName: "Test",
-          lastName: "Admin",
-          role: "admin",
-          tenantId: null
-        });
+        // Fallback to regular test admin if super-admin doesn't exist
+        let testUser = await storage.getUserByUsername("testadmin");
         
-        console.log("New test user created:", newUser.id);
-        
-        // Log in with the new user
-        req.login(newUser, (loginErr) => {
-          if (loginErr) {
-            console.error("Login error for new user:", loginErr);
-            return next(loginErr);
+        if (testUser) {
+          console.log("Found existing test user:", testUser.id);
+          
+          // Update with correct password format if needed
+          if (!testUser.password || !testUser.password.includes('.')) {
+            console.log("Updating test admin user with proper password format");
+            const hashedPassword = await hashPassword("password123");
+            
+            const updatedUser = await storage.updateUser(testUser.id, {
+              password: hashedPassword
+            });
+            
+            if (updatedUser) {
+              testUser = updatedUser;
+              console.log("User password updated successfully");
+            } else {
+              console.error("Failed to update user password");
+            }
           }
           
-          console.log("Login successful with new test user");
-          const { password, ...userWithoutPassword } = newUser;
-          
-          return res.status(200).json({
-            message: "Created and logged in with new test user",
-            user: userWithoutPassword
+          // Log in with existing user
+          req.login(testUser, (loginErr) => {
+            if (loginErr) {
+              console.error("Login error:", loginErr);
+              return next(loginErr);
+            }
+            
+            console.log("Login successful with test user");
+            const { password, ...userWithoutPassword } = testUser;
+            
+            return res.status(200).json({
+              message: "Logged in with existing test user",
+              user: userWithoutPassword
+            });
           });
-        });
+        } else {
+          console.log("Creating new test admin user");
+          // Create a test admin user
+          const hashedPassword = await hashPassword("password123");
+          const newUser = await storage.createUser({
+            username: "testadmin",
+            password: hashedPassword,
+            email: "testadmin@example.com",
+            firstName: "Test",
+            lastName: "Admin",
+            role: "admin",
+            tenantId: null
+          });
+          
+          console.log("New test user created:", newUser.id);
+          
+          // Log in with the new user
+          req.login(newUser, (loginErr) => {
+            if (loginErr) {
+              console.error("Login error for new user:", loginErr);
+              return next(loginErr);
+            }
+            
+            console.log("Login successful with new test user");
+            const { password, ...userWithoutPassword } = newUser;
+            
+            return res.status(200).json({
+              message: "Created and logged in with new test user",
+              user: userWithoutPassword
+            });
+          });
+        }
       }
     } catch (err) {
       console.error("Test login error:", err);

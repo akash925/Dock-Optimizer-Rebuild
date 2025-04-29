@@ -2,14 +2,9 @@ import { getStorage } from "./storage";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { TenantStatus, AvailableModule } from "@shared/schema";
+import { hashPassword as authHashPassword } from './auth';
 
 const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
 
 async function createSuperAdmin() {
   console.log("Creating super-admin account...");
@@ -24,8 +19,8 @@ async function createSuperAdmin() {
       return;
     }
     
-    // Create the super-admin user
-    const hashedPassword = await hashPassword("password123");
+    // Create the super-admin user with the auth module's password hashing
+    const hashedPassword = await authHashPassword("password123");
     const user = await storage.createUser({
       username: "akash.agarwal@conmitto.io",
       email: "akash.agarwal@conmitto.io",
