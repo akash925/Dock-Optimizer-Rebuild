@@ -67,4 +67,225 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
+// GET /admin/users/:userId - Get detailed user information
+router.get("/:userId", async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.params.userId);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    // Get the user
+    const [user] = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+      })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Get all organization roles for this user
+    const userOrgs = await db
+      .select({
+        orgId: organizations.id,
+        orgName: organizations.name,
+        roleId: organizationUsers.roleId,
+        roleName: roles.name,
+      })
+      .from(organizationUsers)
+      .innerJoin(organizations, eq(organizationUsers.organizationId, organizations.id))
+      .innerJoin(roles, eq(organizationUsers.roleId, roles.id))
+      .where(eq(organizationUsers.userId, userId));
+
+    // Get activity logs for this user (placeholder - you'll need to create this table)
+    // This is simplified for now - you'd typically have a proper activity_logs table
+    const activityLogs = []; // Will implement later
+
+    const userDetail = {
+      ...user,
+      roles: userOrgs.map(org => ({
+        orgId: org.orgId,
+        orgName: org.orgName,
+        roleId: org.roleId,
+        roleName: org.roleName
+      })),
+      activityLogs
+    };
+
+    res.json(userDetail);
+  } catch (error: unknown) {
+    console.error("Error fetching user details:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ message: "Failed to fetch user details", error: errorMessage });
+  }
+});
+
+// PUT /admin/users/:userId/orgs - Add or remove user from an organization
+router.put("/:userId/orgs", async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.params.userId);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const { orgId, roleId, action } = req.body;
+
+    // Validate request body
+    if (!orgId || (action === "add" && !roleId) || !["add", "remove"].includes(action)) {
+      return res.status(400).json({ 
+        message: "Invalid request. Must include orgId, roleId (for add), and action ('add' or 'remove')" 
+      });
+    }
+
+    // Check if user exists
+    const [userExists] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!userExists) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if organization exists
+    const [orgExists] = await db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.id, orgId));
+
+    if (!orgExists) {
+      return res.status(404).json({ message: "Organization not found" });
+    }
+
+    // If action is "add", check if role exists
+    if (action === "add" && roleId) {
+      const [roleExists] = await db
+        .select({ id: roles.id })
+        .from(roles)
+        .where(eq(roles.id, roleId));
+
+      if (!roleExists) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+    }
+
+    const storage = await getStorage();
+
+    if (action === "add") {
+      // Check if the user is already in the organization
+      const existingUserOrg = await storage.getUserOrganizationRole(userId, orgId);
+      
+      if (existingUserOrg) {
+        return res.status(400).json({ message: "User is already assigned to this organization" });
+      }
+
+      // Add user to organization
+      const result = await storage.addUserToOrganization({
+        userId,
+        organizationId: orgId,
+        roleId
+      });
+
+      return res.status(200).json({
+        message: "User added to organization successfully",
+        data: result
+      });
+    } else { // action === "remove"
+      // Check if the user is in the organization
+      const existingUserOrg = await storage.getUserOrganizationRole(userId, orgId);
+      
+      if (!existingUserOrg) {
+        return res.status(400).json({ message: "User is not assigned to this organization" });
+      }
+
+      // Don't allow removing the last super-admin from the admin organization
+      if (orgId === 1) { // Assuming 1 is the admin org ID
+        const [org] = await db
+          .select()
+          .from(organizations)
+          .where(eq(organizations.id, orgId));
+          
+        if (org.subdomain === 'admin') {
+          const role = await storage.getRole(existingUserOrg.roleId);
+          if (role && role.name === 'super-admin') {
+            const adminOrgUsers = await storage.getOrganizationUsers(orgId);
+            const superAdminCount = await Promise.all(adminOrgUsers.map(async (ou) => {
+              const r = await storage.getRole(ou.roleId);
+              return r && r.name === 'super-admin' ? 1 : 0;
+            })).then(counts => counts.reduce((sum, count) => sum + count, 0));
+            
+            if (superAdminCount <= 1) {
+              return res.status(403).json({ 
+                message: 'Cannot remove the last super-admin from the system' 
+              });
+            }
+          }
+        }
+      }
+
+      // Remove user from organization
+      await storage.removeUserFromOrganization(userId, orgId);
+
+      return res.status(200).json({
+        message: "User removed from organization successfully"
+      });
+    }
+  } catch (error: unknown) {
+    console.error("Error managing user organization:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ message: "Failed to update user organization", error: errorMessage });
+  }
+});
+
+// GET /admin/users/:userId/logs - Get activity logs for a user (optional)
+router.get("/:userId/logs", async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.params.userId);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    // Check if user exists
+    const [userExists] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!userExists) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // This is a placeholder - in a real implementation, you'd query your activity_logs table
+    // You can implement pagination with limit/offset here
+    const activityLogs = [
+      {
+        id: 1,
+        timestamp: new Date().toISOString(),
+        action: "account_login",
+        details: "User logged in successfully",
+      }
+    ];
+
+    res.json({ 
+      data: activityLogs,
+      pagination: {
+        total: 1,
+        page: 1,
+        limit: 10
+      } 
+    });
+  } catch (error: unknown) {
+    console.error("Error fetching user logs:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ message: "Failed to fetch user logs", error: errorMessage });
+  }
+});
+
 export default router;
