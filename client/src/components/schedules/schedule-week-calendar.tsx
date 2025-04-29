@@ -227,7 +227,7 @@ export default function ScheduleWeekCalendar({
   return (
     <div className="bg-white rounded-lg shadow p-3 pb-0 mb-4 relative w-full overflow-hidden">
       {/* Ultra Compact Filters - Combined row with calendar navigation */}
-      <div className="flex justify-between items-center mb-1">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
         <div className="flex items-center space-x-1">
           <Button 
             variant="outline" 
@@ -253,6 +253,44 @@ export default function ScheduleWeekCalendar({
           >
             today
           </Button>
+        </div>
+        
+        {/* View Mode Switch */}
+        <div className="flex items-center space-x-2 ml-auto">
+          <div className="bg-muted rounded-md p-1 flex space-x-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 px-3 text-xs"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/schedules?view=day';
+                }
+              }}
+            >
+              Day
+            </Button>
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="h-7 px-3 text-xs"
+              onClick={() => onDateChange(date)} // Just refresh current date
+            >
+              Week
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 px-3 text-xs"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/schedules?view=month';
+                }
+              }}
+            >
+              Month
+            </Button>
+          </div>
         </div>
         
         <div className="text-base font-medium bg-gray-50 py-1 px-3 rounded-md border border-gray-200">

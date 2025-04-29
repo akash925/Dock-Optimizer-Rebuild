@@ -54,9 +54,9 @@ export default function ScheduleMonthCalendar({
   const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-4">
-      {/* Calendar Header */}
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white rounded-lg shadow p-4 mb-4 max-w-full overflow-hidden">
+      {/* Calendar Header with view mode toggle */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline" 
@@ -83,7 +83,46 @@ export default function ScheduleMonthCalendar({
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <h3 className="text-lg font-semibold">{monthDisplay}</h3>
+        
+        {/* View Mode Switch */}
+        <div className="flex items-center space-x-2 ml-auto">
+          <div className="bg-muted rounded-md p-1 flex space-x-1">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 px-3 text-xs"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/schedules?view=day';
+                }
+              }}
+            >
+              Day
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 px-3 text-xs"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = '/schedules?view=week';
+                }
+              }}
+            >
+              Week
+            </Button>
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="h-7 px-3 text-xs"
+              onClick={() => onDateChange(date)} // Just refresh current date
+            >
+              Month
+            </Button>
+          </div>
+        </div>
+        
+        <h3 className="text-lg font-semibold w-full sm:w-auto text-center sm:text-left">{monthDisplay}</h3>
       </div>
 
       {/* Responsive Calendar Grid */}
