@@ -32,6 +32,7 @@ import TestAppointmentPatchedPage from "@/pages/test-appointment-patched";
 import DebugAuthPage from "@/pages/debug-auth";
 import AdminDashboard from "@/pages/admin/index";
 import { ProtectedRoute } from "./lib/protected-route";
+import { AdminProtectedRoute } from "./lib/admin-protected-route";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Loader2 } from "lucide-react";
 
@@ -83,42 +84,38 @@ function App() {
         <ProtectedRoute path="/asset-manager" component={AssetManagerPage} roles={["admin", "manager"]} />
         <ProtectedRoute path="/asset-manager/assets/:id/edit" component={AssetEditPage} roles={["admin", "manager"]} />
         <ProtectedRoute path="/settings" component={Settings} roles={["admin", "manager"]} />
-        <ProtectedRoute path="/admin" component={AdminDashboard} roles={["super-admin"]} />
-        <ProtectedRoute 
+        <AdminProtectedRoute path="/admin" component={AdminDashboard} />
+        <AdminProtectedRoute 
           path="/admin/orgs" 
           component={() => (
             <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
               <AdminOrgsPage />
             </Suspense>
           )} 
-          roles={["super-admin"]}
         />
-        <ProtectedRoute 
+        <AdminProtectedRoute 
           path="/admin/orgs/new" 
           component={() => (
             <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
               <AdminNewOrgPage />
             </Suspense>
           )} 
-          roles={["super-admin"]}
         />
-        <ProtectedRoute 
+        <AdminProtectedRoute 
           path="/admin/orgs/:id" 
           component={() => (
             <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
               <AdminOrgDetailPage />
             </Suspense>
           )} 
-          roles={["super-admin"]}
         />
-        <ProtectedRoute 
+        <AdminProtectedRoute 
           path="/admin/organizations" 
           component={() => (
             <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
               <AdminOrganizationsPage />
             </Suspense>
           )} 
-          roles={["super-admin"]}
         />
         <Route component={NotFound} />
       </Switch>
