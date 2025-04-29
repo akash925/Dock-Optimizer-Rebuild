@@ -92,7 +92,31 @@ export default function Schedules() {
   // Set the most current schedule as selected on first load
   // Check for schedule ID in URL params
   const [, params] = useRoute<{ id: string }>("/schedules/:id");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  
+  // Process URL query parameters
+  useEffect(() => {
+    // Process query parameters for view mode
+    const queryParams = new URLSearchParams(window.location.search);
+    const viewParam = queryParams.get('view');
+    
+    if (viewParam) {
+      switch(viewParam) {
+        case 'day':
+          setViewMode('day');
+          break;
+        case 'week':
+          setViewMode('week');
+          break;
+        case 'month':
+          setViewMode('month');
+          break;
+        case 'list':
+          setViewMode('list');
+          break;
+      }
+    }
+  }, [location]);
   
   // Handle closing the appointment details dialog
   const handleDetailsDialogClose = useCallback((open: boolean) => {

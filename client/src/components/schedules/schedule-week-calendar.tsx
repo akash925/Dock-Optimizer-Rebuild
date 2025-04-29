@@ -345,43 +345,7 @@ export default function ScheduleWeekCalendar({
         </div>
       </div>
 
-      {/* View Mode Buttons */}
-      <div className="flex justify-end items-center mb-1">
-        <div className="flex items-center space-x-1">
-          <Button 
-            variant={`outline`} 
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => onViewChange("month")}
-          >
-            month
-          </Button>
-          <Button 
-            variant={`default`} 
-            size="sm"
-            className="h-7 px-2 text-xs bg-primary"
-            onClick={() => onViewChange("week")}
-          >
-            week
-          </Button>
-          <Button 
-            variant={`outline`} 
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => onViewChange("day")}
-          >
-            day
-          </Button>
-          <Button 
-            variant={`outline`} 
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => onViewChange("list")}
-          >
-            list
-          </Button>
-        </div>
-      </div>
+      {/* View mode buttons removed - now using view switcher in the header */}
       
       {/* Week Calendar Grid - With sticky headers */}
       <div className="border rounded relative">
