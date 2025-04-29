@@ -158,6 +158,7 @@ export interface IStorage {
   // Role operations
   getRole(id: number): Promise<RoleRecord | undefined>;
   getRoleByName(name: string): Promise<RoleRecord | undefined>;
+  getRoleById(id: number): Promise<RoleRecord | undefined>; // Alias for getRole to maintain compatibility
   getRoles(): Promise<RoleRecord[]>;
   createRole(role: InsertRoleRecord): Promise<RoleRecord>;
   
@@ -1301,6 +1302,11 @@ export class DatabaseStorage implements IStorage {
     return role;
   }
   
+  // Alias for getRole to maintain compatibility with existing code
+  async getRoleById(id: number): Promise<RoleRecord | undefined> {
+    return this.getRole(id);
+  }
+  
   async getRoles(): Promise<RoleRecord[]> {
     return await db.select().from(roles);
   }
@@ -1361,6 +1367,31 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount ? result.rowCount > 0 : false;
   }
   
+  // Helper method to add or update a user's role in an organization
+  async addUserToOrganizationWithRole(userId: number, organizationId: number, roleId: number): Promise<OrganizationUser> {
+    // Check if the user is already in the organization
+    const existingUserOrg = await this.getUserOrganizationRole(userId, organizationId);
+    
+    if (existingUserOrg) {
+      // Update existing role
+      const [updated] = await db.update(organizationUsers)
+        .set({ roleId })
+        .where(and(
+          eq(organizationUsers.userId, userId),
+          eq(organizationUsers.organizationId, organizationId)
+        ))
+        .returning();
+      return updated;
+    } else {
+      // Create new association
+      return await this.addUserToOrganization({
+        userId,
+        organizationId,
+        roleId
+      });
+    }
+  }
+  
   // Organization Module operations
   async getOrganizationModules(organizationId: number): Promise<OrganizationModule[]> {
     return await db.select()
@@ -1384,6 +1415,75 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return results;
+  }
+  
+  // Organization Activity Logging
+  async logOrganizationActivity(data: { 
+    organizationId: number; 
+    userId: number; 
+    action: string; 
+    details: string;
+  }): Promise<{ id: number; timestamp: Date }> {
+    try {
+      // Insert directly to the database as we don't have a schema object for activity logs
+      const result = await pool.query(`
+        INSERT INTO activity_logs (organization_id, user_id, action, details)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, timestamp
+      `, [data.organizationId, data.userId, data.action, data.details]);
+      
+      if (result.rows && result.rows.length > 0) {
+        return {
+          id: result.rows[0].id,
+          timestamp: result.rows[0].timestamp
+        };
+      }
+      
+      throw new Error('Failed to log activity');
+    } catch (error) {
+      console.error('Error logging organization activity:', error);
+      throw error;
+    }
+  }
+  
+  // Retrieve organization activity logs with pagination
+  async getOrganizationLogs(organizationId: number, page = 1, pageSize = 20): Promise<Array<{
+    id: number;
+    timestamp: Date;
+    userId: number;
+    organizationId: number;
+    action: string;
+    details: string;
+    username?: string;
+  }>> {
+    try {
+      const offset = (page - 1) * pageSize;
+      
+      // Join with users table to get username information
+      const result = await pool.query(`
+        SELECT al.*, u.username, u.first_name, u.last_name
+        FROM activity_logs al
+        LEFT JOIN users u ON al.user_id = u.id
+        WHERE al.organization_id = $1
+        ORDER BY al.timestamp DESC
+        LIMIT $2 OFFSET $3
+      `, [organizationId, pageSize, offset]);
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        timestamp: row.timestamp,
+        userId: row.user_id,
+        organizationId: row.organization_id,
+        action: row.action,
+        details: row.details,
+        username: row.username,
+        firstName: row.first_name,
+        lastName: row.last_name
+      }));
+    } catch (error) {
+      console.error('Error retrieving organization activity logs:', error);
+      return [];
+    }
   }
   
   // Tenant (Organization) operations
