@@ -103,6 +103,8 @@ export default function OrganizationDetailPage() {
     queryFn: () => adminApi.getOrgDetail(orgId),
     staleTime: 300000, // Cache for 5 minutes
     onSuccess: (data) => {
+      console.log("Organization data:", data);
+      console.log("Modules data:", data?.modules || []);
       if (data?.modules) {
         setModules([...data.modules]);
       }

@@ -427,6 +427,8 @@ export const organizationsRoutes = (app: Express) => {
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 20;
       
+      const storage = await getStorage();
+      
       // Check if organization exists
       const org = await storage.getTenantById(orgId);
       if (!org) {
@@ -477,17 +479,18 @@ export const organizationsRoutes = (app: Express) => {
       
       // Ensure we provide some sample modules if none exist
       if (!modules || modules.length === 0) {
+        console.log("Creating default modules for organization", orgId);
         const now = new Date();
         // Add default modules for UI display using correct AvailableModule values
         modules = [
-          { moduleName: AvailableModule.DOOR_MANAGER, enabled: true, id: 1, createdAt: now, organizationId: orgId },
-          { moduleName: AvailableModule.APPOINTMENTS, enabled: true, id: 2, createdAt: now, organizationId: orgId },
-          { moduleName: AvailableModule.USER_MANAGEMENT, enabled: false, id: 3, createdAt: now, organizationId: orgId },
-          { moduleName: AvailableModule.ASSET_MANAGER, enabled: false, id: 4, createdAt: now, organizationId: orgId },
-          { moduleName: AvailableModule.ANALYTICS, enabled: false, id: 5, createdAt: now, organizationId: orgId },
-          { moduleName: AvailableModule.EMAIL_NOTIFICATIONS, enabled: true, id: 6, createdAt: now, organizationId: orgId },
-          { moduleName: AvailableModule.BOOKING_PAGES, enabled: true, id: 8, createdAt: now, organizationId: orgId },
-          { moduleName: AvailableModule.FACILITY_MANAGEMENT, enabled: true, id: 9, createdAt: now, organizationId: orgId },
+          { moduleName: "doorManager", enabled: true, id: 1, createdAt: now, organizationId: orgId },
+          { moduleName: "appointments", enabled: true, id: 2, createdAt: now, organizationId: orgId },
+          { moduleName: "userManagement", enabled: false, id: 3, createdAt: now, organizationId: orgId },
+          { moduleName: "assetManager", enabled: false, id: 4, createdAt: now, organizationId: orgId },
+          { moduleName: "analytics", enabled: false, id: 5, createdAt: now, organizationId: orgId },
+          { moduleName: "emailNotifications", enabled: true, id: 6, createdAt: now, organizationId: orgId },
+          { moduleName: "bookingPages", enabled: true, id: 8, createdAt: now, organizationId: orgId },
+          { moduleName: "facilityManagement", enabled: true, id: 9, createdAt: now, organizationId: orgId },
         ];
       }
       
