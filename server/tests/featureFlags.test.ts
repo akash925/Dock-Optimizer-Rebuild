@@ -1,5 +1,5 @@
 import { featureFlagService } from '../modules/featureFlags/service';
-import { AvailableModule } from '../../shared/schema';
+import * as schema from '../../shared/schema';
 import { testDb, cleanupTestData, createTestTenant, closeTestDb } from './test-db';
 import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 
@@ -30,7 +30,7 @@ describe('Feature Flag Service', () => {
   // Test enabling a module
   test('should enable a module', async () => {
     // Arrange
-    const moduleName = AvailableModule.ASSET_MANAGER;
+    const moduleName = schema.AvailableModule.ASSET_MANAGER;
     
     // Act
     const result = await featureFlagService.enableModule(testTenantId, moduleName);
@@ -46,7 +46,7 @@ describe('Feature Flag Service', () => {
   // Test disabling a module
   test('should disable a module', async () => {
     // Arrange
-    const moduleName = AvailableModule.CALENDAR;
+    const moduleName = schema.AvailableModule.CALENDAR;
     
     // First enable the module
     await featureFlagService.enableModule(testTenantId, moduleName);
@@ -65,7 +65,7 @@ describe('Feature Flag Service', () => {
   // Test toggling a module from true to false
   test('should toggle a module from true to false', async () => {
     // Arrange
-    const moduleName = AvailableModule.EMAIL_NOTIFICATIONS;
+    const moduleName = schema.AvailableModule.EMAIL_NOTIFICATIONS;
     
     // First enable the module
     await featureFlagService.enableModule(testTenantId, moduleName);

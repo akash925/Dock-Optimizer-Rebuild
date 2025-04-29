@@ -137,8 +137,8 @@ describe('Organization Modules', () => {
     ];
     
     const modulesToDisable = [
-      AvailableModule.FACILITY_MANAGEMENT,
-      AvailableModule.USER_MANAGEMENT,
+      schema.AvailableModule.FACILITY_MANAGEMENT,
+      schema.AvailableModule.USER_MANAGEMENT,
     ];
     
     // Enable modules
@@ -172,7 +172,7 @@ describe('Organization Modules', () => {
   // Test toggling a module from true to false
   test('should toggle a module from true to false', async () => {
     // Arrange
-    const moduleName = AvailableModule.EMAIL_NOTIFICATIONS;
+    const moduleName = schema.AvailableModule.EMAIL_NOTIFICATIONS;
     
     // First enable the module
     await storage.updateOrganizationModule(testTenantId, moduleName, true);
