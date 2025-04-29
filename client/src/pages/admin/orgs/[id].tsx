@@ -210,11 +210,13 @@ export default function OrganizationDetailPage() {
 
   const toggleModuleMutation = useMutation({
     mutationFn: ({ moduleName, enabled }: { moduleName: string, enabled: boolean }) => 
-      adminApi.toggleOrgModule(orgId, moduleName, enabled),
-    onSuccess: () => {
+      // Use the more efficient single module toggle method
+      adminApi.toggleSingleModule(orgId, moduleName, enabled),
+    onSuccess: (data, variables) => {
+      const { moduleName, enabled } = variables;
       toast({
         title: "Success",
-        description: "Module updated successfully",
+        description: `${getModuleDisplayName(moduleName)} module ${enabled ? 'enabled' : 'disabled'} successfully`,
       });
       // Invalidate the cached organization detail and organization list
       queryClient.invalidateQueries({
@@ -224,10 +226,20 @@ export default function OrganizationDetailPage() {
         queryKey: ['adminOrgs'],
       });
     },
-    onError: (error) => {
+    onError: (error, variables) => {
+      const { moduleName } = variables;
+      // Revert UI changes on error
+      setModules(prevModules => 
+        prevModules.map(m => 
+          m.moduleName === moduleName 
+            ? { ...m, enabled: !m.enabled } // Toggle back on error
+            : m
+        )
+      );
+      
       toast({
         title: "Error",
-        description: `Failed to update module: ${error.message}`,
+        description: `Failed to update ${getModuleDisplayName(moduleName)} module: ${error.message}`,
         variant: "destructive",
       });
     },

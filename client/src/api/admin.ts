@@ -99,11 +99,21 @@ const adminApi = {
   },
 
   /**
-   * Toggle a module for an organization
+   * Toggle multiple modules for an organization
    */
   async toggleOrgModule(orgId: string | number, moduleName: string, enabled: boolean) {
-    const res = await apiRequest("PUT", `/api/admin/orgs/${orgId}/modules`, {
+    const res = await apiRequest("PUT", `/api/admin/orgs/${orgId}/modules`, [{
       moduleName,
+      enabled
+    }]);
+    return await res.json();
+  },
+  
+  /**
+   * Toggle a single module for an organization (more efficient)
+   */
+  async toggleSingleModule(orgId: string | number, moduleName: string, enabled: boolean) {
+    const res = await apiRequest("PUT", `/api/admin/orgs/${orgId}/modules/${moduleName}`, {
       enabled
     });
     return await res.json();
