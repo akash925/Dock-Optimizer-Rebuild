@@ -6,8 +6,12 @@ import * as schema from "../../shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Use a test-specific database URL
-const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/testdb';
+// Use the database URL from the environment
+const TEST_DATABASE_URL = process.env.DATABASE_URL;
+
+if (!TEST_DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable must be set for running tests");
+}
 
 export const testPool = new Pool({ connectionString: TEST_DATABASE_URL });
 export const testDb = drizzle({ client: testPool, schema });
@@ -16,15 +20,33 @@ export const testDb = drizzle({ client: testPool, schema });
 export async function cleanupTestData() {
   try {
     // Only delete test-related data, not production data
-    // This assumes we're using a test-specific database or test-specific identifiers
+    // Look for organizations with test-specific names
+    const testOrganizations = await testDb
+      .select()
+      .from(schema.tenants)
+      .where(sql`name LIKE 'Test Organization%' OR name LIKE '%Test Org%'`);
     
-    // Clean up feature flags and organization modules
-    await testDb.delete(schema.featureFlags).where(sql`1=1`);
-    await testDb.delete(schema.organizationModules).where(sql`1=1`);
+    // Delete test-related data for these organizations
+    for (const org of testOrganizations) {
+      // Clean up feature flags
+      await testDb.delete(schema.featureFlags)
+        .where(sql`organization_id = ${org.id}`);
+      
+      // Clean up organization modules
+      await testDb.delete(schema.organizationModules)
+        .where(sql`organization_id = ${org.id}`);
+      
+      // Clean up organization users
+      await testDb.delete(schema.organizationUsers)
+        .where(sql`organization_id = ${org.id}`);
+    }
     
-    // Clean up organizations (tenants)
-    await testDb.delete(schema.tenants).where(sql`1=1`);
-    
+    // Finally delete the test organizations themselves
+    if (testOrganizations.length > 0) {
+      const testOrgIds = testOrganizations.map(org => org.id);
+      await testDb.delete(schema.tenants)
+        .where(sql`id IN (${testOrgIds.join(',')})`);
+    }
   } catch (error) {
     console.error('Error cleaning up test data:', error);
   }
