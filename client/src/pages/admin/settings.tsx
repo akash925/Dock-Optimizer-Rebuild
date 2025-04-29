@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Edit, Check, X, Settings as SettingsIcon } from "lucide-react";
+import adminApi from "@/api/admin";
 import {
   Card,
   CardContent,
@@ -139,9 +140,10 @@ export default function AdminSettingsPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("roles");
 
-  // Fetch roles
+  // Fetch roles using adminApi
   const { data: roles, isLoading: rolesLoading } = useQuery<Role[]>({
-    queryKey: ['/api/admin/settings/roles'],
+    queryKey: ['/api/admin/roles'],
+    queryFn: () => adminApi.getAllRoles(),
   });
 
   // Fetch feature flags
@@ -156,7 +158,7 @@ export default function AdminSettingsPage() {
       return await response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/settings/roles'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/roles'] });
       toast({
         title: "Role updated",
         description: "The role has been updated successfully",

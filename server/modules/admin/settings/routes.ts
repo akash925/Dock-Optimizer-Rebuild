@@ -1,166 +1,121 @@
-import express, { Request, Response, NextFunction } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { getStorage } from "../../../storage";
-import { z } from "zod";
-import { db } from "../../../db";
 import { roles } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { db } from "../../../db";
 
-const router = express.Router();
-
-// Middleware to check if user is a super-admin
-const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
+// Super admin middleware
+const isSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated()) {
-    return res.status(401).json({ message: "Unauthorized" });
+    return res.status(401).json({ message: 'Not authenticated' });
   }
 
-  if (req.user?.role !== "super-admin") {
-    return res.status(403).json({ message: "Access denied. Super admin role required." });
+  if (req.user?.role !== 'super-admin') {
+    return res.status(403).json({ message: 'Not authorized. Super admin access required.' });
   }
 
   next();
 };
 
-router.use(requireSuperAdmin);
+const router = Router();
 
-// GET /api/admin/settings/roles - Get all roles
-router.get("/roles", async (req: Request, res: Response) => {
+// Get a list of roles
+router.get("/roles", isSuperAdmin, async (req, res) => {
   try {
     const storage = await getStorage();
     const allRoles = await storage.getRoles();
-    
     res.json(allRoles);
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error fetching roles:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ message: "Failed to fetch roles", error: errorMessage });
+    res.status(500).json({ message: "Failed to fetch roles" });
   }
 });
 
-// Define role update schema
-const updateRoleSchema = z.object({
-  name: z.string().min(1, "Role name is required"),
-  description: z.string().optional(),
-});
+// Update a role
+router.put("/roles/:id", isSuperAdmin, async (req, res) => {
+  const roleId = parseInt(req.params.id);
+  if (isNaN(roleId)) {
+    return res.status(400).json({ message: "Invalid role ID" });
+  }
 
-// PUT /api/admin/settings/roles/:roleId - Update role
-router.put("/roles/:roleId", async (req: Request, res: Response) => {
   try {
-    const roleId = Number(req.params.roleId);
-    if (isNaN(roleId)) {
-      return res.status(400).json({ message: "Invalid role ID" });
+    const { name, description } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: "Role name is required" });
     }
 
-    const validatedData = updateRoleSchema.parse(req.body);
-    
-    const storage = await getStorage();
-    const role = await storage.getRole(roleId);
-    
-    if (!role) {
+    // Check if role exists
+    const roleExists = await db.select().from(roles).where(eq(roles.id, roleId));
+    if (roleExists.length === 0) {
       return res.status(404).json({ message: "Role not found" });
     }
-    
-    // Update role in database
-    const updatedRole = await db.update(roles)
+
+    // Update the role
+    const [updatedRole] = await db
+      .update(roles)
       .set({
-        name: validatedData.name,
-        description: validatedData.description,
+        name,
+        description: description || null,
       })
       .where(eq(roles.id, roleId))
       .returning();
-    
-    res.json(updatedRole[0]);
-  } catch (error: unknown) {
+
+    res.json(updatedRole);
+  } catch (error) {
     console.error("Error updating role:", error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        message: "Invalid role data", 
-        errors: error.errors 
-      });
-    }
-    
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ message: "Failed to update role", error: errorMessage });
+    res.status(500).json({ message: "Failed to update role" });
   }
 });
 
-// GET /api/admin/settings/feature-flags - Get all feature flags
-router.get("/feature-flags", async (req: Request, res: Response) => {
+// Get a list of feature flags
+router.get("/feature-flags", isSuperAdmin, async (req, res) => {
   try {
-    // Temporarily using mock data for feature flags since the interface isn't established yet
+    // Example feature flags - in a real implementation, these would come from a database
     const featureFlags = [
       {
-        name: "enableAssetManager",
-        description: "Enable the Asset Manager module globally",
-        enabled: true
+        name: "EMAIL_NOTIFICATIONS",
+        description: "Enable or disable system-wide email notifications",
+        enabled: true,
       },
       {
-        name: "enableCalendar",
-        description: "Enable the Calendar view module globally",
-        enabled: true
+        name: "MAINTENANCE_MODE",
+        description: "Put the application in maintenance mode (read-only)",
+        enabled: false,
       },
       {
-        name: "enableAnalytics", 
-        description: "Enable the Analytics module globally",
-        enabled: true
+        name: "BETA_FEATURES",
+        description: "Enable beta features across the application",
+        enabled: false,
       },
-      {
-        name: "enableEmailNotifications",
-        description: "Enable email notifications for appointments",
-        enabled: true
-      },
-      {
-        name: "enableBookingPages",
-        description: "Enable public booking pages",
-        enabled: true
-      }
     ];
-    
+
     res.json(featureFlags);
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error fetching feature flags:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ message: "Failed to fetch feature flags", error: errorMessage });
+    res.status(500).json({ message: "Failed to fetch feature flags" });
   }
 });
 
-// Define feature flag update schema
-const updateFeatureFlagSchema = z.object({
-  enabled: z.boolean(),
-  description: z.string().optional(),
-});
+// Update a feature flag
+router.put("/feature-flags/:name", isSuperAdmin, async (req, res) => {
+  const { name } = req.params;
+  const { enabled } = req.body;
 
-// PUT /api/admin/settings/feature-flags/:flagName - Update feature flag
-router.put("/feature-flags/:flagName", async (req: Request, res: Response) => {
+  if (typeof enabled !== "boolean") {
+    return res.status(400).json({ message: "Enabled must be a boolean value" });
+  }
+
   try {
-    const flagName = req.params.flagName;
-    if (!flagName) {
-      return res.status(400).json({ message: "Invalid feature flag name" });
-    }
-
-    const validatedData = updateFeatureFlagSchema.parse(req.body);
-    
-    // This would be where we'd update the feature flag in a real implementation
-    // For now, just return a mock success response
-    const updatedFlag = {
-      name: flagName,
-      enabled: validatedData.enabled,
-      description: validatedData.description || `Toggle for ${flagName} feature`
-    };
-    
-    res.json(updatedFlag);
-  } catch (error: unknown) {
-    console.error("Error updating feature flag:", error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        message: "Invalid feature flag data", 
-        errors: error.errors 
-      });
-    }
-    
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ message: "Failed to update feature flag", error: errorMessage });
+    // Here we would update the feature flag in the database
+    // For now, we just return a success response with the updated flag
+    res.json({
+      name,
+      enabled,
+      description: "Updated feature flag", // In a real implementation, this would come from the database
+    });
+  } catch (error) {
+    console.error(`Error updating feature flag ${name}:`, error);
+    res.status(500).json({ message: "Failed to update feature flag" });
   }
 });
 
