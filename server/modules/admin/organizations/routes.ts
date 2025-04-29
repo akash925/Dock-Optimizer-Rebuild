@@ -9,7 +9,9 @@ import { users, tenants, organizationUsers, organizationModules, roles } from '@
 // Helper function to log organization activity
 async function logOrganizationActivity(orgId: number, userId: number, action: string, details: string) {
   try {
-    await db.insert(activityLogs).values({
+    const storage = await getStorage();
+    // Use the storage interface method for better consistency
+    await storage.logOrganizationActivity({
       organizationId: orgId,
       userId,
       action,
@@ -18,6 +20,17 @@ async function logOrganizationActivity(orgId: number, userId: number, action: st
     console.log(`Activity logged for org ${orgId}: ${action}`);
   } catch (error) {
     console.error('Failed to log organization activity:', error);
+    // Fallback to direct DB insert if the storage method fails
+    try {
+      await db.insert(activityLogs).values({
+        organizationId: orgId,
+        userId,
+        action,
+        details
+      });
+    } catch (fallbackError) {
+      console.error('Fallback logging also failed:', fallbackError);
+    }
   }
 }
 
