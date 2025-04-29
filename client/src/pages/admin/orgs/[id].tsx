@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { z } from "zod";
@@ -110,6 +110,13 @@ export default function OrganizationDetailPage() {
       }
     },
   });
+  
+  // Add an effect to log modules data when organization changes
+  useEffect(() => {
+    if (organization?.modules) {
+      console.log("Current modules state:", organization.modules);
+    }
+  }, [organization]);
 
   // Fetch all users for add user dropdown
   const { data: usersResponse } = useQuery({
@@ -490,31 +497,46 @@ export default function OrganizationDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {toggleModuleMutation.isPending && (
-                    <div className="mb-2 text-sm text-muted-foreground flex items-center">
-                      <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                      Saving changes...
-                    </div>
-                  )}
-                  {modules.map((module) => (
-                    <div key={module.moduleName} className="flex items-center justify-between">
-                      <Label htmlFor={`module-${module.moduleName}`} className="flex-1">
-                        {getModuleDisplayName(module.moduleName)}
-                      </Label>
-                      <Switch
-                        id={`module-${module.moduleName}`}
-                        checked={module.enabled}
-                        onCheckedChange={(checked) =>
-                          handleModuleToggle(module.moduleName, checked)
-                        }
-                      />
-                    </div>
-                  ))}
-                  <div className="mt-6 text-sm text-muted-foreground">
-                    Changes are saved automatically
+                {isLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary"/>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-4">
+                    {toggleModuleMutation.isPending && (
+                      <div className="mb-2 text-sm text-muted-foreground flex items-center">
+                        <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                        Saving changes...
+                      </div>
+                    )}
+                    
+                    {organization?.modules && organization.modules.length > 0 ? (
+                      <>
+                        {organization.modules.map((module) => (
+                          <div key={module.moduleName} className="flex items-center justify-between py-2 border-b">
+                            <Label htmlFor={`module-${module.moduleName}`} className="flex-1 font-medium">
+                              {getModuleDisplayName(module.moduleName)}
+                            </Label>
+                            <Switch
+                              id={`module-${module.moduleName}`}
+                              checked={module.enabled}
+                              onCheckedChange={(checked) =>
+                                handleModuleToggle(module.moduleName, checked)
+                              }
+                            />
+                          </div>
+                        ))}
+                        <div className="mt-6 text-sm text-muted-foreground">
+                          Changes are saved automatically
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No modules configured for this organization
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
