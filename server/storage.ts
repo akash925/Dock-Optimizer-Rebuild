@@ -2237,14 +2237,37 @@ export class DatabaseStorage implements IStorage {
 
   async getSchedulesByDateRange(startDate: Date, endDate: Date, tenantId?: number): Promise<Schedule[]> {
     try {
-      // Build the query with parameters
+      // First, check the schema of the schedules table to see if facility_id exists
+      let schedulesColumns;
+      try {
+        const columnsResult = await pool.query(`
+          SELECT column_name FROM information_schema.columns 
+          WHERE table_name = 'schedules'
+        `);
+        schedulesColumns = columnsResult.rows.map(row => row.column_name);
+      } catch (err) {
+        console.error('Error checking schedules table schema:', err);
+        schedulesColumns = [];
+      }
+      
+      const hasFacilityIdInSchedules = schedulesColumns.includes('facility_id');
+      console.log(`[getSchedulesByDateRange] Schedules table ${hasFacilityIdInSchedules ? 'has' : 'does not have'} facility_id column`);
+      
+      // Build query based on whether facility_id exists in the schedules table
       let query = `
         SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id, 
                at.name as appointment_type_name
         FROM schedules s
-        LEFT JOIN docks d ON s.dock_id = d.id
-        LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id
-        LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+        LEFT JOIN docks d ON s.dock_id = d.id`;
+      
+      // Join to facilities table based on whether facility_id column exists in schedules
+      if (hasFacilityIdInSchedules) {
+        query += ` LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id`;
+      } else {
+        query += ` LEFT JOIN facilities f ON d.facility_id = f.id`;
+      }
+      
+      query += ` LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
         WHERE s.start_time >= $1 AND s.end_time <= $2`;
       
       const params: any[] = [startDate, endDate];
@@ -2256,8 +2279,16 @@ export class DatabaseStorage implements IStorage {
           -- Filter by facility ownership via organization_facilities junction table
           EXISTS (
             SELECT 1 FROM organization_facilities of 
-            WHERE of.facility_id = COALESCE(s.facility_id, d.facility_id) 
-            AND of.organization_id = $3
+            WHERE of.facility_id = `;
+            
+        // Use appropriate facility_id reference based on table schema
+        if (hasFacilityIdInSchedules) {
+          query += `COALESCE(s.facility_id, d.facility_id)`;
+        } else {
+          query += `d.facility_id`;
+        }
+        
+        query += ` AND of.organization_id = $3
           )
           OR
           -- Filter by appointment type ownership
@@ -2320,6 +2351,22 @@ export class DatabaseStorage implements IStorage {
 
   async searchSchedules(query: string, tenantId?: number): Promise<Schedule[]> {
     try {
+      // First, check the schema of the schedules table to see if facility_id exists
+      let schedulesColumns;
+      try {
+        const columnsResult = await pool.query(`
+          SELECT column_name FROM information_schema.columns 
+          WHERE table_name = 'schedules'
+        `);
+        schedulesColumns = columnsResult.rows.map(row => row.column_name);
+      } catch (err) {
+        console.error('Error checking schedules table schema:', err);
+        schedulesColumns = [];
+      }
+      
+      const hasFacilityIdInSchedules = schedulesColumns.includes('facility_id');
+      console.log(`[searchSchedules] Schedules table ${hasFacilityIdInSchedules ? 'has' : 'does not have'} facility_id column`);
+      
       // Create a sanitized version of the query for SQL
       const searchPattern = `%${query}%`;
       
@@ -2328,9 +2375,16 @@ export class DatabaseStorage implements IStorage {
         SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id, 
                at.name as appointment_type_name
         FROM schedules s
-        LEFT JOIN docks d ON s.dock_id = d.id
-        LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id
-        LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+        LEFT JOIN docks d ON s.dock_id = d.id`;
+        
+      // Join to facilities table based on whether facility_id column exists in schedules
+      if (hasFacilityIdInSchedules) {
+        sqlQuery += ` LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id`;
+      } else {
+        sqlQuery += ` LEFT JOIN facilities f ON d.facility_id = f.id`;
+      }
+        
+      sqlQuery += ` LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
         WHERE (
           s.id::text = $1
           OR LOWER(s.carrier_name) LIKE LOWER($2)
@@ -2348,8 +2402,16 @@ export class DatabaseStorage implements IStorage {
           -- Filter by facility ownership via organization_facilities junction table
           EXISTS (
             SELECT 1 FROM organization_facilities of 
-            WHERE of.facility_id = COALESCE(s.facility_id, d.facility_id) 
-            AND of.organization_id = $3
+            WHERE of.facility_id = `;
+            
+        // Use appropriate facility_id reference based on table schema
+        if (hasFacilityIdInSchedules) {
+          sqlQuery += `COALESCE(s.facility_id, d.facility_id)`;
+        } else {
+          sqlQuery += `d.facility_id`;
+        }
+        
+        sqlQuery += ` AND of.organization_id = $3
           )
           OR
           -- Filter by appointment type ownership
