@@ -26,6 +26,9 @@ modulesRouter.get('/', isAuthenticated, async (req, res) => {
       ]);
     }
 
+    // Get storage instance
+    const storage = await getStorage();
+    
     // Fetch modules for this organization
     const modules = await storage.getOrganizationModules(tenantId);
     

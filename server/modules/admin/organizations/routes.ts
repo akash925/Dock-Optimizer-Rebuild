@@ -6,6 +6,66 @@ import { db } from '../../../db';
 import { eq, sql } from 'drizzle-orm';
 import { users, tenants, organizationUsers, organizationModules, roles } from '@shared/schema';
 
+// API routes for organization modules
+export const registerOrganizationModulesRoutes = (app: Express) => {
+  // Toggle a single module for an organization
+  app.patch('/api/admin/orgs/:orgId/modules/:moduleName', async (req: Request, res: Response) => {
+    try {
+      const { orgId, moduleName } = req.params;
+      const { enabled } = req.body;
+      
+      // Validate inputs
+      if (!req.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      
+      if (!orgId || isNaN(Number(orgId))) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      if (!moduleName || !Object.values(AvailableModule).includes(moduleName as AvailableModule)) {
+        return res.status(400).json({ message: 'Invalid module name' });
+      }
+      
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ message: 'Enabled status must be a boolean' });
+      }
+      
+      const storage = await getStorage();
+      
+      // Update the module
+      const updatedModule = await storage.updateOrganizationModule(
+        Number(orgId),
+        moduleName as AvailableModule,
+        enabled
+      );
+      
+      if (!updatedModule) {
+        return res.status(404).json({
+          message: 'Module not found for organization'
+        });
+      }
+      
+      // Log the activity
+      await logOrganizationActivity(
+        Number(orgId),
+        req.user.id,
+        `module_${enabled ? 'enabled' : 'disabled'}`,
+        `${moduleName} module was ${enabled ? 'enabled' : 'disabled'}`
+      );
+      
+      // Return the updated module
+      res.json(updatedModule);
+      
+    } catch (error) {
+      console.error('Error toggling organization module:', error);
+      res.status(500).json({
+        message: 'Failed to toggle organization module'
+      });
+    }
+  });
+};
+
 // Helper function to log organization activity
 async function logOrganizationActivity(orgId: number, userId: number, action: string, details: string) {
   try {
