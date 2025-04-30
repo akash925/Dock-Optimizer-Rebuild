@@ -140,7 +140,7 @@ export default function Sidebar({ className }: SidebarProps) {
         </div>
         
         {/* Filter navigation links based on module availability - using both ModuleContext and useOrg */}
-        {navItems.map(item => {
+        {navItemsInternal.map(item => {
           // Dashboard (home) and non-module items are always shown
           if (!item.module || item.module === null) {
             return (
@@ -183,7 +183,7 @@ export default function Sidebar({ className }: SidebarProps) {
             </div>
             
             {/* Filter management links based on module availability and user role */}
-            {managementItems.map(item => {
+            {managementItemsInternal.map(item => {
               // Check if user has required role
               const hasRequiredRole = !item.roles || item.roles.includes(user.role);
               
