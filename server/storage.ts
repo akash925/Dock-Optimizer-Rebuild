@@ -2962,12 +2962,38 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Booking Pages operations
-  async getBookingPage(id: number): Promise<BookingPage | undefined> {
-    const [bookingPage] = await db
-      .select()
-      .from(bookingPages)
-      .where(eq(bookingPages.id, id));
-    return bookingPage;
+  async getBookingPage(id: number, tenantId?: number): Promise<BookingPage | undefined> {
+    try {
+      let query = db
+        .select()
+        .from(bookingPages)
+        .where(eq(bookingPages.id, id));
+      
+      // If tenantId is provided, add tenant filter
+      if (tenantId !== undefined) {
+        query = query.where(eq(bookingPages.tenantId, tenantId));
+      }
+      
+      const [bookingPage] = await query;
+      
+      if (!bookingPage) {
+        console.log(`No booking page found with ID ${id}${tenantId ? ` for tenant ${tenantId}` : ''}`);
+        return undefined;
+      }
+      
+      console.log(`[BookingPage] Successfully retrieved booking page: ${JSON.stringify({
+        id: bookingPage.id,
+        name: bookingPage.name,
+        tenantId: bookingPage.tenantId,
+        facilities: bookingPage.facilities && Array.isArray(bookingPage.facilities) ? 
+          `[${bookingPage.facilities.length} facilities]` : bookingPage.facilities
+      })}`);
+      
+      return bookingPage;
+    } catch (error) {
+      console.error(`Error retrieving booking page with ID ${id}:`, error);
+      throw error;
+    }
   }
 
   async getBookingPageBySlug(slug: string, tenantId?: number): Promise<BookingPage | undefined> {

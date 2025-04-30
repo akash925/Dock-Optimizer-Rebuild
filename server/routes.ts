@@ -2672,8 +2672,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tenantId = req.isAuthenticated() ? req.user?.tenantId : undefined;
       const isSuperAdmin = req.isAuthenticated() && (req.user?.role === 'super-admin' || req.user?.username?.includes('admin@conmitto.io'));
       
-      // Get the booking page
-      const bookingPage = await storage.getBookingPage(id);
+      // Get the booking page, with tenant filtering
+      const bookingPage = await storage.getBookingPage(id, isSuperAdmin ? undefined : tenantId);
       
       if (!bookingPage) {
         console.log(`[BookingPage] No booking page found with ID: ${id}`);
@@ -2682,21 +2682,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If user is not a super admin and has a tenant ID, enforce tenant isolation
       if (!isSuperAdmin && tenantId) {
-        // Get facilities for this tenant
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
-        const facilityIds = orgFacilities.map(f => f.id);
-        
-        // Make sure facilities is an array
-        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
-        
-        // Check if any of the booking page's facilities belong to this organization
-        const hasTenantFacility = bookingPageFacilities.some(
-          facilityId => facilityIds.includes(facilityId)
-        );
-        
-        if (!hasTenantFacility) {
-          console.log(`[BookingPage] Access denied - booking page ID ${id} does not belong to tenant ${tenantId}`);
-          return res.status(403).json({ message: "Access denied to this booking page" });
+        // First check if tenant_id is set on the booking page
+        if (bookingPage.tenantId !== undefined && bookingPage.tenantId !== null) {
+          if (bookingPage.tenantId !== tenantId) {
+            console.log(`[BookingPage] Access denied - tenant mismatch. User: ${tenantId}, BookingPage: ${bookingPage.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this booking page" });
+          }
+        } else {
+          // Fallback to facility-based checking if tenant_id isn't available
+          // Get facilities for this tenant
+          const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
+          const facilityIds = orgFacilities.map(f => f.id);
+          
+          // Make sure facilities is an array
+          const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
+          
+          // Check if any of the booking page's facilities belong to this organization
+          const hasTenantFacility = bookingPageFacilities.some(
+            facilityId => facilityIds.includes(facilityId)
+          );
+          
+          if (!hasTenantFacility) {
+            console.log(`[BookingPage] Access denied - booking page ID ${id} does not belong to tenant ${tenantId}`);
+            return res.status(403).json({ message: "Access denied to this booking page" });
+          }
         }
       }
       
@@ -2836,9 +2845,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isSuperAdmin = req.user?.role === 'super-admin' || req.user?.username?.includes('admin@conmitto.io');
       const tenantId = isSuperAdmin ? undefined : req.user?.tenantId;
       
-      const bookingPage = await storage.getBookingPage(id);
+      // Get the booking page, with tenant filtering
+      const bookingPage = await storage.getBookingPage(id, isSuperAdmin ? undefined : tenantId);
+      
       if (!bookingPage) {
-        console.log(`[BookingPage] Error: Booking page ${id} not found`);
+        console.log(`[BookingPage] Error: Booking page ${id} not found or access denied`);
         return res.status(404).json({ message: "Booking page not found" });
       }
       
