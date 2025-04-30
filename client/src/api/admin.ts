@@ -97,6 +97,8 @@ const adminApi = {
     // Return the organization object, unwrapping from "organization" if present
     return data.organization ?? data;
   },
+  
+  // These methods are defined below
 
   /**
    * Toggle multiple modules for an organization

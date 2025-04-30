@@ -93,13 +93,12 @@ export default function UsersPage() {
     [users]
   );
 
-  // Future enhancement: add a new user
+  // Add user modal state
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  
+  // Add user dialog handler
   const handleAddUser = () => {
-    // Navigate to a new user form in the future
-    toast({
-      title: "Not implemented",
-      description: "Adding new users will be implemented in a future update",
-    });
+    setIsAddUserOpen(true);
   };
 
   if (isLoading) {
