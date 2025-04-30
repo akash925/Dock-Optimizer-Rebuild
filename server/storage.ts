@@ -2546,7 +2546,7 @@ export class DatabaseStorage implements IStorage {
     
     // If tenant ID is provided, check if this facility belongs to the organization
     try {
-      // Use a join query to ensure facility belongs to the organization
+      // Use the organization_facilities junction table for tenant isolation
       const query = `
         SELECT f.* FROM facilities f
         JOIN organization_facilities of ON f.id = of.facility_id
@@ -2853,25 +2853,50 @@ export class DatabaseStorage implements IStorage {
   async getAppointmentType(id: number, tenantId?: number): Promise<AppointmentType | undefined> {
     console.log(`[getAppointmentType] Fetching appointment type with ID: ${id}${tenantId ? `, for tenant: ${tenantId}` : ''}`);
     
-    let query = db
-      .select()
-      .from(appointmentTypes)
-      .where(eq(appointmentTypes.id, id));
+    try {
+      // First try direct SQL query to bypass schema inconsistencies
+      const query = `
+        SELECT * FROM appointment_types 
+        WHERE id = $1 ${tenantId ? 'AND tenant_id = $2' : ''}
+        LIMIT 1
+      `;
       
-    // If tenantId is provided, add tenant filter
-    if (tenantId !== undefined) {
-      query = query.where(eq(appointmentTypes.tenantId, tenantId));
+      const result = await pool.query(query, tenantId ? [id, tenantId] : [id]);
+      
+      if (result.rows.length === 0) {
+        console.log(`[getAppointmentType] No appointment type found with ID: ${id}${tenantId ? ` for tenant: ${tenantId}` : ''}`);
+        return undefined;
+      }
+      
+      console.log(`[getAppointmentType] Found appointment type: ${result.rows[0].id} - ${result.rows[0].name}`);
+      return result.rows[0];
+    } catch (error) {
+      console.error(`[getAppointmentType] Error retrieving appointment type ${id}:`, error);
+      
+      // Fallback to drizzle query without tenant filter if we had an error (like column not found)
+      let query = db
+        .select()
+        .from(appointmentTypes)
+        .where(eq(appointmentTypes.id, id));
+        
+      const [appointmentType] = await query;
+      
+      if (appointmentType) {
+        // If we have a tenant ID, verify the appointment type belongs to a facility owned by this tenant
+        if (tenantId) {
+          const facility = await this.getFacility(appointmentType.facilityId, tenantId);
+          if (!facility) {
+            console.log(`[getAppointmentType] Access denied - appointment type ${id} belongs to facility ${appointmentType.facilityId} not in organization ${tenantId}`);
+            return undefined;
+          }
+        }
+        
+        console.log(`[getAppointmentType] Found appointment type via fallback: ${appointmentType.id} - ${appointmentType.name}`);
+        return appointmentType;
+      }
+      
+      return undefined;
     }
-    
-    const [appointmentType] = await query;
-    
-    if (appointmentType) {
-      console.log(`[getAppointmentType] Found appointment type: ${appointmentType.id} - ${appointmentType.name}`);
-    } else {
-      console.log(`[getAppointmentType] No appointment type found with ID: ${id}${tenantId ? ` for tenant: ${tenantId}` : ''}`);
-    }
-    
-    return appointmentType;
   }
 
   async getAppointmentTypes(tenantId?: number): Promise<AppointmentType[]> {
