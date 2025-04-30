@@ -105,12 +105,18 @@ export default function FullCalendarView({
   // Use the external ref if provided, otherwise create a local one
   const calendarRef = externalCalendarRef || useRef<FullCalendar>(null);
   
-  // Save timezone preference to localStorage
+  // Initialize timezone based on browser's timezone or saved preference
   useEffect(() => {
-    // Load saved timezone preference if it exists
+    // Get browser's timezone
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Load saved timezone preference if it exists, otherwise use browser timezone
     const savedTimezone = localStorage.getItem('preferredTimezone');
     if (savedTimezone) {
       setSelectedTimezone(savedTimezone);
+    } else if (browserTimezone) {
+      setSelectedTimezone(browserTimezone);
+      localStorage.setItem('preferredTimezone', browserTimezone);
     }
   }, []);
   
@@ -428,7 +434,17 @@ export default function FullCalendarView({
                 {activeEvent.facilityTimezone && (
                   <span className="block text-xs bg-blue-50 text-blue-700 rounded-sm px-2 py-1 mt-1 font-medium flex items-center">
                     <Clock className="w-3 h-3 mr-1" />
-                    All times shown in facility's timezone ({activeEvent.facilityTimezone})
+                    Facility timezone: {activeEvent.facilityTimezone}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="ml-1 cursor-help">(i)</span>
+                        </TooltipTrigger>
+                        <TooltipContent className="w-60 p-2">
+                          <p className="text-xs">This appointment was booked in the facility's timezone and will remain at this time regardless of your display timezone.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </span>
                 )}
               </div>
@@ -482,10 +498,11 @@ export default function FullCalendarView({
         <div className="p-2 border-b bg-slate-50 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             <Clock className="w-4 h-4 inline mr-1 text-primary" />
-            <span className="font-medium">Display Timezone:</span> {timezone || selectedTimezone}
+            <span className="font-medium">Your Display Timezone:</span> {selectedTimezone}
           </div>
-          <div className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium">
-            All appointment times are locked to facility timezone
+          <div className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium flex items-center">
+            <Clock className="w-3 h-3 mr-1" />
+            Times are shifted from facility timezone to your selected timezone
           </div>
         </div>
         <CardContent className="p-0">
@@ -500,7 +517,7 @@ export default function FullCalendarView({
                 right: ''
               }}
               nowIndicator={true}
-              timeZone={timezone || selectedTimezone}
+              timeZone={selectedTimezone}
               events={events}
               selectable={!!onDateSelect}
               selectMirror={true}
