@@ -1,0 +1,143 @@
+🛠️ Fix Organization Module Visibility Issues (Frontend & Backend)
+Step-by-Step Requirements:
+✅ Step 1: Backend – Verify the Modules API
+Ensure the endpoint to retrieve an organization's details (GET /api/orgs/:id) returns all enabled modules explicitly. Check if it returns a consistent array format, for example:
+
+json
+Copy
+Edit
+{
+  "id": 1,
+  "name": "Hanzo Logistics",
+  "modules": ["calendar", "assetManager", "analytics", "..."]
+}
+If modules are not included explicitly or missing, fix your API response in:
+
+bash
+Copy
+Edit
+server/modules/organizations/routes.ts
+Confirm with a test call to your API endpoint to ensure the correct response format.
+
+✅ Step 2: Frontend – Fix OrgContext Module Fetching
+In your Org Context hook (useOrg.tsx), make sure you're properly fetching modules:
+
+tsx
+Copy
+Edit
+// src/hooks/useOrg.tsx
+import { useQuery } from '@tanstack/react-query';
+import { fetchOrg } from '@/api/orgs';
+
+export const useOrg = (orgId: number) => {
+  const { data: org, isLoading } = useQuery(['org', orgId], () => fetchOrg(orgId));
+
+  const enabledModules = useMemo(() => org?.modules || [], [org?.modules]);
+
+  return { org, enabledModules, isLoading };
+};
+Confirm by logging enabledModules right after fetching:
+
+tsx
+Copy
+Edit
+console.log('Enabled Modules:', enabledModules);
+✅ Step 3: Frontend – Ensure Sidebar/Nav Visibility Matches Modules
+Centralize nav configuration clearly:
+
+tsx
+Copy
+Edit
+// src/components/layout/navConfig.ts
+import { IconCalendar, IconBox, IconPieChart } from 'lucide-react';
+
+export const navItems = [
+  { key: 'calendar', label: 'Calendar', path: '/calendar', icon: IconCalendar },
+  { key: 'assetManager', label: 'Asset Manager', path: '/asset-manager', icon: IconBox },
+  { key: 'analytics', label: 'Analytics', path: '/analytics', icon: IconPieChart },
+  //... continue for all modules
+];
+Render Sidebar conditionally based on enabledModules:
+
+tsx
+Copy
+Edit
+// Sidebar.tsx
+import { navItems } from './navConfig';
+import { useOrg } from '@/hooks/useOrg';
+
+export const Sidebar = () => {
+  const { enabledModules } = useOrg(orgId);  // Make sure orgId is correctly fetched from auth/user session
+
+  return (
+    <aside>
+      {navItems
+        .filter(item => enabledModules.includes(item.key))
+        .map(item => (
+          <NavLink key={item.key} to={item.path}>
+            <item.icon /> {item.label}
+          </NavLink>
+      ))}
+    </aside>
+  );
+};
+✅ Step 4: Frontend – Guard Routes Conditionally
+Ensure conditional route registration in App.tsx or AdminRoutes.tsx:
+
+tsx
+Copy
+Edit
+import { useOrg } from '@/hooks/useOrg';
+
+export const AdminRoutes = () => {
+  const { enabledModules } = useOrg(orgId);
+
+  return (
+    <Switch>
+      {enabledModules.includes('calendar') && <Route path="/calendar" component={CalendarPage} />}
+      {enabledModules.includes('assetManager') && <Route path="/asset-manager" component={AssetManagerPage} />}
+      {enabledModules.includes('analytics') && <Route path="/analytics" component={AnalyticsPage} />}
+      {/* ... other modules */}
+      <Route path="/" component={OverviewPage} />
+    </Switch>
+  );
+};
+Important: Double-check that routes exactly match the keys defined in enabledModules.
+
+✅ Step 5: Frontend – Verify Org Session for Org Users
+Ensure regular organization users (like testadmin) correctly fetch the orgId from their session upon login:
+
+tsx
+Copy
+Edit
+// useAuth.tsx or session fetching hook
+export const useAuth = () => {
+  const { data: user } = useQuery('user', fetchCurrentUser);
+  
+  const orgId = user?.tenantId; // make sure tenantId is the orgId
+  return { user, orgId };
+};
+Verify with a quick console.log('User Org ID:', orgId); on user login to confirm it's correct.
+
+🚨 Deliverable & Validation Steps 🚨
+Test Flow:
+
+Log in as a super admin → Enable all modules in Hanzo Logistics.
+
+Log out → Log in as testadmin in Hanzo Logistics.
+
+Ensure ALL modules (Calendar, Asset Manager, etc.) appear correctly.
+
+Disable one module in Admin Console, log back as testadmin again → confirm that disabled module disappears.
+
+Re-enable that module and confirm it returns.
+
+Screenshots:
+
+Admin Console (modules toggled ON/OFF clearly shown)
+
+Regular user (testadmin) session clearly showing nav visibility matching enabled modules
+
+Logs:
+
+Include any helpful console logs for debugging after this fix.

@@ -2,28 +2,13 @@ import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useModules } from "@/contexts/ModuleContext"; 
+import { useOrg } from "@/hooks/useOrg";
 import { useMemo } from "react";
-import {
-  BarChart3,
-  Calendar,
-  CalendarRange,
-  DoorOpen,
-  HelpCircle,
-  Home,
-  Settings,
-  TruckIcon,
-  Users,
-  Menu,
-  Layout,
-  ClipboardList,
-  Warehouse,
-  FileText,
-  Globe,
-  File,
-} from "lucide-react";
+import { Menu, HelpCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMediaQuery } from "@/hooks/use-mobile";
 import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
+import { navItems, managementItems } from "./navConfig";
 
 interface SidebarProps {
   className?: string;
