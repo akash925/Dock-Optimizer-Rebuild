@@ -2609,15 +2609,50 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateFacility(id: number, facilityUpdate: Partial<Facility>): Promise<Facility | undefined> {
-    const [updatedFacility] = await db
-      .update(facilities)
-      .set({
-        ...facilityUpdate,
-        lastModifiedAt: new Date()
-      })
-      .where(eq(facilities.id, id))
-      .returning();
-    return updatedFacility;
+    try {
+      // Use direct SQL to avoid tenantId/tenant_id column name issues
+      const updateColumns = Object.keys(facilityUpdate)
+        .filter(key => key !== 'id' && key !== 'createdAt') // Skip these fields
+        .map(key => {
+          // Convert camelCase to snake_case for SQL
+          const sqlKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+          return `"${sqlKey}" = $${Object.keys(facilityUpdate).indexOf(key) + 2}`;
+        })
+        .join(', ');
+      
+      // Add last_modified_at to updated columns
+      const fullUpdateSql = `${updateColumns}, "last_modified_at" = NOW()`;
+      
+      // Create the complete SQL query
+      const query = `
+        UPDATE facilities
+        SET ${fullUpdateSql}
+        WHERE id = $1
+        RETURNING *
+      `;
+      
+      // Extract values in correct order
+      const values = [id];
+      Object.keys(facilityUpdate)
+        .filter(key => key !== 'id' && key !== 'createdAt')
+        .forEach(key => {
+          values.push(facilityUpdate[key]);
+        });
+      
+      console.log(`Updating facility ${id} with:`, JSON.stringify(facilityUpdate, null, 2));
+      
+      const result = await pool.query(query, values);
+      
+      if (result.rows.length === 0) {
+        console.log(`No facility found with ID ${id}`);
+        return undefined;
+      }
+      
+      return result.rows[0];
+    } catch (error) {
+      console.error(`Error updating facility ${id}:`, error);
+      throw error;
+    }
   }
 
   async deleteFacility(id: number): Promise<boolean> {

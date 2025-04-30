@@ -1426,6 +1426,7 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
               <img 
                 src={
                   // Custom logo handling for Fresh Connect vs Hanzo
+                  // Dynamic logo based on booking page's tenant
                   slug === "fresh-connect-booking" 
                     ? "/assets/fresh-connect-logo.png" 
                     : (bookingPage?.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo)
@@ -1450,7 +1451,7 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
                 </h1>
                 <p className="text-gray-600 mb-4">
                   Please use this form to pick the type of Dock Appointment that
-                  you need at Hanzo Logistics. For support using this page,
+                  you need. For support using this page,
                   please <a href="#" className="text-blue-600 hover:underline">check out this video</a>.
                 </p>
               </div>
