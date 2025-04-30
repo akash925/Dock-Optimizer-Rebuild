@@ -80,7 +80,16 @@ export default function CreateOrganizationPage() {
   // Create organization mutation
   const createOrgMutation = useMutation({
     mutationFn: async (data: CreateOrgFormValues) => {
-      const response = await apiRequest('POST', '/api/admin/orgs', data);
+      // Check if we have a contact email and name to create a user automatically
+      const createUser = data.contactEmail && data.contactName && data.contactName.trim() !== '';
+      
+      // Include flag to create a user if we have the necessary data
+      const orgData = {
+        ...data,
+        createUser: createUser,
+      };
+      
+      const response = await apiRequest('POST', '/api/admin/orgs', orgData);
       return await response.json();
     },
     onSuccess: (data) => {
@@ -88,6 +97,15 @@ export default function CreateOrganizationPage() {
         title: 'Organization created',
         description: `${data.name} has been created successfully`,
       });
+      
+      // Show additional toast if a user was created
+      if (data.userCreated) {
+        toast({
+          title: 'User account created',
+          description: `Account for ${data.contactEmail} was automatically created`,
+        });
+      }
+      
       // Navigate to the organization detail page
       navigate(`/admin/orgs/${data.id}`);
     },
