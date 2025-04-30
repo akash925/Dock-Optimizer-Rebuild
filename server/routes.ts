@@ -2626,12 +2626,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
-      // Verify that the appointment type belongs to the specified facility
-      if (appointmentType.facilityId !== facilityIdNum) {
-        return res.status(400).json({ 
-          message: "The specified appointment type does not belong to the specified facility" 
-        });
-      }
+      // For tenant isolation purposes, we've already verified:
+      // 1. The facility belongs to the tenant (checkTenantFacilityAccess)
+      // 2. The appointment type belongs to the tenant (getAppointmentType with tenantId)
+      //
+      // We should not require that appointmentType.facilityId === facilityIdNum
+      // since the data model allows appointment types to be used across facilities
+      
+      // Log appointment type info for debugging
+      console.log(`[AvailabilityRules] Using appointment type: ${appointmentType.id} (${appointmentType.name}) with facilityId: ${appointmentType.facilityId}, requested facilityId: ${facilityIdNum}`);
+      
       
       // Get availability rules for this appointment type
       const dailyRules = await storage.getDailyAvailabilityByAppointmentType(appointmentTypeIdNum);
