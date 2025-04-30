@@ -644,14 +644,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { startDate, endDate } = req.query;
       let schedules;
       
+      // Get the tenant ID from the authenticated user
+      const tenantId = req.user?.tenantId;
+      console.log(`Fetching schedules for user with tenantId: ${tenantId}`);
+      
       if (startDate && endDate) {
         schedules = await storage.getSchedulesByDateRange(
           new Date(startDate as string),
-          new Date(endDate as string)
+          new Date(endDate as string),
+          tenantId
         );
       } else {
         try {
-          schedules = await storage.getSchedules();
+          // Pass tenant ID to filter schedules by tenant
+          schedules = await storage.getSchedules(tenantId);
         } catch (error) {
           console.error("Error in getSchedules:", error);
           throw error;

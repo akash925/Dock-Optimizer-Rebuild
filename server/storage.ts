@@ -2024,13 +2024,24 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getSchedules(): Promise<Schedule[]> {
+  async getSchedules(tenantId?: number): Promise<Schedule[]> {
     try {
-      // Use pool to query directly
-      const result = await pool.query(`SELECT schedules.*, facilities.name AS facility_name 
-                                       FROM schedules 
-                                       LEFT JOIN docks ON schedules.dock_id = docks.id
-                                       LEFT JOIN facilities ON docks.facility_id = facilities.id`);
+      // Build the query with a tenant filter if a tenantId is provided
+      let query = `SELECT schedules.*, facilities.name AS facility_name 
+                  FROM schedules 
+                  LEFT JOIN docks ON schedules.dock_id = docks.id
+                  LEFT JOIN facilities ON docks.facility_id = facilities.id`;
+      
+      const params: any[] = [];
+      
+      // Add tenant filtering if a tenantId is provided
+      if (tenantId) {
+        query += ` WHERE facilities.tenant_id = $1`;
+        params.push(tenantId);
+      }
+      
+      // Execute the query with or without the tenant filter
+      const result = await pool.query(query, params);
       
       // Transform to match our expected Schedule interface
       return result.rows.map((row: any) => {
@@ -2158,18 +2169,28 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]> {
+  async getSchedulesByDateRange(startDate: Date, endDate: Date, tenantId?: number): Promise<Schedule[]> {
     try {
-      // Use pool to query directly - join with facilities to get better data
-      const result = await pool.query(`
+      // Build the query with parameters
+      let query = `
         SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id, 
                at.name as appointment_type_name
         FROM schedules s
         LEFT JOIN docks d ON s.dock_id = d.id
         LEFT JOIN facilities f ON d.facility_id = f.id
         LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
-        WHERE s.start_time >= $1 AND s.end_time <= $2
-      `, [startDate, endDate]);
+        WHERE s.start_time >= $1 AND s.end_time <= $2`;
+      
+      const params: any[] = [startDate, endDate];
+      
+      // Add tenant filtering if a tenantId is provided
+      if (tenantId) {
+        query += ` AND f.tenant_id = $3`;
+        params.push(tenantId);
+      }
+      
+      // Execute the query with parameters
+      const result = await pool.query(query, params);
       
       // Transform to match our expected Schedule interface
       return result.rows.map((row: any) => {
@@ -2495,7 +2516,13 @@ export class DatabaseStorage implements IStorage {
     return facility;
   }
 
-  async getFacilities(): Promise<Facility[]> {
+  async getFacilities(tenantId?: number): Promise<Facility[]> {
+    // If a tenant ID is provided, filter facilities by tenant
+    if (tenantId) {
+      return await db.select().from(facilities).where(eq(facilities.tenantId, tenantId));
+    }
+    
+    // Otherwise return all facilities (for super-admin)
     return await db.select().from(facilities);
   }
 
