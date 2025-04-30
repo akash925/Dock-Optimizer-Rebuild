@@ -30,6 +30,12 @@ export async function enrichUserWithRole(user: any) {
         console.log(`Enriching user ${user.username} with role ${roleRecord.name}`);
         user.role = roleRecord.name;
       }
+      
+      // Set the tenantId (organizationId) for the user - critical for module visibility
+      if (orgUser.organizationId) {
+        console.log(`Setting tenantId ${orgUser.organizationId} for user ${user.username}`);
+        user.tenantId = orgUser.organizationId;
+      }
     }
 
     return user;

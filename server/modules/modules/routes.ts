@@ -2,6 +2,34 @@ import { Router } from 'express';
 import { getStorage } from '../../storage';
 import { isAuthenticated } from '../../middleware/auth';
 
+// Define module types and available modules
+type ModuleName = 
+  | 'appointments' 
+  | 'doorManager' 
+  | 'calendar' 
+  | 'analytics'
+  | 'bookingPages' 
+  | 'assetManager' 
+  | 'facilityManagement'
+  | 'userManagement' 
+  | 'emailNotifications';
+
+// Import available modules from constants
+const AVAILABLE_MODULES: ModuleName[] = [
+  'appointments', 'doorManager', 'calendar', 'analytics', 
+  'bookingPages', 'assetManager', 'facilityManagement', 
+  'userManagement', 'emailNotifications'
+];
+
+// Augment Express User type to include tenantId
+declare global {
+  namespace Express {
+    interface User {
+      tenantId?: number;
+    }
+  }
+}
+
 export const modulesRouter = Router();
 
 // Default modules for users without a tenant ID
@@ -40,6 +68,25 @@ modulesRouter.get('/', isAuthenticated, async (req, res) => {
     const modules = await storage.getOrganizationModules(tenantId);
     console.log(`[ModulesRouter] Fetched ${modules.length} modules for organization ${tenantId}`);
     
+    // If no modules found for this organization, use the complete set of modules
+    if (!modules || modules.length === 0) {
+      console.log(`[ModulesRouter] No modules found for organization ${tenantId}, using all available modules`);
+      
+      // Create a full set of available modules with default enabled values
+      // This ensures that the organization has access to all modules
+      const allModules = AVAILABLE_MODULES.map(moduleName => ({
+        moduleName,
+        enabled: true // Enable all modules by default
+      }));
+      
+      // Set cache headers to ensure fresh data
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      return res.json(allModules);
+    }
+    
     // Set cache headers to ensure fresh data
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -73,6 +120,24 @@ modulesRouter.get('/refresh', isAuthenticated, async (req, res) => {
 
     const storage = await getStorage();
     const modules = await storage.getOrganizationModules(tenantId);
+    
+    // If no modules found for this organization, use the complete set of modules
+    if (!modules || modules.length === 0) {
+      console.log(`[ModulesRouter] No modules found for organization ${tenantId} during refresh, using all available modules`);
+      
+      // Create a full set of available modules with default enabled values
+      const allModules = AVAILABLE_MODULES.map(moduleName => ({
+        moduleName,
+        enabled: true // Enable all modules by default
+      }));
+      
+      // Set cache headers to ensure fresh data
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      return res.json(allModules);
+    }
     
     // Set cache headers to prevent caching
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
