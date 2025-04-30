@@ -3128,22 +3128,51 @@ export class DatabaseStorage implements IStorage {
 
   async getBookingPages(tenantId?: number): Promise<BookingPage[]> {
     try {
+      let result: BookingPage[] = [];
+      
       // If no tenantId is provided, return all booking pages (for super admin)
       if (tenantId === undefined) {
-        const allBookingPages = await db.select().from(bookingPages);
-        console.log(`Found ${allBookingPages.length} booking pages (super admin view)`);
-        return allBookingPages;
+        result = await db.select().from(bookingPages);
+        console.log(`Found ${result.length} booking pages (super admin view)`);
+      } else {
+        // With tenant_id column in place, we can directly filter by tenant
+        result = await db
+          .select()
+          .from(bookingPages)
+          .where(eq(bookingPages.tenantId, tenantId));
+        
+        console.log(`Found ${result.length} booking pages for organization ${tenantId} by tenantId`);
       }
       
-      // With tenant_id column in place, we can directly filter by tenant
-      const tenantBookingPages = await db
-        .select()
-        .from(bookingPages)
-        .where(eq(bookingPages.tenantId, tenantId));
+      // Process each booking page to ensure facilities is always an array
+      for (const bookingPage of result) {
+        if (bookingPage.facilities) {
+          try {
+            // If it's a string (from JSONB column), parse it
+            if (typeof bookingPage.facilities === 'string') {
+              bookingPage.facilities = JSON.parse(bookingPage.facilities);
+            }
+            
+            // Still ensure it's an array after parsing
+            if (!Array.isArray(bookingPage.facilities)) {
+              // If it's an object with keys as facility IDs, convert to array
+              if (typeof bookingPage.facilities === 'object') {
+                bookingPage.facilities = Object.keys(bookingPage.facilities).map(id => Number(id));
+              } else {
+                // Fallback to empty array if we can't parse it
+                bookingPage.facilities = [];
+              }
+            }
+          } catch (e) {
+            console.error(`Error parsing facilities for booking page ${bookingPage.id}:`, e);
+            bookingPage.facilities = [];
+          }
+        } else {
+          bookingPage.facilities = [];
+        }
+      }
       
-      console.log(`Found ${tenantBookingPages.length} booking pages for organization ${tenantId} by tenantId`);
-      
-      return tenantBookingPages;
+      return result;
     } catch (error) {
       console.error(`Error retrieving booking pages:`, error);
       throw error;
@@ -3184,17 +3213,93 @@ export class DatabaseStorage implements IStorage {
       }
     }
     
-    // Perform the update, preserving the existing tenant ID
+    // Create a copy of the update object to modify
+    const updateData = { ...bookingPageUpdate };
+    
+    // Don't allow changing the tenant ID during an update
+    updateData.tenantId = undefined;
+    
+    // If facilities is provided, ensure it's in the correct format before saving
+    if (updateData.facilities !== undefined) {
+      try {
+        // If it's already an array, we're good
+        if (Array.isArray(updateData.facilities)) {
+          // Make sure all elements are numbers
+          updateData.facilities = updateData.facilities.map(id => 
+            typeof id === 'string' ? Number(id) : id
+          );
+        } 
+        // If it's a string (possibly from form data), try to parse it
+        else if (typeof updateData.facilities === 'string') {
+          try {
+            const parsed = JSON.parse(updateData.facilities);
+            if (Array.isArray(parsed)) {
+              updateData.facilities = parsed.map(id => 
+                typeof id === 'string' ? Number(id) : id
+              );
+            } else if (typeof parsed === 'object') {
+              // Handle object format where keys are facility IDs
+              updateData.facilities = Object.keys(parsed).map(id => Number(id));
+            } else {
+              // Default to empty array if we can't parse it properly
+              updateData.facilities = [];
+            }
+          } catch (e) {
+            console.error(`Error parsing facilities for booking page update ${id}:`, e);
+            updateData.facilities = [];
+          }
+        }
+        // If it's an object with facility IDs as keys
+        else if (typeof updateData.facilities === 'object' && updateData.facilities !== null) {
+          updateData.facilities = Object.keys(updateData.facilities).map(id => Number(id));
+        }
+        // Default to empty array for any other case
+        else {
+          updateData.facilities = [];
+        }
+        
+        console.log(`Normalized facilities for booking page ${id} update:`, updateData.facilities);
+      } catch (e) {
+        console.error(`Error processing facilities for booking page update ${id}:`, e);
+        updateData.facilities = [];
+      }
+    }
+    
+    // Perform the update
     const [updatedBookingPage] = await db
       .update(bookingPages)
       .set({
-        ...bookingPageUpdate,
-        // Don't allow changing the tenant ID during an update
-        tenantId: undefined, 
+        ...updateData,
         lastModifiedAt: new Date()
       })
       .where(eq(bookingPages.id, id))
       .returning();
+      
+    // Always ensure the facilities property is normalized in the returned object
+    if (updatedBookingPage.facilities) {
+      try {
+        // If it's a string (from JSONB column), parse it
+        if (typeof updatedBookingPage.facilities === 'string') {
+          updatedBookingPage.facilities = JSON.parse(updatedBookingPage.facilities);
+        }
+        
+        // Still ensure it's an array after parsing
+        if (!Array.isArray(updatedBookingPage.facilities)) {
+          // If it's an object with keys as facility IDs, convert to array
+          if (typeof updatedBookingPage.facilities === 'object') {
+            updatedBookingPage.facilities = Object.keys(updatedBookingPage.facilities).map(id => Number(id));
+          } else {
+            // Fallback to empty array if we can't parse it
+            updatedBookingPage.facilities = [];
+          }
+        }
+      } catch (e) {
+        console.error(`Error parsing facilities for updated booking page ${id}:`, e);
+        updatedBookingPage.facilities = [];
+      }
+    } else {
+      updatedBookingPage.facilities = [];
+    }
       
     console.log(`Updated booking page ${id} (tenant ${updatedBookingPage.tenantId})`);
     return updatedBookingPage;
