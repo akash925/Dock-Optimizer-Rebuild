@@ -267,11 +267,13 @@ export default function TopNav() {
         </Sheet>
         
         {/* Organization logo */}
-        <img 
-          src={orgLogo || organizationLogo} 
-          alt="Organization Logo" 
-          className="h-8 w-auto mr-2 hidden md:block" 
-        />
+        {orgLogo && (
+          <img 
+            src={orgLogo} 
+            alt={user?.tenantId === 5 ? "Fresh Connect Logo" : "Hanzo Logistics Logo"} 
+            className="h-8 w-auto mr-2 hidden md:block" 
+          />
+        )}
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

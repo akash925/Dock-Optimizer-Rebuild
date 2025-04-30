@@ -989,6 +989,38 @@ export const organizationModulesRelations = relations(organizationModules, ({ on
   }),
 }));
 
+// Organization Facilities mapping
+export const organizationFacilities = pgTable("organization_facilities", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  facilityId: integer("facility_id").notNull().references(() => facilities.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    orgFacilityUnique: unique().on(table.organizationId, table.facilityId),
+  };
+});
+
+export const insertOrgFacilitySchema = createInsertSchema(organizationFacilities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type OrganizationFacility = typeof organizationFacilities.$inferSelect;
+export type InsertOrganizationFacility = z.infer<typeof insertOrgFacilitySchema>;
+
+// Organization Facilities Relations
+export const organizationFacilitiesRelations = relations(organizationFacilities, ({ one }) => ({
+  organization: one(tenants, {
+    fields: [organizationFacilities.organizationId],
+    references: [tenants.id],
+  }),
+  facility: one(facilities, {
+    fields: [organizationFacilities.facilityId],
+    references: [facilities.id],
+  }),
+}));
+
 export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
   organization: one(tenants, {
     fields: [activityLogs.organizationId],
