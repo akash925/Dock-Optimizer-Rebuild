@@ -267,12 +267,22 @@ export default function TopNav() {
         </Sheet>
         
         {/* Organization logo */}
-        {orgLogo && (
+        {orgLogo ? (
           <img 
             src={orgLogo} 
             alt={user?.tenantId === 5 ? "Fresh Connect Logo" : "Hanzo Logistics Logo"} 
             className="h-8 w-auto mr-2 hidden md:block" 
+            onError={(e) => {
+              console.error("Failed to load logo:", e);
+              e.currentTarget.style.display = 'none';
+            }}
           />
+        ) : (
+          <div className="h-8 w-auto mr-2 hidden md:flex items-center">
+            <span className="font-semibold text-lg text-primary">
+              {user?.tenantId === 5 ? "Fresh Connect" : user?.tenantId === 2 ? "Hanzo Logistics" : "Dock Optimizer"}
+            </span>
+          </div>
         )}
         
         <DropdownMenu>
