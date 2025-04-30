@@ -576,6 +576,9 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
     
     // Error state
     if (bookingPageError || !bookingPage) {
+      console.error("Booking page error:", bookingPageError);
+      console.error("Booking page slug attempted:", slug);
+      
       return (
         <div className="flex flex-col items-center justify-center py-12">
           <img src={dockOptimizerLogo} alt="Dock Optimizer" className="h-16 mb-4" />
@@ -586,6 +589,9 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
               {bookingPageError ? bookingPageError.message : `Booking page "${slug}" not found.`}
             </AlertDescription>
           </Alert>
+          <p className="text-sm text-muted-foreground mt-4">
+            Please check that the URL is correct or contact the organization for assistance.
+          </p>
         </div>
       );
     }
