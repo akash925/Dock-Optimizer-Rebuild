@@ -2036,7 +2036,13 @@ export class DatabaseStorage implements IStorage {
       
       // Add tenant filtering if a tenantId is provided
       if (tenantId) {
-        query += ` WHERE facilities.tenant_id = $1`;
+        // Filter by organization's facilities
+        query += ` WHERE EXISTS (
+          SELECT 1 FROM organization_facilities of 
+          WHERE of.facility_id = facilities.id 
+          AND of.organization_id = $1
+        )`;
+        
         params.push(tenantId);
       }
       
@@ -2185,7 +2191,11 @@ export class DatabaseStorage implements IStorage {
       
       // Add tenant filtering if a tenantId is provided
       if (tenantId) {
-        query += ` AND f.tenant_id = $3`;
+        query += ` AND EXISTS (
+          SELECT 1 FROM organization_facilities of 
+          WHERE of.facility_id = f.id 
+          AND of.organization_id = $3
+        )`;
         params.push(tenantId);
       }
       
@@ -2517,13 +2527,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFacilities(tenantId?: number): Promise<Facility[]> {
-    // If a tenant ID is provided, filter facilities by tenant
-    if (tenantId) {
-      return await db.select().from(facilities).where(eq(facilities.tenantId, tenantId));
+    try {
+      // Fetch all facilities first
+      const allFacilities = await db.select().from(facilities);
+      
+      // If tenant ID provided, filter facilities
+      if (tenantId) {
+        // For now, without modifying the database schema, we'll use a different approach
+        // Get all facilities that belong to the organization through org_facilities table
+        const query = `
+          SELECT f.* FROM facilities f
+          JOIN organization_facilities of ON f.id = of.facility_id
+          WHERE of.organization_id = $1
+        `;
+        
+        const result = await pool.query(query, [tenantId]);
+        return result.rows;
+      }
+      
+      // Return all facilities for super admin
+      return allFacilities;
+    } catch (error) {
+      console.error("Error in getFacilities:", error);
+      throw error;
     }
-    
-    // Otherwise return all facilities (for super-admin)
-    return await db.select().from(facilities);
   }
 
   async createFacility(insertFacility: InsertFacility): Promise<Facility> {
@@ -2706,8 +2733,30 @@ export class DatabaseStorage implements IStorage {
     return appointmentType;
   }
 
-  async getAppointmentTypes(): Promise<AppointmentType[]> {
-    return await db.select().from(appointmentTypes);
+  async getAppointmentTypes(tenantId?: number): Promise<AppointmentType[]> {
+    try {
+      if (tenantId) {
+        // Filter appointment types by organization's facilities
+        const query = `
+          SELECT at.* FROM appointment_types at
+          JOIN facilities f ON at.facility_id = f.id
+          WHERE EXISTS (
+            SELECT 1 FROM organization_facilities of 
+            WHERE of.facility_id = f.id 
+            AND of.organization_id = $1
+          )
+        `;
+        
+        const result = await pool.query(query, [tenantId]);
+        return result.rows;
+      }
+      
+      // If no tenant ID is provided, return all appointment types (for super admin)
+      return await db.select().from(appointmentTypes);
+    } catch (error) {
+      console.error("Error in getAppointmentTypes:", error);
+      throw error;
+    }
   }
 
   async getAppointmentTypesByFacility(facilityId: number): Promise<AppointmentType[]> {

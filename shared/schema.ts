@@ -256,6 +256,7 @@ export const facilities = pgTable("facilities", {
   longitude: text("longitude"),
   company: text("company"),
   timezone: text("timezone").default("America/New_York"), // Default to Eastern Time
+  tenantId: integer("tenant_id"), // Added for multi-tenant isolation
   
   // Operating hours for the facility - all times stored in 24-hour format HH:MM
   mondayStart: text("monday_start").default("08:00"),
