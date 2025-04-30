@@ -1,8 +1,9 @@
-import { useMemo, useCallback, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
-import { OrgModule, AVAILABLE_MODULES } from '@/contexts/ModuleContext';
+import { OrgModule, AVAILABLE_MODULES, useModules } from '@/contexts/ModuleContext';
+import { toast } from '@/hooks/use-toast';
 
 interface Organization {
   id: number;
@@ -25,9 +26,11 @@ const createAdminApiClient = (): AdminApiClient => {
       }
       
       try {
+        // Add a cache-busting timestamp to prevent caching issues
+        const timestamp = new Date().getTime();
         const response = await apiRequest(
           'PUT', 
-          `/api/admin/orgs/${orgId}/modules/${moduleName}`,
+          `/api/admin/orgs/${orgId}/modules/${moduleName}?_t=${timestamp}`,
           { enabled }
         );
         
@@ -45,11 +48,24 @@ const createAdminApiClient = (): AdminApiClient => {
   };
 };
 
-const fetchOrg = async (orgId: number): Promise<Organization> => {
+const fetchOrg = async (orgId: number): Promise<Organization | null> => {
+  if (!orgId) return null;
+  
   try {
-    const res = await apiRequest('GET', `/api/admin/orgs/${orgId}/detail`);
+    // Add a cache-busting timestamp
+    const timestamp = new Date().getTime();
+    const res = await apiRequest('GET', `/api/admin/orgs/${orgId}/detail?_t=${timestamp}`, undefined, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     
     if (!res.ok) {
+      if (res.status === 404) {
+        return null; // Organization not found
+      }
       throw new Error(`Failed to fetch organization: ${res.statusText}`);
     }
     
@@ -64,73 +80,111 @@ const fetchOrg = async (orgId: number): Promise<Organization> => {
 export const useOrg = (orgId?: number) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { refetchModules } = useModules();
   
   // If no orgId provided, use the user's tenantId (organization id)
-  const effectiveOrgId = orgId || user?.tenantId;
+  const effectiveOrgId = orgId || user?.tenantId || 0;
   
+  // Define query configuration for the organization data
   const { 
     data: org,
     isLoading,
     error,
     refetch
-  } = useQuery({
+  } = useQuery<Organization | null>({
     queryKey: ['org', effectiveOrgId],
     queryFn: () => fetchOrg(effectiveOrgId),
-    enabled: !!effectiveOrgId,
-    staleTime: 300000, // Cache for 5 minutes
-    retry: 1, // Only retry once to avoid flooding the server
+    retry: 1,
+    staleTime: 300000, // 5 minutes
+    gcTime: 600000, // 10 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchInterval: false as const, // Properly type this as false, not boolean
+    enabled: effectiveOrgId > 0
   });
 
-  // Create admin API client with module toggle functionality
+  // Create admin API client
   const adminApi = useMemo(() => createAdminApiClient(), []);
 
-  // Extract module names that are enabled
+  // Extract module names that are enabled - memoized for performance
   const enabledModules = useMemo(() => {
     const modules = org?.modules || [];
-    // Map to just the module names of enabled modules
     return modules
       .filter(m => m.enabled)
       .map(m => m.moduleName);
   }, [org?.modules]);
   
-  // Log for debugging purposes
-  useEffect(() => {
-    console.log('Organization:', org?.name);
-    console.log('Enabled Modules:', enabledModules);
-    console.log('Sidebar: useOrg enabled modules:', enabledModules);
-  }, [org?.name, enabledModules]);
-
-  // Toggle module function that invalidates all related queries
-  const toggleModule = useCallback(async (moduleName: string, enabled: boolean) => {
-    if (!effectiveOrgId) {
-      throw new Error('No organization ID available');
+  // Setup module toggle mutation
+  const moduleMutation = useMutation({
+    mutationFn: async ({ 
+      moduleName, 
+      enabled 
+    }: { 
+      moduleName: string; 
+      enabled: boolean 
+    }) => {
+      if (!effectiveOrgId) {
+        throw new Error('No organization ID available');
+      }
+      
+      return adminApi.toggleOrgModule(effectiveOrgId, moduleName, enabled);
+    },
+    onSuccess: async () => {
+      // Invalidate all related queries
+      await queryClient.invalidateQueries({ queryKey: ['org', effectiveOrgId] });
+      await queryClient.invalidateQueries({ queryKey: ['modules'] });
+      
+      // Explicitly refetch data
+      await Promise.all([
+        refetch(),
+        refetchModules()
+      ]);
+      
+      toast({
+        title: 'Module updated',
+        description: 'Module settings have been updated successfully',
+        variant: 'default'
+      });
+    },
+    onError: (error: Error) => {
+      console.error('Error toggling module:', error);
+      toast({
+        title: 'Failed to update module',
+        description: error.message,
+        variant: 'destructive'
+      });
     }
-    
+  });
+
+  // Toggle module function that uses the mutation
+  const toggleModule = useCallback(async (moduleName: string, enabled: boolean) => {
     try {
-      // Call the API to toggle the module
-      await adminApi.toggleOrgModule(effectiveOrgId, moduleName, enabled);
-      
-      // Invalidate both the organization and modules queries
-      queryClient.invalidateQueries({ queryKey: ['org', effectiveOrgId] });
-      queryClient.invalidateQueries({ queryKey: ['modules'] });
-      
-      // Refetch the org data to update the UI
-      await refetch();
-      
+      await moduleMutation.mutateAsync({ moduleName, enabled });
       return true;
     } catch (error) {
-      console.error('Error toggling module:', error);
       return false;
     }
-  }, [effectiveOrgId, adminApi, queryClient, refetch]);
+  }, [moduleMutation]);
 
-  return { 
-    org, 
-    enabledModules, 
+  // Force a refresh of both org and modules data
+  const refreshOrgData = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['org', effectiveOrgId] }),
+      queryClient.invalidateQueries({ queryKey: ['modules'] }),
+      refetch(),
+      refetchModules()
+    ]);
+  }, [effectiveOrgId, queryClient, refetch, refetchModules]);
+
+  return {
+    org,
+    enabledModules,
     isLoading,
     error,
     orgId: effectiveOrgId,
     toggleModule,
-    refetchOrg: refetch
+    refetchOrg: refreshOrgData,
+    isToggling: moduleMutation.isPending
   };
 };

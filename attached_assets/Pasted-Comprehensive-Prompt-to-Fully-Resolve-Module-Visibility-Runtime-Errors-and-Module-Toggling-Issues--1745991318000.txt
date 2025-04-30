@@ -1,0 +1,116 @@
+Comprehensive Prompt to Fully Resolve Module Visibility, Runtime Errors, and Module Toggling Issues
+
+Current Issues:
+The Dock Optimizer app is experiencing several critical issues related to modular feature management via the Super Admin panel, affecting user experience within organizational accounts (e.g., Hanzo Logistics):
+
+Module Toggling Issue (Highest Priority):
+
+Modules toggled via the Super Admin (Organization Modules) do not consistently reflect in the organization's user interface.
+
+Example scenario:
+
+All modules (Appointments, Calendar, Asset Manager, Email Notifications, Analytics, etc.) show as enabled for the Hanzo organization in the Admin Console, but the organization's users cannot see these enabled modules in the left-hand navigation of their account (only Dashboard, Appointments, Door Manager, Facility Management, Settings appear).
+
+Expected behavior:
+
+When toggled "on" via the Super Admin, each module should appear in the organization's left-hand navigation menu immediately.
+
+When toggled "off," the modules should immediately disappear from the organization's navigation without causing runtime errors.
+
+Runtime Error (Critical):
+
+After toggling modules on/off, logging in as an organizational user (e.g., Hanzo's testadmin) triggers a severe runtime error:
+
+Error: unknown runtime error
+
+Console Log: "Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render."
+
+This error likely relates to state management issues within React components, possibly involving React Query, useEffect, or context providers.
+
+Expected behavior:
+
+Resolving module toggling issues must ensure no runtime errors appear when users log in or navigate between views. Components should not cause infinite render loops or improper setState calls.
+
+Inconsistent Calendar Navigation Behavior (Secondary Priority):
+
+The "Calendar" module doesn't appear in the sidebar, even when enabled. However, accessing calendar events indirectly via the "Appointments → View" redirects users to a functioning Calendar page.
+
+The Calendar page itself should be directly accessible via the left-hand navigation when enabled.
+
+Expected behavior:
+
+If the Calendar module is enabled, it should appear explicitly in the navigation sidebar without indirect access through other modules.
+
+Task for the AI Agent (Detailed Step-by-Step):
+You must implement a clear, robust, and complete solution addressing all the above points with the following guidelines:
+
+Backend Implementation:
+
+Verify and ensure all /api/modules endpoints (GET, POST, DELETE, etc.) function correctly with appropriate JSON payloads.
+
+Implement a dedicated endpoint (/api/modules/refresh) for the frontend to trigger immediate cache invalidation and state updates.
+
+Ensure module settings persist correctly within the database/storage implementation (DatabaseStorage or MemStorage classes).
+
+Frontend Implementation:
+
+Implement robust logic in ModuleContext to accurately fetch, cache, and refresh module settings using React Query.
+
+On successful module toggling in the admin, ensure cache invalidation (queryClient.invalidateQueries) is correctly used to instantly reflect module availability to organizational users.
+
+Explicitly avoid infinite loops by properly configuring useEffect dependency arrays to match component state changes.
+
+Ensure React Query or context providers do not unnecessarily re-trigger renders or updates (fix the "maximum update depth" issue explicitly).
+
+Navigation & Visibility:
+
+Clearly tie module availability in the sidebar navigation directly to the organization's module settings.
+
+If a module is toggled off, do not render it or any related route/navigation item for organizational users (no "Not Authorized" page—completely remove the route from navigation).
+
+When toggled on again, immediately display the module in navigation upon user refresh/login.
+
+Activity Logging & Auditing:
+
+Maintain and enhance robust logging in the activity_logs table every time module settings change, clearly indicating the admin user and specific module state toggled.
+
+Post-Implementation Checks (Critical!):
+After applying fixes, explicitly perform and report back on these tests:
+
+Toggle "Asset Manager" Off and On:
+
+Verify the module instantly disappears and reappears in the Hanzo organization’s left-hand sidebar without errors.
+
+Toggle "Calendar" Off and On:
+
+Verify explicit navigation item visibility in the sidebar directly after toggling.
+
+Runtime Error Check:
+
+Log out and log back in as Hanzo's testadmin account multiple times, navigating between pages.
+
+Confirm no runtime errors or maximum depth warnings appear.
+
+Database Consistency:
+
+Check backend database after each toggle, confirming accurate persistence of module states.
+
+Activity Logs:
+
+Confirm clear and correct entries in activity_logs.
+
+Agent Response Instructions (Important for Debugging!):
+After implementing the above, clearly report back with the following details:
+
+Confirm that all endpoints and React Query configurations were reviewed and updated.
+
+Provide explicit confirmation of each test outcome (#1 to #5 above), including:
+
+Module visibility in UI (screenshot if possible).
+
+Absence of runtime errors (explicit console log check).
+
+Database persistence checks (brief summary).
+
+Proceed carefully, thoroughly, and methodically. If you encounter any difficulties, report exactly where they occur with specific details, screenshots, or logs.
+

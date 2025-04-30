@@ -142,9 +142,11 @@ export default function Sidebar({ className }: SidebarProps) {
             );
           }
           
-          // For module-dependent items, check both contexts
-          // Either the ModuleContext enables it OR useOrg's enabledModules includes it
-          const isEnabled = isModuleEnabled(item.module) || enabledModules.includes(item.module);
+          // For module-dependent items, check if enabled in ModuleContext
+          // The source of truth is ModuleContext, but we're also checking enabledModules as a fallback
+          const moduleEnabled = isModuleEnabled(item.module);
+          const orgModuleEnabled = Array.isArray(enabledModules) && enabledModules.includes(item.module);
+          const isEnabled = moduleEnabled || orgModuleEnabled;
           
           if (isEnabled) {
             return (
@@ -188,8 +190,10 @@ export default function Sidebar({ className }: SidebarProps) {
                 );
               }
               
-              // Check both contexts - either ModuleContext OR useOrg's enabledModules
-              const isEnabled = isModuleEnabled(item.module) || enabledModules.includes(item.module);
+              // Check both contexts - ModuleContext is the source of truth, useOrg's enabledModules as fallback
+              const moduleEnabled = isModuleEnabled(item.module);
+              const orgModuleEnabled = Array.isArray(enabledModules) && enabledModules.includes(item.module);
+              const isEnabled = moduleEnabled || orgModuleEnabled;
               
               // Only render if user has required role and module is enabled
               return (hasRequiredRole && isEnabled) && (

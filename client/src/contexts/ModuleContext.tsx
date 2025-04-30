@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, ReactNode, useMemo, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -41,8 +41,7 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // Use TanStack Query instead of local state for modules
-  // This avoids double state that can lead to infinite re-renders
+  // Use TanStack Query to handle the module state 
   const { 
     data: modules = DEFAULT_MODULES, 
     isLoading, 
@@ -53,28 +52,42 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
       if (!user) return DEFAULT_MODULES;
       
       try {
-        const response = await fetch('/api/modules');
+        // Add a cache-busting query parameter to avoid browser caching
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/modules?_t=${timestamp}`, {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+        
         if (!response.ok) {
           console.warn('Failed to fetch modules, using defaults');
           return DEFAULT_MODULES;
         }
         
         const data = await response.json();
-        console.log('Current modules state:', data);
+        if (!Array.isArray(data)) {
+          console.error('Invalid modules data format, using defaults');
+          return DEFAULT_MODULES;
+        }
+        
         return data;
       } catch (error) {
         console.error('Error fetching modules:', error);
         return DEFAULT_MODULES;
       }
     },
-    // Only run query when user is authenticated
-    enabled: !!user,
-    // Don't refetch on window focus to avoid flickering
+    retry: 2,
+    staleTime: 300000, // 5 minutes
+    gcTime: 600000, // 10 minutes
     refetchOnWindowFocus: false,
-    // Cache for 5 minutes (300000ms) unless explicitly invalidated
-    staleTime: 300000,
-    // Set a reasonable cache time
-    gcTime: 600000,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    // Properly type refetchInterval as false, not boolean
+    refetchInterval: false as const,
+    enabled: !!user
   });
   
   // Utility function to log current module state - helpful for debugging
@@ -82,29 +95,34 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
     console.log('Current modules state:', modules);
   }, [modules]);
   
-  // Clear module cache on logout
-  useEffect(() => {
-    if (!user) {
-      queryClient.invalidateQueries({ queryKey: ['modules'] });
-    }
-  }, [user, queryClient]);
-  
   // Memoize the module check function for performance
   const isModuleEnabled = useCallback((moduleName: string) => {
     // If not specified, consider it enabled
     if (!moduleName) return true;
     
-    // Check if module exists and is enabled
-    return modules.some(m => m.moduleName === moduleName && m.enabled);
+    // Safely check if module exists and is enabled
+    // Add type guard to ensure we're working with an array
+    if (!Array.isArray(modules)) {
+      return false;
+    }
+    
+    return modules.some((m: OrgModule) => m.moduleName === moduleName && m.enabled);
   }, [modules]);
   
   // Refetch modules function for manual refresh
   const refetchModules = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ['modules'] });
-    await refetch();
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['modules'] });
+      await refetch();
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Failed to refresh modules:', error);
+      return Promise.reject(error);
+    }
   }, [queryClient, refetch]);
   
   // Memoize the context value to prevent unnecessary re-renders
+  // This is critical to avoid re-rendering loops
   const contextValue = useMemo(() => ({
     modules,
     isModuleEnabled,
