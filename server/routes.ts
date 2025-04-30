@@ -3607,21 +3607,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parsedFacilityId = Number(facilityId);
       const parsedAppointmentTypeId = Number(finalTypeId);
       
-      // If user has a tenant ID, verify facility access first
-      if (tenantId) {
-        const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+      // Enforce tenant isolation for all users (not just those with a tenantId)
+      // First, check if the user is a super admin
+      const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+      
+      if (isSuperAdmin) {
+        console.log(`[AvailabilityEndpoint] Super admin access granted for facility ${parsedFacilityId}`);
+      } else {
+        // If not super admin, enforce tenant isolation
+        let userTenantId = tenantId;
         
-        const facility = await checkTenantFacilityAccess(
-          parsedFacilityId,
-          tenantId,
-          isSuperAdmin,
-          'AvailabilityEndpoint'
-        );
+        // If no tenant ID in session, try to determine tenant from the requested facility
+        if (!userTenantId) {
+          const orgInfo = await storage.getOrganizationByFacilityId(parsedFacilityId);
+          if (orgInfo) {
+            console.log(`[AvailabilityEndpoint] Facility ${parsedFacilityId} belongs to organization ${orgInfo.id} (${orgInfo.name})`);
+            userTenantId = orgInfo.id;
+          }
+        }
         
-        if (!facility && !isSuperAdmin) {
-          console.log(`[AvailabilityEndpoint] Access denied - facility ${parsedFacilityId} does not belong to tenant ${tenantId}`);
+        // If using a tenantId (from session or derived), verify facility access
+        if (userTenantId) {
+          const facility = await checkTenantFacilityAccess(
+            parsedFacilityId,
+            userTenantId,
+            isSuperAdmin,
+            'AvailabilityEndpoint'
+          );
+          
+          // Check if user's tenant matches the facility's tenant
+          const matchesTenant = tenantId && tenantId === userTenantId;
+          
+          if ((!facility || !matchesTenant) && !isSuperAdmin) {
+            console.log(`[AvailabilityEndpoint] Access denied - facility ${parsedFacilityId} does not belong to tenant ${tenantId}`);
+            return res.status(403).json({ 
+              message: "Access denied to this facility's availability"
+            });
+          }
+        }
+        
+        // Additional check: verify appointment type belongs to the user's tenant
+        const appointmentTypeOrg = await storage.getOrganizationByAppointmentTypeId(parsedAppointmentTypeId);
+        if (appointmentTypeOrg && tenantId && appointmentTypeOrg.id !== tenantId) {
+          console.log(`[AvailabilityEndpoint] Access denied - appointment type ${parsedAppointmentTypeId} belongs to org ${appointmentTypeOrg.id}, user is from tenant ${tenantId}`);
           return res.status(403).json({ 
-            message: "Access denied to this facility's availability"
+            message: "Access denied to this appointment type's availability"
           });
         }
       }

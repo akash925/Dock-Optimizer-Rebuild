@@ -84,9 +84,11 @@ export interface IStorage {
   updateCarrier(id: number, carrier: Partial<Carrier>): Promise<Carrier | undefined>;
   
   // Facility operations
-  getFacility(id: number): Promise<Facility | undefined>;
+  getFacility(id: number, tenantId?: number): Promise<Facility | undefined>;
   getFacilities(tenantId?: number): Promise<Facility[]>;
   getFacilitiesByOrganizationId(organizationId: number): Promise<Facility[]>;
+  getOrganizationByFacilityId(facilityId: number): Promise<{ id: number; name: string } | null>;
+  getOrganizationByAppointmentTypeId(appointmentTypeId: number): Promise<{ id: number; name: string } | null>;
   createFacility(facility: InsertFacility): Promise<Facility>;
   updateFacility(id: number, facility: Partial<Facility>): Promise<Facility | undefined>;
   deleteFacility(id: number): Promise<boolean>;
@@ -2793,6 +2795,32 @@ export class DatabaseStorage implements IStorage {
       return result.rows[0];
     } catch (error) {
       console.error(`Error getting organization for facility ${facilityId}:`, error);
+      return null;
+    }
+  }
+  
+  async getOrganizationByAppointmentTypeId(appointmentTypeId: number): Promise<{ id: number; name: string } | null> {
+    try {
+      // Find the organization that owns this appointment type using the tenant_id field
+      const query = `
+        SELECT t.id, t.name 
+        FROM tenants t
+        JOIN appointment_types apt ON t.id = apt.tenant_id
+        WHERE apt.id = $1
+        LIMIT 1
+      `;
+      
+      const result = await pool.query(query, [appointmentTypeId]);
+      
+      if (result.rows.length === 0) {
+        console.log(`No organization found for appointment type ${appointmentTypeId}`);
+        return null;
+      }
+      
+      console.log(`Found organization "${result.rows[0].name}" (ID: ${result.rows[0].id}) for appointment type ${appointmentTypeId}`);
+      return result.rows[0];
+    } catch (error) {
+      console.error(`Error getting organization for appointment type ${appointmentTypeId}:`, error);
       return null;
     }
   }
