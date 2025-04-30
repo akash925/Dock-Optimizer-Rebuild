@@ -168,9 +168,8 @@ export default function Sidebar({ className }: SidebarProps) {
             });
           }
           
-          // TEMPORARY: For testing, enabling all valid module items
-          // const isEnabled = moduleEnabled || orgModuleEnabled;
-          const isEnabled = true; 
+          // Use actual module visibility settings
+          const isEnabled = moduleEnabled || orgModuleEnabled;
           
           if (isEnabled) {
             return (
@@ -226,9 +225,8 @@ export default function Sidebar({ className }: SidebarProps) {
                 });
               }
               
-              // TEMPORARY: For testing, enabling all valid module items
-              // const isEnabled = moduleEnabled || orgModuleEnabled;
-              const isEnabled = true;
+              // Use actual module visibility settings
+              const isEnabled = moduleEnabled || orgModuleEnabled;
               
               // Only render if user has required role and module is enabled
               return (hasRequiredRole && isEnabled) && (
