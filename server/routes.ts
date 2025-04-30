@@ -2425,6 +2425,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking page not found" });
       }
       
+      // Check tenant isolation if user is authenticated and has a tenantId
+      if (req.isAuthenticated() && req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Get facilities for this tenant
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        // Make sure facilities is an array
+        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
+        
+        // Check if any of the booking page's facilities belong to this organization
+        const hasTenantFacility = bookingPageFacilities.some(
+          facilityId => facilityIds.includes(facilityId)
+        );
+        
+        if (!hasTenantFacility) {
+          console.log(`[BookingPage] Access denied - booking page ${slug} does not belong to tenant ${req.user.tenantId}`);
+          return res.status(403).json({ message: "Access denied to this booking page" });
+        }
+      }
+      
       console.log(`[BookingPage] Successfully retrieved booking page:`, {
         id: bookingPage.id,
         name: bookingPage.name,

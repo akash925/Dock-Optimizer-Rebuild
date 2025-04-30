@@ -717,8 +717,23 @@ export class MemStorage implements IStorage {
     return this.facilities.get(id);
   }
 
-  async getFacilities(): Promise<Facility[]> {
+  async getFacilities(tenantId?: number): Promise<Facility[]> {
+    if (tenantId) {
+      return this.getFacilitiesByOrganizationId(tenantId);
+    }
     return Array.from(this.facilities.values());
+  }
+  
+  async getFacilitiesByOrganizationId(organizationId: number): Promise<Facility[]> {
+    // Filter facilities for this organization
+    // This is a simplified implementation for in-memory storage
+    // In a real database, we'd need to use a proper join with organization_facilities table
+    return Array.from(this.facilities.values()).filter(facility => {
+      // Check if this facility exists in the organization_facilities mappings
+      return Array.from(this.organizationFacilities.values()).some(
+        mapping => mapping.organizationId === organizationId && mapping.facilityId === facility.id
+      );
+    });
   }
 
   async createFacility(insertFacility: InsertFacility): Promise<Facility> {
@@ -2531,15 +2546,7 @@ export class DatabaseStorage implements IStorage {
     try {
       // If tenant ID provided, filter facilities by organization
       if (tenantId) {
-        // Get all facilities that belong to the organization through organization_facilities table
-        const query = `
-          SELECT f.* FROM facilities f
-          JOIN organization_facilities of ON f.id = of.facility_id
-          WHERE of.organization_id = $1
-        `;
-        
-        const result = await pool.query(query, [tenantId]);
-        return result.rows;
+        return this.getFacilitiesByOrganizationId(tenantId);
       }
       
       // Return all facilities for super admin
@@ -2547,6 +2554,24 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error in getFacilities:", error);
       throw error;
+    }
+  }
+  
+  async getFacilitiesByOrganizationId(organizationId: number): Promise<Facility[]> {
+    try {
+      // Use a join query to get facilities that belong to this organization
+      const query = `
+        SELECT f.* FROM facilities f
+        JOIN organization_facilities of ON f.id = of.facility_id
+        WHERE of.organization_id = $1
+      `;
+      
+      const result = await pool.query(query, [organizationId]);
+      console.log(`Found ${result.rows.length} facilities for organization ${organizationId}`);
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting facilities by organization ID:', error);
+      return [];
     }
   }
 
