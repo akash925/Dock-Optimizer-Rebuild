@@ -2537,9 +2537,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Facility operations
-  async getFacility(id: number): Promise<Facility | undefined> {
-    const [facility] = await db.select().from(facilities).where(eq(facilities.id, id));
-    return facility;
+  async getFacility(id: number, tenantId?: number): Promise<Facility | undefined> {
+    // If no tenant ID is provided, return the facility without tenant isolation
+    if (!tenantId) {
+      const [facility] = await db.select().from(facilities).where(eq(facilities.id, id));
+      return facility;
+    }
+    
+    // If tenant ID is provided, check if this facility belongs to the organization
+    try {
+      // Use a join query to ensure facility belongs to the organization
+      const query = `
+        SELECT f.* FROM facilities f
+        JOIN organization_facilities of ON f.id = of.facility_id
+        WHERE f.id = $1 AND of.organization_id = $2
+        LIMIT 1
+      `;
+      
+      const result = await pool.query(query, [id, tenantId]);
+      
+      if (result.rows.length === 0) {
+        console.log(`[getFacility] Facility ${id} does not belong to organization ${tenantId}`);
+        return undefined;
+      }
+      
+      console.log(`[getFacility] Successfully retrieved facility ${id} for organization ${tenantId}`);
+      return result.rows[0];
+    } catch (error) {
+      console.error(`[getFacility] Error retrieving facility ${id} for organization ${tenantId}:`, error);
+      return undefined;
+    }
   }
 
   async getFacilities(tenantId?: number): Promise<Facility[]> {
