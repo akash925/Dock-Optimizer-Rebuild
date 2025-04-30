@@ -10,6 +10,32 @@ import multer from "multer";
 import { sendConfirmationEmail, sendEmail } from "./notifications";
 import { testEmailTemplate } from "./email-test";
 import { adminRoutes } from "./modules/admin/routes";
+
+/**
+ * Helper function to check tenant isolation security for facility-related resources.
+ * Returns a facility if it belongs to the user's organization, otherwise returns null.
+ */
+async function checkTenantFacilityAccess(facilityId: number, tenantId: number, isSuperAdmin: boolean, tag: string = 'TenantAccess') {
+  const storage = getStorage();
+  
+  // Super admins bypass tenant isolation checks
+  if (isSuperAdmin) {
+    const facility = await storage.getFacility(facilityId);
+    console.log(`[${tag}] Super admin access granted for facility ${facilityId}`);
+    return facility;
+  }
+  
+  // For normal users, use the tenant-aware getFacility method
+  const facility = await storage.getFacility(facilityId, tenantId);
+  
+  if (!facility) {
+    console.log(`[${tag}] Access denied - facility ${facilityId} does not belong to organization ${tenantId}`);
+    return null;
+  }
+  
+  console.log(`[${tag}] Verified tenant access to facility ${facilityId} for tenant ${tenantId}`);
+  return facility;
+}
 import {
   insertDockSchema,
   // Removing insertScheduleSchema as we're handling date validation manually
@@ -2095,20 +2121,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
-      // Check tenant isolation if user is not a super admin
-      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
-        // Find the facility
-        const facility = await storage.getFacility(appointmentType.facilityId);
+      // Check tenant isolation if user has a tenantId
+      if (req.user?.tenantId) {
+        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+        
+        // Use our helper function to check tenant access
+        const facility = await checkTenantFacilityAccess(
+          appointmentType.facilityId, 
+          req.user.tenantId, 
+          isSuperAdmin,
+          'AppointmentType'
+        );
+        
         if (!facility) {
-          console.log(`[AppointmentType] Facility not found: ${appointmentType.facilityId}`);
-          return res.status(404).json({ message: "Facility not found" });
-        }
-        
-        // Check if this facility belongs to user's organization
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
-        const facilityIds = orgFacilities.map(f => f.id);
-        
-        if (!facilityIds.includes(facility.id)) {
           console.log(`[AppointmentType] Access denied - appointment type ${id} is not in organization ${req.user.tenantId}`);
           return res.status(403).json({ message: "Access denied to this appointment type" });
         }
@@ -2184,13 +2209,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid facility ID" });
       }
       
-      // Check tenant isolation if user is not a super admin
-      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
-        // Check if facility belongs to user's organization
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
-        const facilityIds = orgFacilities.map(f => f.id);
+      // Check tenant isolation if user has a tenantId
+      if (req.user?.tenantId) {
+        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
         
-        if (!facilityIds.includes(facility.id)) {
+        // Use our helper function to check tenant access
+        const facilityAccess = await checkTenantFacilityAccess(
+          validatedData.facilityId,
+          req.user.tenantId,
+          isSuperAdmin,
+          'AppointmentType'
+        );
+        
+        if (!facilityAccess) {
           console.log(`[AppointmentType] Access denied - facility ${facility.id} does not belong to organization ${req.user.tenantId}`);
           return res.status(403).json({ message: "You can only create appointment types for facilities in your organization" });
         }
@@ -2224,20 +2255,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
-      // Check tenant isolation if user is not a super admin
-      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
-        // Find the facility
-        const facility = await storage.getFacility(appointmentType.facilityId);
+      // Check tenant isolation if user has a tenantId
+      if (req.user?.tenantId) {
+        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+        
+        // Use our helper function to check tenant access
+        const facility = await checkTenantFacilityAccess(
+          appointmentType.facilityId,
+          req.user.tenantId,
+          isSuperAdmin,
+          'AppointmentType'
+        );
+        
         if (!facility) {
-          console.log(`[AppointmentType] Facility not found: ${appointmentType.facilityId}`);
-          return res.status(404).json({ message: "Facility not found" });
-        }
-        
-        // Check if this facility belongs to user's organization
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
-        const facilityIds = orgFacilities.map(f => f.id);
-        
-        if (!facilityIds.includes(facility.id)) {
           console.log(`[AppointmentType] Access denied - appointment type ${id} is not in organization ${req.user.tenantId}`);
           return res.status(403).json({ message: "Access denied to this appointment type" });
         }
