@@ -76,6 +76,13 @@ export const managementItems: NavItem[] = [
     roles: ['admin']
   },
   { 
+    key: 'appointments', 
+    label: 'Appointment Master', 
+    path: '/appointment-master', 
+    icon: CalendarClock, 
+    roles: ['admin', 'manager']
+  },
+  { 
     key: 'bookingPages', 
     label: 'Booking Pages', 
     path: '/booking-pages', 
