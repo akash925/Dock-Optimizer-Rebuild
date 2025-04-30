@@ -2666,11 +2666,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const appointmentTypeOrg = aptResult.rows[0];
             console.log(`[MasterAvailabilityRules] Appointment type ${appointmentTypeIdNum} belongs to organization ${appointmentTypeOrg.id} (${appointmentTypeOrg.name})`);
             
-            // If we have the user's tenant ID, verify it matches the appointment type's organization
-            if (tenantId && appointmentTypeOrg.id !== tenantId) {
-              console.log(`[MasterAvailabilityRules] Access denied - appointment type ${appointmentTypeIdNum} belongs to org ${appointmentTypeOrg.id}, user is from tenant ${tenantId}`);
+            // Critical tenant isolation check:
+            // If the user has a tenant ID and it doesn't match the appointment type's organization,
+            // OR if the facility's tenant doesn't match the appointment type's tenant, deny access
+            if ((tenantId && appointmentTypeOrg.id !== tenantId) || 
+                (userTenantId && appointmentTypeOrg.id !== userTenantId)) {
+              console.log(`[MasterAvailabilityRules] Access denied - appointment type ${appointmentTypeIdNum} belongs to org ${appointmentTypeOrg.id}, user is from tenant ${tenantId || 'none'}, facility belongs to tenant ${userTenantId || 'none'}`);
               return res.status(403).json({ 
-                message: "Access denied to this appointment type's availability rules"
+                message: "Access denied: you don't have permission to access this resource"
               });
             }
           }
@@ -3778,11 +3781,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const appointmentTypeOrg = aptResult.rows[0];
             console.log(`[AvailabilityEndpoint] Appointment type ${parsedAppointmentTypeId} belongs to organization ${appointmentTypeOrg.id} (${appointmentTypeOrg.name})`);
             
-            // If user has a tenant ID, verify it matches the appointment type's organization
-            if (tenantId && appointmentTypeOrg.id !== tenantId) {
-              console.log(`[AvailabilityEndpoint] Access denied - appointment type ${parsedAppointmentTypeId} belongs to org ${appointmentTypeOrg.id}, user is from tenant ${tenantId}`);
+            // Critical tenant isolation check:
+            // If the user has a tenant ID and it doesn't match the appointment type's organization,
+            // OR if the facility's tenant doesn't match the appointment type's tenant, deny access
+            if ((tenantId && appointmentTypeOrg.id !== tenantId) || 
+                (userTenantId && appointmentTypeOrg.id !== userTenantId)) {
+              console.log(`[AvailabilityEndpoint] Access denied - appointment type ${parsedAppointmentTypeId} belongs to org ${appointmentTypeOrg.id}, user is from tenant ${tenantId}, facility belongs to tenant ${userTenantId}`);
               return res.status(403).json({ 
-                message: "Access denied to this appointment type's availability"
+                message: "Access denied: you don't have permission to access this resource"
               });
             }
           }
