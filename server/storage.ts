@@ -2907,16 +2907,80 @@ export class DatabaseStorage implements IStorage {
     return bookingPage;
   }
 
-  async getBookingPageBySlug(slug: string): Promise<BookingPage | undefined> {
-    const [bookingPage] = await db
-      .select()
-      .from(bookingPages)
-      .where(eq(bookingPages.slug, slug));
-    return bookingPage;
+  async getBookingPageBySlug(slug: string, tenantId?: number): Promise<BookingPage | undefined> {
+    try {
+      // Get the booking page by slug
+      const [bookingPage] = await db
+        .select()
+        .from(bookingPages)
+        .where(eq(bookingPages.slug, slug));
+      
+      if (!bookingPage) {
+        return undefined;
+      }
+      
+      // If tenantId is provided, we need to enforce tenant isolation
+      // We'll check if any of the facilities in the booking page belong to the tenant
+      if (tenantId !== undefined) {
+        // Get the facilities for this tenant
+        const orgFacilities = await this.getFacilitiesByOrganizationId(tenantId);
+        const orgFacilityIds = orgFacilities.map(f => f.id);
+        
+        // Check if the booking page has any facilities from this tenant
+        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
+        const hasTenantFacility = bookingPageFacilities.some(
+          facilityId => orgFacilityIds.includes(facilityId)
+        );
+        
+        if (!hasTenantFacility) {
+          console.log(`Booking page ${slug} does not have any facilities belonging to tenant ${tenantId}`);
+          return undefined; // Return undefined to indicate no access
+        }
+      }
+      
+      console.log(`[BookingPage] Successfully retrieved booking page: ${JSON.stringify({
+        id: bookingPage.id,
+        name: bookingPage.name,
+        facilities: bookingPage.facilities,
+        excludedAppointmentTypes: bookingPage.excludedAppointmentTypes
+      })}`);
+      
+      return bookingPage;
+    } catch (error) {
+      console.error(`Error retrieving booking page by slug ${slug}:`, error);
+      throw error;
+    }
   }
 
-  async getBookingPages(): Promise<BookingPage[]> {
-    return await db.select().from(bookingPages);
+  async getBookingPages(tenantId?: number): Promise<BookingPage[]> {
+    try {
+      // Get all booking pages
+      const allBookingPages = await db.select().from(bookingPages);
+      
+      // If no tenantId is provided, return all booking pages
+      if (tenantId === undefined) {
+        return allBookingPages;
+      }
+      
+      // If tenantId is provided, filter booking pages by tenant's facilities
+      const orgFacilities = await this.getFacilitiesByOrganizationId(tenantId);
+      const orgFacilityIds = orgFacilities.map(f => f.id);
+      
+      console.log(`Found ${orgFacilities.length} facilities for organization ${tenantId}`);
+      
+      // Filter booking pages to only include those with facilities from this tenant
+      const filteredBookingPages = allBookingPages.filter(bookingPage => {
+        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
+        return bookingPageFacilities.some(facilityId => orgFacilityIds.includes(facilityId));
+      });
+      
+      console.log(`Found ${filteredBookingPages.length} booking pages for organization ${tenantId}`);
+      
+      return filteredBookingPages;
+    } catch (error) {
+      console.error(`Error retrieving booking pages:`, error);
+      throw error;
+    }
   }
 
   async createBookingPage(insertBookingPage: InsertBookingPage): Promise<BookingPage> {

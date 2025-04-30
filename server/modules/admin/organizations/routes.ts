@@ -349,10 +349,17 @@ export const organizationsRoutes = (app: Express) => {
         return res.status(401).json({ message: 'Not authenticated' });
       }
       
+      // Check if the user is requesting a logo for their organization
+      const requestedOrgId = id;
+      const userOrgId = req.user.tenantId;
+      
       // Non-super-admin users can only access their own organization's logo
-      if (req.user.role !== 'super-admin' && req.user.tenantId !== id) {
+      if (req.user.role !== 'super-admin' && userOrgId !== requestedOrgId) {
+        console.log(`Access denied: User (tenant ${userOrgId}) attempted to access logo for organization ${requestedOrgId}`);
         return res.status(403).json({ 
-          message: 'Not authorized to access another organization\'s logo' 
+          message: 'Not authorized to access another organization\'s logo',
+          userTenant: userOrgId,
+          requestedTenant: requestedOrgId
         });
       }
       
@@ -363,6 +370,9 @@ export const organizationsRoutes = (app: Express) => {
       if (!existingOrg) {
         return res.status(404).json({ message: 'Organization not found' });
       }
+      
+      // Add tenant isolation logging
+      console.log(`Logo request for organization ${id} by user from tenant ${userOrgId}`);
       
       // Return the logo or null if not set
       res.json({ logo: existingOrg.logo || null });
