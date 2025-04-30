@@ -2837,11 +2837,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Appointment Type operations
-  async getAppointmentType(id: number): Promise<AppointmentType | undefined> {
-    const [appointmentType] = await db
+  async getAppointmentType(id: number, tenantId?: number): Promise<AppointmentType | undefined> {
+    console.log(`[getAppointmentType] Fetching appointment type with ID: ${id}${tenantId ? `, for tenant: ${tenantId}` : ''}`);
+    
+    let query = db
       .select()
       .from(appointmentTypes)
       .where(eq(appointmentTypes.id, id));
+      
+    // If tenantId is provided, add tenant filter
+    if (tenantId !== undefined) {
+      query = query.where(eq(appointmentTypes.tenantId, tenantId));
+    }
+    
+    const [appointmentType] = await query;
+    
+    if (appointmentType) {
+      console.log(`[getAppointmentType] Found appointment type: ${appointmentType.id} - ${appointmentType.name}`);
+    } else {
+      console.log(`[getAppointmentType] No appointment type found with ID: ${id}${tenantId ? ` for tenant: ${tenantId}` : ''}`);
+    }
+    
     return appointmentType;
   }
 

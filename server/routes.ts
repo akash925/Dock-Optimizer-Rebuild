@@ -2118,15 +2118,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointment-types/:id", async (req, res) => {
     try {
       const id = Number(req.params.id);
-      console.log(`[AppointmentType] Fetching appointment type with ID: ${id}`);
+      const tenantId = req.user?.tenantId;
+      console.log(`[AppointmentType] Fetching appointment type with ID: ${id}, tenantId: ${tenantId || 'none'}`);
       
-      const appointmentType = await storage.getAppointmentType(id);
+      // Pass tenantId to ensure tenant isolation
+      const appointmentType = await storage.getAppointmentType(id, tenantId);
       if (!appointmentType) {
-        console.log(`[AppointmentType] Not found: ${id}`);
+        console.log(`[AppointmentType] Not found: ${id}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
-      // Check tenant isolation if user has a tenantId
+      // Additional tenant check - can remove this once all appointment types have tenantId
       if (req.user?.tenantId) {
         const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
         
@@ -2154,16 +2156,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/facilities/:id/appointment-types", async (req, res) => {
     try {
       const facilityId = Number(req.params.id);
-      console.log(`[AppointmentTypes] Fetching appointment types for facility ID: ${facilityId}`);
+      const tenantId = req.user?.tenantId;
       
+      console.log(`[AppointmentTypes] Fetching appointment types for facility ID: ${facilityId}, tenantId: ${tenantId || 'none'}`);
+      
+      // Check if facility exists
       const facility = await storage.getFacility(facilityId);
       if (!facility) {
         console.log(`[AppointmentTypes] Facility ID ${facilityId} not found`);
         return res.status(404).json({ message: "Facility not found" });
       }
       
-      const appointmentTypes = await storage.getAppointmentTypesByFacility(facilityId);
-      console.log(`[AppointmentTypes] Found ${appointmentTypes.length} appointment types for facility ID ${facilityId}`);
+      // Check tenant isolation if user has a tenantId
+      if (tenantId) {
+        const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+        
+        // Use our helper function to check tenant access
+        const userFacility = await checkTenantFacilityAccess(
+          facilityId,
+          tenantId,
+          isSuperAdmin,
+          'GetFacilityAppointmentTypes'
+        );
+        
+        if (!userFacility) {
+          console.log(`[AppointmentTypes] Access denied - facility ${facilityId} does not belong to organization ${tenantId}`);
+          return res.status(403).json({ message: "You can only view appointment types for facilities in your organization" });
+        }
+      }
+      
+      // Pass the tenantId to filter appointment types by tenant
+      const appointmentTypes = await storage.getAppointmentTypesByFacility(facilityId, tenantId);
+      console.log(`[AppointmentTypes] Found ${appointmentTypes.length} appointment types for facility ID ${facilityId}${tenantId ? ` and tenant ${tenantId}` : ''}`);
       
       // Optional query parameter to filter by booking page
       const bookingPageId = req.query.bookingPageId ? Number(req.query.bookingPageId) : null;
@@ -2171,11 +2195,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (bookingPageId) {
         console.log(`[AppointmentTypes] Filtering by booking page ID: ${bookingPageId}`);
         
-        // Get the booking page to check excluded appointment types
-        const bookingPage = await storage.getBookingPage(bookingPageId);
+        // Get the booking page to check excluded appointment types - include tenant check
+        const bookingPage = await storage.getBookingPage(bookingPageId, tenantId);
         
         if (!bookingPage) {
-          console.log(`[AppointmentTypes] Booking page ID ${bookingPageId} not found`);
+          console.log(`[AppointmentTypes] Booking page ID ${bookingPageId} not found${tenantId ? ` for tenant ${tenantId}` : ''}`);
           return res.status(404).json({ message: "Booking page not found" });
         }
         
@@ -2367,12 +2391,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointment-types/:id/availability", async (req, res) => {
     try {
       const appointmentTypeId = Number(req.params.id);
-      console.log(`[Availability] Fetching availability for appointment type ID: ${appointmentTypeId}`);
+      const tenantId = req.user?.tenantId;
       
-      // Get the appointment type first
-      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      console.log(`[Availability] Fetching availability for appointment type ID: ${appointmentTypeId}, tenantId: ${tenantId || 'none'}`);
+      
+      // Get the appointment type first with tenant isolation
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId, tenantId);
       if (!appointmentType) {
-        console.log(`[Availability] Appointment type not found: ${appointmentTypeId}`);
+        console.log(`[Availability] Appointment type not found: ${appointmentTypeId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
