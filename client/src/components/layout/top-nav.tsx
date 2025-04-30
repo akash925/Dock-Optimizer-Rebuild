@@ -49,13 +49,24 @@ export default function TopNav() {
   const [orgLogo, setOrgLogo] = useState<string | null>(null);
   const [selectedBookingPage, setSelectedBookingPage] = useState<string | null>(null);
 
-  // Load organization logo from localStorage
+  // Load organization logo from API
+  const { data: logoData } = useQuery({
+    queryKey: ['/api/admin/organizations', user?.tenantId, 'logo'],
+    queryFn: async () => {
+      if (!user?.tenantId) return null;
+      const res = await fetch(`/api/admin/organizations/${user.tenantId}/logo`);
+      if (!res.ok) throw new Error('Failed to fetch organization logo');
+      return res.json();
+    },
+    enabled: !!user?.tenantId
+  });
+  
+  // Update logo when data is fetched
   useEffect(() => {
-    const savedLogo = localStorage.getItem('organizationLogo');
-    if (savedLogo) {
-      setOrgLogo(savedLogo);
+    if (logoData?.logo) {
+      setOrgLogo(logoData.logo);
     }
-  }, []);
+  }, [logoData]);
   
   // Fetch booking pages
   const { data: bookingPages = [], isLoading: isLoadingBookingPages } = useQuery<BookingPage[]>({

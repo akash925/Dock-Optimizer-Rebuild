@@ -678,9 +678,35 @@ export default function Settings() {
                                 // Set the preview image and show the toast
                                 setLogoPreview(event.target.result as string);
                                 
-                                // In a real app, we'd upload the file to the server here
-                                // For this demo, we'll just use the local preview
-                                localStorage.setItem('organizationLogo', event.target.result as string);
+                                // Upload the logo to the server using the API
+                                if (user?.tenantId) {
+                                  fetch(`/api/admin/organizations/${user.tenantId}/logo`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({ 
+                                      logoData: event.target.result 
+                                    }),
+                                  }).then(response => {
+                                    if (!response.ok) {
+                                      throw new Error('Failed to update organization logo');
+                                    }
+                                    return response.json();
+                                  }).then(() => {
+                                    // Invalidate the logo query to refetch with new data
+                                    queryClient.invalidateQueries({ 
+                                      queryKey: ['/api/admin/organizations', user.tenantId, 'logo'] 
+                                    });
+                                  }).catch(error => {
+                                    console.error('Error uploading logo:', error);
+                                    toast({
+                                      title: "Logo Update Failed",
+                                      description: error.message,
+                                      variant: "destructive",
+                                    });
+                                  });
+                                }
                                 
                                 toast({
                                   title: "Logo Updated",

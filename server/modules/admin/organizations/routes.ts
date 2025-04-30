@@ -317,7 +317,7 @@ export const organizationsRoutes = (app: Express) => {
       
       // Update just the logo field
       const updatedOrg = await storage.updateTenant(id, {
-        logo: logoData,
+        logo: logoData,  // Property name is 'logo' in the schema
         updatedBy: req.user?.id
       });
       
@@ -353,7 +353,7 @@ export const organizationsRoutes = (app: Express) => {
       }
       
       // Return the logo or null if not set
-      res.json({ logo: existingOrg.logo || null });
+      res.json({ logo: existingOrg.logo_url || null });
     } catch (error) {
       console.error('Error fetching organization logo:', error);
       res.status(500).json({ message: 'Failed to fetch organization logo' });
