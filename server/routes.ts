@@ -2641,6 +2641,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Custom question not found" });
       }
       
+      // If the question is associated with an appointment type, check tenant isolation
+      if (customQuestion.appointmentTypeId) {
+        // Get the appointment type to check which facility it belongs to
+        const appointmentType = await storage.getAppointmentType(customQuestion.appointmentTypeId);
+        if (!appointmentType) {
+          return res.status(404).json({ message: "Associated appointment type not found" });
+        }
+        
+        // Add tenant isolation check
+        if (req.user?.tenantId) {
+          const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+          
+          const facility = await checkTenantFacilityAccess(
+            appointmentType.facilityId,
+            req.user.tenantId,
+            isSuperAdmin,
+            'CustomQuestion-Delete'
+          );
+          
+          if (!facility) {
+            console.log(`[CustomQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+            return res.status(403).json({ message: "You can only delete questions for appointment types in your organization" });
+          }
+        }
+      }
+      
       const success = await storage.deleteCustomQuestion(id);
       if (!success) {
         return res.status(500).json({ message: "Failed to delete custom question" });
