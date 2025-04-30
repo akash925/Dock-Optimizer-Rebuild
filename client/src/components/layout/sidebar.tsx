@@ -4,21 +4,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useModules } from "@/contexts/ModuleContext";
 import { useOrg } from "@/hooks/useOrg";
 import { useMemo } from "react";
-import { 
-  BarChart3, 
-  Calendar, 
-  Menu,
-  HelpCircle,
-  Home,
-  Layout,
-  ClipboardList,
-  File,
-  Warehouse,
-  FileText,
-  Globe,
-  Users,
-  Settings
-} from "lucide-react";
+import { Menu } from "lucide-react";
+import { navItems, managementItems } from "./navConfig";
 import { useState, useEffect } from "react";
 import { useMediaQuery } from "@/hooks/use-mobile";
 import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
