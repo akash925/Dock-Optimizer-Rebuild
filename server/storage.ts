@@ -2972,58 +2972,30 @@ export class DatabaseStorage implements IStorage {
 
   async getBookingPageBySlug(slug: string, tenantId?: number): Promise<BookingPage | undefined> {
     try {
-      // Get the booking page by slug - don't filter by tenant_id yet as it might not exist in the DB
-      const [bookingPage] = await db
+      let query = db
         .select()
         .from(bookingPages)
         .where(eq(bookingPages.slug, slug));
+
+      // If tenantId is provided, directly filter by tenant_id 
+      if (tenantId !== undefined) {
+        query = query.where(eq(bookingPages.tenantId, tenantId));
+      }
+
+      const [bookingPage] = await query;
       
       if (!bookingPage) {
+        console.log(`No booking page found with slug ${slug}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return undefined;
-      }
-      
-      // If tenantId is provided, we need to enforce tenant isolation
-      // We'll check if any of the facilities in the booking page belong to the tenant
-      if (tenantId !== undefined) {
-        // Get the facilities for this tenant
-        const orgFacilities = await this.getFacilitiesByOrganizationId(tenantId);
-        const orgFacilityIds = orgFacilities.map(f => f.id);
-        
-        console.log(`Tenant ${tenantId} has facilities with IDs: ${orgFacilityIds.join(', ')}`);
-        console.log(`Booking page ${slug} has facilities with IDs: ${JSON.stringify(bookingPage.facilities)}`);
-        
-        // Check if the booking page has any facilities from this tenant
-        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
-        const hasTenantFacility = bookingPageFacilities.some(
-          facilityId => orgFacilityIds.includes(facilityId)
-        );
-        
-        if (!hasTenantFacility) {
-          console.log(`Booking page ${slug} does not have any facilities belonging to tenant ${tenantId}`);
-          
-          // For external booking page access (public), we need to determine if this is a tenant's booking page
-          // Lookup the organization that owns the facilities in this booking page
-          const bookingPageFacilityIds = bookingPageFacilities.length > 0 ? bookingPageFacilities : [0];
-          const facilityOrgMappings = await db
-            .select()
-            .from(organizationFacilities)
-            .where(inArray(organizationFacilities.facilityId, bookingPageFacilityIds));
-          
-          const bookingPageTenantId = facilityOrgMappings.length > 0 ? facilityOrgMappings[0].organizationId : null;
-          console.log(`Booking page ${slug} belongs to tenant ${bookingPageTenantId}`);
-          
-          // If current tenant doesn't match booking page's tenant, don't allow access
-          if (bookingPageTenantId !== tenantId) {
-            return undefined; // Return undefined to indicate no access
-          }
-        }
       }
       
       console.log(`[BookingPage] Successfully retrieved booking page: ${JSON.stringify({
         id: bookingPage.id,
         name: bookingPage.name,
-        facilities: bookingPage.facilities,
-        excludedAppointmentTypes: bookingPage.excludedAppointmentTypes
+        slug: bookingPage.slug,
+        tenantId: bookingPage.tenantId,
+        facilities: bookingPage.facilities && Array.isArray(bookingPage.facilities) ? 
+          `[${bookingPage.facilities.length} facilities]` : bookingPage.facilities
       })}`);
       
       return bookingPage;
@@ -3035,32 +3007,22 @@ export class DatabaseStorage implements IStorage {
 
   async getBookingPages(tenantId?: number): Promise<BookingPage[]> {
     try {
-      // Get all booking pages without filtering by tenant_id until the migration is complete
-      // This avoids the "column tenant_id does not exist" error
-      const allBookingPages = await db
-        .select()
-        .from(bookingPages);
-      
       // If no tenantId is provided, return all booking pages (for super admin)
       if (tenantId === undefined) {
+        const allBookingPages = await db.select().from(bookingPages);
+        console.log(`Found ${allBookingPages.length} booking pages (super admin view)`);
         return allBookingPages;
       }
       
-      // Filter booking pages by tenant's facilities since we can't use tenant_id yet
-      const orgFacilities = await this.getFacilitiesByOrganizationId(tenantId);
-      const orgFacilityIds = orgFacilities.map(f => f.id);
+      // With tenant_id column in place, we can directly filter by tenant
+      const tenantBookingPages = await db
+        .select()
+        .from(bookingPages)
+        .where(eq(bookingPages.tenantId, tenantId));
       
-      console.log(`Found ${orgFacilities.length} facilities for organization ${tenantId}`);
+      console.log(`Found ${tenantBookingPages.length} booking pages for organization ${tenantId} by tenantId`);
       
-      // Filter booking pages to only include those with facilities from this tenant
-      const filteredBookingPages = allBookingPages.filter(bookingPage => {
-        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
-        return bookingPageFacilities.some(facilityId => orgFacilityIds.includes(facilityId));
-      });
-      
-      console.log(`Found ${filteredBookingPages.length} booking pages for organization ${tenantId}`);
-      
-      return filteredBookingPages;
+      return tenantBookingPages;
     } catch (error) {
       console.error(`Error retrieving booking pages:`, error);
       throw error;
@@ -3091,23 +3053,55 @@ export class DatabaseStorage implements IStorage {
     return bookingPage;
   }
 
-  async updateBookingPage(id: number, bookingPageUpdate: Partial<BookingPage>): Promise<BookingPage | undefined> {
+  async updateBookingPage(id: number, bookingPageUpdate: Partial<BookingPage>, tenantId?: number): Promise<BookingPage | undefined> {
+    // First check if the booking page belongs to the tenant (if tenant ID is provided)
+    if (tenantId !== undefined) {
+      const existingBookingPage = await this.getBookingPage(id);
+      if (!existingBookingPage || existingBookingPage.tenantId !== tenantId) {
+        console.log(`Booking page ${id} does not belong to tenant ${tenantId} or does not exist`);
+        return undefined;
+      }
+    }
+    
+    // Perform the update, preserving the existing tenant ID
     const [updatedBookingPage] = await db
       .update(bookingPages)
       .set({
         ...bookingPageUpdate,
+        // Don't allow changing the tenant ID during an update
+        tenantId: undefined, 
         lastModifiedAt: new Date()
       })
       .where(eq(bookingPages.id, id))
       .returning();
+      
+    console.log(`Updated booking page ${id} (tenant ${updatedBookingPage.tenantId})`);
     return updatedBookingPage;
   }
 
-  async deleteBookingPage(id: number): Promise<boolean> {
+  async deleteBookingPage(id: number, tenantId?: number): Promise<boolean> {
+    // Apply tenant isolation if tenant ID is provided
+    if (tenantId !== undefined) {
+      const existingBookingPage = await this.getBookingPage(id);
+      if (!existingBookingPage || existingBookingPage.tenantId !== tenantId) {
+        console.log(`Cannot delete booking page ${id} - it doesn't belong to tenant ${tenantId} or doesn't exist`);
+        return false;
+      }
+    }
+    
+    // Proceed with deletion
     const result = await db
       .delete(bookingPages)
       .where(eq(bookingPages.id, id));
-    return result.rowCount ? result.rowCount > 0 : false;
+      
+    const success = result.rowCount ? result.rowCount > 0 : false;
+    if (success) {
+      console.log(`Successfully deleted booking page ${id}`);
+    } else {
+      console.log(`Failed to delete booking page ${id}`);
+    }
+    
+    return success;
   }
 }
 
