@@ -2574,6 +2574,32 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
+  
+  async getOrganizationByFacilityId(facilityId: number): Promise<{ id: number; name: string } | null> {
+    try {
+      // Find the organization that owns this facility
+      const query = `
+        SELECT t.id, t.name 
+        FROM tenants t
+        JOIN organization_facilities of ON t.id = of.organization_id
+        WHERE of.facility_id = $1
+        LIMIT 1
+      `;
+      
+      const result = await pool.query(query, [facilityId]);
+      
+      if (result.rows.length === 0) {
+        console.log(`No organization found for facility ${facilityId}`);
+        return null;
+      }
+      
+      console.log(`Found organization "${result.rows[0].name}" (ID: ${result.rows[0].id}) for facility ${facilityId}`);
+      return result.rows[0];
+    } catch (error) {
+      console.error(`Error getting organization for facility ${facilityId}:`, error);
+      return null;
+    }
+  }
 
   async createFacility(insertFacility: InsertFacility): Promise<Facility> {
     const [facility] = await db.insert(facilities).values(insertFacility).returning();
