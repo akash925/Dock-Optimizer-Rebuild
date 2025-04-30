@@ -18,18 +18,23 @@ import { adminRoutes } from "./modules/admin/routes";
 async function checkTenantFacilityAccess(facilityId: number, tenantId: number, isSuperAdmin: boolean, tag: string = 'TenantAccess') {
   const storage = getStorage();
   
-  // Super admins bypass tenant isolation checks
-  if (isSuperAdmin) {
-    const facility = await storage.getFacility(facilityId);
-    console.log(`[${tag}] Super admin access granted for facility ${facilityId}`);
-    return facility;
-  }
-  
-  // For normal users, use the tenant-aware getFacility method
-  const facility = await storage.getFacility(facilityId, tenantId);
-  
-  if (!facility) {
-    console.log(`[${tag}] Access denied - facility ${facilityId} does not belong to organization ${tenantId}`);
+  try {
+    // Super admins bypass tenant isolation checks
+    if (isSuperAdmin) {
+      const facility = await storage.getFacility(facilityId);
+      console.log(`[${tag}] Super admin access granted for facility ${facilityId}`);
+      return facility;
+    }
+    
+    // For normal users, use the tenant-aware getFacility method with explicit tenantId parameter
+    const facility = await storage.getFacility(facilityId, tenantId);
+    
+    if (!facility) {
+      console.log(`[${tag}] Access denied - facility ${facilityId} does not belong to organization ${tenantId}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`[${tag}] Error checking facility access:`, error);
     return null;
   }
   
@@ -2225,12 +2230,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[AppointmentType] Access denied - facility ${facility.id} does not belong to organization ${req.user.tenantId}`);
           return res.status(403).json({ message: "You can only create appointment types for facilities in your organization" });
         }
+        
+        // Set tenant ID for multi-tenant isolation
+        validatedData.tenantId = req.user.tenantId;
       }
       
       // Add the current user to createdBy if field exists in schema
       if ('createdBy' in validatedData) {
         validatedData.createdBy = req.user?.id;
       }
+      
+      // Log the data being sent to createAppointmentType
+      console.log(`[AppointmentType] Data being sent to createAppointmentType:`, JSON.stringify(validatedData));
       
       const appointmentType = await storage.createAppointmentType(validatedData);
       console.log(`[AppointmentType] Created appointment type with ID: ${appointmentType.id}`);
@@ -2240,7 +2251,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid appointment type data", errors: err.errors });
       }
-      res.status(500).json({ message: "Failed to create appointment type" });
+      
+      // Provide more detailed error information
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error(`[AppointmentType] Detailed error: ${errorMessage}`);
+      
+      res.status(500).json({ 
+        message: "Failed to create appointment type", 
+        error: errorMessage
+      });
     }
   });
 

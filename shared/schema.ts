@@ -424,6 +424,7 @@ export const appointmentTypes = pgTable("appointment_types", {
   allowAppointmentsPastBusinessHours: boolean("allow_appointments_past_business_hours").notNull().default(false),
   overrideFacilityHours: boolean("override_facility_hours").notNull().default(false), // When true, allow scheduling outside facility hours
   timezone: text("timezone").default("America/New_York"), // Default to Eastern Time
+  tenantId: integer("tenant_id"), // Added for multi-tenant isolation
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),
 });
@@ -584,6 +585,10 @@ export const appointmentTypesRelations = relations(appointmentTypes, ({ one, man
     fields: [appointmentTypes.facilityId],
     references: [facilities.id],
     relationName: "facility_appointment_types"
+  }),
+  tenant: one(tenants, {
+    fields: [appointmentTypes.tenantId],
+    references: [tenants.id],
   }),
   dailyAvailability: many(dailyAvailability),
   customQuestions: many(customQuestions),
