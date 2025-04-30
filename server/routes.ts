@@ -2290,6 +2290,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[AppointmentType] Access denied - appointment type ${id} is not in organization ${req.user.tenantId}`);
           return res.status(403).json({ message: "Access denied to this appointment type" });
         }
+        
+        // Set tenant ID for multi-tenant isolation (ensure it's maintained on update)
+        req.body.tenantId = req.user.tenantId;
       }
       
       // Add lastModifiedBy if field exists in schema
@@ -2297,12 +2300,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.body.lastModifiedBy = req.user?.id;
       }
       
+      // Log update data for debugging
+      console.log(`[AppointmentType] Data being sent to updateAppointmentType:`, JSON.stringify(req.body));
+      
       const updatedAppointmentType = await storage.updateAppointmentType(id, req.body);
       console.log(`[AppointmentType] Updated appointment type ${id} successfully`);
       res.json(updatedAppointmentType);
     } catch (err) {
       console.error(`[AppointmentType] Error updating appointment type:`, err);
-      res.status(500).json({ message: "Failed to update appointment type" });
+      
+      // Provide more detailed error information
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error(`[AppointmentType] Detailed error: ${errorMessage}`);
+      
+      res.status(500).json({ 
+        message: "Failed to update appointment type",
+        error: errorMessage
+      });
     }
   });
 

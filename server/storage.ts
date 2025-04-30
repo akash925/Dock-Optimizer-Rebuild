@@ -2848,7 +2848,22 @@ export class DatabaseStorage implements IStorage {
   async getAppointmentTypes(tenantId?: number): Promise<AppointmentType[]> {
     try {
       if (tenantId) {
-        // Filter appointment types by organization's facilities
+        console.log(`[getAppointmentTypes] Fetching appointment types for tenant ID: ${tenantId}`);
+        
+        // Direct tenant ID filter using our new tenantId column
+        const directQuery = await db
+          .select()
+          .from(appointmentTypes)
+          .where(eq(appointmentTypes.tenantId, tenantId));
+          
+        if (directQuery.length > 0) {
+          console.log(`[getAppointmentTypes] Found ${directQuery.length} appointment types for tenant ID ${tenantId} using direct tenantId filter`);
+          return directQuery;
+        }
+        
+        // Fallback: filter appointment types by organization's facilities
+        // This is for backward compatibility with appointment types created before the tenantId column
+        console.log(`[getAppointmentTypes] No appointment types found with direct tenantId filter, using facility-based filter`);
         const query = `
           SELECT at.* FROM appointment_types at
           JOIN facilities f ON at.facility_id = f.id
@@ -2860,22 +2875,35 @@ export class DatabaseStorage implements IStorage {
         `;
         
         const result = await pool.query(query, [tenantId]);
+        console.log(`[getAppointmentTypes] Found ${result.rows.length} appointment types for tenant ID ${tenantId} using facility-based filter`);
         return result.rows;
       }
       
       // If no tenant ID is provided, return all appointment types (for super admin)
-      return await db.select().from(appointmentTypes);
+      const allTypes = await db.select().from(appointmentTypes);
+      console.log(`[getAppointmentTypes] Returning all ${allTypes.length} appointment types (super admin)`);
+      return allTypes;
     } catch (error) {
       console.error("Error in getAppointmentTypes:", error);
       throw error;
     }
   }
 
-  async getAppointmentTypesByFacility(facilityId: number): Promise<AppointmentType[]> {
-    return await db
+  async getAppointmentTypesByFacility(facilityId: number, tenantId?: number): Promise<AppointmentType[]> {
+    // First get the facility to check its tenant
+    let query = db
       .select()
       .from(appointmentTypes)
       .where(eq(appointmentTypes.facilityId, facilityId));
+    
+    // Add tenant filter if provided
+    if (tenantId !== undefined) {
+      query = query.where(eq(appointmentTypes.tenantId, tenantId));
+    }
+    
+    const types = await query;
+    console.log(`[getAppointmentTypesByFacility] Found ${types.length} appointment types for facility ${facilityId}${tenantId ? ` and tenant ${tenantId}` : ''}`);
+    return types;
   }
 
   async createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType> {
