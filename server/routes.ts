@@ -10,6 +10,7 @@ import multer from "multer";
 import { sendConfirmationEmail, sendEmail } from "./notifications";
 import { testEmailTemplate } from "./email-test";
 import { adminRoutes } from "./modules/admin/routes";
+import { pool } from "./db";
 
 /**
  * Helper function to check tenant isolation security for facility-related resources.
@@ -3666,40 +3667,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // If no tenant ID in session, try to determine tenant from the requested facility
         if (!userTenantId) {
-          const orgInfo = await storage.getOrganizationByFacilityId(parsedFacilityId);
-          if (orgInfo) {
-            console.log(`[AvailabilityEndpoint] Facility ${parsedFacilityId} belongs to organization ${orgInfo.id} (${orgInfo.name})`);
-            userTenantId = orgInfo.id;
+          try {
+            // Look up which organization owns this facility with direct SQL
+            const facilityOrgQuery = `
+              SELECT t.id, t.name 
+              FROM tenants t
+              JOIN organization_facilities of ON t.id = of.organization_id
+              WHERE of.facility_id = $1
+              LIMIT 1
+            `;
+            
+            const orgResult = await pool.query(facilityOrgQuery, [parsedFacilityId]);
+            
+            if (orgResult.rows.length > 0) {
+              const orgInfo = orgResult.rows[0];
+              console.log(`[AvailabilityEndpoint] Facility ${parsedFacilityId} belongs to organization ${orgInfo.id} (${orgInfo.name})`);
+              userTenantId = orgInfo.id;
+            }
+          } catch (error) {
+            console.error(`[AvailabilityEndpoint] Error determining facility organization:`, error);
           }
         }
         
         // If using a tenantId (from session or derived), verify facility access
         if (userTenantId) {
-          const facility = await checkTenantFacilityAccess(
-            parsedFacilityId,
-            userTenantId,
-            isSuperAdmin,
-            'AvailabilityEndpoint'
-          );
-          
-          // Check if user's tenant matches the facility's tenant
-          const matchesTenant = tenantId && tenantId === userTenantId;
-          
-          if ((!facility || !matchesTenant) && !isSuperAdmin) {
-            console.log(`[AvailabilityEndpoint] Access denied - facility ${parsedFacilityId} does not belong to tenant ${tenantId}`);
-            return res.status(403).json({ 
-              message: "Access denied to this facility's availability"
+          try {
+            // Verify facility belongs to the user's organization using direct SQL
+            const checkAccessQuery = `
+              SELECT 1 
+              FROM organization_facilities 
+              WHERE organization_id = $1 AND facility_id = $2
+              LIMIT 1
+            `;
+            
+            const accessResult = await pool.query(checkAccessQuery, [userTenantId, parsedFacilityId]);
+            
+            const hasAccess = isSuperAdmin || accessResult.rows.length > 0;
+            const matchesTenant = !tenantId || tenantId === userTenantId;
+            
+            if (!hasAccess || !matchesTenant) {
+              console.log(`[AvailabilityEndpoint] Access denied - facility ${parsedFacilityId} does not belong to tenant ${tenantId || userTenantId}`);
+              return res.status(403).json({ 
+                message: "Access denied to this facility's availability"
+              });
+            }
+            
+            console.log(`[AvailabilityEndpoint] Verified tenant access to facility ${parsedFacilityId} for tenant ${userTenantId}`);
+          } catch (error) {
+            console.error(`[AvailabilityEndpoint] Error checking facility access:`, error);
+            return res.status(500).json({ 
+              message: "Error checking facility access"
             });
           }
         }
         
         // Additional check: verify appointment type belongs to the user's tenant
-        const appointmentTypeOrg = await storage.getOrganizationByAppointmentTypeId(parsedAppointmentTypeId);
-        if (appointmentTypeOrg && tenantId && appointmentTypeOrg.id !== tenantId) {
-          console.log(`[AvailabilityEndpoint] Access denied - appointment type ${parsedAppointmentTypeId} belongs to org ${appointmentTypeOrg.id}, user is from tenant ${tenantId}`);
-          return res.status(403).json({ 
-            message: "Access denied to this appointment type's availability"
-          });
+        try {
+          const appointmentTypeQuery = `
+            SELECT t.id, t.name 
+            FROM tenants t
+            JOIN appointment_types apt ON t.id = apt.tenant_id
+            WHERE apt.id = $1
+            LIMIT 1
+          `;
+          
+          const aptResult = await pool.query(appointmentTypeQuery, [parsedAppointmentTypeId]);
+          
+          if (aptResult.rows.length > 0) {
+            const appointmentTypeOrg = aptResult.rows[0];
+            console.log(`[AvailabilityEndpoint] Appointment type ${parsedAppointmentTypeId} belongs to organization ${appointmentTypeOrg.id} (${appointmentTypeOrg.name})`);
+            
+            // If user has a tenant ID, verify it matches the appointment type's organization
+            if (tenantId && appointmentTypeOrg.id !== tenantId) {
+              console.log(`[AvailabilityEndpoint] Access denied - appointment type ${parsedAppointmentTypeId} belongs to org ${appointmentTypeOrg.id}, user is from tenant ${tenantId}`);
+              return res.status(403).json({ 
+                message: "Access denied to this appointment type's availability"
+              });
+            }
+          }
+        } catch (error) {
+          console.error(`[AvailabilityEndpoint] Error checking appointment type organization:`, error);
         }
       }
       
