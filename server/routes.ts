@@ -1245,7 +1245,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Facility routes
   app.get("/api/facilities", async (req, res) => {
     try {
-      const facilities = await storage.getFacilities();
+      // Get the tenant ID from the authenticated user
+      const tenantId = req.user?.tenantId;
+      console.log(`Fetching facilities for user with tenantId: ${tenantId}`);
+      
+      // Pass tenant ID to filter facilities by tenant
+      const facilities = await storage.getFacilities(tenantId);
       res.json(facilities);
     } catch (err) {
       res.status(500).json({ message: "Failed to fetch facilities" });
@@ -2004,9 +2009,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Appointment Type routes
   app.get("/api/appointment-types", async (req, res) => {
     try {
+      // Get the tenant ID from the authenticated user
+      const tenantId = req.user?.tenantId;
+      console.log(`Fetching appointment types for user with tenantId: ${tenantId}`);
+      
+      // Fetch appointment types - we'll need to filter by facility tenant ID
       const appointmentTypes = await storage.getAppointmentTypes();
-      console.log("Appointment types fetched:", appointmentTypes);
-      res.json(appointmentTypes);
+      
+      if (tenantId) {
+        // Get facilities for this tenant
+        const tenantFacilities = await storage.getFacilities(tenantId);
+        const tenantFacilityIds = tenantFacilities.map(facility => facility.id);
+        
+        // Filter appointment types to only show those for the tenant's facilities
+        const filteredAppointmentTypes = appointmentTypes.filter(type => 
+          tenantFacilityIds.includes(type.facilityId)
+        );
+        
+        console.log(`Filtered ${appointmentTypes.length} appointment types to ${filteredAppointmentTypes.length} for tenant ${tenantId}`);
+        res.json(filteredAppointmentTypes);
+      } else {
+        // Super admin case - return all appointment types
+        console.log("No tenant ID, returning all appointment types");
+        res.json(appointmentTypes);
+      }
     } catch (err) {
       console.error("Error fetching appointment types:", err);
       res.status(500).json({ message: "Failed to fetch appointment types", error: err instanceof Error ? err.message : String(err) });
