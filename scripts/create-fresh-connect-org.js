@@ -21,8 +21,8 @@ async function login() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        username: 'testadmin', // Or another admin user
-        password: 'password'
+        username: 'testadmin', // Using the admin account 
+        password: 'password' // Default password for testadmin
       }),
       credentials: 'include'
     });
