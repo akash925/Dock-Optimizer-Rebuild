@@ -3012,8 +3012,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isSuperAdmin = req.user?.role === 'super-admin' || req.user?.username?.includes('admin@conmitto.io');
       const tenantId = isSuperAdmin ? undefined : req.user?.tenantId;
       
-      const bookingPage = await storage.getBookingPage(id);
+      // Get the booking page with tenant filtering
+      const bookingPage = await storage.getBookingPage(id, isSuperAdmin ? undefined : tenantId);
+      
       if (!bookingPage) {
+        console.log(`[BookingPage] Booking page ${id} not found or access denied for tenant ${tenantId || 'super-admin'}`);
         return res.status(404).json({ message: "Booking page not found" });
       }
       
