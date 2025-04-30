@@ -2926,6 +2926,9 @@ export class DatabaseStorage implements IStorage {
         const orgFacilities = await this.getFacilitiesByOrganizationId(tenantId);
         const orgFacilityIds = orgFacilities.map(f => f.id);
         
+        console.log(`Tenant ${tenantId} has facilities with IDs: ${orgFacilityIds.join(', ')}`);
+        console.log(`Booking page ${slug} has facilities with IDs: ${JSON.stringify(bookingPage.facilities)}`);
+        
         // Check if the booking page has any facilities from this tenant
         const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
         const hasTenantFacility = bookingPageFacilities.some(
@@ -2934,7 +2937,22 @@ export class DatabaseStorage implements IStorage {
         
         if (!hasTenantFacility) {
           console.log(`Booking page ${slug} does not have any facilities belonging to tenant ${tenantId}`);
-          return undefined; // Return undefined to indicate no access
+          
+          // For external booking page access (public), we need to determine if this is a tenant's booking page
+          // Lookup the organization that owns the facilities in this booking page
+          const bookingPageFacilityIds = bookingPageFacilities.length > 0 ? bookingPageFacilities : [0];
+          const facilityOrgMappings = await db
+            .select()
+            .from(organizationFacilities)
+            .where(inArray(organizationFacilities.facilityId, bookingPageFacilityIds));
+          
+          const bookingPageTenantId = facilityOrgMappings.length > 0 ? facilityOrgMappings[0].organizationId : null;
+          console.log(`Booking page ${slug} belongs to tenant ${bookingPageTenantId}`);
+          
+          // If current tenant doesn't match booking page's tenant, don't allow access
+          if (bookingPageTenantId !== tenantId) {
+            return undefined; // Return undefined to indicate no access
+          }
         }
       }
       

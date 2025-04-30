@@ -54,17 +54,33 @@ export default function TopNav() {
     queryKey: ['/api/admin/organizations', user?.tenantId, 'logo'],
     queryFn: async () => {
       if (!user?.tenantId) return null;
-      const res = await fetch(`/api/admin/organizations/${user.tenantId}/logo`);
-      if (!res.ok) throw new Error('Failed to fetch organization logo');
-      return res.json();
+      console.log(`Fetching logo for tenant: ${user.tenantId}`);
+      try {
+        const res = await fetch(`/api/admin/organizations/${user.tenantId}/logo`);
+        if (!res.ok) {
+          console.error(`Failed to fetch organization logo: ${res.status}`);
+          return null;
+        }
+        const data = await res.json();
+        console.log(`Logo data received:`, data);
+        return data;
+      } catch (error) {
+        console.error("Error loading logo:", error);
+        return null;
+      }
     },
-    enabled: !!user?.tenantId
+    enabled: !!user?.tenantId,
+    staleTime: 60000, // Cache logo for 1 minute
+    refetchOnWindowFocus: false
   });
   
   // Update logo when data is fetched
   useEffect(() => {
     if (logoData?.logo) {
+      console.log(`Setting org logo to: ${logoData.logo}`);
       setOrgLogo(logoData.logo);
+    } else {
+      console.log("No logo found in data, using default");
     }
   }, [logoData]);
   
