@@ -193,6 +193,9 @@ export default function CreateOrganizationPage() {
                         <FormControl>
                           <Input placeholder="Contact name" {...field} value={field.value || ''} />
                         </FormControl>
+                        <FormDescription>
+                          Name of the primary administrator for this organization
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -241,6 +244,9 @@ export default function CreateOrganizationPage() {
                             value={field.value || ''} 
                           />
                         </FormControl>
+                        <FormDescription>
+                          User account will be created with this email when contact name is provided
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
