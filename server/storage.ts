@@ -20,7 +20,7 @@ import {
   ScheduleStatus, DockStatus, HolidayScope, TimeInterval, AssetCategory,
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
   appointmentTypes, dailyAvailability, customQuestions, bookingPages, assets, companyAssets,
-  tenants, roles, organizationUsers, organizationModules
+  tenants, roles, organizationUsers, organizationModules, organizationFacilities
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
