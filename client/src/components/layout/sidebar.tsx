@@ -1,14 +1,27 @@
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { useModules } from "@/contexts/ModuleContext"; 
+import { useModules } from "@/contexts/ModuleContext";
 import { useOrg } from "@/hooks/useOrg";
 import { useMemo } from "react";
-import { Menu, HelpCircle } from "lucide-react";
+import { 
+  BarChart3, 
+  Calendar, 
+  Menu,
+  HelpCircle,
+  Home,
+  Layout,
+  ClipboardList,
+  File,
+  Warehouse,
+  FileText,
+  Globe,
+  Users,
+  Settings
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMediaQuery } from "@/hooks/use-mobile";
 import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
-import { navItems, managementItems } from "./navConfig";
 
 interface SidebarProps {
   className?: string;
@@ -48,8 +61,14 @@ export default function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const { user } = useAuth();
   const { isModuleEnabled } = useModules();
+  const { enabledModules = [] } = useOrg();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  
+  // Log enabled modules for debugging
+  useEffect(() => {
+    console.log('Sidebar: useOrg enabled modules:', enabledModules);
+  }, [enabledModules]);
   
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
@@ -68,25 +87,26 @@ export default function Sidebar({ className }: SidebarProps) {
     setIsSidebarOpen(!isSidebarOpen);
   };
   
-  // Navigation links with their module dependencies
-  const navItems = useMemo(() => [
-    { href: "/", icon: <Home size={20} />, label: "Overview", module: null },
-    { href: "/schedules", icon: <Calendar size={20} />, label: "Calendar", module: "calendar" },
-    { href: "/door-manager", icon: <Layout size={20} />, label: "Door Manager", module: "doorManager" },
-    { href: "/analytics", icon: <BarChart3 size={20} />, label: "Analytics", module: "analytics" },
-    { href: "/appointments", icon: <ClipboardList size={20} />, label: "Appointments", module: "appointments" },
-    { href: "/asset-manager", icon: <File size={20} />, label: "Asset Manager", module: "assetManager" },
-  ], []);
+  // Convert navConfig items to internal format
+  const navItemsInternal = useMemo(() => 
+    navItems.map(item => ({
+      href: item.path,
+      icon: <item.icon size={20} />,
+      label: item.label,
+      module: item.key !== 'dashboard' ? item.key : null
+    }))
+  , []);
   
-  // Management links with their module dependencies
-  const managementItems = useMemo(() => [
-    { href: "/facility-master", icon: <Warehouse size={20} />, label: "Facility Master", module: "facilityManagement", roles: ["admin", "manager"] },
-    { href: "/appointment-master", icon: <FileText size={20} />, label: "Appointment Master", module: "appointments", roles: ["admin", "manager"] },
-    { href: "/booking-pages", icon: <Globe size={20} />, label: "Booking Pages", module: "bookingPages", roles: ["admin", "manager"] },
-    { href: "/users", icon: <Users size={20} />, label: "Users", module: "userManagement", roles: ["admin"] },
-    { href: "/settings", icon: <Settings size={20} />, label: "Settings", module: null, roles: ["admin", "manager"] },
-    { href: "#", icon: <HelpCircle size={20} />, label: "Help", module: null, roles: ["admin", "manager"] },
-  ], []);
+  // Convert management items to internal format
+  const managementItemsInternal = useMemo(() => 
+    managementItems.map(item => ({
+      href: item.path,
+      icon: <item.icon size={20} />,
+      label: item.label,
+      module: item.key !== 'settings' ? item.key : null,
+      roles: item.roles || []
+    }))
+  , []);
 
   const sidebarContent = (
     <div 
@@ -119,19 +139,41 @@ export default function Sidebar({ className }: SidebarProps) {
           Dashboard
         </div>
         
-        {/* Filter navigation links based on module availability */}
-        {navItems.map(item => 
-          (!item.module || isModuleEnabled(item.module)) && (
-            <SidebarItem 
-              key={item.href}
-              href={item.href} 
-              icon={item.icon} 
-              label={item.label} 
-              active={location === item.href || (item.href !== "/" && location.startsWith(item.href + "/"))}
-              onClick={closeSidebar}
-            />
-          )
-        )}
+        {/* Filter navigation links based on module availability - using both ModuleContext and useOrg */}
+        {navItems.map(item => {
+          // Dashboard (home) and non-module items are always shown
+          if (!item.module || item.module === null) {
+            return (
+              <SidebarItem 
+                key={item.href}
+                href={item.href} 
+                icon={item.icon} 
+                label={item.label} 
+                active={location === item.href || (item.href !== "/" && location.startsWith(item.href + "/"))}
+                onClick={closeSidebar}
+              />
+            );
+          }
+          
+          // For module-dependent items, check both contexts
+          // Either the ModuleContext enables it OR useOrg's enabledModules includes it
+          const isEnabled = isModuleEnabled(item.module) || enabledModules.includes(item.module);
+          
+          if (isEnabled) {
+            return (
+              <SidebarItem 
+                key={item.href}
+                href={item.href} 
+                icon={item.icon} 
+                label={item.label} 
+                active={location === item.href || (item.href !== "/" && location.startsWith(item.href + "/"))}
+                onClick={closeSidebar}
+              />
+            );
+          }
+          
+          return null;
+        })}
         
         {/* Management section for admin/manager users */}
         {(user.role === "admin" || user.role === "manager") && (
@@ -145,8 +187,22 @@ export default function Sidebar({ className }: SidebarProps) {
               // Check if user has required role
               const hasRequiredRole = !item.roles || item.roles.includes(user.role);
               
-              // Check if module is enabled or no module required
-              const isEnabled = !item.module || isModuleEnabled(item.module);
+              // Settings and other role-only items (no module dependency)
+              if (!item.module || item.module === null) {
+                return hasRequiredRole && (
+                  <SidebarItem 
+                    key={item.href}
+                    href={item.href} 
+                    icon={item.icon} 
+                    label={item.label} 
+                    active={location === item.href}
+                    onClick={closeSidebar}
+                  />
+                );
+              }
+              
+              // Check both contexts - either ModuleContext OR useOrg's enabledModules
+              const isEnabled = isModuleEnabled(item.module) || enabledModules.includes(item.module);
               
               // Only render if user has required role and module is enabled
               return (hasRequiredRole && isEnabled) && (
