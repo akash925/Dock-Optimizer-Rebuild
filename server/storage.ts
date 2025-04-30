@@ -3008,12 +3008,46 @@ export class DatabaseStorage implements IStorage {
         return undefined;
       }
       
+      // Ensure facilities is always an array
+      if (bookingPage.facilities) {
+        try {
+          // If it's a string (from JSONB column), parse it
+          if (typeof bookingPage.facilities === 'string') {
+            bookingPage.facilities = JSON.parse(bookingPage.facilities);
+          }
+          
+          // Still ensure it's an array after parsing
+          if (!Array.isArray(bookingPage.facilities)) {
+            // If it's an object with keys as facility IDs, convert to array
+            if (typeof bookingPage.facilities === 'object') {
+              bookingPage.facilities = Object.keys(bookingPage.facilities).map(id => Number(id));
+            } else {
+              // Fallback to empty array if we can't parse it
+              bookingPage.facilities = [];
+            }
+          }
+        } catch (e) {
+          console.error(`Error parsing facilities for booking page ${id}:`, e);
+          bookingPage.facilities = [];
+        }
+      } else {
+        bookingPage.facilities = [];
+      }
+      
       console.log(`[BookingPage] Successfully retrieved booking page: ${JSON.stringify({
         id: bookingPage.id,
         name: bookingPage.name,
         tenantId: bookingPage.tenantId,
-        facilities: bookingPage.facilities && Array.isArray(bookingPage.facilities) ? 
-          `[${bookingPage.facilities.length} facilities]` : bookingPage.facilities
+        facilities: bookingPage.facilities ? 
+          `[${bookingPage.facilities.length} facilities]` : 'none'
+      })}`);
+      
+      // Log the actual facilities array for debugging
+      console.log(`[BookingPage] Successfully retrieved booking page: ${JSON.stringify({
+        id: bookingPage.id,
+        name: bookingPage.name,
+        facilities: bookingPage.facilities,
+        excludedAppointmentTypes: bookingPage.excludedAppointmentTypes || []
       })}`);
       
       return bookingPage;
@@ -3042,13 +3076,47 @@ export class DatabaseStorage implements IStorage {
         return undefined;
       }
       
+      // Ensure facilities is always an array (same logic as getBookingPage)
+      if (bookingPage.facilities) {
+        try {
+          // If it's a string (from JSONB column), parse it
+          if (typeof bookingPage.facilities === 'string') {
+            bookingPage.facilities = JSON.parse(bookingPage.facilities);
+          }
+          
+          // Still ensure it's an array after parsing
+          if (!Array.isArray(bookingPage.facilities)) {
+            // If it's an object with keys as facility IDs, convert to array
+            if (typeof bookingPage.facilities === 'object') {
+              bookingPage.facilities = Object.keys(bookingPage.facilities).map(id => Number(id));
+            } else {
+              // Fallback to empty array if we can't parse it
+              bookingPage.facilities = [];
+            }
+          }
+        } catch (e) {
+          console.error(`Error parsing facilities for booking page with slug ${slug}:`, e);
+          bookingPage.facilities = [];
+        }
+      } else {
+        bookingPage.facilities = [];
+      }
+      
       console.log(`[BookingPage] Successfully retrieved booking page: ${JSON.stringify({
         id: bookingPage.id,
         name: bookingPage.name,
         slug: bookingPage.slug,
         tenantId: bookingPage.tenantId,
-        facilities: bookingPage.facilities && Array.isArray(bookingPage.facilities) ? 
-          `[${bookingPage.facilities.length} facilities]` : bookingPage.facilities
+        facilities: bookingPage.facilities ? 
+          `[${bookingPage.facilities.length} facilities]` : 'none'
+      })}`);
+      
+      // Log the actual facilities array for debugging
+      console.log(`[BookingPage] Successfully retrieved booking page: ${JSON.stringify({
+        id: bookingPage.id,
+        name: bookingPage.name,
+        facilities: bookingPage.facilities,
+        excludedAppointmentTypes: bookingPage.excludedAppointmentTypes || []
       })}`);
       
       return bookingPage;
