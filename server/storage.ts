@@ -2593,13 +2593,26 @@ export class DatabaseStorage implements IStorage {
         SELECT f.* FROM facilities f
         JOIN organization_facilities of ON f.id = of.facility_id
         WHERE of.organization_id = $1
+        ORDER BY f.id
       `;
       
       const result = await pool.query(query, [organizationId]);
-      console.log(`Found ${result.rows.length} facilities for organization ${organizationId}`);
+      
+      // Enhanced logging to debug organization-facility relationships
+      console.log(`[Tenant Isolation] Found ${result.rows.length} facilities for organization ${organizationId}`);
+      
+      // Add more detailed logging about which facilities were found
+      if (result.rows.length > 0) {
+        result.rows.forEach((facility: Facility) => {
+          console.log(`[Tenant Isolation] Organization ${organizationId} has facility: ID ${facility.id}, Name: ${facility.name}`);
+        });
+      } else {
+        console.log(`[Tenant Isolation] WARNING: No facilities found for organization ${organizationId}`);
+      }
+      
       return result.rows;
     } catch (error) {
-      console.error('Error getting facilities by organization ID:', error);
+      console.error('[Tenant Isolation] Error getting facilities by organization ID:', error);
       return [];
     }
   }

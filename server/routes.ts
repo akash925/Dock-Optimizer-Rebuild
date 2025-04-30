@@ -1293,12 +1293,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (tenantId && !isSuperAdmin) {
         console.log(`[Facilities] Fetching facilities for tenant ${tenantId} only`);
         const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
-        console.log(`[Facilities] Found ${orgFacilities.length} facilities for organization ${tenantId}`);
+        console.log(`[Tenant Isolation] Found ${orgFacilities.length} facilities for organization ${tenantId}`);
         
         // Log the facility IDs and names for debugging
-        orgFacilities.forEach(facility => {
-          console.log(`[Facilities] Facility ${facility.id}: ${facility.name}`);
-        });
+        if (orgFacilities.length > 0) {
+          orgFacilities.forEach(facility => {
+            console.log(`[Tenant Isolation] Organization ${tenantId} has facility: ID ${facility.id}, Name: ${facility.name}`);
+          });
+        } else {
+          console.log(`[Tenant Isolation] WARNING: No facilities found for organization ${tenantId}`);
+        }
         
         return res.json(orgFacilities);
       } else if (isSuperAdmin) {
