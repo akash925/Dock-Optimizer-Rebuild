@@ -1427,14 +1427,14 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
                 src={
                   // Custom logo handling for Fresh Connect vs Hanzo
                   // Dynamic logo based on booking page's tenant
-                  slug === "fresh-connect-booking" 
+                  slug === "fresh-connect-booking" || bookingPage?.name?.includes("Fresh Connect")
                     ? "/assets/fresh-connect-logo.png" 
                     : (bookingPage?.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo)
                 } 
                 alt={
-                  slug === "fresh-connect-booking" 
+                  slug === "fresh-connect-booking" || bookingPage?.name?.includes("Fresh Connect")
                     ? "Fresh Connect Central" 
-                    : (bookingPage?.title || "Hanzo Logistics")
+                    : (bookingPage?.title || "Dock Appointment Scheduler")
                 } 
                 className="h-16" 
               />
@@ -1447,7 +1447,7 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
             <div className="md:col-span-5 space-y-6">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {bookingPage?.title || "Hanzo Logistics Dock Appointment Scheduler"}
+                  {bookingPage?.title || "Dock Appointment Scheduler"}
                 </h1>
                 <p className="text-gray-600 mb-4">
                   Please use this form to pick the type of Dock Appointment that
@@ -1467,6 +1467,16 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
               
               <div>
                 {slug === "fresh-connect-booking" ? (
+                  <>
+                    <h3 className="font-semibold text-gray-900 mb-2">FRESH CONNECT CENTRAL</h3>
+                    <p className="text-gray-700 mb-1">Select from the following locations:</p>
+                    <div className="space-y-1 text-sm text-gray-700">
+                      <p>Fresh Connect HQ - 123 Main Avenue, Chicago, IL 60601</p>
+                      <p>Fresh Connect South - 456 Produce Lane, Chicago, IL 60616</p>
+                      <p>Fresh Connect North - 789 Orchard Road, Chicago, IL 60654</p>
+                    </div>
+                  </>
+                ) : bookingPage?.name?.includes("Fresh Connect") ? (
                   <>
                     <h3 className="font-semibold text-gray-900 mb-2">FRESH CONNECT CENTRAL</h3>
                     <p className="text-gray-700 mb-1">Select from the following locations:</p>
@@ -1522,15 +1532,15 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
                 <div className="flex items-center gap-3">
                   <img 
                     src={
-                      // Custom logo handling for Fresh Connect vs Hanzo
-                      slug === "fresh-connect-booking" 
+                      // Dynamic logo handling based on booking page data and slug
+                      slug === "fresh-connect-booking" || bookingPage?.name?.includes("Fresh Connect")
                         ? "/assets/fresh-connect-logo.png" 
                         : (bookingPage.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo)
                     } 
                     alt={
-                      slug === "fresh-connect-booking" 
+                      slug === "fresh-connect-booking" || bookingPage?.name?.includes("Fresh Connect")
                         ? "Fresh Connect Central" 
-                        : (bookingPage.title || "Hanzo Logistics")
+                        : (bookingPage.title || "Dock Appointment Scheduler")
                     } 
                     className="h-16" 
                   />
