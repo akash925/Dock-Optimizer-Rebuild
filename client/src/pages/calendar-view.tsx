@@ -48,6 +48,20 @@ export default function CalendarPage() {
   
   // No external script loading - simplified approach
   
+  // Check for scheduleId in URL and open that appointment detail
+  useEffect(() => {
+    // Get scheduleId from URL parameters
+    const params = new URLSearchParams(window.location.search);
+    const scheduleId = params.get('scheduleId');
+    
+    if (scheduleId) {
+      const numericId = parseInt(scheduleId, 10);
+      if (!isNaN(numericId)) {
+        setSelectedScheduleId(numericId);
+      }
+    }
+  }, []);
+  
   // Save and load timezone preference from localStorage
   useEffect(() => {
     const savedTimezone = localStorage.getItem('preferredTimezone');

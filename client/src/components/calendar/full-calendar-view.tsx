@@ -69,19 +69,27 @@ export default function FullCalendarView({
     queryKey: ['/api/facilities'],
   });
   
-  // Create a global facility name lookup cache for events
+  // Create a global facility name and timezone lookup cache for events
   useEffect(() => {
     if (facilities && Array.isArray(facilities) && facilities.length > 0) {
-      // Create a lookup object with facilityId -> name mapping
-      const facilityNameMap = (facilities as any[]).reduce((acc: Record<number, string>, facility: any) => {
+      // Create lookup objects with facilityId -> name and facilityId -> timezone mapping
+      const facilityNameMap = {} as Record<number, string>;
+      const facilityTimezoneMap = {} as Record<number, string>;
+      
+      (facilities as any[]).forEach((facility: any) => {
         if (facility.id && facility.name) {
-          acc[facility.id] = facility.name;
+          facilityNameMap[facility.id] = facility.name;
+          
+          // Store facility timezone if available
+          if (facility.timezone) {
+            facilityTimezoneMap[facility.id] = facility.timezone;
+          }
         }
-        return acc;
-      }, {} as Record<number, string>);
+      });
       
       // Add to window for global access by event renderers
       (window as any).facilityNames = facilityNameMap;
+      (window as any).facilityTimezones = facilityTimezoneMap;
       console.log('Facility name cache created:', facilityNameMap);
     }
   }, [facilities]);
@@ -193,6 +201,7 @@ export default function FullCalendarView({
     // Try to get facility info from customFormData if available
     let extractedFacilityName = facilityName;
     let extractedFacilityId = facilityId;
+    let facilityTimezone = null;
     
     if (!extractedFacilityName && schedule.customFormData) {
       try {
@@ -203,10 +212,17 @@ export default function FullCalendarView({
             typeof customData.facilityInfo === 'object') {
           extractedFacilityName = customData.facilityInfo.facilityName || '';
           extractedFacilityId = customData.facilityInfo.facilityId || null;
+          // Try to get timezone from customFormData
+          facilityTimezone = customData.facilityInfo.timezone || null;
         }
       } catch (e) {
         console.error('Error extracting facility info from customFormData', e);
       }
+    }
+    
+    // If we have a facilityId but no timezone yet, check the facility timezone map
+    if (extractedFacilityId && !facilityTimezone && (window as any).facilityTimezones) {
+      facilityTimezone = (window as any).facilityTimezones[extractedFacilityId] || null;
     }
     
     // Get customer and location info if available
@@ -273,6 +289,7 @@ export default function FullCalendarView({
         // Additional data for improved display
         facilityId: extractedFacilityId,
         facilityName: extractedFacilityName,
+        facilityTimezone: facilityTimezone,  // Include facility timezone when available
         customerName: schedule.customerName || '',
         carrierName: schedule.carrierName || (schedule as any).carrier || '',
         appointmentType: (schedule as any).appointmentType || '',

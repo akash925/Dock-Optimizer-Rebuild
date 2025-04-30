@@ -697,7 +697,7 @@ export default function AppointmentsPage() {
                   <TableCell>{schedule.customerName || "-"}</TableCell>
                   <TableCell>{getAppointmentStatusBadge(schedule.status)}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => window.location.href = `/schedules?edit=${schedule.id}`}>
+                    <Button variant="ghost" size="sm" onClick={() => window.location.href = `/calendar-view?scheduleId=${schedule.id}`}>
                       View
                     </Button>
                   </TableCell>
