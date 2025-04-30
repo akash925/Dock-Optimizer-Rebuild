@@ -36,6 +36,7 @@ import { AdminProtectedRoute } from "./lib/admin-protected-route";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Loader2 } from "lucide-react";
 import { ModuleProvider, useModules } from "@/contexts/ModuleContext";
+import { OrgProvider } from "@/contexts/OrgContext";
 import { AuthProvider } from "@/hooks/use-auth";
 
 // Define route config with module dependencies
@@ -218,8 +219,11 @@ function App() {
     <ThemeProvider defaultTheme="light" storageKey="hanzo-dock-theme">
       <AuthProvider>
         <ModuleProvider>
-          <AppRouter />
-          <Toaster />
+          <OrgProvider>
+            {/* Order of providers is critical - ModuleProvider must be before OrgProvider which must be before AppRouter */}
+            <AppRouter />
+            <Toaster />
+          </OrgProvider>
         </ModuleProvider>
       </AuthProvider>
     </ThemeProvider>

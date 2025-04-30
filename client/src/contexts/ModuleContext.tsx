@@ -1,6 +1,7 @@
-import { createContext, useContext, ReactNode, useMemo, useRef, useCallback } from 'react';
+import { createContext, useContext, ReactNode, useMemo, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
 export interface OrgModule {
   moduleName: string;
@@ -13,6 +14,7 @@ interface ModuleContextType {
   isLoading: boolean;
   refetchModules: () => Promise<void>;
   logModuleState: () => void;
+  enabledModuleNames: string[];
 }
 
 const ModuleContext = createContext<ModuleContextType | undefined>(undefined);
@@ -40,12 +42,14 @@ export const AVAILABLE_MODULES = [
 export function ModuleProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   // Use TanStack Query to handle the module state 
   const { 
     data: modules = DEFAULT_MODULES, 
     isLoading, 
-    refetch 
+    refetch,
+    error
   } = useQuery<OrgModule[]>({
     queryKey: ['modules'],
     queryFn: async () => {
@@ -73,6 +77,9 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
           return DEFAULT_MODULES;
         }
         
+        // Log when modules are successfully fetched
+        console.log(`[ModuleContext] Successfully fetched ${data.length} modules for user ${user.username} (tenant ${user.tenantId})`);
+        
         return data;
       } catch (error) {
         console.error('Error fetching modules:', error);
@@ -80,9 +87,9 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
       }
     },
     retry: 2,
-    staleTime: 300000, // 5 minutes
-    gcTime: 600000, // 10 minutes
-    refetchOnWindowFocus: false,
+    staleTime: 60000, // 1 minute instead of 5 minutes for quicker updates
+    gcTime: 120000, // 2 minutes
+    refetchOnWindowFocus: true, // Enable to catch updates
     refetchOnMount: true,
     refetchOnReconnect: true,
     // Properly type refetchInterval as false, not boolean
@@ -90,10 +97,30 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
     enabled: !!user
   });
   
+  // Show an error toast if modules can't be fetched
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Failed to load modules",
+        description: "Your access to features might be limited. Please try refreshing the page.",
+        variant: "destructive"
+      });
+    }
+  }, [error, toast]);
+  
+  // Compute enabled module names once
+  const enabledModuleNames = useMemo(() => {
+    if (!Array.isArray(modules)) return [];
+    return modules
+      .filter(m => m.enabled)
+      .map(m => m.moduleName);
+  }, [modules]);
+  
   // Utility function to log current module state - helpful for debugging
   const logModuleState = useCallback(() => {
-    console.log('Current modules state:', modules);
-  }, [modules]);
+    console.log('[ModuleContext] Current modules state:', modules);
+    console.log('[ModuleContext] Enabled modules:', enabledModuleNames);
+  }, [modules, enabledModuleNames]);
   
   // Memoize the module check function for performance
   const isModuleEnabled = useCallback((moduleName: string) => {
@@ -109,17 +136,20 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
       return false;
     }
     
-    return modules.some((m: OrgModule) => m.moduleName === moduleName && m.enabled);
+    const isEnabled = modules.some((m: OrgModule) => m.moduleName === moduleName && m.enabled);
+    return isEnabled;
   }, [modules]);
   
   // Refetch modules function for manual refresh
   const refetchModules = useCallback(async () => {
     try {
+      console.log('[ModuleContext] Refreshing modules data...');
       await queryClient.invalidateQueries({ queryKey: ['modules'] });
-      await refetch();
+      const result = await refetch();
+      console.log('[ModuleContext] Modules refreshed successfully');
       return Promise.resolve();
     } catch (error) {
-      console.error('Failed to refresh modules:', error);
+      console.error('[ModuleContext] Failed to refresh modules:', error);
       return Promise.reject(error);
     }
   }, [queryClient, refetch]);
@@ -131,8 +161,9 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
     isModuleEnabled,
     isLoading,
     refetchModules,
-    logModuleState
-  }), [modules, isModuleEnabled, isLoading, refetchModules, logModuleState]);
+    logModuleState,
+    enabledModuleNames
+  }), [modules, isModuleEnabled, isLoading, refetchModules, logModuleState, enabledModuleNames]);
   
   return (
     <ModuleContext.Provider value={contextValue}>

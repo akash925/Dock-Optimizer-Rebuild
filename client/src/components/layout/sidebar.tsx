@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useModules } from "@/contexts/ModuleContext";
-import { useOrg } from "@/hooks/useOrg";
 import { useMemo } from "react";
 import { Menu } from "lucide-react";
 import { navItems, managementItems } from "./navConfig";
@@ -47,27 +46,24 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 export default function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const { user } = useAuth();
-  const { isModuleEnabled } = useModules();
-  const { enabledModules = [] } = useOrg();
+  const { isModuleEnabled, enabledModuleNames, modules, logModuleState } = useModules();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   
   // Enhanced logging for module debugging
   useEffect(() => {
-    // Log enabled modules from useOrg
-    console.log('Sidebar: useOrg enabled modules:', enabledModules);
+    // Log application state for debugging
+    console.log('[Sidebar] User tenant ID:', user?.tenantId);
+    console.log('[Sidebar] Active modules:', enabledModuleNames);
     
-    // Log enabled modules from ModuleContext
-    if (isModuleEnabled) {
-      const enabledFromContext = ['appointments', 'doorManager', 'calendar', 'analytics', 
-        'bookingPages', 'assetManager', 'facilityManagement', 
-        'userManagement', 'emailNotifications'].filter(m => isModuleEnabled(m));
-      console.log('Sidebar: ModuleContext enabled modules:', enabledFromContext);
+    // Use the built-in logging function from ModuleContext
+    logModuleState();
+    
+    // Log the logo fetch attempt
+    if (user?.tenantId) {
+      console.log('[Sidebar] Fetching logo for tenant:', user.tenantId);
     }
-    
-    // Also log user's tenantId which is critical for module access
-    console.log('Sidebar: Current user tenantId:', user?.tenantId);
-  }, [enabledModules, isModuleEnabled, user]);
+  }, [enabledModuleNames, user, logModuleState]);
   
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
@@ -138,7 +134,7 @@ export default function Sidebar({ className }: SidebarProps) {
           Dashboard
         </div>
         
-        {/* Filter navigation links based on module availability - using both ModuleContext and useOrg */}
+        {/* Filter navigation links based on module availability using only ModuleContext */}
         {navItemsInternal.map(item => {
           // Dashboard (home) and non-module items are always shown
           if (!item.module || item.module === null) {
@@ -154,22 +150,8 @@ export default function Sidebar({ className }: SidebarProps) {
             );
           }
           
-          // For module-dependent items, check if enabled in ModuleContext
-          // The source of truth is ModuleContext, but we're also checking enabledModules as a fallback
-          // TEMPORARY FIX: Always enable all modules for testing since we're recovering from module visibility issues
-          const moduleEnabled = isModuleEnabled(item.module);
-          const orgModuleEnabled = Array.isArray(enabledModules) && enabledModules.includes(item.module);
-          
-          // DEBUGGING: Log which check is enabling this module
-          if (moduleEnabled || orgModuleEnabled) {
-            console.log(`Module ${item.module} is enabled via:`, {
-              moduleContext: moduleEnabled,
-              orgContext: orgModuleEnabled
-            });
-          }
-          
-          // Use actual module visibility settings
-          const isEnabled = moduleEnabled || orgModuleEnabled;
+          // For module-dependent items, check if enabled in ModuleContext (single source of truth)
+          const isEnabled = isModuleEnabled(item.module);
           
           if (isEnabled) {
             return (
@@ -213,20 +195,8 @@ export default function Sidebar({ className }: SidebarProps) {
                 );
               }
               
-              // Check both contexts - ModuleContext is the source of truth, useOrg's enabledModules as fallback
-              const moduleEnabled = isModuleEnabled(item.module);
-              const orgModuleEnabled = Array.isArray(enabledModules) && enabledModules.includes(item.module);
-              
-              // DEBUGGING: Log which check is enabling this module
-              if (moduleEnabled || orgModuleEnabled) {
-                console.log(`Management module ${item.module} is enabled via:`, {
-                  moduleContext: moduleEnabled,
-                  orgContext: orgModuleEnabled
-                });
-              }
-              
-              // Use actual module visibility settings
-              const isEnabled = moduleEnabled || orgModuleEnabled;
+              // Use only ModuleContext for module visibility
+              const isEnabled = isModuleEnabled(item.module);
               
               // Only render if user has required role and module is enabled
               return (hasRequiredRole && isEnabled) && (
