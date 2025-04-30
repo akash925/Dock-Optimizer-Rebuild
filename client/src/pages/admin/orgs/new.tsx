@@ -1,12 +1,11 @@
 import React from 'react';
-import { useRouter } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useMutation } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ArrowLeft, Building2, RefreshCw, SaveIcon } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/admin-header';
-import { Link } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -55,7 +54,7 @@ const createOrgSchema = z.object({
 type CreateOrgFormValues = z.infer<typeof createOrgSchema>;
 
 export default function CreateOrganizationPage() {
-  const [, navigate] = useRouter();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   
   // Define form with default values
