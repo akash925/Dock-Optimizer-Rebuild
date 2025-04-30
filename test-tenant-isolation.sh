@@ -30,11 +30,11 @@ else
 fi
 
 # Test 2: Availability rules endpoint with cross-tenant access (should fail)
-# Fresh Connect user trying to access Hanzo appointment type availability rules
+# Fresh Connect user (tenant 5) trying to access Hanzo appointment type availability rules
 echo -e "\n${YELLOW}Test 2: Fresh Connect user trying to access Hanzo availability rules${NC}"
-echo "Request: GET /api/appointment-master/availability-rules?facilityId=3&typeId=1"
+echo "Request: GET /api/appointment-master/availability-rules?facilityId=3&typeId=3"
 
-FC_RESPONSE=$(curl -s -b "$FC_COOKIES" -c "$FC_COOKIES" "http://localhost:5000/api/appointment-master/availability-rules?facilityId=3&typeId=1")
+FC_RESPONSE=$(curl -s -b "$FC_COOKIES" -c "$FC_COOKIES" "http://localhost:5000/api/appointment-master/availability-rules?facilityId=3&typeId=3")
 
 if echo "$FC_RESPONSE" | grep -q "Access denied"; then
   echo -e "${GREEN}✓ Test passed: Fresh Connect user correctly denied access to Hanzo availability rules${NC}"
@@ -47,9 +47,9 @@ fi
 # Test 3: Confirmation code endpoint with cross-tenant access (should fail)
 # Fresh Connect user trying to access a Hanzo appointment confirmation
 echo -e "\n${YELLOW}Test 3: Fresh Connect user trying to access Hanzo appointment confirmation${NC}"
-echo "Request: GET /api/schedules/confirmation/ABC123"  # Use a real code from a Hanzo appointment
+echo "Request: GET /api/schedules/confirmation/HANZO-TEST"  # Using a test code for Hanzo
 
-FC_RESPONSE=$(curl -s -b "$FC_COOKIES" -c "$FC_COOKIES" "http://localhost:5000/api/schedules/confirmation/ABC123")
+FC_RESPONSE=$(curl -s -b "$FC_COOKIES" -c "$FC_COOKIES" "http://localhost:5000/api/schedules/confirmation/HANZO-TEST")
 
 if echo "$FC_RESPONSE" | grep -q "Access denied"; then
   echo -e "${GREEN}✓ Test passed: Fresh Connect user correctly denied access to Hanzo appointment confirmation${NC}"
@@ -60,11 +60,11 @@ else
 fi
 
 # Test 4: Valid tenant access (should succeed)
-# Hanzo user accessing their own facility
+# Hanzo user (tenant 2) accessing their own facility
 echo -e "\n${YELLOW}Test 4: Hanzo user accessing their own facility availability${NC}"
-echo "Request: GET /api/availability?date=2025-05-01&facilityId=3&typeId=1"
+echo "Request: GET /api/availability?date=2025-05-01&facilityId=3&typeId=3"
 
-HANZO_RESPONSE=$(curl -s -b "$HANZO_COOKIES" -c "$HANZO_COOKIES" "http://localhost:5000/api/availability?date=2025-05-01&facilityId=3&typeId=1")
+HANZO_RESPONSE=$(curl -s -b "$HANZO_COOKIES" -c "$HANZO_COOKIES" "http://localhost:5000/api/availability?date=2025-05-01&facilityId=3&typeId=3")
 
 if echo "$HANZO_RESPONSE" | grep -q "availableTimes"; then
   echo -e "${GREEN}✓ Test passed: Hanzo user successfully accessed their own facility availability${NC}"
