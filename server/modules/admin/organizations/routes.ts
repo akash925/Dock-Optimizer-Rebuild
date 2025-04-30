@@ -344,6 +344,18 @@ export const organizationsRoutes = (app: Express) => {
         return res.status(400).json({ message: 'Invalid organization ID' });
       }
       
+      // Ensure user is authenticated
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+      
+      // Non-super-admin users can only access their own organization's logo
+      if (req.user.role !== 'super-admin' && req.user.tenantId !== id) {
+        return res.status(403).json({ 
+          message: 'Not authorized to access another organization\'s logo' 
+        });
+      }
+      
       const storage = await getStorage();
       
       // Check if organization exists

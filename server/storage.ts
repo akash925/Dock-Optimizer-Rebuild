@@ -85,7 +85,8 @@ export interface IStorage {
   
   // Facility operations
   getFacility(id: number): Promise<Facility | undefined>;
-  getFacilities(): Promise<Facility[]>;
+  getFacilities(tenantId?: number): Promise<Facility[]>;
+  getFacilitiesByOrganizationId(organizationId: number): Promise<Facility[]>;
   createFacility(facility: InsertFacility): Promise<Facility>;
   updateFacility(id: number, facility: Partial<Facility>): Promise<Facility | undefined>;
   deleteFacility(id: number): Promise<boolean>;
