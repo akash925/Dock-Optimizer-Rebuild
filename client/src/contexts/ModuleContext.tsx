@@ -97,7 +97,10 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
   
   // Memoize the module check function for performance
   const isModuleEnabled = useCallback((moduleName: string) => {
-    // If not specified, consider it enabled
+    // Critical modules that should always be enabled
+    if (moduleName === 'appointments') {
+      return true; 
+    }
     if (!moduleName) return true;
     
     // Safely check if module exists and is enabled

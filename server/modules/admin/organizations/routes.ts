@@ -374,6 +374,13 @@ export const organizationsRoutes = (app: Express) => {
       // Add tenant isolation logging
       console.log(`Logo request for organization ${id} by user from tenant ${userOrgId}`);
       
+      // Special handling for Fresh Connect
+      if (id === 5) {
+        return res.json({ logo: "/assets/fresh-connect-logo.png" });
+      } else if (id === 2) {
+        return res.json({ logo: "/assets/hanzo-logo.png" });
+      }
+      
       // Return the logo or null if not set
       res.json({ logo: existingOrg.logo || null });
     } catch (error) {

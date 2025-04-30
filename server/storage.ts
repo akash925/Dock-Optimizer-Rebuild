@@ -2549,8 +2549,9 @@ export class DatabaseStorage implements IStorage {
         return this.getFacilitiesByOrganizationId(tenantId);
       }
       
-      // Return all facilities for super admin
-      return await db.select().from(facilities);
+      // Return all facilities for super admin - don't use tenant_id column directly
+      const allFacilities = await db.select().from(facilities);
+      return allFacilities;
     } catch (error) {
       console.error("Error in getFacilities:", error);
       throw error;
