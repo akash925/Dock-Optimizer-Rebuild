@@ -1311,17 +1311,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/facilities/:id", async (req, res) => {
     try {
       const facilityId = Number(req.params.id);
-      const facility = await storage.getFacility(facilityId);
-      
-      if (!facility) {
-        console.log(`[Facilities] Facility not found with ID: ${facilityId}`);
-        return res.status(404).json({ message: "Facility not found" });
-      }
-      
-      // Check tenant isolation if user is authenticated and has a tenantId
+      // Add tenant isolation
       const tenantId = req.user?.tenantId;
       const username = req.user?.username;
-      const isSuperAdmin = username?.includes('admin@conmitto.io');
+      const isSuperAdmin = req.user?.role === 'super-admin' || username?.includes('admin@conmitto.io');
+      
+      // Only apply tenant filtering if user is not a super admin and has a tenant ID
+      const facility = await storage.getFacility(
+        facilityId, 
+        (!isSuperAdmin && tenantId) ? tenantId : undefined
+      );
+      
+      if (!facility) {
+        console.log(`[Facilities] Facility not found with ID: ${facilityId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
+        return res.status(404).json({ message: "Facility not found" });
+      }
       
       console.log(`[Facilities] User ${username} with tenantId ${tenantId} requested facility ${facilityId}`);
       
