@@ -2682,33 +2682,43 @@ export class DatabaseStorage implements IStorage {
 
   // Facility operations
   async getFacility(id: number, tenantId?: number): Promise<Facility | undefined> {
-    // If no tenant ID is provided, return the facility without tenant isolation
-    if (!tenantId) {
-      const [facility] = await db.select().from(facilities).where(eq(facilities.id, id));
-      return facility;
-    }
-    
-    // If tenant ID is provided, check if this facility belongs to the organization
     try {
-      // Use the organization_facilities junction table for tenant isolation
-      const query = `
-        SELECT f.* FROM facilities f
-        JOIN organization_facilities of ON f.id = of.facility_id
-        WHERE f.id = $1 AND of.organization_id = $2
-        LIMIT 1
-      `;
+      // Always use raw SQL queries to avoid schema mismatches
+      let query;
+      let params;
       
-      const result = await pool.query(query, [id, tenantId]);
+      // If tenant ID is provided, check if this facility belongs to the organization
+      if (tenantId) {
+        // Use the organization_facilities junction table for tenant isolation
+        query = `
+          SELECT f.* FROM facilities f
+          JOIN organization_facilities of ON f.id = of.facility_id
+          WHERE f.id = $1 AND of.organization_id = $2
+          LIMIT 1
+        `;
+        params = [id, tenantId];
+      } else {
+        // No tenant filtering
+        query = `SELECT * FROM facilities WHERE id = $1 LIMIT 1`;
+        params = [id];
+      }
+      
+      console.log(`[getFacility] Executing query for facility ${id}${tenantId ? ` and organization ${tenantId}` : ''}`);
+      const result = await pool.query(query, params);
       
       if (result.rows.length === 0) {
-        console.log(`[getFacility] Facility ${id} does not belong to organization ${tenantId}`);
+        if (tenantId) {
+          console.log(`[getFacility] Facility ${id} does not belong to organization ${tenantId}`);
+        } else {
+          console.log(`[getFacility] Facility ${id} not found`);
+        }
         return undefined;
       }
       
-      console.log(`[getFacility] Successfully retrieved facility ${id} for organization ${tenantId}`);
+      console.log(`[getFacility] Successfully retrieved facility ${id}${tenantId ? ` for organization ${tenantId}` : ''}`);
       return result.rows[0];
     } catch (error) {
-      console.error(`[getFacility] Error retrieving facility ${id} for organization ${tenantId}:`, error);
+      console.error(`[getFacility] Error retrieving facility ${id}${tenantId ? ` for organization ${tenantId}` : ''}:`, error);
       return undefined;
     }
   }
