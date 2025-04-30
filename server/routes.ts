@@ -3658,6 +3658,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
+  // Tenant isolation test endpoint
+  app.get('/api/tenant-isolation-test', async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const storage = await getStorage();
+      const userTenantId = req.user.tenantId;
+      
+      // Get facilities for the user's tenant
+      const tenantFacilities = await storage.getFacilitiesByOrganizationId(userTenantId);
+      
+      // Get booking pages for the user's tenant
+      const bookingPages = await storage.getBookingPagesForOrganization(userTenantId);
+      
+      // Get all active modules for the user's tenant
+      const tenantModules = await storage.getOrganizationModules(userTenantId);
+      const activeModules = tenantModules.filter(module => module.enabled).map(module => module.moduleName);
+      
+      // Return the tenant-specific data
+      res.json({
+        tenantId: userTenantId,
+        username: req.user.username,
+        role: req.user.role,
+        facilities: tenantFacilities,
+        bookingPages: bookingPages,
+        activeModules: activeModules
+      });
+    } catch (error) {
+      console.error('Error in tenant isolation test:', error);
+      res.status(500).json({ message: 'Error testing tenant isolation', error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   
   return httpServer;
