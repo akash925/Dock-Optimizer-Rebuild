@@ -2959,36 +2959,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/booking-pages/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
+      // Determine if we need to enforce tenant isolation
+      const isSuperAdmin = req.user?.role === 'super-admin' || req.user?.username?.includes('admin@conmitto.io');
+      const tenantId = isSuperAdmin ? undefined : req.user?.tenantId;
+      
       const bookingPage = await storage.getBookingPage(id);
       if (!bookingPage) {
         return res.status(404).json({ message: "Booking page not found" });
       }
       
       // Check tenant isolation if user is not a super admin
-      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
-        // Get facilities for this tenant
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
-        const facilityIds = orgFacilities.map(f => f.id);
-        
-        // Make sure facilities is an array
-        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
-        
-        // Check if any of the booking page's facilities belong to this organization
-        const hasTenantFacility = bookingPageFacilities.some(
-          facilityId => facilityIds.includes(facilityId)
-        );
-        
-        if (!hasTenantFacility) {
-          console.log(`[BookingPage] Access denied - cannot delete booking page ID ${id} as it does not belong to tenant ${req.user.tenantId}`);
-          return res.status(403).json({ message: "Access denied to this booking page" });
+      if (tenantId) {
+        // First check if tenant_id is set on the booking page
+        if (bookingPage.tenantId !== undefined && bookingPage.tenantId !== null) {
+          if (bookingPage.tenantId !== tenantId) {
+            console.log(`[BookingPage] Access denied - tenant mismatch. User: ${tenantId}, BookingPage: ${bookingPage.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this booking page" });
+          }
+        } else {
+          // Fallback to facility-based checking if tenant_id isn't available
+          // Get facilities for this tenant
+          const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
+          const facilityIds = orgFacilities.map(f => f.id);
+          
+          // Make sure facilities is an array
+          const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
+          
+          // Check if any of the booking page's facilities belong to this organization
+          const hasTenantFacility = bookingPageFacilities.some(
+            facilityId => facilityIds.includes(facilityId)
+          );
+          
+          if (!hasTenantFacility) {
+            console.log(`[BookingPage] Access denied - cannot delete booking page ID ${id} as it does not belong to tenant ${tenantId}`);
+            return res.status(403).json({ message: "Access denied to this booking page" });
+          }
         }
       }
       
-      const success = await storage.deleteBookingPage(id);
+      // Pass tenant ID to the deleteBookingPage method for proper tenant isolation
+      const success = await storage.deleteBookingPage(id, tenantId);
       if (success) {
         res.status(204).send();
       } else {
-        res.status(500).json({ message: "Failed to delete booking page" });
+        res.status(404).json({ message: "Booking page not found or could not be deleted" });
       }
     } catch (err) {
       console.error("Error deleting booking page:", err);
