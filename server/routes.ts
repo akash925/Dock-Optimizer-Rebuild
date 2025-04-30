@@ -2343,20 +2343,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
-      // Check tenant isolation if user is not a super admin
-      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
-        // Find the facility
-        const facility = await storage.getFacility(appointmentType.facilityId);
+      // Check tenant isolation if user has a tenantId
+      if (req.user?.tenantId) {
+        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+        
+        // Use our helper function to check tenant access
+        const facility = await checkTenantFacilityAccess(
+          appointmentType.facilityId,
+          req.user.tenantId,
+          isSuperAdmin,
+          'Availability'
+        );
+        
         if (!facility) {
-          console.log(`[Availability] Facility not found: ${appointmentType.facilityId}`);
-          return res.status(404).json({ message: "Facility not found" });
-        }
-        
-        // Check if this facility belongs to user's organization
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
-        const facilityIds = orgFacilities.map(f => f.id);
-        
-        if (!facilityIds.includes(facility.id)) {
           console.log(`[Availability] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
           return res.status(403).json({ message: "Access denied to this appointment type's availability" });
         }
@@ -2448,6 +2447,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid appointment type ID" });
       }
       
+      // Add tenant isolation check
+      if (req.user?.tenantId) {
+        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+        
+        const facility = await checkTenantFacilityAccess(
+          appointmentType.facilityId,
+          req.user.tenantId,
+          isSuperAdmin,
+          'DailyAvailability'
+        );
+        
+        if (!facility) {
+          console.log(`[DailyAvailability] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+          return res.status(403).json({ message: "You can only create availability for appointment types in your organization" });
+        }
+      }
+      
       const dailyAvailability = await storage.createDailyAvailability(validatedData);
       res.status(201).json(dailyAvailability);
     } catch (err) {
@@ -2464,6 +2480,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dailyAvailability = await storage.getDailyAvailability(id);
       if (!dailyAvailability) {
         return res.status(404).json({ message: "Daily availability not found" });
+      }
+      
+      // Add tenant isolation check - first get the appointment type 
+      // to access its facilityId
+      const appointmentType = await storage.getAppointmentType(dailyAvailability.appointmentTypeId);
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Associated appointment type not found" });
+      }
+      
+      // Check tenant isolation if user has a tenantId
+      if (req.user?.tenantId) {
+        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+        
+        const facility = await checkTenantFacilityAccess(
+          appointmentType.facilityId,
+          req.user.tenantId,
+          isSuperAdmin,
+          'DailyAvailability-Update'
+        );
+        
+        if (!facility) {
+          console.log(`[DailyAvailability] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+          return res.status(403).json({ message: "You can only update availability for appointment types in your organization" });
+        }
       }
       
       const updatedDailyAvailability = await storage.updateDailyAvailability(id, req.body);
@@ -2486,20 +2526,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
-      // Check tenant isolation if user is not a super admin
-      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
-        // Find the facility
-        const facility = await storage.getFacility(appointmentType.facilityId);
+      // Check tenant isolation if user has a tenantId
+      if (req.user?.tenantId) {
+        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+        
+        // Use our helper function to check tenant access
+        const facility = await checkTenantFacilityAccess(
+          appointmentType.facilityId,
+          req.user.tenantId,
+          isSuperAdmin,
+          'CustomQuestions'
+        );
+        
         if (!facility) {
-          console.log(`[CustomQuestions] Facility not found: ${appointmentType.facilityId}`);
-          return res.status(404).json({ message: "Facility not found" });
-        }
-        
-        // Check if this facility belongs to user's organization
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
-        const facilityIds = orgFacilities.map(f => f.id);
-        
-        if (!facilityIds.includes(facility.id)) {
           console.log(`[CustomQuestions] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
           return res.status(403).json({ message: "Access denied to this appointment type's questions" });
         }
@@ -2524,6 +2563,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!appointmentType) {
           return res.status(400).json({ message: "Invalid appointment type ID" });
         }
+        
+        // Add tenant isolation check
+        if (req.user?.tenantId) {
+          const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+          
+          const facility = await checkTenantFacilityAccess(
+            appointmentType.facilityId,
+            req.user.tenantId,
+            isSuperAdmin,
+            'CustomQuestion-Create'
+          );
+          
+          if (!facility) {
+            console.log(`[CustomQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+            return res.status(403).json({ message: "You can only create custom questions for appointment types in your organization" });
+          }
+        }
       }
       
       const customQuestion = await storage.createCustomQuestion(validatedData);
@@ -2542,6 +2598,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customQuestion = await storage.getCustomQuestion(id);
       if (!customQuestion) {
         return res.status(404).json({ message: "Custom question not found" });
+      }
+      
+      // If the question is associated with an appointment type, check tenant isolation
+      if (customQuestion.appointmentTypeId) {
+        // Get the appointment type to check which facility it belongs to
+        const appointmentType = await storage.getAppointmentType(customQuestion.appointmentTypeId);
+        if (!appointmentType) {
+          return res.status(404).json({ message: "Associated appointment type not found" });
+        }
+        
+        // Add tenant isolation check
+        if (req.user?.tenantId) {
+          const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+          
+          const facility = await checkTenantFacilityAccess(
+            appointmentType.facilityId,
+            req.user.tenantId,
+            isSuperAdmin,
+            'CustomQuestion-Update'
+          );
+          
+          if (!facility) {
+            console.log(`[CustomQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+            return res.status(403).json({ message: "You can only update questions for appointment types in your organization" });
+          }
+        }
       }
       
       const updatedCustomQuestion = await storage.updateCustomQuestion(id, req.body);
@@ -2588,20 +2670,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
-      // Check tenant isolation if user is not a super admin
-      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
-        // Find the facility
-        const facility = await storage.getFacility(appointmentType.facilityId);
+      // Check tenant isolation if user has a tenantId
+      if (req.user?.tenantId) {
+        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+        
+        // Use our helper function to check tenant access
+        const facility = await checkTenantFacilityAccess(
+          appointmentType.facilityId,
+          req.user.tenantId,
+          isSuperAdmin,
+          'CustomQuestions-Alt'
+        );
+        
         if (!facility) {
-          console.log(`[CustomQuestions] Facility not found: ${appointmentType.facilityId}`);
-          return res.status(404).json({ message: "Facility not found" });
-        }
-        
-        // Check if this facility belongs to user's organization
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
-        const facilityIds = orgFacilities.map(f => f.id);
-        
-        if (!facilityIds.includes(facility.id)) {
           console.log(`[CustomQuestions] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
           return res.status(403).json({ message: "Access denied to this appointment type's questions" });
         }
