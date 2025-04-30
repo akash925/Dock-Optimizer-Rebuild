@@ -1402,11 +1402,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User routes (admin only)
   app.get("/api/users", checkRole("admin"), async (req, res) => {
     try {
-      const users = await storage.getUsers();
+      // Get users for the current organization only if not a super admin
+      let users;
+      
+      // If the user has a tenantId and is not a super admin, get only users for that organization
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        console.log(`Fetching users for organization ${req.user.tenantId}`);
+        users = await storage.getUsersByOrganizationId(req.user.tenantId);
+      } else {
+        // Super admin gets all users
+        console.log('Super admin fetching all users');
+        users = await storage.getUsers();
+      }
+      
       // Remove passwords from the response
       const usersWithoutPasswords = users.map(({ password, ...user }) => user);
       res.json(usersWithoutPasswords);
     } catch (err) {
+      console.error('Error fetching users:', err);
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
