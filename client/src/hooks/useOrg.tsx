@@ -1,8 +1,8 @@
-import { useMemo, useCallback, useRef } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
-import { OrgModule, AVAILABLE_MODULES, useModules } from '@/contexts/ModuleContext';
+import { OrgModule, AVAILABLE_MODULES } from '@/contexts/ModuleContext';
 import { toast } from '@/hooks/use-toast';
 
 interface Organization {
@@ -54,13 +54,7 @@ const fetchOrg = async (orgId: number): Promise<Organization | null> => {
   try {
     // Add a cache-busting timestamp
     const timestamp = new Date().getTime();
-    const res = await apiRequest('GET', `/api/admin/orgs/${orgId}/detail?_t=${timestamp}`, undefined, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    const res = await apiRequest('GET', `/api/admin/orgs/${orgId}/detail?_t=${timestamp}`);
     
     if (!res.ok) {
       if (res.status === 404) {
@@ -80,7 +74,6 @@ const fetchOrg = async (orgId: number): Promise<Organization | null> => {
 export const useOrg = (orgId?: number) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { refetchModules } = useModules();
   
   // If no orgId provided, use the user's tenantId (organization id)
   const effectiveOrgId = orgId || user?.tenantId || 0;
@@ -136,10 +129,7 @@ export const useOrg = (orgId?: number) => {
       await queryClient.invalidateQueries({ queryKey: ['modules'] });
       
       // Explicitly refetch data
-      await Promise.all([
-        refetch(),
-        refetchModules()
-      ]);
+      await refetch();
       
       toast({
         title: 'Module updated',
@@ -172,10 +162,9 @@ export const useOrg = (orgId?: number) => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['org', effectiveOrgId] }),
       queryClient.invalidateQueries({ queryKey: ['modules'] }),
-      refetch(),
-      refetchModules()
+      refetch()
     ]);
-  }, [effectiveOrgId, queryClient, refetch, refetchModules]);
+  }, [effectiveOrgId, queryClient, refetch]);
 
   return {
     org,
