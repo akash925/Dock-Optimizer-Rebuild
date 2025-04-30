@@ -2486,6 +2486,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!bookingPage) {
         return res.status(404).json({ message: "Booking page not found" });
       }
+      
+      // Check tenant isolation if user is authenticated and has a tenantId
+      if (req.isAuthenticated() && req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Get facilities for this tenant
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        // Make sure facilities is an array
+        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
+        
+        // Check if any of the booking page's facilities belong to this organization
+        const hasTenantFacility = bookingPageFacilities.some(
+          facilityId => facilityIds.includes(facilityId)
+        );
+        
+        if (!hasTenantFacility) {
+          console.log(`[BookingPage] Access denied - booking page ID ${req.params.id} does not belong to tenant ${req.user.tenantId}`);
+          return res.status(403).json({ message: "Access denied to this booking page" });
+        }
+      }
+      
       res.json(bookingPage);
     } catch (err) {
       console.error("Error fetching booking page:", err);
@@ -2510,6 +2531,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Validation error",
           message: "Please select at least one appointment type"
         });
+      }
+      
+      // If user has a tenantId (not super admin), validate that they can only use their organization's facilities
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Get facilities that belong to this organization
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const allowedFacilityIds = orgFacilities.map(f => f.id);
+        
+        // Check if all selected facilities belong to this organization
+        const validFacilities = facilities.every(facilityId => 
+          allowedFacilityIds.includes(typeof facilityId === 'string' ? parseInt(facilityId, 10) : facilityId)
+        );
+        
+        if (!validFacilities) {
+          console.log(`[BookingPage] Access denied - user ${req.user.id} with tenant ${req.user.tenantId} attempted to create booking page with facilities they don't have access to`);
+          return res.status(403).json({ 
+            error: "Validation error",
+            message: "You can only select facilities that belong to your organization" 
+          });
+        }
       }
       
       // Add the current user to createdBy field
@@ -2588,6 +2629,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking page not found" });
       }
       
+      // Check tenant isolation for existing booking page access
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Get facilities for this tenant
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        // Make sure facilities is an array
+        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
+        
+        // Check if any of the booking page's facilities belong to this organization
+        const hasTenantFacility = bookingPageFacilities.some(
+          facilityId => facilityIds.includes(facilityId)
+        );
+        
+        if (!hasTenantFacility) {
+          console.log(`[BookingPage] Access denied - user ${req.user.id} with tenant ${req.user.tenantId} cannot edit booking page ID ${id}`);
+          return res.status(403).json({ message: "Access denied to this booking page" });
+        }
+      }
+      
       // Validate facilities and appointment types
       const { facilities, appointmentTypes } = req.body;
       console.log(`[BookingPage] Raw facilities from request:`, facilities);
@@ -2612,6 +2673,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert any string IDs to numbers to ensure consistent processing
       const parsedFacilities = facilities.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
       const parsedAppointmentTypes = appointmentTypes.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
+      
+      // If user has a tenantId (not super admin), validate that they can only use their organization's facilities
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Get facilities that belong to this organization
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const allowedFacilityIds = orgFacilities.map(f => f.id);
+        
+        // Check if all selected facilities belong to this organization
+        const validFacilities = parsedFacilities.every(facilityId => 
+          allowedFacilityIds.includes(facilityId)
+        );
+        
+        if (!validFacilities) {
+          console.log(`[BookingPage] Access denied - user ${req.user.id} with tenant ${req.user.tenantId} attempted to update booking page with facilities they don't have access to`);
+          return res.status(403).json({ 
+            error: "Validation error",
+            message: "You can only select facilities that belong to your organization" 
+          });
+        }
+      }
       
       console.log(`[BookingPage] Parsed facilities:`, parsedFacilities);
       console.log(`[BookingPage] Parsed appointment types:`, parsedAppointmentTypes);
@@ -2687,6 +2768,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bookingPage = await storage.getBookingPage(id);
       if (!bookingPage) {
         return res.status(404).json({ message: "Booking page not found" });
+      }
+      
+      // Check tenant isolation if user is not a super admin
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Get facilities for this tenant
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        // Make sure facilities is an array
+        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
+        
+        // Check if any of the booking page's facilities belong to this organization
+        const hasTenantFacility = bookingPageFacilities.some(
+          facilityId => facilityIds.includes(facilityId)
+        );
+        
+        if (!hasTenantFacility) {
+          console.log(`[BookingPage] Access denied - cannot delete booking page ID ${id} as it does not belong to tenant ${req.user.tenantId}`);
+          return res.status(403).json({ message: "Access denied to this booking page" });
+        }
       }
       
       const success = await storage.deleteBookingPage(id);
