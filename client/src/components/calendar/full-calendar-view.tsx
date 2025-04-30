@@ -426,8 +426,9 @@ export default function FullCalendarView({
                   ? `${formatAppointmentTime(activeEvent.startTime, activeEvent.facilityTimezone)} - ${formatAppointmentTime(activeEvent.endTime, activeEvent.facilityTimezone)}`
                   : 'No time specified'}
                 {activeEvent.facilityTimezone && (
-                  <span className="block text-xs text-muted-foreground italic mt-0.5">
-                    (All times in facility's timezone)
+                  <span className="block text-xs bg-blue-50 text-blue-700 rounded-sm px-2 py-1 mt-1 font-medium flex items-center">
+                    <Clock className="w-3 h-3 mr-1" />
+                    All times shown in facility's timezone ({activeEvent.facilityTimezone})
                   </span>
                 )}
               </div>
@@ -438,12 +439,7 @@ export default function FullCalendarView({
               <div className="font-medium">{activeEvent.facilityName || 'Not specified'}</div>
             </div>
             
-            {activeEvent.facilityTimezone && (
-              <div className="flex items-start">
-                <div className="w-24 text-muted-foreground">Timezone:</div>
-                <div className="font-medium">{activeEvent.facilityTimezone}</div>
-              </div>
-            )}
+            {/* Timezone information now incorporated into time section above */}
             
             <div className="flex items-start">
               <div className="w-24 text-muted-foreground">Carrier:</div>
@@ -485,14 +481,12 @@ export default function FullCalendarView({
         {/* Display timezone information at the top of the calendar */}
         <div className="p-2 border-b bg-slate-50 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            <span className="font-medium">Timezone:</span> {selectedTimezone || 'Local'}
+            <Clock className="w-4 h-4 inline mr-1 text-primary" />
+            <span className="font-medium">Display Timezone:</span> {timezone || selectedTimezone}
           </div>
-          {timezone && timezone !== selectedTimezone && (
-            <div className="text-xs text-amber-600 font-medium">
-              <Clock className="w-3 h-3 inline mr-1" />
-              Showing times in {selectedTimezone}, but facility is in {timezone}
-            </div>
-          )}
+          <div className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium">
+            All appointment times are locked to facility timezone
+          </div>
         </div>
         <CardContent className="p-0">
           <div className="calendar-container">
@@ -506,7 +500,7 @@ export default function FullCalendarView({
                 right: ''
               }}
               nowIndicator={true}
-              timeZone={selectedTimezone}
+              timeZone={timezone || selectedTimezone}
               events={events}
               selectable={!!onDateSelect}
               selectMirror={true}
