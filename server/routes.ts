@@ -2727,10 +2727,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Determine if we need to enforce tenant isolation
+      const isSuperAdmin = req.user?.role === 'super-admin' || req.user?.username?.includes('admin@conmitto.io');
+      const tenantId = isSuperAdmin ? undefined : req.user?.tenantId;
+      
       // If user has a tenantId (not super admin), validate that they can only use their organization's facilities
-      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+      if (tenantId) {
         // Get facilities that belong to this organization
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
         const allowedFacilityIds = orgFacilities.map(f => f.id);
         
         // Check if all selected facilities belong to this organization
@@ -2739,7 +2743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         
         if (!validFacilities) {
-          console.log(`[BookingPage] Access denied - user ${req.user.id} with tenant ${req.user.tenantId} attempted to create booking page with facilities they don't have access to`);
+          console.log(`[BookingPage] Access denied - user ${req.user?.id} with tenant ${tenantId} attempted to create booking page with facilities they don't have access to`);
           return res.status(403).json({ 
             error: "Validation error",
             message: "You can only select facilities that belong to your organization" 
@@ -2747,10 +2751,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Add the current user to createdBy field
+      console.log(`[BookingPage] Creating new booking page for tenant: ${tenantId || 'super-admin'}`);
+      
+      // Add the current user to createdBy field and include tenant ID
       const bookingPageData = {
         ...req.body,
-        createdBy: req.user!.id
+        createdBy: req.user!.id,
+        ...(tenantId ? { tenantId } : {}) // Add tenant ID if defined
       };
       
       // Check if slug already exists
@@ -2772,8 +2779,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dataToSave = {
         ...bookingPageData,
         facilities: facilities, // Array of facility IDs
-        excludedAppointmentTypes: excludedAppointmentTypes // For backward compatibility
+        excludedAppointmentTypes: excludedAppointmentTypes, // For backward compatibility
+        ...(tenantId ? { tenantId } : {}) // Make sure tenant ID is also in the validated data
       };
+      
+      console.log(`[BookingPage] Tenant ID for creation: ${tenantId || 'undefined (super admin)'}`);
+      console.log(`[BookingPage] Data to save:`, JSON.stringify({
+        ...dataToSave,
+        facilities: facilities.length + ' facilities',
+        appointmentTypes: appointmentTypes.length + ' appointment types'
+      }, null, 2));
       
       console.log(`Creating booking page with:`, {
         facilities: facilities.length,
@@ -2817,6 +2832,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[BookingPage] Processing update request for booking page ID ${id}`);
       console.log(`[BookingPage] Request body:`, JSON.stringify(req.body, null, 2));
       
+      // Determine if we need to enforce tenant isolation
+      const isSuperAdmin = req.user?.role === 'super-admin' || req.user?.username?.includes('admin@conmitto.io');
+      const tenantId = isSuperAdmin ? undefined : req.user?.tenantId;
+      
       const bookingPage = await storage.getBookingPage(id);
       if (!bookingPage) {
         console.log(`[BookingPage] Error: Booking page ${id} not found`);
@@ -2824,22 +2843,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check tenant isolation for existing booking page access
-      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
-        // Get facilities for this tenant
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
-        const facilityIds = orgFacilities.map(f => f.id);
-        
-        // Make sure facilities is an array
-        const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
-        
-        // Check if any of the booking page's facilities belong to this organization
-        const hasTenantFacility = bookingPageFacilities.some(
-          facilityId => facilityIds.includes(facilityId)
-        );
-        
-        if (!hasTenantFacility) {
-          console.log(`[BookingPage] Access denied - user ${req.user.id} with tenant ${req.user.tenantId} cannot edit booking page ID ${id}`);
-          return res.status(403).json({ message: "Access denied to this booking page" });
+      if (tenantId) {
+        // First check if tenant_id is set on the booking page
+        if (bookingPage.tenantId !== undefined && bookingPage.tenantId !== null) {
+          if (bookingPage.tenantId !== tenantId) {
+            console.log(`[BookingPage] Access denied - tenant mismatch. User: ${tenantId}, BookingPage: ${bookingPage.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this booking page" });
+          }
+        } else {
+          // Fallback to facility-based checking if tenant_id isn't available
+          // Get facilities for this tenant
+          const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
+          const facilityIds = orgFacilities.map(f => f.id);
+          
+          // Make sure facilities is an array
+          const bookingPageFacilities = Array.isArray(bookingPage.facilities) ? bookingPage.facilities : [];
+          
+          // Check if any of the booking page's facilities belong to this organization
+          const hasTenantFacility = bookingPageFacilities.some(
+            facilityId => facilityIds.includes(facilityId)
+          );
+          
+          if (!hasTenantFacility) {
+            console.log(`[BookingPage] Access denied - user ${req.user.id} with tenant ${tenantId} cannot edit booking page ID ${id}`);
+            return res.status(403).json({ message: "Access denied to this booking page" });
+          }
         }
       }
       
@@ -2869,9 +2897,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parsedAppointmentTypes = appointmentTypes.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
       
       // If user has a tenantId (not super admin), validate that they can only use their organization's facilities
-      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+      if (tenantId) {
         // Get facilities that belong to this organization
-        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
         const allowedFacilityIds = orgFacilities.map(f => f.id);
         
         // Check if all selected facilities belong to this organization
@@ -2880,7 +2908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         
         if (!validFacilities) {
-          console.log(`[BookingPage] Access denied - user ${req.user.id} with tenant ${req.user.tenantId} attempted to update booking page with facilities they don't have access to`);
+          console.log(`[BookingPage] Access denied - user ${req.user?.id} with tenant ${tenantId} attempted to update booking page with facilities they don't have access to`);
           return res.status(403).json({ 
             error: "Validation error",
             message: "You can only select facilities that belong to your organization" 
@@ -2923,11 +2951,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dataToSave = {
         ...bookingPageData,
         facilities: parsedFacilities, // Array of facility IDs
-        excludedAppointmentTypes: excludedAppointmentTypes // For backward compatibility
+        excludedAppointmentTypes: excludedAppointmentTypes, // For backward compatibility
+        ...(tenantId ? { tenantId } : {}) // Add tenant ID if it's defined
       };
       
       // Remove the raw appointmentTypes from the data to save to avoid confusion with excludedAppointmentTypes
       delete dataToSave.appointmentTypes;
+      
+      console.log(`[BookingPage] Using tenant ID ${tenantId || 'undefined'} for update operations`);
       
       console.log(`[BookingPage] Updating booking page ${id} with:`, {
         facilities: parsedFacilities.length,
@@ -2937,7 +2968,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[BookingPage] Full update payload:`, JSON.stringify(dataToSave, null, 2));
       
-      const updatedBookingPage = await storage.updateBookingPage(id, dataToSave);
+      // Pass tenant ID to ensure tenant isolation during the update
+      const updatedBookingPage = await storage.updateBookingPage(id, dataToSave, tenantId);
+      
+      if (!updatedBookingPage) {
+        console.log(`[BookingPage] Update failed due to tenant isolation or other access restrictions`);
+        return res.status(403).json({ message: "You don't have permission to update this booking page" });
+      }
+      
       console.log(`[BookingPage] Update successful, response:`, JSON.stringify(updatedBookingPage, null, 2));
       
       res.status(200).json({
