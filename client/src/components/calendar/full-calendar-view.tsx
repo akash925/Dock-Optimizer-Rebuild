@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, MutableRefObject } from 'react';
+import { Clock } from 'lucide-react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -378,15 +379,29 @@ export default function FullCalendarView({
   
   // Simplified approach - no DOM manipulation effects
 
-  // Format time for tooltip
-  const formatAppointmentTime = (date: Date) => {
+  // Format time for tooltip with timezone support
+  const formatAppointmentTime = (date: Date, timezone?: string | null) => {
     if (!date) return '';
     
-    return new Intl.DateTimeFormat('en-US', {
+    // Use Intl.DateTimeFormat for formatting dates with timezone awareness
+    const options: Intl.DateTimeFormatOptions = {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true
-    }).format(date);
+      hour12: true,
+      timeZone: timezone || undefined
+    };
+    
+    try {
+      return new Intl.DateTimeFormat('en-US', options).format(date);
+    } catch (error) {
+      // Fallback to browser's timezone if the specified timezone is invalid
+      console.error('Error formatting time with timezone:', error);
+      return new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }).format(date);
+    }
   };
   
   return (
@@ -408,8 +423,13 @@ export default function FullCalendarView({
               <div className="w-24 text-muted-foreground">Time:</div>
               <div className="font-medium">
                 {activeEvent.startTime && activeEvent.endTime
-                  ? `${formatAppointmentTime(activeEvent.startTime)} - ${formatAppointmentTime(activeEvent.endTime)}`
+                  ? `${formatAppointmentTime(activeEvent.startTime, activeEvent.facilityTimezone)} - ${formatAppointmentTime(activeEvent.endTime, activeEvent.facilityTimezone)}`
                   : 'No time specified'}
+                {activeEvent.facilityTimezone && (
+                  <span className="block text-xs text-muted-foreground italic mt-0.5">
+                    (All times in facility's timezone)
+                  </span>
+                )}
               </div>
             </div>
             
@@ -417,6 +437,13 @@ export default function FullCalendarView({
               <div className="w-24 text-muted-foreground">Facility:</div>
               <div className="font-medium">{activeEvent.facilityName || 'Not specified'}</div>
             </div>
+            
+            {activeEvent.facilityTimezone && (
+              <div className="flex items-start">
+                <div className="w-24 text-muted-foreground">Timezone:</div>
+                <div className="font-medium">{activeEvent.facilityTimezone}</div>
+              </div>
+            )}
             
             <div className="flex items-start">
               <div className="w-24 text-muted-foreground">Carrier:</div>
@@ -455,6 +482,18 @@ export default function FullCalendarView({
       )}
       
       <Card className="w-full relative border overflow-hidden">
+        {/* Display timezone information at the top of the calendar */}
+        <div className="p-2 border-b bg-slate-50 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium">Timezone:</span> {selectedTimezone || 'Local'}
+          </div>
+          {timezone && timezone !== selectedTimezone && (
+            <div className="text-xs text-amber-600 font-medium">
+              <Clock className="w-3 h-3 inline mr-1" />
+              Showing times in {selectedTimezone}, but facility is in {timezone}
+            </div>
+          )}
+        </div>
         <CardContent className="p-0">
           <div className="calendar-container">
             <FullCalendar
