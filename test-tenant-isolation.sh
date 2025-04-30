@@ -11,8 +11,8 @@ NC='\033[0m' # No Color
 echo -e "${YELLOW}===== Testing Tenant Isolation for Appointment Availability =====\n${NC}"
 
 # Load cookies for each tenant to simulate authenticated requests
-HANZO_COOKIES="$(cat hanzo_cookies.txt)"
-FC_COOKIES="$(cat fccentral_cookies.txt)"
+HANZO_COOKIES="hanzo_cookies.txt"
+FC_COOKIES="fccentral_cookies.txt"
 
 # Test 1: Availability endpoint with cross-tenant access (should fail)
 # Fresh Connect user (tenant 5) trying to access Hanzo facility (ID 3) with matching appointment type (ID 3)
