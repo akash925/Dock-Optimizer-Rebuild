@@ -2377,7 +2377,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Booking Pages routes
   app.get("/api/booking-pages", async (req, res) => {
     try {
-      const bookingPages = await storage.getBookingPages();
+      let bookingPages;
+      
+      // If the user has a tenantId and is not a super admin, only return booking pages
+      // for this organization's facilities
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        console.log(`Fetching booking pages for organization ${req.user.tenantId}`);
+        
+        // Get all facilities for this organization
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        // Get all booking pages
+        const allBookingPages = await storage.getBookingPages();
+        
+        // Filter to only include booking pages that have at least one facility
+        // belonging to this organization
+        bookingPages = allBookingPages.filter(bp => {
+          // Make sure facilities is an array
+          const bookingPageFacilities = Array.isArray(bp.facilities) ? bp.facilities : [];
+          
+          // Check if any of the booking page's facilities belong to this organization
+          return bookingPageFacilities.some(facilityId => facilityIds.includes(facilityId));
+        });
+        
+        console.log(`Found ${bookingPages.length} booking pages for organization ${req.user.tenantId}`);
+      } else {
+        // Super admin gets all booking pages
+        bookingPages = await storage.getBookingPages();
+      }
+      
       res.json(bookingPages);
     } catch (err) {
       console.error("Error fetching booking pages:", err);
