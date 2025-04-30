@@ -98,6 +98,8 @@ export default function SeedAppointmentTypes() {
         return;
       }
       
+      console.log(`Preparing to create ${allTypesToCreate.length} appointment types`);
+      
       // Create each appointment type
       let createdCount = 0;
       for (const type of allTypesToCreate) {
@@ -112,14 +114,32 @@ export default function SeedAppointmentTypes() {
           duration: type.duration,
           color: type.color,
           type: type.type as "inbound" | "outbound" | "both",
+          // Add required fields based on appointmentTypes schema
           showRemainingSlots: true,
           gracePeriod: 15,
-          emailReminderTime: 24
+          emailReminderTime: 24,
+          // Additional required fields from schema
+          bufferTime: 0,
+          maxConcurrent: 1,
+          allowAppointmentsThroughBreaks: false,
+          allowAppointmentsPastBusinessHours: false,
+          overrideFacilityHours: false,
+          timezone: "America/New_York"
         };
+        
+        console.log(`Creating appointment type for facility ${facilityName}:`, appointmentTypeData);
         
         try {
           const response = await apiRequest("POST", "/api/appointment-types", appointmentTypeData);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Error creating appointment type (${response.status}):`, errorText);
+            throw new Error(`Failed with status ${response.status}: ${errorText}`);
+          }
+          
           const createdType = await response.json();
+          console.log("Successfully created appointment type:", createdType);
           setCompleted(prev => [...prev, createdType.id]);
           createdCount++;
         } catch (error) {
@@ -130,10 +150,18 @@ export default function SeedAppointmentTypes() {
       // Invalidate the appointment types query to refresh the data
       queryClient.invalidateQueries({ queryKey: ["/api/appointment-types"] });
       
-      toast({
-        title: "Success",
-        description: `Created ${createdCount} appointment types for ${facilities.length} facilities`,
-      });
+      if (createdCount > 0) {
+        toast({
+          title: "Success",
+          description: `Created ${createdCount} appointment types for ${facilities.length} facilities`,
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description: "No appointment types were created. Check console for details.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error("Error creating appointment types:", error);
       toast({

@@ -136,23 +136,61 @@ export default function ExternalBooking() {
       console.log("DEBUG - Available facilities:", facilities.length);
       console.log("DEBUG - Booking page facilities data:", typeof bookingPage.facilities);
       
-      // Use all facilities by default if we haven't processed them yet
-      // Use the ref to track if we've already processed facilities
+      // Only process facilities if we haven't done so yet
       if (Object.keys(parsedFacilitiesRef.current).length === 0) {
         try {
-          // Use all facilities by default - this ensures we always have locations
           const facilitiesMap: ParsedFacilities = {};
           
-          // Add every facility to the map
-          facilities.forEach(facility => {
-            facilitiesMap[facility.id] = {
-              facility,
-              excludedAppointmentTypes: []
-            };
-          });
-          
-          // Log the processed facilities
-          console.log("Using all facilities for booking page:", Object.keys(facilitiesMap).length);
+          // Check if booking page has facilities data
+          if (bookingPage.facilities) {
+            let bookingPageFacilityIds: number[] = [];
+            
+            // Handle different formats of bookingPage.facilities
+            if (Array.isArray(bookingPage.facilities)) {
+              bookingPageFacilityIds = bookingPage.facilities.map(id => 
+                typeof id === 'string' ? parseInt(id, 10) : id
+              );
+            } else if (typeof bookingPage.facilities === 'string') {
+              try {
+                const parsed = JSON.parse(bookingPage.facilities);
+                if (Array.isArray(parsed)) {
+                  bookingPageFacilityIds = parsed.map(id => 
+                    typeof id === 'string' ? parseInt(id, 10) : id
+                  );
+                }
+              } catch (e) {
+                console.error("Error parsing facilities JSON string:", e);
+                bookingPageFacilityIds = [];
+              }
+            }
+            
+            console.log("Booking page facility IDs:", bookingPageFacilityIds);
+            
+            // Filter facilities to only those specified in the booking page
+            const filteredFacilities = facilities.filter(facility => 
+              bookingPageFacilityIds.includes(facility.id)
+            );
+            
+            // Add filtered facilities to the map
+            filteredFacilities.forEach(facility => {
+              facilitiesMap[facility.id] = {
+                facility,
+                excludedAppointmentTypes: []
+              };
+            });
+            
+            console.log("Using filtered facilities for booking page:", Object.keys(facilitiesMap).length);
+          } else {
+            console.warn("No facilities data found in booking page, using tenant-filtered facilities");
+            
+            // If no facilities specified, use all tenant-filtered facilities
+            facilities.forEach(facility => {
+              facilitiesMap[facility.id] = {
+                facility,
+                excludedAppointmentTypes: []
+              };
+            });
+          }
           
           // Store in ref to prevent infinite updates
           parsedFacilitiesRef.current = facilitiesMap;
