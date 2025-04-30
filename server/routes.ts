@@ -3645,13 +3645,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxConcurrent: appointmentType.maxConcurrent || 1
       });
       
-      // Check if appointment type belongs to the requested facility
-      if (appointmentType.facilityId !== parsedFacilityId) {
-        console.log("VALIDATION ERROR: Appointment type does not belong to facility");
-        return res.status(400).json({ 
-          message: "The appointment type does not belong to the specified facility" 
-        });
-      }
+      // For tenant isolation purposes, we've already verified:
+      // 1. The facility belongs to the tenant (checkTenantFacilityAccess)
+      // 2. The appointment type belongs to the tenant (getAppointmentType with tenantId)
+      //
+      // We should not require that appointmentType.facilityId === parsedFacilityId
+      // since the data model allows appointment types to be used across facilities
+      
+      // Log appointment type and facility info for debugging
+      console.log(`[Availability] Using appointment type: ${appointmentType.id} (${appointmentType.name}) with facilityId: ${appointmentType.facilityId || 'undefined'}, requested facilityId: ${parsedFacilityId}`);
+      
       
       // Get facility to determine timezone
       const facility = await storage.getFacility(parsedFacilityId);
