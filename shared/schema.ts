@@ -651,6 +651,7 @@ export const bookingPages = pgTable("booking_pages", {
   useOrganizationLogo: boolean("use_organization_logo").notNull().default(true), // Whether to show the org logo
   customLogo: text("custom_logo"), // URL to custom logo if not using org logo
   primaryColor: text("primary_color").default("#4CAF50"), // Theme color
+  tenantId: integer("tenant_id"), // Added for multi-tenant isolation
   createdBy: integer("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),
@@ -671,6 +672,10 @@ export const bookingPagesRelations = relations(bookingPages, ({ one }) => ({
   modifier: one(users, {
     fields: [bookingPages.lastModifiedBy],
     references: [users.id],
+  }),
+  tenant: one(tenants, {
+    fields: [bookingPages.tenantId],
+    references: [tenants.id],
   }),
 }));
 
