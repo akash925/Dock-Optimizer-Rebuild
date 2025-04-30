@@ -66,6 +66,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register admin routes
   adminRoutes(app);
   
+  // Register organization modules routes
+  try {
+    const { registerOrganizationModulesRoutes } = await import('./modules/admin/organizations/routes');
+    registerOrganizationModulesRoutes(app);
+    console.log('Organization modules routes registered');
+  } catch (error) {
+    console.error('Error registering organization modules routes:', error);
+  }
+  
   // Test login for development and debugging
   app.get("/api/test-login", async (req, res, next) => {
     try {
