@@ -2433,6 +2433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointment-master/availability-rules", async (req, res) => {
     try {
       const { typeId, appointmentTypeId, facilityId } = req.query;
+      const tenantId = req.user?.tenantId;
       
       // Support both parameter naming conventions for backward compatibility
       const finalTypeId = typeId || appointmentTypeId;
@@ -2450,12 +2451,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         originalTypeId: typeId,
         originalAppointmentTypeId: appointmentTypeId,
         resolvedTypeId: finalTypeId,
-        facilityId
+        facilityId,
+        tenantId: tenantId || 'none'
       });
       
-      // Check if appointment type exists
-      const appointmentType = await storage.getAppointmentType(appointmentTypeIdNum);
+      // Check if appointment type exists with tenant isolation
+      const appointmentType = await storage.getAppointmentType(appointmentTypeIdNum, tenantId);
       if (!appointmentType) {
+        console.log(`[AvailabilityRules] Appointment type not found: ${appointmentTypeIdNum}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
@@ -2499,10 +2502,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/daily-availability", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const validatedData = insertDailyAvailabilitySchema.parse(req.body);
+      const tenantId = req.user?.tenantId;
       
-      // Check if appointment type exists
-      const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId);
+      // Check if appointment type exists with tenant isolation
+      const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId, tenantId);
       if (!appointmentType) {
+        console.log(`[DailyAvailability] Appointment type not found: ${validatedData.appointmentTypeId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return res.status(400).json({ message: "Invalid appointment type ID" });
       }
       
@@ -2536,15 +2541,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/daily-availability/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
+      const tenantId = req.user?.tenantId;
+      
       const dailyAvailability = await storage.getDailyAvailability(id);
       if (!dailyAvailability) {
         return res.status(404).json({ message: "Daily availability not found" });
       }
       
       // Add tenant isolation check - first get the appointment type 
-      // to access its facilityId
-      const appointmentType = await storage.getAppointmentType(dailyAvailability.appointmentTypeId);
+      // to access its facilityId with tenant isolation
+      const appointmentType = await storage.getAppointmentType(dailyAvailability.appointmentTypeId, tenantId);
       if (!appointmentType) {
+        console.log(`[DailyAvailability] Associated appointment type not found: ${dailyAvailability.appointmentTypeId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return res.status(404).json({ message: "Associated appointment type not found" });
       }
       
@@ -2576,12 +2584,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointment-types/:id/questions", async (req, res) => {
     try {
       const appointmentTypeId = Number(req.params.id);
-      console.log(`[CustomQuestions] Fetching questions for appointment type ID: ${appointmentTypeId}`);
+      const tenantId = req.user?.tenantId;
       
-      // Get the appointment type first
-      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      console.log(`[CustomQuestions] Fetching questions for appointment type ID: ${appointmentTypeId}, tenantId: ${tenantId || 'none'}`);
+      
+      // Get the appointment type first with tenant isolation
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId, tenantId);
       if (!appointmentType) {
-        console.log(`[CustomQuestions] Appointment type not found: ${appointmentTypeId}`);
+        console.log(`[CustomQuestions] Appointment type not found: ${appointmentTypeId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
@@ -2615,11 +2625,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/custom-questions", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const validatedData = insertCustomQuestionSchema.parse(req.body);
+      const tenantId = req.user?.tenantId;
       
       // Check if appointment type exists if appointmentTypeId is provided
       if (validatedData.appointmentTypeId) {
-        const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId);
+        // Use tenant ID for isolation
+        const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId, tenantId);
         if (!appointmentType) {
+          console.log(`[CustomQuestion] Appointment type not found: ${validatedData.appointmentTypeId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
           return res.status(400).json({ message: "Invalid appointment type ID" });
         }
         
@@ -2654,6 +2667,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/custom-questions/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
+      const tenantId = req.user?.tenantId;
+      
       const customQuestion = await storage.getCustomQuestion(id);
       if (!customQuestion) {
         return res.status(404).json({ message: "Custom question not found" });
@@ -2661,9 +2676,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If the question is associated with an appointment type, check tenant isolation
       if (customQuestion.appointmentTypeId) {
-        // Get the appointment type to check which facility it belongs to
-        const appointmentType = await storage.getAppointmentType(customQuestion.appointmentTypeId);
+        // Get the appointment type to check which facility it belongs to with tenant isolation
+        const appointmentType = await storage.getAppointmentType(customQuestion.appointmentTypeId, tenantId);
         if (!appointmentType) {
+          console.log(`[CustomQuestion] Associated appointment type not found: ${customQuestion.appointmentTypeId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
           return res.status(404).json({ message: "Associated appointment type not found" });
         }
         
@@ -2695,6 +2711,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/custom-questions/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
+      const tenantId = req.user?.tenantId;
+      
       const customQuestion = await storage.getCustomQuestion(id);
       if (!customQuestion) {
         return res.status(404).json({ message: "Custom question not found" });
@@ -2702,9 +2720,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If the question is associated with an appointment type, check tenant isolation
       if (customQuestion.appointmentTypeId) {
-        // Get the appointment type to check which facility it belongs to
-        const appointmentType = await storage.getAppointmentType(customQuestion.appointmentTypeId);
+        // Get the appointment type to check which facility it belongs to with tenant isolation
+        const appointmentType = await storage.getAppointmentType(customQuestion.appointmentTypeId, tenantId);
         if (!appointmentType) {
+          console.log(`[CustomQuestion] Associated appointment type not found: ${customQuestion.appointmentTypeId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
           return res.status(404).json({ message: "Associated appointment type not found" });
         }
         
@@ -2741,17 +2760,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/custom-questions/:appointmentTypeId", async (req, res) => {
     try {
       const appointmentTypeId = parseInt(req.params.appointmentTypeId);
+      const tenantId = req.user?.tenantId;
+      
       if (isNaN(appointmentTypeId)) {
         console.log(`[CustomQuestions] Invalid appointment type ID: ${req.params.appointmentTypeId}`);
         return res.status(400).send("Invalid appointment type ID");
       }
       
-      console.log(`[CustomQuestions] Fetching questions for appointment type ID: ${appointmentTypeId} (alternate endpoint)`);
+      console.log(`[CustomQuestions] Fetching questions for appointment type ID: ${appointmentTypeId}, tenantId: ${tenantId || 'none'} (alternate endpoint)`);
       
-      // Get the appointment type first
-      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      // Get the appointment type first with tenant isolation
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId, tenantId);
       if (!appointmentType) {
-        console.log(`[CustomQuestions] Appointment type not found: ${appointmentTypeId}`);
+        console.log(`[CustomQuestions] Appointment type not found: ${appointmentTypeId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
