@@ -15,7 +15,7 @@ HANZO_COOKIES="$(cat hanzo_cookies.txt)"
 FC_COOKIES="$(cat fccentral_cookies.txt)"
 
 # Test 1: Availability endpoint with cross-tenant access (should fail)
-# Fresh Connect user (tenant 5) trying to access Hanzo facility
+# Fresh Connect user (tenant 5) trying to access Hanzo facility (ID 3) with matching appointment type (ID 3)
 echo -e "\n${YELLOW}Test 1: Fresh Connect user trying to access Hanzo facility availability${NC}"
 echo "Request: GET /api/availability?date=2025-05-01&facilityId=3&typeId=3"
 
