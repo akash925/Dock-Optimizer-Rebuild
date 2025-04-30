@@ -2628,25 +2628,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // If no tenant ID in session, try to determine tenant from the requested facility
         if (!userTenantId) {
-          const orgInfo = await storage.getOrganizationByFacilityId(facilityIdNum);
-          if (orgInfo) {
-            console.log(`[MasterAvailabilityRules] Facility ${facilityIdNum} belongs to organization ${orgInfo.id} (${orgInfo.name})`);
-            userTenantId = orgInfo.id;
+          try {
+            // Look up which organization owns this facility with direct SQL
+            const facilityOrgQuery = `
+              SELECT t.id, t.name 
+              FROM tenants t
+              JOIN organization_facilities of ON t.id = of.organization_id
+              WHERE of.facility_id = $1
+              LIMIT 1
+            `;
+            
+            const orgResult = await pool.query(facilityOrgQuery, [facilityIdNum]);
+            
+            if (orgResult.rows.length > 0) {
+              const orgInfo = orgResult.rows[0];
+              console.log(`[MasterAvailabilityRules] Facility ${facilityIdNum} belongs to organization ${orgInfo.id} (${orgInfo.name})`);
+              userTenantId = orgInfo.id;
+            }
+          } catch (error) {
+            console.error(`[MasterAvailabilityRules] Error determining facility organization:`, error);
           }
         }
         
-        // Determine appointment type's organization
-        const appointmentTypeOrg = await storage.getOrganizationByAppointmentTypeId(appointmentTypeIdNum);
-        if (appointmentTypeOrg) {
-          console.log(`[MasterAvailabilityRules] Appointment type ${appointmentTypeIdNum} belongs to organization ${appointmentTypeOrg.id} (${appointmentTypeOrg.name})`);
+        // Determine appointment type's organization using direct SQL
+        try {
+          const appointmentTypeQuery = `
+            SELECT t.id, t.name 
+            FROM tenants t
+            JOIN appointment_types apt ON t.id = apt.tenant_id
+            WHERE apt.id = $1
+            LIMIT 1
+          `;
           
-          // If we have the user's tenant ID, verify it matches the appointment type's organization
-          if (tenantId && appointmentTypeOrg.id !== tenantId) {
-            console.log(`[MasterAvailabilityRules] Access denied - appointment type ${appointmentTypeIdNum} belongs to org ${appointmentTypeOrg.id}, user is from tenant ${tenantId}`);
-            return res.status(403).json({ 
-              message: "Access denied to this appointment type's availability rules"
-            });
+          const aptResult = await pool.query(appointmentTypeQuery, [appointmentTypeIdNum]);
+          
+          if (aptResult.rows.length > 0) {
+            const appointmentTypeOrg = aptResult.rows[0];
+            console.log(`[MasterAvailabilityRules] Appointment type ${appointmentTypeIdNum} belongs to organization ${appointmentTypeOrg.id} (${appointmentTypeOrg.name})`);
+            
+            // If we have the user's tenant ID, verify it matches the appointment type's organization
+            if (tenantId && appointmentTypeOrg.id !== tenantId) {
+              console.log(`[MasterAvailabilityRules] Access denied - appointment type ${appointmentTypeIdNum} belongs to org ${appointmentTypeOrg.id}, user is from tenant ${tenantId}`);
+              return res.status(403).json({ 
+                message: "Access denied to this appointment type's availability rules"
+              });
+            }
           }
+        } catch (error) {
+          console.error(`[MasterAvailabilityRules] Error checking appointment type organization:`, error);
         }
         
         // If using a tenantId (from session or derived), verify facility access
@@ -3703,9 +3732,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const accessResult = await pool.query(checkAccessQuery, [userTenantId, parsedFacilityId]);
             
             const hasAccess = isSuperAdmin || accessResult.rows.length > 0;
-            const matchesTenant = !tenantId || tenantId === userTenantId;
             
-            if (!hasAccess || !matchesTenant) {
+            // The following condition is incorrect and allows cross-tenant access:
+            // const matchesTenant = !tenantId || tenantId === userTenantId;
+            
+            // Instead, only allow access if:
+            // 1. User has no tenant ID (public access)
+            // 2. User's tenant ID matches the facility's organization ID
+            if (tenantId && tenantId !== userTenantId) {
+              console.log(`[AvailabilityEndpoint] Access denied - facility ${parsedFacilityId} belongs to tenant ${userTenantId}, user is from tenant ${tenantId}`);
+              return res.status(403).json({ 
+                message: "Access denied to this facility's availability" 
+              });
+            }
+            
+            if (!hasAccess) {
               console.log(`[AvailabilityEndpoint] Access denied - facility ${parsedFacilityId} does not belong to tenant ${tenantId || userTenantId}`);
               return res.status(403).json({ 
                 message: "Access denied to this facility's availability"
