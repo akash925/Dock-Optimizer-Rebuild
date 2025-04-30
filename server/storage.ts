@@ -2528,13 +2528,9 @@ export class DatabaseStorage implements IStorage {
 
   async getFacilities(tenantId?: number): Promise<Facility[]> {
     try {
-      // Fetch all facilities first
-      const allFacilities = await db.select().from(facilities);
-      
-      // If tenant ID provided, filter facilities
+      // If tenant ID provided, filter facilities by organization
       if (tenantId) {
-        // For now, without modifying the database schema, we'll use a different approach
-        // Get all facilities that belong to the organization through org_facilities table
+        // Get all facilities that belong to the organization through organization_facilities table
         const query = `
           SELECT f.* FROM facilities f
           JOIN organization_facilities of ON f.id = of.facility_id
@@ -2546,7 +2542,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Return all facilities for super admin
-      return allFacilities;
+      return await db.select().from(facilities);
     } catch (error) {
       console.error("Error in getFacilities:", error);
       throw error;

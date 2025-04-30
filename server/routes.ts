@@ -2013,26 +2013,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tenantId = req.user?.tenantId;
       console.log(`Fetching appointment types for user with tenantId: ${tenantId}`);
       
-      // Fetch appointment types - we'll need to filter by facility tenant ID
-      const appointmentTypes = await storage.getAppointmentTypes();
+      // Use our updated method that filters by tenant internally
+      const appointmentTypes = await storage.getAppointmentTypes(tenantId);
+      console.log(`Found ${appointmentTypes.length} appointment types for tenant ID ${tenantId || 'all'}`);
       
-      if (tenantId) {
-        // Get facilities for this tenant
-        const tenantFacilities = await storage.getFacilities(tenantId);
-        const tenantFacilityIds = tenantFacilities.map(facility => facility.id);
-        
-        // Filter appointment types to only show those for the tenant's facilities
-        const filteredAppointmentTypes = appointmentTypes.filter(type => 
-          tenantFacilityIds.includes(type.facilityId)
-        );
-        
-        console.log(`Filtered ${appointmentTypes.length} appointment types to ${filteredAppointmentTypes.length} for tenant ${tenantId}`);
-        res.json(filteredAppointmentTypes);
-      } else {
-        // Super admin case - return all appointment types
-        console.log("No tenant ID, returning all appointment types");
-        res.json(appointmentTypes);
-      }
+      res.json(appointmentTypes);
     } catch (err) {
       console.error("Error fetching appointment types:", err);
       res.status(500).json({ message: "Failed to fetch appointment types", error: err instanceof Error ? err.message : String(err) });
@@ -2140,13 +2125,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/appointment-types/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
+      const tenantId = req.user?.tenantId;
+      
       const appointmentType = await storage.getAppointmentType(id);
       if (!appointmentType) {
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
+      // For non-admin users, check the facility belongs to their organization
+      if (tenantId && req.user?.role !== "admin") {
+        const tenantFacilities = await storage.getFacilities(tenantId);
+        const facilityIds = tenantFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(appointmentType.facilityId)) {
+          return res.status(403).json({ message: "You don't have permission to delete this appointment type" });
+        }
+      }
+      
       // Check if there are any schedules using this appointment type
-      const schedules = await storage.getSchedules();
+      const schedules = await storage.getSchedules(tenantId);
       const appointmentTypeSchedules = schedules.filter(s => s.appointmentTypeId === id);
       
       if (appointmentTypeSchedules.length > 0) {
