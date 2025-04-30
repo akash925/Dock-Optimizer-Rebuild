@@ -41,13 +41,27 @@ export default function Settings() {
   const [defaultBarcodeFormat, setDefaultBarcodeFormat] = useState<string>("CODE128");
   const [barcodePrefix, setBarcodePrefix] = useState<string>("H");
   
-  // Load saved logo and barcode settings from localStorage on component mount
+  // Load organization logo from API and barcode settings from localStorage
+  const { data: orgData, isLoading: isLoadingOrg } = useQuery({
+    queryKey: ['/api/admin/organizations', user?.tenantId, 'logo'],
+    queryFn: async () => {
+      if (!user?.tenantId) return null;
+      const res = await fetch(`/api/admin/organizations/${user.tenantId}/logo`);
+      if (!res.ok) throw new Error('Failed to fetch organization logo');
+      return res.json();
+    },
+    enabled: !!user?.tenantId
+  });
+  
+  // Set logo preview when data is loaded
   useEffect(() => {
-    const savedLogo = localStorage.getItem('organizationLogo');
-    if (savedLogo) {
-      setLogoPreview(savedLogo);
+    if (orgData?.logo) {
+      setLogoPreview(orgData.logo);
     }
-    
+  }, [orgData]);
+  
+  // Load barcode settings from localStorage
+  useEffect(() => {
     const savedFormat = localStorage.getItem('defaultBarcodeFormat');
     if (savedFormat) {
       setDefaultBarcodeFormat(savedFormat);

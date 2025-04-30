@@ -292,7 +292,74 @@ export const organizationsRoutes = (app: Express) => {
       res.status(500).json({ message: 'Failed to update organization' });
     }
   });
+  
+  // Update organization logo
+  app.post('/api/admin/organizations/:id/logo', isSuperAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      const { logoData } = req.body;
+      
+      if (!logoData) {
+        return res.status(400).json({ message: 'Logo data is required' });
+      }
+      
+      const storage = await getStorage();
+      
+      // Check if organization exists
+      const existingOrg = await storage.getTenantById(id);
+      if (!existingOrg) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Update just the logo field
+      const updatedOrg = await storage.updateTenant(id, {
+        logo: logoData,
+        updatedBy: req.user?.id
+      });
+      
+      // Log the activity
+      await logOrganizationActivity(
+        id,
+        req.user?.id || 0,
+        'logo_updated',
+        'Organization logo was updated'
+      );
+      
+      res.json({ success: true, logo: updatedOrg.logo });
+    } catch (error) {
+      console.error('Error updating organization logo:', error);
+      res.status(500).json({ message: 'Failed to update organization logo' });
+    }
+  });
 
+  // Get organization logo
+  app.get('/api/admin/organizations/:id/logo', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid organization ID' });
+      }
+      
+      const storage = await getStorage();
+      
+      // Check if organization exists
+      const existingOrg = await storage.getTenantById(id);
+      if (!existingOrg) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Return the logo or null if not set
+      res.json({ logo: existingOrg.logo || null });
+    } catch (error) {
+      console.error('Error fetching organization logo:', error);
+      res.status(500).json({ message: 'Failed to fetch organization logo' });
+    }
+  });
+  
   // Delete organization
   app.delete('/api/admin/organizations/:id', isSuperAdmin, async (req, res) => {
     try {
