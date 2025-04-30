@@ -2549,7 +2549,7 @@ export class DatabaseStorage implements IStorage {
         return this.getFacilitiesByOrganizationId(tenantId);
       }
       
-      // Return all facilities for super admin - don't use tenant_id column directly
+      // Return all facilities for super admin - use tenantId (not tenant_id)
       const allFacilities = await db.select().from(facilities);
       return allFacilities;
     } catch (error) {

@@ -1424,8 +1424,17 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
           <div className="flex items-center justify-center mb-8">
             {bookingPage && (
               <img 
-                src={bookingPage?.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo} 
-                alt={bookingPage?.title || "Hanzo Logistics"} 
+                src={
+                  // Custom logo handling for Fresh Connect vs Hanzo
+                  slug === "fresh-connect-booking" 
+                    ? "/assets/fresh-connect-logo.png" 
+                    : (bookingPage?.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo)
+                } 
+                alt={
+                  slug === "fresh-connect-booking" 
+                    ? "Fresh Connect Central" 
+                    : (bookingPage?.title || "Hanzo Logistics")
+                } 
                 className="h-16" 
               />
             )}
@@ -1456,16 +1465,30 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
               </div>
               
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">HANZO LOGISTICS INC.</h3>
-                <p className="text-gray-700 mb-1">Select from the following locations:</p>
-                <div className="space-y-1 text-sm text-gray-700">
-                  <p>450 Airtech Pkwy Plainfield IN 46168</p>
-                  <p>8370 E Camby Rd Plainfield IN 46168</p>
-                  <p>4001 W Minnesota Street Indianapolis, IN 46241</p>
-                  <p>(HANZO Cold-Chain)</p>
-                  <p>4334 Plainfield Road Plainfield, IN 46231</p>
-                  <p>9915 Lacy Knot Dr, Brownsburg, IN 46112</p>
-                </div>
+                {slug === "fresh-connect-booking" ? (
+                  <>
+                    <h3 className="font-semibold text-gray-900 mb-2">FRESH CONNECT CENTRAL</h3>
+                    <p className="text-gray-700 mb-1">Select from the following locations:</p>
+                    <div className="space-y-1 text-sm text-gray-700">
+                      <p>Fresh Connect HQ - 123 Main Avenue, Chicago, IL 60601</p>
+                      <p>Fresh Connect South - 456 Produce Lane, Chicago, IL 60616</p>
+                      <p>Fresh Connect North - 789 Orchard Road, Chicago, IL 60654</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="font-semibold text-gray-900 mb-2">HANZO LOGISTICS INC.</h3>
+                    <p className="text-gray-700 mb-1">Select from the following locations:</p>
+                    <div className="space-y-1 text-sm text-gray-700">
+                      <p>450 Airtech Pkwy Plainfield IN 46168</p>
+                      <p>8370 E Camby Rd Plainfield IN 46168</p>
+                      <p>4001 W Minnesota Street Indianapolis, IN 46241</p>
+                      <p>(HANZO Cold-Chain)</p>
+                      <p>4334 Plainfield Road Plainfield, IN 46231</p>
+                      <p>9915 Lacy Knot Dr, Brownsburg, IN 46112</p>
+                    </div>
+                  </>
+                )}
               </div>
               
               <p className="text-sm text-gray-700">
@@ -1497,8 +1520,17 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
               {bookingPage && (
                 <div className="flex items-center gap-3">
                   <img 
-                    src={bookingPage.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo} 
-                    alt={bookingPage.title || "Hanzo Logistics"} 
+                    src={
+                      // Custom logo handling for Fresh Connect vs Hanzo
+                      slug === "fresh-connect-booking" 
+                        ? "/assets/fresh-connect-logo.png" 
+                        : (bookingPage.customLogo ? `data:image/jpeg;base64,${bookingPage.customLogo}` : hanzoLogo)
+                    } 
+                    alt={
+                      slug === "fresh-connect-booking" 
+                        ? "Fresh Connect Central" 
+                        : (bookingPage.title || "Hanzo Logistics")
+                    } 
                     className="h-16" 
                   />
                   <h1 className="text-2xl font-bold text-gray-800">{bookingPage.title || "Schedule Appointment"}</h1>
