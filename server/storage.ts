@@ -2042,25 +2042,39 @@ export class DatabaseStorage implements IStorage {
 
   async getSchedules(tenantId?: number): Promise<Schedule[]> {
     try {
-      // Build the query with a tenant filter if a tenantId is provided
-      let query = `SELECT schedules.*, facilities.name AS facility_name 
-                  FROM schedules 
-                  LEFT JOIN docks ON schedules.dock_id = docks.id
-                  LEFT JOIN facilities ON docks.facility_id = facilities.id`;
+      // More comprehensive tenant isolation that handles both direct facilityId references
+      // and situations with null facilityId
+      let query = `SELECT s.*, f.name AS facility_name, at.name AS appointment_type_name 
+                  FROM schedules s
+                  LEFT JOIN docks d ON s.dock_id = d.id
+                  LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id
+                  LEFT JOIN appointment_types at ON s.appointment_type_id = at.id`;
       
       const params: any[] = [];
       
       // Add tenant filtering if a tenantId is provided
       if (tenantId) {
-        // Filter by organization's facilities
-        query += ` WHERE EXISTS (
-          SELECT 1 FROM organization_facilities of 
-          WHERE of.facility_id = facilities.id 
-          AND of.organization_id = $1
+        // More sophisticated tenant filtering that handles multiple ways schedules are associated with tenants
+        query += ` WHERE (
+          -- Filter by facility ownership via organization_facilities junction table
+          EXISTS (
+            SELECT 1 FROM organization_facilities of 
+            WHERE of.facility_id = COALESCE(s.facility_id, d.facility_id) 
+            AND of.organization_id = $1
+          )
+          OR
+          -- Filter by appointment type ownership
+          EXISTS (
+            SELECT 1 FROM appointment_types apt
+            WHERE apt.id = s.appointment_type_id
+            AND apt.tenant_id = $1
+          )
         )`;
         
         params.push(tenantId);
       }
+      
+      console.log(`[getSchedules] Running query for tenant ID ${tenantId || 'all'}`);
       
       // Execute the query with or without the tenant filter
       const result = await pool.query(query, params);
@@ -2199,7 +2213,7 @@ export class DatabaseStorage implements IStorage {
                at.name as appointment_type_name
         FROM schedules s
         LEFT JOIN docks d ON s.dock_id = d.id
-        LEFT JOIN facilities f ON d.facility_id = f.id
+        LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id
         LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
         WHERE s.start_time >= $1 AND s.end_time <= $2`;
       
@@ -2207,12 +2221,24 @@ export class DatabaseStorage implements IStorage {
       
       // Add tenant filtering if a tenantId is provided
       if (tenantId) {
-        query += ` AND EXISTS (
-          SELECT 1 FROM organization_facilities of 
-          WHERE of.facility_id = f.id 
-          AND of.organization_id = $3
+        // More comprehensive tenant isolation that handles multiple possible relationships
+        query += ` AND (
+          -- Filter by facility ownership via organization_facilities junction table
+          EXISTS (
+            SELECT 1 FROM organization_facilities of 
+            WHERE of.facility_id = COALESCE(s.facility_id, d.facility_id) 
+            AND of.organization_id = $3
+          )
+          OR
+          -- Filter by appointment type ownership
+          EXISTS (
+            SELECT 1 FROM appointment_types apt
+            WHERE apt.id = s.appointment_type_id
+            AND apt.tenant_id = $3
+          )
         )`;
         params.push(tenantId);
+        console.log(`[getSchedulesByDateRange] Filtering for tenant ${tenantId}`);
       }
       
       // Execute the query with parameters
@@ -2262,29 +2288,55 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async searchSchedules(query: string): Promise<Schedule[]> {
+  async searchSchedules(query: string, tenantId?: number): Promise<Schedule[]> {
     try {
       // Create a sanitized version of the query for SQL
       const searchPattern = `%${query}%`;
       
-      // Use pool to query directly - join with facilities and appointment_types to get better data
-      // Search by ID (direct match), carrier name, customer name, facility name or appointment type
-      const result = await pool.query(`
+      // Base query with proper tenant isolation join structure
+      let sqlQuery = `
         SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id, 
                at.name as appointment_type_name
         FROM schedules s
         LEFT JOIN docks d ON s.dock_id = d.id
-        LEFT JOIN facilities f ON d.facility_id = f.id
+        LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id
         LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
-        WHERE 
+        WHERE (
           s.id::text = $1
           OR LOWER(s.carrier_name) LIKE LOWER($2)
           OR LOWER(s.customer_name) LIKE LOWER($2)
           OR LOWER(f.name) LIKE LOWER($2)
           OR LOWER(at.name) LIKE LOWER($2)
-        ORDER BY s.start_time DESC
-        LIMIT 10
-      `, [query, searchPattern]);
+        )`;
+      
+      const params = [query, searchPattern];
+      
+      // Add tenant filtering if specified
+      if (tenantId) {
+        sqlQuery += ` 
+        AND (
+          -- Filter by facility ownership via organization_facilities junction table
+          EXISTS (
+            SELECT 1 FROM organization_facilities of 
+            WHERE of.facility_id = COALESCE(s.facility_id, d.facility_id) 
+            AND of.organization_id = $3
+          )
+          OR
+          -- Filter by appointment type ownership
+          EXISTS (
+            SELECT 1 FROM appointment_types apt
+            WHERE apt.id = s.appointment_type_id
+            AND apt.tenant_id = $3
+          )
+        )`;
+        params.push(tenantId);
+        console.log(`[searchSchedules] Filtering search results for tenant ${tenantId}`);
+      }
+      
+      // Add order and limit
+      sqlQuery += ` ORDER BY s.start_time DESC LIMIT 10`;
+      
+      const result = await pool.query(sqlQuery, params);
       
       // Transform to match our expected Schedule interface
       return result.rows.map((row: any) => {

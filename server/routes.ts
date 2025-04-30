@@ -430,13 +430,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/schedules/search", async (req, res) => {
     try {
       const { query } = req.query;
+      const tenantId = req.user?.tenantId;
       
       if (!query || typeof query !== 'string') {
         return res.status(400).json({ error: "Search query is required" });
       }
       
-      const results = await storage.searchSchedules(query);
+      console.log(`[searchSchedules] Searching schedules with query "${query}" for tenant ID ${tenantId || 'none'}`);
       
+      // Pass tenantId to enforce tenant isolation 
+      const results = await storage.searchSchedules(query, tenantId);
+      
+      console.log(`[searchSchedules] Found ${results.length} results for tenant ID ${tenantId || 'none'}`);
       res.json(results);
     } catch (error) {
       console.error("Error searching schedules:", error);
@@ -3505,13 +3510,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/availability", async (req, res) => {
     try {
       const { date, facilityId, appointmentTypeId, typeId } = req.query;
+      const tenantId = req.user?.tenantId;
       
       // Support both parameter naming conventions for backward compatibility
       const finalTypeId = typeId || appointmentTypeId;
       
       // INSTRUMENTATION: Log the incoming request parameters
       console.log("===== /api/availability ENDPOINT INSTRUMENTATION =====");
-      console.log("REQUEST PARAMETERS:", { date, facilityId, appointmentTypeId, typeId, finalTypeId });
+      console.log("REQUEST PARAMETERS:", { 
+        date, 
+        facilityId, 
+        appointmentTypeId, 
+        typeId, 
+        finalTypeId,
+        tenantId: tenantId || 'none' 
+      });
       
       if (!date || !facilityId || !finalTypeId) {
         console.log("VALIDATION ERROR: Missing required parameters");
@@ -3525,8 +3538,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parsedFacilityId = Number(facilityId);
       const parsedAppointmentTypeId = Number(finalTypeId);
       
-      // Get the appointment type to determine duration and other settings
-      const appointmentType = await storage.getAppointmentType(parsedAppointmentTypeId);
+      // Get the appointment type to determine duration and other settings - with tenant isolation
+      const appointmentType = await storage.getAppointmentType(parsedAppointmentTypeId, tenantId);
       if (!appointmentType) {
         console.log("VALIDATION ERROR: Appointment type not found");
         return res.status(404).json({ message: "Appointment type not found" });
