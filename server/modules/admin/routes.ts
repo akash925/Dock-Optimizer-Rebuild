@@ -151,7 +151,7 @@ export const adminRoutes = (app: Express) => {
       }
       
       // Set current user as creator
-      const createdBy = req.user.id;
+      const createdBy = req.user?.id;
       
       const newOrg = await storage.createTenant({
         ...validatedData,
@@ -168,7 +168,53 @@ export const adminRoutes = (app: Express) => {
       
       await storage.updateOrganizationModules(newOrg.id, moduleEntries);
       
-      res.status(201).json(newOrg);
+      // Create a user account for the primary contact if email is provided
+      let userCreated = false;
+      if (validatedData.contactEmail && validatedData.primaryContact) {
+        try {
+          // Import the hashPassword function from auth
+          const { hashPassword } = await import('../../auth');
+          
+          // Create a default password (contactEmail + name parts combined)
+          const nameParts = validatedData.primaryContact.split(' ');
+          const defaultPassword = nameParts.length > 1 
+            ? `${nameParts[0].toLowerCase()}${nameParts[1].charAt(0).toUpperCase()}123!` 
+            : `${nameParts[0]}123!`;
+            
+          // Hash the password
+          const hashedPassword = await hashPassword(defaultPassword);
+          
+          // Create the user
+          const newUser = await storage.createUser({
+            username: validatedData.contactEmail,
+            email: validatedData.contactEmail,
+            password: hashedPassword,
+            firstName: nameParts[0] || '',
+            lastName: nameParts.slice(1).join(' ') || '',
+            role: 'admin'
+          });
+          
+          // Add user to the organization with admin role (assuming role ID 1 is admin)
+          // Use the addUserToOrganization method with parameters, not direct values
+          await storage.addUserToOrganization({
+            organizationId: newOrg.id,
+            userId: newUser.id,
+            roleId: 1
+          });
+          
+          userCreated = true;
+          console.log(`Created user account for ${validatedData.contactEmail} and added to organization ${newOrg.id}`);
+        } catch (userError) {
+          console.error('Error creating user account for contact:', userError);
+          // Continue with organization creation even if user creation fails
+        }
+      }
+      
+      res.status(201).json({
+        ...newOrg,
+        userCreated,
+        contactEmail: validatedData.contactEmail
+      });
     } catch (error) {
       console.error('Error creating organization:', error);
       
@@ -211,7 +257,7 @@ export const adminRoutes = (app: Express) => {
       }
       
       // Set the updater
-      const updatedBy = req.user.id;
+      const updatedBy = req.user?.id;
       
       const updatedOrg = await storage.updateTenant(id, {
         ...validatedData,
@@ -410,7 +456,7 @@ export const adminRoutes = (app: Express) => {
           const superAdminCount = await Promise.all(adminOrgUsers.map(async (ou) => {
             const r = await storage.getRole(ou.roleId);
             return r && r.name === 'super-admin' ? 1 : 0;
-          })).then(counts => counts.reduce((sum, count) => sum + count, 0));
+          })).then(counts => counts.reduce((sum, count) => sum + count, 0) as number);
           
           if (superAdminCount <= 1) {
             return res.status(403).json({ 
