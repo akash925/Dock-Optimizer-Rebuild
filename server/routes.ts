@@ -2039,12 +2039,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/appointment-types/:id", async (req, res) => {
     try {
-      const appointmentType = await storage.getAppointmentType(Number(req.params.id));
+      const id = Number(req.params.id);
+      console.log(`[AppointmentType] Fetching appointment type with ID: ${id}`);
+      
+      const appointmentType = await storage.getAppointmentType(id);
       if (!appointmentType) {
+        console.log(`[AppointmentType] Not found: ${id}`);
         return res.status(404).json({ message: "Appointment type not found" });
       }
+      
+      // Check tenant isolation if user is not a super admin
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Find the facility
+        const facility = await storage.getFacility(appointmentType.facilityId);
+        if (!facility) {
+          console.log(`[AppointmentType] Facility not found: ${appointmentType.facilityId}`);
+          return res.status(404).json({ message: "Facility not found" });
+        }
+        
+        // Check if this facility belongs to user's organization
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(facility.id)) {
+          console.log(`[AppointmentType] Access denied - appointment type ${id} is not in organization ${req.user.tenantId}`);
+          return res.status(403).json({ message: "Access denied to this appointment type" });
+        }
+      }
+      
       res.json(appointmentType);
     } catch (err) {
+      console.error(`[AppointmentType] Error fetching appointment type:`, err);
       res.status(500).json({ message: "Failed to fetch appointment type" });
     }
   });
@@ -2102,17 +2127,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/appointment-types", checkRole(["admin", "manager"]), async (req, res) => {
     try {
+      console.log(`[AppointmentType] Creating new appointment type:`, req.body);
       const validatedData = insertAppointmentTypeSchema.parse(req.body);
       
       // Check if facility exists
       const facility = await storage.getFacility(validatedData.facilityId);
       if (!facility) {
+        console.log(`[AppointmentType] Facility not found: ${validatedData.facilityId}`);
         return res.status(400).json({ message: "Invalid facility ID" });
       }
       
+      // Check tenant isolation if user is not a super admin
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Check if facility belongs to user's organization
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(facility.id)) {
+          console.log(`[AppointmentType] Access denied - facility ${facility.id} does not belong to organization ${req.user.tenantId}`);
+          return res.status(403).json({ message: "You can only create appointment types for facilities in your organization" });
+        }
+      }
+      
+      // Add the current user to createdBy if field exists in schema
+      if ('createdBy' in validatedData) {
+        validatedData.createdBy = req.user?.id;
+      }
+      
       const appointmentType = await storage.createAppointmentType(validatedData);
+      console.log(`[AppointmentType] Created appointment type with ID: ${appointmentType.id}`);
       res.status(201).json(appointmentType);
     } catch (err) {
+      console.error(`[AppointmentType] Error creating appointment type:`, err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid appointment type data", errors: err.errors });
       }
@@ -2123,14 +2169,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/appointment-types/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
+      console.log(`[AppointmentType] Updating appointment type with ID: ${id}`);
+      
       const appointmentType = await storage.getAppointmentType(id);
       if (!appointmentType) {
+        console.log(`[AppointmentType] Not found: ${id}`);
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
+      // Check tenant isolation if user is not a super admin
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Find the facility
+        const facility = await storage.getFacility(appointmentType.facilityId);
+        if (!facility) {
+          console.log(`[AppointmentType] Facility not found: ${appointmentType.facilityId}`);
+          return res.status(404).json({ message: "Facility not found" });
+        }
+        
+        // Check if this facility belongs to user's organization
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(facility.id)) {
+          console.log(`[AppointmentType] Access denied - appointment type ${id} is not in organization ${req.user.tenantId}`);
+          return res.status(403).json({ message: "Access denied to this appointment type" });
+        }
+      }
+      
+      // Add lastModifiedBy if field exists in schema
+      if ('lastModifiedBy' in req.body) {
+        req.body.lastModifiedBy = req.user?.id;
+      }
+      
       const updatedAppointmentType = await storage.updateAppointmentType(id, req.body);
+      console.log(`[AppointmentType] Updated appointment type ${id} successfully`);
       res.json(updatedAppointmentType);
     } catch (err) {
+      console.error(`[AppointmentType] Error updating appointment type:`, err);
       res.status(500).json({ message: "Failed to update appointment type" });
     }
   });
@@ -2182,9 +2257,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointment-types/:id/availability", async (req, res) => {
     try {
       const appointmentTypeId = Number(req.params.id);
+      console.log(`[Availability] Fetching availability for appointment type ID: ${appointmentTypeId}`);
+      
+      // Get the appointment type first
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      if (!appointmentType) {
+        console.log(`[Availability] Appointment type not found: ${appointmentTypeId}`);
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Check tenant isolation if user is not a super admin
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Find the facility
+        const facility = await storage.getFacility(appointmentType.facilityId);
+        if (!facility) {
+          console.log(`[Availability] Facility not found: ${appointmentType.facilityId}`);
+          return res.status(404).json({ message: "Facility not found" });
+        }
+        
+        // Check if this facility belongs to user's organization
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(facility.id)) {
+          console.log(`[Availability] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
+          return res.status(403).json({ message: "Access denied to this appointment type's availability" });
+        }
+      }
+      
       const dailyAvailability = await storage.getDailyAvailabilityByAppointmentType(appointmentTypeId);
+      console.log(`[Availability] Found ${dailyAvailability.length} availability rules for appointment type ${appointmentTypeId}`);
       res.json(dailyAvailability);
     } catch (err) {
+      console.error(`[Availability] Error fetching availability:`, err);
       res.status(500).json({ message: "Failed to fetch daily availability" });
     }
   });
@@ -2295,9 +2400,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointment-types/:id/questions", async (req, res) => {
     try {
       const appointmentTypeId = Number(req.params.id);
+      console.log(`[CustomQuestions] Fetching questions for appointment type ID: ${appointmentTypeId}`);
+      
+      // Get the appointment type first
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      if (!appointmentType) {
+        console.log(`[CustomQuestions] Appointment type not found: ${appointmentTypeId}`);
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Check tenant isolation if user is not a super admin
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Find the facility
+        const facility = await storage.getFacility(appointmentType.facilityId);
+        if (!facility) {
+          console.log(`[CustomQuestions] Facility not found: ${appointmentType.facilityId}`);
+          return res.status(404).json({ message: "Facility not found" });
+        }
+        
+        // Check if this facility belongs to user's organization
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(facility.id)) {
+          console.log(`[CustomQuestions] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
+          return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+        }
+      }
+      
       const customQuestions = await storage.getCustomQuestionsByAppointmentType(appointmentTypeId);
+      console.log(`[CustomQuestions] Found ${customQuestions.length} questions for appointment type ${appointmentTypeId}`);
       res.json(customQuestions);
     } catch (err) {
+      console.error(`[CustomQuestions] Error fetching questions:`, err);
       res.status(500).json({ message: "Failed to fetch custom questions" });
     }
   });
@@ -2363,13 +2498,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const appointmentTypeId = parseInt(req.params.appointmentTypeId);
       if (isNaN(appointmentTypeId)) {
+        console.log(`[CustomQuestions] Invalid appointment type ID: ${req.params.appointmentTypeId}`);
         return res.status(400).send("Invalid appointment type ID");
       }
       
+      console.log(`[CustomQuestions] Fetching questions for appointment type ID: ${appointmentTypeId} (alternate endpoint)`);
+      
+      // Get the appointment type first
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      if (!appointmentType) {
+        console.log(`[CustomQuestions] Appointment type not found: ${appointmentTypeId}`);
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Check tenant isolation if user is not a super admin
+      if (req.user?.tenantId && !req.user.username?.includes('admin@conmitto.io')) {
+        // Find the facility
+        const facility = await storage.getFacility(appointmentType.facilityId);
+        if (!facility) {
+          console.log(`[CustomQuestions] Facility not found: ${appointmentType.facilityId}`);
+          return res.status(404).json({ message: "Facility not found" });
+        }
+        
+        // Check if this facility belongs to user's organization
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(req.user.tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(facility.id)) {
+          console.log(`[CustomQuestions] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
+          return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+        }
+      }
+      
       const questions = await storage.getCustomQuestionsByAppointmentType(appointmentTypeId);
+      console.log(`[CustomQuestions] Found ${questions.length} questions for appointment type ${appointmentTypeId}`);
       res.json(questions);
     } catch (error) {
-      console.error("Error fetching custom questions:", error);
+      console.error(`[CustomQuestions] Error fetching questions:`, error);
       res.status(500).send("Error fetching custom questions");
     }
   });
