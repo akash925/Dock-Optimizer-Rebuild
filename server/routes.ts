@@ -1276,12 +1276,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Facility routes
   app.get("/api/facilities", async (req, res) => {
     try {
+      // Check authentication first
+      if (!req.isAuthenticated()) {
+        console.log(`[Facilities] Unauthenticated request - access denied`);
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       // Get the tenant ID from the authenticated user
       const tenantId = req.user?.tenantId;
       const username = req.user?.username;
-      const isSuperAdmin = username?.includes('admin@conmitto.io');
+      const isSuperAdmin = req.user?.role === 'super-admin' || username?.includes('admin@conmitto.io');
       
-      console.log(`[Facilities] Fetching facilities for user ${username} with tenantId: ${tenantId}, isSuperAdmin: ${isSuperAdmin}`);
+      console.log(`[Facilities] Fetching facilities for user ${username} with tenantId: ${tenantId || 'none'}, isSuperAdmin: ${isSuperAdmin || false}`);
       
       // If tenant ID provided and not a super admin, only return tenant's facilities
       if (tenantId && !isSuperAdmin) {
@@ -1295,12 +1301,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         return res.json(orgFacilities);
-      } else {
+      } else if (isSuperAdmin) {
         // Super admin gets all facilities
-        console.log(`[Facilities] User is super admin or missing tenantId, fetching all facilities`);
+        console.log(`[Facilities] User is super admin, fetching all facilities`);
         const allFacilities = await storage.getFacilities();
         console.log(`[Facilities] Found ${allFacilities.length} total facilities`);
         return res.json(allFacilities);
+      } else {
+        // Authenticated user without tenant ID
+        console.log(`[Facilities] Warning: Authenticated user without tenant ID, returning empty list`);
+        return res.json([]);
       }
     } catch (err) {
       console.error("[Facilities] Error fetching facilities:", err);
@@ -2013,13 +2023,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/facilities/:id/appointment-settings", async (req, res) => {
     try {
       const facilityId = Number(req.params.id);
-      const facility = await storage.getFacility(facilityId);
+      // Add tenant isolation
+      const tenantId = req.user?.tenantId;
+      const username = req.user?.username;
+      const isSuperAdmin = req.user?.role === 'super-admin' || username?.includes('admin@conmitto.io');
+      
+      console.log(`[FacilitySettings] Retrieving settings for facility ${facilityId}, user: ${username}, tenantId: ${tenantId || 'none'}`);
+      
+      // Only apply tenant filtering if user is not a super admin and has a tenant ID
+      const facility = await storage.getFacility(
+        facilityId, 
+        (!isSuperAdmin && tenantId) ? tenantId : undefined
+      );
+      
       if (!facility) {
+        console.log(`[FacilitySettings] Facility not found with ID: ${facilityId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      // If not a super admin and has a tenant ID, verify access
+      if (tenantId && !isSuperAdmin) {
+        // Get facilities for this tenant
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(facilityId)) {
+          console.log(`[FacilitySettings] Access denied - facility ${facilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ message: "Access denied to this facility's settings" });
+        }
       }
 
       const settings = await storage.getAppointmentSettings(facilityId);
       if (!settings) {
+        console.log(`[FacilitySettings] No settings found for facility ${facilityId}, returning defaults`);
         // Return default settings if none exist
         return res.json({
           facilityId,
@@ -2038,14 +2074,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/facilities/:id/appointment-settings", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const facilityId = Number(req.params.id);
-      const facility = await storage.getFacility(facilityId);
+      // Add tenant isolation
+      const tenantId = req.user?.tenantId;
+      const username = req.user?.username;
+      const isSuperAdmin = req.user?.role === 'super-admin' || username?.includes('admin@conmitto.io');
+      
+      console.log(`[FacilitySettings] Creating settings for facility ${facilityId}, user: ${username}, tenantId: ${tenantId || 'none'}`);
+      
+      // Only apply tenant filtering if user is not a super admin and has a tenant ID
+      const facility = await storage.getFacility(
+        facilityId, 
+        (!isSuperAdmin && tenantId) ? tenantId : undefined
+      );
+      
       if (!facility) {
+        console.log(`[FacilitySettings] Facility not found with ID: ${facilityId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      // If not a super admin and has a tenant ID, verify access
+      if (tenantId && !isSuperAdmin) {
+        // Get facilities for this tenant
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(facilityId)) {
+          console.log(`[FacilitySettings] Access denied - facility ${facilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ message: "Access denied to this facility's settings" });
+        }
       }
 
       // Check if settings already exist
       const existingSettings = await storage.getAppointmentSettings(facilityId);
       if (existingSettings) {
+        console.log(`[FacilitySettings] Settings already exist for facility ${facilityId}`);
         return res.status(409).json({ 
           message: "Appointment settings already exist for this facility. Use PUT to update.",
           settings: existingSettings
@@ -2071,14 +2133,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/facilities/:id/appointment-settings", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const facilityId = Number(req.params.id);
-      const facility = await storage.getFacility(facilityId);
+      // Add tenant isolation
+      const tenantId = req.user?.tenantId;
+      const username = req.user?.username;
+      const isSuperAdmin = req.user?.role === 'super-admin' || username?.includes('admin@conmitto.io');
+      
+      console.log(`[FacilitySettings] Updating settings for facility ${facilityId}, user: ${username}, tenantId: ${tenantId || 'none'}`);
+      
+      // Only apply tenant filtering if user is not a super admin and has a tenant ID
+      const facility = await storage.getFacility(
+        facilityId, 
+        (!isSuperAdmin && tenantId) ? tenantId : undefined
+      );
+      
       if (!facility) {
+        console.log(`[FacilitySettings] Facility not found with ID: ${facilityId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
         return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      // If not a super admin and has a tenant ID, verify access
+      if (tenantId && !isSuperAdmin) {
+        // Get facilities for this tenant
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(facilityId)) {
+          console.log(`[FacilitySettings] Access denied - facility ${facilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ message: "Access denied to this facility's settings" });
+        }
       }
 
       // Check if settings exist
       const existingSettings = await storage.getAppointmentSettings(facilityId);
       if (!existingSettings) {
+        console.log(`[FacilitySettings] No existing settings for facility ${facilityId}, creating new settings`);
         // If settings don't exist, create them
         const settingsData = {
           ...req.body,
