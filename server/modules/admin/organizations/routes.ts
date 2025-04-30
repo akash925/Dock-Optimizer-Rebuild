@@ -353,7 +353,7 @@ export const organizationsRoutes = (app: Express) => {
       }
       
       // Return the logo or null if not set
-      res.json({ logo: existingOrg.logo_url || null });
+      res.json({ logo: existingOrg.logo || null });
     } catch (error) {
       console.error('Error fetching organization logo:', error);
       res.status(500).json({ message: 'Failed to fetch organization logo' });
