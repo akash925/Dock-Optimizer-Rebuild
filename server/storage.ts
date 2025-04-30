@@ -2972,7 +2972,7 @@ export class DatabaseStorage implements IStorage {
 
   async getBookingPageBySlug(slug: string, tenantId?: number): Promise<BookingPage | undefined> {
     try {
-      // Get the booking page by slug
+      // Get the booking page by slug - don't filter by tenant_id yet as it might not exist in the DB
       const [bookingPage] = await db
         .select()
         .from(bookingPages)
@@ -3035,15 +3035,18 @@ export class DatabaseStorage implements IStorage {
 
   async getBookingPages(tenantId?: number): Promise<BookingPage[]> {
     try {
-      // Get all booking pages
-      const allBookingPages = await db.select().from(bookingPages);
+      // Get all booking pages without filtering by tenant_id until the migration is complete
+      // This avoids the "column tenant_id does not exist" error
+      const allBookingPages = await db
+        .select()
+        .from(bookingPages);
       
-      // If no tenantId is provided, return all booking pages
+      // If no tenantId is provided, return all booking pages (for super admin)
       if (tenantId === undefined) {
         return allBookingPages;
       }
       
-      // If tenantId is provided, filter booking pages by tenant's facilities
+      // Filter booking pages by tenant's facilities since we can't use tenant_id yet
       const orgFacilities = await this.getFacilitiesByOrganizationId(tenantId);
       const orgFacilityIds = orgFacilities.map(f => f.id);
       
@@ -3065,14 +3068,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBookingPage(insertBookingPage: InsertBookingPage): Promise<BookingPage> {
+    // Get the creator's tenant ID if it's not already provided
+    let tenantId = insertBookingPage.tenantId;
+    if (!tenantId && insertBookingPage.createdBy) {
+      const creator = await this.getUser(insertBookingPage.createdBy);
+      tenantId = creator?.tenantId || null;
+    }
+    
+    // Insert with tenant ID for proper isolation
     const [bookingPage] = await db
       .insert(bookingPages)
       .values({
         ...insertBookingPage,
+        tenantId,
         lastModifiedAt: null,
         lastModifiedBy: insertBookingPage.createdBy
       })
       .returning();
+    
+    console.log(`Created booking page ${bookingPage.id} with tenant ID ${tenantId}`);
+    
     return bookingPage;
   }
 
