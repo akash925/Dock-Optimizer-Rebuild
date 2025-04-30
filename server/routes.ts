@@ -453,15 +453,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/schedules/confirmation/:code", async (req, res) => {
     try {
       const { code } = req.params;
+      const tenantId = req.user?.tenantId;
+      
       if (!code) {
         return res.status(400).json({ error: "Confirmation code is required" });
       }
       
+      console.log(`[ConfirmationLookup] Looking up schedule with code ${code}${tenantId ? ` for tenant ${tenantId}` : ''}`);
+      
+      // First get the schedule without tenant filtering
       const schedule = await storage.getScheduleByConfirmationCode(code);
       if (!schedule) {
+        console.log(`[ConfirmationLookup] No schedule found with code ${code}`);
         return res.status(404).json({ error: "No schedule found with the provided confirmation code" });
       }
       
+      // If user has a tenant ID, check for organization access
+      if (tenantId) {
+        const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+        
+        // Get the facility ID - could be from the schedule directly or from the dock
+        let facilityId = schedule.facilityId;
+        if (!facilityId && schedule.dockId) {
+          const dock = await storage.getDock(schedule.dockId);
+          facilityId = dock?.facilityId;
+        }
+        
+        let tenantHasAccess = false;
+        
+        // Method 1: Check appointment type ownership
+        if (schedule.appointmentTypeId) {
+          const appointmentType = await storage.getAppointmentType(schedule.appointmentTypeId, tenantId);
+          tenantHasAccess = !!appointmentType;
+        }
+        
+        // Method 2: Check facility ownership via organization_facilities junction
+        if (!tenantHasAccess && facilityId) {
+          const facility = await checkTenantFacilityAccess(
+            facilityId,
+            tenantId,
+            isSuperAdmin,
+            'ConfirmationLookup'
+          );
+          tenantHasAccess = !!facility;
+        }
+        
+        // Super admins bypass tenant checks
+        if (!tenantHasAccess && !isSuperAdmin) {
+          console.log(`[ConfirmationLookup] Access denied - schedule with confirmation code ${code} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ error: "Access denied to this schedule" });
+        }
+      }
+      
+      console.log(`[ConfirmationLookup] Successfully retrieved schedule ID ${schedule.id} for confirmation code ${code}`);
       res.json(schedule);
     } catch (error) {
       console.error("Error looking up schedule by confirmation code:", error);
@@ -2556,6 +2600,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tenantId: tenantId || 'none'
       });
       
+      // If user has a tenant ID, verify facility access first
+      if (tenantId) {
+        const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+        
+        const facility = await checkTenantFacilityAccess(
+          facilityIdNum,
+          tenantId,
+          isSuperAdmin,
+          'MasterAvailabilityRules'
+        );
+        
+        if (!facility && !isSuperAdmin) {
+          console.log(`[MasterAvailabilityRules] Access denied - facility ${facilityIdNum} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ 
+            message: "Access denied to this facility's availability rules"
+          });
+        }
+      }
+      
       // Check if appointment type exists with tenant isolation
       const appointmentType = await storage.getAppointmentType(appointmentTypeIdNum, tenantId);
       if (!appointmentType) {
@@ -2572,6 +2635,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get availability rules for this appointment type
       const dailyRules = await storage.getDailyAvailabilityByAppointmentType(appointmentTypeIdNum);
+      
+      console.log(`[AvailabilityRules] Found ${dailyRules.length} availability rules for appointment type ${appointmentTypeIdNum}`);
       
       // Transform daily availability into the format expected by the client
       const availabilityRules = dailyRules.map(rule => {
@@ -3537,6 +3602,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parsedDate = String(date); // YYYY-MM-DD format
       const parsedFacilityId = Number(facilityId);
       const parsedAppointmentTypeId = Number(finalTypeId);
+      
+      // If user has a tenant ID, verify facility access first
+      if (tenantId) {
+        const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+        
+        const facility = await checkTenantFacilityAccess(
+          parsedFacilityId,
+          tenantId,
+          isSuperAdmin,
+          'AvailabilityEndpoint'
+        );
+        
+        if (!facility && !isSuperAdmin) {
+          console.log(`[AvailabilityEndpoint] Access denied - facility ${parsedFacilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ 
+            message: "Access denied to this facility's availability"
+          });
+        }
+      }
       
       // Get the appointment type to determine duration and other settings - with tenant isolation
       const appointmentType = await storage.getAppointmentType(parsedAppointmentTypeId, tenantId);
