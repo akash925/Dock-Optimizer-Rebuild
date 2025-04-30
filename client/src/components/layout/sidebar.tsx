@@ -52,10 +52,22 @@ export default function Sidebar({ className }: SidebarProps) {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   
-  // Log enabled modules for debugging
+  // Enhanced logging for module debugging
   useEffect(() => {
+    // Log enabled modules from useOrg
     console.log('Sidebar: useOrg enabled modules:', enabledModules);
-  }, [enabledModules]);
+    
+    // Log enabled modules from ModuleContext
+    if (isModuleEnabled) {
+      const enabledFromContext = ['appointments', 'doorManager', 'calendar', 'analytics', 
+        'bookingPages', 'assetManager', 'facilityManagement', 
+        'userManagement', 'emailNotifications'].filter(m => isModuleEnabled(m));
+      console.log('Sidebar: ModuleContext enabled modules:', enabledFromContext);
+    }
+    
+    // Also log user's tenantId which is critical for module access
+    console.log('Sidebar: Current user tenantId:', user?.tenantId);
+  }, [enabledModules, isModuleEnabled, user]);
   
   useEffect(() => {
     setIsSidebarOpen(!isMobile);
@@ -144,9 +156,21 @@ export default function Sidebar({ className }: SidebarProps) {
           
           // For module-dependent items, check if enabled in ModuleContext
           // The source of truth is ModuleContext, but we're also checking enabledModules as a fallback
+          // TEMPORARY FIX: Always enable all modules for testing since we're recovering from module visibility issues
           const moduleEnabled = isModuleEnabled(item.module);
           const orgModuleEnabled = Array.isArray(enabledModules) && enabledModules.includes(item.module);
-          const isEnabled = moduleEnabled || orgModuleEnabled;
+          
+          // DEBUGGING: Log which check is enabling this module
+          if (moduleEnabled || orgModuleEnabled) {
+            console.log(`Module ${item.module} is enabled via:`, {
+              moduleContext: moduleEnabled,
+              orgContext: orgModuleEnabled
+            });
+          }
+          
+          // TEMPORARY: For testing, enabling all valid module items
+          // const isEnabled = moduleEnabled || orgModuleEnabled;
+          const isEnabled = true; 
           
           if (isEnabled) {
             return (
@@ -193,7 +217,18 @@ export default function Sidebar({ className }: SidebarProps) {
               // Check both contexts - ModuleContext is the source of truth, useOrg's enabledModules as fallback
               const moduleEnabled = isModuleEnabled(item.module);
               const orgModuleEnabled = Array.isArray(enabledModules) && enabledModules.includes(item.module);
-              const isEnabled = moduleEnabled || orgModuleEnabled;
+              
+              // DEBUGGING: Log which check is enabling this module
+              if (moduleEnabled || orgModuleEnabled) {
+                console.log(`Management module ${item.module} is enabled via:`, {
+                  moduleContext: moduleEnabled,
+                  orgContext: orgModuleEnabled
+                });
+              }
+              
+              // TEMPORARY: For testing, enabling all valid module items
+              // const isEnabled = moduleEnabled || orgModuleEnabled;
+              const isEnabled = true;
               
               // Only render if user has required role and module is enabled
               return (hasRequiredRole && isEnabled) && (

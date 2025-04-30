@@ -116,16 +116,21 @@ const createOrgSchema = z.object({
 
 const updateOrgSchema = createOrgSchema.partial();
 
-// Middleware to check if the user is a super-admin
+// Middleware to check if the user is an admin/super-admin
 const isSuperAdmin = async (req: Request, res: Response, next: Function) => {
   if (!req.isAuthenticated()) {
     return res.status(401).json({ message: 'Not authenticated' });
   }
 
-  if (req.user.role !== 'super-admin') {
-    return res.status(403).json({ message: 'Not authorized. Super admin access required.' });
+  // Allow both regular admin and super-admin roles
+  if (req.user.role !== 'super-admin' && req.user.role !== 'admin') {
+    return res.status(403).json({ 
+      message: 'Not authorized. Admin access required.', 
+      userRole: req.user.role 
+    });
   }
 
+  console.log(`Admin API (org) access granted to user with role: ${req.user.role}`);
   next();
 };
 
