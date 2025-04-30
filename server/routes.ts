@@ -1247,24 +1247,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get the tenant ID from the authenticated user
       const tenantId = req.user?.tenantId;
-      console.log(`Fetching facilities for user with tenantId: ${tenantId}`);
+      const username = req.user?.username;
+      const isSuperAdmin = username?.includes('admin@conmitto.io');
       
-      // Pass tenant ID to filter facilities by tenant
-      const facilities = await storage.getFacilities(tenantId);
-      res.json(facilities);
+      console.log(`[Facilities] Fetching facilities for user ${username} with tenantId: ${tenantId}, isSuperAdmin: ${isSuperAdmin}`);
+      
+      // If tenant ID provided and not a super admin, only return tenant's facilities
+      if (tenantId && !isSuperAdmin) {
+        console.log(`[Facilities] Fetching facilities for tenant ${tenantId} only`);
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
+        console.log(`[Facilities] Found ${orgFacilities.length} facilities for organization ${tenantId}`);
+        
+        // Log the facility IDs and names for debugging
+        orgFacilities.forEach(facility => {
+          console.log(`[Facilities] Facility ${facility.id}: ${facility.name}`);
+        });
+        
+        return res.json(orgFacilities);
+      } else {
+        // Super admin gets all facilities
+        console.log(`[Facilities] User is super admin or missing tenantId, fetching all facilities`);
+        const allFacilities = await storage.getFacilities();
+        console.log(`[Facilities] Found ${allFacilities.length} total facilities`);
+        return res.json(allFacilities);
+      }
     } catch (err) {
+      console.error("[Facilities] Error fetching facilities:", err);
       res.status(500).json({ message: "Failed to fetch facilities" });
     }
   });
 
   app.get("/api/facilities/:id", async (req, res) => {
     try {
-      const facility = await storage.getFacility(Number(req.params.id));
+      const facilityId = Number(req.params.id);
+      const facility = await storage.getFacility(facilityId);
+      
       if (!facility) {
+        console.log(`[Facilities] Facility not found with ID: ${facilityId}`);
         return res.status(404).json({ message: "Facility not found" });
       }
+      
+      // Check tenant isolation if user is authenticated and has a tenantId
+      const tenantId = req.user?.tenantId;
+      const username = req.user?.username;
+      const isSuperAdmin = username?.includes('admin@conmitto.io');
+      
+      console.log(`[Facilities] User ${username} with tenantId ${tenantId} requested facility ${facilityId}`);
+      
+      // If not a super admin and has a tenant ID, verify access
+      if (tenantId && !isSuperAdmin) {
+        console.log(`[Facilities] Checking if facility ${facilityId} belongs to tenant ${tenantId}`);
+        
+        // Get facilities for this tenant
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
+        const facilityIds = orgFacilities.map(f => f.id);
+        
+        if (!facilityIds.includes(facilityId)) {
+          console.log(`[Facilities] Access denied - facility ${facilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ message: "Access denied to this facility" });
+        }
+      }
+      
+      console.log(`[Facilities] Returning facility ${facilityId}: ${facility.name}`);
       res.json(facility);
     } catch (err) {
+      console.error(`[Facilities] Error fetching facility:`, err);
       res.status(500).json({ message: "Failed to fetch facility" });
     }
   });
