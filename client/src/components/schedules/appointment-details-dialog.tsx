@@ -260,6 +260,7 @@ export function AppointmentDetailsDialog({
   // State for check-in time input
   const [checkInTime, setCheckInTime] = useState<Date>(new Date());
   const [showCheckInTimeInput, setShowCheckInTimeInput] = useState(false);
+  const [showCheckInDialog, setShowCheckInDialog] = useState(false);
   
   // Format the current time for the time input field
   const formatTimeForInput = (date: Date) => {
@@ -306,6 +307,7 @@ export function AppointmentDetailsDialog({
   // State for check-out time input
   const [checkOutTime, setCheckOutTime] = useState<Date>(new Date());
   const [showCheckOutTimeInput, setShowCheckOutTimeInput] = useState(false);
+  const [showCheckOutDialog, setShowCheckOutDialog] = useState(false);
   
   // Mutation for checking out appointment (completing)
   const checkOutAppointmentMutation = useMutation({
@@ -480,6 +482,112 @@ export function AppointmentDetailsDialog({
   
   return (
     <>
+      {/* Check-In Dialog */}
+      <Dialog open={showCheckInDialog} onOpenChange={setShowCheckInDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Check In Appointment</DialogTitle>
+            <DialogDescription>
+              Select the time when this appointment checked in.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="check-in-time" className="text-right">
+                Check-In Time
+              </Label>
+              <Input
+                id="check-in-time"
+                type="time"
+                className="col-span-3"
+                value={formatTimeForInput(checkInTime)}
+                onChange={(e) => {
+                  const [hours, minutes] = e.target.value.split(':').map(Number);
+                  const newTime = new Date();
+                  newTime.setHours(hours, minutes, 0, 0);
+                  setCheckInTime(newTime);
+                }}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCheckInDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowCheckInTimeInput(true);
+                checkInAppointmentMutation.mutate();
+                setShowCheckInDialog(false);
+              }}
+              disabled={checkInAppointmentMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {checkInAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              Check In
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Check-Out Dialog */}
+      <Dialog open={showCheckOutDialog} onOpenChange={setShowCheckOutDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Check Out Appointment</DialogTitle>
+            <DialogDescription>
+              Select the time when this appointment checked out.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="check-out-time" className="text-right">
+                Check-Out Time
+              </Label>
+              <Input
+                id="check-out-time"
+                type="time"
+                className="col-span-3"
+                value={formatTimeForInput(checkOutTime)}
+                onChange={(e) => {
+                  const [hours, minutes] = e.target.value.split(':').map(Number);
+                  const newTime = new Date();
+                  newTime.setHours(hours, minutes, 0, 0);
+                  setCheckOutTime(newTime);
+                }}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCheckOutDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowCheckOutTimeInput(true);
+                checkOutAppointmentMutation.mutate();
+                setShowCheckOutDialog(false);
+              }}
+              disabled={checkOutAppointmentMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {checkOutAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+              Check Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Reschedule Dialog */}
       <Dialog open={isRescheduling} onOpenChange={(open) => setIsRescheduling(open)}>
         <DialogContent className="max-w-md">
