@@ -61,6 +61,15 @@ export default function FullCalendarView({
   const EASTERN_TIMEZONE = 'America/New_York';
   const [selectedTimezone, setSelectedTimezone] = useState<string>(EASTERN_TIMEZONE);
   
+  // Always ensure that Eastern timezone is used regardless of user selection
+  useEffect(() => {
+    // Force Eastern Time consistently throughout the application
+    setSelectedTimezone(EASTERN_TIMEZONE);
+    localStorage.setItem('preferredTimezone', EASTERN_TIMEZONE);
+    
+    console.log('[Calendar] Forcing Eastern Timezone for consistency');
+  }, []);
+  
   // Fetch all facilities for lookup purposes
   const { data: facilities } = useQuery({
     queryKey: ['/api/facilities'],
