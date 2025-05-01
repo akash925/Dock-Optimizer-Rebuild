@@ -362,7 +362,11 @@ export default function FullCalendarView({
   
   // Handle timezone change
   const handleTimezoneChange = (timezone: string) => {
+    // Update the selected timezone
     setSelectedTimezone(timezone);
+    
+    // Force the component to re-render completely by toggling state
+    setForceRefresh(prev => !prev);
     
     // Force calendar to re-render with new timezone
     if (calendarRef.current) {
@@ -372,19 +376,21 @@ export default function FullCalendarView({
         // First set the timezone option
         calendarApi.setOption('timeZone', timezone);
         
-        // Force a full re-rendering by toggling our state
-        setForceRefresh(prev => !prev);
-        
-        // Force the calendar API to rerender the calendar
+        // Force a complete re-rendering of the calendar to ensure time slots move accordingly
         setTimeout(() => {
-          calendarApi.render();
-          // Force the API to redraw the now indicator and other time-sensitive elements
+          // Update size forces a recalculation of positions
           calendarApi.updateSize();
+          
+          // Also force a refetch of events to make sure they're displayed in the right timezone
+          calendarApi.refetchEvents();
+          
+          // Trigger another render with a delay to ensure everything is redrawn
+          setTimeout(() => {
+            calendarApi.updateSize();
+          }, 100);
         }, 50);
       } catch (error) {
-        console.log('Calendar API error, forcing full component re-render', error);
-        // Force a re-render by toggling a state
-        setForceRefresh(prev => !prev);
+        console.error('Calendar API error:', error);
       }
     }
   };
