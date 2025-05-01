@@ -264,7 +264,8 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
           <Button
             onClick={() => {
               if (scheduleId) {
-                navigate(`/schedules/${scheduleId}/edit`);
+                // Redirect to schedules page with edit mode flag for this appointment
+                navigate(`/schedules?edit=${scheduleId}`);
               }
             }}
           >
