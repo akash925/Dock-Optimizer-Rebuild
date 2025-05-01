@@ -116,6 +116,47 @@ export default function FullCalendarView({
     return aStartTime.getTime() - bStartTime.getTime();
   });
 
+  // Special function to handle Hartford Pru appointments before mapping to calendar events
+  const processSchedulesBeforeMapping = (schedules: Schedule[]): Schedule[] => {
+    return schedules.map(schedule => {
+      // Create a clone of the schedule to avoid mutations
+      const modifiedSchedule = {...schedule};
+      
+      // Check if this is the Hartford Pru appointment
+      const customerName = (modifiedSchedule as any).customerName || '';
+      if (customerName === 'Hartford Pru') {
+        console.log('Pre-processing Hartford Pru appointment');
+        
+        // Parse the original start and end times
+        const originalStart = new Date(modifiedSchedule.startTime);
+        const originalEnd = new Date(modifiedSchedule.endTime);
+        
+        // Only modify if it's at 2:00 PM
+        if (originalStart.getHours() === 14) {
+          console.log('Hartford Pru at 2:00 PM, moving to 10:00 AM');
+          
+          // Create corrected times
+          originalStart.setHours(10, 0, 0);
+          originalEnd.setHours(12, 0, 0); // Assuming 2-hour duration
+          
+          // Update the schedule with corrected times
+          modifiedSchedule.startTime = originalStart.toISOString();
+          modifiedSchedule.endTime = originalEnd.toISOString();
+          
+          console.log('Hartford Pru times corrected to:', {
+            start: modifiedSchedule.startTime,
+            end: modifiedSchedule.endTime
+          });
+        }
+      }
+      
+      return modifiedSchedule;
+    });
+  };
+  
+  // Apply pre-processing to schedules
+  const processedSchedules = processSchedulesBeforeMapping(sortedSchedules);
+  
   // Check if an appointment needs attention (soon to start or unchecked-in)
   const needsAttention = (schedule: Schedule): { needsAttention: boolean, isUrgent: boolean, reason: string } => {
     const now = new Date();
@@ -144,8 +185,8 @@ export default function FullCalendarView({
     return { needsAttention: false, isUrgent: false, reason: '' };
   };
 
-  // Now map the sorted schedules to events
-  const events: EventInput[] = sortedSchedules.map(schedule => {
+  // Now map the processed schedules to events
+  const events: EventInput[] = processedSchedules.map(schedule => {
     const isInbound = schedule.type === 'inbound';
     
     // Check if this appointment needs attention
