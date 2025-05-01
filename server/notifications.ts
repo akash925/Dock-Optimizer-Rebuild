@@ -62,6 +62,101 @@ export interface EmailParams {
   html?: string;
   text?: string;
   from?: string;
+  attachments?: Array<{
+    content: string;
+    filename: string;
+    type: string;
+    disposition: string;
+  }>;
+}
+
+/**
+ * Generate an iCalendar (ICS) file content for a schedule
+ * This follows RFC 5545 standard for calendar events
+ */
+export function generateICalEvent(
+  schedule: EnhancedSchedule, 
+  confirmationCode: string,
+  cancelEvent: boolean = false
+): string {
+  // Get safe timezone, defaulting to Eastern Time
+  const timezone = schedule.timezone || 'America/New_York';
+  
+  // Convert timestamps to UTC for iCal format
+  const startUTC = schedule.startTime.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/g, '');
+  const endUTC = schedule.endTime.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/g, '');
+  
+  // Generate a unique ID for the event
+  const eventUid = `DO-${schedule.id}-${confirmationCode}@dockoptimizer.com`;
+  
+  // Current timestamp for DTSTAMP
+  const now = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/g, '');
+  
+  // Event status (CONFIRMED, CANCELLED, etc.)
+  const status = cancelEvent ? 'CANCELLED' : 'CONFIRMED';
+  
+  // Build event description with all relevant details
+  let description = `Dock Appointment #${confirmationCode}\\n`;
+  description += `Facility: ${schedule.facilityName || 'Unknown'}\\n`;
+  description += `Appointment Type: ${schedule.appointmentTypeName || 'Standard'}\\n`;
+  
+  if (schedule.dockName) {
+    description += `Dock: ${schedule.dockName}\\n`;
+  }
+  
+  if (schedule.carrierName) {
+    description += `Carrier: ${schedule.carrierName}`;
+    if (schedule.mcNumber) {
+      description += ` (MC# ${schedule.mcNumber})`;
+    }
+    description += '\\n';
+  }
+  
+  if (schedule.truckNumber) {
+    description += `Truck #: ${schedule.truckNumber}\\n`;
+  }
+  
+  if (schedule.trailerNumber) {
+    description += `Trailer #: ${schedule.trailerNumber}\\n`;
+  }
+  
+  if (schedule.driverName) {
+    description += `Driver: ${schedule.driverName}\\n`;
+  }
+  
+  if (schedule.notes) {
+    description += `Notes: ${schedule.notes.replace(/\n/g, '\\n')}\\n`;
+  }
+  
+  // Build the event summary
+  const summary = `Dock Appointment at ${schedule.facilityName || 'Unknown Facility'}`;
+  
+  // Build the location
+  const location = schedule.facilityName || 'Unknown Facility';
+  
+  // Build the iCal content
+  let icalContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Dock Optimizer//Appointment Calendar//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${eventUid}`,
+    `DTSTAMP:${now}`,
+    `DTSTART:${startUTC}`,
+    `DTEND:${endUTC}`,
+    `SUMMARY:${summary}`,
+    `DESCRIPTION:${description}`,
+    `LOCATION:${location}`,
+    `STATUS:${status}`,
+    'SEQUENCE:0',
+    'TRANSP:OPAQUE',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+  
+  return icalContent;
 }
 
 export async function sendEmail(params: EmailParams): Promise<{ html: string, text: string } | boolean> {
@@ -78,7 +173,7 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
   }
 
   // Prepare the email message
-  const msg = {
+  const msg: any = {
     to: params.to,
     from: params.from || process.env.SENDGRID_FROM_EMAIL || 'notifications@dockoptimizer.com',
     subject: params.subject,
@@ -91,6 +186,12 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
     console.log(`[DEV MODE] Email would be sent to: ${params.to} with subject: ${params.subject}`);
     console.log('Email HTML preview:');
     console.log(msg.html.substring(0, 500) + (msg.html.length > 500 ? '...' : ''));
+    
+    // Log calendar attachment if present
+    if (msg.attachments && msg.attachments.length > 0) {
+      console.log('Email has calendar attachment');
+    }
+    
     return {
       html: msg.html,
       text: msg.text
@@ -439,11 +540,23 @@ export async function sendConfirmationEmail(
     This is an automated message from Dock Optimizer. Please do not reply to this email.
   `;
 
+  // Generate iCalendar file content
+  const calendarEvent = generateICalEvent(schedule, confirmationCode);
+  
+  // Create email with calendar attachment
   return sendEmail({
     to,
     subject: `Dock Appointment Confirmation #${confirmationCode}`,
     html,
     text,
+    attachments: [
+      {
+        content: Buffer.from(calendarEvent).toString('base64'),
+        filename: `dock-appointment-${confirmationCode}.ics`,
+        type: 'text/calendar',
+        disposition: 'attachment'
+      }
+    ]
   });
 }
 
@@ -680,11 +793,23 @@ export async function sendRescheduleEmail(
     This is an automated message from Dock Optimizer. Please do not reply to this email.
   `;
 
+  // Generate iCalendar file content for the updated appointment
+  const calendarEvent = generateICalEvent(schedule, confirmationCode);
+  
+  // Create email with calendar attachment
   return sendEmail({
     to,
     subject: `Dock Appointment Rescheduled #${confirmationCode}`,
     html,
-    text
+    text,
+    attachments: [
+      {
+        content: Buffer.from(calendarEvent).toString('base64'),
+        filename: `dock-appointment-${confirmationCode}.ics`,
+        type: 'text/calendar',
+        disposition: 'attachment'
+      }
+    ]
   });
 }
 
@@ -832,11 +957,23 @@ export async function sendCancellationEmail(
     This is an automated message from Dock Optimizer. Please do not reply to this email.
   `;
 
+  // Generate iCalendar file content for the cancelled appointment
+  const calendarEvent = generateICalEvent(schedule, confirmationCode, true);
+  
+  // Create email with calendar attachment (cancelled status)
   return sendEmail({
     to,
     subject: `Dock Appointment Cancelled #${confirmationCode}`,
     html,
-    text
+    text,
+    attachments: [
+      {
+        content: Buffer.from(calendarEvent).toString('base64'),
+        filename: `dock-appointment-${confirmationCode}-cancelled.ics`,
+        type: 'text/calendar',
+        disposition: 'attachment'
+      }
+    ]
   });
 }
 
