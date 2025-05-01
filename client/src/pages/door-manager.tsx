@@ -166,22 +166,53 @@ export default function DoorManager() {
   
   // Create a new appointment with the facility pre-selected
   const handleCreateAppointment = () => {
-    if (!selectedDockId) return;
+    if (!selectedDockId) {
+      console.error("[DoorManager] Cannot create appointment: No dock selected");
+      return;
+    }
     
-    // Find the door's facility ID if not already set
-    const facilityId = selectedFacilityId || 
-      docks.find(d => d.id === selectedDockId)?.facilityId || null;
+    // Attempt to find the facility in this order:
+    // 1. User-selected facility ID from the selector
+    // 2. The facility ID of the selected dock
+    // 3. Default to null if nothing found
+    const selectedDock = docks.find(d => d.id === selectedDockId);
+    const dockFacilityId = selectedDock?.facilityId;
+    
+    const facilityId = selectedFacilityId || dockFacilityId || null;
+    
+    console.log(`[DoorManager] Creating appointment for Dock ID: ${selectedDockId}`);
+    console.log(`[DoorManager] Using Facility ID: ${facilityId || 'None'} (Selected: ${selectedFacilityId}, Dock's: ${dockFacilityId})`);
     
     // Set facility ID for pre-selection in the appointment form
     if (facilityId) {
+      // Update the facility ID state to ensure it's passed to the form
       setSelectedFacilityId(facilityId);
+    } else {
+      console.warn("[DoorManager] Warning: No facility ID available for new appointment");
     }
     
-    // Default to 1 hour from now 
-    const start = new Date();
-    const end = new Date();
+    // Default appointment to start now and end in 1 hour
+    const now = new Date();
+    const start = new Date(now);
+    const end = new Date(now);
     end.setHours(end.getHours() + 1);
-    setSelectedTimeSlot({ start, end });
+    
+    // Round to nearest 15 minutes
+    const roundMinutes = (date: Date) => {
+      const minutes = date.getMinutes();
+      const roundedMinutes = Math.ceil(minutes / 15) * 15;
+      date.setMinutes(roundedMinutes, 0, 0);
+      return date;
+    };
+    
+    const roundedStart = roundMinutes(start);
+    const roundedEnd = new Date(roundedStart);
+    roundedEnd.setHours(roundedEnd.getHours() + 1);
+    
+    console.log(`[DoorManager] Setting time slot: ${roundedStart.toLocaleTimeString()} - ${roundedEnd.toLocaleTimeString()}`);
+    setSelectedTimeSlot({ start: roundedStart, end: roundedEnd });
+    
+    // Close selector and open appointment form
     setShowAppointmentSelector(false);
     setShowAppointmentForm(true);
   };

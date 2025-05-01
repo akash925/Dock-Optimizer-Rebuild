@@ -252,17 +252,29 @@ export default function AppointmentSelectorDialog({
             variant="default"
             className="w-full flex items-center justify-center gap-2"
             onClick={() => {
-              // Pass the selectedFacilityId back to the parent component before creating new
-              if (selectedFacilityId !== facilityId && selectedFacilityId) {
-                // Update the facility ID in the parent component if it changed
+              console.log(`[AppointmentSelector] Creating new appointment - Selected Facility: ${selectedFacilityId}, Original Facility: ${facilityId}`);
+              
+              // Always pass the most current facility ID to parent
+              if (selectedFacilityId) {
+                console.log(`[AppointmentSelector] Propagating facility ID ${selectedFacilityId} to parent`);
+                // Always update the parent's facility ID if we have one selected and a handler function
                 if (onFacilityChange) {
                   onFacilityChange(selectedFacilityId);
                 }
-                onCreateNew();
+              } else if (facilityId) {
+                // If no facility is selected but we had an original facility, use that
+                console.log(`[AppointmentSelector] No facility selected, using original facility ${facilityId}`);
+                // Update the internal state to match the parent
+                setSelectedFacilityId(facilityId);
               } else {
-                // If facility ID is unchanged, just create a new appointment
-                onCreateNew();
+                console.log("[AppointmentSelector] Warning: No facility selected for new appointment");
               }
+              
+              // Create the new appointment after updating facility
+              setTimeout(() => {
+                console.log("[AppointmentSelector] Creating new appointment...");
+                onCreateNew();
+              }, 100);
             }}
           >
             <PlusCircle className="h-4 w-4" />
