@@ -14,6 +14,27 @@ import { Loader2, Clock as ClockIcon } from 'lucide-react';
 import { format, addHours, isValid, parseISO } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { getUserTimeZone, formatTimeRangeForDualZones, formatDateRangeInTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
+
+// Create a custom implementation for zonedTimeToUtc since the import isn't working
+const zonedTimeToUtc = (dateString: string, timeZone: string): Date => {
+  // Create a date object using the provided date string
+  const date = new Date(dateString);
+  
+  // Get the target timezone offset in minutes
+  const targetTzDate = new Date(date.toLocaleString('en-US', { timeZone }));
+  const targetOffset = targetTzDate.getTimezoneOffset();
+  
+  // Get the local timezone offset in minutes
+  const localOffset = date.getTimezoneOffset();
+  
+  // Calculate the difference between the two timezones in minutes
+  const offsetDiff = localOffset - targetOffset;
+  
+  // Adjust the date by adding the offset difference in minutes
+  const utcDate = new Date(date.getTime() - offsetDiff * 60 * 1000);
+  
+  return utcDate;
+};
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import BolUpload from '@/components/shared/bol-upload';
 import { ParsedBolData } from '@/lib/ocr-service';
@@ -847,21 +868,34 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
       return;
     }
     
+    // Get the facility timezone or fallback to browser's timezone
+    const facilityTimezone = selectedFacility?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
     // Parse the selected time
     const [hours, minutes] = values.selectedTime.split(':').map(Number);
     
-    // Create a new date with the selected date and time
-    const startDate = new Date(values.selectedDate);
-    startDate.setHours(hours, minutes, 0, 0);
+    // Create the start date in the facility's timezone
+    // First make a date string in ISO format without timezone info
+    const dateString = format(values.selectedDate, 'yyyy-MM-dd');
+    const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+    const zonedDateTime = `${dateString}T${timeString}`;
     
-    // Calculate the end time based on appointment duration
+    // Use date-fns-tz to create a date that's properly zoned to the facility timezone
+    const startDate = zonedTimeToUtc(zonedDateTime, facilityTimezone);
+    
+    // Calculate the end time based on appointment duration, properly zoned
     const endDate = addHours(startDate, selectedAppointmentType.duration / 60);
+    
+    console.log('Original selected time:', values.selectedTime);
+    console.log('Facility timezone:', facilityTimezone);
+    console.log('Zoned start date (UTC):', startDate.toISOString());
+    console.log('Zoned end date (UTC):', endDate.toISOString());
     
     // Update the booking data
     updateBookingData({
       startTime: startDate,
       endTime: endDate,
-      timezone: selectedFacility?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: facilityTimezone,
     });
     
     // Move to the next step

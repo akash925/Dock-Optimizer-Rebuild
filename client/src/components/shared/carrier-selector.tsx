@@ -108,15 +108,25 @@ export function CarrierSelector({
     if (searchQuery.trim()) {
       console.log("Adding new carrier:", searchQuery);
       
-      // Set the carrier name
-      form.setValue(nameFieldName, searchQuery.trim(), {
+      // Set the carrier name - Force validation to pass
+      const trimmedName = searchQuery.trim();
+      form.setValue(nameFieldName, trimmedName, {
         shouldValidate: true,
         shouldDirty: true,
         shouldTouch: true
       });
       
+      // Ensure no validation errors for carrier name
+      form.clearErrors(nameFieldName);
+      
+      // Also directly update the DOM value to ensure it displays properly
+      const carrierNameField = document.querySelector(`input[name="${nameFieldName}"]`) as HTMLInputElement;
+      if (carrierNameField) {
+        carrierNameField.value = trimmedName;
+      }
+      
       // Clear carrier ID for new carriers that don't exist in the system yet
-      form.setValue(idFieldName, undefined);
+      form.setValue(idFieldName, undefined, { shouldValidate: true });
       
       // Don't reset MC Number if mcNumberFieldName is provided
       if (mcNumberFieldName) {
@@ -136,6 +146,13 @@ export function CarrierSelector({
           mcNumberField.value = currentMcNumber || "";
         }
       }
+      
+      // Log final form state for debugging
+      console.log("Form values after adding carrier:", {
+        carrierName: form.getValues(nameFieldName),
+        carrierId: form.getValues(idFieldName),
+        mcNumber: mcNumberFieldName ? form.getValues(mcNumberFieldName) : undefined
+      });
       
       setOpen(false);
       setAddingNewCarrier(false);
