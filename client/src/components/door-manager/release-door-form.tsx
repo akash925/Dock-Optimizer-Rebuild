@@ -58,16 +58,21 @@ export default function ReleaseDoorForm({
   // Release door mutation
   const releaseMutation = useMutation({
     mutationFn: async () => {
+      console.log(`[ReleaseDoorForm] Starting release process for schedule ${scheduleId}...`);
+      
       const formData = new FormData();
       formData.append("notes", notes);
       formData.append("releaseType", "normal");
       
       if (selectedFile) {
         formData.append("photo", selectedFile);
+        console.log(`[ReleaseDoorForm] Attaching photo: ${selectedFile.name} (${selectedFile.size} bytes)`);
       }
       
       // Add timestamp to prevent caching issues
       const timestamp = new Date().getTime();
+      
+      console.log(`[ReleaseDoorForm] Sending release request to /api/schedules/${scheduleId}/release`);
       
       const response = await apiRequest(
         "POST", 
@@ -81,40 +86,62 @@ export default function ReleaseDoorForm({
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
+          console.error(`[ReleaseDoorForm] Server returned error:`, errorData);
         } catch (e) {
-          console.error("Error parsing error response:", e);
+          console.error("[ReleaseDoorForm] Error parsing error response:", e);
         }
         throw new Error(errorMessage);
       }
       
-      return await response.json();
+      const result = await response.json();
+      console.log("[ReleaseDoorForm] Door release API returned:", result);
+      return result;
     },
     onSuccess: (data) => {
-      console.log("Door release succeeded with data:", data);
+      console.log("[ReleaseDoorForm] Door release succeeded with data:", data);
       
       // Verify the dockId is actually null in the returned data
       if (data.dockId !== null) {
-        console.warn(`Warning: Door release API returned dockId = ${data.dockId} instead of null`);
+        console.warn(`[ReleaseDoorForm] Warning: Door release API returned dockId = ${data.dockId} instead of null`);
+      }
+      
+      // Force a refetch of dock and schedule data
+      try {
+        // Import from context if available
+        // Invalidate all schedule and dock queries
+        if (window.queryClient) {
+          console.log('[ReleaseDoorForm] Invalidating queries from window.queryClient...');
+          window.queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+          window.queryClient.invalidateQueries({ queryKey: ['/api/docks'] });
+        } else {
+          console.log('[ReleaseDoorForm] No global queryClient available');
+        }
+      } catch (err) {
+        console.error('[ReleaseDoorForm] Error invalidating queries:', err);
       }
       
       toast({
         title: "Door Released",
-        description: "The door has been successfully released.",
+        description: "The door has been successfully released and is now available.",
+        duration: 3000,
       });
       
       // Call onSuccess with the updated data
+      console.log("[ReleaseDoorForm] Calling onSuccess callback...");
       onSuccess();
       
-      // Close the dialog immediately
-      onClose();
-      
-      // Cleanup
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-      }
+      // Close the dialog with a short delay to allow the user to see the success message
+      setTimeout(() => {
+        // Cleanup
+        if (imagePreview) {
+          URL.revokeObjectURL(imagePreview);
+        }
+        
+        onClose();
+      }, 500);
     },
     onError: (error: Error) => {
-      console.error("Door release error:", error);
+      console.error("[ReleaseDoorForm] Door release error:", error);
       toast({
         title: "Error",
         description: `Failed to release door: ${error.message}`,

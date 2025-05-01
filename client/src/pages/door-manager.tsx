@@ -239,40 +239,59 @@ export default function DoorManager() {
   
   // Handle successful door release
   const handleDoorReleaseSuccess = () => {
-    // Immediately update the data
-    refetchSchedules();
+    console.log("[DoorManager] Door release success callback executed");
     
     // Close the form
     handleCloseReleaseDoorForm();
     
-    // Refetch the docks to update their status
+    // Immediately force a complete refresh of all data
+    queryClient.invalidateQueries({ queryKey: ["/api/docks"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+    
+    // Refetch data with the refetch functions provided by React Query
     refetchDocks();
+    refetchSchedules();
+    
+    // Force the component to re-render by updating the timestamp
+    setLastUpdated(new Date());
+    
+    console.log("[DoorManager] Initial data refresh completed");
+    
+    // Schedule several refresh attempts to ensure the UI is fully updated
+    let refreshCount = 0;
+    const maxRefreshes = 5;
     
     // Force multiple refreshes to ensure UI is updated correctly
     const refreshInterval = setInterval(() => {
+      refreshCount++;
+      console.log(`[DoorManager] Scheduled refresh #${refreshCount} executing...`);
+      
+      // Refetch the data
       refetchDocks();
       refetchSchedules();
-      // Also update the timestamp to force a complete re-render
+      
+      // Update the timestamp to force a re-render
       setLastUpdated(new Date());
-    }, 500);
+      
+      // Clear the interval if we've done enough refreshes
+      if (refreshCount >= maxRefreshes) {
+        console.log(`[DoorManager] Completed ${refreshCount} scheduled refreshes, clearing interval`);
+        clearInterval(refreshInterval);
+        
+        // Show a success toast after the refreshes are done
+        toast({
+          title: "Door Released",
+          description: "The door has been successfully released and is now available",
+        });
+      }
+    }, 600);
     
-    // Clear the interval after a few seconds (3 refreshes)
+    // Only show success toast if the refresh interval is still running after 1 second
     setTimeout(() => {
-      clearInterval(refreshInterval);
-      
-      // Do one final refresh
-      refetchDocks();
-      refetchSchedules();
-      queryClient.invalidateQueries({ queryKey: ["/api/docks"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
-      setLastUpdated(new Date());
-      
-      // Show a success toast
-      toast({
-        title: "Door Released",
-        description: "The door has been successfully released and is now available",
-      });
-    }, 1500);
+      if (refreshCount < maxRefreshes) {
+        console.log("[DoorManager] Still refreshing data...");
+      }
+    }, 1000);
   };
 
   return (

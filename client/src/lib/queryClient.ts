@@ -16,11 +16,14 @@ export async function apiRequest(
   // Determine if we're sending FormData
   const isFormData = options?.useFormData && data instanceof FormData;
   
-  // Don't set content-type for FormData as the browser will set it correctly with boundary
-  const headers = !isFormData && data 
-    ? { "Content-Type": "application/json" } 
-    : {};
-    
+  // Prepare headers
+  const headers: Record<string, string> = {};
+  
+  // Don't set content-type for FormData as the browser sets it with boundary
+  if (!isFormData && data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
   // Don't stringify FormData
   const body = isFormData 
     ? data 
@@ -55,6 +58,13 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+// Make TypeScript aware of our global queryClient attached to window
+declare global {
+  interface Window {
+    queryClient: QueryClient;
+  }
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -69,3 +79,8 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Make queryClient globally available for components to use
+// This helps when a component isn't in the React Query provider tree
+// or when we need to invalidate queries from outside React components
+window.queryClient = queryClient;
