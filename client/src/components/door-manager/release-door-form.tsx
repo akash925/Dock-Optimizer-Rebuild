@@ -74,17 +74,41 @@ export default function ReleaseDoorForm({
       
       console.log(`[ReleaseDoorForm] Sending release request to /api/schedules/${scheduleId}/release`);
       
-      const response = await apiRequest(
-        "POST", 
-        `/api/schedules/${scheduleId}/release?t=${timestamp}`,
-        formData,
-        { useFormData: true }
-      );
+      // Attempt release up to 3 times in case of network issues
+      let attempts = 0;
+      const maxAttempts = 3;
+      let response;
       
-      if (!response.ok) {
+      while (attempts < maxAttempts) {
+        attempts++;
+        try {
+          response = await apiRequest(
+            "POST", 
+            `/api/schedules/${scheduleId}/release?t=${timestamp}&attempt=${attempts}`,
+            formData,
+            { useFormData: true }
+          );
+          
+          if (response.ok) {
+            break; // Success, exit the retry loop
+          } else {
+            // If not the last attempt, try again
+            if (attempts < maxAttempts) {
+              console.warn(`[ReleaseDoorForm] Release attempt ${attempts} failed, retrying...`);
+              await new Promise(r => setTimeout(r, 500)); // Small delay between retries
+            }
+          }
+        } catch (err) {
+          console.error(`[ReleaseDoorForm] Error on attempt ${attempts}:`, err);
+          if (attempts >= maxAttempts) throw err;
+          await new Promise(r => setTimeout(r, 500)); // Small delay between retries
+        }
+      }
+      
+      if (!response || !response.ok) {
         let errorMessage = "Failed to release door";
         try {
-          const errorData = await response.json();
+          const errorData = await response!.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
           console.error(`[ReleaseDoorForm] Server returned error:`, errorData);
         } catch (e) {
@@ -105,11 +129,28 @@ export default function ReleaseDoorForm({
         console.warn(`[ReleaseDoorForm] Warning: Door release API returned dockId = ${data.dockId} instead of null`);
       }
       
-      // Force a refetch of dock and schedule data
+      // Force a refetch of dock and schedule data with multiple attempts
       try {
         console.log('[ReleaseDoorForm] Invalidating queries from queryClient...');
         queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
         queryClient.invalidateQueries({ queryKey: ['/api/docks'] });
+        
+        // Schedule additional data refreshes to ensure UI is updated
+        let refreshCount = 0;
+        const maxRefreshes = 3;
+        
+        const refreshInterval = setInterval(() => {
+          refreshCount++;
+          console.log(`[ReleaseDoorForm] Performing refresh ${refreshCount} of ${maxRefreshes}...`);
+          
+          // Force a refetch for good measure
+          queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/docks'] });
+          
+          if (refreshCount >= maxRefreshes) {
+            clearInterval(refreshInterval);
+          }
+        }, 800);
       } catch (err) {
         console.error('[ReleaseDoorForm] Error invalidating queries:', err);
       }
