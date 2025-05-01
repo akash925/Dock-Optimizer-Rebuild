@@ -256,19 +256,30 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
   const selectedFacilityId = bookingData.facilityId;
   const selectedTypeId = bookingData.appointmentTypeId;
   
+  // Fetch facilities data directly
+  const { data: facilities = [] } = useQuery<any[]>({
+    queryKey: ['/api/facilities'],
+  });
+  
   // Find facility and appointment type names
   const facilityName = useMemo(() => {
     if (!selectedFacilityId) return '';
-    const facility = bookingPage?.facilities && Array.isArray(bookingPage.facilities) 
-      ? bookingPage.facilities.find((f: any) => f.id === selectedFacilityId)
-      : null;
     
-    if (facility) return facility.name || '';
+    // First check if we have the name directly in bookingData
+    if (bookingData.facilityName) {
+      return bookingData.facilityName;
+    }
     
-    // Alternative lookup from appointment data
-    const facilityFromAppointmentData = bookingData.facilityName || '';
-    return facilityFromAppointmentData;
-  }, [selectedFacilityId, bookingPage, bookingData]);
+    // Then try to find in the API-fetched facilities
+    if (Array.isArray(facilities)) {
+      const selectedFacility = facilities.find((f: any) => f.id === selectedFacilityId);
+      if (selectedFacility?.name) {
+        return selectedFacility.name;
+      }
+    }
+    
+    return 'Unknown Facility';
+  }, [selectedFacilityId, facilities, bookingData]);
   
   const appointmentTypeName = useMemo(() => {
     if (!selectedTypeId) return '';
@@ -1899,19 +1910,39 @@ function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any;
   
   // Get facility name for display
   const getFacilityName = () => {
+    // First check bookingData for a direct facilityName value
+    if (bookingData.facilityName) {
+      return bookingData.facilityName;
+    }
+    
+    // Then try to look it up from facilities array
     if (bookingData.facilityId && Array.isArray(facilities)) {
       const facility = facilities.find((f: any) => f.id === bookingData.facilityId);
-      return facility?.name || 'Unknown Facility';
+      if (facility?.name) {
+        return facility.name;
+      }
     }
+    
     return 'Unknown Facility';
   };
 
   // Get appointment type name if available
   const getAppointmentTypeName = () => {
-    if (bookingData.appointmentTypeId && bookingData.appointmentTypes) {
-      const type = bookingData.appointmentTypes.find((t: any) => t.id === bookingData.appointmentTypeId);
-      return type?.name || 'Standard Appointment';
+    // First check if we have the name directly in bookingData
+    if (bookingData.appointmentTypeName) {
+      return bookingData.appointmentTypeName;
     }
+    
+    // Then try to find it in appointment types array
+    if (bookingData.appointmentTypeId && bookingData.appointmentTypes) {
+      const type = bookingData.appointmentTypes.find(
+        (t: any) => t.id === bookingData.appointmentTypeId
+      );
+      if (type?.name) {
+        return type.name;
+      }
+    }
+    
     return 'Standard Appointment';
   };
 
