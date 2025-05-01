@@ -42,23 +42,33 @@ export default function DoorAppointmentForm({
     if (facilityId && facilities.length > 0) {
       const facility = facilities.find(f => f.id === facilityId);
       if (facility) {
+        console.log(`[DoorAppointmentForm] Found facility: ${facility.name} (ID: ${facility.id})`);
         setFacilityName(facility.name);
         
-        // Find an appropriate appointment type for this facility
-        if (!initializedForm && appointmentTypes.length > 0) {
+        // For facility changes, always update the appointment type
+        if (appointmentTypes.length > 0) {
+          // Reset the form initialization flag when facility changes
+          setInitializedForm(false);
+          
+          console.log(`[DoorAppointmentForm] Looking for appointment types for facility ${facilityId}`);
           const facilityAppointmentTypes = appointmentTypes.filter(type => type.facilityId === facilityId);
+          
           if (facilityAppointmentTypes.length > 0) {
             // Set the first appointment type for this facility
+            console.log(`[DoorAppointmentForm] Found ${facilityAppointmentTypes.length} appointment types for facility, using type ID: ${facilityAppointmentTypes[0].id}`);
             setInitialAppointmentTypeId(facilityAppointmentTypes[0].id);
           } else {
             // Fallback to any appointment type
+            console.log(`[DoorAppointmentForm] No appointment types for facility ${facilityId}, falling back to default type ID: ${appointmentTypes[0].id}`);
             setInitialAppointmentTypeId(appointmentTypes[0].id);
           }
           setInitializedForm(true);
         }
+      } else {
+        console.log(`[DoorAppointmentForm] Warning: Facility ID ${facilityId} not found in facilities list`);
       }
     }
-  }, [facilityId, facilities, appointmentTypes, initializedForm]);
+  }, [facilityId, facilities, appointmentTypes]);
 
   // Track when the appointment is submitted successfully
   const handleSuccess = () => {

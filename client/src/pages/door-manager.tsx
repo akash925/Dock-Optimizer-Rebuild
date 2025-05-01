@@ -347,7 +347,22 @@ export default function DoorManager() {
               <span className="font-medium">Facility :</span>
               <Select 
                 value={selectedFacilityId?.toString() || ""} 
-                onValueChange={(value) => setSelectedFacilityId(Number(value))}
+                onValueChange={(value) => {
+                  console.log(`[DoorManager] Changing facility to ID: ${value}`);
+                  const facilityId = Number(value);
+                  setSelectedFacilityId(facilityId);
+                  
+                  // Refresh data after facility change
+                  setLastUpdated(new Date());
+                  
+                  // Schedule a refresh to make sure doors are correctly shown
+                  setTimeout(() => {
+                    console.log("[DoorManager] Performing post-facility-change refresh...");
+                    refetchDocks();
+                    refetchSchedules();
+                    setLastUpdated(new Date());
+                  }, 500);
+                }}
               >
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Select facility" />
