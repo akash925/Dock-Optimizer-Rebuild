@@ -6,13 +6,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import DoorAppointmentForm from "../components/door-manager/door-appointment-form-fixed";
 import ReleaseDoorForm from "../components/door-manager/release-door-form";
-import { X, LogOut } from "lucide-react";
+import AppointmentSelectorDialog from "../components/door-manager/appointment-selector-dialog";
+import { useAssignAppointmentToDoor } from "../components/door-manager/assign-appointment-service";
+import { X, LogOut, RefreshCw } from "lucide-react";
 
 export default function DoorManager() {
   const { toast } = useToast();
   const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(null);
   const [filterType, setFilterType] = useState<"all" | "available" | "not_available">("all");
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [showAppointmentSelector, setShowAppointmentSelector] = useState(false);
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
   const [showReleaseDoorForm, setShowReleaseDoorForm] = useState(false);
   const [selectedDockId, setSelectedDockId] = useState<number | null>(null);
@@ -114,15 +117,42 @@ export default function DoorManager() {
     return facilityMatch && availabilityMatch;
   });
   
-  // Create an ad-hoc appointment
-  const handleCreateAppointment = (dockId: number) => {
+  // Use the door assignment mutation
+  const assignAppointmentMutation = useAssignAppointmentToDoor();
+  
+  // Open the appointment selector
+  const handleUseDoor = (dockId: number) => {
     setSelectedDockId(dockId);
+    setShowAppointmentSelector(true);
+  };
+  
+  // Create a new appointment
+  const handleCreateAppointment = () => {
+    if (!selectedDockId) return;
+    
     // Default to 1 hour from now 
     const start = new Date();
     const end = new Date();
     end.setHours(end.getHours() + 1);
     setSelectedTimeSlot({ start, end });
+    setShowAppointmentSelector(false);
     setShowAppointmentForm(true);
+  };
+  
+  // Assign an existing appointment to a door
+  const handleSelectAppointment = (scheduleId: number) => {
+    if (!selectedDockId) return;
+    
+    assignAppointmentMutation.mutate({ 
+      scheduleId, 
+      dockId: selectedDockId 
+    }, {
+      onSuccess: () => {
+        setShowAppointmentSelector(false);
+        refetchSchedules();
+        setLastUpdated(new Date());
+      }
+    });
   };
   
   // Handle releasing a door
@@ -267,7 +297,7 @@ export default function DoorManager() {
                     </Button>
                   ) : (
                     <Button 
-                      onClick={() => handleCreateAppointment(dock.id)}
+                      onClick={() => handleUseDoor(dock.id)}
                       className="w-full"
                       disabled={status === "not_available"}
                     >
@@ -311,6 +341,18 @@ export default function DoorManager() {
             refetchSchedules();
             handleCloseReleaseDoorForm();
           }}
+        />
+      )}
+      
+      {/* Appointment Selector Dialog */}
+      {showAppointmentSelector && selectedDockId && (
+        <AppointmentSelectorDialog
+          isOpen={showAppointmentSelector}
+          onClose={() => setShowAppointmentSelector(false)}
+          dockId={selectedDockId}
+          facilityId={selectedFacilityId}
+          onSelect={handleSelectAppointment}
+          onCreateNew={handleCreateAppointment}
         />
       )}
     </div>
