@@ -3696,15 +3696,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customFormData = schedule.customFormData || {};
       
       // Add BOL document info to the customFormData
-      customFormData.bolData = {
-        ...metadata,
-        fileUrl,
-        fileName: filename,
-        uploadedAt: new Date().toISOString()
-      };
+      if (typeof customFormData === 'object') {
+        // Initialize bolData if it doesn't exist
+        if (!customFormData.bolData) {
+          customFormData.bolData = {};
+        }
+        
+        // Add all the metadata to the bolData object
+        Object.assign(customFormData.bolData, {
+          ...metadata,
+          fileUrl,
+          fileName: filename,
+          uploadedAt: new Date().toISOString()
+        });
+      }
       
       // Apply extracted BOL number to the schedule if available
-      const updateData: Partial<Schedule> = {
+      const updateData: any = {
         customFormData
       };
       

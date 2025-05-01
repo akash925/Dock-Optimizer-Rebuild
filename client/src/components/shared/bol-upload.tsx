@@ -9,12 +9,14 @@ import { parseBol, compressFile, ParsedBolData } from '@/lib/ocr-service';
 interface BolUploadProps {
   onBolProcessed: (data: ParsedBolData, fileUrl: string) => void;
   onProcessingStateChange: (isProcessing: boolean) => void;
+  scheduleId?: number; // Optional schedule ID to associate the BOL with
   className?: string;
 }
 
 export default function BolUpload({ 
   onBolProcessed, 
   onProcessingStateChange,
+  scheduleId,
   className = '' 
 }: BolUploadProps) {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -95,6 +97,38 @@ export default function BolUpload({
       if (parsedData.trailerNumber) previewLines.push(`Trailer #: ${parsedData.trailerNumber}`);
       
       setPreviewText(previewLines.join('\n'));
+      
+      // If a schedule ID was provided, associate the file with the schedule
+      if (scheduleId) {
+        try {
+          console.log(`Associating BOL file with schedule ${scheduleId}`);
+          
+          // Send a request to associate the file with the schedule
+          const associateResponse = await fetch(`/api/schedules/${scheduleId}/associate-bol`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fileUrl: responseData.fileUrl,
+              filename: responseData.filename,
+              metadata: {
+                ...parsedData,
+                parsedOcrText: previewLines.join('\n')
+              }
+            })
+          });
+          
+          if (!associateResponse.ok) {
+            console.warn('Failed to associate BOL file with schedule:', await associateResponse.text());
+          } else {
+            console.log('BOL file successfully associated with schedule');
+          }
+        } catch (associateError) {
+          console.error('Error associating BOL file with schedule:', associateError);
+          // Continue even if association fails, as the file was uploaded successfully
+        }
+      }
       
       // 5. Pass the parsed data and file URL to the parent component
       onBolProcessed(parsedData, responseData.fileUrl);
