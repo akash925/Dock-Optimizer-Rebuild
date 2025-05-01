@@ -1279,81 +1279,81 @@ export function AppointmentDetailsDialog({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between bg-primary/5 p-3 rounded-md border border-primary/20">
                       <div className="flex items-center">
-                    <FileCheck className="h-5 w-5 text-primary mr-2" />
-                    <div>
-                      <p className="font-medium">
-                        {parsedData.bolData.originalName || 
-                         parsedData.bolData.fileName || 
-                         'BOL Document'}
-                      </p>
-                      {parsedData.bolData.bolNumber && (
-                        <p className="text-xs text-muted-foreground">
-                          BOL Number: {parsedData.bolData.bolNumber}
-                        </p>
-                      )}
-                      {parsedData.bolData.uploadedAt && (
-                        <p className="text-xs text-muted-foreground">
-                          Uploaded: {new Date(parsedData.bolData.uploadedAt).toLocaleDateString()}
-                        </p>
-                      )}
+                        <FileCheck className="h-5 w-5 text-primary mr-2" />
+                        <div>
+                          <p className="font-medium">
+                            {parsedData.bolData.originalName || 
+                             parsedData.bolData.fileName || 
+                             'BOL Document'}
+                          </p>
+                          {parsedData.bolData.bolNumber && (
+                            <p className="text-xs text-muted-foreground">
+                              BOL Number: {parsedData.bolData.bolNumber}
+                            </p>
+                          )}
+                          {parsedData.bolData.uploadedAt && (
+                            <p className="text-xs text-muted-foreground">
+                              Uploaded: {new Date(parsedData.bolData.uploadedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        {parsedData.bolData.fileUrl && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs"
+                                  asChild
+                                >
+                                  <a 
+                                    href={parsedData.bolData.fileUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Download className="h-3.5 w-3.5 mr-1" />
+                                    Download
+                                  </a>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Download original document</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        
+                        {parsedData.bolData.fileUrl && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs"
+                                  asChild
+                                >
+                                  <a 
+                                    href={parsedData.bolData.fileUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                  </a>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View in new tab</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    {parsedData.bolData.fileUrl && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs"
-                              asChild
-                            >
-                              <a 
-                                href={parsedData.bolData.fileUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                              >
-                                <Download className="h-3.5 w-3.5 mr-1" />
-                                Download
-                              </a>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Download original document</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                    
-                    {parsedData.bolData.fileUrl && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-xs"
-                              asChild
-                            >
-                              <a 
-                                href={parsedData.bolData.fileUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </a>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>View in new tab</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </div>
-                </div>
                 
                 {/* Extraction quality indicator */}
                 {parsedData.bolData.extractionConfidence && (
