@@ -1373,6 +1373,26 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
     <div className="booking-form-section">
       <h2 className="booking-form-section-title">Customer Information</h2>
       
+      {bookingData.bolExtractedData && (
+        <div className="mb-6 p-4 rounded-md bg-green-50 border border-green-200">
+          <div className="flex items-start">
+            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 mr-2" />
+            <div>
+              <h3 className="font-medium text-green-800">BOL Document Detected</h3>
+              <p className="text-sm text-green-700 mt-1">
+                We've automatically populated some fields from your Bill of Lading.
+                {bookingData.bolExtractedData.bolNumber && (
+                  <span> BOL Number: <strong>{bookingData.bolExtractedData.bolNumber}</strong></span>
+                )}
+                {bookingData.bolExtractedData.shipDate && (
+                  <span className="block mt-1">Ship Date from BOL: <strong>{bookingData.bolExtractedData.shipDate}</strong></span>
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
           <FormField
