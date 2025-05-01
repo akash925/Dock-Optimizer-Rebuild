@@ -1798,24 +1798,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isEndTimeValid: endTime instanceof Date && !isNaN(endTime.getTime())
           });
           
-          // Send confirmation email with enhanced information
+          // Send confirmation email with enhanced information - ensuring all required fields are present
           sendConfirmationEmail(
             validatedData.email,
-            `HC${schedule.id}`,
+            confirmationCode,
             {
+              // Core fields from original schedule
               id: schedule.id,
+              facilityId: schedule.facilityId,
+              dockId: schedule.dockId,
+              carrierId: schedule.carrierId,
+              appointmentTypeId: schedule.appointmentTypeId,
+              truckNumber: schedule.truckNumber || '',
+              trailerNumber: schedule.trailerNumber || null,
+              driverName: schedule.driverName || null,
+              driverPhone: schedule.driverPhone || null,
+              driverEmail: schedule.driverEmail || null,
+              customerName: schedule.customerName || null,
+              carrierName: schedule.carrierName || null,
+              mcNumber: schedule.mcNumber || null,
+              bolNumber: schedule.bolNumber || null,
+              poNumber: schedule.poNumber || null,
+              palletCount: schedule.palletCount || null,
+              weight: schedule.weight || null,
+              appointmentMode: schedule.appointmentMode || null,
+              startTime: startTime,
+              endTime: endTime,
+              actualStartTime: null,
+              actualEndTime: null,
+              type: schedule.type || validatedData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound',
+              status: schedule.status || 'scheduled',
+              notes: schedule.notes || null,
+              customFormData: schedule.customFormData || null,
+              createdBy: schedule.createdBy,
+              createdAt: schedule.createdAt,
+              lastModifiedAt: schedule.lastModifiedAt || null,
+              lastModifiedBy: schedule.lastModifiedBy || null,
+              
+              // Enhanced properties for notifications
               dockName: dockName,
               facilityName: facility?.name || 'Main Facility',
-              startTime: startTime, // Use the pre-validated dates from the request
-              endTime: endTime,     // instead of re-parsing the DB values
-              truckNumber: schedule.truckNumber || '',
-              customerName: schedule.customerName || undefined,
-              type: validatedData.pickupOrDropoff === 'pickup' ? 'pickup' : 'delivery',
-              // Add additional fields for enhanced email
-              driverName: validatedData.driverName || schedule.driverName || undefined,
-              driverPhone: validatedData.driverPhone || schedule.driverPhone || undefined,
-              carrierName: validatedData.carrierName || schedule.carrierName || undefined,
-              mcNumber: validatedData.mcNumber || schedule.mcNumber || undefined,
+              appointmentTypeName: appointmentType?.name || 'Standard Appointment',
               timezone: facility?.timezone || 'America/New_York'
             }
           ).catch(err => {
@@ -2041,39 +2064,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Send confirmation email with enhanced information
           sendConfirmationEmail(
             validatedData.contactEmail,
-            `HC${schedule.id}`,
+            confirmationNumber,
             {
+              // Core fields from original schedule
               id: schedule.id,
-              dockName: "Not scheduled yet", // Default for legacy external bookings
-              facilityName: facility?.name || validatedData.location || 'Main Facility',
-              startTime: startTime,
-              endTime: endTime,
-              truckNumber: schedule.truckNumber || '',
-              customerName: validatedData.customerName || null,
-              type: validatedData.pickupOrDropoff === 'pickup' ? 'pickup' : 'delivery',
-              // Only include the essential fields for notifications
-              // Too many properties can cause type mismatches in the notification system
-              driverName: validatedData.driverName || schedule.driverName || null,
-              driverPhone: validatedData.driverPhone || schedule.driverPhone || null,
-              driverEmail: validatedData.contactEmail || null,
-              carrierId: schedule.carrierId,
-              carrierName: validatedData.carrierName || schedule.carrierName || null,
-              mcNumber: validatedData.mcNumber || schedule.mcNumber || null,
               facilityId: facility?.id || null,
-              trailerNumber: schedule.trailerNumber,
-              dockId: null,
-              notes: schedule.notes,
-              appointmentTypeId: null,
-              appointmentMode: null,
-              appointmentTypeName: validatedData.appointmentType || 'Standard Appointment',
-              timezone: facility?.timezone || 'America/New_York',
-              customFormData: null,
-              actualStartTime: null,
-              actualEndTime: null,
+              dockId: schedule.dockId || null,
+              carrierId: schedule.carrierId || null,
+              appointmentTypeId: null, // Legacy doesn't have appointment type ID
+              truckNumber: schedule.truckNumber || '',
+              trailerNumber: schedule.trailerNumber || null,
+              driverName: schedule.driverName || null,
+              driverPhone: schedule.driverPhone || null,
+              driverEmail: validatedData.contactEmail || null,
+              customerName: schedule.customerName || null,
+              carrierName: schedule.carrierName || null,
+              mcNumber: schedule.mcNumber || null,
               bolNumber: null,
               poNumber: null,
               palletCount: null,
-              weight: null
+              weight: null,
+              appointmentMode: null,
+              startTime: startTime,
+              endTime: endTime,
+              actualStartTime: null,
+              actualEndTime: null,
+              type: schedule.type || validatedData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound',
+              status: schedule.status || 'scheduled',
+              notes: schedule.notes || null,
+              customFormData: null,
+              createdBy: schedule.createdBy,
+              createdAt: schedule.createdAt,
+              lastModifiedAt: null,
+              lastModifiedBy: null,
+              
+              // Enhanced properties for notifications
+              dockName: "Not scheduled yet", // Default for legacy external bookings
+              facilityName: facility?.name || validatedData.location || 'Main Facility',
+              appointmentTypeName: validatedData.appointmentType || 'Standard Appointment',
+              timezone: facility?.timezone || 'America/New_York'
             }
           ).catch(err => {
             // Just log errors, don't let email failures affect API response
