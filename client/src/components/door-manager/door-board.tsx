@@ -188,16 +188,35 @@ export default function DoorBoard({
     setReleaseModalOpen(true);
   };
   
-  // Handle successful door release
+  // Handle successful door release with multiple refresh attempts
   const handleReleaseSuccess = () => {
     setReleaseModalOpen(false);
     setSelectedScheduleId(null);
     
-    // Refresh data to ensure server changes are reflected
-    onRefreshData();
+    console.log("[DoorBoard] Door release successful, scheduling refresh sequence...");
     
-    // Also update local timer
+    // Immediate refresh
+    onRefreshData();
     setTimeUpdate(new Date());
+    
+    // Schedule additional data refreshes to ensure UI is updated
+    let refreshCount = 0;
+    const maxRefreshes = 3;
+    
+    const refreshInterval = setInterval(() => {
+      refreshCount++;
+      console.log(`[DoorBoard] Performing post-release refresh ${refreshCount} of ${maxRefreshes}...`);
+      
+      // Force a data refresh
+      onRefreshData();
+      setTimeUpdate(new Date());
+      
+      // Clear the interval after all refreshes
+      if (refreshCount >= maxRefreshes) {
+        clearInterval(refreshInterval);
+        console.log("[DoorBoard] Post-release refresh sequence completed");
+      }
+    }, 1000); // 1 second between refreshes
   };
 
   return (
