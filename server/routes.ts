@@ -1173,19 +1173,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use provided actualEndTime from request body or current time
       const actualEndTime = req.body?.actualEndTime ? new Date(req.body.actualEndTime) : new Date();
       
-      // Update schedule status to completed and set actual end time
-      const scheduleData = {
+      // Get notes if provided
+      const notes = req.body?.notes || schedule.notes;
+      
+      // Parse existing custom form data (safely)
+      let existingCustomFormData = {};
+      if (schedule.customFormData) {
+        try {
+          existingCustomFormData = typeof schedule.customFormData === 'string' ?
+            JSON.parse(schedule.customFormData) : schedule.customFormData;
+        } catch (e) {
+          console.warn("Failed to parse existing customFormData:", e);
+        }
+      }
+      
+      // Update the custom form data to include check-out information
+      const newCustomFormData = JSON.stringify({
+        ...existingCustomFormData,
+        checkoutTime: actualEndTime.toISOString(),
+        checkoutBy: req.user?.id || null,
+        checkoutNotes: notes
+      });
+      
+      // Store the original dock ID for reference
+      const originalDockId = schedule.dockId;
+      console.log(`Original dock ID before check-out: ${originalDockId}`);
+      
+      // First, we'll update the status and metadata
+      console.log(`Checking out schedule ${id} with updated status and metadata`);
+      const statusUpdate = {
         status: "completed",
         actualEndTime,
+        notes: notes,
         lastModifiedBy: req.user?.id || null,
-        lastModifiedAt: new Date()
+        lastModifiedAt: new Date(),
+        customFormData: newCustomFormData
       };
       
-      const updatedSchedule = await storage.updateSchedule(id, scheduleData);
-      res.json(updatedSchedule);
+      const statusUpdated = await storage.updateSchedule(id, statusUpdate);
+      if (!statusUpdated) {
+        return res.status(500).json({ message: "Failed to update schedule status" });
+      }
+      
+      // Now, clear the dockId as a separate step to ensure it's properly released
+      if (originalDockId !== null) {
+        console.log(`Explicitly releasing dock (setting dockId to null) for schedule ${id}`);
+        const dockUpdate = {
+          dockId: null
+        };
+        
+        const dockUpdated = await storage.updateSchedule(id, dockUpdate);
+        if (!dockUpdated) {
+          console.error(`Failed to release dock for schedule ${id}`);
+          // Continue since we've already updated the status
+        }
+      }
+      
+      // Verify if the door was actually released
+      const verifiedSchedule = await storage.getSchedule(id);
+      
+      if (originalDockId !== null && verifiedSchedule && verifiedSchedule.dockId !== null) {
+        console.error(`WARNING: Failed to release dock ${originalDockId} for schedule ${id}. DockId still set to ${verifiedSchedule.dockId}`);
+      } else if (originalDockId !== null) {
+        console.log(`Door successfully released during check-out: schedule ${id}`);
+      }
+      
+      // Return the final schedule
+      res.json(verifiedSchedule || statusUpdated);
     } catch (err) {
       console.error("Failed to check out schedule:", err);
-      res.status(500).json({ message: "Failed to check out" });
+      res.status(500).json({ 
+        message: "Failed to check out", 
+        error: err instanceof Error ? err.message : String(err)
+      });
     }
   });
   
@@ -3967,8 +4027,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("=== RELEASE DOOR START ===");
       const id = Number(req.params.id);
-      const schedule = await storage.getSchedule(id);
       
+      // Validate the ID
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid schedule ID" });
+      }
+      
+      // Get the schedule
+      const schedule = await storage.getSchedule(id);
       if (!schedule) {
         return res.status(404).json({ message: "Schedule not found" });
       }
@@ -3994,6 +4060,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const originalDockId = schedule.dockId;
       console.log(`Original dock ID before release: ${originalDockId}`);
       
+      // Make sure there's actually a dock to release
+      if (originalDockId === null) {
+        console.warn(`Warning: Schedule ${id} does not have a dock assigned`);
+      }
+      
       // Parse existing custom form data (safely)
       let existingCustomFormData = {};
       if (schedule.customFormData) {
@@ -4005,45 +4076,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Update schedule with notes, photo, mark as completed, and clear dock assignment
-      const scheduleData = {
+      // Prepare customFormData with release information
+      const newCustomFormData = JSON.stringify({
+        ...existingCustomFormData,
+        releasePhoto: photoInfo || null,
+        releasedDockId: originalDockId, // Store the original dock ID for reference
+        releaseTime: new Date().toISOString()
+      });
+      
+      // First, we'll update the status and other fields excluding the dockId
+      console.log(`Step 1: Updating schedule ${id} with status and metadata`);
+      const statusUpdate = {
         status: "completed", // Mark as completed
-        dockId: null, // Clear dockId to release the door
         actualEndTime: new Date(),
         notes: notes || schedule.notes,
         lastModifiedBy: req.user?.id || null,
         lastModifiedAt: new Date(),
-        // Store photo information in custom form data if available
-        customFormData: JSON.stringify({
-          ...existingCustomFormData,
-          releasePhoto: photoInfo || null,
-          releasedDockId: originalDockId, // Store the original dock ID for reference
-          releaseTime: new Date().toISOString()
-        })
+        customFormData: newCustomFormData
       };
       
-      console.log(`Updating schedule ${id} to release door. Setting dockId explicitly to null.`);
-      const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      const statusUpdated = await storage.updateSchedule(id, statusUpdate);
+      if (!statusUpdated) {
+        return res.status(500).json({ message: "Failed to update schedule status" });
+      }
+      
+      // Now, as a separate operation, clear the dockId
+      console.log(`Step 2: Explicitly releasing dock (setting dockId to null) for schedule ${id}`);
+      const dockUpdate = {
+        dockId: null
+      };
+      
+      const updatedSchedule = await storage.updateSchedule(id, dockUpdate);
+      if (!updatedSchedule) {
+        return res.status(500).json({ message: "Failed to release dock" });
+      }
       
       // Verify the door was actually released
       const verifiedSchedule = await storage.getSchedule(id);
       if (verifiedSchedule && verifiedSchedule.dockId !== null) {
-        console.error(`ERROR: Failed to release dock for schedule ${id}. DockId still set to ${verifiedSchedule.dockId}. Attempting fix...`);
+        console.error(`ERROR: Failed to release dock for schedule ${id}. DockId still set to ${verifiedSchedule.dockId}. Attempting emergency fix...`);
         
-        // Force a separate update to just set dockId to null
-        await storage.updateSchedule(id, { dockId: null });
-        
-        // Verify again
-        const reretrievedSchedule = await storage.getSchedule(id);
-        console.log(`Verification after fix: schedule ${id} dockId is now ${reretrievedSchedule?.dockId === null ? 'null' : reretrievedSchedule?.dockId}`);
+        // Try a direct database query as a last resort
+        try {
+          const query = `UPDATE schedules SET dock_id = NULL WHERE id = $1 RETURNING *`;
+          const result = await pool.query(query, [id]);
+          
+          if (result.rows.length > 0) {
+            console.log("Emergency direct update succeeded");
+            
+            // Verify again
+            const finalCheck = await storage.getSchedule(id);
+            if (finalCheck && finalCheck.dockId !== null) {
+              console.error(`CRITICAL ERROR: All attempts to release dock ${originalDockId} from schedule ${id} have failed!`);
+            } else {
+              console.log(`Emergency fix verified: dockId is now null for schedule ${id}`);
+            }
+          } else {
+            console.error("Emergency direct update failed - no rows returned");
+          }
+        } catch (dbError) {
+          console.error("Emergency direct update failed with error:", dbError);
+        }
       } else {
-        console.log(`Door successfully released for schedule ${id}`);
+        console.log(`Door successfully released: schedule ${id} dockId is now null (was ${originalDockId})`);
       }
       
-      // Return updated schedule with photo information
+      // Return complete updated schedule with photo information and ensure dockId is null
+      const finalSchedule = await storage.getSchedule(id);
       res.json({
-        ...updatedSchedule,
-        dockId: null, // Ensure the returned object shows dockId as null
+        ...(finalSchedule || updatedSchedule),
+        dockId: null, // Force dockId to be null in the response
         photoInfo: photoInfo
       });
     } catch (err) {

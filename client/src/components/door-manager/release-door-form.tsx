@@ -66,16 +66,37 @@ export default function ReleaseDoorForm({
         formData.append("photo", selectedFile);
       }
       
+      // Add timestamp to prevent caching issues
+      const timestamp = new Date().getTime();
+      
       const response = await apiRequest(
         "POST", 
-        `/api/schedules/${scheduleId}/release`,
+        `/api/schedules/${scheduleId}/release?t=${timestamp}`,
         formData,
         { useFormData: true }
       );
       
+      if (!response.ok) {
+        let errorMessage = "Failed to release door";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        throw new Error(errorMessage);
+      }
+      
       return await response.json();
     },
     onSuccess: (data) => {
+      console.log("Door release succeeded with data:", data);
+      
+      // Verify the dockId is actually null in the returned data
+      if (data.dockId !== null) {
+        console.warn(`Warning: Door release API returned dockId = ${data.dockId} instead of null`);
+      }
+      
       toast({
         title: "Door Released",
         description: "The door has been successfully released.",
@@ -93,6 +114,7 @@ export default function ReleaseDoorForm({
       }
     },
     onError: (error: Error) => {
+      console.error("Door release error:", error);
       toast({
         title: "Error",
         description: `Failed to release door: ${error.message}`,
