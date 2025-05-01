@@ -9,11 +9,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Save, Clock, Mail, Bell, LogOut, Building, CalendarDays, Globe, Loader2, Upload } from "lucide-react";
+import { Save, Clock, Mail, Bell, LogOut, Building, CalendarDays, Globe, Loader2, Upload, Calendar, Download } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { TimeInterval } from "@shared/schema";
 import organizationLogo from "@/assets/organization_logo.jpeg";
+
+// Helper function to correctly format holiday dates for display
+// This ensures that dates are displayed correctly regardless of timezone
+const formatDisplayDate = (dateStr: string): string => {
+  // Split the date string (YYYY-MM-DD) and create a new UTC date
+  // This prevents browsers from applying timezone offsets that shift the day
+  if (!dateStr) return '';
+  
+  const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+  
+  // Create a date object and format it with localization
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC' // Critical: ensures no timezone shift
+  });
+};
 
 export default function Settings() {
   const { toast } = useToast();
@@ -874,7 +893,141 @@ export default function Settings() {
                 </div>
                 
                 <div className="space-y-4 pt-4 border-t">
-                  <h4 className="font-medium">Add Custom Holiday</h4>
+                  {/* Holiday Actions: Adding, Importing, etc */}
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">Holiday Management</h4>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          if (!user?.tenantId) return;
+                          
+                          try {
+                            toast({
+                              title: "Syncing Holidays",
+                              description: "Auto-syncing current and next year holidays...",
+                            });
+                            
+                            // Use the dedicated sync endpoint that handles date calculation
+                            const response = await fetch(`/api/organizations/${user.tenantId}/holidays/sync`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json'
+                              }
+                            });
+                            
+                            if (!response.ok) {
+                              throw new Error('Failed to sync holidays');
+                            }
+                            
+                            const data = await response.json();
+                            
+                            // Invalidate the holidays query to refetch with new data
+                            queryClient.invalidateQueries({ 
+                              queryKey: ['/api/organizations', user.tenantId, 'holidays'] 
+                            });
+                            
+                            toast({
+                              title: "Holidays Synced",
+                              description: `Added ${data.added} new holidays for current and next year.`,
+                            });
+                          } catch (error) {
+                            console.error('Error syncing holidays:', error);
+                            toast({
+                              title: "Sync Failed",
+                              description: "Could not sync holidays. Please try again.",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Sync Annual Holidays
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Load full list of standard US holidays
+                          const standardHolidays = [
+                            // 2025 US Federal Holidays
+                            { name: "New Year's Day", date: "2025-01-01", enabled: true },
+                            { name: "Martin Luther King Jr. Day", date: "2025-01-20", enabled: true },
+                            { name: "Presidents' Day", date: "2025-02-17", enabled: true },
+                            { name: "Memorial Day", date: "2025-05-26", enabled: true },
+                            { name: "Juneteenth", date: "2025-06-19", enabled: true },
+                            { name: "Independence Day", date: "2025-07-04", enabled: true },
+                            { name: "Labor Day", date: "2025-09-01", enabled: true },
+                            { name: "Columbus Day", date: "2025-10-13", enabled: true },
+                            { name: "Veterans Day", date: "2025-11-11", enabled: true },
+                            { name: "Thanksgiving Day", date: "2025-11-27", enabled: true },
+                            { name: "Christmas Day", date: "2025-12-25", enabled: true },
+                            // 2026 US Federal Holidays
+                            { name: "New Year's Day", date: "2026-01-01", enabled: true },
+                            { name: "Martin Luther King Jr. Day", date: "2026-01-19", enabled: true },
+                            { name: "Presidents' Day", date: "2026-02-16", enabled: true },
+                            { name: "Memorial Day", date: "2026-05-25", enabled: true },
+                            { name: "Juneteenth", date: "2026-06-19", enabled: true },
+                            { name: "Independence Day", date: "2026-07-03", enabled: true }, // observed
+                            { name: "Labor Day", date: "2026-09-07", enabled: true },
+                            { name: "Columbus Day", date: "2026-10-12", enabled: true },
+                            { name: "Veterans Day", date: "2026-11-11", enabled: true },
+                            { name: "Thanksgiving Day", date: "2026-11-26", enabled: true },
+                            { name: "Christmas Day", date: "2026-12-25", enabled: true },
+                          ];
+                          
+                          if (user?.tenantId) {
+                            toast({
+                              title: "Importing Holidays",
+                              description: "Adding full list of US Federal Holidays for 2025-2026",
+                            });
+                            
+                            // Save to server
+                            saveHolidaysMutation.mutate(standardHolidays);
+                          }
+                        }}
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Import Standard Holidays
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (organizationHolidays.length === 0) {
+                            toast({
+                              title: "No holidays to export",
+                              description: "Add some holidays first before exporting.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          
+                          // Create a CSV string of the holidays
+                          const csvContent = [
+                            "name,date,enabled",
+                            ...organizationHolidays.map(h => `"${h.name}",${h.date},${h.enabled}`)
+                          ].join("\n");
+                          
+                          // Create a download link
+                          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.setAttribute('href', url);
+                          link.setAttribute('download', `organization-holidays-${new Date().toISOString().split('T')[0]}.csv`);
+                          link.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Holidays
+                      </Button>
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="holiday-name">Holiday name</Label>
@@ -937,6 +1090,14 @@ export default function Settings() {
                         "Add Holiday"
                       )}
                     </Button>
+                  </div>
+                  
+                  <div className="bg-muted/40 rounded-md p-4 mt-2 border">
+                    <h4 className="text-sm font-medium mb-2">About Annual Holiday Sync</h4>
+                    <p className="text-xs text-neutral-500">
+                      The system will automatically sync US Federal Holidays each year. To add custom holidays, use the form above. 
+                      All holidays apply organization-wide and will prevent scheduling on those dates.
+                    </p>
                   </div>
                 </div>
               </div>

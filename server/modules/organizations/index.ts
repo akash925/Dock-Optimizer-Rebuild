@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { getOrganizationHolidays, updateOrganizationHolidays } from './holidays';
+import { getOrganizationHolidays, updateOrganizationHolidays, syncOrganizationHolidays } from './holidays';
 import { getStorage } from '../../storage';
 
 /**
@@ -57,6 +57,7 @@ export default {
     // Set up API routes for organization holidays
     app.get('/api/organizations/:organizationId/holidays', getOrganizationHolidays);
     app.post('/api/organizations/:organizationId/holidays', updateOrganizationHolidays);
+    app.post('/api/organizations/:organizationId/holidays/sync', syncOrganizationHolidays);
     
     // Facility organization lookup - used for holiday checking
     app.get('/api/facilities/:facilityId/organization', getFacilityOrganization);
