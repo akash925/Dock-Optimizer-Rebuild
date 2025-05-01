@@ -78,6 +78,7 @@ export function AppointmentDetailsDialog({
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [isRescheduling, setIsRescheduling] = useState(false);
+  const [isUploadingBol, setIsUploadingBol] = useState(false);
   const [formData, setFormData] = useState<Partial<Schedule>>({});
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(
     appointment ? new Date(appointment.startTime) : undefined
@@ -946,6 +947,101 @@ export function AppointmentDetailsDialog({
                 <p className="text-sm whitespace-pre-line">{appointment.notes}</p>
               )}
             </div>
+          </div>
+          
+          {/* BOL Documents */}
+          <div className="border-t py-4">
+            <h3 className="text-sm font-medium mb-3">Bill of Lading (BOL) Documents</h3>
+            
+            {/* Display existing BOL if present */}
+            {appointment.customFormData?.bolData ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-primary/5 p-3 rounded-md border border-primary/20">
+                  <div className="flex items-center">
+                    <FileText className="h-5 w-5 text-primary mr-2" />
+                    <div>
+                      <p className="font-medium">{appointment.customFormData.bolData.fileName || 'BOL Document'}</p>
+                      {appointment.customFormData.bolData.bolNumber && (
+                        <p className="text-xs text-muted-foreground">BOL Number: {appointment.customFormData.bolData.bolNumber}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {appointment.customFormData.bolData.fileUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      asChild
+                    >
+                      <a 
+                        href={appointment.customFormData.bolData.fileUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1" />
+                        Download
+                      </a>
+                    </Button>
+                  )}
+                </div>
+                
+                {appointment.customFormData.bolData.parsedOcrText && (
+                  <div className="rounded-md border p-3 bg-slate-50">
+                    <p className="text-xs text-muted-foreground mb-1">Extracted Information:</p>
+                    <pre className="text-xs font-mono p-2 bg-white rounded border whitespace-pre-wrap">
+                      {appointment.customFormData.bolData.parsedOcrText}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                {/* Upload BOL Button and Component */}
+                <div className="flex flex-col space-y-2">
+                  {!isUploadingBol ? (
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-center"
+                      onClick={() => setIsUploadingBol(true)}
+                    >
+                      <FileUp className="h-4 w-4 mr-2" />
+                      Upload BOL Document
+                    </Button>
+                  ) : (
+                    <div className="space-y-3">
+                      <BolUpload 
+                        scheduleId={appointment.id}
+                        onBolProcessed={(data, fileUrl) => {
+                          // This will be called after BOL processing is complete
+                          toast({
+                            title: "BOL document uploaded",
+                            description: "The BOL has been processed and linked to this appointment",
+                          });
+                          
+                          // Refresh appointment data to show the newly linked BOL
+                          queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+                          
+                          // Close the upload section
+                          setIsUploadingBol(false);
+                        }}
+                        onProcessingStateChange={(isProcessing) => {
+                          // Can be used to show loading state if needed
+                        }}
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full text-xs"
+                        onClick={() => setIsUploadingBol(false)}
+                      >
+                        Cancel Upload
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           
           {/* History Button */}
