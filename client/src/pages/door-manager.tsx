@@ -70,8 +70,17 @@ export default function DoorManager() {
   } => {
     const now = new Date();
     
-    // First check if door is occupied (has active appointment)
-    // An appointment is active if it's within its time window AND not cancelled or completed
+    // First check if door has an in-progress appointment
+    const inProgressSchedule = schedules.find(s => 
+      s.dockId === dock.id && 
+      s.status === "in-progress"
+    );
+    
+    if (inProgressSchedule) {
+      return { status: "occupied", currentSchedule: inProgressSchedule };
+    }
+    
+    // Next check if door is occupied (has active appointment within time window)
     const currentSchedule = schedules.find(s => 
       s.dockId === dock.id && 
       new Date(s.startTime) <= now && 
@@ -82,6 +91,22 @@ export default function DoorManager() {
     
     if (currentSchedule) {
       return { status: "occupied", currentSchedule };
+    }
+    
+    // Check if any scheduled appointment is assigned to this door
+    const assignedSchedule = schedules.find(s => 
+      s.dockId === dock.id && 
+      s.status === "scheduled"
+    );
+    
+    if (assignedSchedule) {
+      // If it's about to start within the next hour, show as reserved
+      if (new Date(assignedSchedule.startTime) > now && 
+          new Date(assignedSchedule.startTime).getTime() - now.getTime() < 3600000) {
+        return { status: "reserved", currentSchedule: assignedSchedule };
+      }
+      // Otherwise, still mark as occupied if it has an assigned door
+      return { status: "occupied", currentSchedule: assignedSchedule };
     }
     
     // Check if door is reserved soon
@@ -306,7 +331,11 @@ export default function DoorManager() {
                 className={`border rounded-md overflow-hidden shadow-sm transition-all duration-300 ${
                   recentlyAssignedDock === dock.id 
                     ? 'ring-2 ring-blue-500 scale-[1.03] bg-blue-50' 
-                    : ''
+                    : status === "occupied" 
+                      ? 'border-red-500 bg-red-50' 
+                      : status === "reserved" 
+                        ? 'border-amber-400'
+                        : ''
                 }`}
               >
                 <div className="p-4 border-b flex justify-between items-center">
@@ -333,7 +362,7 @@ export default function DoorManager() {
                   {status === "occupied" && currentSchedule ? (
                     <Button 
                       onClick={() => handleReleaseDoor(currentSchedule.id)}
-                      className="w-full bg-amber-600 hover:bg-amber-700"
+                      className="w-full bg-red-600 hover:bg-red-700"
                     >
                       <LogOut className="h-4 w-4 mr-2" />
                       Release Door
@@ -341,10 +370,10 @@ export default function DoorManager() {
                   ) : (
                     <Button 
                       onClick={() => handleUseDoor(dock.id)}
-                      className="w-full"
+                      className="w-full bg-green-600 hover:bg-green-700"
                       disabled={status === "not_available"}
                     >
-                      Use Door
+                      {status === "reserved" ? "Check In" : "Use Door"}
                     </Button>
                   )}
                 </div>

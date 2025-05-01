@@ -13,16 +13,17 @@ export function useAssignAppointmentToDoor() {
       scheduleId: number; 
       dockId: number;
     }) => {
-      const response = await apiRequest(
+      // First, assign the door to the appointment
+      const assignResponse = await apiRequest(
         "PATCH", 
         `/api/schedules/${scheduleId}/assign-door`,
         { dockId }
       );
       
-      if (!response.ok) {
+      if (!assignResponse.ok) {
         let errorMessage = "Failed to assign appointment to door";
         try {
-          const errorData = await response.json();
+          const errorData = await assignResponse.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
         } catch (e) {
           console.error("Error parsing error response:", e);
@@ -30,11 +31,34 @@ export function useAssignAppointmentToDoor() {
         throw new Error(errorMessage);
       }
       
+      let appointment;
       try {
-        return await response.json();
+        appointment = await assignResponse.json();
       } catch (e) {
         console.error("Error parsing response:", e);
         throw new Error("Invalid response received from server");
+      }
+      
+      // Now check-in the appointment to mark it as in-progress
+      const checkinResponse = await apiRequest(
+        "PATCH",
+        `/api/schedules/${scheduleId}/check-in`,
+        { actualStartTime: new Date().toISOString() }
+      );
+      
+      if (!checkinResponse.ok) {
+        console.warn("Door assigned but failed to check-in appointment automatically");
+        // We'll still return the appointment since the door assignment succeeded
+        return appointment;
+      }
+      
+      try {
+        // Return the checked-in appointment
+        return await checkinResponse.json();
+      } catch (e) {
+        console.error("Error parsing check-in response:", e);
+        // Return the original appointment if we can't parse the check-in response
+        return appointment;
       }
     },
     onSuccess: () => {
@@ -42,8 +66,8 @@ export function useAssignAppointmentToDoor() {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       
       toast({
-        title: "Appointment assigned",
-        description: "The appointment has been successfully assigned to the door",
+        title: "Check-In Complete",
+        description: "The appointment has been checked in and assigned to the door",
       });
     },
     onError: (error) => {
