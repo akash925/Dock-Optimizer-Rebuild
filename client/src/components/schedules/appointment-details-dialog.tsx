@@ -513,10 +513,20 @@ export function AppointmentDetailsDialog({
                 <Badge variant="outline" className={getTypeColor()}>
                   {appointment.type === "inbound" ? "Inbound" : "Outbound"}
                 </Badge>
-                <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
+                <Badge variant="outline" className={
+                  appointment.status === "scheduled" ? "bg-blue-50 text-blue-700 border-blue-200" : 
+                  appointment.status === "pending" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                  appointment.status === "in-progress" ? "bg-yellow-50 text-yellow-700 border-yellow-200" : 
+                  appointment.status === "completed" ? "bg-green-50 text-green-700 border-green-200" : 
+                  appointment.status === "cancelled" ? "bg-red-50 text-red-700 border-red-200" : 
+                  "bg-slate-50 text-slate-700 border-slate-200"
+                }>
                   {appointment.status === "scheduled" ? "Scheduled" : 
-                  appointment.status === "in-progress" ? "In Progress" : 
-                  appointment.status === "completed" ? "Completed" : "Cancelled"}
+                  appointment.status === "pending" ? "Pending" :
+                  appointment.status === "in-progress" ? "Checked In" : 
+                  appointment.status === "completed" ? "Completed" : 
+                  appointment.status === "cancelled" ? "Cancelled" : 
+                  appointment.status}
                 </Badge>
                 <Badge variant="outline" className={
                   appointment.appointmentMode === "container" 
@@ -528,9 +538,34 @@ export function AppointmentDetailsDialog({
               </div>
             </DialogTitle>
             <DialogDescription className="flex flex-col space-y-1 mt-1">
-                {displayFacilityName ? `Facility: ${displayFacilityName}` : ""}
-                {appointment.dockId ? `Dock: ${appointment.dockName || "Unknown"}` : "No dock assigned"}
-                {appointment.type === "inbound" ? "Inbound" : "Outbound"} appointment
+                {displayFacilityName ? (
+                  <span className="flex items-center">
+                    <span className="font-medium">Facility:</span> 
+                    <span className="ml-1">{displayFacilityName}</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center text-yellow-600">
+                    <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                    <span className="font-medium">Facility:</span> 
+                    <span className="ml-1">Unknown facility</span>
+                  </span>
+                )}
+                {appointment.dockId ? (
+                  <span className="flex items-center">
+                    <span className="font-medium">Dock:</span> 
+                    <span className="ml-1">{appointment.dockName || "Unknown"}</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center text-gray-500">
+                    <Info className="h-3.5 w-3.5 mr-1" />
+                    <span className="font-medium">Dock:</span> 
+                    <span className="ml-1">No dock assigned</span>
+                  </span>
+                )}
+                <span className="flex items-center">
+                  <span className="font-medium">Type:</span> 
+                  <span className="ml-1">{appointment.type === "inbound" ? "Inbound" : "Outbound"} appointment</span>
+                </span>
             </DialogDescription>
           </DialogHeader>
 
@@ -538,11 +573,20 @@ export function AppointmentDetailsDialog({
           <div className="border-t border-b py-4">
             <h3 className="text-sm font-medium mb-3">
               Schedule Times
+              {appointment.status === "scheduled" && 
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded ml-2">Scheduled</span>
+              }
+              {appointment.status === "pending" && 
+                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded ml-2">Pending</span>
+              }
+              {appointment.status === "in-progress" && 
+                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded ml-2">Checked In</span>
+              }
               {appointment.status === "completed" && 
                 <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded ml-2">Completed</span>
               }
-              {appointment.status === "in-progress" && 
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded ml-2">In Progress</span>
+              {appointment.status === "cancelled" && 
+                <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded ml-2">Cancelled</span>
               }
             </h3>
             
