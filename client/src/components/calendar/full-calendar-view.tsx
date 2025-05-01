@@ -198,7 +198,7 @@ export default function FullCalendarView({
     // use type assertion to access those properties
     const scheduleCasted = schedule as any;
     const facilityId = scheduleCasted.facilityId;
-    const facilityName = scheduleCasted.facilityName || scheduleCasted.locationName || '';
+    let facilityName = scheduleCasted.facilityName || scheduleCasted.locationName || '';
     
     // Try to get facility info from customFormData if available
     let extractedFacilityName = facilityName;
@@ -220,6 +220,21 @@ export default function FullCalendarView({
       } catch (e) {
         console.error('Error extracting facility info from customFormData', e);
       }
+    }
+    
+    // If we still don't have a facility name but have a facility ID, check the facilities cache
+    if (!extractedFacilityName && extractedFacilityId && facilities) {
+      const facility = facilities.find((f: any) => f.id === extractedFacilityId);
+      if (facility && facility.name) {
+        extractedFacilityName = facility.name;
+        console.log(`Found facility name from facilities cache: ${extractedFacilityName}`);
+      }
+    }
+    
+    // Last resort - check global facility names cache
+    if (!extractedFacilityName && extractedFacilityId && (window as any).facilityNames) {
+      extractedFacilityName = (window as any).facilityNames[extractedFacilityId] || '';
+      console.log(`Found facility name from global cache: ${extractedFacilityName}`);
     }
     
     // If we have a facilityId but no timezone yet, check the facility timezone map
