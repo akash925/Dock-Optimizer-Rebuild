@@ -80,9 +80,27 @@ const generateBolSummary = (appointment: ExtendedSchedule): string => {
   if (appointment.truckNumber) fields.push(`Truck ID: ${appointment.truckNumber}`);
   if (appointment.trailerNumber) fields.push(`Trailer Number: ${appointment.trailerNumber}`);
   
+  // Helper function to safely parse customFormData if it's a string
+  const parseCustomFormData = () => {
+    if (!appointment.customFormData) return null;
+    
+    try {
+      // If it's already an object, use it directly
+      if (typeof appointment.customFormData === 'object') {
+        return appointment.customFormData;
+      }
+      // Otherwise parse it from string
+      return JSON.parse(appointment.customFormData as string);
+    } catch (e) {
+      console.error("Failed to parse customFormData:", e);
+      return null;
+    }
+  };
+  
   // Include any extracted metadata that isn't in the main appointment fields
-  if (appointment.customFormData?.bolData) {
-    const bolData = appointment.customFormData.bolData;
+  const parsedData = parseCustomFormData();
+  if (parsedData?.bolData) {
+    const bolData = parsedData.bolData;
     
     if (bolData.fromAddress && !fields.includes(`From: ${bolData.fromAddress}`)) {
       fields.push(`From: ${bolData.fromAddress}`);
@@ -1206,41 +1224,83 @@ export function AppointmentDetailsDialog({
           <div className="border-t py-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium mb-3">Bill of Lading (BOL) Documents</h3>
-              {appointment.bolNumber && !appointment.customFormData?.bolData && (
-                <Badge variant="outline" className="mb-3 text-xs">
-                  <Info className="h-3 w-3 mr-1 text-muted-foreground" />
-                  BOL #{appointment.bolNumber}
-                </Badge>
-              )}
+              {(() => {
+                // Helper function to safely parse customFormData if it's a string
+                const parseCustomFormData = () => {
+                  if (!appointment.customFormData) return null;
+                  
+                  try {
+                    // If it's already an object, use it directly
+                    if (typeof appointment.customFormData === 'object') {
+                      return appointment.customFormData;
+                    }
+                    // Otherwise parse it from string
+                    return JSON.parse(appointment.customFormData as string);
+                  } catch (e) {
+                    console.error("Failed to parse customFormData:", e);
+                    return null;
+                  }
+                };
+                
+                const parsedData = parseCustomFormData();
+                
+                return appointment.bolNumber && !parsedData?.bolData && (
+                  <Badge variant="outline" className="mb-3 text-xs">
+                    <Info className="h-3 w-3 mr-1 text-muted-foreground" />
+                    BOL #{appointment.bolNumber}
+                  </Badge>
+                );
+              })()}
             </div>
             
             {/* Display existing BOL if present */}
-            {appointment.customFormData?.bolData ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between bg-primary/5 p-3 rounded-md border border-primary/20">
-                  <div className="flex items-center">
+            {(() => {
+              // Helper function to safely parse customFormData if it's a string
+              const parseCustomFormData = () => {
+                if (!appointment.customFormData) return null;
+                
+                try {
+                  // If it's already an object, use it directly
+                  if (typeof appointment.customFormData === 'object') {
+                    return appointment.customFormData;
+                  }
+                  // Otherwise parse it from string
+                  return JSON.parse(appointment.customFormData as string);
+                } catch (e) {
+                  console.error("Failed to parse customFormData:", e);
+                  return null;
+                }
+              };
+              
+              const parsedData = parseCustomFormData();
+              
+              if (parsedData?.bolData) {
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between bg-primary/5 p-3 rounded-md border border-primary/20">
+                      <div className="flex items-center">
                     <FileCheck className="h-5 w-5 text-primary mr-2" />
                     <div>
                       <p className="font-medium">
-                        {appointment.customFormData.bolData.originalName || 
-                         appointment.customFormData.bolData.fileName || 
+                        {parsedData.bolData.originalName || 
+                         parsedData.bolData.fileName || 
                          'BOL Document'}
                       </p>
-                      {appointment.customFormData.bolData.bolNumber && (
+                      {parsedData.bolData.bolNumber && (
                         <p className="text-xs text-muted-foreground">
-                          BOL Number: {appointment.customFormData.bolData.bolNumber}
+                          BOL Number: {parsedData.bolData.bolNumber}
                         </p>
                       )}
-                      {appointment.customFormData.bolData.uploadedAt && (
+                      {parsedData.bolData.uploadedAt && (
                         <p className="text-xs text-muted-foreground">
-                          Uploaded: {new Date(appointment.customFormData.bolData.uploadedAt).toLocaleDateString()}
+                          Uploaded: {new Date(parsedData.bolData.uploadedAt).toLocaleDateString()}
                         </p>
                       )}
                     </div>
                   </div>
                   
                   <div className="flex space-x-2">
-                    {appointment.customFormData.bolData.fileUrl && (
+                    {parsedData.bolData.fileUrl && (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1251,7 +1311,7 @@ export function AppointmentDetailsDialog({
                               asChild
                             >
                               <a 
-                                href={appointment.customFormData.bolData.fileUrl} 
+                                href={parsedData.bolData.fileUrl} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                               >
@@ -1267,7 +1327,7 @@ export function AppointmentDetailsDialog({
                       </TooltipProvider>
                     )}
                     
-                    {appointment.customFormData.bolData.fileUrl && (
+                    {parsedData.bolData.fileUrl && (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1278,7 +1338,7 @@ export function AppointmentDetailsDialog({
                               asChild
                             >
                               <a 
-                                href={appointment.customFormData.bolData.fileUrl} 
+                                href={parsedData.bolData.fileUrl} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                               >
@@ -1296,33 +1356,33 @@ export function AppointmentDetailsDialog({
                 </div>
                 
                 {/* Extraction quality indicator */}
-                {appointment.customFormData.bolData.extractionConfidence && (
+                {parsedData.bolData.extractionConfidence && (
                   <div className="flex items-center">
                     <span className="text-xs text-muted-foreground mr-2">OCR Quality:</span>
                     <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
                       <div 
                         className={`h-1.5 rounded-full ${
-                          Number(appointment.customFormData.bolData.extractionConfidence) > 75 
+                          Number(parsedData.bolData.extractionConfidence) > 75 
                             ? 'bg-green-500' 
-                            : Number(appointment.customFormData.bolData.extractionConfidence) > 45 
+                            : Number(parsedData.bolData.extractionConfidence) > 45 
                               ? 'bg-yellow-500' 
                               : 'bg-red-500'
                         }`} 
-                        style={{ width: `${appointment.customFormData.bolData.extractionConfidence}%` }}
+                        style={{ width: `${parsedData.bolData.extractionConfidence}%` }}
                       ></div>
                     </div>
                     <span className="text-xs ml-2 font-medium">
-                      {appointment.customFormData.bolData.extractionConfidence}%
+                      {parsedData.bolData.extractionConfidence}%
                     </span>
                   </div>
                 )}
                 
                 {/* Extracted data */}
-                {(appointment.customFormData.bolData.parsedOcrText || appointment.bolNumber) && (
+                {(parsedData.bolData.parsedOcrText || appointment.bolNumber) && (
                   <div className="rounded-md border p-3 bg-slate-50">
                     <p className="text-xs font-medium text-muted-foreground mb-2">Extracted Information:</p>
                     <pre className="text-xs font-mono p-2 bg-white rounded border whitespace-pre-wrap max-h-32 overflow-y-auto">
-                      {appointment.customFormData.bolData.parsedOcrText || generateBolSummary(appointment)}
+                      {parsedData.bolData.parsedOcrText || generateBolSummary(appointment)}
                     </pre>
                     
                     {/* Detected values tags */}
@@ -1351,61 +1411,65 @@ export function AppointmentDetailsDialog({
                   </div>
                 )}
               </div>
-            ) : (
-              <div>
-                {/* Upload BOL Button and Component */}
-                <div className="flex flex-col space-y-2">
-                  {!isUploadingBol ? (
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-center"
-                      onClick={() => setIsUploadingBol(true)}
-                    >
-                      <FileUp className="h-4 w-4 mr-2" />
-                      Upload BOL Document
-                    </Button>
-                  ) : (
-                    <div className="space-y-3">
-                      <BolUpload 
-                        scheduleId={appointment.id}
-                        onBolProcessed={(data, fileUrl) => {
-                          // This will be called after BOL processing is complete
-                          console.log("BOL processed with data:", data);
-                          toast({
-                            title: "BOL document uploaded",
-                            description: "The BOL has been processed and linked to this appointment",
-                          });
-                          
-                          // Refresh appointment data to show the newly linked BOL
-                          queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
-                          
-                          // Close the upload section
-                          setIsUploadingBol(false);
-                        }}
-                        onProcessingStateChange={(isProcessing) => {
-                          // Show toast for OCR processing start/end if needed
-                          if (isProcessing) {
-                            toast({
-                              title: "Processing BOL Document",
-                              description: "Extracting data from document using OCR...",
-                            });
-                          }
-                        }}
-                      />
-                      <div className="flex justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsUploadingBol(false)}
-                        >
-                          Cancel
-                        </Button>
+            ) 
+                } else {
+                  return (
+                    <div>
+                      {/* Upload BOL Button and Component */}
+                      <div className="flex flex-col space-y-2">
+                        {!isUploadingBol ? (
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-center"
+                            onClick={() => setIsUploadingBol(true)}
+                          >
+                            <FileUp className="h-4 w-4 mr-2" />
+                            Upload BOL Document
+                          </Button>
+                        ) : (
+                          <div className="space-y-3">
+                            <BolUpload 
+                              scheduleId={appointment.id}
+                              onBolProcessed={(data, fileUrl) => {
+                                // This will be called after BOL processing is complete
+                                console.log("BOL processed with data:", data);
+                                toast({
+                                  title: "BOL document uploaded",
+                                  description: "The BOL has been processed and linked to this appointment",
+                                });
+                                
+                                // Refresh appointment data to show the newly linked BOL
+                                queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+                                
+                                // Close the upload section
+                                setIsUploadingBol(false);
+                              }}
+                              onProcessingStateChange={(isProcessing) => {
+                                // Show toast for OCR processing start/end if needed
+                                if (isProcessing) {
+                                  toast({
+                                    title: "Processing BOL Document",
+                                    description: "Extracting data from document using OCR...",
+                                  });
+                                }
+                              }}
+                            />
+                            <div className="flex justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setIsUploadingBol(false)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
+                  );
+                }
+              })()}
           </div>
           
           {/* Release Photos Section - Only shown for completed appointments */}
@@ -1418,31 +1482,57 @@ export function AppointmentDetailsDialog({
                 </h3>
               </div>
               
-              {appointment.customFormData?.releasePhoto ? (
-                <div className="space-y-3">
-                  <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
-                    <div className="mb-2">
-                      <p className="text-xs text-muted-foreground">
-                        Photo taken at: {appointment.actualEndTime 
-                          ? new Date(appointment.actualEndTime).toLocaleString() 
-                          : "Unknown time"}
-                      </p>
+              {(() => {
+                // Helper function to safely parse customFormData if it's a string
+                const parseCustomFormData = () => {
+                  if (!appointment.customFormData) return null;
+                  
+                  try {
+                    // If it's already an object, use it directly
+                    if (typeof appointment.customFormData === 'object') {
+                      return appointment.customFormData;
+                    }
+                    // Otherwise parse it from string
+                    return JSON.parse(appointment.customFormData as string);
+                  } catch (e) {
+                    console.error("Failed to parse customFormData:", e);
+                    return null;
+                  }
+                };
+                
+                const parsedData = parseCustomFormData();
+                const releasePhoto = parsedData?.releasePhoto;
+                
+                if (releasePhoto) {
+                  return (
+                    <div className="space-y-3">
+                      <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
+                        <div className="mb-2">
+                          <p className="text-xs text-muted-foreground">
+                            Photo taken at: {appointment.actualEndTime 
+                              ? new Date(appointment.actualEndTime).toLocaleString() 
+                              : "Unknown time"}
+                          </p>
+                        </div>
+                        <div className="border rounded-lg overflow-hidden bg-white">
+                          <img 
+                            src={releasePhoto.fileUrl || `/uploads/${releasePhoto.filename}`} 
+                            alt="Release confirmation" 
+                            className="w-full h-auto max-h-64 object-contain"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="border rounded-lg overflow-hidden bg-white">
-                      <img 
-                        src={appointment.customFormData.releasePhoto.fileUrl || `/uploads/${appointment.customFormData.releasePhoto.filename}`} 
-                        alt="Release confirmation" 
-                        className="w-full h-auto max-h-64 object-contain"
-                      />
+                  );
+                } else {
+                  return (
+                    <div className="text-center p-6 border border-dashed rounded-md bg-slate-50">
+                      <ImageIcon className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
+                      <p className="text-sm text-muted-foreground">No release photos available</p>
                     </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center p-6 border border-dashed rounded-md bg-slate-50">
-                  <ImageIcon className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
-                  <p className="text-sm text-muted-foreground">No release photos available</p>
-                </div>
-              )}
+                  );
+                }
+              })()}
             </div>
           )}
           
