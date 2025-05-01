@@ -1066,6 +1066,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Assign a schedule to a door
+  app.patch("/api/schedules/:id/assign-door", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    try {
+      const scheduleId = parseInt(req.params.id);
+      const { dockId } = req.body;
+      
+      if (isNaN(scheduleId)) {
+        return res.status(400).json({ error: "Invalid schedule ID" });
+      }
+      
+      if (typeof dockId !== 'number') {
+        return res.status(400).json({ error: "Valid dock ID is required" });
+      }
+      
+      // Check if the schedule exists
+      const schedule = await storage.getSchedule(scheduleId);
+      if (!schedule) {
+        return res.status(404).json({ error: "Schedule not found" });
+      }
+      
+      // Check if the dock exists
+      const dock = await storage.getDock(dockId);
+      if (!dock) {
+        return res.status(404).json({ error: "Dock not found" });
+      }
+      
+      // Check if the dock is available (not assigned to another appointment)
+      const dockSchedules = await storage.getSchedulesByDock(dockId);
+      const now = new Date();
+      
+      const conflictingSchedule = dockSchedules.find(s => 
+        s.id !== scheduleId && 
+        s.status !== 'cancelled' && 
+        s.status !== 'completed' &&
+        new Date(s.startTime) <= now &&
+        new Date(s.endTime) >= now
+      );
+      
+      if (conflictingSchedule) {
+        return res.status(409).json({ 
+          error: "Door is currently occupied",
+          conflictingSchedule
+        });
+      }
+      
+      // Update the schedule with the dock ID
+      const updatedSchedule = await storage.updateSchedule(scheduleId, { dockId });
+      
+      if (!updatedSchedule) {
+        return res.status(500).json({ error: "Failed to update schedule" });
+      }
+      
+      console.log(`[AssignDoor] Schedule ${scheduleId} successfully assigned to dock ${dockId}`);
+      res.json(updatedSchedule);
+    } catch (error) {
+      console.error("Error assigning schedule to door:", error);
+      res.status(500).json({ 
+        error: "Failed to assign schedule to door",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Check-in endpoint - starts appointment
   app.patch("/api/schedules/:id/check-in", async (req, res) => {
     try {
