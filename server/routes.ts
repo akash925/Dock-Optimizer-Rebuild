@@ -1788,6 +1788,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             subject: `Dock Appointment Confirmation #${schedule.id}`
           });
             
+          // Log date information for debugging
+          console.log("[EMAIL DEBUG] Date values:", {
+            startTimeFromDB: schedule.startTime,
+            endTimeFromDB: schedule.endTime, 
+            parsedStartTime: startTime,
+            parsedEndTime: endTime,
+            isStartTimeValid: startTime instanceof Date && !isNaN(startTime.getTime()),
+            isEndTimeValid: endTime instanceof Date && !isNaN(endTime.getTime())
+          });
+          
           // Send confirmation email with enhanced information
           sendConfirmationEmail(
             validatedData.email,
@@ -1796,8 +1806,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: schedule.id,
               dockName: dockName,
               facilityName: facility?.name || 'Main Facility',
-              startTime: new Date(schedule.startTime),
-              endTime: new Date(schedule.endTime),
+              startTime: startTime, // Use the pre-validated dates from the request
+              endTime: endTime,     // instead of re-parsing the DB values
               truckNumber: schedule.truckNumber || '',
               customerName: schedule.customerName || undefined,
               type: validatedData.pickupOrDropoff === 'pickup' ? 'pickup' : 'delivery',
@@ -2020,6 +2030,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             subject: `Dock Appointment Confirmation #${schedule.id}`
           });
           
+          // Log date information for debugging
+          console.log("[EMAIL DEBUG - Legacy endpoint] Date values:", {
+            startTime: startTime,
+            endTime: endTime,
+            isStartTimeValid: startTime instanceof Date && !isNaN(startTime.getTime()),
+            isEndTimeValid: endTime instanceof Date && !isNaN(endTime.getTime())
+          });
+          
           // Send confirmation email with enhanced information
           sendConfirmationEmail(
             validatedData.contactEmail,
@@ -2033,12 +2051,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               truckNumber: schedule.truckNumber || '',
               customerName: validatedData.customerName || null,
               type: validatedData.pickupOrDropoff === 'pickup' ? 'pickup' : 'delivery',
-              status: "scheduled",
-              createdAt: schedule.createdAt,
-              createdBy: schedule.createdBy,
-              lastModifiedAt: schedule.lastModifiedAt,
-              lastModifiedBy: schedule.lastModifiedBy,
-              // Add additional fields for enhanced email
+              // Only include the essential fields for notifications
+              // Too many properties can cause type mismatches in the notification system
               driverName: validatedData.driverName || schedule.driverName || null,
               driverPhone: validatedData.driverPhone || schedule.driverPhone || null,
               driverEmail: validatedData.contactEmail || null,
