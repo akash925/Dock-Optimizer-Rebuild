@@ -14,14 +14,34 @@ export async function getFacilityOrganization(req: Request, res: Response) {
     }
     
     const storage = await getStorage();
+    
+    // First try using the getOrganizationByFacilityId method which uses the junction table
+    const organization = await storage.getOrganizationByFacilityId(facilityId);
+    
+    if (organization) {
+      console.log(`Found organization ${organization.id} (${organization.name}) for facility ${facilityId}`);
+      return res.json({ 
+        organizationId: organization.id,
+        organizationName: organization.name
+      });
+    }
+    
+    // Fallback to using getFacility
     const facility = await storage.getFacility(facilityId);
     
     if (!facility) {
+      console.log(`No facility found with ID ${facilityId}`);
       return res.status(404).json({ message: 'Facility not found' });
     }
     
+    if (!facility.tenantId) {
+      console.log(`Facility ${facilityId} has no associated organization`);
+      return res.json({ message: 'No organization associated with this facility' });
+    }
+    
     // Return the organization ID for this facility
-    res.json({ 
+    console.log(`Using facility.tenantId (${facility.tenantId}) for facility ${facilityId}`);
+    return res.json({ 
       organizationId: facility.tenantId 
     });
   } catch (error) {
