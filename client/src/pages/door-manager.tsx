@@ -22,6 +22,9 @@ export default function DoorManager() {
   const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{start: Date, end: Date} | null>(null);
   
+  // Add state for tracking recently assigned door
+  const [recentlyAssignedDock, setRecentlyAssignedDock] = useState<number | null>(null);
+  
   // Fetch facilities
   const { data: facilities = [] } = useQuery<Facility[]>({
     queryKey: ["/api/facilities"],
@@ -165,9 +168,25 @@ export default function DoorManager() {
       dockId: selectedDockId 
     }, {
       onSuccess: () => {
+        // Set the recently assigned dock for visual feedback
+        setRecentlyAssignedDock(selectedDockId);
+        
+        // Hide the appointment selector and refresh data
         setShowAppointmentSelector(false);
         refetchSchedules();
+        refetchDocks();
         setLastUpdated(new Date());
+        
+        // Clear the highlight after 3 seconds
+        setTimeout(() => {
+          setRecentlyAssignedDock(null);
+        }, 3000);
+        
+        // Show toast notification
+        toast({
+          title: "Appointment assigned",
+          description: "The appointment has been successfully assigned to the door",
+        });
       }
     });
   };
@@ -282,7 +301,14 @@ export default function DoorManager() {
             const carrierName = currentSchedule && carriers.find(c => c.id === currentSchedule.carrierId)?.name;
             
             return (
-              <div key={dock.id} className="border rounded-md overflow-hidden shadow-sm">
+              <div 
+                key={dock.id} 
+                className={`border rounded-md overflow-hidden shadow-sm transition-all duration-300 ${
+                  recentlyAssignedDock === dock.id 
+                    ? 'ring-2 ring-blue-500 scale-[1.03] bg-blue-50' 
+                    : ''
+                }`}
+              >
                 <div className="p-4 border-b flex justify-between items-center">
                   <div className="font-semibold">{dock.name}</div>
                   <div className={`h-4 w-4 rounded-full ${
