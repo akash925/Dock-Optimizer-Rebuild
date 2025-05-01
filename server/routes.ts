@@ -3563,7 +3563,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  const upload = multer({ 
+  // Configure multer for all files with a separate instance for BOL uploads
+  const uploadImage = multer({ 
     storage: multerStorage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
     fileFilter: (req, file, cb) => {
@@ -3577,9 +3578,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Special upload instance for BOL documents with more file types allowed
+  const uploadBol = multer({
+    storage: multerStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (req, file, cb) => {
+      // Accept common document types for BOL uploads
+      const allowedTypes = [
+        'application/pdf', 
+        'image/jpeg', 
+        'image/png', 
+        'image/tiff',
+        'application/msword', 
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain'
+      ];
+      
+      console.log('BOL upload file type:', file.mimetype);
+      
+      if (allowedTypes.includes(file.mimetype) || 
+          file.mimetype.startsWith('image/') || 
+          file.mimetype.includes('document')) {
+        cb(null, true);
+      } else {
+        cb(null, false);
+        return new Error(`File type ${file.mimetype} is not supported for BOL uploads`);
+      }
+    }
+  });
+  
   // Release door endpoint (with optional notes and photo)
   // Upload BOL endpoint
-  app.post("/api/upload-bol", upload.single('bolFile'), async (req, res) => {
+  app.post("/api/upload-bol", uploadBol.single('bolFile'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file provided' });
@@ -3625,7 +3655,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/schedules/:id/release", upload.single('photo'), async (req, res) => {
+  app.post("/api/schedules/:id/release", uploadImage.single('photo'), async (req, res) => {
     try {
       console.log("=== RELEASE DOOR START ===");
       const id = Number(req.params.id);
