@@ -19,8 +19,10 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, 
   ClipboardList, Trash2, Pencil, QrCode, Printer, History, ArrowRight,
-  AlertTriangle, Edit, Save, Info
+  AlertTriangle, Edit, Save, Info, FileUp, Download
 } from "lucide-react";
+import BolUpload from "@/components/shared/bol-upload";
+import { ParsedBolData } from "@/lib/ocr-service";
 import { format, differenceInMinutes } from "date-fns";
 import { 
   getUserTimeZone,
