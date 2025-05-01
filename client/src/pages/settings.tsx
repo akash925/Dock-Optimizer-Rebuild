@@ -850,7 +850,8 @@ export default function Settings() {
                         <div>
                           <div className="font-medium">{holiday.name}</div>
                           <div className="text-sm text-neutral-500">
-                            {new Date(holiday.date).toLocaleDateString()}
+                            {/* Format date correctly to avoid timezone offsets showing wrong day */}
+                            {formatDisplayDate(holiday.date)}
                           </div>
                         </div>
                       </div>
