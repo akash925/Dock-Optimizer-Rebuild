@@ -29,8 +29,8 @@ export const navItems: NavItem[] = [
   },
   { 
     key: 'calendar', 
-    label: 'Calendar View', 
-    path: '/calendar', 
+    label: 'Calendar', 
+    path: '/schedules', 
     icon: Calendar, 
   },
   { 
