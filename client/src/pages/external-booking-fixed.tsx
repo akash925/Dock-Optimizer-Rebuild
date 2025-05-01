@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
-import { Loader2, Clock as ClockIcon } from 'lucide-react';
+import { Loader2, Clock as ClockIcon, CheckCircle } from 'lucide-react';
 import { format, addHours, isValid, parseISO } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { getUserTimeZone, formatTimeRangeForDualZones, formatDateRangeInTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
@@ -1183,7 +1183,7 @@ const customerInfoSchema = z.object({
   contactName: z.string().min(1, { message: "Contact name is required" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   phone: z.string().min(5, { message: "Phone number is required" }),
-  customerRef: z.string().optional(),
+  customerRef: z.string().min(1, { message: "BOL Identifier is required" }),
   // Make carrierId completely optional without validation
   carrierId: z.number().optional().or(z.literal(undefined)), 
   // Always allow carrier name to pass validation
@@ -1425,7 +1425,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
             name="customerRef"
             render={({ field }) => (
               <FormItem className="booking-form-field">
-                <FormLabel className="booking-label">Order/Reference Number</FormLabel>
+                <FormLabel className="booking-label">BOL Identifier *</FormLabel>
                 <FormControl>
                   <Input
                     id="customerRef"
@@ -1595,10 +1595,38 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
           {/* Bill of Lading Upload */}
           <div className="booking-form-field">
             <Label className="booking-label">Bill of Lading (Optional)</Label>
-            <BolUpload
-              onBolProcessed={handleBolProcessed}
-              onProcessingStateChange={handleProcessingStateChange}
-            />
+            {bookingData.bolFileUploaded && bookingData.bolExtractedData ? (
+              <div className="p-4 border rounded-md bg-green-50 border-green-200 mb-2">
+                <div className="flex items-center mb-2">
+                  <CheckCircle className="text-green-600 mr-2 h-5 w-5" />
+                  <p className="font-medium text-green-800">BOL successfully uploaded</p>
+                </div>
+                {bookingData.bolExtractedData.bolNumber && (
+                  <p className="text-sm text-green-700">BOL Number: {bookingData.bolExtractedData.bolNumber}</p>
+                )}
+                <div className="mt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      updateBookingData({
+                        bolFileUploaded: false,
+                        bolExtractedData: undefined
+                      });
+                    }}
+                  >
+                    Replace BOL
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <BolUpload
+                onBolProcessed={handleBolProcessed}
+                onProcessingStateChange={handleProcessingStateChange}
+              />
+            )}
           </div>
           
           <FormField
