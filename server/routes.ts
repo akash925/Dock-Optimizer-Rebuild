@@ -3654,6 +3654,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Failed to upload BOL file' });
     }
   });
+  
+  // Route to serve uploaded files from the /uploads directory
+  app.get('/uploads/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+    
+    // Check if the file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    // Set appropriate content-disposition to force download
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    // Stream the file to the client
+    res.sendFile(filePath);
+  });
+  
+  // Associate BOL file with a schedule
+  app.post("/api/schedules/:id/associate-bol", async (req, res) => {
+    try {
+      const scheduleId = parseInt(req.params.id);
+      const { fileUrl, filename, metadata } = req.body;
+      
+      if (!scheduleId || isNaN(scheduleId)) {
+        return res.status(400).json({ error: 'Invalid schedule ID' });
+      }
+      
+      if (!fileUrl || !filename) {
+        return res.status(400).json({ error: 'Missing file information' });
+      }
+      
+      // Get the existing schedule
+      const schedule = await storage.getSchedule(scheduleId);
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+      
+      // Update the schedule with BOL data
+      const customFormData = schedule.customFormData || {};
+      
+      // Add BOL document info to the customFormData
+      customFormData.bolData = {
+        ...metadata,
+        fileUrl,
+        fileName: filename,
+        uploadedAt: new Date().toISOString()
+      };
+      
+      // Apply extracted BOL number to the schedule if available
+      const updateData: Partial<Schedule> = {
+        customFormData
+      };
+      
+      if (metadata?.bolNumber) {
+        updateData.bolNumber = metadata.bolNumber;
+      }
+      
+      if (metadata?.customerName && !schedule.customerName) {
+        updateData.customerName = metadata.customerName;
+      }
+      
+      if (metadata?.carrierName && !schedule.carrierName) {
+        updateData.carrierName = metadata.carrierName;
+      }
+      
+      if (metadata?.weight && !schedule.weight) {
+        updateData.weight = metadata.weight;
+      }
+      
+      // Update the schedule in the database
+      const updatedSchedule = await storage.updateSchedule(scheduleId, updateData);
+      
+      return res.status(200).json({
+        message: 'BOL file associated with schedule successfully',
+        schedule: updatedSchedule
+      });
+    } catch (error) {
+      console.error('Error associating BOL file with schedule:', error);
+      return res.status(500).json({ error: 'Failed to associate BOL file with schedule' });
+    }
+  });
 
   app.post("/api/schedules/:id/release", uploadImage.single('photo'), async (req, res) => {
     try {
