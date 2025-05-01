@@ -247,14 +247,31 @@ export default function DoorManager() {
     // Refetch the docks to update their status
     refetchDocks();
     
-    // Force a complete refresh after a delay to ensure all data is in sync
-    setTimeout(() => {
-      refetchSchedules();
+    // Force multiple refreshes to ensure UI is updated correctly
+    const refreshInterval = setInterval(() => {
       refetchDocks();
-      
+      refetchSchedules();
       // Also update the timestamp to force a complete re-render
       setLastUpdated(new Date());
-    }, 800);
+    }, 500);
+    
+    // Clear the interval after a few seconds (3 refreshes)
+    setTimeout(() => {
+      clearInterval(refreshInterval);
+      
+      // Do one final refresh
+      refetchDocks();
+      refetchSchedules();
+      queryClient.invalidateQueries({ queryKey: ["/api/docks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      setLastUpdated(new Date());
+      
+      // Show a success toast
+      toast({
+        title: "Door Released",
+        description: "The door has been successfully released and is now available",
+      });
+    }, 1500);
   };
 
   return (
