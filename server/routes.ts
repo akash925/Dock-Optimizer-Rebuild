@@ -3990,6 +3990,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Photo uploaded: ${photoInfo.filename}`);
       }
       
+      // Store the original dock ID for reference
+      const originalDockId = schedule.dockId;
+      console.log(`Original dock ID before release: ${originalDockId}`);
+      
+      // Parse existing custom form data (safely)
+      let existingCustomFormData = {};
+      if (schedule.customFormData) {
+        try {
+          existingCustomFormData = typeof schedule.customFormData === 'string' ?
+            JSON.parse(schedule.customFormData) : schedule.customFormData;
+        } catch (e) {
+          console.warn("Failed to parse existing customFormData:", e);
+        }
+      }
+      
       // Update schedule with notes, photo, mark as completed, and clear dock assignment
       const scheduleData = {
         status: "completed", // Mark as completed
@@ -3999,21 +4014,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastModifiedBy: req.user?.id || null,
         lastModifiedAt: new Date(),
         // Store photo information in custom form data if available
-        customFormData: photoInfo ? JSON.stringify({
-          ...(schedule.customFormData ? 
-              (typeof schedule.customFormData === 'string' ? 
-                JSON.parse(schedule.customFormData) : 
-                schedule.customFormData) 
-              : {}),
-          releasePhoto: photoInfo
-        }) : schedule.customFormData
+        customFormData: JSON.stringify({
+          ...existingCustomFormData,
+          releasePhoto: photoInfo || null,
+          releasedDockId: originalDockId, // Store the original dock ID for reference
+          releaseTime: new Date().toISOString()
+        })
       };
       
+      console.log(`Updating schedule ${id} to release door. Setting dockId explicitly to null.`);
       const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      
+      // Verify the door was actually released
+      const verifiedSchedule = await storage.getSchedule(id);
+      if (verifiedSchedule && verifiedSchedule.dockId !== null) {
+        console.error(`ERROR: Failed to release dock for schedule ${id}. DockId still set to ${verifiedSchedule.dockId}. Attempting fix...`);
+        
+        // Force a separate update to just set dockId to null
+        await storage.updateSchedule(id, { dockId: null });
+        
+        // Verify again
+        const reretrievedSchedule = await storage.getSchedule(id);
+        console.log(`Verification after fix: schedule ${id} dockId is now ${reretrievedSchedule?.dockId === null ? 'null' : reretrievedSchedule?.dockId}`);
+      } else {
+        console.log(`Door successfully released for schedule ${id}`);
+      }
       
       // Return updated schedule with photo information
       res.json({
         ...updatedSchedule,
+        dockId: null, // Ensure the returned object shows dockId as null
         photoInfo: photoInfo
       });
     } catch (err) {
