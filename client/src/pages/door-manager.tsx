@@ -349,10 +349,33 @@ export default function DoorManager() {
                 
                 {(status === "occupied" || status === "reserved") && currentSchedule && (
                   <div className="px-4 pt-2">
-                    <p className="text-sm font-medium">{carrierName || "Unknown Carrier"}</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {currentSchedule.customerName || "No Customer Name"}
+                    </p>
+                    <p className="text-xs font-medium text-gray-700">
+                      {carrierName || "Unknown Carrier"}
+                    </p>
                     <p className="text-xs text-gray-500">
-                      {new Date(currentSchedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
-                      {new Date(currentSchedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {/* Eastern Time (facility timezone) */}
+                      {new Date(currentSchedule.startTime).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        timeZone: 'America/New_York' 
+                      })} - 
+                      {new Date(currentSchedule.endTime).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        timeZone: 'America/New_York'
+                      })}
+                      {/* Show local time if different */}
+                      {Intl.DateTimeFormat().resolvedOptions().timeZone !== 'America/New_York' && (
+                        <span className="text-xs italic"> 
+                          ({new Date(currentSchedule.startTime).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })} local)
+                        </span>
+                      )}
                     </p>
                     {status === "reserved" && <p className="text-xs text-amber-600 font-medium">Reserved</p>}
                   </div>
