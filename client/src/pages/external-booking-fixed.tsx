@@ -235,33 +235,21 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
     }
   };
   
-  // Determine which step to show
-  let stepContent;
-  
-  if (currentStep === 1) {
-    stepContent = <ServiceSelectionStepForm bookingPage={bookingPage} />;
-  } else if (currentStep === 2) {
-    stepContent = <DateTimeSelectionStep bookingPage={bookingPage} />;
-  } else if (currentStep === 3) {
-    stepContent = <CustomerInfoStep bookingPage={bookingPage} onSubmit={handleSubmit} />;
-  } else if (currentStep === 4) {
-    stepContent = <ConfirmationStep bookingPage={bookingPage} confirmationCode={confirmationCode} />;
-  }
-  
-  // Calculate progress percentage based on current step
-  const totalSteps = 3; // We have 3 steps (confirmation is not counted in progress)
-  const progressPercentage = Math.min(((currentStep - 1) / totalSteps) * 100, 100);
-  
-  // Get facility and appointment type information if available
-  const selectedFacilityId = bookingData.facilityId;
-  const selectedTypeId = bookingData.appointmentTypeId;
-  
+  // Place all React hooks at the top level of the component
   // Fetch facilities data directly
   const { data: facilities = [] } = useQuery<any[]>({
     queryKey: ['/api/facilities'],
   });
   
-  // Find facility and appointment type names
+  // Get facility and appointment type information if available
+  const selectedFacilityId = bookingData.facilityId;
+  const selectedTypeId = bookingData.appointmentTypeId;
+  
+  // Calculate progress percentage based on current step
+  const totalSteps = 3; // We have 3 steps (confirmation is not counted in progress)
+  const progressPercentage = Math.min(((currentStep - 1) / totalSteps) * 100, 100);
+  
+  // Find facility name with useMemo
   const facilityName = useMemo(() => {
     if (!selectedFacilityId) return '';
     
@@ -281,18 +269,39 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
     return 'Unknown Facility';
   }, [selectedFacilityId, facilities, bookingData]);
   
+  // Find appointment type name with useMemo
   const appointmentTypeName = useMemo(() => {
     if (!selectedTypeId) return '';
+    
+    // First check if we have the name directly in bookingData
+    if (bookingData.appointmentTypeName) {
+      return bookingData.appointmentTypeName;
+    }
+    
+    // Then look in appointment types
     const appointmentType = bookingData.appointmentTypes 
       ? bookingData.appointmentTypes.find((t: any) => t.id === selectedTypeId)
       : null;
       
-    if (appointmentType) return appointmentType.name || '';
+    if (appointmentType?.name) {
+      return appointmentType.name;
+    }
     
-    // Alternative lookup from appointment data
-    const typeFromAppointmentData = bookingData.appointmentTypeName || '';
-    return typeFromAppointmentData;
+    return 'Standard Appointment';
   }, [selectedTypeId, bookingData]);
+  
+  // Determine which step to show (no hooks here, just regular variables)
+  let stepContent;
+  
+  if (currentStep === 1) {
+    stepContent = <ServiceSelectionStepForm bookingPage={bookingPage} />;
+  } else if (currentStep === 2) {
+    stepContent = <DateTimeSelectionStep bookingPage={bookingPage} />;
+  } else if (currentStep === 3) {
+    stepContent = <CustomerInfoStep bookingPage={bookingPage} onSubmit={handleSubmit} />;
+  } else if (currentStep === 4) {
+    stepContent = <ConfirmationStep bookingPage={bookingPage} confirmationCode={confirmationCode} />;
+  }
 
   return (
     <div className="booking-wizard-container">
