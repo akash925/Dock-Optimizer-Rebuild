@@ -234,6 +234,20 @@ export default function DoorManager() {
     setShowReleaseDoorForm(false);
     setSelectedScheduleId(null);
   };
+  
+  // Handle successful door release
+  const handleDoorReleaseSuccess = () => {
+    // Immediately update the data
+    refetchSchedules();
+    
+    // Close the form
+    handleCloseReleaseDoorForm();
+    
+    // Force an additional refetch after a small delay to ensure consistency
+    setTimeout(() => {
+      refetchSchedules();
+    }, 500);
+  };
 
   return (
     <div className="relative">
@@ -432,10 +446,7 @@ export default function DoorManager() {
           isOpen={showReleaseDoorForm}
           onClose={handleCloseReleaseDoorForm}
           scheduleId={selectedScheduleId}
-          onSuccess={() => {
-            refetchSchedules();
-            handleCloseReleaseDoorForm();
-          }}
+          onSuccess={handleDoorReleaseSuccess}
         />
       )}
       

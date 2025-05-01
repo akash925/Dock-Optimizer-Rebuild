@@ -75,12 +75,17 @@ export default function ReleaseDoorForm({
       
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Door Released",
         description: "The door has been successfully released.",
       });
+      
+      // Call onSuccess with the updated data
       onSuccess();
+      
+      // Close the dialog immediately
+      onClose();
       
       // Cleanup
       if (imagePreview) {
