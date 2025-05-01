@@ -167,23 +167,23 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <div className="mb-6">
+    <div className="container mx-auto py-2">
+      <div className="mb-2">
         <h1 className="text-2xl font-bold">Calendar</h1>
-        <p className="text-muted-foreground">
-          View and manage your dock appointments with timezone support
+        <p className="text-muted-foreground text-sm">
+          View and manage your dock appointments
         </p>
       </div>
 
-      {/* Controls row - all filters and controls */}
-      <div className="view-buttons-container mb-6 sticky top-0 z-[1000] bg-white border rounded-lg shadow-sm" style={{
+      {/* Condensed controls row with minimal spacing */}
+      <div className="view-buttons-container mb-2 sticky top-0 z-[1000] bg-white border rounded-lg shadow-sm" style={{
         position: "sticky",
         top: "0",
         zIndex: "10",
         backgroundColor: "white",
-        padding: "1.25rem",
+        padding: "0.75rem",
         borderRadius: "0.5rem",
-        marginBottom: "1.5rem"
+        marginBottom: "0.5rem"
       }}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Timezone selector */}
