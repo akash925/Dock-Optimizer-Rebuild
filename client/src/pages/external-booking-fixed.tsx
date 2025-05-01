@@ -685,6 +685,8 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   );
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [organizationHolidays, setOrganizationHolidays] = useState<string[]>([]);
+  const [isLoadingHolidays, setIsLoadingHolidays] = useState(false);
   
   // Get the appointment type to determine duration
   const { data: appointmentTypes } = useQuery({
@@ -705,6 +707,57 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   const selectedFacility = Array.isArray(facilities)
     ? facilities.find((facility: any) => facility.id === bookingData.facilityId)
     : undefined;
+    
+  // Fetch organization holidays when facility changes
+  useEffect(() => {
+    if (!selectedFacility || !selectedFacility.id) return;
+    
+    const fetchOrganizationHolidays = async () => {
+      setIsLoadingHolidays(true);
+      
+      try {
+        // First, get the organization ID for this facility
+        const orgResponse = await fetch(`/api/facilities/${selectedFacility.id}/organization`);
+        
+        if (!orgResponse.ok) {
+          console.warn(`Failed to fetch organization for facility ${selectedFacility.id}`);
+          return;
+        }
+        
+        const { organizationId } = await orgResponse.json();
+        
+        if (!organizationId) {
+          console.warn(`No organization found for facility ${selectedFacility.id}`);
+          return;
+        }
+        
+        // Get holidays for this organization
+        const holidaysResponse = await fetch(`/api/organizations/${organizationId}/holidays`);
+        
+        if (!holidaysResponse.ok) {
+          console.warn(`Failed to fetch holidays for organization ${organizationId}`);
+          return;
+        }
+        
+        const holidays = await holidaysResponse.json();
+        
+        // Filter only enabled holidays and extract dates
+        const enabledHolidayDates = holidays
+          .filter((holiday: any) => holiday.enabled)
+          .map((holiday: any) => holiday.date);
+        
+        console.log(`[EXTERNAL BOOKING] Found ${enabledHolidayDates.length} enabled holidays for organization ${organizationId}:`, enabledHolidayDates);
+        
+        setOrganizationHolidays(enabledHolidayDates);
+      } catch (error) {
+        console.error("Error fetching organization holidays:", error);
+      } finally {
+        setIsLoadingHolidays(false);
+      }
+    };
+    
+    fetchOrganizationHolidays();
+  }, [selectedFacility]);
   
   // When date changes, fetch available times
   useEffect(() => {
@@ -923,6 +976,15 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                       disabledDays={(date) => {
                         // Disable days when the facility is closed
                         if (!selectedFacility) return false;
+                        
+                        // Format date for holiday checking
+                        const formattedDate = format(date, 'yyyy-MM-dd');
+                        
+                        // Check if this date is an organization holiday
+                        if (organizationHolidays.includes(formattedDate)) {
+                          console.log(`[EXTERNAL BOOKING] Disabling date ${formattedDate} because it's a configured holiday`);
+                          return true; // Disable this date since it's a holiday
+                        }
                         
                         // Get the day of the week (0 = Sunday, 6 = Saturday)
                         const dayOfWeek = date.getDay();
