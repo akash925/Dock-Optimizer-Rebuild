@@ -3,8 +3,11 @@ import { Dock, Schedule, Carrier } from "@shared/schema";
 import { formatDuration, getStatusColor } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Plus, Lock, LogOut } from "lucide-react";
+import { Calendar, Clock, Plus, LogOut, CheckCircle2, Loader2 } from "lucide-react";
 import ReleaseDoorForm from "./release-door-form";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface DoorStatusItem {
   id: number;
@@ -14,6 +17,7 @@ interface DoorStatusItem {
   carrier?: string;
   elapsedTime?: number;
   remainingTime?: number;
+  isCheckedIn?: boolean;
 }
 
 interface DoorBoardProps {
@@ -21,18 +25,21 @@ interface DoorBoardProps {
   schedules: Schedule[];
   carriers: Carrier[];
   onCreateAppointment: (dockId: number, timeSlot?: {start: Date, end: Date}) => void;
+  onRefreshData: () => void;
 }
 
 export default function DoorBoard({ 
   docks, 
   schedules, 
   carriers,
-  onCreateAppointment
+  onCreateAppointment,
+  onRefreshData
 }: DoorBoardProps) {
   const [doorStatuses, setDoorStatuses] = useState<DoorStatusItem[]>([]);
   const [timeUpdate, setTimeUpdate] = useState(new Date());
   const [releaseModalOpen, setReleaseModalOpen] = useState(false);
   const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
+  const { toast } = useToast();
   
   // Process door status data
   useEffect(() => {
@@ -53,9 +60,13 @@ export default function DoorBoard({
         // Find next scheduled appointment for reserved doors
         const nextSchedule = schedules.find(s => 
           s.dockId === dock.id && 
+          s.dockId !== null &&  // Ensure it has a dock assigned
           new Date(s.startTime) > now &&
           new Date(s.startTime).getTime() - now.getTime() < 3600000 // Within the next hour
         );
+        
+        // Determine if the door is occupied and the appointment is checked in
+        const isOccupiedAndCheckedIn = currentSchedule && currentSchedule.status === "in-progress";
         
         if (currentSchedule) {
           status = "occupied";
@@ -70,7 +81,11 @@ export default function DoorBoard({
         let remainingTime: number | undefined;
         
         if (currentSchedule) {
-          const startTime = new Date(currentSchedule.startTime);
+          // Use actualStartTime if available (meaning the appointment is checked in)
+          const startTime = currentSchedule.actualStartTime 
+            ? new Date(currentSchedule.actualStartTime) 
+            : new Date(currentSchedule.startTime);
+          
           const endTime = new Date(currentSchedule.endTime);
           elapsedTime = now.getTime() - startTime.getTime();
           remainingTime = endTime.getTime() - now.getTime();
@@ -88,7 +103,8 @@ export default function DoorBoard({
           currentSchedule: currentSchedule || nextSchedule,
           carrier: carrierName,
           elapsedTime,
-          remainingTime
+          remainingTime,
+          isCheckedIn: isOccupiedAndCheckedIn
         };
       });
       
@@ -121,6 +137,51 @@ export default function DoorBoard({
     }
   };
 
+  // Check-in mutation for checking in an appointment
+  const checkInMutation = useMutation({
+    mutationFn: async (scheduleId: number) => {
+      const response = await apiRequest("PATCH", `/api/schedules/${scheduleId}/check-in`, {
+        actualStartTime: new Date().toISOString()
+      });
+      
+      if (!response.ok) {
+        let errorMessage = "Failed to check in";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        throw new Error(errorMessage);
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Appointment checked in",
+        description: "The appointment has been successfully checked in."
+      });
+      
+      // Refresh data to show updated status
+      onRefreshData();
+      // Also update local timer
+      setTimeUpdate(new Date());
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Check-in failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handle checking in an appointment
+  const handleCheckIn = (scheduleId: number) => {
+    checkInMutation.mutate(scheduleId);
+  };
+
   // Handle releasing a door
   const handleReleaseDoor = (scheduleId: number) => {
     setSelectedScheduleId(scheduleId);
@@ -131,8 +192,12 @@ export default function DoorBoard({
   const handleReleaseSuccess = () => {
     setReleaseModalOpen(false);
     setSelectedScheduleId(null);
-    // Wait a bit before updating data to ensure server has time to process the release
-    setTimeout(() => setTimeUpdate(new Date()), 500);
+    
+    // Refresh data to ensure server changes are reflected
+    onRefreshData();
+    
+    // Also update local timer
+    setTimeUpdate(new Date());
   };
 
   return (
@@ -141,7 +206,7 @@ export default function DoorBoard({
         {doorStatuses.map((door) => (
           <div 
             key={door.id} 
-            className="border rounded-md h-full bg-white shadow-sm flex flex-col"
+            className={`border rounded-md h-full bg-white shadow-sm flex flex-col ${door.status === "occupied" ? "border-red-300" : ""}`}
           >
             <div className="p-4 border-b">
               <div className="flex justify-between items-start mb-2">
@@ -154,7 +219,14 @@ export default function DoorBoard({
               
               {door.status === "occupied" && door.carrier && (
                 <div className="mb-2">
-                  <p className="text-sm font-medium">{door.carrier}</p>
+                  <p className="text-sm font-medium">
+                    {door.carrier}
+                    {door.isCheckedIn && (
+                      <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                        Checked In
+                      </span>
+                    )}
+                  </p>
                   <div className="flex items-center text-xs text-gray-500 mt-1">
                     <Clock className="h-3 w-3 mr-1" />
                     <span>
@@ -203,6 +275,25 @@ export default function DoorBoard({
               
               {door.status !== "maintenance" && (
                 <div className="flex space-x-1">
+                  {/* Reserved door - Check-in button */}
+                  {door.status === "reserved" && door.currentSchedule && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-xs text-green-600 border-green-200 hover:bg-green-50"
+                      onClick={() => handleCheckIn(door.currentSchedule!.id)}
+                      disabled={checkInMutation.isPending}
+                    >
+                      {checkInMutation.isPending ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                      )}
+                      Check In
+                    </Button>
+                  )}
+                  
+                  {/* Occupied door - Release button */}
                   {door.status === "occupied" && door.currentSchedule && (
                     <Button 
                       size="sm" 
@@ -215,6 +306,7 @@ export default function DoorBoard({
                     </Button>
                   )}
                   
+                  {/* Book/Update button for all non-maintenance doors */}
                   <Button 
                     size="sm" 
                     variant="ghost" 

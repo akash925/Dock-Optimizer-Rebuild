@@ -8,6 +8,7 @@ import DoorAppointmentForm from "../components/door-manager/door-appointment-for
 import ReleaseDoorForm from "../components/door-manager/release-door-form";
 import AppointmentSelectorDialog from "../components/door-manager/appointment-selector-dialog";
 import { useAssignAppointmentToDoor } from "../components/door-manager/assign-appointment-service";
+import DoorBoard from "../components/door-manager/door-board";
 import { X, LogOut, RefreshCw } from "lucide-react";
 
 export default function DoorManager() {
