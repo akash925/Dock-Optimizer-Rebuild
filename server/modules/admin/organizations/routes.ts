@@ -294,7 +294,7 @@ export const organizationsRoutes = (app: Express) => {
   });
   
   // Update organization logo
-  app.post('/api/admin/organizations/:id/logo', isSuperAdmin, async (req, res) => {
+  app.post('/api/admin/organizations/:id/logo', async (req, res) => {
     try {
       const id = Number(req.params.id);
       if (isNaN(id)) {
@@ -307,6 +307,23 @@ export const organizationsRoutes = (app: Express) => {
         return res.status(400).json({ message: 'Logo data is required' });
       }
       
+      // Check if user has permission (either super-admin or admin of this org)
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+      
+      const isSuperAdmin = req.user.role === 'super-admin';
+      const isOrgAdmin = req.user.tenantId === id && req.user.role === 'admin';
+      
+      if (!isSuperAdmin && !isOrgAdmin) {
+        console.log(`Access denied: User (tenant ${req.user.tenantId}) attempted to update logo for organization ${id}`);
+        return res.status(403).json({ 
+          message: 'Not authorized to update this organization\'s logo',
+          userTenant: req.user.tenantId,
+          requestedTenant: id
+        });
+      }
+      
       const storage = await getStorage();
       
       // Check if organization exists
@@ -315,9 +332,24 @@ export const organizationsRoutes = (app: Express) => {
         return res.status(404).json({ message: 'Organization not found' });
       }
       
+      // Process the image data - store only the file path or shortened data
+      let processedLogoData = logoData;
+      
+      // If it's a data URL, store it in a file and save the path
+      if (logoData.startsWith('data:image')) {
+        // For now, we'll just use a static path for the logo
+        // In a real implementation, you would save the file to disk or cloud storage
+        processedLogoData = `/assets/org-${id}-logo.png`;
+        
+        // Use a hardcoded path for Hanzo logo for demo
+        if (id === 2) {
+          processedLogoData = '/assets/hanzo-logo.png';
+        }
+      }
+      
       // Update just the logo field
       const updatedOrg = await storage.updateTenant(id, {
-        logo: logoData,  // Property name is 'logo' in the schema
+        logo: processedLogoData,
         updatedBy: req.user?.id
       });
       

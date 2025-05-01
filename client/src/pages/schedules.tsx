@@ -99,7 +99,9 @@ export default function Schedules() {
     // Process query parameters for view mode
     const queryParams = new URLSearchParams(window.location.search);
     const viewParam = queryParams.get('view');
+    const editParam = queryParams.get('edit');
     
+    // Handle view mode parameter
     if (viewParam) {
       switch(viewParam) {
         case 'day':
@@ -115,6 +117,13 @@ export default function Schedules() {
           setViewMode('list');
           break;
       }
+    }
+    
+    // Handle edit parameter - open edit form for specified appointment
+    if (editParam && !isNaN(Number(editParam))) {
+      const scheduleId = Number(editParam);
+      setEditScheduleId(scheduleId);
+      setIsFormOpen(true);
     }
   }, [location]);
   
