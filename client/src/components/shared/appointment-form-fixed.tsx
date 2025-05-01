@@ -1379,26 +1379,37 @@ export default function AppointmentForm({
                     {customQuestions.map((question) => {
                       const fieldName = `customQuestion_${question.id}`;
                       
-                      switch (question.type) {
+                      // Get the current value from form or use default
+                      const customFields = form.getValues('customFields') || {};
+                      const currentValue = customFields[fieldName] || question.defaultValue || '';
+                      // Normalize isRequired to handle both property naming conventions
+                      const isRequired = question.isRequired === true || question.is_required === true;
+                      
+                      // Log for debugging
+                      console.log(`[CustomQuestions] Rendering question: ${question.label} (${question.type}), isRequired=${isRequired}, defaultValue=${question.defaultValue}, currentValue=${currentValue}`);
+                      
+                      switch (question.type.toLowerCase()) {
                         case 'text':
                         case 'email':
+                        case 'number':
+                        case 'phone':
                           return (
                             <div key={question.id} className="space-y-2">
                               <label className="text-sm font-medium">
-                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
+                                {question.label} {isRequired && <span className="text-destructive">*</span>}
                               </label>
                               <Input 
-                                type={question.type} 
+                                type={question.type === 'phone' ? 'tel' : question.type} 
                                 placeholder={question.placeholder || `Enter ${question.label}`}
+                                value={currentValue}
                                 onChange={(e) => {
                                   // Store in form data under a dynamic field name
-                                  const customFields = form.getValues('customFields') || {};
                                   form.setValue('customFields', {
                                     ...customFields,
                                     [fieldName]: e.target.value
                                   });
                                 }} 
-                                required={question.is_required}
+                                required={isRequired}
                               />
                             </div>
                           );
@@ -1407,18 +1418,18 @@ export default function AppointmentForm({
                           return (
                             <div key={question.id} className="space-y-2">
                               <label className="text-sm font-medium">
-                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
+                                {question.label} {isRequired && <span className="text-destructive">*</span>}
                               </label>
                               <Textarea 
                                 placeholder={question.placeholder || `Enter ${question.label}`}
+                                value={currentValue}
                                 onChange={(e) => {
-                                  const customFields = form.getValues('customFields') || {};
                                   form.setValue('customFields', {
                                     ...customFields,
                                     [fieldName]: e.target.value
                                   });
                                 }}
-                                required={question.is_required}
+                                required={isRequired}
                               />
                             </div>
                           );
@@ -1427,11 +1438,11 @@ export default function AppointmentForm({
                           return (
                             <div key={question.id} className="space-y-2">
                               <label className="text-sm font-medium">
-                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
+                                {question.label} {isRequired && <span className="text-destructive">*</span>}
                               </label>
                               <Select
+                                value={currentValue}
                                 onValueChange={(value) => {
-                                  const customFields = form.getValues('customFields') || {};
                                   form.setValue('customFields', {
                                     ...customFields,
                                     [fieldName]: value
@@ -1456,24 +1467,26 @@ export default function AppointmentForm({
                           
                         case 'checkbox':
                           return (
-                            <div key={question.id} className="flex items-center space-x-2">
-                              <Checkbox 
-                                id={`checkbox-${question.id}`}
-                                onCheckedChange={(checked) => {
-                                  const customFields = form.getValues('customFields') || {};
-                                  form.setValue('customFields', {
-                                    ...customFields,
-                                    [fieldName]: checked
-                                  });
-                                }}
-                                required={question.is_required}
-                              />
-                              <label 
-                                htmlFor={`checkbox-${question.id}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
-                              </label>
+                            <div key={question.id} className="space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id={`checkbox-${question.id}`}
+                                  checked={currentValue === 'true' || currentValue === true}
+                                  onCheckedChange={(checked) => {
+                                    form.setValue('customFields', {
+                                      ...customFields,
+                                      [fieldName]: checked
+                                    });
+                                  }}
+                                  required={isRequired}
+                                />
+                                <label 
+                                  htmlFor={`checkbox-${question.id}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {question.label} {isRequired && <span className="text-destructive">*</span>}
+                                </label>
+                              </div>
                             </div>
                           );
                           
@@ -1481,17 +1494,17 @@ export default function AppointmentForm({
                           return (
                             <div key={question.id} className="space-y-3">
                               <label className="text-sm font-medium">
-                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
+                                {question.label} {isRequired && <span className="text-destructive">*</span>}
                               </label>
                               <RadioGroup
+                                value={currentValue}
                                 onValueChange={(value) => {
-                                  const customFields = form.getValues('customFields') || {};
                                   form.setValue('customFields', {
                                     ...customFields,
                                     [fieldName]: value
                                   });
                                 }}
-                                required={question.is_required}
+                                required={isRequired}
                               >
                                 {question.options && Array.isArray(question.options) && 
                                   question.options.map((option: string, index: number) => (
@@ -1504,30 +1517,14 @@ export default function AppointmentForm({
                               </RadioGroup>
                             </div>
                           );
-                        
-                        case 'number':
-                          return (
-                            <div key={question.id} className="space-y-2">
-                              <label className="text-sm font-medium">
-                                {question.label} {question.is_required && <span className="text-destructive">*</span>}
-                              </label>
-                              <Input 
-                                type="number" 
-                                placeholder={question.placeholder || `Enter ${question.label}`}
-                                onChange={(e) => {
-                                  const customFields = form.getValues('customFields') || {};
-                                  form.setValue('customFields', {
-                                    ...customFields,
-                                    [fieldName]: e.target.value
-                                  });
-                                }}
-                                required={question.is_required}
-                              />
-                            </div>
-                          );
                           
                         default:
-                          return null;
+                          console.warn(`[CustomQuestions] Unsupported question type: ${question.type}`);
+                          return (
+                            <div key={question.id} className="text-sm text-muted-foreground italic">
+                              Unsupported field type: {question.type}
+                            </div>
+                          );
                       }
                     })}
                   </div>
