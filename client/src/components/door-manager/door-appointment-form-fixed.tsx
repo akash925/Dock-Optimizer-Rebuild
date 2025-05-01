@@ -3,7 +3,7 @@ import AppointmentForm from "@/components/shared/appointment-form-fixed";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { Facility, AppointmentType } from "@shared/schema";
-import { format } from "date-fns";
+import { format, addHours } from "date-fns";
 
 interface DoorAppointmentFormProps {
   isOpen: boolean;
@@ -68,12 +68,28 @@ export default function DoorAppointmentForm({
     onClose();
   };
 
+  // Create a default date for new appointments (current date + 1 hour, rounded to nearest 30 min)
+  const defaultDate = (() => {
+    const now = new Date();
+    
+    // Add 1 hour to current time
+    const futureDate = addHours(now, 1);
+    
+    // Round to nearest 30 minute increment
+    const minutes = futureDate.getMinutes();
+    const roundedMinutes = Math.round(minutes / 30) * 30;
+    futureDate.setMinutes(roundedMinutes, 0, 0);
+    
+    return futureDate;
+  })();
+
   // Debug logs to verify props
   console.log("[DoorAppointmentForm] Props:", { 
     dockId, 
     facilityId, 
     facilityName: facilityName || propFacilityName, 
-    isOpen
+    isOpen,
+    defaultDate: format(defaultDate, "yyyy-MM-dd HH:mm")
   });
 
   return (
@@ -90,14 +106,13 @@ export default function DoorAppointmentForm({
           mode="internal"
           isOpen={true}
           initialDockId={dockId}
-          initialFacilityId={facilityId}
           facilityId={facilityId}
           facilityName={facilityName}
           appointmentTypeId={initialAppointmentTypeId}
           onClose={onClose}
           onSubmitSuccess={handleSuccess}
           editMode="create"
-          initialDate={new Date()} // Use current date as initial date
+          initialDate={defaultDate} // Use calculated future date as initial date
         />
       </DialogContent>
     </Dialog>

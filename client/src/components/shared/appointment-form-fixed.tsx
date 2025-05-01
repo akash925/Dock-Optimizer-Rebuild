@@ -94,6 +94,7 @@ interface AppointmentFormProps {
   initialDockId?: number;
   appointmentTypeId?: number;
   facilityId?: number;
+  facilityName?: string;
   facilityTimezone?: string;
   onSubmitSuccess?: (data: any) => void;
   // External mode props
@@ -102,6 +103,8 @@ interface AppointmentFormProps {
   preSelectedType?: string;
   containerClass?: string;
   showBackButton?: boolean;
+  // Used internally - don't pass directly
+  initialFacilityId?: number; // Same as facilityId, kept for backward compatibility
 }
 
 export default function AppointmentForm({
@@ -301,29 +304,28 @@ export default function AppointmentForm({
     // Added retry and staleTime to ensure we get the data
     retry: 3,
     staleTime: 0,
-    onSuccess: (data) => {
-      console.log(`[CustomQuestions] Successfully loaded ${data.length} custom questions for appointment type ${watchedAppointmentTypeId}`);
+  });
+
+  // Handle setting custom field defaults when questions are loaded
+  useEffect(() => {
+    if (customQuestions && Array.isArray(customQuestions) && customQuestions.length > 0) {
+      console.log(`[CustomQuestions] Successfully loaded ${customQuestions.length} custom questions for appointment type ${watchedAppointmentTypeId}`);
       
       // Pre-populate form with any default values from questions
-      if (data.length > 0) {
-        const customFieldValues = { ...form.getValues('customFields') } || {};
-        
-        data.forEach(question => {
-          const fieldName = `customQuestion_${question.id}`;
-          // Only set default if the field doesn't already have a value
-          if (question.defaultValue && !customFieldValues[fieldName]) {
-            customFieldValues[fieldName] = question.defaultValue;
-          }
-        });
-        
-        // Update form with any new default values
-        form.setValue('customFields', customFieldValues);
-      }
-    },
-    onError: (error) => {
-      console.error(`[CustomQuestions] Failed to load custom questions for appointment type ${watchedAppointmentTypeId}:`, error);
+      const customFieldValues = form.getValues('customFields') || {};
+      
+      customQuestions.forEach((question: any) => {
+        const fieldName = `customQuestion_${question.id}`;
+        // Only set default if the field doesn't already have a value
+        if (question.defaultValue && !customFieldValues[fieldName]) {
+          customFieldValues[fieldName] = question.defaultValue;
+        }
+      });
+      
+      // Update form with any new default values
+      form.setValue('customFields', customFieldValues);
     }
-  });
+  }, [customQuestions, watchedAppointmentTypeId, form]);
   
   useEffect(() => {
     // Only run if appointment type actually changed
@@ -487,9 +489,12 @@ export default function AppointmentForm({
         customFields: data.customFields || {}
       };
       
+      // Create a new formatted data object with newCarrier type included
+      const formattedDataWithCarrier: any = { ...formattedData };
+      
       // If custom carrier, add the new carrier data
       if (!data.carrierId && data.carrierName) {
-        formattedData.newCarrier = {
+        formattedDataWithCarrier.newCarrier = {
           name: data.carrierName || "Custom Carrier",
           mcNumber: data.mcNumber || "",
           contactName: data.driverName || "",
@@ -498,8 +503,12 @@ export default function AppointmentForm({
         };
       }
       
-      // API call
-      const response = await apiRequest("POST", "/api/schedules", formattedData);
+      // API call - use the object with carrier data if applicable
+      const response = await apiRequest(
+        "POST", 
+        "/api/schedules", 
+        formattedDataWithCarrier
+      );
       return await response.json();
     },
     onSuccess: (data) => {
