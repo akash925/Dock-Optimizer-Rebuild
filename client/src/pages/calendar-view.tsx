@@ -85,9 +85,12 @@ export default function CalendarPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
 
-  const { data: schedules, isLoading: isLoadingSchedules } = useQuery<Schedule[]>({
+  const { data: schedules, isLoading: isLoadingSchedules, refetch: refetchSchedules } = useQuery<Schedule[]>({
     queryKey: ['/api/schedules'],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 15000, // Refresh every 15 seconds
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   // Fetch appointment types

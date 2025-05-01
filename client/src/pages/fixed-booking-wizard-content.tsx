@@ -177,10 +177,22 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
         
         console.log('Appointment created successfully:', responseData);
         
-        // Invalidate schedules query to refresh the calendar
+        // Aggressively invalidate schedules query to refresh the calendar
         if (queryClient) {
+          // First invalidate the query
           queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
           console.log('Invalidated schedules query to refresh calendar');
+          
+          // Then immediately force a refetch
+          queryClient.fetchQuery({ queryKey: ['/api/schedules'] });
+          console.log('Force fetching schedules to ensure immediate update');
+          
+          // Set a timeout for a second forced refetch to handle any potential race conditions
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+            queryClient.fetchQuery({ queryKey: ['/api/schedules'] });
+            console.log('Performed second refresh to ensure calendar is updated');
+          }, 2000);
         }
       } catch (error) {
         console.error('Error during appointment creation:', error);

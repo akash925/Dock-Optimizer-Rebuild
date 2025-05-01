@@ -282,29 +282,29 @@ export default function FullCalendarView({
     // Format a more detailed title with relevant information
     let title = '';
     
-    // Include facility name in title for better visibility
-    if (extractedFacilityName) {
-      title += `${extractedFacilityName}\n`;
+    // Start with customer name if available (most important info)
+    if (customerName) {
+      title += `👤 ${customerName}\n`;
     }
     
-    // Add customer name if available
-    if (customerName) {
-      title += `${customerName}\n`;
+    // Add facility name for context
+    if (extractedFacilityName) {
+      title += `📍 ${extractedFacilityName}\n`;
+    }
+    
+    // Add dock information if available - important for operations
+    if (dockInfo) {
+      title += `🚪 ${dockInfo}\n`;
     }
     
     // Add carrier and truck info
-    title += `${schedule.carrierName || 'Carrier'} | ${schedule.truckNumber || 'No Truck #'}`;
+    title += `🚚 ${schedule.carrierName || 'Carrier'} | ${schedule.truckNumber || 'No Truck #'}`;
     
-    // Add dock information if available
-    if (dockInfo) {
-      title += `\n${dockInfo}`;
-    }
-    
-    // Add status badge to title if not scheduled
+    // Add status badge to title if not scheduled - make status prominent
     if (schedule.status && schedule.status !== 'scheduled') {
-      title += `\n${schedule.status.toUpperCase()}`;
+      title += `\n⚠️ ${schedule.status.toUpperCase()}`;
     } else if (attention.needsAttention) {
-      title += `\n${attention.reason.toUpperCase()}`;
+      title += `\n⚠️ ${attention.reason.toUpperCase()}`;
     }
     
     // Calculate dynamic z-index based on hour - later hours should be higher
