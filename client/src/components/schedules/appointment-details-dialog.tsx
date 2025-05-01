@@ -1544,49 +1544,15 @@ export function AppointmentDetailsDialog({
                     Cancel
                   </Button>
                   
-                  {showCheckInTimeInput ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="time"
-                        className="w-32 text-xs"
-                        value={formatTimeForInput(checkInTime)}
-                        onChange={(e) => {
-                          const [hours, minutes] = e.target.value.split(':').map(Number);
-                          const newTime = new Date();
-                          newTime.setHours(hours, minutes, 0, 0);
-                          setCheckInTime(newTime);
-                        }}
-                      />
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => setShowCheckInTimeInput(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        variant="default"
-                        size="sm"
-                        className="text-xs bg-blue-600 hover:bg-blue-700"
-                        onClick={() => checkInAppointmentMutation.mutate()}
-                        disabled={checkInAppointmentMutation.isPending}
-                      >
-                        {checkInAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                        Confirm
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="text-xs bg-blue-600 hover:bg-blue-700"
-                      onClick={() => setShowCheckInTimeInput(true)}
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      Check In
-                    </Button>
-                  )}
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="text-xs bg-blue-600 hover:bg-blue-700"
+                    onClick={() => setShowCheckInDialog(true)}
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Check In
+                  </Button>
                 </>
               )}
               
