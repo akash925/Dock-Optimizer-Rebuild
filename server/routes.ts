@@ -3551,8 +3551,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
   
-  // Configure storage for file uploads
-  const multerStorage = multer.diskStorage({
+  // Configure separate storage options for different types of uploads
+  const scheduleStorage = multer.diskStorage({
     destination: function (req, file, cb) {
       cb(null, uploadDir);
     },
@@ -3563,9 +3563,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Configure multer for all files with a separate instance for BOL uploads
+  // Special storage for BOL uploads with proper file naming
+  const bolStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+      const timestamp = Date.now();
+      const randomId = Math.round(Math.random() * 1E9);
+      const uniqueSuffix = `${timestamp}-${randomId}`;
+      const origName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_'); // Sanitize original filename
+      const ext = path.extname(origName) || '.pdf'; // Default to .pdf if no extension
+      
+      // Create a filename with BOL prefix, original name (sanitized), and unique ID
+      cb(null, `bol-${uniqueSuffix}-${origName}`);
+    }
+  });
+  
+  // Configure multer for image uploads
   const uploadImage = multer({ 
-    storage: multerStorage,
+    storage: scheduleStorage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
     fileFilter: (req, file, cb) => {
       // Accept only images
@@ -3580,7 +3597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Special upload instance for BOL documents with more file types allowed
   const uploadBol = multer({
-    storage: multerStorage,
+    storage: bolStorage,
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
     fileFilter: (req, file, cb) => {
       // Accept common document types for BOL uploads
@@ -3618,36 +3635,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate a URL for the uploaded file
       const fileUrl = `/uploads/${req.file.filename}`;
       
-      // Extract metadata sent from the client
-      const metadata: Record<string, string> = {};
+      // Log the original filename and the stored filename for debugging
+      console.log('BOL file uploaded:', {
+        originalName: req.file.originalname,
+        storedAs: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
       
-      // These fields are directly extracted by the OCR service
+      // Extract metadata sent from the client
+      const metadata: Record<string, any> = {};
+      
+      // Extract all the basic OCR fields
       const extractableFields = [
         'bolNumber', 'customerName', 'carrierName', 'mcNumber', 
         'weight', 'palletCount', 'fromAddress', 'toAddress', 
-        'pickupOrDropoff', 'truckId', 'trailerNumber'
+        'pickupOrDropoff', 'truckId', 'trailerNumber', 'notes'
       ];
       
+      // Extract the advanced OCR metadata fields
+      const advancedMetadataFields = [
+        'extractionMethod', 'extractionConfidence', 'processingTimestamp',
+        'fileName', 'fileSize', 'fileType'
+      ];
+      
+      // Combine all fields we want to extract
+      const allFields = [...extractableFields, ...advancedMetadataFields, 'originalFileName'];
+      
       // Collect metadata from request body
-      for (const field of extractableFields) {
+      for (const field of allFields) {
         if (req.body[field]) {
-          metadata[field] = req.body[field];
+          // Parse numbers if they're stored as strings but represent numbers
+          if (field === 'extractionConfidence' || field === 'fileSize') {
+            metadata[field] = isNaN(Number(req.body[field])) ? req.body[field] : Number(req.body[field]);
+          } else {
+            metadata[field] = req.body[field];
+          }
         }
       }
       
+      // Ensure we have the original file name
+      if (!metadata.fileName && metadata.originalFileName) {
+        metadata.fileName = metadata.originalFileName;
+      }
+      
+      // Ensure we have some timestamps for auditing
+      if (!metadata.uploadedAt) {
+        metadata.uploadedAt = new Date().toISOString();
+      }
+      
+      if (!metadata.processingTimestamp) {
+        metadata.processingTimestamp = new Date().toISOString();
+      }
+      
+      // Add file information
+      metadata.storedFilename = req.file.filename;
+      metadata.fileUrl = fileUrl;
+      metadata.mimeType = req.file.mimetype;
+      metadata.fileSize = req.file.size;
+      
       // Log the metadata
       console.log('BOL file uploaded with metadata:', metadata);
-      
-      // In a real implementation, we might store this metadata in the database
-      // associated with the appointment record
       
       // Return success with the file URL and extracted metadata
       return res.status(200).json({ 
         fileUrl,
         filename: req.file.filename,
+        originalName: req.file.originalname,
         size: req.file.size,
         message: 'BOL file uploaded successfully',
-        metadata // Include extracted metadata in the response
+        metadata // Include full metadata in the response
       });
     } catch (error) {
       console.error('Error uploading BOL file:', error);
@@ -3678,6 +3735,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const scheduleId = parseInt(req.params.id);
       const { fileUrl, filename, metadata } = req.body;
       
+      console.log(`[BOL Associate] Associating BOL file with schedule ${scheduleId}`, {
+        fileUrl: fileUrl?.substring(0, 50), // Truncate for logging
+        filename,
+        metadataFields: metadata ? Object.keys(metadata) : 'none'
+      });
+      
       if (!scheduleId || isNaN(scheduleId)) {
         return res.status(400).json({ error: 'Invalid schedule ID' });
       }
@@ -3692,56 +3755,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Schedule not found' });
       }
       
-      // Update the schedule with BOL data
-      const customFormData = schedule.customFormData || {};
+      console.log(`[BOL Associate] Retrieved schedule: ${scheduleId}`, {
+        hasCustomFormData: !!schedule.customFormData,
+        customFormDataType: schedule.customFormData ? typeof schedule.customFormData : 'undefined'
+      });
       
-      // Add BOL document info to the customFormData
-      if (typeof customFormData === 'object') {
-        // Initialize bolData if it doesn't exist
-        if (!customFormData.bolData) {
-          customFormData.bolData = {};
+      // Handle the case where customFormData might be a JSON string
+      let customFormData: any;
+      
+      if (!schedule.customFormData) {
+        customFormData = {};
+      } else if (typeof schedule.customFormData === 'string') {
+        try {
+          customFormData = JSON.parse(schedule.customFormData);
+        } catch (e) {
+          console.error(`[BOL Associate] Error parsing customFormData string:`, e);
+          customFormData = {};
         }
-        
-        // Add all the metadata to the bolData object
-        Object.assign(customFormData.bolData, {
-          ...metadata,
-          fileUrl,
-          fileName: filename,
-          uploadedAt: new Date().toISOString()
-        });
+      } else {
+        customFormData = schedule.customFormData;
       }
       
-      // Apply extracted BOL number to the schedule if available
+      // Initialize bolData if it doesn't exist
+      if (!customFormData.bolData) {
+        customFormData.bolData = {};
+      }
+      
+      // Add timestamp for tracking
+      const associationTimestamp = new Date().toISOString();
+      
+      // Prepare the BOL data object with required fields
+      const bolDataUpdate = {
+        fileUrl,
+        fileName: filename,
+        originalName: metadata?.fileName || filename,
+        uploadedAt: metadata?.uploadedAt || associationTimestamp,
+        associatedAt: associationTimestamp,
+        associationSource: req.user?.username || 'system',
+        ...(metadata || {}) // Spread in all the metadata if provided
+      };
+      
+      console.log(`[BOL Associate] Adding BOL data to schedule ${scheduleId}:`, {
+        fileUrl: bolDataUpdate.fileUrl?.substring(0, 50), // Truncate for logging
+        fileName: bolDataUpdate.fileName,
+        bolNumber: bolDataUpdate.bolNumber || 'none',
+        associatedAt: bolDataUpdate.associatedAt
+      });
+      
+      // Assign to the bolData object
+      Object.assign(customFormData.bolData, bolDataUpdate);
+      
+      // Apply extracted data to the main schedule fields
       const updateData: any = {
         customFormData
       };
       
-      if (metadata?.bolNumber) {
-        updateData.bolNumber = metadata.bolNumber;
+      // Update core schedule fields from BOL data if they're available
+      const fieldsToUpdate = [
+        'bolNumber', 'customerName', 'carrierName', 'mcNumber', 'weight', 
+        'palletCount', 'truckNumber', 'trailerNumber'
+      ];
+      
+      // Only overwrite empty fields or if the value is significant
+      for (const field of fieldsToUpdate) {
+        if (metadata?.[field] && 
+            (!schedule[field] || schedule[field] === '' || schedule[field] === null)) {
+          updateData[field] = metadata[field];
+        }
       }
       
-      if (metadata?.customerName && !schedule.customerName) {
-        updateData.customerName = metadata.customerName;
-      }
-      
-      if (metadata?.carrierName && !schedule.carrierName) {
-        updateData.carrierName = metadata.carrierName;
-      }
-      
-      if (metadata?.weight && !schedule.weight) {
-        updateData.weight = metadata.weight;
-      }
+      console.log(`[BOL Associate] Updating schedule ${scheduleId} with fields:`, Object.keys(updateData));
       
       // Update the schedule in the database
       const updatedSchedule = await storage.updateSchedule(scheduleId, updateData);
       
+      if (!updatedSchedule) {
+        throw new Error(`Failed to update schedule ${scheduleId} with BOL data`);
+      }
+      
+      console.log(`[BOL Associate] Successfully updated schedule ${scheduleId} with BOL data`);
+      
+      // Verify the customFormData was saved correctly
+      const verifySchedule = await storage.getSchedule(scheduleId);
+      
+      const verifyData = {
+        customFormDataSaved: !!verifySchedule?.customFormData,
+        customFormDataType: verifySchedule?.customFormData ? typeof verifySchedule.customFormData : 'undefined',
+        bolDataExists: !!verifySchedule?.customFormData?.bolData,
+        fileUrlExists: !!verifySchedule?.customFormData?.bolData?.fileUrl
+      };
+      
+      console.log(`[BOL Associate] Verification for schedule ${scheduleId}:`, verifyData);
+      
       return res.status(200).json({
         message: 'BOL file associated with schedule successfully',
-        schedule: updatedSchedule
+        schedule: updatedSchedule,
+        verification: verifyData
       });
     } catch (error) {
       console.error('Error associating BOL file with schedule:', error);
-      return res.status(500).json({ error: 'Failed to associate BOL file with schedule' });
+      return res.status(500).json({ 
+        error: 'Failed to associate BOL file with schedule',
+        message: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 

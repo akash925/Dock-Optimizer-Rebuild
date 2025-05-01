@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, FileText, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, FileText, CheckCircle, AlertTriangle, Download } from 'lucide-react';
 import { FormLabel } from '@/components/ui/form';
-import { apiRequest } from '@/lib/queryClient';
+import { Button } from '@/components/ui/button';
+import { queryClient } from '@/lib/queryClient';
 import { parseBol, compressFile, ParsedBolData } from '@/lib/ocr-service';
 
 interface BolUploadProps {
@@ -23,12 +24,16 @@ export default function BolUpload({
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [previewText, setPreviewText] = useState<string | null>(null);
   const [bolData, setBolData] = useState<ParsedBolData | null>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
   const handleFileChange = async (file: File | null) => {
     // Clear previous state
     setProcessingError(null);
     setPreviewText(null);
     setBolData(null);
+    setUploadedFileUrl(null);
+    setUploadedFileName(null);
     
     if (!file) {
       onProcessingStateChange(false);
@@ -39,10 +44,14 @@ export default function BolUpload({
       // Start processing
       setIsProcessing(true);
       onProcessingStateChange(true);
+      
+      console.log(`Starting BOL processing for file: ${file.name} (${file.size} bytes)`);
 
       // 1. Parse the BOL using the enhanced OCR service
       const parsedData = await parseBol(file);
       setBolData(parsedData);
+      
+      console.log('BOL parsed successfully:', parsedData);
       
       // 2. Compress the file for upload
       const compressedFile = await compressFile(file);
@@ -61,6 +70,14 @@ export default function BolUpload({
       if (parsedData.toAddress) formData.append('toAddress', parsedData.toAddress);
       if (parsedData.pickupOrDropoff) formData.append('pickupOrDropoff', parsedData.pickupOrDropoff);
       
+      // Add more metadata fields for improved processing
+      formData.append('extractionMethod', parsedData.extractionMethod || 'unknown');
+      formData.append('extractionConfidence', String(parsedData.extractionConfidence || 0));
+      formData.append('processingTimestamp', parsedData.processingTimestamp || new Date().toISOString());
+      formData.append('originalFileName', file.name);
+      
+      console.log('Uploading BOL file to server...');
+      
       // Make a fetch request directly since apiRequest doesn't fully support FormData
       const response = await fetch('/api/upload-bol', {
         method: 'POST',
@@ -68,10 +85,16 @@ export default function BolUpload({
       });
       
       if (!response.ok) {
-        throw new Error('Failed to upload BOL file');
+        const errorText = await response.text();
+        console.error('Server error during upload:', errorText);
+        throw new Error(`Failed to upload BOL file: ${response.status} ${response.statusText}`);
       }
       
       const responseData = await response.json();
+      console.log('File upload successful:', responseData);
+      
+      setUploadedFileUrl(responseData.fileUrl);
+      setUploadedFileName(responseData.filename);
       
       // 4. Build a formatted preview text
       const previewLines: string[] = [];
@@ -103,6 +126,20 @@ export default function BolUpload({
         try {
           console.log(`Associating BOL file with schedule ${scheduleId}`);
           
+          // Prepare rich metadata for better persistence
+          const richMetadata = {
+            ...parsedData,
+            parsedOcrText: previewLines.join('\n'),
+            uploadTimestamp: new Date().toISOString(),
+            associationType: 'direct_upload',
+            extractionConfidence: parsedData.extractionConfidence || 0,
+            processingMethod: parsedData.extractionMethod || 'unknown',
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            fileUrl: responseData.fileUrl
+          };
+          
           // Send a request to associate the file with the schedule
           const associateResponse = await fetch(`/api/schedules/${scheduleId}/associate-bol`, {
             method: 'POST',
@@ -111,30 +148,34 @@ export default function BolUpload({
             },
             body: JSON.stringify({
               fileUrl: responseData.fileUrl,
-              filename: responseData.filename,
-              metadata: {
-                ...parsedData,
-                parsedOcrText: previewLines.join('\n'),
-                uploadTimestamp: new Date().toISOString(), // Add timestamp for tracking
-                associationType: 'direct_upload' // Track how the BOL was associated
-              }
+              filename: responseData.filename || file.name,
+              metadata: richMetadata
             })
           });
           
           if (!associateResponse.ok) {
-            console.warn('Failed to associate BOL file with schedule:', await associateResponse.text());
-          } else {
-            console.log('BOL file successfully associated with schedule');
-            // Get the updated schedule data after BOL association
-            const updatedScheduleResponse = await fetch(`/api/schedules/${scheduleId}`);
-            if (updatedScheduleResponse.ok) {
-              const updatedSchedule = await updatedScheduleResponse.json();
-              console.log('Updated schedule with BOL data:', updatedSchedule);
-            }
+            const errorText = await associateResponse.text();
+            console.error('Error response from server:', errorText);
+            throw new Error(`Failed to associate BOL: ${associateResponse.status} ${associateResponse.statusText}`);
+          }
+          
+          const associateData = await associateResponse.json();
+          console.log('BOL file successfully associated with schedule:', associateData);
+
+          // Get the updated schedule data after BOL association
+          const updatedScheduleResponse = await fetch(`/api/schedules/${scheduleId}`);
+          if (updatedScheduleResponse.ok) {
+            const updatedSchedule = await updatedScheduleResponse.json();
+            console.log('Updated schedule with BOL data:', updatedSchedule);
+            
+            // Invalidate any cached data for this schedule
+            queryClient.invalidateQueries({ queryKey: [`/api/schedules/${scheduleId}`] });
+            queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
           }
         } catch (associateError) {
           console.error('Error associating BOL file with schedule:', associateError);
-          // Continue even if association fails, as the file was uploaded successfully
+          // We'll show a warning but continue, as the file was uploaded successfully
+          setProcessingError(`File uploaded but could not be linked to appointment: ${associateError instanceof Error ? associateError.message : 'Unknown error'}`);
         }
       }
       
@@ -188,6 +229,26 @@ export default function BolUpload({
         </Alert>
       )}
       
+      {uploadedFileUrl && !isProcessing && (
+        <div className="flex items-center justify-between p-3 border rounded-md bg-muted/10">
+          <div className="flex items-center">
+            <FileText className="h-4 w-4 text-primary mr-2" />
+            <span className="text-sm font-medium">{uploadedFileName || 'BOL Document'}</span>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            asChild
+            className="text-xs"
+          >
+            <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer">
+              <Download className="h-3.5 w-3.5 mr-1" />
+              Download
+            </a>
+          </Button>
+        </div>
+      )}
+      
       {previewText && !isProcessing && !processingError && (
         <Alert className="bg-primary/5 border-primary/20">
           <CheckCircle className="h-4 w-4 text-primary" />
@@ -198,6 +259,21 @@ export default function BolUpload({
               <div className="p-3 bg-background rounded border text-sm font-mono whitespace-pre-wrap">
                 {previewText}
               </div>
+              
+              {bolData?.extractionConfidence !== undefined && (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  <span className="font-medium">Extraction Confidence:</span> 
+                  <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+                    bolData.extractionConfidence > 70 
+                      ? 'bg-green-100 text-green-700' 
+                      : bolData.extractionConfidence > 40 
+                        ? 'bg-yellow-100 text-yellow-700' 
+                        : 'bg-red-100 text-red-700'
+                  }`}>
+                    {bolData.extractionConfidence}%
+                  </span>
+                </div>
+              )}
               
               {bolData?.pickupOrDropoff && (
                 <div className="mt-2 text-sm">
