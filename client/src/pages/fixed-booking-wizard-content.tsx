@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useBookingWizard } from '@/contexts/BookingWizardContext';
 import { useBookingTheme } from '@/contexts/BookingThemeContext';
 import ServiceSelectionStepForm from './service-selection-step';
+// Import directly from original external-booking-fixed
 import { DateTimeSelectionStep, CustomerInfoStep, ConfirmationStep } from './external-booking-fixed';
 import hanzoLogoImport from '@assets/hanzo logo.jpeg';
 
@@ -26,7 +27,6 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   } = useBookingWizard();
   
   const { theme, isLoading: themeLoading } = useBookingTheme();
-  const [hanzoLogo, setHanzoLogo] = useState<string>("/assets/hanzo_logo.png");
   
   // Fetch facilities data
   const { data: facilities = [] } = useQuery<any[]>({
@@ -41,19 +41,10 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   const totalSteps = 3; // We have 3 steps (confirmation is not counted in progress)
   const progressPercentage = Math.min(((currentStep - 1) / totalSteps) * 100, 100);
   
-  // Set document title and load logo
+  // Set document title
   useEffect(() => {
     // Set the document title
     document.title = `Book Appointment - Hanzo Logistics Dock Appointment Scheduler`;
-    
-    // Attempt to load the Hanzo logo
-    import("@assets/hanzo logo.jpeg")
-      .then(logoModule => {
-        setHanzoLogo(logoModule.default);
-      })
-      .catch(err => {
-        console.error("Could not load Hanzo logo:", err);
-      });
   }, []);
   
   // Find facility name with useMemo
@@ -238,7 +229,7 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
     <div className="booking-wizard-container">
       <div className="booking-wizard-header">
         <img 
-          src={hanzoLogo} 
+          src={hanzoLogoImport} 
           alt="Hanzo Logistics Logo" 
           className="booking-wizard-logo"
         />
@@ -248,7 +239,7 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
         </p>
         
         {/* Add prominent facility and appointment type banner */}
-        {(facilityName || appointmentTypeName || bookingData.appointmentTime) && (
+        {(facilityName || appointmentTypeName || bookingData.startTime) && (
           <div className="booking-info-banner">
             {facilityName && (
               <div className="booking-info-item">
@@ -260,9 +251,9 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
                 <strong>Appointment Type:</strong> {appointmentTypeName}
               </div>
             )}
-            {bookingData.appointmentTime && (
+            {bookingData.startTime && (
               <div className="booking-info-item">
-                <strong>Time:</strong> {bookingData.appointmentTime} 
+                <strong>Time:</strong> {new Date(bookingData.startTime).toLocaleTimeString()} 
                 {bookingData.facilityTimezone && ` (${bookingData.facilityTimezone})`}
               </div>
             )}
