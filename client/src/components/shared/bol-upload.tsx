@@ -253,7 +253,7 @@ export default function BolUpload({
         </div>
       )}
       
-      {previewText && !isProcessing && !processingError && (
+      {previewText && uploadedFileUrl && !isProcessing && !processingError && (
         <Alert className="bg-primary/5 border-primary/20">
           <CheckCircle className="h-4 w-4 text-primary" />
           <AlertTitle className="text-primary">Document Processed Successfully</AlertTitle>
