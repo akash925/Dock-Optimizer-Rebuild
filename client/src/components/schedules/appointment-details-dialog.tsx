@@ -257,10 +257,25 @@ export function AppointmentDetailsDialog({
   });
 
   // Mutation for checking in appointment
+  // State for check-in time input
+  const [checkInTime, setCheckInTime] = useState<Date>(new Date());
+  const [showCheckInTimeInput, setShowCheckInTimeInput] = useState(false);
+  
+  // Format the current time for the time input field
+  const formatTimeForInput = (date: Date) => {
+    return date.toTimeString().substring(0, 5); // Format as HH:MM
+  };
+  
   const checkInAppointmentMutation = useMutation({
     mutationFn: async () => {
       if (!appointment?.id) throw new Error("No appointment ID provided");
-      const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-in`);
+      
+      // Use the selected time or current time
+      const actualStartTime = showCheckInTimeInput ? checkInTime : new Date();
+      
+      const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-in`, {
+        actualStartTime: actualStartTime.toISOString()
+      });
       return res.json();
     },
     onSuccess: (data) => {
@@ -275,6 +290,9 @@ export function AppointmentDetailsDialog({
         title: "Appointment checked in",
         description: "The appointment has been checked in successfully",
       });
+      
+      // Reset the time input state
+      setShowCheckInTimeInput(false);
     },
     onError: (error) => {
       toast({
@@ -285,11 +303,21 @@ export function AppointmentDetailsDialog({
     }
   });
   
+  // State for check-out time input
+  const [checkOutTime, setCheckOutTime] = useState<Date>(new Date());
+  const [showCheckOutTimeInput, setShowCheckOutTimeInput] = useState(false);
+  
   // Mutation for checking out appointment (completing)
   const checkOutAppointmentMutation = useMutation({
     mutationFn: async () => {
       if (!appointment?.id) throw new Error("No appointment ID provided");
-      const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-out`);
+      
+      // Use the selected time or current time
+      const actualEndTime = showCheckOutTimeInput ? checkOutTime : new Date();
+      
+      const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-out`, {
+        actualEndTime: actualEndTime.toISOString()
+      });
       return res.json();
     },
     onSuccess: (data) => {
@@ -304,6 +332,9 @@ export function AppointmentDetailsDialog({
         title: "Appointment completed",
         description: "The appointment has been marked as completed",
       });
+      
+      // Reset the time input state
+      setShowCheckOutTimeInput(false);
     },
     onError: (error) => {
       toast({
@@ -1374,16 +1405,49 @@ export function AppointmentDetailsDialog({
                     Cancel
                   </Button>
                   
-                  <Button 
-                    variant="default"
-                    size="sm"
-                    className="text-xs bg-blue-600 hover:bg-blue-700"
-                    onClick={() => checkInAppointmentMutation.mutate()}
-                    disabled={checkInAppointmentMutation.isPending}
-                  >
-                    {checkInAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                    Check In
-                  </Button>
+                  {showCheckInTimeInput ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        className="w-32 text-xs"
+                        value={formatTimeForInput(checkInTime)}
+                        onChange={(e) => {
+                          const [hours, minutes] = e.target.value.split(':').map(Number);
+                          const newTime = new Date();
+                          newTime.setHours(hours, minutes, 0, 0);
+                          setCheckInTime(newTime);
+                        }}
+                      />
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => setShowCheckInTimeInput(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className="text-xs bg-blue-600 hover:bg-blue-700"
+                        onClick={() => checkInAppointmentMutation.mutate()}
+                        disabled={checkInAppointmentMutation.isPending}
+                      >
+                        {checkInAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                        Confirm
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="default"
+                      size="sm"
+                      className="text-xs bg-blue-600 hover:bg-blue-700"
+                      onClick={() => setShowCheckInTimeInput(true)}
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                      Check In
+                    </Button>
+                  )}
                 </>
               )}
               
@@ -1400,16 +1464,49 @@ export function AppointmentDetailsDialog({
                     Cancel
                   </Button>
                   
-                  <Button 
-                    variant="default"
-                    size="sm"
-                    className="text-xs bg-green-600 hover:bg-green-700"
-                    onClick={() => checkOutAppointmentMutation.mutate()}
-                    disabled={checkOutAppointmentMutation.isPending}
-                  >
-                    {checkOutAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                    Check Out
-                  </Button>
+                  {showCheckOutTimeInput ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        className="w-32 text-xs"
+                        value={formatTimeForInput(checkOutTime)}
+                        onChange={(e) => {
+                          const [hours, minutes] = e.target.value.split(':').map(Number);
+                          const newTime = new Date();
+                          newTime.setHours(hours, minutes, 0, 0);
+                          setCheckOutTime(newTime);
+                        }}
+                      />
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => setShowCheckOutTimeInput(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className="text-xs bg-green-600 hover:bg-green-700"
+                        onClick={() => checkOutAppointmentMutation.mutate()}
+                        disabled={checkOutAppointmentMutation.isPending}
+                      >
+                        {checkOutAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                        Confirm
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button 
+                      variant="default"
+                      size="sm"
+                      className="text-xs bg-green-600 hover:bg-green-700"
+                      onClick={() => setShowCheckOutTimeInput(true)}
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                      Check Out
+                    </Button>
+                  )}
                 </>
               )}
             </div>

@@ -1075,10 +1075,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Schedule not found" });
       }
       
+      // Use provided actualStartTime from request body or current time
+      const actualStartTime = req.body?.actualStartTime ? new Date(req.body.actualStartTime) : new Date();
+      
       // Update schedule status to in-progress and set actual start time
       const scheduleData = {
         status: "in-progress",
-        actualStartTime: new Date(),
+        actualStartTime,
         lastModifiedBy: req.user?.id || null,
         lastModifiedAt: new Date()
       };
@@ -1100,10 +1103,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Schedule not found" });
       }
       
+      // Use provided actualEndTime from request body or current time
+      const actualEndTime = req.body?.actualEndTime ? new Date(req.body.actualEndTime) : new Date();
+      
       // Update schedule status to completed and set actual end time
       const scheduleData = {
         status: "completed",
-        actualEndTime: new Date(),
+        actualEndTime,
         lastModifiedBy: req.user?.id || null,
         lastModifiedAt: new Date()
       };
