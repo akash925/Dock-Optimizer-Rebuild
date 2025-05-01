@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, 
   ClipboardList, Trash2, Pencil, QrCode, Printer, History, ArrowRight,
-  AlertTriangle, Edit, Save, Info, FileUp, Download
+  AlertTriangle, Edit, Save, Info, FileUp, Download, ExternalLink, FileCheck
 } from "lucide-react";
 import BolUpload from "@/components/shared/bol-upload";
 import { ParsedBolData } from "@/lib/ocr-service";
@@ -65,6 +65,44 @@ interface AppointmentDetailsDialogProps {
   timezone?: string; // Add timezone prop
   timeFormat?: "12h" | "24h"; // Add timeFormat prop
 }
+
+// Helper function to generate a summary of BOL data when no parsedOcrText is available
+const generateBolSummary = (appointment: ExtendedSchedule): string => {
+  const fields = [];
+  
+  if (appointment.bolNumber) fields.push(`BOL Number: ${appointment.bolNumber}`);
+  if (appointment.carrierName) fields.push(`Carrier: ${appointment.carrierName}`);
+  if (appointment.mcNumber) fields.push(`MC Number: ${appointment.mcNumber}`);
+  if (appointment.customerName) fields.push(`Customer: ${appointment.customerName}`);
+  if (appointment.weight) fields.push(`Weight: ${appointment.weight}`);
+  if (appointment.palletCount) fields.push(`Pallet Count: ${appointment.palletCount}`);
+  if (appointment.truckNumber) fields.push(`Truck ID: ${appointment.truckNumber}`);
+  if (appointment.trailerNumber) fields.push(`Trailer Number: ${appointment.trailerNumber}`);
+  
+  // Include any extracted metadata that isn't in the main appointment fields
+  if (appointment.customFormData?.bolData) {
+    const bolData = appointment.customFormData.bolData;
+    
+    if (bolData.fromAddress && !fields.includes(`From: ${bolData.fromAddress}`)) {
+      fields.push(`From: ${bolData.fromAddress}`);
+    }
+    
+    if (bolData.toAddress && !fields.includes(`To: ${bolData.toAddress}`)) {
+      fields.push(`To: ${bolData.toAddress}`);
+    }
+    
+    if (bolData.notes && !fields.includes(`Notes: ${bolData.notes}`)) {
+      fields.push(`Notes: ${bolData.notes}`);
+    }
+  }
+  
+  // If we have no fields, provide a placeholder
+  if (fields.length === 0) {
+    return "No detailed information available for this BOL document.";
+  }
+  
+  return fields.join('\n');
+};
 
 export function AppointmentDetailsDialog({
   appointment,
@@ -995,47 +1033,150 @@ export function AppointmentDetailsDialog({
           
           {/* BOL Documents */}
           <div className="border-t py-4">
-            <h3 className="text-sm font-medium mb-3">Bill of Lading (BOL) Documents</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium mb-3">Bill of Lading (BOL) Documents</h3>
+              {appointment.bolNumber && !appointment.customFormData?.bolData && (
+                <Badge variant="outline" className="mb-3 text-xs">
+                  <Info className="h-3 w-3 mr-1 text-muted-foreground" />
+                  BOL #{appointment.bolNumber}
+                </Badge>
+              )}
+            </div>
             
             {/* Display existing BOL if present */}
             {appointment.customFormData?.bolData ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between bg-primary/5 p-3 rounded-md border border-primary/20">
                   <div className="flex items-center">
-                    <FileText className="h-5 w-5 text-primary mr-2" />
+                    <FileCheck className="h-5 w-5 text-primary mr-2" />
                     <div>
-                      <p className="font-medium">{appointment.customFormData.bolData.fileName || 'BOL Document'}</p>
+                      <p className="font-medium">
+                        {appointment.customFormData.bolData.originalName || 
+                         appointment.customFormData.bolData.fileName || 
+                         'BOL Document'}
+                      </p>
                       {appointment.customFormData.bolData.bolNumber && (
-                        <p className="text-xs text-muted-foreground">BOL Number: {appointment.customFormData.bolData.bolNumber}</p>
+                        <p className="text-xs text-muted-foreground">
+                          BOL Number: {appointment.customFormData.bolData.bolNumber}
+                        </p>
+                      )}
+                      {appointment.customFormData.bolData.uploadedAt && (
+                        <p className="text-xs text-muted-foreground">
+                          Uploaded: {new Date(appointment.customFormData.bolData.uploadedAt).toLocaleDateString()}
+                        </p>
                       )}
                     </div>
                   </div>
                   
-                  {appointment.customFormData.bolData.fileUrl && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      asChild
-                    >
-                      <a 
-                        href={appointment.customFormData.bolData.fileUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                      >
-                        <Download className="h-3.5 w-3.5 mr-1" />
-                        Download
-                      </a>
-                    </Button>
-                  )}
+                  <div className="flex space-x-2">
+                    {appointment.customFormData.bolData.fileUrl && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              asChild
+                            >
+                              <a 
+                                href={appointment.customFormData.bolData.fileUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <Download className="h-3.5 w-3.5 mr-1" />
+                                Download
+                              </a>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Download original document</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    
+                    {appointment.customFormData.bolData.fileUrl && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs"
+                              asChild
+                            >
+                              <a 
+                                href={appointment.customFormData.bolData.fileUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View in new tab</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </div>
                 
-                {appointment.customFormData.bolData.parsedOcrText && (
+                {/* Extraction quality indicator */}
+                {appointment.customFormData.bolData.extractionConfidence && (
+                  <div className="flex items-center">
+                    <span className="text-xs text-muted-foreground mr-2">OCR Quality:</span>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                      <div 
+                        className={`h-1.5 rounded-full ${
+                          Number(appointment.customFormData.bolData.extractionConfidence) > 75 
+                            ? 'bg-green-500' 
+                            : Number(appointment.customFormData.bolData.extractionConfidence) > 45 
+                              ? 'bg-yellow-500' 
+                              : 'bg-red-500'
+                        }`} 
+                        style={{ width: `${appointment.customFormData.bolData.extractionConfidence}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-xs ml-2 font-medium">
+                      {appointment.customFormData.bolData.extractionConfidence}%
+                    </span>
+                  </div>
+                )}
+                
+                {/* Extracted data */}
+                {(appointment.customFormData.bolData.parsedOcrText || appointment.bolNumber) && (
                   <div className="rounded-md border p-3 bg-slate-50">
-                    <p className="text-xs text-muted-foreground mb-1">Extracted Information:</p>
-                    <pre className="text-xs font-mono p-2 bg-white rounded border whitespace-pre-wrap">
-                      {appointment.customFormData.bolData.parsedOcrText}
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Extracted Information:</p>
+                    <pre className="text-xs font-mono p-2 bg-white rounded border whitespace-pre-wrap max-h-32 overflow-y-auto">
+                      {appointment.customFormData.bolData.parsedOcrText || generateBolSummary(appointment)}
                     </pre>
+                    
+                    {/* Detected values tags */}
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {appointment.bolNumber && (
+                        <Badge variant="secondary" className="text-xs">
+                          BOL: {appointment.bolNumber}
+                        </Badge>
+                      )}
+                      {appointment.carrierName && (
+                        <Badge variant="secondary" className="text-xs">
+                          Carrier: {appointment.carrierName}
+                        </Badge>
+                      )}
+                      {appointment.weight && (
+                        <Badge variant="secondary" className="text-xs">
+                          Weight: {appointment.weight}
+                        </Badge>
+                      )}
+                      {appointment.palletCount && (
+                        <Badge variant="secondary" className="text-xs">
+                          Pallets: {appointment.palletCount}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1058,6 +1199,7 @@ export function AppointmentDetailsDialog({
                         scheduleId={appointment.id}
                         onBolProcessed={(data, fileUrl) => {
                           // This will be called after BOL processing is complete
+                          console.log("BOL processed with data:", data);
                           toast({
                             title: "BOL document uploaded",
                             description: "The BOL has been processed and linked to this appointment",
@@ -1070,17 +1212,24 @@ export function AppointmentDetailsDialog({
                           setIsUploadingBol(false);
                         }}
                         onProcessingStateChange={(isProcessing) => {
-                          // Can be used to show loading state if needed
+                          // Show toast for OCR processing start/end if needed
+                          if (isProcessing) {
+                            toast({
+                              title: "Processing BOL Document",
+                              description: "Extracting data from document using OCR...",
+                            });
+                          }
                         }}
                       />
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="w-full text-xs"
-                        onClick={() => setIsUploadingBol(false)}
-                      >
-                        Cancel Upload
-                      </Button>
+                      <div className="flex justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsUploadingBol(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
