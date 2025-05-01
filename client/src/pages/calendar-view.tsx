@@ -179,7 +179,7 @@ export default function CalendarPage() {
       <div className="view-buttons-container mb-6 sticky top-0 z-[1000] bg-white border rounded-lg shadow-sm" style={{
         position: "sticky",
         top: "0",
-        zIndex: "1000",
+        zIndex: "10",
         backgroundColor: "white",
         padding: "1.25rem",
         borderRadius: "0.5rem",
@@ -197,10 +197,10 @@ export default function CalendarPage() {
                 // The FullCalendarView component will handle the timezone change via props
               }}
             >
-              <SelectTrigger id="timezone-select" className="w-full md:w-64">
+              <SelectTrigger id="timezone-select" className="w-full md:w-64 z-10">
                 <SelectValue placeholder="Select timezone" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" side="bottom" className="z-50 w-[300px]" align="start">
                 <SelectItem value={getUserTimeZone()}>
                   Local: {getUserTimeZone()} ({getTimeZoneAbbreviation(getUserTimeZone())})
                 </SelectItem>
@@ -353,10 +353,10 @@ export default function CalendarPage() {
               value={selectedFacilityId} 
               onValueChange={setSelectedFacilityId}
             >
-              <SelectTrigger id="facility-select" className="w-full">
+              <SelectTrigger id="facility-select" className="w-full z-10">
                 <SelectValue placeholder="All Facilities" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" side="bottom" align="start" className="z-50">
                 <SelectItem value="all">All Facilities</SelectItem>
                 {Array.isArray(facilities) && facilities.map((facility: any) => (
                   <SelectItem key={facility.id} value={facility.id.toString()}>
@@ -374,10 +374,10 @@ export default function CalendarPage() {
               value={selectedDockId}
               onValueChange={setSelectedDockId}
             >
-              <SelectTrigger id="dock-select" className="w-full">
+              <SelectTrigger id="dock-select" className="w-full z-10">
                 <SelectValue placeholder="All Docks" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" side="bottom" align="start" className="z-50">
                 <SelectItem value="all">All Docks</SelectItem>
                 {/* We would need to fetch docks based on selected facility */}
                 <SelectItem value="1">Dock #1</SelectItem>
@@ -394,10 +394,10 @@ export default function CalendarPage() {
               value={selectedStatus}
               onValueChange={setSelectedStatus}
             >
-              <SelectTrigger id="status-select" className="w-full">
+              <SelectTrigger id="status-select" className="w-full z-10">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" side="bottom" align="start" className="z-50">
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="scheduled">Scheduled</SelectItem>
                 <SelectItem value="checked-in">Checked In</SelectItem>
@@ -414,10 +414,10 @@ export default function CalendarPage() {
               value={selectedType}
               onValueChange={setSelectedType}
             >
-              <SelectTrigger id="type-select" className="w-full">
+              <SelectTrigger id="type-select" className="w-full z-10">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" side="bottom" align="start" className="z-50">
                 <SelectItem value="all">All Types</SelectItem>
                 {Array.isArray(appointmentTypes) && appointmentTypes.map((type: any) => (
                   <SelectItem key={type.id} value={type.id.toString()}>
