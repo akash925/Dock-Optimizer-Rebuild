@@ -2066,21 +2066,13 @@ export class DatabaseStorage implements IStorage {
       
       // Build query based on whether facility_id exists in the schedules table
       let query = `SELECT s.*, 
-                  COALESCE(f2.name, f.name) AS facility_name,
-                  COALESCE(s.facility_id, d.facility_id) AS facility_id,
+                  f.name AS facility_name,
+                  d.facility_id AS facility_id,
                   at.name AS appointment_type_name 
                   FROM schedules s
-                  LEFT JOIN docks d ON s.dock_id = d.id`;
-      
-      // Join to facilities table based on whether facility_id column exists in schedules
-      if (hasFacilityIdInSchedules) {
-        query += ` LEFT JOIN facilities f ON d.facility_id = f.id
-                   LEFT JOIN facilities f2 ON s.facility_id = f2.id`;
-      } else {
-        query += ` LEFT JOIN facilities f ON d.facility_id = f.id`;
-      }
-      
-      query += ` LEFT JOIN appointment_types at ON s.appointment_type_id = at.id`;
+                  LEFT JOIN docks d ON s.dock_id = d.id
+                  LEFT JOIN facilities f ON d.facility_id = f.id
+                  LEFT JOIN appointment_types at ON s.appointment_type_id = at.id`;
       
       const params: any[] = [];
       
@@ -2178,14 +2170,33 @@ export class DatabaseStorage implements IStorage {
 
   async getSchedulesByDock(dockId: number): Promise<Schedule[]> {
     try {
+      // First, check the schema of the schedules table to see if facility_id exists
+      let schedulesColumns;
+      try {
+        const columnsResult = await pool.query(`
+          SELECT column_name FROM information_schema.columns 
+          WHERE table_name = 'schedules'
+        `);
+        schedulesColumns = columnsResult.rows.map(row => row.column_name);
+      } catch (err) {
+        console.error('Error checking schedules table schema:', err);
+        schedulesColumns = [];
+      }
+      
+      const hasFacilityIdInSchedules = schedulesColumns.includes('facility_id');
+      
       // Use pool to query directly - join with facilities to get facility data
-      const result = await pool.query(`
-        SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id
+      let query = `
+        SELECT s.*, d.name as dock_name, 
+               f.name as facility_name, 
+               d.facility_id as facility_id
         FROM schedules s
         LEFT JOIN docks d ON s.dock_id = d.id
-        LEFT JOIN facilities f ON d.facility_id = f.id
-        WHERE s.dock_id = $1
-      `, [dockId]);
+        LEFT JOIN facilities f ON d.facility_id = f.id`;
+      
+      query += ` WHERE s.dock_id = $1`;
+      
+      const result = await pool.query(query, [dockId]);
       
       // Transform to match our expected Schedule interface
       return result.rows.map((row: any) => {
@@ -2266,19 +2277,12 @@ export class DatabaseStorage implements IStorage {
       // Build query based on whether facility_id exists in the schedules table
       let query = `
         SELECT s.*, d.name as dock_name, 
-               COALESCE(f2.name, f.name) as facility_name, 
-               COALESCE(s.facility_id, f.id) as facility_id, 
+               f.name as facility_name, 
+               d.facility_id as facility_id, 
                at.name as appointment_type_name
         FROM schedules s
-        LEFT JOIN docks d ON s.dock_id = d.id`;
-      
-      // Join to facilities table based on whether facility_id column exists in schedules
-      if (hasFacilityIdInSchedules) {
-        query += ` LEFT JOIN facilities f ON d.facility_id = f.id
-                   LEFT JOIN facilities f2 ON s.facility_id = f2.id`;
-      } else {
-        query += ` LEFT JOIN facilities f ON d.facility_id = f.id`;
-      }
+        LEFT JOIN docks d ON s.dock_id = d.id
+        LEFT JOIN facilities f ON d.facility_id = f.id`;
       
       query += ` LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
         WHERE s.start_time >= $1 AND s.end_time <= $2`;
@@ -2385,14 +2389,17 @@ export class DatabaseStorage implements IStorage {
       
       // Base query with proper tenant isolation join structure
       let sqlQuery = `
-        SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id, 
+        SELECT s.*, d.name as dock_name, 
+               COALESCE(f2.name, f.name) as facility_name, 
+               COALESCE(s.facility_id, f.id) as facility_id,
                at.name as appointment_type_name
         FROM schedules s
         LEFT JOIN docks d ON s.dock_id = d.id`;
         
       // Join to facilities table based on whether facility_id column exists in schedules
       if (hasFacilityIdInSchedules) {
-        sqlQuery += ` LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id`;
+        sqlQuery += ` LEFT JOIN facilities f ON d.facility_id = f.id
+                      LEFT JOIN facilities f2 ON s.facility_id = f2.id`;
       } else {
         sqlQuery += ` LEFT JOIN facilities f ON d.facility_id = f.id`;
       }
