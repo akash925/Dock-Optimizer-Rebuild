@@ -777,7 +777,7 @@ export function AppointmentDetailsDialog({
                     variant="default"
                     size="sm"
                     className="text-xs bg-blue-600 hover:bg-blue-700"
-                    onClick={() => setShowCheckInTimeInput(true)}
+                    onClick={() => setShowCheckInDialog(true)}
                   >
                     <Clock className="h-4 w-4 mr-2" />
                     Check In
@@ -789,7 +789,7 @@ export function AppointmentDetailsDialog({
                     variant="default"
                     size="sm"
                     className="text-xs bg-green-600 hover:bg-green-700"
-                    onClick={() => setShowCheckOutTimeInput(true)}
+                    onClick={() => setShowCheckOutDialog(true)}
                   >
                     <Clock className="h-4 w-4 mr-2" />
                     Check Out
@@ -1603,49 +1603,15 @@ export function AppointmentDetailsDialog({
                     Cancel
                   </Button>
                   
-                  {showCheckOutTimeInput ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="time"
-                        className="w-32 text-xs"
-                        value={formatTimeForInput(checkOutTime)}
-                        onChange={(e) => {
-                          const [hours, minutes] = e.target.value.split(':').map(Number);
-                          const newTime = new Date();
-                          newTime.setHours(hours, minutes, 0, 0);
-                          setCheckOutTime(newTime);
-                        }}
-                      />
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => setShowCheckOutTimeInput(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        variant="default"
-                        size="sm"
-                        className="text-xs bg-green-600 hover:bg-green-700"
-                        onClick={() => checkOutAppointmentMutation.mutate()}
-                        disabled={checkOutAppointmentMutation.isPending}
-                      >
-                        {checkOutAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                        Confirm
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="text-xs bg-green-600 hover:bg-green-700"
-                      onClick={() => setShowCheckOutTimeInput(true)}
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      Check Out
-                    </Button>
-                  )}
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="text-xs bg-green-600 hover:bg-green-700"
+                    onClick={() => setShowCheckOutDialog(true)}
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Check Out
+                  </Button>
                 </>
               )}
             </div>
