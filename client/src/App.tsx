@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
@@ -71,7 +71,8 @@ const protectedRoutes: RouteConfig[] = [
   { path: "/schedules", component: Schedules, module: "appointments" },
   { path: "/schedules/:id", component: Schedules, module: "appointments" },
   { path: "/appointments", component: Appointments, module: "appointments" },
-  { path: "/calendar", component: CalendarView, module: "calendar" },
+  // Calendar view now redirects to schedules
+  { path: "/calendar", component: () => <Redirect to="/schedules" />, module: "calendar" },
   { path: "/facility-master", component: FacilityMaster, roles: ["admin", "manager"], module: "facilityManagement" },
   { path: "/facilities", component: Facilities, roles: ["admin", "manager"], module: "facilityManagement" },
   { path: "/facility-settings/:id", component: FacilitySettings, roles: ["admin", "manager"], module: "facilityManagement" },
@@ -189,15 +190,7 @@ function AppRouter() {
         <Route key={route.path} path={route.path} component={route.component} />
       ))}
       
-      {/* Calendar redirect - send /calendar to /schedules */}
-      <Route path="/calendar">
-        {() => {
-          // Redirect from /calendar to /schedules
-          window.location.href = '/schedules';
-          return null;
-        }}
-      </Route>
-      
+
       {/* Protected routes filtered by module availability */}
       {filteredProtectedRoutes.map(route => (
         <ProtectedRoute 
