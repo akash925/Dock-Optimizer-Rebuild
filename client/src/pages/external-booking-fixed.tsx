@@ -1329,7 +1329,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
           <div className="sm:col-span-2">
             <FormField
               control={form.control}
-              name="carrierId"
+              name="carrierName"
               render={({ field }) => (
                 <FormItem className="booking-form-field">
                   <FormLabel className="booking-label">Carrier *</FormLabel>
@@ -1401,6 +1401,32 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
             />
           </div>
           
+          {/* MC Number Field */}
+          <FormField
+            control={form.control}
+            name="mcNumber"
+            render={({ field }) => (
+              <FormItem className="booking-form-field">
+                <FormLabel className="booking-label">MC Number *</FormLabel>
+                <FormControl>
+                  <Input
+                    id="mcNumber"
+                    className="booking-input"
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      updateBookingData({ mcNumber: e.target.value });
+                    }}
+                  />
+                </FormControl>
+                <FormDescription className="text-xs">
+                  MC Numbers are required for all shipments as of August 1st, 2023.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
