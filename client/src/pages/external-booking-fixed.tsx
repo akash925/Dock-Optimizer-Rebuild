@@ -252,6 +252,37 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
   const totalSteps = 3; // We have 3 steps (confirmation is not counted in progress)
   const progressPercentage = Math.min(((currentStep - 1) / totalSteps) * 100, 100);
   
+  // Get facility and appointment type information if available
+  const selectedFacilityId = bookingData.facilityId;
+  const selectedTypeId = bookingData.appointmentTypeId;
+  
+  // Find facility and appointment type names
+  const facilityName = useMemo(() => {
+    if (!selectedFacilityId) return '';
+    const facility = bookingPage?.facilities && Array.isArray(bookingPage.facilities) 
+      ? bookingPage.facilities.find((f: any) => f.id === selectedFacilityId)
+      : null;
+    
+    if (facility) return facility.name || '';
+    
+    // Alternative lookup from appointment data
+    const facilityFromAppointmentData = bookingData.facilityName || '';
+    return facilityFromAppointmentData;
+  }, [selectedFacilityId, bookingPage, bookingData]);
+  
+  const appointmentTypeName = useMemo(() => {
+    if (!selectedTypeId) return '';
+    const appointmentType = bookingData.appointmentTypes 
+      ? bookingData.appointmentTypes.find((t: any) => t.id === selectedTypeId)
+      : null;
+      
+    if (appointmentType) return appointmentType.name || '';
+    
+    // Alternative lookup from appointment data
+    const typeFromAppointmentData = bookingData.appointmentTypeName || '';
+    return typeFromAppointmentData;
+  }, [selectedTypeId, bookingData]);
+
   return (
     <div className="booking-wizard-container">
       <div className="booking-wizard-header">
@@ -264,6 +295,28 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
         <p className="booking-wizard-subtitle">
           Please use this form to pick the type of Dock Appointment that you need at Hanzo Logistics.
         </p>
+        
+        {/* Add prominent facility and appointment type banner */}
+        {(facilityName || appointmentTypeName || bookingData.appointmentTime) && (
+          <div className="booking-info-banner">
+            {facilityName && (
+              <div className="booking-info-item">
+                <strong>Facility:</strong> {facilityName}
+              </div>
+            )}
+            {appointmentTypeName && (
+              <div className="booking-info-item">
+                <strong>Appointment Type:</strong> {appointmentTypeName}
+              </div>
+            )}
+            {bookingData.appointmentTime && (
+              <div className="booking-info-item">
+                <strong>Time:</strong> {bookingData.appointmentTime} 
+                {bookingData.facilityTimezone && ` (${bookingData.facilityTimezone})`}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Step indicator/progress bar - only show for steps 1-3 */}

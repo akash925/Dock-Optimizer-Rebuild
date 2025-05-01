@@ -225,27 +225,36 @@ export function useAppointmentAvailability({
             // Check buffer zones regardless of direct overlap when buffer time is set
             if (bufferTime > 0) {
               // Calculate buffer windows around existing appointments
-              const bufferBefore = new Date(appStart);
-              bufferBefore.setMinutes(bufferBefore.getMinutes() - bufferTime);
+              const bufferBeforeStart = new Date(appStart);
+              bufferBeforeStart.setMinutes(bufferBeforeStart.getMinutes() - bufferTime);
               
-              const bufferAfter = new Date(appEnd);
-              bufferAfter.setMinutes(bufferAfter.getMinutes() + bufferTime);
+              const bufferAfterEnd = new Date(appEnd);
+              bufferAfterEnd.setMinutes(bufferAfterEnd.getMinutes() + bufferTime);
               
-              // Check if our appointment overlaps with the buffer zones
-              // The correct logic is to check if our appointment starts before the buffered end time
-              // and ends after the buffered start time
-              const overlapsBufferZone = (
-                (currentTime <= bufferAfter) && (appointmentEnd >= bufferBefore)
+              // Check if our new appointment time overlaps with the buffer zones
+              // For buffer time to work properly, we need to check if the new appointment
+              // starts during or after the buffer before the booked appointment,
+              // AND ends during or before the buffer after the booked appointment
+              const withinBufferZone = (
+                // New appointment start time is within the buffer zone
+                (currentTime >= bufferBeforeStart && currentTime <= bufferAfterEnd) ||
+                // New appointment end time is within the buffer zone
+                (appointmentEnd >= bufferBeforeStart && appointmentEnd <= bufferAfterEnd) ||
+                // New appointment completely encompasses the booked appointment and buffer zones
+                (currentTime <= bufferBeforeStart && appointmentEnd >= bufferAfterEnd)
               );
               
-              // Log for debugging
-              console.log(`[Buffer Check] Appointment time: ${currentTime.toTimeString()} - ${appointmentEnd.toTimeString()}`);
-              console.log(`[Buffer Check] Booked time: ${appStart.toTimeString()} - ${appEnd.toTimeString()}`);
-              console.log(`[Buffer Check] Buffer zone: ${bufferBefore.toTimeString()} - ${bufferAfter.toTimeString()}`);
-              console.log(`[Buffer Check] Overlaps: ${overlapsBufferZone}`);
+              // Log for debugging (only in development)
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[Buffer Check] New appointment: ${currentTime.toTimeString()} - ${appointmentEnd.toTimeString()}`);
+                console.log(`[Buffer Check] Booked appointment: ${appStart.toTimeString()} - ${appEnd.toTimeString()}`);
+                console.log(`[Buffer Check] Buffer zone: ${bufferBeforeStart.toTimeString()} - ${bufferAfterEnd.toTimeString()}`);
+                console.log(`[Buffer Check] Within buffer zone: ${withinBufferZone}, Buffer time: ${bufferTime} minutes`);
+              }
               
-              if (overlapsBufferZone) {
-                return true; // Overlap with buffer zone
+              if (withinBufferZone) {
+                // This time slot overlaps with the buffer zone of an existing appointment
+                return true;
               }
             }
             
