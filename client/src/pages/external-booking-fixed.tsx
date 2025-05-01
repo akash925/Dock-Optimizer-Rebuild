@@ -143,7 +143,8 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
       );
       
       // Special validation for carrier: need either carrierId or carrierName
-      const hasCarrierInfo = bookingData.carrierId || bookingData.carrierName;
+      // Only validate if the data isn't already provided (avoid duplicated prompts)
+      const hasCarrierInfo = bookingData.carrierId || bookingData.carrierName.trim();
       if (!hasCarrierInfo) {
         missingFields.push({ field: 'carrierName', label: 'Carrier Name' });
       }
