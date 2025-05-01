@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
 import { Loader2, Clock as ClockIcon, CheckCircle } from 'lucide-react';
-import { format, addHours, isValid, parseISO } from 'date-fns';
+import { format, addHours, isValid, parseISO, parse } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { getUserTimeZone, formatTimeRangeForDualZones, formatDateRangeInTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -670,19 +670,66 @@ interface AvailabilitySlot {
 function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   const { bookingData, updateBookingData, setCurrentStep } = useBookingWizard();
   
+  // Try to parse BOL date if available
+  const getBolDate = () => {
+    if (bookingData.bolExtractedData?.scheduledDate || bookingData.bolExtractedData?.shipDate) {
+      // First try to use scheduledDate, then fall back to shipDate
+      const dateStr = bookingData.bolExtractedData.scheduledDate || bookingData.bolExtractedData.shipDate;
+      console.log('Found BOL date:', dateStr);
+      
+      try {
+        // Try different date formats, common in shipping docs
+        const formats = [
+          'MM/dd/yyyy', 'M/d/yyyy', 'MM/dd/yy', 'M/d/yy', // US format with slashes
+          'dd/MM/yyyy', 'd/M/yyyy', 'dd/MM/yy', 'd/M/yy', // European format with slashes
+          'yyyy-MM-dd', 'yyyy-M-d', // ISO format
+          'MMMM d, yyyy', 'MMM d, yyyy', // Full month format
+          'MMMM d yyyy', 'MMM d yyyy' // Month format without comma
+        ];
+        
+        // Try each format until one works
+        for (const format of formats) {
+          try {
+            const parsedDate = parse(dateStr, format, new Date());
+            if (isValid(parsedDate) && parsedDate > new Date()) {
+              console.log('Successfully parsed BOL date as:', parsedDate);
+              return parsedDate;
+            }
+          } catch (err) {
+            // Just try the next format
+          }
+        }
+        
+        // If all formats fail, check for Unix timestamp (seconds)
+        const numericDate = parseInt(dateStr);
+        if (!isNaN(numericDate)) {
+          const date = new Date(numericDate * 1000); // Convert seconds to milliseconds
+          if (isValid(date) && date > new Date()) {
+            return date;
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing BOL date:', error);
+      }
+    }
+    return undefined;
+  };
+  
+  // Get a date from BOL if available, otherwise use existing or undefined
+  const bolDate = getBolDate();
+  const initialDate = bolDate || (bookingData.startTime ? new Date(bookingData.startTime) : undefined);
+  
   // Set up react-hook-form
   const form = useForm<DateTimeFormValues>({
     resolver: zodResolver(dateTimeSelectionSchema),
     defaultValues: {
-      selectedDate: bookingData.startTime ? new Date(bookingData.startTime) : undefined,
+      selectedDate: initialDate,
       selectedTime: ""
     }
   });
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    bookingData.startTime ? new Date(bookingData.startTime) : undefined
-  );
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [organizationHolidays, setOrganizationHolidays] = useState<string[]>([]);

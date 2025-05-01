@@ -19,6 +19,8 @@ export interface ParsedBolData {
   truckId?: string;
   trailerNumber?: string;
   pickupOrDropoff?: 'pickup' | 'dropoff';
+  shipDate?: string; // Date in the BOL, can be used to pre-populate date selection
+  scheduledDate?: string; // Another date format sometimes found in BOLs
   parsedOcrText?: string; // Full extracted text for debugging/reference
   extractionConfidence?: number; // Confidence level of the extraction (0-100)
   fileName?: string; // Original filename
@@ -253,6 +255,44 @@ function extractStructuredData(textContent: string, parsedData: ParsedBolData): 
       parsedData.toAddress = match[1].trim().replace(/\n+/g, ', ');
       break;
     }
+  }
+  
+  // Extract dates - common date formats in BOL documents
+  // Extract ship date
+  const shipDatePatterns = [
+    /(?:ship\s*date|ship\s*on|shipping\s*date|date\s*shipped)[^\d\n]*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i,
+    /(?:ship\s*date|ship\s*on|shipping\s*date|date\s*shipped)[^\d\n]*(\w+\s+\d{1,2},?\s+\d{4})/i,
+    /(?:date)[^\d\n]*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i,
+    /(?:date)[^\d\n]*(\w+\s+\d{1,2},?\s+\d{4})/i
+  ];
+  
+  for (const pattern of shipDatePatterns) {
+    const match = textContent.match(pattern);
+    if (match && match[1]) {
+      parsedData.shipDate = match[1].trim();
+      break;
+    }
+  }
+  
+  // Extract scheduled date - may be different from ship date
+  const scheduledDatePatterns = [
+    /(?:scheduled|appointment|delivery|arrival)\s*date[^\d\n]*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i,
+    /(?:scheduled|appointment|delivery|arrival)\s*date[^\d\n]*(\w+\s+\d{1,2},?\s+\d{4})/i,
+    /(?:deliver\s*by|arrive\s*by)[^\d\n]*(\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4})/i,
+    /(?:deliver\s*by|arrive\s*by)[^\d\n]*(\w+\s+\d{1,2},?\s+\d{4})/i
+  ];
+  
+  for (const pattern of scheduledDatePatterns) {
+    const match = textContent.match(pattern);
+    if (match && match[1]) {
+      parsedData.scheduledDate = match[1].trim();
+      break;
+    }
+  }
+  
+  // If no scheduled date but we have a ship date, use that
+  if (!parsedData.scheduledDate && parsedData.shipDate) {
+    parsedData.scheduledDate = parsedData.shipDate;
   }
   
   // Extract truck ID or trailer number
