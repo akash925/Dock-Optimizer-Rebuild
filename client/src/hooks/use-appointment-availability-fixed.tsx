@@ -284,6 +284,46 @@ export function useAppointmentAvailability({
     }
   }, [duration, mode]);
 
+  // Function to check if a date is a holiday
+  const checkIsHoliday = useCallback(async (dateStr: string): Promise<boolean> => {
+    if (!facilityId) return false;
+    
+    try {
+      // First, get the organization ID for this facility
+      const orgResponse = await apiRequest('GET', `/api/facilities/${facilityId}/organization`);
+      
+      if (!orgResponse.ok) {
+        console.warn(`Failed to fetch organization for facility ${facilityId}`);
+        return false;
+      }
+      
+      const { organizationId } = await orgResponse.json();
+      
+      if (!organizationId) {
+        console.warn(`No organization found for facility ${facilityId}`);
+        return false;
+      }
+      
+      // Check if date is a holiday for this organization
+      const holidaysResponse = await apiRequest('GET', `/api/organizations/${organizationId}/holidays`);
+      
+      if (!holidaysResponse.ok) {
+        console.warn(`Failed to fetch holidays for organization ${organizationId}`);
+        return false;
+      }
+      
+      const holidays = await holidaysResponse.json();
+      
+      // Check if this date matches any enabled holiday
+      return holidays.some((holiday: any) => 
+        holiday.enabled && holiday.date === dateStr
+      );
+    } catch (error) {
+      console.error("Error checking if date is a holiday:", error);
+      return false;
+    }
+  }, [facilityId]);
+  
   // Main function to fetch availability for a specific date
   const fetchAvailabilityForDate = useCallback(async (dateStr: string) => {
     if (!facilityId) return;
@@ -293,6 +333,31 @@ export function useAppointmentAvailability({
     setSelectedDate(dateStr);
     
     try {
+      // First check if the selected date is a holiday
+      const isHoliday = await checkIsHoliday(dateStr);
+      
+      if (isHoliday) {
+        // If it's a holiday, return empty slots
+        setAvailabilityRules([]);
+        setBookedAppointments([]);
+        setAvailableTimeSlots([{
+          time: '00:00',
+          available: false,
+          reason: 'Organization Holiday',
+        }]);
+        
+        // Call callback if provided
+        if (onTimeSlotGenerated) {
+          onTimeSlotGenerated([{
+            time: '00:00',
+            available: false,
+            reason: 'Organization Holiday',
+          }], null);
+        }
+        
+        return;
+      }
+      
       // Fetch both rules and booked appointments in parallel
       const [rules, booked] = await Promise.all([
         fetchAvailabilityRules(),
@@ -320,7 +385,7 @@ export function useAppointmentAvailability({
     } finally {
       setIsLoading(false);
     }
-  }, [facilityId, fetchAvailabilityRules, fetchBookedAppointments, generateTimeSlots, onTimeSlotGenerated]);
+  }, [facilityId, fetchAvailabilityRules, fetchBookedAppointments, generateTimeSlots, onTimeSlotGenerated, checkIsHoliday]);
 
   // Initial fetch on mount if date is provided
   useEffect(() => {
