@@ -289,8 +289,22 @@ export default function FullCalendarView({
       // Convert the time from 2:00 PM to 10:00 AM
       const originalHour = startTimeUTC.getHours();
       if (originalHour === 14) { // If it's 2:00 PM
-        startTimeUTC.setHours(10); // Set to 10:00 AM
-        endTimeUTC.setHours(endTimeUTC.getHours() - 4); // Also adjust end time
+        // Create new Date objects instead of modifying the existing ones
+        const correctedStartTime = new Date(startTimeUTC);
+        correctedStartTime.setHours(10); // Set to 10:00 AM
+        
+        const correctedEndTime = new Date(endTimeUTC);
+        correctedEndTime.setHours(endTimeUTC.getHours() - 4); // Also adjust end time
+        
+        // Update the time variables
+        startTimeUTC = correctedStartTime;
+        endTimeUTC = correctedEndTime;
+        
+        // Log the correction for debugging
+        console.log('Hartford Pru time corrected:', {
+          original: { start: schedule.startTime, end: schedule.endTime },
+          corrected: { start: startTimeUTC.toISOString(), end: endTimeUTC.toISOString() }
+        });
       }
     }
     
