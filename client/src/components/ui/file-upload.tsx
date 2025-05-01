@@ -173,9 +173,9 @@ export function FileUpload({
         </Alert>
       )}
       
-      <div className="text-xs text-muted-foreground">
+      <div className="text-xs text-muted-foreground break-words">
         {maxSizeMB && `Maximum file size: ${maxSizeMB}MB. `}
-        {acceptedFileTypes && `Accepted file types: ${acceptedFileTypes.replace(/\./g, '')}`}
+        {acceptedFileTypes && `Accepted file types: ${acceptedFileTypes.split(',').map(t => t.replace(/\./g, '').trim()).join(', ')}`}
       </div>
     </div>
   );

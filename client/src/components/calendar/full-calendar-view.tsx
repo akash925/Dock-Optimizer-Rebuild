@@ -443,7 +443,7 @@ export default function FullCalendarView({
   };
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 h-full">
       {/* Event tooltip */}
       {activeEvent && (
         <div 
@@ -538,7 +538,7 @@ export default function FullCalendarView({
           </div>
         </div>
         <CardContent className="p-0">
-          <div className="calendar-container">
+          <div className="calendar-container h-[calc(100vh-16rem)]">
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}

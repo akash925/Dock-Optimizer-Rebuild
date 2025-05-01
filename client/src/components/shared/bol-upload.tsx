@@ -208,7 +208,7 @@ export default function BolUpload({
       
       <FileUpload
         onFileChange={handleFileChange}
-        acceptedFileTypes=".pdf,.jpg,.jpeg,.png,.tiff,.doc,.docx,application/pdf,image/*,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        acceptedFileTypes=".pdf,.jpg,.jpeg,.png,.tiff,.doc,.docx,application/pdf,image/*,application/msword"
         maxSizeMB={10}
         buttonText={isProcessing ? "Processing..." : "Upload BOL Document"}
         buttonIcon={isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
