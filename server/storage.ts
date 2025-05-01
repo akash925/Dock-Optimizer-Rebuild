@@ -1969,12 +1969,16 @@ export class DatabaseStorage implements IStorage {
   async getSchedule(id: number): Promise<Schedule | undefined> {
     try {
       // Use pool's query directly, joining with related tables to get facility info
+      // Direct join with facilities using s.facility_id if it exists
       const result = await pool.query(`
-        SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id,
+        SELECT s.*, d.name as dock_name, 
+               COALESCE(f2.name, f.name) as facility_name, 
+               COALESCE(s.facility_id, f.id) as facility_id,
                at.name as appointment_type_name
         FROM schedules s
         LEFT JOIN docks d ON s.dock_id = d.id
         LEFT JOIN facilities f ON d.facility_id = f.id
+        LEFT JOIN facilities f2 ON s.facility_id = f2.id
         LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
         WHERE s.id = $1 LIMIT 1
       `, [id]);
@@ -2061,13 +2065,17 @@ export class DatabaseStorage implements IStorage {
       console.log(`[getSchedules] Schedules table ${hasFacilityIdInSchedules ? 'has' : 'does not have'} facility_id column`);
       
       // Build query based on whether facility_id exists in the schedules table
-      let query = `SELECT s.*, f.name AS facility_name, at.name AS appointment_type_name 
+      let query = `SELECT s.*, 
+                  COALESCE(f2.name, f.name) AS facility_name,
+                  COALESCE(s.facility_id, d.facility_id) AS facility_id,
+                  at.name AS appointment_type_name 
                   FROM schedules s
                   LEFT JOIN docks d ON s.dock_id = d.id`;
       
       // Join to facilities table based on whether facility_id column exists in schedules
       if (hasFacilityIdInSchedules) {
-        query += ` LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id`;
+        query += ` LEFT JOIN facilities f ON d.facility_id = f.id
+                   LEFT JOIN facilities f2 ON s.facility_id = f2.id`;
       } else {
         query += ` LEFT JOIN facilities f ON d.facility_id = f.id`;
       }
@@ -2257,14 +2265,17 @@ export class DatabaseStorage implements IStorage {
       
       // Build query based on whether facility_id exists in the schedules table
       let query = `
-        SELECT s.*, d.name as dock_name, f.name as facility_name, f.id as facility_id, 
+        SELECT s.*, d.name as dock_name, 
+               COALESCE(f2.name, f.name) as facility_name, 
+               COALESCE(s.facility_id, f.id) as facility_id, 
                at.name as appointment_type_name
         FROM schedules s
         LEFT JOIN docks d ON s.dock_id = d.id`;
       
       // Join to facilities table based on whether facility_id column exists in schedules
       if (hasFacilityIdInSchedules) {
-        query += ` LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id`;
+        query += ` LEFT JOIN facilities f ON d.facility_id = f.id
+                   LEFT JOIN facilities f2 ON s.facility_id = f2.id`;
       } else {
         query += ` LEFT JOIN facilities f ON d.facility_id = f.id`;
       }
