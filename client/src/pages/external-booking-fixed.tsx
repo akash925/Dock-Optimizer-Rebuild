@@ -1208,21 +1208,47 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
   const form = useForm<CustomerInfoFormValues>({
     resolver: zodResolver(customerInfoSchema),
     defaultValues: {
-      companyName: bookingData.companyName || '',
+      companyName: bookingData.companyName || bookingData.bolExtractedData?.customerName || '',
       contactName: bookingData.contactName || '',
       email: bookingData.email || '',
       phone: bookingData.phone || '',
-      customerRef: bookingData.customerRef || '',
+      customerRef: bookingData.customerRef || bookingData.bolExtractedData?.bolNumber || '',
       carrierId: bookingData.carrierId || undefined,
-      carrierName: bookingData.carrierName || '',
-      driverName: bookingData.driverName || '',
-      driverPhone: bookingData.driverPhone || '',
-      mcNumber: bookingData.bolExtractedData?.mcNumber || '',
+      carrierName: bookingData.carrierName || bookingData.bolExtractedData?.carrierName || '',
+      driverName: bookingData.driverName || bookingData.bolExtractedData?.driverName || '',
+      driverPhone: bookingData.driverPhone || bookingData.bolExtractedData?.driverPhone || '',
+      mcNumber: bookingData.mcNumber || bookingData.bolExtractedData?.mcNumber || '',
       truckNumber: bookingData.truckNumber || '',
       trailerNumber: bookingData.trailerNumber || '',
-      notes: bookingData.notes || ''
+      notes: bookingData.notes || bookingData.bolExtractedData?.notes || ''
     }
   });
+  
+  // Populate form after mount - this ensures the form is updated if BOL data changes
+  useEffect(() => {
+    console.log("Step 3: BOL extracted data available:", bookingData.bolExtractedData);
+    
+    // Only update fields that are empty
+    if (bookingData.bolExtractedData) {
+      const { bolExtractedData } = bookingData;
+      
+      if (bolExtractedData.customerName && !form.getValues('companyName')) {
+        form.setValue('companyName', bolExtractedData.customerName);
+      }
+      
+      if (bolExtractedData.carrierName && !form.getValues('carrierName')) {
+        form.setValue('carrierName', bolExtractedData.carrierName);
+      }
+      
+      if (bolExtractedData.mcNumber && !form.getValues('mcNumber')) {
+        form.setValue('mcNumber', bolExtractedData.mcNumber);
+      }
+      
+      if (bolExtractedData.bolNumber && !form.getValues('customerRef')) {
+        form.setValue('customerRef', bolExtractedData.bolNumber);
+      }
+    }
+  }, [bookingData.bolExtractedData, form]);
   
   // Get the custom questions if any
   const { data: customQuestions } = useQuery({

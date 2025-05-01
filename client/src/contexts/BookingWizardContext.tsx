@@ -128,6 +128,21 @@ export function BookingWizardProvider({ children }: { children: ReactNode }) {
   
   // Update booking data
   const updateBookingData = (data: Partial<BookingFormData>) => {
+    // Special handling for BOL-extracted carrier data 
+    // to avoid setting multiple times and causing duplicate carrier fields
+    if (data.bolExtractedData) {
+      console.log("Updating BOL data in context:", data.bolExtractedData);
+      
+      // Update directly relevant fields if they're empty and BOL has them
+      if (data.bolExtractedData.carrierName && !data.carrierName) {
+        data.carrierName = data.bolExtractedData.carrierName;
+      }
+      
+      if (data.bolExtractedData.mcNumber && !data.mcNumber) {
+        data.mcNumber = data.bolExtractedData.mcNumber;
+      }
+    }
+    
     setBookingData(prevData => ({
       ...prevData,
       ...data
