@@ -14,27 +14,6 @@ import { Loader2, Clock as ClockIcon } from 'lucide-react';
 import { format, addHours, isValid, parseISO } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { getUserTimeZone, formatTimeRangeForDualZones, formatDateRangeInTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
-
-// Create a custom implementation for zonedTimeToUtc since the import isn't working
-const zonedTimeToUtc = (dateString: string, timeZone: string): Date => {
-  // Create a date object using the provided date string
-  const date = new Date(dateString);
-  
-  // Get the target timezone offset in minutes
-  const targetTzDate = new Date(date.toLocaleString('en-US', { timeZone }));
-  const targetOffset = targetTzDate.getTimezoneOffset();
-  
-  // Get the local timezone offset in minutes
-  const localOffset = date.getTimezoneOffset();
-  
-  // Calculate the difference between the two timezones in minutes
-  const offsetDiff = localOffset - targetOffset;
-  
-  // Adjust the date by adding the offset difference in minutes
-  const utcDate = new Date(date.getTime() - offsetDiff * 60 * 1000);
-  
-  return utcDate;
-};
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import BolUpload from '@/components/shared/bol-upload';
 import { ParsedBolData } from '@/lib/ocr-service';
@@ -880,16 +859,33 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
     const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
     const zonedDateTime = `${dateString}T${timeString}`;
     
-    // Use date-fns-tz to create a date that's properly zoned to the facility timezone
-    const startDate = zonedTimeToUtc(zonedDateTime, facilityTimezone);
+    // Create a simpler approach to handle timezones
+    // First, create a Date object from the date and time strings
+    const localDate = new Date(`${dateString}T${timeString}`);
     
-    // Calculate the end time based on appointment duration, properly zoned
+    // Get the timezone offset between the browser timezone and UTC
+    const browserOffsetMinutes = localDate.getTimezoneOffset();
+    
+    // Create a date object in the browser's locale to get info
+    const targetTzDate = new Date(localDate.toLocaleString('en-US', { timeZone: facilityTimezone }));
+    
+    // Calculate the offset between the facility timezone and the browser timezone
+    const facilityOffsetHours = (targetTzDate.getHours() - localDate.getHours()) + 
+                               (targetTzDate.getMinutes() - localDate.getMinutes()) / 60;
+    
+    // Adjust the start time by the difference in timezone offsets
+    const startDate = new Date(localDate.getTime() - (facilityOffsetHours * 60 * 60 * 1000));
+    
+    // Calculate the end time based on appointment duration
     const endDate = addHours(startDate, selectedAppointmentType.duration / 60);
     
     console.log('Original selected time:', values.selectedTime);
     console.log('Facility timezone:', facilityTimezone);
-    console.log('Zoned start date (UTC):', startDate.toISOString());
-    console.log('Zoned end date (UTC):', endDate.toISOString());
+    console.log('Browser timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+    console.log('Browser offset (minutes):', browserOffsetMinutes);
+    console.log('Facility offset (hours):', facilityOffsetHours);
+    console.log('Adjusted start date (UTC):', startDate.toISOString());
+    console.log('Adjusted end date (UTC):', endDate.toISOString());
     
     // Update the booking data
     updateBookingData({
