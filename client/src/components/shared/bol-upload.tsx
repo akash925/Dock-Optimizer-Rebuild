@@ -114,7 +114,9 @@ export default function BolUpload({
               filename: responseData.filename,
               metadata: {
                 ...parsedData,
-                parsedOcrText: previewLines.join('\n')
+                parsedOcrText: previewLines.join('\n'),
+                uploadTimestamp: new Date().toISOString(), // Add timestamp for tracking
+                associationType: 'direct_upload' // Track how the BOL was associated
               }
             })
           });
@@ -123,6 +125,12 @@ export default function BolUpload({
             console.warn('Failed to associate BOL file with schedule:', await associateResponse.text());
           } else {
             console.log('BOL file successfully associated with schedule');
+            // Get the updated schedule data after BOL association
+            const updatedScheduleResponse = await fetch(`/api/schedules/${scheduleId}`);
+            if (updatedScheduleResponse.ok) {
+              const updatedSchedule = await updatedScheduleResponse.json();
+              console.log('Updated schedule with BOL data:', updatedSchedule);
+            }
           }
         } catch (associateError) {
           console.error('Error associating BOL file with schedule:', associateError);
@@ -148,8 +156,13 @@ export default function BolUpload({
           Upload Bill of Lading (Optional)
         </FormLabel>
         <p className="text-sm text-muted-foreground mt-1">
-          We'll extract information from your BOL document to prefill the form
+          We'll extract BOL information to prefill the form and associate it with the appointment
         </p>
+        {scheduleId && (
+          <p className="text-xs text-primary mt-1">
+            The BOL will be automatically linked to appointment #{scheduleId}
+          </p>
+        )}
       </div>
       
       <FileUpload

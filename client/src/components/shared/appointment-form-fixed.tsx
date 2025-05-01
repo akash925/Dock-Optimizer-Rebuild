@@ -363,6 +363,7 @@ export default function AppointmentForm({
         driverName: data.driverName,
         driverPhone: data.driverPhone,
         driverEmail: data.driverEmail || "", // Add driver email for notifications
+        contactEmail: data.contactEmail || "", // Additional email for notifications
         bolNumber: data.bolNumber || "",
         poNumber: data.poNumber || "",
         palletCount: data.palletCount ? parseInt(data.palletCount) : 0,
@@ -416,6 +417,8 @@ export default function AppointmentForm({
         trailerNumber: "",
         driverName: "",
         driverPhone: "",
+        driverEmail: "",
+        contactEmail: "",
         type: "inbound",
         appointmentMode: "trailer",
         appointmentDate: format(new Date(), "yyyy-MM-dd"),
@@ -1108,6 +1111,42 @@ export default function AppointmentForm({
                       <FormControl>
                         <Input placeholder="Enter phone number" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="driverEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Driver Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="Enter driver email" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormDescription>
+                        Email for driver notifications
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="contactEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contact Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="Enter contact email for notifications" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormDescription>
+                        Additional email for appointment confirmations and updates
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
