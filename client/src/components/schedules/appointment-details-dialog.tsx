@@ -640,24 +640,55 @@ export function AppointmentDetailsDialog({
 
           {/* Schedule Times */}
           <div className="border-t border-b py-4">
-            <h3 className="text-sm font-medium mb-3">
-              Schedule Times
-              {appointment.status === "scheduled" && 
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded ml-2">Scheduled</span>
-              }
-              {appointment.status === "pending" && 
-                <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded ml-2">Pending</span>
-              }
-              {appointment.status === "in-progress" && 
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded ml-2">Checked In</span>
-              }
-              {appointment.status === "completed" && 
-                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded ml-2">Completed</span>
-              }
-              {appointment.status === "cancelled" && 
-                <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded ml-2">Cancelled</span>
-              }
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-medium inline-block">
+                  Schedule Times
+                  {appointment.status === "scheduled" && 
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded ml-2">Scheduled</span>
+                  }
+                  {appointment.status === "pending" && 
+                    <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded ml-2">Pending</span>
+                  }
+                  {appointment.status === "in-progress" && 
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded ml-2">Checked In</span>
+                  }
+                  {appointment.status === "completed" && 
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded ml-2">Completed</span>
+                  }
+                  {appointment.status === "cancelled" && 
+                    <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded ml-2">Cancelled</span>
+                  }
+                </h3>
+              </div>
+              
+              {/* Quick Access Buttons for Check-in/Check-out */}
+              <div>
+                {appointment.status === "scheduled" && (
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="text-xs bg-blue-600 hover:bg-blue-700"
+                    onClick={() => setShowCheckInTimeInput(true)}
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Check In
+                  </Button>
+                )}
+                
+                {appointment.status === "in-progress" && (
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="text-xs bg-green-600 hover:bg-green-700"
+                    onClick={() => setShowCheckOutTimeInput(true)}
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Check Out
+                  </Button>
+                )}
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
