@@ -1408,6 +1408,44 @@ export function AppointmentDetailsDialog({
             )}
           </div>
           
+          {/* Release Photos Section - Only shown for completed appointments */}
+          {appointment.status === "completed" && (
+            <div className="border-t py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium mb-3 flex items-center">
+                  <ImageIcon className="h-4 w-4 mr-2 text-primary" />
+                  Release Photos
+                </h3>
+              </div>
+              
+              {appointment.customFormData?.releasePhoto ? (
+                <div className="space-y-3">
+                  <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
+                    <div className="mb-2">
+                      <p className="text-xs text-muted-foreground">
+                        Photo taken at: {appointment.actualEndTime 
+                          ? new Date(appointment.actualEndTime).toLocaleString() 
+                          : "Unknown time"}
+                      </p>
+                    </div>
+                    <div className="border rounded-lg overflow-hidden bg-white">
+                      <img 
+                        src={appointment.customFormData.releasePhoto.fileUrl || `/uploads/${appointment.customFormData.releasePhoto.filename}`} 
+                        alt="Release confirmation" 
+                        className="w-full h-auto max-h-64 object-contain"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center p-6 border border-dashed rounded-md bg-slate-50">
+                  <ImageIcon className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
+                  <p className="text-sm text-muted-foreground">No release photos available</p>
+                </div>
+              )}
+            </div>
+          )}
+          
           {/* History Button */}
           <div className="border-t py-4">
             <Button 
