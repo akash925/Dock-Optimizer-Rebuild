@@ -54,8 +54,18 @@ if (process.env.SENDGRID_API_KEY) {
   const fromEmail = process.env.SENDGRID_FROM_EMAIL;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   
-  if (!fromEmail || !emailRegex.test(fromEmail) || fromEmail.startsWith('SG.')) {
-    console.warn('WARNING: Invalid SENDGRID_FROM_EMAIL detected. Please set a valid email address like "notifications@example.com"');
+  // Check for common errors in SENDGRID_FROM_EMAIL
+  if (!fromEmail) {
+    console.warn('WARNING: SENDGRID_FROM_EMAIL not set. Please set a valid email address in environment variables.');
+    console.warn('Emails will use the fallback address: notifications@dockoptimizer.com');
+  } else if (fromEmail.startsWith('SG.')) {
+    console.error('ERROR: SENDGRID_FROM_EMAIL appears to be an API key, not an email address.');
+    console.error('Please update your environment variables:');
+    console.error('  SENDGRID_API_KEY: Should be your API key starting with "SG."');
+    console.error('  SENDGRID_FROM_EMAIL: Should be a valid sender email like "notifications@dockoptimizer.com"');
+    console.warn('Emails will use the fallback address: notifications@dockoptimizer.com');
+  } else if (!emailRegex.test(fromEmail)) {
+    console.warn(`WARNING: Invalid email address format in SENDGRID_FROM_EMAIL: "${fromEmail}"`);
     console.warn('Emails will use the fallback address: notifications@dockoptimizer.com');
   } else {
     console.log(`Email sender address configured as: ${fromEmail}`);
@@ -220,11 +230,23 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
   // Get the sender email, with validation and fallback
   let senderEmail = params.from || process.env.SENDGRID_FROM_EMAIL || 'notifications@dockoptimizer.com';
   
-  // Validate the sender email
-  if (!emailRegex.test(senderEmail) || senderEmail.startsWith('SG.')) {
-    // If sender email is invalid or looks like an API key, use default
-    console.error(`Invalid sender email address format: ${senderEmail}`);
+  // Validate the sender email with improved error handling
+  if (!senderEmail) {
+    console.error('No sender email specified - using default');
     senderEmail = 'notifications@dockoptimizer.com';
+  } else if (senderEmail.startsWith('SG.')) {
+    console.error('ERROR: SENDGRID_FROM_EMAIL appears to be an API key instead of an email address.');
+    console.error('Please update your environment variables:');
+    console.error('  SENDGRID_API_KEY: Should be your API key starting with "SG."');
+    console.error('  SENDGRID_FROM_EMAIL: Should be a valid sender email (e.g., notifications@dockoptimizer.com)');
+    senderEmail = 'notifications@dockoptimizer.com';
+  } else if (!emailRegex.test(senderEmail)) {
+    console.error(`Invalid sender email address format: "${senderEmail}"`);
+    console.error('Email address must be in the format: name@domain.com');
+    console.error('Using default sender email instead');
+    senderEmail = 'notifications@dockoptimizer.com';
+  } else {
+    console.log(`Using sender email: ${senderEmail}`);
   }
 
   // Prepare the email message
