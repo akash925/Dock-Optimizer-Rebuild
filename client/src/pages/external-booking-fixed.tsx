@@ -1897,58 +1897,140 @@ function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any;
     );
   };
   
+  // Get facility name for display
+  const getFacilityName = () => {
+    if (bookingData.facilityId && Array.isArray(facilities)) {
+      const facility = facilities.find((f: any) => f.id === bookingData.facilityId);
+      return facility?.name || 'Unknown Facility';
+    }
+    return 'Unknown Facility';
+  };
+
+  // Get appointment type name if available
+  const getAppointmentTypeName = () => {
+    if (bookingData.appointmentTypeId && bookingData.appointmentTypes) {
+      const type = bookingData.appointmentTypes.find((t: any) => t.id === bookingData.appointmentTypeId);
+      return type?.name || 'Standard Appointment';
+    }
+    return 'Standard Appointment';
+  };
+
   return (
-    <div className="booking-form-section">
-      <Card className="border-green-500 bg-green-50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-green-700">Appointment Confirmed!</CardTitle>
+    <div className="booking-form-section confirmation-container">
+      <div className="text-center mb-6">
+        <div className="inline-block p-4 bg-green-100 rounded-full mb-4">
+          <CheckCircle className="h-12 w-12 text-green-600 confirmation-icon" />
+        </div>
+        <CardTitle className="text-2xl text-green-700 confirmation-title">Appointment Confirmed!</CardTitle>
+        <p className="text-green-700 mb-6">
+          Your appointment has been successfully scheduled. Please save your confirmation code for reference.
+        </p>
+      </div>
+      
+      <Card className="border-green-500 shadow-lg">
+        <CardHeader className="border-b border-green-100 bg-green-50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-green-800">{getFacilityName()}</h2>
+              <p className="text-green-700">{getAppointmentTypeName()}</p>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-sm text-green-700">Confirmation Code</span>
+              <span className="text-xl font-bold text-green-800">{confirmationCode}</span>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <p className="text-green-700 mb-4">
-            Your appointment has been successfully scheduled. Please save your confirmation code for reference.
-          </p>
-          
-          <div className="bg-white p-4 rounded-md border border-gray-200 mb-6">
-            <div className="text-gray-500 text-sm">Confirmation Code</div>
-            <div className="text-xl font-bold">{confirmationCode}</div>
+        
+        <CardContent className="p-6">
+          <div className="confirmation-code-container mb-6">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-md text-center">
+              <div className="text-sm font-medium text-green-700 mb-1">Your appointment has been confirmed at</div>
+              <div className="text-xl font-bold text-green-800">{getFacilityName()}</div>
+              {formatAppointmentTime()}
+            </div>
           </div>
           
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold">Appointment Details</h3>
-              <p>{formatAppointmentTime()}</p>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold">Contact Information</h3>
-              <p>{bookingData.contactName} | {bookingData.companyName}</p>
-              <p>{bookingData.email} | {bookingData.phone}</p>
-            </div>
-            
-            {bookingData.carrierName && (
-              <div>
-                <h3 className="font-semibold">Carrier Information</h3>
-                <p>
-                  Carrier: {bookingData.carrierName}
-                  {bookingData.mcNumber && ` (MC#: ${bookingData.mcNumber})`}
-                </p>
-                {bookingData.driverName && (
-                  <p>Driver: {bookingData.driverName} {bookingData.driverPhone ? `| ${bookingData.driverPhone}` : ''}</p>
-                )}
-                {(bookingData.truckNumber || bookingData.trailerNumber) && (
-                  <p>
-                    {bookingData.truckNumber && `Truck: ${bookingData.truckNumber}`}
-                    {bookingData.truckNumber && bookingData.trailerNumber && ' | '}
-                    {bookingData.trailerNumber && `Trailer: ${bookingData.trailerNumber}`}
-                  </p>
-                )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="border-b pb-2 border-gray-200">
+                <h3 className="font-semibold text-gray-700">Appointment Details</h3>
               </div>
-            )}
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Facility:</span> {getFacilityName()}
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Appointment Type:</span> {getAppointmentTypeName()}
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Purpose:</span> {bookingData.pickupOrDropoff === 'pickup' ? 'Pickup (Outbound)' : 'Dropoff (Inbound)'}
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="border-b pb-2 border-gray-200">
+                <h3 className="font-semibold text-gray-700">Contact Information</h3>
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Contact Person:</span> {bookingData.contactName || 'N/A'}
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Company:</span> {bookingData.companyName || 'N/A'}
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Email:</span> {bookingData.email || 'N/A'}
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Phone:</span> {bookingData.phone || 'N/A'}
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6 border-t pt-4 border-gray-200">
+            <div className="border-b pb-2 border-gray-200 mb-4">
+              <h3 className="font-semibold text-gray-700">Carrier Information</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Carrier Name:</span> {bookingData.carrierName || 'N/A'}
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">MC Number:</span> {bookingData.mcNumber || 'N/A'}
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Driver Name:</span> {bookingData.driverName || 'N/A'}
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Driver Phone:</span> {bookingData.driverPhone || 'N/A'}
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Truck Number:</span> {bookingData.truckNumber || 'N/A'}
+              </div>
+              
+              <div className="confirmation-detail">
+                <span className="confirmation-label">Trailer Number:</span> {bookingData.trailerNumber || 'N/A'}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
       
       <div className="mt-8 text-center">
+        <p className="text-sm text-gray-600 mb-2">
+          A confirmation email has been sent to your email address.
+          Please arrive on time for your appointment.
+        </p>
         <Button
           className="booking-button"
           onClick={() => {
