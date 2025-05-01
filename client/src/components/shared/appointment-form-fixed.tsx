@@ -50,7 +50,8 @@ const appointmentFormSchema = z.object({
   trailerNumber: z.string().optional(),
   driverName: z.string().min(1, "Driver name is required"),
   driverPhone: z.string().min(6, "Valid phone number is required"),
-  driverEmail: z.string().email().optional(),
+  driverEmail: z.string().email().optional().or(z.literal("")),
+  contactEmail: z.string().email().optional().or(z.literal("")),
   
   // Appointment details
   type: z.enum(["inbound", "outbound"]),
@@ -157,6 +158,8 @@ export default function AppointmentForm({
       trailerNumber: initialData.trailerNumber || "",
       driverName: initialData.driverName || "",
       driverPhone: initialData.driverPhone || "",
+      driverEmail: initialData.driverEmail || "",
+      contactEmail: initialData.contactEmail || "",
       type: initialData.type || "inbound",
       appointmentMode: initialData.appointmentMode || "trailer",
       appointmentDate: initialData.startTime ? format(new Date(initialData.startTime), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
@@ -181,6 +184,8 @@ export default function AppointmentForm({
       trailerNumber: "",
       driverName: "",
       driverPhone: "",
+      driverEmail: "",
+      contactEmail: "",
       type: preSelectedType === "outbound" ? "outbound" : "inbound",
       appointmentMode: "trailer",
       appointmentDate: initialDate ? format(initialDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
