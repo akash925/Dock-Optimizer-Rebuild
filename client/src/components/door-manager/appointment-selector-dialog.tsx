@@ -42,7 +42,7 @@ export default function AppointmentSelectorDialog({
     queryKey: ["/api/facilities"],
   });
   
-  // Set the facility filter to the door's facility when component mounts
+  // Set the facility filter to the door's facility when component mounts or when facilityId changes
   useEffect(() => {
     if (facilityId) {
       setSelectedFacilityId(facilityId);
@@ -241,10 +241,23 @@ export default function AppointmentSelectorDialog({
           <Button
             variant="default"
             className="w-full flex items-center justify-center gap-2"
-            onClick={onCreateNew}
+            onClick={() => {
+              // Pass the selectedFacilityId back to the parent component before creating new
+              if (selectedFacilityId !== facilityId) {
+                // Update the facility ID in the parent component if it changed
+                // This is done by calling onClose to close the dialog, then in the parent
+                // the handleCreateAppointment will be called with the updated facilityId
+                onClose();
+                onCreateNew();
+              } else {
+                // If facility ID is unchanged, just create a new appointment
+                onCreateNew();
+              }
+            }}
           >
             <PlusCircle className="h-4 w-4" />
-            Create New Appointment
+            Create New Appointment {selectedFacilityId ? 
+              `at ${getFacilityName(selectedFacilityId)}` : ''}
           </Button>
         </div>
         

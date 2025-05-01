@@ -20,11 +20,22 @@ export function useAssignAppointmentToDoor() {
       );
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to assign appointment to door");
+        let errorMessage = "Failed to assign appointment to door";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        throw new Error(errorMessage);
       }
       
-      return await response.json();
+      try {
+        return await response.json();
+      } catch (e) {
+        console.error("Error parsing response:", e);
+        throw new Error("Invalid response received from server");
+      }
     },
     onSuccess: () => {
       // Invalidate schedules query to refresh data
