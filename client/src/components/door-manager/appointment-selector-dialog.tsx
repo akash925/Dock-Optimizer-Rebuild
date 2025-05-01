@@ -18,6 +18,7 @@ interface AppointmentSelectorDialogProps {
   facilityId: number | null;
   onSelect: (scheduleId: number) => void;
   onCreateNew: () => void;
+  onFacilityChange?: (facilityId: number) => void;
 }
 
 export default function AppointmentSelectorDialog({
@@ -27,6 +28,7 @@ export default function AppointmentSelectorDialog({
   facilityId,
   onSelect,
   onCreateNew,
+  onFacilityChange,
 }: AppointmentSelectorDialogProps) {
   const [tab, setTab] = useState<"upcoming" | "all">("upcoming");
   const [filtered, setFiltered] = useState<Schedule[]>([]);
@@ -118,7 +120,14 @@ export default function AppointmentSelectorDialog({
           </div>
           <Select 
             value={selectedFacilityId?.toString() || ""} 
-            onValueChange={(value) => setSelectedFacilityId(value ? parseInt(value) : null)}
+            onValueChange={(value) => {
+              const newFacilityId = value ? parseInt(value) : null;
+              setSelectedFacilityId(newFacilityId);
+              // Pass the facility change up to the parent component if provided
+              if (onFacilityChange && newFacilityId) {
+                onFacilityChange(newFacilityId);
+              }
+            }}
           >
             <SelectTrigger id="facility-filter" className="w-full">
               <SelectValue placeholder="Select a facility">
@@ -243,11 +252,11 @@ export default function AppointmentSelectorDialog({
             className="w-full flex items-center justify-center gap-2"
             onClick={() => {
               // Pass the selectedFacilityId back to the parent component before creating new
-              if (selectedFacilityId !== facilityId) {
+              if (selectedFacilityId !== facilityId && selectedFacilityId) {
                 // Update the facility ID in the parent component if it changed
-                // This is done by calling onClose to close the dialog, then in the parent
-                // the handleCreateAppointment will be called with the updated facilityId
-                onClose();
+                if (onFacilityChange) {
+                  onFacilityChange(selectedFacilityId);
+                }
                 onCreateNew();
               } else {
                 // If facility ID is unchanged, just create a new appointment

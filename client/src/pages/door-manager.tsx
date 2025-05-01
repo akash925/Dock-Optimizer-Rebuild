@@ -370,6 +370,10 @@ export default function DoorManager() {
           facilityId={selectedFacilityId}
           onSelect={handleSelectAppointment}
           onCreateNew={handleCreateAppointment}
+          onFacilityChange={(facilityId) => {
+            // Update the facility ID when changed in the dialog
+            setSelectedFacilityId(facilityId);
+          }}
         />
       )}
     </div>
