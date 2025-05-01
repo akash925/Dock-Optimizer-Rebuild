@@ -159,7 +159,7 @@ export function generateICalEvent(
   return icalContent;
 }
 
-export async function sendEmail(params: EmailParams): Promise<{ html: string, text: string } | boolean> {
+export async function sendEmail(params: EmailParams): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   if (!params.to || !params.subject) {
     console.error('Missing required email parameters (to, subject)');
     return false;
@@ -180,6 +180,11 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
     text: params.text || 'No content provided',
     html: params.html || '<p>No content provided</p>',
   };
+  
+  // Add attachments if present
+  if (params.attachments && params.attachments.length > 0) {
+    msg.attachments = params.attachments;
+  }
 
   // In development mode, just return the content for testing
   if (process.env.NODE_ENV === 'development') {
@@ -188,13 +193,14 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
     console.log(msg.html.substring(0, 500) + (msg.html.length > 500 ? '...' : ''));
     
     // Log calendar attachment if present
-    if (msg.attachments && msg.attachments.length > 0) {
-      console.log('Email has calendar attachment');
+    if (params.attachments && params.attachments.length > 0) {
+      console.log('Email has calendar attachment:', params.attachments[0].filename);
     }
     
     return {
       html: msg.html,
-      text: msg.text
+      text: msg.text,
+      attachments: params.attachments
     };
   }
 
@@ -1200,10 +1206,22 @@ export async function sendReminderEmail(
     This is an automated message from Dock Optimizer. Please do not reply to this email.
   `;
 
+  // Generate iCalendar file content for the appointment reminder
+  const calendarEvent = generateICalEvent(schedule, confirmationCode);
+  
+  // Create email with calendar attachment
   return sendEmail({
     to,
     subject: `Reminder: Upcoming Dock Appointment #${confirmationCode}`,
     html,
-    text
+    text,
+    attachments: [
+      {
+        content: Buffer.from(calendarEvent).toString('base64'),
+        filename: `dock-appointment-${confirmationCode}.ics`,
+        type: 'text/calendar',
+        disposition: 'attachment'
+      }
+    ]
   });
 }

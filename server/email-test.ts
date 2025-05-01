@@ -120,21 +120,53 @@ export async function testEmailTemplate() {
     if (typeof confirmationEmail === 'object' && confirmationEmail !== null) {
       fs.writeFileSync('email-confirmation-test.html', confirmationEmail.html || 'No HTML content generated');
       fs.writeFileSync('email-confirmation-test.txt', confirmationEmail.text || 'No text content generated');
+      
+      // Log calendar attachment details if present
+      if (confirmationEmail.attachments && confirmationEmail.attachments.length > 0) {
+        console.log('Confirmation email has calendar attachment:', confirmationEmail.attachments[0].filename);
+        // Optionally save the calendar file too (decode from base64)
+        const calData = Buffer.from(confirmationEmail.attachments[0].content, 'base64').toString('utf-8');
+        fs.writeFileSync('email-confirmation-test.ics', calData);
+      }
     }
     
     if (typeof rescheduleEmail === 'object' && rescheduleEmail !== null) {
       fs.writeFileSync('email-reschedule-test.html', rescheduleEmail.html || 'No HTML content generated');
       fs.writeFileSync('email-reschedule-test.txt', rescheduleEmail.text || 'No text content generated');
+      
+      // Log calendar attachment details if present
+      if (rescheduleEmail.attachments && rescheduleEmail.attachments.length > 0) {
+        console.log('Reschedule email has calendar attachment:', rescheduleEmail.attachments[0].filename);
+        // Optionally save the calendar file too (decode from base64)
+        const calData = Buffer.from(rescheduleEmail.attachments[0].content, 'base64').toString('utf-8');
+        fs.writeFileSync('email-reschedule-test.ics', calData);
+      }
     }
     
     if (typeof cancellationEmail === 'object' && cancellationEmail !== null) {
       fs.writeFileSync('email-cancellation-test.html', cancellationEmail.html || 'No HTML content generated');
       fs.writeFileSync('email-cancellation-test.txt', cancellationEmail.text || 'No text content generated');
+      
+      // Log calendar attachment details if present
+      if (cancellationEmail.attachments && cancellationEmail.attachments.length > 0) {
+        console.log('Cancellation email has calendar attachment:', cancellationEmail.attachments[0].filename);
+        // Optionally save the calendar file too (decode from base64)
+        const calData = Buffer.from(cancellationEmail.attachments[0].content, 'base64').toString('utf-8');
+        fs.writeFileSync('email-cancellation-test.ics', calData);
+      }
     }
     
     if (typeof reminderEmail === 'object' && reminderEmail !== null) {
       fs.writeFileSync('email-reminder-test.html', reminderEmail.html || 'No HTML content generated');
       fs.writeFileSync('email-reminder-test.txt', reminderEmail.text || 'No text content generated');
+      
+      // Log calendar attachment details if present
+      if (reminderEmail.attachments && reminderEmail.attachments.length > 0) {
+        console.log('Reminder email has calendar attachment:', reminderEmail.attachments[0].filename);
+        // Optionally save the calendar file too (decode from base64)
+        const calData = Buffer.from(reminderEmail.attachments[0].content, 'base64').toString('utf-8');
+        fs.writeFileSync('email-reminder-test.ics', calData);
+      }
     }
     
     console.log("✅ All email template tests saved to project root");
