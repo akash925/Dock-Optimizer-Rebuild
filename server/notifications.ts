@@ -49,6 +49,17 @@ export interface EnhancedSchedule {
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   console.log('Email notifications enabled with SendGrid');
+  
+  // Verify the FROM_EMAIL is correctly configured
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+  if (!fromEmail || !emailRegex.test(fromEmail) || fromEmail.startsWith('SG.')) {
+    console.warn('WARNING: Invalid SENDGRID_FROM_EMAIL detected. Please set a valid email address like "notifications@example.com"');
+    console.warn('Emails will use the fallback address: notifications@dockoptimizer.com');
+  } else {
+    console.log(`Email sender address configured as: ${fromEmail}`);
+  }
 } else {
   console.warn('No SendGrid API key found. Email notifications will be disabled.');
 }
@@ -206,10 +217,20 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
     return false;
   }
 
+  // Get the sender email, with validation and fallback
+  let senderEmail = params.from || process.env.SENDGRID_FROM_EMAIL || 'notifications@dockoptimizer.com';
+  
+  // Validate the sender email
+  if (!emailRegex.test(senderEmail) || senderEmail.startsWith('SG.')) {
+    // If sender email is invalid or looks like an API key, use default
+    console.error(`Invalid sender email address format: ${senderEmail}`);
+    senderEmail = 'notifications@dockoptimizer.com';
+  }
+
   // Prepare the email message
   const msg: any = {
     to: params.to,
-    from: params.from || process.env.SENDGRID_FROM_EMAIL || 'notifications@dockoptimizer.com',
+    from: senderEmail,
     subject: params.subject,
     text: params.text || 'No content provided',
     html: params.html || '<p>No content provided</p>',
@@ -223,6 +244,7 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
   // In development mode, just return the content for testing
   if (process.env.NODE_ENV === 'development') {
     console.log(`[DEV MODE] Email would be sent to: ${params.to} with subject: ${params.subject}`);
+    console.log(`[DEV MODE] From: ${senderEmail}`);
     console.log('Email HTML preview:');
     console.log(msg.html.substring(0, 500) + (msg.html.length > 500 ? '...' : ''));
     
@@ -242,12 +264,6 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
   if (!process.env.SENDGRID_API_KEY) {
     console.warn('SendGrid API key not set, skipping email send');
     return false;
-  }
-
-  // Check that from email is valid and configured correctly
-  if (!emailRegex.test(msg.from)) {
-    console.error(`Invalid sender email address format: ${msg.from}. Using default.`);
-    msg.from = 'notifications@dockoptimizer.com';
   }
 
   try {

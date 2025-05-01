@@ -2390,19 +2390,12 @@ export class DatabaseStorage implements IStorage {
       // Base query with proper tenant isolation join structure
       let sqlQuery = `
         SELECT s.*, d.name as dock_name, 
-               COALESCE(f2.name, f.name) as facility_name, 
-               COALESCE(s.facility_id, f.id) as facility_id,
+               f.name as facility_name, 
+               d.facility_id as facility_id,
                at.name as appointment_type_name
         FROM schedules s
-        LEFT JOIN docks d ON s.dock_id = d.id`;
-        
-      // Join to facilities table based on whether facility_id column exists in schedules
-      if (hasFacilityIdInSchedules) {
-        sqlQuery += ` LEFT JOIN facilities f ON d.facility_id = f.id
-                      LEFT JOIN facilities f2 ON s.facility_id = f2.id`;
-      } else {
-        sqlQuery += ` LEFT JOIN facilities f ON d.facility_id = f.id`;
-      }
+        LEFT JOIN docks d ON s.dock_id = d.id
+        LEFT JOIN facilities f ON d.facility_id = f.id`;
         
       sqlQuery += ` LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
         WHERE (
