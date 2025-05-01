@@ -352,6 +352,24 @@ export default function AppointmentForm({
       const selectedAppType = allAppointmentTypes.find(type => type.id === data.appointmentTypeId);
       const appointmentTypeName = selectedAppType?.name || "";
       
+      // Make sure facilityId is always defined (preventing "No facility assigned" errors)
+      const facilityId = data.facilityId ? parseInt(data.facilityId.toString()) : null;
+      
+      // Ensure we have facility information to display in appointments list
+      if (!facilityId) {
+        toast({
+          title: "Missing Facility",
+          description: "Please select a facility for this appointment.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Get facility information from the facilities list
+      const facilityInfo = facilities.find(f => f.id === facilityId);
+      const facilityNameToUse = facilityInfo?.name || "Unknown Facility";
+      
       // Format for API
       const formattedData = {
         carrierId: data.carrierId || null,
@@ -377,20 +395,23 @@ export default function AppointmentForm({
         status: data.status || "scheduled",
         notes: data.notes || "",
         createdBy: user?.id || null,
-        facilityId: data.facilityId,
-        facilityName: facilityName, // Ensure we're getting the correct facility name
+        facilityId: facilityId,
+        facilityName: facilityNameToUse, // Ensure we're getting the correct facility name
         facilityTimezone: data.facilityTimezone || facilityTimezone,
         // Include custom fields data
-        customFields: data.customFields || {},
-        // If custom carrier, add the new carrier data
-        newCarrier: data.carrierId ? undefined : {
+        customFields: data.customFields || {}
+      };
+      
+      // If custom carrier, add the new carrier data
+      if (!data.carrierId && data.carrierName) {
+        formattedData.newCarrier = {
           name: data.carrierName || "Custom Carrier",
           mcNumber: data.mcNumber || "",
           contactName: data.driverName || "",
           contactEmail: "",
           contactPhone: data.driverPhone || "",
-        }
-      };
+        };
+      }
       
       // API call
       const response = await apiRequest("POST", "/api/schedules", formattedData);
