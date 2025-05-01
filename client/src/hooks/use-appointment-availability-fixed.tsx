@@ -222,8 +222,8 @@ export function useAppointmentAvailability({
               (appStart < appointmentEnd && appEnd > currentTime)
             );
             
-            // If we don't overlap the appointment directly, check buffer zones
-            if (!overlapsAppointment && bufferTime > 0) {
+            // Check buffer zones regardless of direct overlap when buffer time is set
+            if (bufferTime > 0) {
               // Calculate buffer windows around existing appointments
               const bufferBefore = new Date(appStart);
               bufferBefore.setMinutes(bufferBefore.getMinutes() - bufferTime);
@@ -232,12 +232,24 @@ export function useAppointmentAvailability({
               bufferAfter.setMinutes(bufferAfter.getMinutes() + bufferTime);
               
               // Check if our appointment overlaps with the buffer zones
-              const overlapsBufferBefore = (currentTime < appStart && appointmentEnd > bufferBefore);
-              const overlapsBufferAfter = (currentTime < bufferAfter && appointmentEnd > appEnd);
+              // The correct logic is to check if our appointment starts before the buffered end time
+              // and ends after the buffered start time
+              const overlapsBufferZone = (
+                (currentTime <= bufferAfter) && (appointmentEnd >= bufferBefore)
+              );
               
-              return overlapsBufferBefore || overlapsBufferAfter;
+              // Log for debugging
+              console.log(`[Buffer Check] Appointment time: ${currentTime.toTimeString()} - ${appointmentEnd.toTimeString()}`);
+              console.log(`[Buffer Check] Booked time: ${appStart.toTimeString()} - ${appEnd.toTimeString()}`);
+              console.log(`[Buffer Check] Buffer zone: ${bufferBefore.toTimeString()} - ${bufferAfter.toTimeString()}`);
+              console.log(`[Buffer Check] Overlaps: ${overlapsBufferZone}`);
+              
+              if (overlapsBufferZone) {
+                return true; // Overlap with buffer zone
+              }
             }
             
+            // If there's no buffer time or no buffer zone overlap, check direct overlap
             return overlapsAppointment;
           });
           

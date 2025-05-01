@@ -238,6 +238,31 @@ export default function AppointmentForm({
   const { data: customQuestions = [], isLoading: isLoadingCustomQuestions } = useQuery<any[]>({
     queryKey: ["/api/custom-questions", watchedAppointmentTypeId],
     enabled: !!watchedAppointmentTypeId,
+    // Added retry and staleTime to ensure we get the data
+    retry: 3,
+    staleTime: 0,
+    onSuccess: (data) => {
+      console.log(`[CustomQuestions] Successfully loaded ${data.length} custom questions for appointment type ${watchedAppointmentTypeId}`);
+      
+      // Pre-populate form with any default values from questions
+      if (data.length > 0) {
+        const customFieldValues = { ...form.getValues('customFields') } || {};
+        
+        data.forEach(question => {
+          const fieldName = `customQuestion_${question.id}`;
+          // Only set default if the field doesn't already have a value
+          if (question.defaultValue && !customFieldValues[fieldName]) {
+            customFieldValues[fieldName] = question.defaultValue;
+          }
+        });
+        
+        // Update form with any new default values
+        form.setValue('customFields', customFieldValues);
+      }
+    },
+    onError: (error) => {
+      console.error(`[CustomQuestions] Failed to load custom questions for appointment type ${watchedAppointmentTypeId}:`, error);
+    }
   });
   
   useEffect(() => {
