@@ -3574,12 +3574,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate a URL for the uploaded file
       const fileUrl = `/uploads/${req.file.filename}`;
       
-      // Return success with the file URL
+      // Extract metadata sent from the client
+      const metadata: Record<string, string> = {};
+      
+      // These fields are directly extracted by the OCR service
+      const extractableFields = [
+        'bolNumber', 'customerName', 'carrierName', 'mcNumber', 
+        'weight', 'palletCount', 'fromAddress', 'toAddress', 
+        'pickupOrDropoff', 'truckId', 'trailerNumber'
+      ];
+      
+      // Collect metadata from request body
+      for (const field of extractableFields) {
+        if (req.body[field]) {
+          metadata[field] = req.body[field];
+        }
+      }
+      
+      // Log the metadata
+      console.log('BOL file uploaded with metadata:', metadata);
+      
+      // In a real implementation, we might store this metadata in the database
+      // associated with the appointment record
+      
+      // Return success with the file URL and extracted metadata
       return res.status(200).json({ 
         fileUrl,
         filename: req.file.filename,
         size: req.file.size,
-        message: 'BOL file uploaded successfully' 
+        message: 'BOL file uploaded successfully',
+        metadata // Include extracted metadata in the response
       });
     } catch (error) {
       console.error('Error uploading BOL file:', error);

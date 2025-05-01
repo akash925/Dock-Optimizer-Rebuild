@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FilePenLine, X, FileIcon, Paperclip } from 'lucide-react';
@@ -10,6 +10,8 @@ interface FileUploadProps {
   maxSizeMB?: number;
   initialFile?: File | null;
   className?: string;
+  buttonText?: string;
+  buttonIcon?: ReactNode;
 }
 
 export function FileUpload({
@@ -18,6 +20,8 @@ export function FileUpload({
   maxSizeMB = 10,
   initialFile = null,
   className = "",
+  buttonText = "Click to upload or drag & drop",
+  buttonIcon = <Paperclip className="h-5 w-5 mx-auto" />,
 }: FileUploadProps) {
   const [file, setFile] = useState<File | null>(initialFile);
   const [error, setError] = useState<string | null>(null);
@@ -156,9 +160,9 @@ export function FileUpload({
           className="w-full border-dashed h-20 flex flex-col justify-center space-y-2"
           onClick={triggerFileInput}
         >
-          <Paperclip className="h-5 w-5 mx-auto" />
+          {buttonIcon}
           <span className="text-sm">
-            Click to upload or drag & drop
+            {buttonText}
           </span>
         </Button>
       )}
