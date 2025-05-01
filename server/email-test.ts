@@ -1,6 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { sendConfirmationEmail, EnhancedSchedule } from './notifications';
+import { 
+  sendConfirmationEmail, 
+  sendRescheduleEmail, 
+  sendCancellationEmail, 
+  sendReminderEmail, 
+  EnhancedSchedule 
+} from './notifications';
 
 /**
  * This is a development utility function to test email templates
@@ -25,15 +31,6 @@ export async function testEmailTemplate() {
     timezone: "America/New_York" // EDT
   };
 
-  // Generate the email data without actually sending it
-  const emailData = {
-    to: "test@example.com",
-    from: 'noreply@dockoptimizer.com',
-    subject: `Dock Appointment Confirmation #${sampleData.id}`,
-    html: '', // Will be filled by the email function
-    text: ''  // Will be filled by the email function
-  };
-
   // Call the function to generate the email content
   try {
     // This is just for testing - we don't actually send the email
@@ -41,29 +38,29 @@ export async function testEmailTemplate() {
     const testSchedule: EnhancedSchedule = {
       id: sampleData.id,
       facilityId: 6, // Sam Pride facility ID
-      dockId: null,
-      carrierId: null,
-      appointmentTypeId: null,
+      dockId: 3,
+      carrierId: 5,
+      appointmentTypeId: 12,
       truckNumber: "10000",
-      trailerNumber: null,
+      trailerNumber: "TR-5678",
       driverName: "Akash Agarwal",
       driverPhone: "4082303749",
       driverEmail: 'test@example.com',
-      customerName: null,
-      carrierName: null,
-      mcNumber: null,
-      bolNumber: null,
-      poNumber: null,
-      palletCount: null,
-      weight: null,
+      customerName: "Conmitto Inc.",
+      carrierName: "UPS",
+      mcNumber: "MC178930",
+      bolNumber: "BOL-1234",
+      poNumber: "PO-5678",
+      palletCount: "24",
+      weight: "4500",
       appointmentMode: "trailer",
-      startTime: new Date("2023-04-03T13:00:00"),
-      endTime: new Date("2023-04-03T14:00:00"),
+      startTime: new Date("2025-05-15T13:00:00"),
+      endTime: new Date("2025-05-15T14:00:00"),
       actualStartTime: null,
       actualEndTime: null,
       type: 'inbound',
       status: 'scheduled',
-      notes: null,
+      notes: "Please use dock entrance B",
       customFormData: null,
       createdBy: 1,
       createdAt: new Date(),
@@ -72,29 +69,78 @@ export async function testEmailTemplate() {
       
       // Enhanced properties for UI display
       facilityName: "Sam Pride",
-      appointmentTypeName: "Standard Appointment",
+      appointmentTypeName: "Standard Delivery",
       dockName: "Dock 3",
       timezone: "America/New_York"
     };
     
-    const emailContent = await sendConfirmationEmail("test@example.com", `HC${sampleData.id}`, testSchedule);
+    const confirmationCode = `HC${sampleData.id}`;
+    const emailRecipient = "test@example.com";
     
-    // Save the generated HTML to a file for inspection
-    const emailFunction = sendConfirmationEmail.toString();
+    // Test all email types
     
-    // Handle both boolean and object returns from sendConfirmationEmail
-    if (typeof emailContent === 'object' && emailContent !== null) {
-      fs.writeFileSync('email-template-test.html', emailContent.html || 'No HTML content generated');
-      fs.writeFileSync('email-template-test.txt', emailContent.text || 'No text content generated');
-    } else {
-      fs.writeFileSync('email-template-test.html', 'Email would be sent in production environment');
-      fs.writeFileSync('email-template-test.txt', 'Email would be sent in production environment');
+    // 1. Confirmation Email
+    console.log("Testing confirmation email template...");
+    const confirmationEmail = await sendConfirmationEmail(
+      emailRecipient, 
+      confirmationCode, 
+      testSchedule
+    );
+    
+    // 2. Reschedule Email (with old time)
+    console.log("Testing reschedule email template...");
+    const oldStartTime = new Date("2025-05-14T10:00:00");
+    const oldEndTime = new Date("2025-05-14T11:00:00");
+    const rescheduleEmail = await sendRescheduleEmail(
+      emailRecipient, 
+      confirmationCode, 
+      testSchedule,
+      oldStartTime,
+      oldEndTime
+    );
+    
+    // 3. Cancellation Email
+    console.log("Testing cancellation email template...");
+    const cancellationEmail = await sendCancellationEmail(
+      emailRecipient, 
+      confirmationCode, 
+      testSchedule
+    );
+    
+    // 4. Reminder Email (24 hours before)
+    console.log("Testing reminder email template...");
+    const reminderEmail = await sendReminderEmail(
+      emailRecipient, 
+      confirmationCode, 
+      testSchedule,
+      24 // hours until appointment
+    );
+    
+    // Save all template outputs to files
+    if (typeof confirmationEmail === 'object' && confirmationEmail !== null) {
+      fs.writeFileSync('email-confirmation-test.html', confirmationEmail.html || 'No HTML content generated');
+      fs.writeFileSync('email-confirmation-test.txt', confirmationEmail.text || 'No text content generated');
     }
     
-    console.log("✅ Email template test HTML and text saved to project root");
+    if (typeof rescheduleEmail === 'object' && rescheduleEmail !== null) {
+      fs.writeFileSync('email-reschedule-test.html', rescheduleEmail.html || 'No HTML content generated');
+      fs.writeFileSync('email-reschedule-test.txt', rescheduleEmail.text || 'No text content generated');
+    }
+    
+    if (typeof cancellationEmail === 'object' && cancellationEmail !== null) {
+      fs.writeFileSync('email-cancellation-test.html', cancellationEmail.html || 'No HTML content generated');
+      fs.writeFileSync('email-cancellation-test.txt', cancellationEmail.text || 'No text content generated');
+    }
+    
+    if (typeof reminderEmail === 'object' && reminderEmail !== null) {
+      fs.writeFileSync('email-reminder-test.html', reminderEmail.html || 'No HTML content generated');
+      fs.writeFileSync('email-reminder-test.txt', reminderEmail.text || 'No text content generated');
+    }
+    
+    console.log("✅ All email template tests saved to project root");
     return true;
   } catch (error) {
-    console.error("Error testing email template:", error);
+    console.error("Error testing email templates:", error);
     return false;
   }
 }

@@ -446,3 +446,627 @@ export async function sendConfirmationEmail(
     text,
   });
 }
+
+/**
+ * Send a reschedule notification email for a rescheduled appointment
+ */
+export async function sendRescheduleEmail(
+  to: string,
+  confirmationCode: string,
+  schedule: EnhancedSchedule,
+  oldStartTime?: Date,
+  oldEndTime?: Date
+): Promise<{ html: string, text: string } | boolean> {
+  // Safely get timezones with fallbacks
+  const facilityTimezone = schedule.timezone || 'America/New_York';
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+
+  // Safely parse dates
+  const parseDate = (dateInput: Date | string | null): Date => {
+    if (!dateInput) {
+      return new Date();
+    }
+    
+    if (dateInput instanceof Date) {
+      if (isNaN(dateInput.getTime())) {
+        return new Date();
+      }
+      return dateInput;
+    }
+    
+    try {
+      const parsed = new Date(dateInput);
+      if (isNaN(parsed.getTime())) {
+        return new Date();
+      }
+      return parsed;
+    } catch (e: unknown) {
+      return new Date();
+    }
+  };
+
+  // Get safe date objects for new times
+  const startDate = parseDate(schedule.startTime);
+  const endDate = parseDate(schedule.endTime);
+  
+  // Format new times in facility timezone
+  const facilityStart = formatDateForTimezone(
+    startDate, 
+    facilityTimezone, 
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+  const facilityEnd = formatDateForTimezone(
+    endDate, 
+    facilityTimezone, 
+    'h:mm aa'
+  );
+  
+  // Format new times in user's local timezone
+  const userStart = formatDateForTimezone(
+    startDate, 
+    userTimezone, 
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+  const userEnd = formatDateForTimezone(
+    endDate, 
+    userTimezone, 
+    'h:mm aa'
+  );
+
+  // Get timezone abbreviations
+  const facilityTzAbbr = getTimezoneAbbr(facilityTimezone, startDate);
+  const userTzAbbr = getTimezoneAbbr(userTimezone, startDate);
+  
+  // Create the final time strings for the email
+  const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
+  const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
+
+  // Format old times if provided, to show what changed
+  let oldFacilityTimeRange = '';
+  let oldUserTimeRange = '';
+  
+  if (oldStartTime && oldEndTime) {
+    const oldStartDate = parseDate(oldStartTime);
+    const oldEndDate = parseDate(oldEndTime);
+    
+    const oldFacilityStart = formatDateForTimezone(
+      oldStartDate, 
+      facilityTimezone, 
+      'EEEE, MMMM d, yyyy h:mm aa'
+    );
+    const oldFacilityEnd = formatDateForTimezone(
+      oldEndDate, 
+      facilityTimezone, 
+      'h:mm aa'
+    );
+    
+    const oldUserStart = formatDateForTimezone(
+      oldStartDate, 
+      userTimezone, 
+      'EEEE, MMMM d, yyyy h:mm aa'
+    );
+    const oldUserEnd = formatDateForTimezone(
+      oldEndDate, 
+      userTimezone, 
+      'h:mm aa'
+    );
+    
+    oldFacilityTimeRange = `${oldFacilityStart} - ${oldFacilityEnd} ${facilityTzAbbr}`;
+    oldUserTimeRange = `${oldUserStart} - ${oldUserEnd} ${userTzAbbr}`;
+  }
+
+  // Host URL with potential fallback
+  const host = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
+
+  // Create cancel link
+  const cancelLink = `${host}/cancel?code=${confirmationCode}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #007bff; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">Appointment Rescheduled</h1>
+        <p style="margin-top: 5px;">Confirmation #: ${confirmationCode}</p>
+      </div>
+      
+      <div style="padding: 20px;">
+        <p>Your dock appointment has been rescheduled. Please review the updated details below.</p>
+
+        <div style="background-color: #f5f5f5; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0;">
+          <h2 style="margin-top: 0; color: #333;">Updated Appointment Details</h2>
+          
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #666; width: 140px;">Facility:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.facilityName || 'Unknown Facility'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Appointment:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.appointmentTypeName || 'Standard Appointment'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Dock:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.dockName || 'Not scheduled yet'}</strong></td>
+            </tr>
+            ${oldFacilityTimeRange ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Previous Time:</td>
+              <td style="padding: 8px 0;"><span style="text-decoration: line-through;">${oldFacilityTimeRange}</span></td>
+            </tr>` : ''}
+            <tr>
+              <td style="padding: 8px 0; color: #666;">New Facility Time:</td>
+              <td style="padding: 8px 0;"><strong style="color: #007bff;">${facilityTimeRange}</strong></td>
+            </tr>
+            ${oldUserTimeRange ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Previous Local Time:</td>
+              <td style="padding: 8px 0;"><span style="text-decoration: line-through;">${oldUserTimeRange}</span></td>
+            </tr>` : ''}
+            <tr>
+              <td style="padding: 8px 0; color: #666;">New Local Time:</td>
+              <td style="padding: 8px 0;"><strong style="color: #007bff;">${userTimeRange}</strong></td>
+            </tr>
+            ${schedule.driverName ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Driver:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.driverName}</strong></td>
+            </tr>` : ''}
+            ${schedule.driverPhone ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Driver Phone:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.driverPhone}</strong></td>
+            </tr>` : ''}
+            ${schedule.carrierId ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Carrier:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.carrierName || 'Unknown Carrier'}</strong></td>
+            </tr>` : ''}
+            ${schedule.truckNumber ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Truck #:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.truckNumber}</strong></td>
+            </tr>` : ''}
+            ${schedule.trailerNumber ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Trailer #:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.trailerNumber}</strong></td>
+            </tr>` : ''}
+          </table>
+        </div>
+        
+        <div style="margin: 30px 0; text-align: center;">
+          <p style="margin-bottom: 15px;">Need to cancel this appointment?</p>
+          
+          <a href="${cancelLink}" 
+             style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Cancel Appointment
+          </a>
+        </div>
+        
+        <p>If you have any questions, please contact the facility directly.</p>
+      </div>
+      
+      <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+        <p>This is an automated message from Dock Optimizer. Please do not reply to this email.</p>
+      </div>
+    </div>
+  `;
+
+  const text = `
+    APPOINTMENT RESCHEDULED
+    Confirmation #: ${confirmationCode}
+    
+    Your dock appointment has been rescheduled. Please review the updated details below.
+    
+    UPDATED APPOINTMENT DETAILS
+    ------------------
+    Facility: ${schedule.facilityName || 'Unknown Facility'}
+    Appointment: ${schedule.appointmentTypeName || 'Standard Appointment'}
+    Dock: ${schedule.dockName || 'Not scheduled yet'}
+    
+    ${oldFacilityTimeRange ? `Previous Time: ${oldFacilityTimeRange}` : ''}
+    New Facility Time: ${facilityTimeRange}
+    ${oldUserTimeRange ? `Previous Local Time: ${oldUserTimeRange}` : ''}
+    New Local Time: ${userTimeRange}
+    ${schedule.driverName ? `Driver: ${schedule.driverName}` : ''}
+    ${schedule.driverPhone ? `Driver Phone: ${schedule.driverPhone}` : ''}
+    ${schedule.carrierId ? `Carrier: ${schedule.carrierName || 'Unknown Carrier'}` : ''}
+    ${schedule.truckNumber ? `Truck #: ${schedule.truckNumber}` : ''}
+    ${schedule.trailerNumber ? `Trailer #: ${schedule.trailerNumber}` : ''}
+    
+    Need to cancel? Visit: ${cancelLink}
+    
+    If you have any questions, please contact the facility directly.
+    
+    This is an automated message from Dock Optimizer. Please do not reply to this email.
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Dock Appointment Rescheduled #${confirmationCode}`,
+    html,
+    text
+  });
+}
+
+/**
+ * Send a cancellation email for a cancelled appointment
+ */
+export async function sendCancellationEmail(
+  to: string,
+  confirmationCode: string,
+  schedule: EnhancedSchedule
+): Promise<{ html: string, text: string } | boolean> {
+  // Safely get timezones with fallbacks
+  const facilityTimezone = schedule.timezone || 'America/New_York';
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+
+  // Safely parse dates
+  const parseDate = (dateInput: Date | string | null): Date => {
+    if (!dateInput) {
+      return new Date();
+    }
+    
+    if (dateInput instanceof Date) {
+      if (isNaN(dateInput.getTime())) {
+        return new Date();
+      }
+      return dateInput;
+    }
+    
+    try {
+      const parsed = new Date(dateInput);
+      if (isNaN(parsed.getTime())) {
+        return new Date();
+      }
+      return parsed;
+    } catch (e: unknown) {
+      return new Date();
+    }
+  };
+
+  // Get safe date objects
+  const startDate = parseDate(schedule.startTime);
+  const endDate = parseDate(schedule.endTime);
+  
+  // Format times in facility timezone
+  const facilityStart = formatDateForTimezone(
+    startDate, 
+    facilityTimezone, 
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+  const facilityEnd = formatDateForTimezone(
+    endDate, 
+    facilityTimezone, 
+    'h:mm aa'
+  );
+  
+  // Format times in user's local timezone
+  const userStart = formatDateForTimezone(
+    startDate, 
+    userTimezone, 
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+  const userEnd = formatDateForTimezone(
+    endDate, 
+    userTimezone, 
+    'h:mm aa'
+  );
+
+  // Get timezone abbreviations
+  const facilityTzAbbr = getTimezoneAbbr(facilityTimezone, startDate);
+  const userTzAbbr = getTimezoneAbbr(userTimezone, startDate);
+  
+  // Create the final time strings for the email
+  const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
+  const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #dc3545; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">Appointment Cancelled</h1>
+        <p style="margin-top: 5px;">Confirmation #: ${confirmationCode}</p>
+      </div>
+      
+      <div style="padding: 20px;">
+        <p>Your dock appointment has been cancelled. Below are the details of the cancelled appointment.</p>
+
+        <div style="background-color: #f5f5f5; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0;">
+          <h2 style="margin-top: 0; color: #333;">Cancelled Appointment Details</h2>
+          
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #666; width: 140px;">Facility:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.facilityName || 'Unknown Facility'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Appointment:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.appointmentTypeName || 'Standard Appointment'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Scheduled Facility Time:</td>
+              <td style="padding: 8px 0;"><span style="text-decoration: line-through;">${facilityTimeRange}</span></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Scheduled Local Time:</td>
+              <td style="padding: 8px 0;"><span style="text-decoration: line-through;">${userTimeRange}</span></td>
+            </tr>
+            ${schedule.driverName ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Driver:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.driverName}</strong></td>
+            </tr>` : ''}
+            ${schedule.carrierId ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Carrier:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.carrierName || 'Unknown Carrier'}</strong></td>
+            </tr>` : ''}
+          </table>
+        </div>
+        
+        <p>If you need to schedule a new appointment, please visit our booking portal or contact the facility directly.</p>
+      </div>
+      
+      <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+        <p>This is an automated message from Dock Optimizer. Please do not reply to this email.</p>
+      </div>
+    </div>
+  `;
+
+  const text = `
+    APPOINTMENT CANCELLED
+    Confirmation #: ${confirmationCode}
+    
+    Your dock appointment has been cancelled. Below are the details of the cancelled appointment.
+    
+    CANCELLED APPOINTMENT DETAILS
+    ------------------
+    Facility: ${schedule.facilityName || 'Unknown Facility'}
+    Appointment: ${schedule.appointmentTypeName || 'Standard Appointment'}
+    Scheduled Facility Time: ${facilityTimeRange} (CANCELLED)
+    Scheduled Local Time: ${userTimeRange} (CANCELLED)
+    ${schedule.driverName ? `Driver: ${schedule.driverName}` : ''}
+    ${schedule.carrierId ? `Carrier: ${schedule.carrierName || 'Unknown Carrier'}` : ''}
+    
+    If you need to schedule a new appointment, please visit our booking portal or contact the facility directly.
+    
+    This is an automated message from Dock Optimizer. Please do not reply to this email.
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Dock Appointment Cancelled #${confirmationCode}`,
+    html,
+    text
+  });
+}
+
+/**
+ * Send a reminder email for an upcoming appointment
+ */
+export async function sendReminderEmail(
+  to: string,
+  confirmationCode: string,
+  schedule: EnhancedSchedule,
+  hoursUntilAppointment: number
+): Promise<{ html: string, text: string } | boolean> {
+  // Safely get timezones with fallbacks
+  const facilityTimezone = schedule.timezone || 'America/New_York';
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+
+  // Safely parse dates
+  const parseDate = (dateInput: Date | string | null): Date => {
+    if (!dateInput) {
+      return new Date();
+    }
+    
+    if (dateInput instanceof Date) {
+      if (isNaN(dateInput.getTime())) {
+        return new Date();
+      }
+      return dateInput;
+    }
+    
+    try {
+      const parsed = new Date(dateInput);
+      if (isNaN(parsed.getTime())) {
+        return new Date();
+      }
+      return parsed;
+    } catch (e: unknown) {
+      return new Date();
+    }
+  };
+
+  // Get safe date objects
+  const startDate = parseDate(schedule.startTime);
+  const endDate = parseDate(schedule.endTime);
+  
+  // Format times in facility timezone
+  const facilityStart = formatDateForTimezone(
+    startDate, 
+    facilityTimezone, 
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+  const facilityEnd = formatDateForTimezone(
+    endDate, 
+    facilityTimezone, 
+    'h:mm aa'
+  );
+  
+  // Format times in user's local timezone
+  const userStart = formatDateForTimezone(
+    startDate, 
+    userTimezone, 
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+  const userEnd = formatDateForTimezone(
+    endDate, 
+    userTimezone, 
+    'h:mm aa'
+  );
+
+  // Get timezone abbreviations
+  const facilityTzAbbr = getTimezoneAbbr(facilityTimezone, startDate);
+  const userTzAbbr = getTimezoneAbbr(userTimezone, startDate);
+  
+  // Create the final time strings for the email
+  const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
+  const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
+
+  // Host URL with potential fallback
+  const host = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
+
+  // Create reschedule/cancel links
+  const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
+  const cancelLink = `${host}/cancel?code=${confirmationCode}`;
+
+  // Set reminder text based on hours until appointment
+  let reminderText = '';
+  if (hoursUntilAppointment <= 1) {
+    reminderText = 'Your appointment is coming up in less than an hour!';
+  } else if (hoursUntilAppointment <= 2) {
+    reminderText = 'Your appointment is coming up in less than 2 hours.';
+  } else if (hoursUntilAppointment <= 4) {
+    reminderText = 'Your appointment is coming up in less than 4 hours.';
+  } else if (hoursUntilAppointment <= 24) {
+    reminderText = 'Your appointment is scheduled for tomorrow.';
+  } else {
+    reminderText = `Your appointment is scheduled in ${Math.round(hoursUntilAppointment / 24)} days.`;
+  }
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #ffc107; color: #212529; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">Appointment Reminder</h1>
+        <p style="margin-top: 5px;">Confirmation #: ${confirmationCode}</p>
+      </div>
+      
+      <div style="padding: 20px;">
+        <p><strong>${reminderText}</strong> Please review your appointment details below.</p>
+
+        <div style="background-color: #f5f5f5; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+          <h2 style="margin-top: 0; color: #333;">Upcoming Appointment</h2>
+          
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #666; width: 140px;">Facility:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.facilityName || 'Unknown Facility'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Appointment:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.appointmentTypeName || 'Standard Appointment'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Dock:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.dockName || 'Not scheduled yet'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Facility Time:</td>
+              <td style="padding: 8px 0;"><strong>${facilityTimeRange}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Your Local Time:</td>
+              <td style="padding: 8px 0;"><strong>${userTimeRange}</strong></td>
+            </tr>
+            ${schedule.driverName ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Driver:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.driverName}</strong></td>
+            </tr>` : ''}
+            ${schedule.driverPhone ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Driver Phone:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.driverPhone}</strong></td>
+            </tr>` : ''}
+            ${schedule.carrierId ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Carrier:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.carrierName || 'Unknown Carrier'}</strong></td>
+            </tr>` : ''}
+            ${schedule.truckNumber ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Truck #:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.truckNumber}</strong></td>
+            </tr>` : ''}
+            ${schedule.trailerNumber ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Trailer #:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.trailerNumber}</strong></td>
+            </tr>` : ''}
+          </table>
+        </div>
+        
+        <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #856404;">Important Reminders</h3>
+          <ul style="margin-top: 10px; padding-left: 20px;">
+            <li>Please arrive 15 minutes before your scheduled time.</li>
+            <li>Have your confirmation number and all required documentation ready.</li>
+            <li>Follow all facility safety guidelines and instructions.</li>
+          </ul>
+        </div>
+        
+        ${hoursUntilAppointment > 2 ? `
+        <div style="margin: 30px 0; text-align: center;">
+          <p style="margin-bottom: 15px;">Need to make changes to your appointment?</p>
+          
+          <a href="${rescheduleLink}" 
+             style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px; display: inline-block;">
+            Reschedule
+          </a>
+          
+          <a href="${cancelLink}" 
+             style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Cancel
+          </a>
+        </div>` : ''}
+        
+        <p>If you have any questions, please contact the facility directly.</p>
+      </div>
+      
+      <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+        <p>This is an automated message from Dock Optimizer. Please do not reply to this email.</p>
+      </div>
+    </div>
+  `;
+
+  const text = `
+    APPOINTMENT REMINDER
+    Confirmation #: ${confirmationCode}
+    
+    ${reminderText} Please review your appointment details below.
+    
+    UPCOMING APPOINTMENT
+    ------------------
+    Facility: ${schedule.facilityName || 'Unknown Facility'}
+    Appointment: ${schedule.appointmentTypeName || 'Standard Appointment'}
+    Dock: ${schedule.dockName || 'Not scheduled yet'}
+    
+    Facility Time: ${facilityTimeRange}
+    Your Local Time: ${userTimeRange}
+    ${schedule.driverName ? `Driver: ${schedule.driverName}` : ''}
+    ${schedule.driverPhone ? `Driver Phone: ${schedule.driverPhone}` : ''}
+    ${schedule.carrierId ? `Carrier: ${schedule.carrierName || 'Unknown Carrier'}` : ''}
+    ${schedule.truckNumber ? `Truck #: ${schedule.truckNumber}` : ''}
+    ${schedule.trailerNumber ? `Trailer #: ${schedule.trailerNumber}` : ''}
+    
+    IMPORTANT REMINDERS:
+    - Please arrive 15 minutes before your scheduled time.
+    - Have your confirmation number and all required documentation ready.
+    - Follow all facility safety guidelines and instructions.
+    
+    ${hoursUntilAppointment > 2 ? `Need to make changes? 
+    Reschedule: ${rescheduleLink}
+    Cancel: ${cancelLink}` : ''}
+    
+    If you have any questions, please contact the facility directly.
+    
+    This is an automated message from Dock Optimizer. Please do not reply to this email.
+  `;
+
+  return sendEmail({
+    to,
+    subject: `Reminder: Upcoming Dock Appointment #${confirmationCode}`,
+    html,
+    text
+  });
+}
