@@ -107,12 +107,93 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
       bolFileUploaded: true
     });
     
-    // Create preview text from the extracted data for display
+    // Try to prefill pickup/dropoff from BOL data
+    if (data.pickupOrDropoff && !form.watch("pickupOrDropoff")) {
+      form.setValue("pickupOrDropoff", data.pickupOrDropoff);
+      updateBookingData({ pickupOrDropoff: data.pickupOrDropoff });
+    }
+    
+    // Try to prefill location based on address info in the BOL
+    if (!form.watch("facilityId") && (data.fromAddress || data.toAddress)) {
+      // Helper function to find matching facility based on address
+      const findFacilityMatch = (address: string | undefined) => {
+        if (!address) return null;
+        const addressLower = address.toLowerCase();
+        
+        // Try to find facility by matching address keywords
+        return availableFacilities.find((facility: any) => {
+          // Match by name
+          if (addressLower.includes(facility.name.toLowerCase())) {
+            return true;
+          }
+          
+          // Match by address parts if present in the BOL address
+          if (facility.address1 && addressLower.includes(facility.address1.toLowerCase())) {
+            return true;
+          }
+          
+          if (facility.city && addressLower.includes(facility.city.toLowerCase())) {
+            return true;
+          }
+          
+          return false;
+        });
+      };
+      
+      // Look for matches based on direction (pickup vs dropoff)
+      let matchedFacility = null;
+      if (data.pickupOrDropoff === 'pickup') {
+        // If pickup, look for facility in fromAddress
+        matchedFacility = findFacilityMatch(data.fromAddress);
+      } else if (data.pickupOrDropoff === 'dropoff') {
+        // If dropoff, look for facility in toAddress
+        matchedFacility = findFacilityMatch(data.toAddress);
+      }
+      
+      // If no direction-specific match, try matching any address
+      if (!matchedFacility) {
+        matchedFacility = findFacilityMatch(data.fromAddress) || findFacilityMatch(data.toAddress);
+      }
+      
+      // If we found a matching facility, select it
+      if (matchedFacility) {
+        form.setValue("facilityId", matchedFacility.id.toString());
+        updateBookingData({ facilityId: matchedFacility.id });
+        
+        // Try to auto-select an appointment type for the facility
+        setTimeout(() => {
+          const facilityId = parseInt(form.watch("facilityId") || "0", 10);
+          const types = appointmentTypes
+            .filter((type: any) => type.facilityId === facilityId)
+            .sort((a: any, b: any) => a.name.localeCompare(b.name));
+            
+          // Auto-select the first appointment type that matches the BOL direction
+          if (types.length > 0) {
+            const pickupOrDropoff = form.watch("pickupOrDropoff");
+            const matchingType = types.find((type: any) => {
+              const isInbound = type.type?.toLowerCase() === 'inbound';
+              const isOutbound = type.type?.toLowerCase() === 'outbound';
+              
+              return (isInbound && pickupOrDropoff === 'dropoff') || 
+                     (isOutbound && pickupOrDropoff === 'pickup');
+            }) || types[0]; // Fallback to first type if no direction match
+            
+            form.setValue("appointmentTypeId", matchingType.id.toString());
+            updateBookingData({ appointmentTypeId: matchingType.id });
+          }
+        }, 100); // Small delay to ensure the appointment types have updated after facility change
+      }
+    }
+    
+    // Create enhanced preview text from the extracted data for display
     const preview = `
 BOL Number: ${data.bolNumber || ''}
 Customer: ${data.customerName || ''}
 Carrier: ${data.carrierName || ''} ${data.mcNumber ? `(${data.mcNumber})` : ''}
 ${data.weight ? `Weight: ${data.weight}` : ''}
+${data.pickupOrDropoff ? `Type: ${data.pickupOrDropoff === 'pickup' ? 'Pickup (Outbound)' : 'Dropoff (Inbound)'}` : ''}
+${data.fromAddress ? `From: ${data.fromAddress}` : ''}
+${data.toAddress ? `To: ${data.toAddress}` : ''}
 ${data.notes ? `Notes: ${data.notes}` : ''}
     `.trim();
     
@@ -279,7 +360,10 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
                                 ? 'border-primary bg-primary/10'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
-                            onClick={() => form.setValue("pickupOrDropoff", "pickup")}
+                            onClick={() => {
+                              form.setValue("pickupOrDropoff", "pickup");
+                              updateBookingData({ pickupOrDropoff: 'pickup' });
+                            }}
                           >
                             <div className="font-medium">Pickup</div>
                             <div className="text-sm text-gray-500">I'm picking up goods from the facility</div>
@@ -291,7 +375,10 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
                                 ? 'border-primary bg-primary/10'
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
-                            onClick={() => form.setValue("pickupOrDropoff", "dropoff")}
+                            onClick={() => {
+                              form.setValue("pickupOrDropoff", "dropoff");
+                              updateBookingData({ pickupOrDropoff: 'dropoff' });
+                            }}
                           >
                             <div className="font-medium">Dropoff</div>
                             <div className="text-sm text-gray-500">I'm delivering goods to the facility</div>

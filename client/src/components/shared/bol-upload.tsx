@@ -214,6 +214,10 @@ export default function BolUpload({
         buttonIcon={isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
       />
       
+      <div className="text-xs text-muted-foreground">
+        Maximum file size: 10MB. Accepted file types: PDF, images, and documents.
+      </div>
+      
       {isProcessing && (
         <div className="flex items-center justify-center p-4 bg-muted/25 rounded-md">
           <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
