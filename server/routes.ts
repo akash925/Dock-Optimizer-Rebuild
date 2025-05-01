@@ -3990,9 +3990,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Photo uploaded: ${photoInfo.filename}`);
       }
       
-      // Update schedule with notes, photo, and mark as completed
+      // Update schedule with notes, photo, mark as completed, and clear dock assignment
       const scheduleData = {
-        status: "completed", // Mark as completed instead of trying to clear dockId
+        status: "completed", // Mark as completed
+        dockId: null, // Clear dockId to release the door
         actualEndTime: new Date(),
         notes: notes || schedule.notes,
         lastModifiedBy: req.user?.id || null,

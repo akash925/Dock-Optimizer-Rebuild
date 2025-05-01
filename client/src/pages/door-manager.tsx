@@ -243,10 +243,17 @@ export default function DoorManager() {
     // Close the form
     handleCloseReleaseDoorForm();
     
-    // Force an additional refetch after a small delay to ensure consistency
+    // Refetch the docks to update their status
+    refetchDocks();
+    
+    // Force a complete refresh after a delay to ensure all data is in sync
     setTimeout(() => {
       refetchSchedules();
-    }, 500);
+      refetchDocks();
+      
+      // Also update the timestamp to force a complete re-render
+      setLastUpdated(new Date());
+    }, 800);
   };
 
   return (
