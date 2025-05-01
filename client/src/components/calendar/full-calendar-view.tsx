@@ -548,7 +548,7 @@ export default function FullCalendarView({
                 right: ''
               }}
               nowIndicator={true}
-              timeZone={selectedTimezone}
+              timeZone={EASTERN_TIMEZONE}
               events={events}
               selectable={!!onDateSelect}
               selectMirror={true}
@@ -579,7 +579,8 @@ export default function FullCalendarView({
               slotLabelFormat={{
                 hour: 'numeric',
                 minute: '2-digit',
-                hour12: true
+                hour12: true,
+                timeZone: EASTERN_TIMEZONE
               }}
               
               // More stable settings
@@ -593,8 +594,9 @@ export default function FullCalendarView({
               eventTimeFormat={{
                 hour: '2-digit',
                 minute: '2-digit',
-                meridiem: false,
-                hour12: false
+                meridiem: true,
+                hour12: true,
+                timeZone: EASTERN_TIMEZONE
               }}
               
               // Event sorting - later ones on top
