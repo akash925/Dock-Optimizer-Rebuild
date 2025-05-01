@@ -4168,6 +4168,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Test email template (development only)
   if (process.env.NODE_ENV === 'development') {
+    // Test all email templates
+    app.get('/api/test-all-emails', async (req, res) => {
+      try {
+        // Import the email test function
+        const { testEmailTemplate } = await import('./email-test');
+        const result = await testEmailTemplate();
+        
+        // Return links to the generated templates
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Email Templates Test</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f0f0; }
+              .container { max-width: 800px; margin: 0 auto; }
+              .header { background-color: #4CAF50; color: white; padding: 15px; border-radius: 5px 5px 0 0; }
+              .content { border: 1px solid #ddd; border-radius: 0 0 5px 5px; padding: 20px; background-color: white; }
+              .footer { margin-top: 20px; text-align: center; color: #666; }
+              .link { display: block; margin: 10px 0; padding: 10px; background-color: #e0f0e0; border-radius: 5px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Email Templates Test</h1>
+                <p>All email templates have been generated successfully</p>
+              </div>
+              <div class="content">
+                <h2>Generated Email Templates</h2>
+                <a class="link" href="/email-confirmation-test.html" target="_blank">View Confirmation Email</a>
+                <a class="link" href="/email-reschedule-test.html" target="_blank">View Reschedule Email</a>
+                <a class="link" href="/email-cancellation-test.html" target="_blank">View Cancellation Email</a>
+                <a class="link" href="/email-reminder-test.html" target="_blank">View Reminder Email</a>
+              </div>
+              <div class="footer">
+                <p>These templates are used for all emails sent by the system.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `);
+      } catch (error) {
+        console.error('Error testing email templates:', error);
+        res.status(500).send(`Error testing email templates: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    });
+
     app.get('/api/test-email-template', async (req, res) => {
       try {
         // Create a sample schedule with all the data we need
