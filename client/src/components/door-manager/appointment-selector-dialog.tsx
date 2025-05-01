@@ -119,9 +119,10 @@ export default function AppointmentSelectorDialog({
             <Label htmlFor="facility-filter" className="text-sm font-medium">Filter by Facility</Label>
           </div>
           <Select 
-            value={selectedFacilityId?.toString() || ""} 
+            value={selectedFacilityId?.toString() || "0"} 
             onValueChange={(value) => {
-              const newFacilityId = value ? parseInt(value) : null;
+              // If value is "0", it means "All Facilities" (null)
+              const newFacilityId = value === "0" ? null : parseInt(value);
               setSelectedFacilityId(newFacilityId);
               // Pass the facility change up to the parent component if provided
               if (onFacilityChange && newFacilityId) {
@@ -135,7 +136,7 @@ export default function AppointmentSelectorDialog({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Facilities</SelectItem>
+              <SelectItem value="0">All Facilities</SelectItem>
               {facilities.map((facility) => (
                 <SelectItem key={facility.id} value={facility.id.toString()}>
                   {facility.name}
