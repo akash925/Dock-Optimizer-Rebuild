@@ -204,6 +204,66 @@ export default function AppointmentForm({
   // Filtered appointment types based on selected facility
   const [filteredAppointmentTypes, setFilteredAppointmentTypes] = useState<AppointmentType[]>([]);
   
+  // Initialize form when component mounts or isOpen changes
+  useEffect(() => {
+    if (isOpen) {
+      console.log("[AppointmentForm] Form opened with props:", { 
+        initialFacilityId, 
+        initialDockId, 
+        initialAppointmentTypeId,
+        editMode
+      });
+      
+      // If we're in create mode, always initialize the form with the latest props
+      if (editMode === 'create') {
+        const formValues: Partial<AppointmentFormValues> = {
+          // Set a default date and time
+          appointmentDate: initialDate ? format(initialDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+          appointmentTime: initialDate ? format(initialDate, "HH:mm") : "09:00",
+        };
+        
+        // Set facility ID if provided (this is required)
+        if (initialFacilityId) {
+          formValues.facilityId = initialFacilityId;
+          // Try to find and set the facility name
+          const facility = facilities.find(f => f.id === initialFacilityId);
+          if (facility) {
+            formValues.facilityName = facility.name;
+          }
+        } else if (facilities.length > 0) {
+          // Default to first facility if none specified
+          formValues.facilityId = facilities[0].id;
+          formValues.facilityName = facilities[0].name;
+        }
+        
+        // Set dock ID if provided
+        if (initialDockId) {
+          formValues.dockId = initialDockId;
+        }
+        
+        // Set appointment type if provided
+        if (initialAppointmentTypeId) {
+          formValues.appointmentTypeId = initialAppointmentTypeId;
+        } else if (filteredAppointmentTypes.length > 0) {
+          // Try to get appointment types for this facility
+          const typesForFacility = allAppointmentTypes.filter(
+            type => type.facilityId === formValues.facilityId
+          );
+          if (typesForFacility.length > 0) {
+            formValues.appointmentTypeId = typesForFacility[0].id;
+          } else if (allAppointmentTypes.length > 0) {
+            // Fall back to first type
+            formValues.appointmentTypeId = allAppointmentTypes[0].id;
+          }
+        }
+        
+        // Apply all the initial values at once
+        console.log("[AppointmentForm] Setting initial form values:", formValues);
+        form.reset(formValues);
+      }
+    }
+  }, [isOpen, initialFacilityId, initialDockId, initialAppointmentTypeId, initialDate, editMode, facilities, allAppointmentTypes, filteredAppointmentTypes]);
+  
   // Watch for facilityId changes to update filtered appointment types and timezone
   const watchedFacilityId = form.watch("facilityId");
   const lastFacilityIdRef = useRef<number | undefined>(watchedFacilityId);

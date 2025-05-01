@@ -10,6 +10,7 @@ import AppointmentSelectorDialog from "../components/door-manager/appointment-se
 import { useAssignAppointmentToDoor } from "../components/door-manager/assign-appointment-service";
 import DoorBoard from "../components/door-manager/door-board";
 import { X, LogOut, RefreshCw } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 export default function DoorManager() {
   const { toast } = useToast();

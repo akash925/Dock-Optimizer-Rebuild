@@ -46,7 +46,7 @@ export default function DoorAppointmentForm({
   };
 
   // Debug logs to verify props
-  console.log("[DoorAppointmentForm] Props:", { dockId, facilityId, facilityName });
+  console.log("[DoorAppointmentForm] Props:", { dockId, facilityId, facilityName, isOpen });
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
