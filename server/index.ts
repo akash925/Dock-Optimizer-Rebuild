@@ -10,7 +10,7 @@ import { tenantMiddleware } from "./middleware/tenant";
 dotenv.config();
 
 // Default system modules (always loaded)
-const SYSTEM_MODULES = ['tenants', 'featureFlags', 'modules'];
+const SYSTEM_MODULES = ['tenants', 'featureFlags', 'modules', 'organizations'];
 
 // Tenant-specific modules (loaded based on tenant configuration)
 const AVAILABLE_MODULES = [

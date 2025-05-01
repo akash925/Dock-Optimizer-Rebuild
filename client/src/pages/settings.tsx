@@ -72,14 +72,73 @@ export default function Settings() {
       setBarcodePrefix(savedPrefix);
     }
   }, []);
-  const [organizationHolidays, setOrganizationHolidays] = useState([
+  
+  // Default holidays used when no holidays are set yet
+  const defaultHolidays = [
     { name: "New Year's Day", date: "2025-01-01", enabled: true },
     { name: "Memorial Day", date: "2025-05-26", enabled: true },
     { name: "Independence Day", date: "2025-07-04", enabled: true },
     { name: "Labor Day", date: "2025-09-01", enabled: true },
     { name: "Thanksgiving Day", date: "2025-11-27", enabled: true },
     { name: "Christmas Day", date: "2025-12-25", enabled: true },
-  ]);
+  ];
+  
+  const [organizationHolidays, setOrganizationHolidays] = useState(defaultHolidays);
+  
+  // Fetch organization holidays
+  const { data: holidaysData, isLoading: isLoadingHolidays } = useQuery({
+    queryKey: ['/api/organizations', user?.tenantId, 'holidays'],
+    queryFn: async () => {
+      if (!user?.tenantId) return defaultHolidays;
+      const res = await fetch(`/api/organizations/${user.tenantId}/holidays`);
+      if (!res.ok) {
+        console.error('Failed to fetch holidays, using defaults');
+        return defaultHolidays;
+      }
+      return await res.json();
+    },
+    enabled: !!user?.tenantId
+  });
+  
+  // Update local state when holidays are fetched
+  useEffect(() => {
+    if (holidaysData && Array.isArray(holidaysData) && holidaysData.length > 0) {
+      setOrganizationHolidays(holidaysData);
+    }
+  }, [holidaysData]);
+  
+  // Mutation to save holidays
+  const saveHolidaysMutation = useMutation({
+    mutationFn: async (holidays: any) => {
+      if (!user?.tenantId) throw new Error('User tenant ID is required');
+      const response = await fetch(`/api/organizations/${user.tenantId}/holidays`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ holidays }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save holidays');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate the holidays query to refetch with new data
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/organizations', user?.tenantId, 'holidays'] 
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to save holidays",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
   
   // Fetch facilities
   const { data: facilities } = useQuery({
@@ -800,7 +859,13 @@ export default function Settings() {
                         onCheckedChange={(checked) => {
                           const updatedHolidays = [...organizationHolidays];
                           updatedHolidays[index] = { ...holiday, enabled: checked };
+                          // Update local state
                           setOrganizationHolidays(updatedHolidays);
+                          
+                          // Save to server
+                          if (user?.tenantId) {
+                            saveHolidaysMutation.mutate(updatedHolidays);
+                          }
                         }}
                       />
                     </div>
@@ -834,25 +899,42 @@ export default function Settings() {
                     <Button
                       onClick={() => {
                         if (customHolidayName && customHolidayDate) {
-                          setOrganizationHolidays([
+                          // Create new holidays array with the new holiday
+                          const updatedHolidays = [
                             ...organizationHolidays,
                             { 
                               name: customHolidayName, 
                               date: customHolidayDate, 
                               enabled: true 
                             }
-                          ]);
+                          ];
+                          
+                          // Update local state
+                          setOrganizationHolidays(updatedHolidays);
                           setCustomHolidayName("");
                           setCustomHolidayDate("");
+                          
+                          // Save to server
+                          if (user?.tenantId) {
+                            saveHolidaysMutation.mutate(updatedHolidays);
+                          }
+                          
                           toast({
                             title: "Holiday Added",
                             description: `${customHolidayName} has been added to organization holidays.`,
                           });
                         }
                       }}
-                      disabled={!customHolidayName || !customHolidayDate}
+                      disabled={!customHolidayName || !customHolidayDate || saveHolidaysMutation.isPending}
                     >
-                      Add Holiday
+                      {saveHolidaysMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Add Holiday"
+                      )}
                     </Button>
                   </div>
                 </div>
