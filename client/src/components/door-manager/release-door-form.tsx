@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -107,15 +107,9 @@ export default function ReleaseDoorForm({
       
       // Force a refetch of dock and schedule data
       try {
-        // Import from context if available
-        // Invalidate all schedule and dock queries
-        if (window.queryClient) {
-          console.log('[ReleaseDoorForm] Invalidating queries from window.queryClient...');
-          window.queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
-          window.queryClient.invalidateQueries({ queryKey: ['/api/docks'] });
-        } else {
-          console.log('[ReleaseDoorForm] No global queryClient available');
-        }
+        console.log('[ReleaseDoorForm] Invalidating queries from queryClient...');
+        queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/docks'] });
       } catch (err) {
         console.error('[ReleaseDoorForm] Error invalidating queries:', err);
       }
