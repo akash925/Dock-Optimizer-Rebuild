@@ -671,12 +671,34 @@ export default function Settings() {
                         onChange={(e) => {
                           if (e.target.files && e.target.files[0]) {
                             const file = e.target.files[0];
+                            
+                            // Check file size - enforce 1MB limit
+                            if (file.size > 1024 * 1024) {
+                              toast({
+                                title: "File too large",
+                                description: "Logo image must be smaller than 1MB. Please resize and try again.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
                             const reader = new FileReader();
                             
                             reader.onload = (event) => {
                               if (event.target?.result) {
-                                // Set the preview image and show the toast
-                                setLogoPreview(event.target.result as string);
+                                // Check if the result is too large for HTTP request
+                                const dataUrl = event.target.result as string;
+                                if (dataUrl.length > 1024 * 1024) {
+                                  toast({
+                                    title: "Image too large",
+                                    description: "The encoded image is too large. Please use a smaller or compressed image.",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                
+                                // Set the preview image
+                                setLogoPreview(dataUrl);
                                 
                                 // Upload the logo to the server using the API
                                 if (user?.tenantId) {

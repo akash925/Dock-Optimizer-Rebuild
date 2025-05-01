@@ -32,8 +32,9 @@ console.log(`Asset Manager module is ${ENABLE_ASSET_MANAGER ? 'enabled' : 'disab
 console.log(`Enabled modules: ${ENABLED_MODULES.length ? ENABLED_MODULES.join(', ') : 'none'}`);
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Increase JSON payload size limit to 5MB for logo uploads
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: false, limit: '5mb' }));
 
 // Add tenant identification middleware
 app.use(tenantMiddleware);
