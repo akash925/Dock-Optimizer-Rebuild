@@ -57,8 +57,9 @@ export default function FullCalendarView({
   calendarRef: externalCalendarRef,
   initialView: initialViewProp = 'timeGridWeek'
 }: FullCalendarViewProps) {
-  // Get user's timezone and set as default, or use the passed timezone prop
-  const [selectedTimezone, setSelectedTimezone] = useState<string>(timezone || getUserTimeZone());
+  // Always use Eastern time zone (America/New_York) for facility time
+  const EASTERN_TIMEZONE = 'America/New_York';
+  const [selectedTimezone, setSelectedTimezone] = useState<string>(EASTERN_TIMEZONE);
   
   // Fetch all facilities for lookup purposes
   const { data: facilities } = useQuery({
@@ -90,35 +91,15 @@ export default function FullCalendarView({
     }
   }, [facilities]);
   
-  // Update selectedTimezone when the timezone prop changes
+  // Always use Eastern time (America/New_York) regardless of user's preference
   useEffect(() => {
-    if (timezone) {
-      setSelectedTimezone(timezone);
-    }
-  }, [timezone]);
+    // Force Eastern Time Zone for all calendar views
+    setSelectedTimezone(EASTERN_TIMEZONE);
+    localStorage.setItem('preferredTimezone', EASTERN_TIMEZONE);
+  }, []);
   
   // Use the external ref if provided, otherwise create a local one
   const calendarRef = externalCalendarRef || useRef<FullCalendar>(null);
-  
-  // Initialize timezone based on browser's timezone or saved preference
-  useEffect(() => {
-    // Get browser's timezone
-    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    
-    // Load saved timezone preference if it exists, otherwise use browser timezone
-    const savedTimezone = localStorage.getItem('preferredTimezone');
-    if (savedTimezone) {
-      setSelectedTimezone(savedTimezone);
-    } else if (browserTimezone) {
-      setSelectedTimezone(browserTimezone);
-      localStorage.setItem('preferredTimezone', browserTimezone);
-    }
-  }, []);
-  
-  // Save timezone preference when it changes
-  useEffect(() => {
-    localStorage.setItem('preferredTimezone', selectedTimezone);
-  }, [selectedTimezone]);
   
   // Convert schedules to FullCalendar event format
   // First sort schedules so that later times come first, which ensures they'll be rendered first
@@ -421,18 +402,38 @@ export default function FullCalendarView({
   const formatAppointmentTime = (date: Date, timezone?: string | null) => {
     if (!date) return '';
     
-    // Use Intl.DateTimeFormat for formatting dates with timezone awareness
-    const options: Intl.DateTimeFormatOptions = {
+    // Get user's browser timezone
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    
+    // Always use Eastern time for facility time display
+    const easternOptions: Intl.DateTimeFormatOptions = {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
-      timeZone: timezone || undefined
+      timeZone: EASTERN_TIMEZONE
+    };
+    
+    // Format for user's local time if different from Eastern
+    const userOptions: Intl.DateTimeFormatOptions = {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: userTimezone
     };
     
     try {
-      return new Intl.DateTimeFormat('en-US', options).format(date);
+      // Always display Eastern time as the primary time
+      const easternTimeStr = new Intl.DateTimeFormat('en-US', easternOptions).format(date);
+      
+      // Only add user time if it's different from Eastern
+      if (userTimezone !== EASTERN_TIMEZONE) {
+        const userTimeStr = new Intl.DateTimeFormat('en-US', userOptions).format(date);
+        return `${easternTimeStr} (${userTimeStr} your time)`;
+      }
+      
+      return easternTimeStr;
     } catch (error) {
-      // Fallback to browser's timezone if the specified timezone is invalid
+      // Fallback to basic formatting if any error
       console.error('Error formatting time with timezone:', error);
       return new Intl.DateTimeFormat('en-US', {
         hour: 'numeric',
@@ -463,22 +464,20 @@ export default function FullCalendarView({
                 {activeEvent.startTime && activeEvent.endTime
                   ? `${formatAppointmentTime(activeEvent.startTime, activeEvent.facilityTimezone)} - ${formatAppointmentTime(activeEvent.endTime, activeEvent.facilityTimezone)}`
                   : 'No time specified'}
-                {activeEvent.facilityTimezone && (
-                  <span className="block text-xs bg-blue-50 text-blue-700 rounded-sm px-2 py-1 mt-1 font-medium flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Facility timezone: {activeEvent.facilityTimezone}
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="ml-1 cursor-help">(i)</span>
-                        </TooltipTrigger>
-                        <TooltipContent className="w-60 p-2">
-                          <p className="text-xs">This appointment was booked in the facility's timezone and will remain at this time regardless of your display timezone.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </span>
-                )}
+                <span className="block text-xs bg-blue-50 text-blue-700 rounded-sm px-2 py-1 mt-1 font-medium flex items-center">
+                  <Clock className="w-3 h-3 mr-1" />
+                  Eastern Time (ET)
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="ml-1 cursor-help">(i)</span>
+                      </TooltipTrigger>
+                      <TooltipContent className="w-60 p-2">
+                        <p className="text-xs">All appointments are displayed in Eastern Time (ET) with your local time shown in parentheses when different.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </span>
               </div>
             </div>
             
@@ -530,11 +529,11 @@ export default function FullCalendarView({
         <div className="p-2 border-b bg-slate-50 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             <Clock className="w-4 h-4 inline mr-1 text-primary" />
-            <span className="font-medium">Your Display Timezone:</span> {selectedTimezone}
+            <span className="font-medium">Calendar Timezone:</span> Eastern Time (ET)
           </div>
           <div className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-md font-medium flex items-center">
             <Clock className="w-3 h-3 mr-1" />
-            Times are shifted from facility timezone to your selected timezone
+            All times are shown in Eastern Time with your local time in parentheses
           </div>
         </div>
         <CardContent className="p-0">
