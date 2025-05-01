@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, isPast, isFuture, addHours } from "date-fns";
-import { PlusCircle, Calendar, Clock, Truck, User } from "lucide-react";
-import { Schedule } from "@shared/schema";
+import { PlusCircle, Calendar, Clock, Truck, User, Filter } from "lucide-react";
+import { Schedule, Facility } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface AppointmentSelectorDialogProps {
   isOpen: boolean;
@@ -28,20 +30,48 @@ export default function AppointmentSelectorDialog({
 }: AppointmentSelectorDialogProps) {
   const [tab, setTab] = useState<"upcoming" | "all">("upcoming");
   const [filtered, setFiltered] = useState<Schedule[]>([]);
+  const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(facilityId);
   
   // Fetch schedules
-  const { data: schedules = [], isLoading } = useQuery<Schedule[]>({
+  const { data: schedules = [], isLoading: schedulesLoading } = useQuery<Schedule[]>({
     queryKey: ["/api/schedules"],
   });
   
+  // Fetch facilities
+  const { data: facilities = [], isLoading: facilitiesLoading } = useQuery<Facility[]>({
+    queryKey: ["/api/facilities"],
+  });
+  
+  // Set the facility filter to the door's facility when component mounts
+  useEffect(() => {
+    if (facilityId) {
+      setSelectedFacilityId(facilityId);
+    }
+  }, [facilityId]);
+  
+  const isLoading = schedulesLoading || facilitiesLoading;
+  
+  // Get the facility name
+  const getFacilityName = (facilityId: number | null) => {
+    if (!facilityId) return "All Facilities";
+    const facility = facilities.find(f => f.id === facilityId);
+    return facility ? facility.name : "Unknown Facility";
+  };
+  
   useEffect(() => {
     if (schedules.length > 0) {
-      let filtered = schedules.filter(schedule => 
+      let filtered = schedules.filter(schedule => {
         // Only include scheduled or pending appointments
-        (schedule.status === "scheduled" || schedule.status === "pending") &&
+        const statusOk = (schedule.status === "scheduled" || schedule.status === "pending");
+        
         // Don't include appointments already assigned to docks
-        !schedule.dockId
-      );
+        const notAssigned = !schedule.dockId;
+        
+        // Filter by facility if selected
+        const facilityMatches = !selectedFacilityId || schedule.facilityId === selectedFacilityId;
+        
+        return statusOk && notAssigned && facilityMatches;
+      });
       
       // For "upcoming" tab, only show future appointments
       if (tab === "upcoming") {
@@ -57,7 +87,7 @@ export default function AppointmentSelectorDialog({
       
       setFiltered(filtered);
     }
-  }, [schedules, tab]);
+  }, [schedules, tab, selectedFacilityId]);
   
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -79,6 +109,32 @@ export default function AppointmentSelectorDialog({
             Assign an existing appointment to this door or create a new one
           </DialogDescription>
         </DialogHeader>
+        
+        {/* Facility Filter */}
+        <div className="mb-4 border-b pb-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Label htmlFor="facility-filter" className="text-sm font-medium">Filter by Facility</Label>
+          </div>
+          <Select 
+            value={selectedFacilityId?.toString() || ""} 
+            onValueChange={(value) => setSelectedFacilityId(value ? parseInt(value) : null)}
+          >
+            <SelectTrigger id="facility-filter" className="w-full">
+              <SelectValue placeholder="Select a facility">
+                {getFacilityName(selectedFacilityId)}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Facilities</SelectItem>
+              {facilities.map((facility) => (
+                <SelectItem key={facility.id} value={facility.id.toString()}>
+                  {facility.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         
         <Tabs defaultValue="upcoming" className="w-full" onValueChange={(value) => setTab(value as "upcoming" | "all")}>
           <TabsList className="grid w-full grid-cols-2">

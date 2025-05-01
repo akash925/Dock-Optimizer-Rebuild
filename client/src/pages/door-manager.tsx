@@ -123,12 +123,29 @@ export default function DoorManager() {
   // Open the appointment selector
   const handleUseDoor = (dockId: number) => {
     setSelectedDockId(dockId);
+    
+    // Find the door's facility ID
+    const selectedDock = docks.find(dock => dock.id === dockId);
+    if (selectedDock) {
+      // Set the facility filter to the door's facility
+      setSelectedFacilityId(selectedDock.facilityId);
+    }
+    
     setShowAppointmentSelector(true);
   };
   
-  // Create a new appointment
+  // Create a new appointment with the facility pre-selected
   const handleCreateAppointment = () => {
     if (!selectedDockId) return;
+    
+    // Find the door's facility ID if not already set
+    const facilityId = selectedFacilityId || 
+      docks.find(d => d.id === selectedDockId)?.facilityId || null;
+    
+    // Set facility ID for pre-selection in the appointment form
+    if (facilityId) {
+      setSelectedFacilityId(facilityId);
+    }
     
     // Default to 1 hour from now 
     const start = new Date();
