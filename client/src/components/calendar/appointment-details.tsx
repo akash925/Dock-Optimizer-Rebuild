@@ -157,7 +157,7 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
           </div>
           
           {/* Additional info if present */}
-          {(schedule.notes || schedule.bolNumber || schedule.poNumber) && (
+          {(schedule.notes || schedule.bolNumber || schedule.poNumber || schedule.weight || scheduleCasted.customFormData?.bolData) && (
             <div className="space-y-2">
               <div className="font-medium">Additional Information</div>
               <div className="grid grid-cols-2 gap-2 text-sm">
@@ -172,6 +172,59 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
                   <>
                     <div>PO Number:</div>
                     <div className="font-medium">{schedule.poNumber}</div>
+                  </>
+                )}
+                
+                {schedule.weight && (
+                  <>
+                    <div>Weight:</div>
+                    <div className="font-medium">{schedule.weight}</div>
+                  </>
+                )}
+                
+                {/* Display any extracted BOL data that might be in customFormData */}
+                {scheduleCasted.customFormData?.bolData?.fromAddress && (
+                  <>
+                    <div>From:</div>
+                    <div className="font-medium">{scheduleCasted.customFormData.bolData.fromAddress}</div>
+                  </>
+                )}
+                
+                {scheduleCasted.customFormData?.bolData?.toAddress && (
+                  <>
+                    <div>To:</div>
+                    <div className="font-medium">{scheduleCasted.customFormData.bolData.toAddress}</div>
+                  </>
+                )}
+                
+                {scheduleCasted.customFormData?.bolData?.pickupOrDropoff && (
+                  <>
+                    <div>Appointment Type:</div>
+                    <div className="font-medium">{scheduleCasted.customFormData.bolData.pickupOrDropoff}</div>
+                  </>
+                )}
+                
+                {/* Display file information if available */}
+                {scheduleCasted.customFormData?.bolData?.fileName && (
+                  <>
+                    <div>BOL Document:</div>
+                    <div className="font-medium">
+                      {scheduleCasted.customFormData.bolData.fileName}
+                    </div>
+                  </>
+                )}
+                
+                {/* Display any parsed OCR text if available - in collapsed form */}
+                {scheduleCasted.customFormData?.bolData?.parsedOcrText && (
+                  <>
+                    <div className="col-span-2 mt-2">
+                      <details className="text-xs">
+                        <summary className="cursor-pointer font-medium text-primary">View OCR Extracted Text</summary>
+                        <pre className="mt-2 p-2 bg-gray-50 rounded text-xs overflow-auto max-h-40">
+                          {scheduleCasted.customFormData.bolData.parsedOcrText}
+                        </pre>
+                      </details>
+                    </div>
                   </>
                 )}
                 

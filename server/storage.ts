@@ -1969,16 +1969,16 @@ export class DatabaseStorage implements IStorage {
   async getSchedule(id: number): Promise<Schedule | undefined> {
     try {
       // Use pool's query directly, joining with related tables to get facility info
-      // Direct join with facilities using s.facility_id if it exists
+      // Use the correct column references to avoid SQL errors
       const result = await pool.query(`
         SELECT s.*, d.name as dock_name, 
                COALESCE(f2.name, f.name) as facility_name, 
-               COALESCE(s.facility_id, f.id) as facility_id,
+               COALESCE(d.facility_id, s.facility_id) as facility_id,
                at.name as appointment_type_name
         FROM schedules s
         LEFT JOIN docks d ON s.dock_id = d.id
         LEFT JOIN facilities f ON d.facility_id = f.id
-        LEFT JOIN facilities f2 ON s.facility_id = f2.id
+        LEFT JOIN facilities f2 ON d.facility_id = f2.id
         LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
         WHERE s.id = $1 LIMIT 1
       `, [id]);
