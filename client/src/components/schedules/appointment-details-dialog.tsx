@@ -19,7 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Clock, Calendar, Truck, FileText, ChevronsRight, Check, X, RefreshCw, 
   ClipboardList, Trash2, Pencil, QrCode, Printer, History, ArrowRight,
-  AlertTriangle, Edit, Save, Info, FileUp, Download, ExternalLink, FileCheck
+  AlertTriangle, Edit, Save, Info, FileUp, Download, ExternalLink, FileCheck,
+  Image as ImageIcon
 } from "lucide-react";
 import BolUpload from "@/components/shared/bol-upload";
 import { ParsedBolData } from "@/lib/ocr-service";
