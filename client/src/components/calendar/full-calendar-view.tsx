@@ -164,10 +164,20 @@ export default function FullCalendarView({
                   (isInbound ? '#3B82F6' : '#10B981');
     }
     
-    // Date utilities
-    const startTime = new Date(schedule.startTime);
-    const hour = startTime.getHours();
-    const mins = startTime.getMinutes();
+    // Date utilities - always display times in Eastern Time
+    const localStartTime = new Date(schedule.startTime);
+    
+    // Convert to Eastern Time for display
+    const easternFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: EASTERN_TIMEZONE,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    
+    // Still need the original hour/minutes for z-index calculation 
+    const hour = localStartTime.getHours();
+    const mins = localStartTime.getMinutes();
     
     // Calculate and store the event hour for z-index calculation
     const eventHour = hour.toString().padStart(2, '0');
@@ -265,11 +275,15 @@ export default function FullCalendarView({
       ? attention.isUrgent ? 'urgent-attention' : 'needs-attention'
       : '';
     
+    // Create proper dates in Eastern Time zone for display
+    const easternStartDate = new Date(schedule.startTime);
+    const easternEndDate = new Date(schedule.endTime);
+    
     return {
       id: schedule.id.toString(),
       title: title,
-      start: schedule.startTime,
-      end: schedule.endTime,
+      start: easternStartDate,
+      end: easternEndDate,
       backgroundColor: statusColor,
       borderColor: statusColor,
       textColor: '#FFFFFF',
