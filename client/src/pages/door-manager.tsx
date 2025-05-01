@@ -342,96 +342,43 @@ export default function DoorManager() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredDocks.map((dock) => {
-            const { status, currentSchedule } = getDoorStatus(dock);
-            const carrierName = currentSchedule && carriers.find(c => c.id === currentSchedule.carrierId)?.name;
-            
-            return (
-              <div 
-                key={dock.id} 
-                className={`border rounded-md overflow-hidden shadow-sm transition-all duration-300 ${
-                  recentlyAssignedDock === dock.id 
-                    ? 'ring-2 ring-blue-500 scale-[1.03] bg-blue-50' 
-                    : status === "occupied" 
-                      ? 'border-red-500 bg-red-50' 
-                      : status === "reserved" 
-                        ? 'border-amber-400'
-                        : ''
-                }`}
-              >
-                <div className="p-4 border-b flex justify-between items-center">
-                  <div className="font-semibold">{dock.name}</div>
-                  <div className={`h-4 w-4 rounded-full ${
-                    status === "available" ? "bg-green-500" : 
-                    status === "occupied" ? "bg-red-500" : 
-                    status === "reserved" ? "bg-amber-500" : "bg-gray-500"
-                  }`}></div>
-                </div>
-                
-                {(status === "occupied" || status === "reserved") && currentSchedule && (
-                  <div className="px-4 pt-2">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {currentSchedule.customerName || "No Customer Name"}
-                    </p>
-                    <p className="text-xs font-medium text-gray-700">
-                      {carrierName || "Unknown Carrier"}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {/* Eastern Time (facility timezone) */}
-                      {new Date(currentSchedule.startTime).toLocaleTimeString('en-US', { 
-                        hour: '2-digit', 
-                        minute: '2-digit',
-                        timeZone: 'America/New_York' 
-                      })} - 
-                      {new Date(currentSchedule.endTime).toLocaleTimeString('en-US', { 
-                        hour: '2-digit', 
-                        minute: '2-digit',
-                        timeZone: 'America/New_York'
-                      })}
-                      {/* Show local time if different */}
-                      {Intl.DateTimeFormat().resolvedOptions().timeZone !== 'America/New_York' && (
-                        <span className="text-xs italic"> 
-                          ({new Date(currentSchedule.startTime).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })} local)
-                        </span>
-                      )}
-                    </p>
-                    {status === "reserved" && <p className="text-xs text-amber-600 font-medium">Reserved</p>}
-                  </div>
-                )}
-                
-                <div className="p-4 flex justify-center">
-                  {status === "occupied" && currentSchedule ? (
-                    <Button 
-                      onClick={() => handleReleaseDoor(currentSchedule.id)}
-                      className="w-full bg-red-600 hover:bg-red-700"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Release Door
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={() => handleUseDoor(dock.id)}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                      disabled={status === "not_available"}
-                    >
-                      {status === "reserved" ? "Check In" : "Use Door"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          
-          {filteredDocks.length === 0 && (
-            <div className="col-span-full text-center p-10 bg-gray-50 rounded-md">
-              <p className="text-gray-500">No doors available for the selected filters.</p>
-            </div>
-          )}
+        {/* Refresh Button */}
+        <div className="flex justify-end mb-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              refetchDocks();
+              refetchSchedules();
+              setLastUpdated(new Date());
+            }}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw size={14} />
+            Refresh Data
+          </Button>
         </div>
+
+        {/* Door Board Component */}
+        <DoorBoard 
+          docks={filteredDocks}
+          schedules={schedules}
+          carriers={carriers}
+          onCreateAppointment={(dockId, timeSlot) => {
+            setSelectedDockId(dockId);
+            if (timeSlot) {
+              setSelectedTimeSlot(timeSlot);
+              setShowAppointmentForm(true);
+            } else {
+              setShowAppointmentSelector(true);
+            }
+          }}
+          onRefreshData={() => {
+            refetchDocks();
+            refetchSchedules();
+            setLastUpdated(new Date());
+          }}
+        />
       </div>
       
       {/* Door Appointment Form Dialog */}
