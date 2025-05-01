@@ -82,9 +82,43 @@ export function generateICalEvent(
   // Get safe timezone, defaulting to Eastern Time
   const timezone = schedule.timezone || 'America/New_York';
   
+  // Safely parse dates - handling both Date objects and string inputs
+  const parseDate = (dateInput: Date | string | null): Date => {
+    if (!dateInput) {
+      console.warn('[iCal] Null date provided, using current time as fallback');
+      return new Date();
+    }
+    
+    // If it's already a Date object
+    if (dateInput instanceof Date) {
+      if (isNaN(dateInput.getTime())) {
+        console.warn('[iCal] Invalid Date object provided, using current time as fallback');
+        return new Date();
+      }
+      return dateInput;
+    }
+    
+    // If it's a string, attempt to parse it
+    try {
+      const parsed = new Date(dateInput);
+      if (isNaN(parsed.getTime())) {
+        console.warn(`[iCal] Invalid date string: ${dateInput}, using current time as fallback`);
+        return new Date();
+      }
+      return parsed;
+    } catch (e: unknown) {
+      console.error(`[iCal] Failed to parse date: ${dateInput}`, e);
+      return new Date();
+    }
+  };
+  
+  // Get safe date objects
+  const startDate = parseDate(schedule.startTime);
+  const endDate = parseDate(schedule.endTime);
+  
   // Convert timestamps to UTC for iCal format
-  const startUTC = schedule.startTime.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/g, '');
-  const endUTC = schedule.endTime.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/g, '');
+  const startUTC = startDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/g, '');
+  const endUTC = endDate.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/g, '');
   
   // Generate a unique ID for the event
   const eventUid = `DO-${schedule.id}-${confirmationCode}@dockoptimizer.com`;
@@ -326,7 +360,7 @@ export async function sendConfirmationEmail(
   to: string,
   confirmationCode: string,
   schedule: EnhancedSchedule
-): Promise<{ html: string, text: string } | boolean> {
+): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   // Safely get timezones with fallbacks
   const facilityTimezone = schedule.timezone || 'America/New_York';
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
@@ -575,7 +609,7 @@ export async function sendRescheduleEmail(
   schedule: EnhancedSchedule,
   oldStartTime?: Date,
   oldEndTime?: Date
-): Promise<{ html: string, text: string } | boolean> {
+): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   // Safely get timezones with fallbacks
   const facilityTimezone = schedule.timezone || 'America/New_York';
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
@@ -826,7 +860,7 @@ export async function sendCancellationEmail(
   to: string,
   confirmationCode: string,
   schedule: EnhancedSchedule
-): Promise<{ html: string, text: string } | boolean> {
+): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   // Safely get timezones with fallbacks
   const facilityTimezone = schedule.timezone || 'America/New_York';
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
@@ -991,7 +1025,7 @@ export async function sendReminderEmail(
   confirmationCode: string,
   schedule: EnhancedSchedule,
   hoursUntilAppointment: number
-): Promise<{ html: string, text: string } | boolean> {
+): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   // Safely get timezones with fallbacks
   const facilityTimezone = schedule.timezone || 'America/New_York';
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
