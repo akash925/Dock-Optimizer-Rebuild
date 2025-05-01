@@ -1091,23 +1091,18 @@ const customerInfoSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   phone: z.string().min(5, { message: "Phone number is required" }),
   customerRef: z.string().optional(),
-  carrierId: z.number().optional(), // Carrier ID field for existing carriers
-  carrierName: z.string().optional(), // Custom carrier name field
+  // Make carrierId completely optional without validation
+  carrierId: z.number().optional().or(z.literal(undefined)), 
+  // Always allow carrier name to pass validation
+  carrierName: z.string().optional().default(""),
   driverName: z.string().min(1, { message: "Driver name is required" }),
   driverPhone: z.string().min(5, { message: "Driver phone is required" }),
-  mcNumber: z.string().optional(), // MC Number remains optional
+  // Ensure mcNumber works with any string value including empty string
+  mcNumber: z.string().optional().default(""),
   truckNumber: z.string().min(1, { message: "Truck number is required" }),
   trailerNumber: z.string().optional(),
   notes: z.string().optional()
-}).refine(
-  (data) => {
-    // Either carrierId or carrierName must be provided
-    return !!data.carrierId || (!!data.carrierName && data.carrierName.trim().length > 0);
-  },
-  {
-    message: "Please select a carrier or enter a custom carrier name",
-    path: ["carrierId"], // Show the error on the carrier field
-  }
+}
 );
 
 type CustomerInfoFormValues = z.infer<typeof customerInfoSchema>;

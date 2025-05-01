@@ -84,11 +84,21 @@ export function CarrierSelector({
     form.setValue(nameFieldName, carrier.name);
     
     // Set MC Number if field name provided and carrier has mcNumber
-    if (mcNumberFieldName && carrier.mcNumber) {
-      console.log("Setting MC Number to:", carrier.mcNumber);
-      setTimeout(() => {
-        form.setValue(mcNumberFieldName, carrier.mcNumber);
-      }, 0);
+    if (mcNumberFieldName) {
+      console.log("Setting MC Number to:", carrier.mcNumber || "");
+      
+      // Ensure we trigger change events by using form.setValue
+      form.setValue(mcNumberFieldName, carrier.mcNumber || "", {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
+      
+      // Also update the DOM input value to ensure it's displayed
+      const mcNumberField = document.querySelector(`input[name="${mcNumberFieldName}"]`) as HTMLInputElement;
+      if (mcNumberField) {
+        mcNumberField.value = carrier.mcNumber || "";
+      }
     }
     
     setOpen(false);
@@ -99,7 +109,11 @@ export function CarrierSelector({
       console.log("Adding new carrier:", searchQuery);
       
       // Set the carrier name
-      form.setValue(nameFieldName, searchQuery.trim());
+      form.setValue(nameFieldName, searchQuery.trim(), {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
       
       // Clear carrier ID for new carriers that don't exist in the system yet
       form.setValue(idFieldName, undefined);
@@ -107,9 +121,19 @@ export function CarrierSelector({
       // Don't reset MC Number if mcNumberFieldName is provided
       if (mcNumberFieldName) {
         const currentMcNumber = form.getValues(mcNumberFieldName);
-        if (!currentMcNumber) {
-          // Only set to empty if the user hasn't already entered something
-          form.setValue(mcNumberFieldName, "");
+        console.log("Current MC Number:", currentMcNumber);
+        
+        // Always ensure the MC Number field is properly set with validation
+        form.setValue(mcNumberFieldName, currentMcNumber || "", {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
+        
+        // Also update the DOM input value to ensure it's displayed
+        const mcNumberField = document.querySelector(`input[name="${mcNumberFieldName}"]`) as HTMLInputElement;
+        if (mcNumberField) {
+          mcNumberField.value = currentMcNumber || "";
         }
       }
       
