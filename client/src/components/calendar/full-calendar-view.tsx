@@ -7,6 +7,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import './calendar-clean.css'; // One clean CSS file with all needed fixes
 import { DateSelectArg, EventClickArg, EventInput, EventHoveringArg } from '@fullcalendar/core';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
@@ -20,12 +21,6 @@ import { Label } from '@/components/ui/label';
 import { Schedule } from '@shared/schema';
 import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 // List of common timezones that we know are supported by FullCalendar
 const COMMON_TIMEZONES = [
@@ -333,6 +328,9 @@ export default function FullCalendarView({
   const [activeEvent, setActiveEvent] = useState<any | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   
+  // State for forcing component refresh
+  const [forceRefresh, setForceRefresh] = useState(false);
+  
   // Handle event hover
   const handleEventMouseEnter = (mouseEnterInfo: EventHoveringArg) => {
     const event = mouseEnterInfo.event;
@@ -370,10 +368,23 @@ export default function FullCalendarView({
     if (calendarRef.current) {
       try {
         const calendarApi = calendarRef.current.getApi();
+        
+        // First set the timezone option
         calendarApi.setOption('timeZone', timezone);
+        
+        // Force a full re-rendering by toggling our state
+        setForceRefresh(prev => !prev);
+        
+        // Force the calendar API to rerender the calendar
+        setTimeout(() => {
+          calendarApi.render();
+          // Force the API to redraw the now indicator and other time-sensitive elements
+          calendarApi.updateSize();
+        }, 50);
       } catch (error) {
-        console.log('Calendar API not available yet, timezone will be applied on next render');
-        // Will rely on the props change to update the timezone
+        console.log('Calendar API error, forcing full component re-render', error);
+        // Force a re-render by toggling a state
+        setForceRefresh(prev => !prev);
       }
     }
   };
