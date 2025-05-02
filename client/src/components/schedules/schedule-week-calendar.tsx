@@ -515,6 +515,21 @@ export default function ScheduleWeekCalendar({
                 const leftPosition = `${dayIndex * (100 / 7)}%`;  
                 const width = `calc(${100/7}% - 4px)`;
                 
+                // Check for overlapping appointments at the same time slot
+                const overlappingSchedules = weekSchedules.filter(s => 
+                  s.id !== schedule.id && 
+                  getScheduleDayIndex(s) === dayIndex &&
+                  areIntervalsOverlapping(
+                    { start: new Date(s.startTime), end: new Date(s.endTime) },
+                    { start: startDate, end: endDate }
+                  )
+                );
+                
+                // Calculate offset for stacked appointments
+                const isOverlapping = overlappingSchedules.length > 0;
+                const overlapCount = overlappingSchedules.length + 1; // +1 for current schedule
+                const overlapIndex = overlappingSchedules.filter(s => s.id < schedule.id).length;
+                
                 // Status-based styling
                 const statusColor = schedule.status === "completed" 
                   ? "bg-green-100 border-green-300"
@@ -538,15 +553,27 @@ export default function ScheduleWeekCalendar({
                           style={{
                             top: `${topPosition}px`,
                             height: `${height}px`,
-                            left: leftPosition,
-                            width: width,
-                            minWidth: 'calc(7rem - 4px)', // Slightly wider for better content display
-                            zIndex: 10,
-                            maxHeight: `${Math.max(height, 70)}px` // Ensure minimum height for content visibility
+                            left: isOverlapping 
+                              ? `calc(${leftPosition} + ${(overlapIndex * 5)}px)` // Offset stacked appointments
+                              : leftPosition,
+                            width: isOverlapping 
+                              ? `calc(${width} - ${(overlapCount - 1) * 5}px)` // Make room for other appointments
+                              : width,
+                            minWidth: isOverlapping 
+                              ? 'calc(6rem - 4px)' 
+                              : 'calc(7rem - 4px)',
+                            zIndex: isOverlapping ? 10 + overlapIndex : 10, // Stack newer appointments on top
+                            maxHeight: `${Math.max(height, 70)}px`, // Ensure minimum height for content visibility
+                            opacity: isOverlapping ? 0.95 : 1 // Slight transparency for overlapping appointments
                           }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* Time at the top with status indicator */}
+                          {/* Customer name FIRST with highest visibility */}
+                          <div className="font-bold truncate text-xs">
+                            {schedule.customerName || "(No customer)"}
+                          </div>
+                          
+                          {/* Time below customer name with status indicator */}
                           <div className="flex justify-between items-center text-[9px]">
                             <span className="font-medium">{startTimeStr}-{endTimeStr}</span>
                             <span className={`ml-1 px-1 rounded-sm whitespace-nowrap ${
@@ -557,11 +584,6 @@ export default function ScheduleWeekCalendar({
                             }`}>
                               {schedule.status?.charAt(0).toUpperCase() + schedule.status?.slice(1) || "Scheduled"}
                             </span>
-                          </div>
-                          
-                          {/* Customer name with highest visibility */}
-                          <div className="font-bold truncate text-xs">
-                            {schedule.customerName || "(No customer)"}
                           </div>
                           
                           {/* Type badge + Truck # more prominently displayed */}
