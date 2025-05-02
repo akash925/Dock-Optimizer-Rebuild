@@ -601,8 +601,8 @@ export default function ScheduleWeekCalendar({
                           }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* CUSTOMER NAME FIRST - Most prominent with border underneath */}
-                          <div className="font-bold truncate text-xs mb-0.5 pb-0.5 border-b border-gray-100">
+                          {/* CUSTOMER NAME FIRST - Much more prominent with border underneath */}
+                          <div className="font-extrabold truncate text-sm mb-1 pb-0.5 border-b border-gray-200 text-gray-800">
                             {schedule.customerName || "(No customer)"}
                           </div>
                           
@@ -646,7 +646,7 @@ export default function ScheduleWeekCalendar({
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <div className="space-y-1 text-xs">
-                          <div className="font-medium text-sm">{schedule.customerName || "Unnamed Appointment"}</div>
+                          <div className="font-extrabold text-base text-gray-800 border-b border-gray-200 pb-1 mb-1">{schedule.customerName || "Unnamed Appointment"}</div>
                           <div>
                             <span className="font-medium">Time:</span> {startTimeStr}-{endTimeStr}
                           </div>

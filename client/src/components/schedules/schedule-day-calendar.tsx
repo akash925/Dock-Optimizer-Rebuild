@@ -42,20 +42,32 @@ export default function ScheduleDayCalendar({
   // State for loading indicator
   const [isLoading, setIsLoading] = useState(false);
   
-  // Navigation handlers with loading indicators
+  // Improved navigation handlers for better performance
+  // Use direct state updates instead of full page reloads
   const goToPreviousDay = () => {
     setIsLoading(true);
-    setTimeout(() => onDateChange(subDays(date, 1)), 10);
+    // Using requestAnimationFrame for smoother transitions
+    requestAnimationFrame(() => {
+      onDateChange(subDays(date, 1));
+      // Short timeout to allow state updates to complete
+      setTimeout(() => setIsLoading(false), 100);
+    });
   };
 
   const goToNextDay = () => {
     setIsLoading(true);
-    setTimeout(() => onDateChange(addDays(date, 1)), 10);
+    requestAnimationFrame(() => {
+      onDateChange(addDays(date, 1));
+      setTimeout(() => setIsLoading(false), 100);
+    });
   };
 
   const goToToday = () => {
     setIsLoading(true);
-    setTimeout(() => onDateChange(new Date()), 10);
+    requestAnimationFrame(() => {
+      onDateChange(new Date());
+      setTimeout(() => setIsLoading(false), 100);
+    });
   };
 
   // Format date for display - memoized to avoid recalculation
@@ -241,9 +253,15 @@ export default function ScheduleDayCalendar({
               className="h-7 px-3 text-xs rounded-none border-r"
               onClick={() => {
                 if (typeof window !== 'undefined') {
+                  // Use URL manipulation without full page reload
                   setIsLoading(true);
                   const dateParam = `&date=${date.toISOString().split('T')[0]}`;
-                  window.location.href = `/schedules?view=month${dateParam}`;
+                  const newUrl = `/schedules?view=month${dateParam}`;
+                  window.history.pushState({}, '', newUrl);
+                  // Signal view change to parent component
+                  window.dispatchEvent(new CustomEvent('viewchange', { 
+                    detail: { view: 'month', date }
+                  }));
                 }
               }}
               disabled={isLoading}
@@ -256,9 +274,15 @@ export default function ScheduleDayCalendar({
               className="h-7 px-3 text-xs rounded-none border-r"
               onClick={() => {
                 if (typeof window !== 'undefined') {
+                  // Use URL manipulation without full page reload
                   setIsLoading(true);
                   const dateParam = `&date=${date.toISOString().split('T')[0]}`;
-                  window.location.href = `/schedules?view=week${dateParam}`;
+                  const newUrl = `/schedules?view=week${dateParam}`;
+                  window.history.pushState({}, '', newUrl);
+                  // Signal view change to parent component
+                  window.dispatchEvent(new CustomEvent('viewchange', { 
+                    detail: { view: 'week', date }
+                  }));
                 }
               }}
               disabled={isLoading}
@@ -280,9 +304,15 @@ export default function ScheduleDayCalendar({
               className="h-7 px-3 text-xs rounded-none"
               onClick={() => {
                 if (typeof window !== 'undefined') {
+                  // Use URL manipulation without full page reload
                   setIsLoading(true);
                   const dateParam = `&date=${date.toISOString().split('T')[0]}`;
-                  window.location.href = `/schedules?view=list${dateParam}`;
+                  const newUrl = `/schedules?view=list${dateParam}`;
+                  window.history.pushState({}, '', newUrl);
+                  // Signal view change to parent component
+                  window.dispatchEvent(new CustomEvent('viewchange', { 
+                    detail: { view: 'list', date }
+                  }));
                 }
               }}
               disabled={isLoading}

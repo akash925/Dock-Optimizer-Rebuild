@@ -103,6 +103,7 @@ export default function Schedules() {
     const queryParams = new URLSearchParams(window.location.search);
     const viewParam = queryParams.get('view');
     const editParam = queryParams.get('edit');
+    const dateParam = queryParams.get('date');
     
     // Handle view mode parameter
     if (viewParam) {
@@ -133,6 +134,18 @@ export default function Schedules() {
       }, 50);
     }
     
+    // Handle date parameter if present
+    if (dateParam) {
+      try {
+        const parsedDate = new Date(dateParam);
+        if (!isNaN(parsedDate.getTime())) {
+          setSelectedDate(parsedDate);
+        }
+      } catch (e) {
+        console.error("Invalid date parameter:", dateParam);
+      }
+    }
+    
     // Handle edit parameter - open edit form for specified appointment
     if (editParam && !isNaN(Number(editParam))) {
       const scheduleId = Number(editParam);
@@ -140,6 +153,44 @@ export default function Schedules() {
       setIsFormOpen(true);
     }
   }, [location]);
+  
+  // Listen for viewchange custom events from calendar components
+  useEffect(() => {
+    const handleViewChange = (event: CustomEvent) => {
+      console.log("View change event detected:", event.detail);
+      
+      // Extract view and date information from the event
+      const { view, date } = event.detail;
+      
+      // Set transitioning state to show loading indicator
+      setIsViewTransitioning(true);
+      
+      // Update the view mode state
+      if (view === 'day' || view === 'week' || view === 'month' || view === 'list') {
+        setTimeout(() => {
+          setViewMode(view);
+          
+          // Update the selected date if provided
+          if (date) {
+            setSelectedDate(new Date(date));
+          }
+          
+          // Clear transitioning state after a short delay
+          setTimeout(() => {
+            setIsViewTransitioning(false);
+          }, 300);
+        }, 50);
+      }
+    };
+    
+    // Add event listener for our custom viewchange event
+    window.addEventListener('viewchange', handleViewChange as EventListener);
+    
+    // Cleanup function to remove event listener
+    return () => {
+      window.removeEventListener('viewchange', handleViewChange as EventListener);
+    };
+  }, []);
   
   // Handle closing the appointment details dialog
   const handleDetailsDialogClose = useCallback((open: boolean) => {
