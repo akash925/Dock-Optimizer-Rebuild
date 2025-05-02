@@ -11,6 +11,7 @@ import { sendConfirmationEmail, sendEmail } from "./notifications";
 import { testEmailTemplate } from "./email-test";
 import { adminRoutes } from "./modules/admin/routes";
 import { pool } from "./db";
+import { WebSocketServer, WebSocket } from "ws";
 
 /**
  * Helper function to check tenant isolation security for facility-related resources.
@@ -923,12 +924,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const schedule = await storage.createSchedule(validatedData);
       
-      // Get dock and facility information for the email
+      // Get dock and facility information for the email and WebSocket broadcast
       try {
+        // Prepare enhanced schedule info for both email and WebSocket broadcast
+        let enhancedSchedule: any = {
+          ...schedule
+        };
+        
         if (schedule.dockId) {
           const dock = await storage.getDock(schedule.dockId);
           if (dock && dock.facilityId) {
             const facility = await storage.getFacility(dock.facilityId);
+            
+            // Enhance the schedule with dock and facility info
+            enhancedSchedule = {
+              ...enhancedSchedule,
+              dockName: dock.name || `Dock ${schedule.dockId}`,
+              facilityName: facility?.name || 'Main Facility',
+              facilityId: facility?.id || dock.facilityId
+            };
             
             // Try to send a confirmation email if we have contact information
             // This will log but not fail if SendGrid is not configured
@@ -952,6 +966,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
           }
+        }
+        
+        // Broadcast the new schedule via WebSocket to update clients in real-time
+        if (app.locals.broadcastScheduleUpdate) {
+          console.log(`[WebSocket] Broadcasting new schedule creation: ${schedule.id}`);
+          app.locals.broadcastScheduleUpdate({
+            ...enhancedSchedule,
+            tenantId: req.user?.tenantId
+          });
         }
       } catch (emailError) {
         // Log the error but don't fail the API call
@@ -4916,6 +4939,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Initialize WebSocket server on the same HTTP server but with a different path
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws' 
+  });
+  
+  // Store connected clients with their tenant information
+  const clients = new Map<WebSocket, { 
+    tenantId?: number,
+    userId?: number
+  }>();
+  
+  // Handle WebSocket connections
+  wss.on('connection', (ws, req) => {
+    console.log('[WebSocket] New client connected');
+    
+    // Store client connection
+    clients.set(ws, {});
+    
+    // Send initial connection message
+    ws.send(JSON.stringify({ type: 'connected' }));
+    
+    // Handle auth message to associate connection with user/tenant
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        // Handle auth message
+        if (data.type === 'auth' && data.tenantId) {
+          console.log(`[WebSocket] Authenticated client for tenant ${data.tenantId}`);
+          clients.set(ws, { 
+            tenantId: data.tenantId,
+            userId: data.userId
+          });
+        }
+      } catch (error) {
+        console.error('[WebSocket] Error processing message:', error);
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      console.log('[WebSocket] Client disconnected');
+      clients.delete(ws);
+    });
+  });
+  
+  // Add a global function to broadcast schedule updates to relevant tenants
+  app.locals.broadcastScheduleUpdate = (schedule: any) => {
+    const tenantId = schedule.tenantId;
+    
+    // Log broadcast attempt
+    console.log(`[WebSocket] Broadcasting schedule update for tenant ${tenantId}, schedule ID: ${schedule.id}`);
+    
+    // Convert schedule to a message
+    const message = JSON.stringify({
+      type: 'schedule_update',
+      data: schedule
+    });
+    
+    // Send to all connected clients for this tenant
+    let clientCount = 0;
+    clients.forEach((clientInfo, client) => {
+      // Check if client is still connected and belongs to the correct tenant
+      // (or is a super admin that should receive all updates)
+      if (
+        client.readyState === WebSocket.OPEN && 
+        (clientInfo.tenantId === tenantId || clientInfo.tenantId === 0)
+      ) {
+        client.send(message);
+        clientCount++;
+      }
+    });
+    
+    console.log(`[WebSocket] Sent update to ${clientCount} connected clients`);
+  };
   
   return httpServer;
 }
