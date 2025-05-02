@@ -548,68 +548,205 @@ function extractStructuredData(textContent: string, parsedData: ParsedBolData, f
 }
 
 /**
+ * Check if a PDF is rotated/upside down (based on text orientation detection)
+ * In production, this would use PDF.js text detection capabilities
+ */
+function detectPdfRotation(pdfData: string | ArrayBuffer): number {
+  // This is a placeholder for a real implementation
+  // In production, we would:
+  // 1. Extract text and check orientation markers (headers, page numbers)
+  // 2. Use PDF.js to analyze text positioning
+  // 3. Return rotation angle in degrees (0, 90, 180, 270)
+  
+  console.log('Checking for PDF rotation - in production this would use PDF.js or similar');
+  
+  // For now we return 0 (no rotation), but in production this would be a real detection
+  return 0;
+}
+
+/**
  * Extract text from PDF documents
  * In production, this would use PDF.js or similar
  */
 async function extractTextFromPdf(file: File, fileContent: string | ArrayBuffer): Promise<string> {
   console.log('PDF extraction: In a production environment, this would use PDF.js for text extraction');
   
-  // Simplified extraction for demo
   try {
+    // Check if PDF orientation needs correction
+    const rotationDegrees = detectPdfRotation(fileContent);
+    
+    // In production, we would apply the rotation to the PDF before extraction
+    if (rotationDegrees !== 0) {
+      console.log(`Detected PDF rotation of ${rotationDegrees} degrees, would correct before extraction`);
+      // Here would apply rotation correction
+    }
+    
     // Get basic info from filename
     const filenameData = extractTextFromFilename(file.name);
     
-    // Generate more realistic BOL content for demonstration
+    // Analyze file information for better extraction
     const isPalletListing = file.name.toLowerCase().includes('pallet');
-    const isBOL = file.name.toLowerCase().includes('bol') || file.name.toLowerCase().includes('lading');
-    const isInbound = file.name.toLowerCase().includes('inbound') || file.name.toLowerCase().includes('receiving');
-    const isOutbound = file.name.toLowerCase().includes('outbound') || file.name.toLowerCase().includes('shipping');
+    const isBOL = file.name.toLowerCase().includes('bol') || 
+                 file.name.toLowerCase().includes('lading') || 
+                 file.name.toLowerCase().match(/\d{6,}/); // BOLs often have long numbers
     
-    // Extract or generate BOL number
-    const bolMatch = file.name.match(/\d+/);
-    const bolNumber = bolMatch ? bolMatch[0] : Math.floor(Math.random() * 1000000).toString();
+    // Check if filename contains Hanzo or facility identifiers
+    const hasHanzoReference = file.name.toLowerCase().includes('hanzo') || 
+                             file.name.toLowerCase().includes('airtech') ||
+                             file.name.toLowerCase().includes('sam pride') ||
+                             file.name.toLowerCase().includes('camby');
+                             
+    // Determine direction based on filename
+    const isInbound = file.name.toLowerCase().includes('inbound') || 
+                     file.name.toLowerCase().includes('in') ||
+                     file.name.toLowerCase().includes('receiving') ||
+                     file.name.toLowerCase().includes('arrival');
+    const isOutbound = file.name.toLowerCase().includes('outbound') || 
+                      file.name.toLowerCase().includes('out') ||
+                      file.name.toLowerCase().includes('shipping') ||
+                      file.name.toLowerCase().includes('export');
+    
+    // Extract BOL number from filename if possible
+    const bolMatch = file.name.match(/(\d{5,})/);
+    const bolNumber = bolMatch ? bolMatch[1] : `${Math.floor(Math.random() * 1000000)}`;
+    
+    // In production, we would do text analysis on the PDF content
+    // For now, we'll create more informative extracted text based on filename analysis
     
     if (isBOL) {
-      return `
-BILL OF LADING
-BOL #: ${bolNumber}
-Date: ${new Date().toLocaleDateString()}
-
-SHIPPER:
+      // Create detailed BOL extraction
+      let extractedText = `BILL OF LADING\nBOL #: BOL${bolNumber}\n`;
+      
+      // Add shipping details based on direction
+      if (hasHanzoReference) {
+        // If the file appears to be related to a Hanzo facility
+        if (isOutbound) {
+          extractedText += `
+FROM:
 Hanzo Logistics
 450 Airtech Pkwy
 Indianapolis, IN 46241
 
+TO:
+[Customer Name - Found in document]
+[Customer Address - Found in document]
+`;
+        } else {
+          extractedText += `
+FROM:
+[Shipper Name - Found in document]
+[Shipper Address - Found in document]
+
+TO:
+Hanzo Logistics
+450 Airtech Pkwy
+Indianapolis, IN 46241
+`;
+        }
+      } else {
+        // Generic, but still informative
+        extractedText += `
+SHIPPER:
+[Name found in document]
+[Address found in document]
+
 CONSIGNEE:
-Acme Corporation
-123 Main Street
-Anytown, US 12345
+[Name found in document]
+[Address found in document]
+`;
+      }
+      
+      // Add carrier and logistics details
+      let carrierName = "[Carrier name found in document]";
+      if (file.name.toLowerCase().includes('ups')) carrierName = "UPS Freight";
+      if (file.name.toLowerCase().includes('fedex')) carrierName = "FedEx Freight";
+      if (file.name.toLowerCase().includes('usps')) carrierName = "USPS";
+      
+      extractedText += `
+CARRIER: ${carrierName}
+MC #: MC${Math.floor(Math.random() * 900000) + 100000}
+TRAILER #: [Trailer number found in document]
 
-CARRIER: ${isOutbound ? 'UPS Freight' : 'FedEx Freight'}
-SCAC: ${isOutbound ? 'UPGF' : 'FDXF'}
-MC #: ${isOutbound ? '123456' : '789012'}
+${isPalletListing ? `PALLET COUNT: [Pallet count found in document]` : ''}
+WEIGHT: [Weight found in document]
 
-TRAILER #: TR-${Math.floor(Math.random() * 10000)}
-SEAL #: SL-${Math.floor(Math.random() * 10000)}
+DATE: ${new Date().toLocaleDateString()}
+`;
 
-${isPalletListing ? `PALLET COUNT: ${Math.floor(Math.random() * 10) + 1}` : ''}
-WEIGHT: ${Math.floor(Math.random() * 10000) + 500} LBS
-
-SPECIAL INSTRUCTIONS:
-${isInbound ? 'RECEIVING HOURS: 8AM-4PM' : 'SHIPPING HOURS: 6AM-6PM'}
-Handle with care.
-      `;
+      return extractedText;
     } else {
+      // For non-BOL documents, provide more specific document type
+      let documentType = "Logistics Document";
+      
+      if (file.name.toLowerCase().includes('invoice')) {
+        documentType = "Invoice";
+      } else if (file.name.toLowerCase().includes('packing')) {
+        documentType = "Packing Slip";
+      } else if (file.name.toLowerCase().includes('manifest')) {
+        documentType = "Shipping Manifest";
+      } else if (file.name.toLowerCase().includes('delivery')) {
+        documentType = "Delivery Receipt";
+      }
+      
+      // Extract possible facility information
+      let facilityInfo = "[Facility information found in document]";
+      if (file.name.toLowerCase().includes('airtech')) {
+        facilityInfo = "450 Airtech Pkwy, Indianapolis, IN";
+      } else if (file.name.toLowerCase().includes('camby')) {
+        facilityInfo = "Camby Road Facility";
+      } else if (file.name.toLowerCase().includes('brownsburg')) {
+        facilityInfo = "Hanzo Brownsburg";
+      }
+      
       return filenameData + `
-Document Type: PDF
+Document Type: ${documentType}
 Date: ${new Date().toLocaleDateString()}
-Content: This PDF document appears to contain logistics information.
-      `;
+Facility: ${facilityInfo}
+Customer: [Customer name found in document]
+Document ID: ${bolMatch ? bolMatch[1] : '[Document ID found in document]'}
+Weight: [Weight information found in document]
+Content: This document contains shipping details and logistics information.
+`;
     }
   } catch (error) {
     console.error('Error in PDF extraction:', error);
     return `Failed to extract text from PDF: ${file.name}`;
   }
+}
+
+/**
+ * Check if an image appears to be rotated and needs orientation correction
+ * In a production environment, this would use a more sophisticated algorithm
+ */
+function detectImageRotation(imageData: string | ArrayBuffer): number {
+  // This is a placeholder for a real implementation
+  // In production, we would:
+  // 1. Analyze text line orientation using machine learning
+  // 2. Look for horizon lines or other orientation indicators
+  // 3. Return rotation angle in degrees (0, 90, 180, 270)
+  
+  console.log('Checking for image rotation - in production this would use computer vision techniques');
+  
+  // For now we return 0 (no rotation), but in production this would be a real detection
+  return 0;
+}
+
+/**
+ * Apply rotation to an image
+ * In production, this would use canvas operations or a dedicated image processing library
+ */
+async function rotateImage(imageData: string | ArrayBuffer, degrees: number): Promise<string | ArrayBuffer> {
+  // This is a placeholder for a real implementation that would rotate the image
+  console.log(`Rotation detected - would rotate image by ${degrees} degrees in production`);
+  
+  // In production, we would:
+  // 1. Convert to a usable format (if needed)
+  // 2. Create a canvas element
+  // 3. Draw the image with appropriate transformation
+  // 4. Return the rotated image data
+  
+  // For this implementation, we just return the original data
+  return imageData;
 }
 
 /**
@@ -619,42 +756,116 @@ Content: This PDF document appears to contain logistics information.
 async function extractTextFromImage(file: File, fileContent: string | ArrayBuffer): Promise<string> {
   console.log('Image OCR: In a production environment, this would use Tesseract.js or a cloud OCR API');
   
-  // Simplified extraction for demo
   try {
+    // Check if image orientation needs correction
+    const rotationDegrees = detectImageRotation(fileContent);
+    
+    // Apply rotation if needed
+    let processedImageData = fileContent;
+    if (rotationDegrees !== 0) {
+      console.log(`Detected image rotation of ${rotationDegrees} degrees, correcting...`);
+      processedImageData = await rotateImage(fileContent, rotationDegrees);
+    }
+    
+    // In production, OCR would be performed on the processedImageData
+    // Here we implement a more robust demo extraction
+
     // Get basic info from filename
     const filenameData = extractTextFromFilename(file.name);
     
-    // Check if it's likely a BOL based on filename
-    const isBOL = file.name.toLowerCase().includes('bol') || file.name.toLowerCase().includes('lading');
+    // Determine if file is likely a BOL
+    const isBOL = file.name.toLowerCase().includes('bol') || 
+                 file.name.toLowerCase().includes('lading') || 
+                 file.name.toLowerCase().match(/\d{6,}/); // BOLs often have long numbers
     
-    // Extract or generate BOL number
-    const bolMatch = file.name.match(/\d+/);
-    const bolNumber = bolMatch ? bolMatch[0] : Math.floor(Math.random() * 1000000).toString();
+    // Extract BOL number from filename if possible
+    const bolMatch = file.name.match(/(\d{5,})/);
+    const bolNumber = bolMatch ? bolMatch[1] : `${Math.floor(Math.random() * 1000000)}`;
+    
+    // Check if filename contains Hanzo or facility identifiers
+    const hasHanzoReference = file.name.toLowerCase().includes('hanzo') || 
+                             file.name.toLowerCase().includes('airtech') ||
+                             file.name.toLowerCase().includes('sam pride') ||
+                             file.name.toLowerCase().includes('camby');
     
     if (isBOL) {
-      return `
-BILL OF LADING
-BOL #: ${bolNumber}
+      // Create a more informative extracted text for BOL documents
+      let extractedText = `BILL OF LADING\nBOL #: ${bolNumber}\n`;
+      
+      // If we can identify if this is likely from or to a Hanzo facility
+      if (hasHanzoReference) {
+        const isOutbound = file.name.toLowerCase().includes('outbound') || 
+                           file.name.toLowerCase().includes('out') ||
+                           file.name.toLowerCase().includes('export');
+                           
+        if (isOutbound) {
+          extractedText += `
 SHIP FROM:
-Acme Corporation
-123 Commerce Park
-Springfield, IL 62701
+Hanzo Logistics
+450 Airtech Pkwy
+Indianapolis, IN 46241
+
+SHIP TO:
+[Customer Name - Appears in document]
+[Customer Address - Appears in document]
+`;
+        } else {
+          extractedText += `
+SHIP FROM:
+[Vendor/Customer Name - Appears in document]
+[Origin Address - Appears in document]
 
 SHIP TO:
 Hanzo Logistics
 450 Airtech Pkwy
 Indianapolis, IN 46241
+`;
+        }
+      } else {
+        // Generic BOL text when we can't determine direction
+        extractedText += `
+SHIPPER:
+[Company name appears in document]
+[Address appears in document]
 
-CARRIER: Swift Transportation
-MC #: 987654
-TRAILER #: T-12345
-      `;
+CONSIGNEE:
+[Destination appears in document]
+[Address appears in document]
+`;
+      }
+      
+      // Add carrier info that would be extracted
+      extractedText += `
+CARRIER: [Carrier name appears in document]
+MC #: [MC number appears in document]
+TRAILER #: [Trailer number appears in document]
+WEIGHT: [Weight appears in document]
+DATE: [Date appears in document]
+`;
+
+      return extractedText;
     } else {
+      // For non-BOL documents, provide more specific document type identification
+      let documentType = "Logistics Document";
+      
+      if (file.name.toLowerCase().includes('invoice')) {
+        documentType = "Invoice";
+      } else if (file.name.toLowerCase().includes('packing')) {
+        documentType = "Packing Slip";
+      } else if (file.name.toLowerCase().includes('manifest')) {
+        documentType = "Shipping Manifest";
+      } else if (file.name.toLowerCase().includes('receipt')) {
+        documentType = "Receipt";
+      }
+      
       return filenameData + `
-Document Type: Image
+Document Type: ${documentType}
 Date: ${new Date().toLocaleDateString()}
-Content: This image appears to contain document information.
-      `;
+Customer: [Customer name appears in document]
+Facility: [Facility information appears in document]
+Document ID: ${bolMatch ? bolMatch[1] : 'Unknown'} 
+Content: This document contains logistics details and shipping information that will be extracted.
+`;
     }
   } catch (error) {
     console.error('Error in image OCR:', error);
@@ -669,16 +880,91 @@ Content: This image appears to contain document information.
 async function extractTextFromDocument(file: File, fileContent: string | ArrayBuffer): Promise<string> {
   console.log('Document extraction: In a production environment, this would use specialized document parsing libraries');
   
-  // Simplified extraction for demo
   try {
     // Get basic info from filename
     const filenameData = extractTextFromFilename(file.name);
     
-    return filenameData + `
-Document Type: ${file.type}
+    // Analyze file information for better extraction
+    const isInvoice = file.name.toLowerCase().includes('invoice');
+    const isPO = file.name.toLowerCase().includes('po') || 
+               file.name.toLowerCase().includes('order') || 
+               file.name.toLowerCase().includes('purchase');
+    const isDelivery = file.name.toLowerCase().includes('delivery') || 
+                     file.name.toLowerCase().includes('receipt');
+    const isManifest = file.name.toLowerCase().includes('manifest') || 
+                      file.name.toLowerCase().includes('packing');
+                      
+    // Check if filename contains Hanzo or facility identifiers
+    const hasHanzoReference = file.name.toLowerCase().includes('hanzo') || 
+                             file.name.toLowerCase().includes('airtech') ||
+                             file.name.toLowerCase().includes('sam pride') ||
+                             file.name.toLowerCase().includes('camby');
+                             
+    // Determine document type
+    let documentType = "Logistics Document";
+    let documentDetails = "";
+    
+    if (isInvoice) {
+      documentType = "Invoice";
+      documentDetails = `
+Invoice Number: [Invoice number appears in document]
 Date: ${new Date().toLocaleDateString()}
-Content: This document appears to contain business information.
-    `;
+Customer: [Customer name appears in document]
+Amount: [Amount appears in document]
+Services: [Services description appears in document]`;
+    } else if (isPO) {
+      documentType = "Purchase Order";
+      documentDetails = `
+PO Number: [PO number appears in document]
+Order Date: ${new Date().toLocaleDateString()}
+Vendor: [Vendor name appears in document]
+Items: [Order items appear in document]
+Total: [Order total appears in document]`;
+    } else if (isDelivery) {
+      documentType = "Delivery Receipt";
+      documentDetails = `
+Receipt Number: [Receipt number appears in document]
+Delivery Date: ${new Date().toLocaleDateString()}
+Carrier: [Carrier name appears in document]
+Items: [Delivered items appear in document]
+Signed By: [Signature appears in document]`;
+    } else if (isManifest) {
+      documentType = "Shipping Manifest";
+      documentDetails = `
+Manifest ID: [Manifest ID appears in document]
+Ship Date: ${new Date().toLocaleDateString()}
+Item Count: [Item count appears in document]
+Origin: [Origin location appears in document]
+Destination: [Destination location appears in document]`;
+    } else {
+      documentDetails = `
+Document ID: [Document ID appears in document]
+Date: ${new Date().toLocaleDateString()}
+Related To: [Related information appears in document]
+Notes: [Document notes appear in document]`;
+    }
+    
+    // Add facility information if relevant
+    let facilityInfo = "";
+    if (hasHanzoReference) {
+      let facilityName = "Hanzo Logistics";
+      
+      if (file.name.toLowerCase().includes('airtech')) {
+        facilityName = "450 Airtech Pkwy";
+      } else if (file.name.toLowerCase().includes('camby')) {
+        facilityName = "Camby Road Facility";
+      } else if (file.name.toLowerCase().includes('brownsburg')) {
+        facilityName = "Hanzo Brownsburg";
+      } else if (file.name.toLowerCase().includes('pride')) {
+        facilityName = "Sam Pride Facility";
+      }
+      
+      facilityInfo = `\nFacility: ${facilityName}`;
+    }
+    
+    return `${documentType}${facilityInfo}
+${filenameData}${documentDetails}
+Content: This document contains detailed logistics and shipping information.`;
   } catch (error) {
     console.error('Error in document extraction:', error);
     return `Failed to extract text from document: ${file.name}`;
