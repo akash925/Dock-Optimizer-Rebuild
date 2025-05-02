@@ -77,6 +77,15 @@ import { fixAdminPassword } from "./fix-admin-password";
 import { seedRoles } from "./seed-roles";
 import { hashPassword as authHashPassword } from "./auth";
 
+import { WebSocketServer, WebSocket } from 'ws';
+
+// Type for the WebSocket client with tenant metadata
+interface TenantWebSocket extends WebSocket {
+  tenantId?: number;
+  userId?: number;
+  isAlive?: boolean;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get storage instance
   const storage = await getStorage();
@@ -1031,6 +1040,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      
+      // Broadcast the schedule update via WebSockets for real-time calendar updates
+      if (app.locals.broadcastScheduleUpdate) {
+        console.log(`[WebSocket] Broadcasting schedule update: ${id}`);
+        app.locals.broadcastScheduleUpdate({
+          ...updatedSchedule,
+          tenantId: req.user?.tenantId
+        });
+      }
+      
       res.json(updatedSchedule);
     } catch (err) {
       res.status(500).json({ message: "Failed to update schedule" });
@@ -1082,6 +1101,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      
+      // Broadcast the schedule update via WebSockets for real-time calendar updates
+      if (app.locals.broadcastScheduleUpdate) {
+        console.log(`[WebSocket] Broadcasting schedule patch: ${id}`);
+        app.locals.broadcastScheduleUpdate({
+          ...updatedSchedule,
+          tenantId: req.user?.tenantId
+        });
+      }
+      
       res.json(updatedSchedule);
     } catch (err) {
       console.error("Failed to patch schedule:", err);
@@ -1145,6 +1174,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Failed to update schedule" });
       }
       
+      // Broadcast the door assignment via WebSockets for real-time updates
+      if (app.locals.broadcastScheduleUpdate) {
+        console.log(`[WebSocket] Broadcasting door assignment: Schedule ${scheduleId} to Door ${dockId}`);
+        app.locals.broadcastScheduleUpdate({
+          ...updatedSchedule,
+          tenantId: req.user?.tenantId
+        });
+      }
+      
       console.log(`[AssignDoor] Schedule ${scheduleId} successfully assigned to dock ${dockId}`);
       res.json(updatedSchedule);
     } catch (error) {
@@ -1177,6 +1215,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      
+      // Broadcast the check-in status change via WebSockets for real-time updates
+      if (app.locals.broadcastScheduleUpdate) {
+        console.log(`[WebSocket] Broadcasting check-in status change: Schedule ${id}`);
+        app.locals.broadcastScheduleUpdate({
+          ...updatedSchedule,
+          tenantId: req.user?.tenantId
+        });
+      }
+      
       res.json(updatedSchedule);
     } catch (err) {
       console.error("Failed to check in schedule:", err);
@@ -1261,6 +1309,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Door successfully released during check-out: schedule ${id}`);
       }
       
+      // Broadcast the checkout status change via WebSockets for real-time updates
+      if (app.locals.broadcastScheduleUpdate) {
+        console.log(`[WebSocket] Broadcasting check-out status change: Schedule ${id}`);
+        app.locals.broadcastScheduleUpdate({
+          ...(verifiedSchedule || statusUpdated),
+          tenantId: req.user?.tenantId
+        });
+      }
+      
       // Return the final schedule
       res.json(verifiedSchedule || statusUpdated);
     } catch (err) {
@@ -1289,6 +1346,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      
+      // Broadcast the cancellation via WebSockets for real-time updates
+      if (app.locals.broadcastScheduleUpdate) {
+        console.log(`[WebSocket] Broadcasting schedule cancellation: ${id}`);
+        app.locals.broadcastScheduleUpdate({
+          ...updatedSchedule,
+          tenantId: req.user?.tenantId
+        });
+      }
+      
       res.json(updatedSchedule);
     } catch (err) {
       console.error("Failed to cancel schedule:", err);
@@ -1359,6 +1426,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const updatedSchedule = await storage.updateSchedule(id, scheduleData);
+      
+      // Broadcast the reschedule via WebSockets for real-time updates
+      if (app.locals.broadcastScheduleUpdate) {
+        console.log(`[WebSocket] Broadcasting schedule reschedule: ${id} to ${startTime.toISOString()} - ${endTime.toISOString()}`);
+        app.locals.broadcastScheduleUpdate({
+          ...updatedSchedule,
+          tenantId: req.user?.tenantId
+        });
+      }
+      
       res.json(updatedSchedule);
     } catch (err) {
       console.error("Failed to reschedule appointment:", err);
