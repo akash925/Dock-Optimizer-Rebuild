@@ -20,6 +20,9 @@ interface ScheduleDayCalendarProps {
 
 interface ScheduleWithTime extends Schedule {
   formattedTime: string;
+  _displayStartHour?: number;
+  _displayEndHour?: number;
+  _spanMultipleHours?: boolean;
 }
 
 // Helper type for our schedules by hour and dock
@@ -83,7 +86,7 @@ export default function ScheduleDayCalendar({
     setIsLoading(false);
   }, [schedules, date]);
 
-  // Get schedules for this day and organize them by hour and dock - memoized for performance
+  // Get schedules for this day and organize them - completely rebuilt to fix multi-hour display
   const organizedSchedules = useMemo(() => {
     // Create the result object with proper typing
     const result: Record<number, Record<number, ScheduleWithTime[]>> = {};
@@ -93,67 +96,87 @@ export default function ScheduleDayCalendar({
       result[i] = {};
     }
     
-    schedules.forEach(schedule => {
-      // Skip any schedule with missing required fields
-      if (!schedule.startTime || !schedule.endTime || !schedule.dockId) return;
+    // First step - identify appointments that should be shown on this date
+    // Even if start/end spans across multiple days, we want to show on this date if date falls within range
+    const appointmentsToShow = schedules.filter(schedule => {
+      if (!schedule.startTime || !schedule.endTime) return false;
+      
+      const startDate = new Date(schedule.startTime);
+      const endDate = new Date(schedule.endTime);
+      
+      // Normalize dates to compare only year, month, day
+      const selectedDateNormalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const startDateNormalized = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const endDateNormalized = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      
+      // Show if the date falls within appointment range (inclusive)
+      return selectedDateNormalized >= startDateNormalized && 
+             selectedDateNormalized <= endDateNormalized;
+    });
+    
+    // Process the filtered appointments
+    appointmentsToShow.forEach(schedule => {
+      // Skip any schedule without dock ID - must have a dock
+      if (!schedule.dockId) return;
       
       const startDate = new Date(schedule.startTime);
       const endDate = new Date(schedule.endTime);
       const dockId = schedule.dockId;
+
+      // Create a readable time format string
+      let startTimeFormatted, endTimeFormatted;
       
-      // Check if the schedule is for the selected date
-      if (
-        startDate.getDate() === date.getDate() &&
-        startDate.getMonth() === date.getMonth() &&
-        startDate.getFullYear() === date.getFullYear()
-      ) {
-        // Format time for display based on timeFormat
-        const formattedStartHour = timeFormat === "12h" 
-          ? `${startDate.getHours() === 0 ? 12 : startDate.getHours() > 12 ? startDate.getHours() - 12 : startDate.getHours()}${startDate.getHours() < 12 ? 'am' : 'pm'}`
-          : startDate.getHours().toString().padStart(2, '0');
-          
-        const formattedEndHour = timeFormat === "12h"
-          ? `${endDate.getHours() === 0 ? 12 : endDate.getHours() > 12 ? endDate.getHours() - 12 : endDate.getHours()}${endDate.getHours() < 12 ? 'am' : 'pm'}`
-          : endDate.getHours().toString().padStart(2, '0');
-          
-        const formattedStartMinutes = startDate.getMinutes().toString().padStart(2, '0');
-        const formattedEndMinutes = endDate.getMinutes().toString().padStart(2, '0');
-        
-        const formattedTime = timeFormat === "12h"
-          ? `${formattedStartHour}:${formattedStartMinutes} - ${formattedEndHour}:${formattedEndMinutes}`
-          : `${formattedStartHour}:${formattedStartMinutes} - ${formattedEndHour}:${formattedEndMinutes}`;
-        
-        // Get start hour and potentially span across multiple hours
-        const startHour = startDate.getHours();
-        const endHour = endDate.getHours();
-        
-        // Calculate how many hours this spans
-        const hoursSpanned: number[] = [];
-        for (let h = startHour; h <= endHour; h++) {
-          if (h >= hourStart && h <= hourEnd) {
-            hoursSpanned.push(h);
-          }
-        }
-        
-        // Convert schedule to ScheduleWithTime
-        const scheduleWithTime: ScheduleWithTime = {
-          ...schedule,
-          formattedTime
-        };
-        
-        // Add the schedule to each hour it spans
-        hoursSpanned.forEach(hour => {
-          // Initialize dock array if it doesn't exist
-          if (!result[hour][dockId]) {
-            result[hour][dockId] = [];
-          }
-          
-          // Only add the schedule once per dock/hour combination
-          const existingSchedule = result[hour][dockId].find(s => s.id === schedule.id);
-          if (!existingSchedule) {
-            result[hour][dockId].push(scheduleWithTime);
-          }
-        });
+      if (timeFormat === "12h") {
+        startTimeFormatted = `${startDate.getHours() % 12 || 12}:${startDate.getMinutes().toString().padStart(2, '0')}${startDate.getHours() < 12 ? 'am' : 'pm'}`;
+        endTimeFormatted = `${endDate.getHours() % 12 || 12}:${endDate.getMinutes().toString().padStart(2, '0')}${endDate.getHours() < 12 ? 'am' : 'pm'}`;
+      } else {
+        startTimeFormatted = `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`;
+        endTimeFormatted = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+      }
+      
+      const formattedTime = `${startTimeFormatted} - ${endTimeFormatted}`;
+      
+      // Calculate relevant display hours for this day view
+      let displayStartHour = startDate.getHours();
+      let displayEndHour = endDate.getHours();
+      
+      // If appointment starts before this day, use midnight (hour 0) as start 
+      if (startDate.getDate() !== date.getDate() || 
+          startDate.getMonth() !== date.getMonth() || 
+          startDate.getFullYear() !== date.getFullYear()) {
+        displayStartHour = hourStart;
+      }
+      
+      // If appointment ends after this day, use last hour as end
+      if (endDate.getDate() !== date.getDate() || 
+          endDate.getMonth() !== date.getMonth() || 
+          endDate.getFullYear() !== date.getFullYear()) {
+        displayEndHour = hourEnd;
+      }
+      
+      // Enhanced schedule object with additional metadata
+      const scheduleWithTime: ScheduleWithTime = {
+        ...schedule,
+        formattedTime,
+        // Store original date info so we can calculate proper heights
+        _displayStartHour: displayStartHour,
+        _displayEndHour: displayEndHour,
+        _spanMultipleHours: (displayEndHour - displayStartHour) > 0
+      };
+     
+      // We'll only add this schedule to the FIRST hour slot to avoid duplicates
+      // The rendering logic will handle showing it with proper height spanning multiple slots
+      const firstHour = Math.max(hourStart, displayStartHour);
+      
+      // Initialize dock array if it doesn't exist
+      if (!result[firstHour][dockId]) {
+        result[firstHour][dockId] = [];
+      }
+      
+      // Only add if not already present (deduplication)
+      const alreadyAdded = result[firstHour][dockId].some(s => s.id === schedule.id);
+      if (!alreadyAdded) {
+        result[firstHour][dockId].push(scheduleWithTime);
       }
     });
     
@@ -297,18 +320,19 @@ export default function ScheduleDayCalendar({
                       const facilityName = facility?.name || "";
                       const isInbound = schedule.type === "inbound";
                       
-                      // Calculate duration in hours (difference between start and end time)
-                      const startTime = new Date(schedule.startTime);
-                      const endTime = new Date(schedule.endTime);
-                      const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+                      // Calculate appropriate height for multi-hour appointments
+                      // Use the _displayStartHour and _displayEndHour metadata we added
+                      const startHour = schedule._displayStartHour || hour.value;
+                      const endHour = schedule._displayEndHour || hour.value + 1;
+                      const hourSpan = endHour - startHour;
                       
-                      // Scale height based on duration - more precise scaling for better visibility
+                      // Scale height based on hour span - our new metadata-driven approach
                       const heightClass = 
-                        durationHours >= 5 ? "h-auto min-h-[10rem]" : 
-                        durationHours >= 4 ? "h-auto min-h-[8rem]" :
-                        durationHours >= 3 ? "h-auto min-h-[7rem]" :
-                        durationHours >= 2 ? "h-auto min-h-[5.5rem]" :
-                        durationHours >= 1 ? "h-auto min-h-[4rem]" : 
+                        hourSpan >= 5 ? "h-auto min-h-[10rem]" : 
+                        hourSpan >= 4 ? "h-auto min-h-[8rem]" :
+                        hourSpan >= 3 ? "h-auto min-h-[7rem]" :
+                        hourSpan >= 2 ? "h-auto min-h-[5.5rem]" :
+                        hourSpan >= 1 ? "h-auto min-h-[4rem]" : 
                         "h-auto min-h-[3rem]";
                       
                       return (
@@ -329,8 +353,8 @@ export default function ScheduleDayCalendar({
                           )}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* CUSTOMER NAME FIRST - Most prominent */}
-                          <div className="font-bold truncate text-base mb-1 pb-0.5 border-b border-gray-100">
+                          {/* CUSTOMER NAME FIRST - Larger, bolder, and more prominent */}
+                          <div className="font-extrabold truncate text-lg mb-2 pb-1 border-b border-gray-200 text-gray-800">
                             {schedule.customerName || "Unnamed"}
                           </div>
                           
