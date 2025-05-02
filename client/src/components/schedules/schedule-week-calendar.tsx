@@ -544,27 +544,63 @@ export default function ScheduleWeekCalendar({
                           }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          <div className="font-medium truncate text-xs">
-                            {startTimeStr}-{endTimeStr} {schedule.customerName || "(No customer)"}
+                          {/* Time at the top */}
+                          <div className="font-medium truncate text-[9px]">
+                            {startTimeStr}-{endTimeStr}
                           </div>
-                          <div className="truncate text-xs leading-tight">
-                            {carrier?.name || schedule.carrierName || ""} #{schedule.truckNumber} • {isInbound ? "IN" : "OUT"}
+                          
+                          {/* Customer name with highest visibility */}
+                          <div className="font-bold truncate text-xs">
+                            {schedule.customerName || "(No customer)"}
                           </div>
+                          
+                          {/* Carrier + Type + Truck # */}
+                          <div className="text-[9px] flex items-center gap-1 truncate">
+                            <span className="truncate">{carrier?.name || schedule.carrierName || ""}</span>
+                            <span className={`inline-block px-1 rounded-sm ${
+                              isInbound ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                            }`}>
+                              {isInbound ? "IN" : "OUT"}
+                            </span>
+                            {schedule.truckNumber && <span>#{schedule.truckNumber}</span>}
+                          </div>
+                          
+                          {/* Facility name in smaller font */}
+                          {schedule.facilityName && (
+                            <div className="text-[8px] text-blue-700 truncate">
+                              {schedule.facilityName}
+                            </div>
+                          )}
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <div className="space-y-1 text-xs">
-                          <div className="font-medium">{schedule.customerName || "Unnamed Appointment"}</div>
+                          <div className="font-medium text-sm">{schedule.customerName || "Unnamed Appointment"}</div>
                           <div>
-                            <span className="font-medium">Your time:</span> {startTimeStr}-{endTimeStr}
+                            <span className="font-medium">Time:</span> {startTimeStr}-{endTimeStr}
                           </div>
                           <div>
-                            <span className="font-medium">Facility time:</span> {formatTimeWithFormat(startDate)}-{formatTimeWithFormat(endDate)}
+                            <span className="font-medium">Facility:</span> {schedule.facilityName || "Not specified"}
                           </div>
-                          <div>Carrier: {carrier?.name || schedule.carrierName || "Unknown"}</div>
-                          <div>Truck: #{schedule.truckNumber}</div>
-                          <div>Type: {isInbound ? "Inbound" : "Outbound"}</div>
-                          <div>Status: {schedule.status?.charAt(0).toUpperCase() + schedule.status?.slice(1) || "Unknown"}</div>
+                          <div>
+                            <span className="font-medium">Type:</span> 
+                            <span className={`ml-1 px-1.5 py-0.5 rounded-sm ${
+                              isInbound ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                            }`}>
+                              {isInbound ? "Inbound" : "Outbound"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium">Carrier:</span> {carrier?.name || schedule.carrierName || "Unknown"}
+                          </div>
+                          {schedule.truckNumber && (
+                            <div>
+                              <span className="font-medium">Truck #:</span> {schedule.truckNumber}
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-medium">Status:</span> {schedule.status?.charAt(0).toUpperCase() + schedule.status?.slice(1) || "Unknown"}
+                          </div>
                         </div>
                       </TooltipContent>
                     </Tooltip>
