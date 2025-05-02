@@ -28,6 +28,30 @@ import hanzoLogo from "@/assets/hanzo_logo.jpeg";
 import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
 import { CarrierSelector } from "@/components/shared/carrier-selector";
 
+// Define BOL data structure
+interface BolData {
+  fileName?: string;
+  fileSize?: number;
+  fileType?: string;
+  uploadTimestamp?: string;
+  extractedText?: string;
+  fileUrl?: string;
+  bolNumber?: string;
+  customerName?: string;
+  carrierName?: string;
+  mcNumber?: string;
+  weight?: string;
+  palletCount?: string;
+  fromAddress?: string;
+  toAddress?: string;
+  pickupOrDropoff?: string;
+  truckId?: string;
+  trailerNumber?: string;
+  extractionConfidence?: number;
+  extractionMethod?: string;
+  processingTimestamp?: string;
+}
+
 interface ParsedFacilities {
   [facilityId: string]: {
     facility: Facility;
@@ -498,6 +522,30 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
     try {
       // Combine all form data
       const completeFormData = {...formData, ...data};
+      
+      // Add BOL data if a BOL file was uploaded
+      if (bolFile && bolPreviewText) {
+        console.log('Adding BOL data to appointment submission');
+        
+        // Include BOL file information
+        completeFormData.bolData = {
+          fileName: bolFile.name,
+          fileSize: bolFile.size,
+          fileType: bolFile.type,
+          uploadTimestamp: new Date().toISOString(),
+          extractedText: bolPreviewText
+        };
+        
+        // Make sure we flag that a BOL was uploaded
+        completeFormData.bolFileUploaded = true;
+        completeFormData.bolUploaded = true;
+      }
+      
+      console.log('Submitting appointment with data:', {
+        ...completeFormData,
+        hasBolData: !!completeFormData.bolData,
+        bolFileUploaded: completeFormData.bolFileUploaded
+      });
       
       // Make API request to create appointment
       const res = await apiRequest("POST", "/api/external-booking", completeFormData);

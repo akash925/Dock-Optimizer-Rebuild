@@ -2130,6 +2130,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For tracking which carrier data is selected vs typed
         bolFileUploaded: z.boolean().optional(),
         bolUploaded: z.boolean().optional(),
+        // Add BOL data
+        bolData: z.object({
+          fileName: z.string().optional(),
+          fileSize: z.number().optional(),
+          fileType: z.string().optional(),
+          uploadTimestamp: z.string().optional(),
+          extractedText: z.string().optional(),
+          fileUrl: z.string().optional(),
+          bolNumber: z.string().optional(),
+          customerName: z.string().optional(),
+          carrierName: z.string().optional(),
+          mcNumber: z.string().optional(),
+          weight: z.string().optional(),
+          palletCount: z.string().optional(),
+          fromAddress: z.string().optional(),
+          toAddress: z.string().optional(),
+          pickupOrDropoff: z.string().optional(),
+          truckId: z.string().optional(),
+          trailerNumber: z.string().optional(),
+          extractionConfidence: z.number().optional(),
+          extractionMethod: z.string().optional(),
+          processingTimestamp: z.string().optional()
+        }).optional(),
+      });
+      
+      console.log("[/api/external-booking] Received data:", {
+        ...req.body,
+        hasBolData: !!req.body.bolData,
+        bolFileUploaded: req.body.bolFileUploaded
       });
       
       const validatedData = externalBookingSchema.parse(req.body);
@@ -2247,7 +2276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startTime = new Date(year, month - 1, day, adjustedHour, finalMinute);
       const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
       
-      // Create schedule
+      // Create schedule with BOL data if it exists
       const scheduleData = {
         type: validatedData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound',
         status: "scheduled",
@@ -2264,7 +2293,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endTime,
         notes: validatedData.additionalNotes || null,
         createdBy: 1, // System user ID
+        // Add custom form data with BOL information if available
+        customFormData: validatedData.bolData ? {
+          bolData: validatedData.bolData,
+          bolFileUploaded: true,
+          bolUploaded: true,
+          uploadSource: 'external_booking'
+        } : null
       };
+      
+      console.log("[/api/external-booking] Creating schedule with BOL data:", 
+        validatedData.bolData ? "YES" : "NO", 
+        validatedData.bolFileUploaded ? "File uploaded flag: true" : "No file upload flag"
+      );
       
       const schedule = await storage.createSchedule(scheduleData);
       
