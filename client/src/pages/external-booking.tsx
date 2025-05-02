@@ -104,7 +104,10 @@ const bookingSchema = initialSelectionSchema.merge(companyInfoSchema).merge(appo
 type InitialSelectionFormValues = z.infer<typeof initialSelectionSchema>;
 type CompanyInfoFormValues = z.infer<typeof companyInfoSchema>;
 type AppointmentDetailsFormValues = z.infer<typeof appointmentDetailsSchema>;
-type BookingFormValues = z.infer<typeof bookingSchema>;
+type BookingFormValues = z.infer<typeof bookingSchema> & {
+  // Add optional BOL data that doesn't go through the form validation
+  bolData?: BolData;
+};
 
 export default function ExternalBooking() {
   const { slug } = useParams<{ slug: string }>();
@@ -521,7 +524,7 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
     setIsSubmitting(true);
     try {
       // Combine all form data
-      const completeFormData = {...formData, ...data};
+      const completeFormData: Partial<BookingFormValues> = {...formData, ...data};
       
       // Add BOL data if a BOL file was uploaded
       if (bolFile && bolPreviewText) {
