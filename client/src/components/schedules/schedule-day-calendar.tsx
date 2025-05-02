@@ -1,7 +1,7 @@
-import React from 'react';
-import { format, addDays, subDays, startOfDay, addHours } from 'date-fns';
+import React, { useState, useMemo, useEffect } from 'react';
+import { format, addDays, subDays, startOfDay, addHours, differenceInMinutes } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Schedule, Facility } from '@shared/schema';
 import { Dock } from '@shared/schema';
 import { cn } from '@/lib/utils';
@@ -36,78 +36,111 @@ export default function ScheduleDayCalendar({
   timezone,
   timeFormat = "12h"
 }: ScheduleDayCalendarProps) {
-  // Navigation handlers
+  // State for loading indicator
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Navigation handlers with loading indicators
   const goToPreviousDay = () => {
-    onDateChange(subDays(date, 1));
+    setIsLoading(true);
+    setTimeout(() => onDateChange(subDays(date, 1)), 10);
   };
 
   const goToNextDay = () => {
-    onDateChange(addDays(date, 1));
+    setIsLoading(true);
+    setTimeout(() => onDateChange(addDays(date, 1)), 10);
   };
 
   const goToToday = () => {
-    onDateChange(new Date());
+    setIsLoading(true);
+    setTimeout(() => onDateChange(new Date()), 10);
   };
 
-  // Format date for display
-  const dateDisplay = format(date, 'MMMM d, yyyy');
-  const dayOfWeek = format(date, 'EEEE');
+  // Format date for display - memoized to avoid recalculation
+  const { dateDisplay, dayOfWeek } = useMemo(() => ({
+    dateDisplay: format(date, 'MMMM d, yyyy'),
+    dayOfWeek: format(date, 'EEEE')
+  }), [date]);
 
-  // Generate hours for the day view (3am to 11pm)
+  // Generate hours for the day view (3am to 11pm) - memoized
   const hourStart = 3; // Start at 3am
   const hourEnd = 23; // End at 11pm
   
-  const hours = Array.from({ length: hourEnd - hourStart + 1 }, (_, i) => {
-    const hour = hourStart + i;
-    return {
-      label: timeFormat === "12h" 
-        ? `${hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}${hour < 12 ? 'am' : 'pm'}`
-        : `${hour.toString().padStart(2, '0')}:00`,
-      value: hour,
-      date: addHours(startOfDay(date), hour)
-    };
-  });
+  const hours = useMemo(() => {
+    return Array.from({ length: hourEnd - hourStart + 1 }, (_, i) => {
+      const hour = hourStart + i;
+      return {
+        label: timeFormat === "12h" 
+          ? `${hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}${hour < 12 ? 'am' : 'pm'}`
+          : `${hour.toString().padStart(2, '0')}:00`,
+        value: hour,
+        date: addHours(startOfDay(date), hour)
+      };
+    });
+  }, [date, timeFormat, hourStart, hourEnd]);
 
-  // Get schedules for this day and organize them by hour and dock
-  const organizedSchedules: SchedulesByHourAndDock = {};
-  
-  schedules.forEach(schedule => {
-    const scheduleDate = new Date(schedule.startTime);
+  // Reset loading state when schedules or date changes
+  useEffect(() => {
+    setIsLoading(false);
+  }, [schedules, date]);
+
+  // Get schedules for this day and organize them by hour and dock - memoized for performance
+  const organizedSchedules = useMemo(() => {
+    const result: SchedulesByHourAndDock = {};
     
-    // Check if the schedule is for the selected date
-    if (
-      scheduleDate.getDate() === date.getDate() &&
-      scheduleDate.getMonth() === date.getMonth() &&
-      scheduleDate.getFullYear() === date.getFullYear()
-    ) {
-      const hour = scheduleDate.getHours();
+    schedules.forEach(schedule => {
+      if (!schedule.startTime || !schedule.endTime || !schedule.dockId) return;
       
-      // Skip if the hour is outside our display range
-      if (hour < hourStart || hour > hourEnd) return;
+      const scheduleDate = new Date(schedule.startTime);
       
-      // Format time for display
-      const formattedTime = `${scheduleDate.getHours().toString().padStart(2, '0')}:${scheduleDate.getMinutes().toString().padStart(2, '0')} - ${new Date(schedule.endTime).getHours().toString().padStart(2, '0')}:${new Date(schedule.endTime).getMinutes().toString().padStart(2, '0')}`;
-      
-      // Initialize hour object if it doesn't exist
-      if (!organizedSchedules[hour]) {
-        organizedSchedules[hour] = {};
+      // Check if the schedule is for the selected date
+      if (
+        scheduleDate.getDate() === date.getDate() &&
+        scheduleDate.getMonth() === date.getMonth() &&
+        scheduleDate.getFullYear() === date.getFullYear()
+      ) {
+        const hour = scheduleDate.getHours();
+        
+        // Skip if the hour is outside our display range
+        if (hour < hourStart || hour > hourEnd) return;
+        
+        // Format time for display
+        let formattedTime;
+        // Fallback to direct formatting
+        formattedTime = `${scheduleDate.getHours().toString().padStart(2, '0')}:${scheduleDate.getMinutes().toString().padStart(2, '0')} - ${new Date(schedule.endTime).getHours().toString().padStart(2, '0')}:${new Date(schedule.endTime).getMinutes().toString().padStart(2, '0')}`;
+        
+        // Initialize hour object if it doesn't exist
+        if (!result[hour]) {
+          result[hour] = {};
+        }
+        
+        // Initialize dock array if it doesn't exist
+        if (!result[hour][schedule.dockId]) {
+          result[hour][schedule.dockId] = [];
+        }
+        
+        // Add schedule to the proper hour and dock
+        result[hour][schedule.dockId].push({
+          ...schedule,
+          formattedTime
+        });
       }
-      
-      // Initialize dock array if it doesn't exist
-      if (!organizedSchedules[hour][schedule.dockId]) {
-        organizedSchedules[hour][schedule.dockId] = [];
-      }
-      
-      // Add schedule to the proper hour and dock
-      organizedSchedules[hour][schedule.dockId].push({
-        ...schedule,
-        formattedTime
-      });
-    }
-  });
+    });
+    
+    return result;
+  }, [schedules, date, hourStart, hourEnd, timezone]);
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-4 max-w-full overflow-hidden">
+    <div className="bg-white rounded-lg shadow p-4 mb-4 max-w-full overflow-hidden relative">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-50">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="text-sm mt-2">Loading calendar...</span>
+          </div>
+        </div>
+      )}
+      
       {/* Calendar Header with view mode toggle */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
         <div className="flex items-center space-x-2">
@@ -116,6 +149,7 @@ export default function ScheduleDayCalendar({
             size="icon" 
             onClick={goToPreviousDay}
             className="h-8 w-8"
+            disabled={isLoading}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -124,6 +158,7 @@ export default function ScheduleDayCalendar({
             size="sm"
             onClick={goToToday}
             className="h-8 px-3 text-xs bg-green-100 hover:bg-green-200 border-green-200"
+            disabled={isLoading}
           >
             today
           </Button>
@@ -132,6 +167,7 @@ export default function ScheduleDayCalendar({
             size="icon" 
             onClick={goToNextDay}
             className="h-8 w-8"
+            disabled={isLoading}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -151,10 +187,12 @@ export default function ScheduleDayCalendar({
               className="h-7 px-3 text-xs rounded-none border-r"
               onClick={() => {
                 if (typeof window !== 'undefined') {
+                  setIsLoading(true);
                   const dateParam = `&date=${date.toISOString().split('T')[0]}`;
                   window.location.href = `/schedules?view=month${dateParam}`;
                 }
               }}
+              disabled={isLoading}
             >
               month
             </Button>
@@ -164,10 +202,12 @@ export default function ScheduleDayCalendar({
               className="h-7 px-3 text-xs rounded-none border-r"
               onClick={() => {
                 if (typeof window !== 'undefined') {
+                  setIsLoading(true);
                   const dateParam = `&date=${date.toISOString().split('T')[0]}`;
                   window.location.href = `/schedules?view=week${dateParam}`;
                 }
               }}
+              disabled={isLoading}
             >
               week
             </Button>
@@ -176,6 +216,7 @@ export default function ScheduleDayCalendar({
               size="sm" 
               className="h-7 px-3 text-xs rounded-none border-r"
               onClick={() => onDateChange(date)} // Just refresh current date
+              disabled={isLoading}
             >
               day
             </Button>
@@ -185,10 +226,12 @@ export default function ScheduleDayCalendar({
               className="h-7 px-3 text-xs rounded-none"
               onClick={() => {
                 if (typeof window !== 'undefined') {
+                  setIsLoading(true);
                   const dateParam = `&date=${date.toISOString().split('T')[0]}`;
                   window.location.href = `/schedules?view=list${dateParam}`;
                 }
               }}
+              disabled={isLoading}
             >
               list
             </Button>
