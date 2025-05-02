@@ -578,12 +578,27 @@ export default function FullCalendarView({
               </div>
             </div>
             
+            {/* Reordered to show Facility first after Time */}
             <div className="flex items-start">
               <div className="w-24 text-muted-foreground">Facility:</div>
               <div className="font-medium">{activeEvent.facilityName || 'Not specified'}</div>
             </div>
             
-            {/* Timezone information now incorporated into time section above */}
+            {/* Appointment Type moved up in the order */}
+            <div className="flex items-start">
+              <div className="w-24 text-muted-foreground">Type:</div>
+              <div className="font-medium capitalize">
+                {activeEvent.type ? (
+                  <span className={`inline-block px-2 py-0.5 rounded-sm ${
+                    activeEvent.type.toLowerCase() === 'inbound' 
+                      ? 'bg-blue-50 text-blue-700' 
+                      : 'bg-purple-50 text-purple-700'
+                  }`}>
+                    {activeEvent.type}
+                  </span>
+                ) : 'Not specified'}
+              </div>
+            </div>
             
             <div className="flex items-start">
               <div className="w-24 text-muted-foreground">Carrier:</div>
@@ -603,11 +618,6 @@ export default function FullCalendarView({
                 <div className="font-medium">#{activeEvent.dockId}</div>
               </div>
             )}
-            
-            <div className="flex items-start">
-              <div className="w-24 text-muted-foreground">Type:</div>
-              <div className="font-medium capitalize">{activeEvent.type || 'Not specified'}</div>
-            </div>
             
             <div className="flex items-start">
               <div className="w-24 text-muted-foreground">Status:</div>
@@ -765,28 +775,39 @@ export default function FullCalendarView({
                     {/* Time with more prominence */}
                     <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
                     
-                    {/* Facility/Location Name with highest priority */}
+                    {/* Customer name on second line with highest visibility */}
+                    {customerName && (
+                      <div className="font-bold text-[11px] truncate mb-0.5">
+                        {customerName}
+                      </div>
+                    )}
+                    
+                    {/* Third line: Carrier + Type + Truck # */}
+                    <div className="text-[10px] line-clamp-1 overflow-hidden text-ellipsis">
+                      {carrierName && <span className="font-medium mr-1">{carrierName}</span>}
+                      {eventData?.type && 
+                        <span className={`inline-block mr-1 px-1 rounded-sm ${
+                          eventData.type.toLowerCase() === 'inbound' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                        }`}>
+                          {eventData.type === 'inbound' ? 'IN' : 'OUT'}
+                        </span>
+                      }
+                      {truckNumber && <span className="inline-block">#{truckNumber}</span>}
+                    </div>
+                    
+                    {/* Facility name in smaller font */}
                     {facilityName && (
-                      <div className="font-bold text-[11px] text-blue-700 bg-blue-50 py-0.5 px-1 rounded-sm mb-0.5 border border-blue-200">
+                      <div className="text-[9px] text-blue-700 line-clamp-1 mt-0.5">
                         {facilityName}
                       </div>
                     )}
                     
-                    {/* Customer Name - Prominent */}
-                    <div className="text-xs font-medium line-clamp-1 overflow-hidden text-ellipsis">
-                      {customerName && <span className="font-semibold block">{customerName}</span>}
-                    </div>
-                    
-                    {/* Carrier Name - Prominent */}
-                    <div className="text-[10px] font-medium line-clamp-1 overflow-hidden text-ellipsis">
-                      {carrierName && <span className="block">{carrierName}</span>}
-                    </div>
-                    
-                    {/* Additional details with lower priority */}
-                    <div className="text-[9px] text-gray-700 line-clamp-1 overflow-hidden">
-                      {truckNumber && <span className="inline-block mr-1">#{truckNumber}</span>}
-                      {dockId && <span className="inline-block">Dock #{dockId}</span>}
-                    </div>
+                    {/* Dock info - less prominent */}
+                    {dockId && (
+                      <div className="text-[9px] text-gray-600">
+                        Dock #{dockId}
+                      </div>
+                    )}
                     
                     {/* Status badge */}
                     {showStatusBadge && (
