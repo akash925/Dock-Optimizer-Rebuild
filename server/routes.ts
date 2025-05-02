@@ -4098,6 +4098,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // API endpoint for creating appointments from the dynamic booking page
+  app.post("/api/booking-pages/book-appointment", uploadBol.single('bolFile'), async (req, res) => {
+    try {
+      console.log(`[BookAppointment] Received appointment booking request:`, req.body);
+      
+      // Get the booking page slug to determine the tenant context
+      const { bookingPageSlug } = req.body;
+      
+      if (!bookingPageSlug) {
+        console.log("[BookAppointment] Error: Missing booking page slug");
+        return res.status(400).json({ message: "Booking page slug is required" });
+      }
+      
+      // Get the booking page to determine its tenant
+      const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+      if (!bookingPage) {
+        console.log(`[BookAppointment] Error: No booking page found with slug: ${bookingPageSlug}`);
+        return res.status(404).json({ message: "Booking page not found" });
+      }
+      
+      const tenantId = bookingPage.tenantId;
+      console.log(`[BookAppointment] Found booking page tenant ID: ${tenantId}`);
+      
+      // Check if the facility belongs to the same tenant as the booking page
+      const facilityId = parseInt(req.body.facilityId, 10);
+      const facility = await storage.getFacility(facilityId);
+      
+      if (!facility) {
+        console.log(`[BookAppointment] Error: Facility not found with ID: ${facilityId}`);
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      if (facility.tenantId !== tenantId) {
+        console.log(`[BookAppointment] Error: Facility ${facilityId} belongs to tenant ${facility.tenantId}, not booking page tenant ${tenantId}`);
+        return res.status(403).json({ message: "Facility does not belong to this booking page's organization" });
+      }
+      
+      // Check if the appointment type belongs to the same tenant
+      const appointmentTypeId = parseInt(req.body.appointmentTypeId, 10);
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      
+      if (!appointmentType) {
+        console.log(`[BookAppointment] Error: Appointment type not found with ID: ${appointmentTypeId}`);
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Convert appointment date and time to a Date object
+      const { appointmentDate, appointmentTime } = req.body;
+      if (!appointmentDate || !appointmentTime) {
+        console.log(`[BookAppointment] Error: Missing appointment date or time`);
+        return res.status(400).json({ message: "Appointment date and time are required" });
+      }
+      
+      // Validate appointment time is available
+      try {
+        const date = new Date(appointmentDate);
+        const formattedDate = format(date, "yyyy-MM-dd");
+        
+        // Check availability for this date, facility, and appointment type
+        const availabilityResponse = await storage.getDailyAvailability(facilityId, formattedDate);
+        
+        if (!availabilityResponse || !availabilityResponse.availableTimes || !availabilityResponse.availableTimes.includes(appointmentTime)) {
+          console.log(`[BookAppointment] Error: Selected time ${appointmentTime} is not available`);
+          return res.status(400).json({ message: "Selected time is not available" });
+        }
+      } catch (error) {
+        console.error(`[BookAppointment] Error checking availability: ${error}`);
+        return res.status(500).json({ message: "Failed to validate appointment time availability" });
+      }
+      
+      // Calculate end time based on appointment type duration
+      const startTime = new Date(`${appointmentDate}T${appointmentTime}`);
+      const endTime = new Date(startTime);
+      endTime.setMinutes(endTime.getMinutes() + appointmentType.duration);
+      
+      // Format the appointment data - map booking page form fields to appointment fields
+      const appointmentData = {
+        tenantId: tenantId,
+        facilityId: facilityId,
+        appointmentTypeId: appointmentTypeId,
+        type: req.body.pickupOrDropoff || "dropoff", // default to dropoff if not specified
+        status: "scheduled",
+        startTime: startTime,
+        endTime: endTime,
+        truckNumber: req.body.truckNumber || 'Unknown',
+        createdBy: 0, // System created
+        customerName: req.body.customerName,
+        contactName: req.body.contactName,
+        contactEmail: req.body.contactEmail,
+        contactPhone: req.body.contactPhone,
+        carrierName: req.body.carrierName,
+        carrierId: req.body.carrierId ? parseInt(req.body.carrierId, 10) : null,
+        mcNumber: req.body.mcNumber,
+        trailerNumber: req.body.trailerNumber,
+        driverName: req.body.driverName,
+        driverPhone: req.body.driverPhone,
+        poNumber: req.body.poNumber,
+        bolNumber: req.body.bolNumber,
+        palletCount: req.body.palletCount ? parseInt(req.body.palletCount, 10) : null,
+        weight: req.body.weight ? parseFloat(req.body.weight) : null,
+        notes: req.body.additionalNotes,
+        bolFile: req.file ? req.file.filename : null,
+        source: `booking_page_${bookingPage.id}`,
+      };
+      
+      console.log(`[BookAppointment] Creating appointment with data:`, appointmentData);
+      
+      // Create the appointment
+      const createdAppointment = await storage.createSchedule(appointmentData);
+      
+      if (!createdAppointment) {
+        console.log(`[BookAppointment] Error: Failed to create appointment`);
+        return res.status(500).json({ message: "Failed to create appointment" });
+      }
+      
+      console.log(`[BookAppointment] Successfully created appointment with ID: ${createdAppointment.id}`);
+      
+      // Send confirmation email if booking page has sendConfirmationEmail enabled
+      // Use the sendEmail function from notifications module
+      try {
+        // Get organization name
+        const organization = await storage.getTenantById(tenantId);
+        const orgName = organization ? organization.name : bookingPage.name;
+        
+        // Send confirmation email
+        await sendEmail({
+          to: appointmentData.contactEmail,
+          from: process.env.SENDGRID_FROM_EMAIL || 'noreply@dockoptimizer.com',
+          subject: `${orgName}: Appointment Confirmation - ${format(appointmentData.startTime, "MMM d, yyyy")} at ${format(appointmentData.startTime, "h:mm a")}`,
+          html: `
+            <h2>Your appointment has been confirmed</h2>
+            <p>Thank you for scheduling an appointment with ${orgName}.</p>
+            <p><strong>Appointment Details:</strong></p>
+            <ul>
+              <li><strong>Date:</strong> ${format(appointmentData.startTime, "MMMM d, yyyy")}</li>
+              <li><strong>Time:</strong> ${format(appointmentData.startTime, "h:mm a")}</li>
+              <li><strong>Location:</strong> ${facility.name}</li>
+              <li><strong>Type:</strong> ${appointmentType.name}</li>
+              <li><strong>Direction:</strong> ${appointmentData.type === 'pickup' ? 'Pickup' : 'Dropoff'}</li>
+              <li><strong>Truck #:</strong> ${appointmentData.truckNumber}</li>
+              ${appointmentData.trailerNumber ? `<li><strong>Trailer #:</strong> ${appointmentData.trailerNumber}</li>` : ''}
+              ${appointmentData.driverName ? `<li><strong>Driver Name:</strong> ${appointmentData.driverName}</li>` : ''}
+            </ul>
+            <p>${bookingPage.confirmationMessage || ""}</p>
+          `
+        });
+        console.log(`[BookAppointment] Confirmation email sent to ${appointmentData.contactEmail}`);
+      } catch (emailError) {
+        console.error(`[BookAppointment] Failed to send confirmation email: ${emailError}`);
+        // Don't fail the request if email sending fails
+      }
+      
+      res.status(201).json(createdAppointment);
+    } catch (err) {
+      console.error(`[BookAppointment] Error creating appointment:`, err);
+      res.status(500).json({ 
+        message: "Failed to create appointment",
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
+  
   // Release door endpoint (with optional notes and photo)
   // Upload BOL endpoint
   app.post("/api/upload-bol", uploadBol.single('bolFile'), async (req, res) => {
