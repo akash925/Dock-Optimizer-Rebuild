@@ -6,6 +6,11 @@ import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2, Loader2 } from
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { 
+  formatInFacilityTimeZone, 
+  formatForDualTimeZoneDisplay, 
+  getTimeZoneAbbreviation 
+} from "@/lib/timezone-utils";
+import { 
   Dialog,
   DialogContent,
   DialogDescription,
@@ -23,6 +28,8 @@ interface BookingDetails {
   confirmationNumber: string;
   appointmentDate: string;
   appointmentTime: string;
+  facilityTimeDisplay: string;
+  userTimeDisplay: string;
   location: string;
   customerName: string;
   carrierName: string;
@@ -102,33 +109,40 @@ export default function BookingConfirmation() {
           }
         }
         
-        // Format dates - manually adjust for facility timezone (Eastern Time)
+        // Format dates using our timezone utilities
         const startDate = new Date(schedule.startTime);
+        const facilityTimeZone = 'America/New_York'; // Eastern Time
         
-        // Get the date in Eastern Time (facility timezone)
-        const options: Intl.DateTimeFormatOptions = { 
-          timeZone: 'America/New_York', // Eastern Time
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        };
-        const appointmentDate = startDate.toLocaleDateString('en-US', options);
+        // Get the date in facility timezone (Eastern Time)
+        const appointmentDate = formatInFacilityTimeZone(startDate, 'MM/dd/yyyy', facilityTimeZone);
         
-        // Get the time in Eastern Time with AM/PM
-        const timeOptions: Intl.DateTimeFormatOptions = { 
-          timeZone: 'America/New_York', // Eastern Time
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        };
-        const appointmentTime = startDate.toLocaleTimeString('en-US', timeOptions);
+        // Get time display in both facility and user timezones
+        const { 
+          facilityTime, 
+          userTime, 
+          facilityZone, 
+          userZone 
+        } = formatForDualTimeZoneDisplay(startDate, facilityTimeZone, 'h:mm a');
+        
+        // Get timezone abbreviations
+        const facilityZoneAbbr = getTimeZoneAbbreviation(facilityZone, startDate);
+        const userZoneAbbr = getTimeZoneAbbreviation(userZone, startDate);
+        
+        // Format time displays for facility and user
+        const facilityTimeDisplay = `${facilityTime} ${facilityZoneAbbr}`;
+        const userTimeDisplay = `${userTime} ${userZoneAbbr}`;
+        
+        // For backward compatibility
+        const appointmentTime = facilityTimeDisplay;
         
         // Set booking details
         setBookingDetails({
-          id: bookingId,
+          id: Number(bookingId),
           confirmationNumber: confirmationNumber || "HZL-" + Math.floor(100000 + Math.random() * 900000),
           appointmentDate,
           appointmentTime,
+          facilityTimeDisplay,
+          userTimeDisplay,
           location: locationName,
           customerName: schedule.customerName || "Not provided",
           carrierName,
@@ -169,6 +183,7 @@ export default function BookingConfirmation() {
   
   // Generate a check-in URL with the confirmation code
   const getCheckInUrl = () => {
+    if (!bookingDetails) return '';
     const code = bookingDetails.confirmationNumber.replace('HZL-', '');
     return `${window.location.origin}/driver-check-in?code=${code}`;
   };
