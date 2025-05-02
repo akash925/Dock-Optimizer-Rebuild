@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Loader2, CalendarRange } from 'lucide-react';
+import { Loader2, CalendarRange, Wifi, WifiOff } from 'lucide-react';
 import FullCalendarView from '@/components/calendar/full-calendar-view';
 import FullCalendar from '@fullcalendar/react';
 import { Schedule } from '@shared/schema';
@@ -17,6 +17,9 @@ import { Label } from '@/components/ui/label';
 import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 import AppointmentForm from '@/components/shared/appointment-form-fixed';
 import AppointmentDetails from '@/components/calendar/appointment-details';
+import { useRealtimeUpdates } from '@/hooks/use-realtime-updates';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // List of common timezones
 const COMMON_TIMEZONES = [
@@ -84,10 +87,17 @@ export default function CalendarPage() {
   const [selectedDockId, setSelectedDockId] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
+  
+  // Initialize real-time WebSocket connection for live updates
+  const { connected: wsConnected, socketError } = useRealtimeUpdates();
 
+  // With WebSockets enabled, we can reduce the polling interval or disable it
+  // when the WebSocket connection is active
   const { data: schedules, isLoading: isLoadingSchedules, refetch: refetchSchedules } = useQuery<Schedule[]>({
     queryKey: ['/api/schedules'],
-    refetchInterval: 15000, // Refresh every 15 seconds
+    // When WebSocket is connected, we can set a longer interval
+    // When not connected, fallback to more frequent polling
+    refetchInterval: wsConnected ? 60000 : 15000, // 60s with WebSocket, 15s without
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
@@ -171,11 +181,40 @@ export default function CalendarPage() {
 
   return (
     <div className="container mx-auto py-2">
-      <div className="mb-2">
-        <h1 className="text-2xl font-bold">Calendar</h1>
-        <p className="text-muted-foreground text-sm">
-          View and manage your dock appointments
-        </p>
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Calendar</h1>
+          <p className="text-muted-foreground text-sm">
+            View and manage your dock appointments
+          </p>
+        </div>
+        
+        {/* WebSocket connection status indicator */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge 
+                variant={wsConnected ? "default" : "outline"} 
+                className={`ml-2 ${wsConnected ? "bg-green-500" : "text-amber-500 border-amber-500"}`}
+              >
+                {wsConnected ? (
+                  <Wifi className="h-3 w-3 mr-1" />
+                ) : (
+                  <WifiOff className="h-3 w-3 mr-1" />
+                )}
+                {wsConnected ? "Real-time" : "Polling"}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              {wsConnected ? (
+                <p>Real-time updates active</p>
+              ) : (
+                <p>Using polling updates (15s interval)</p>
+              )}
+              {socketError && <p className="text-destructive">{socketError}</p>}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Condensed controls row with minimal spacing */}
