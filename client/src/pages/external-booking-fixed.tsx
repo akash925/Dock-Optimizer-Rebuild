@@ -949,7 +949,17 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                   }}
                                 >
                                   <div className="flex flex-col">
-                                    <span>{displayTime}</span>
+                                    {/* Primary display: Facility Time with facility timezone identifier */}
+                                    <div className="font-medium">
+                                      <span>{displayTime}</span>
+                                      {selectedFacility?.timezone && (
+                                        <span className="text-xs ml-1">
+                                          ({getTimeZoneAbbreviation(selectedFacility.timezone)})
+                                        </span>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Secondary display: User's local time if different */}
                                     {Intl.DateTimeFormat().resolvedOptions().timeZone !== selectedFacility?.timezone && (
                                       <span className="text-xs text-gray-500 mt-1">
                                         {/* Convert to user's timezone */}
@@ -964,7 +974,11 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                               timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
                                             }));
                                             
-                                            return format(userTime, 'h:mm a');
+                                            const userTzAbbr = getTimeZoneAbbreviation(
+                                              Intl.DateTimeFormat().resolvedOptions().timeZone
+                                            );
+                                            
+                                            return `${format(userTime, 'h:mm a')} (${userTzAbbr})`;
                                           } catch (e) {
                                             console.error("Error converting timezone:", e);
                                             return "";
