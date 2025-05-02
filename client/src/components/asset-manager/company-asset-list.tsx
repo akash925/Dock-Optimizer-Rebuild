@@ -626,28 +626,30 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
           </div>
         ) : assets && assets.length > 0 ? (
           <>
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10"></TableHead>
-                    <TableHead className="whitespace-nowrap">Asset Name</TableHead>
-                    <TableHead className="whitespace-nowrap">Category</TableHead>
-                    <TableHead className="whitespace-nowrap">Manufacturer</TableHead>
-                    <TableHead className="whitespace-nowrap">Status</TableHead>
-                    <TableHead className="whitespace-nowrap">Location</TableHead>
-                    <TableHead className="whitespace-nowrap">Serial/Barcode</TableHead>
-                    {/* Hide less important columns on smaller screens */}
-                    <TableHead className="hidden lg:table-cell whitespace-nowrap">Owner</TableHead>
-                    <TableHead className="hidden lg:table-cell whitespace-nowrap">Department</TableHead>
-                    <TableHead className="hidden md:table-cell whitespace-nowrap">Purchase Price</TableHead>
-                    <TableHead className="hidden md:table-cell whitespace-nowrap">Purchase Date</TableHead>
-                    <TableHead className="hidden xl:table-cell whitespace-nowrap">Implementation Date</TableHead>
-                    <TableHead className="hidden xl:table-cell whitespace-nowrap">Next Maintenance</TableHead>
-                    <TableHead className="hidden lg:table-cell whitespace-nowrap">Tags</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+            <div className="w-full max-w-full rounded-md border">
+              {/* Responsive table with horizontal scroll */}
+              <div className="overflow-auto" style={{ maxWidth: '100%' }}>
+                <Table className="w-full">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10" style={{ minWidth: '50px' }}></TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '160px' }}>Asset Name</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px' }}>Category</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px' }}>Manufacturer</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px' }}>Status</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px' }}>Location</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px' }}>Serial/Barcode</TableHead>
+                      {/* Hide less important columns on smaller screens */}
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px' }}>Owner</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px' }}>Department</TableHead>
+                      <TableHead className="hidden md:table-cell whitespace-nowrap" style={{ minWidth: '120px' }}>Purchase Price</TableHead>
+                      <TableHead className="hidden md:table-cell whitespace-nowrap" style={{ minWidth: '120px' }}>Purchase Date</TableHead>
+                      <TableHead className="hidden xl:table-cell whitespace-nowrap" style={{ minWidth: '150px' }}>Implementation Date</TableHead>
+                      <TableHead className="hidden xl:table-cell whitespace-nowrap" style={{ minWidth: '150px' }}>Next Maintenance</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px' }}>Tags</TableHead>
+                      <TableHead className="text-right whitespace-nowrap" style={{ minWidth: '80px' }}>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {paginatedAssets?.map((asset) => (
                     <TableRow 
@@ -776,6 +778,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </div>
             
             {/* Pagination */}
