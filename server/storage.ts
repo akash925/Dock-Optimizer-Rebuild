@@ -3070,23 +3070,44 @@ export class DatabaseStorage implements IStorage {
       
       const result = await pool.query(query, tenantId ? [id, tenantId] : [id]);
       
-      if (result.rows.length === 0) {
-        console.log(`[getAppointmentType] No appointment type found with ID: ${id}${tenantId ? ` for tenant: ${tenantId}` : ''}`);
+      if (result.rows.length > 0) {
+        console.log(`[getAppointmentType] Found appointment type via tenant_id: ${result.rows[0].id} - ${result.rows[0].name}`);
+        return result.rows[0];
+      }
+      
+      // If we have a tenant ID and no result was found with direct tenant_id filter,
+      // try the facility relationship fallback
+      if (tenantId) {
+        const facilityQuery = `
+          SELECT apt.* 
+          FROM appointment_types apt
+          JOIN facilities f ON apt.facility_id = f.id
+          JOIN organization_facilities of ON f.id = of.facility_id
+          WHERE apt.id = $1 AND of.organization_id = $2
+          LIMIT 1
+        `;
+        
+        const facilityResult = await pool.query(facilityQuery, [id, tenantId]);
+        
+        if (facilityResult.rows.length > 0) {
+          console.log(`[getAppointmentType] Found appointment type via facility relationship: ${facilityResult.rows[0].id} - ${facilityResult.rows[0].name}`);
+          return facilityResult.rows[0];
+        }
+        
+        console.log(`[getAppointmentType] No appointment type found with ID: ${id} for tenant: ${tenantId}`);
         return undefined;
       }
       
-      console.log(`[getAppointmentType] Found appointment type: ${result.rows[0].id} - ${result.rows[0].name}`);
-      return result.rows[0];
-    } catch (error) {
-      console.error(`[getAppointmentType] Error retrieving appointment type ${id}:`, error);
+      // If no tenant ID provided or previous methods failed, fall back to basic lookup
+      console.log(`[getAppointmentType] Falling back to basic lookup without tenant isolation for ID: ${id}`);
       
       // Fallback to drizzle query without tenant filter if we had an error (like column not found)
-      let query = db
+      const drizzleQuery = db
         .select()
         .from(appointmentTypes)
         .where(eq(appointmentTypes.id, id));
         
-      const [appointmentType] = await query;
+      const [appointmentType] = await drizzleQuery;
       
       if (appointmentType) {
         // If we have a tenant ID, verify the appointment type belongs to a facility owned by this tenant
@@ -3102,6 +3123,9 @@ export class DatabaseStorage implements IStorage {
         return appointmentType;
       }
       
+      return undefined;
+    } catch (error) {
+      console.error(`[getAppointmentType] Error retrieving appointment type ${id}:`, error);
       return undefined;
     }
   }

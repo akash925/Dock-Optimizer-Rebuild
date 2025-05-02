@@ -4425,6 +4425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Additional check: verify appointment type belongs to the user's tenant
         try {
+          // First try the direct tenant_id on appointment_types
           const appointmentTypeQuery = `
             SELECT t.id, t.name 
             FROM tenants t
@@ -4448,6 +4449,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return res.status(403).json({ 
                 message: "Access denied: you don't have permission to access this resource"
               });
+            }
+          } else {
+            // Fallback: check if appointment type is related to facility's organization
+            // This handles cases where appointment_types.tenant_id is not set
+            const fallbackQuery = `
+              SELECT t.id, t.name 
+              FROM tenants t
+              JOIN organization_facilities of ON t.id = of.organization_id
+              JOIN appointment_types apt ON apt.facility_id = of.facility_id 
+              WHERE apt.id = $1
+              LIMIT 1
+            `;
+            
+            const fallbackResult = await pool.query(fallbackQuery, [parsedAppointmentTypeId]);
+            
+            if (fallbackResult.rows.length > 0) {
+              const orgInfo = fallbackResult.rows[0];
+              console.log(`[AvailabilityEndpoint] Appointment type ${parsedAppointmentTypeId} belongs to organization ${orgInfo.id} (${orgInfo.name}) via facility relation`);
+              
+              // Same tenant isolation check as above
+              if ((tenantId && orgInfo.id !== tenantId) || 
+                  (userTenantId && orgInfo.id !== userTenantId)) {
+                console.log(`[AvailabilityEndpoint] Access denied - appointment type ${parsedAppointmentTypeId} belongs to org ${orgInfo.id}, user is from tenant ${tenantId}, facility belongs to tenant ${userTenantId}`);
+                return res.status(403).json({ 
+                  message: "Access denied: you don't have permission to access this resource"
+                });
+              }
             }
           }
         } catch (error) {
