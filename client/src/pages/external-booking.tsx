@@ -1545,9 +1545,10 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
                   {bookingPage?.title || "Dock Appointment Scheduler"}
                 </h1>
                 <p className="text-gray-600 mb-4">
-                  Please use this form to pick the type of Dock Appointment that
-                  you need. For support using this page,
-                  please <a href="#" className="text-blue-600 hover:underline">check out this video</a>.
+                  {bookingPage?.welcomeMessage || "Please use this form to pick the type of Dock Appointment that you need."}
+                  {!bookingPage?.welcomeMessage && (
+                    <> For support using this page, please <a href="#" className="text-blue-600 hover:underline">check out this video</a>.</>
+                  )}
                 </p>
               </div>
               
@@ -1561,40 +1562,16 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
               </div>
               
               <div>
-                {slug === "fresh-connect-booking" ? (
-                  <>
-                    <h3 className="font-semibold text-gray-900 mb-2">FRESH CONNECT CENTRAL</h3>
-                    <p className="text-gray-700 mb-1">Select from the following locations:</p>
-                    <div className="space-y-1 text-sm text-gray-700">
-                      <p>Fresh Connect HQ - 123 Main Avenue, Chicago, IL 60601</p>
-                      <p>Fresh Connect South - 456 Produce Lane, Chicago, IL 60616</p>
-                      <p>Fresh Connect North - 789 Orchard Road, Chicago, IL 60654</p>
-                    </div>
-                  </>
-                ) : bookingPage?.name?.includes("Fresh Connect") ? (
-                  <>
-                    <h3 className="font-semibold text-gray-900 mb-2">FRESH CONNECT CENTRAL</h3>
-                    <p className="text-gray-700 mb-1">Select from the following locations:</p>
-                    <div className="space-y-1 text-sm text-gray-700">
-                      <p>Fresh Connect HQ - 123 Main Avenue, Chicago, IL 60601</p>
-                      <p>Fresh Connect South - 456 Produce Lane, Chicago, IL 60616</p>
-                      <p>Fresh Connect North - 789 Orchard Road, Chicago, IL 60654</p>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h3 className="font-semibold text-gray-900 mb-2">HANZO LOGISTICS INC.</h3>
-                    <p className="text-gray-700 mb-1">Select from the following locations:</p>
-                    <div className="space-y-1 text-sm text-gray-700">
-                      <p>450 Airtech Pkwy Plainfield IN 46168</p>
-                      <p>8370 E Camby Rd Plainfield IN 46168</p>
-                      <p>4001 W Minnesota Street Indianapolis, IN 46241</p>
-                      <p>(HANZO Cold-Chain)</p>
-                      <p>4334 Plainfield Road Plainfield, IN 46231</p>
-                      <p>9915 Lacy Knot Dr, Brownsburg, IN 46112</p>
-                    </div>
-                  </>
-                )}
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  {bookingPage?.name ? bookingPage.name.toUpperCase() : "LOCATIONS"}
+                </h3>
+                <p className="text-gray-700 mb-1">Select from the following locations:</p>
+                <div className="space-y-1 text-sm text-gray-700">
+                  {/* Show parsed facility addresses */}
+                  {Object.values(parsedFacilities).map(({ facility }) => (
+                    <p key={facility.id}>{facility.name} - {facility.address}</p>
+                  ))}
+                </div>
               </div>
               
               <p className="text-sm text-gray-700">
