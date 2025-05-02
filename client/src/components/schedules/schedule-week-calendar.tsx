@@ -615,7 +615,7 @@ export default function ScheduleWeekCalendar({
                         >
                           {/* ULTRA-PROMINENT CUSTOMER NAME - Guaranteed to be visible with background */}
                           <div 
-                            className={`font-semibold text-[9px] lg:text-[10px] mb-1 leading-none text-gray-900 tracking-tight px-1 py-0.5 -mx-1 -mt-1 rounded-t-sm ${
+                            className={`font-semibold text-[9px] lg:text-[10px] mb-0 pt-4 pb-0.5 leading-none text-gray-900 tracking-tight px-1 -mx-1 -mt-1 rounded-t-sm ${
                               isInbound ? 'bg-blue-50' : 'bg-purple-50'
                             }`}
                             style={{ 
@@ -631,7 +631,7 @@ export default function ScheduleWeekCalendar({
                           </div>
                           
                           {/* Type badge + Status inline */}
-                          <div className="flex items-center gap-1 truncate">
+                          <div className="flex items-center gap-1 truncate mt-1">
                             <span className={`text-[10px] px-1 py-0.5 rounded-sm font-bold uppercase ${
                               isInbound ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
                             }`}>
