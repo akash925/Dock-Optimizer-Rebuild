@@ -118,7 +118,18 @@ export function useAppointmentAvailability({
     }
   }, [facilityId]);
 
-  // Generate time slots based on rules & booked appointments
+  /**
+   * Generate available time slots based on:
+   * 1. Facility availability rules (opening hours, max concurrent appointments)
+   * 2. Booked appointments for the selected date
+   * 3. Buffer time settings (used as the interval between available slots)
+   * 4. Max appointments per day settings
+   * 
+   * Buffer time implementation:
+   * - Buffer time is used to determine the interval between generated time slots
+   * - For example, a buffer time of 60 minutes will create hourly slots (8:00, 9:00, 10:00)
+   * - Default interval is 15 minutes if no buffer time is specified
+   */
   const generateTimeSlots = useCallback((
     dateStr: string, 
     rules: AvailabilityRule[], 
@@ -237,6 +248,7 @@ export function useAppointmentAvailability({
           
           // Check max concurrent constraints from rules
           for (const rule of relevantRules) {
+            // Check max concurrent appointments constraint
             if (typeof rule.maxConcurrent === 'number') {
               const remaining = rule.maxConcurrent - overlappingAppointments.length;
               
@@ -247,8 +259,26 @@ export function useAppointmentAvailability({
               
               if (remaining <= 0) {
                 isAvailable = false;
-                reason = 'No available slots';
+                reason = 'No available concurrent slots';
                 break;
+              }
+            }
+            
+            // Check max appointments per day constraint
+            if (typeof rule.maxAppointmentsPerDay === 'number' && rule.maxAppointmentsPerDay > 0) {
+              // Count all booked appointments for this day
+              const totalBookedForDay = booked.length;
+              
+              if (totalBookedForDay >= rule.maxAppointmentsPerDay) {
+                isAvailable = false;
+                reason = 'Daily appointment limit reached';
+                break;
+              }
+              
+              // Update remaining slots if this is more restrictive
+              const remainingDaily = rule.maxAppointmentsPerDay - totalBookedForDay;
+              if (remainingDaily < remainingSlots) {
+                remainingSlots = remainingDaily;
               }
             }
           }
