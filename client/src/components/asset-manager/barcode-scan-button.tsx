@@ -41,9 +41,9 @@ export function BarcodeScanButton({ variant = 'ghost', size = 'icon' }: BarcodeS
             description: `Found asset: ${asset.name}`,
           });
           
-          // Navigate to the asset detail page
+          // Navigate to the asset edit page
           setOpen(false);
-          navigate(`/assets/${asset.id}`);
+          navigate(`/asset-manager/assets/${asset.id}/edit`);
         } else {
           toast({
             title: 'No Asset Found',
