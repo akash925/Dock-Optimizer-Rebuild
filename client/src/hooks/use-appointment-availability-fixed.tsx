@@ -216,49 +216,22 @@ export function useAppointmentAvailability({
             const appStart = new Date(app.startTime);
             const appEnd = new Date(app.endTime);
             
-            // Check direct overlap with the appointment
+            // Check direct overlap with the appointment without buffer zone concept
+            // In our new implementation, buffer time only determines the interval between slots,
+            // not "dead zones" around existing appointments
             const overlapsAppointment = (
               (currentTime < appEnd && appointmentEnd > appStart) ||
               (appStart < appointmentEnd && appEnd > currentTime)
             );
             
-            // Check buffer zones regardless of direct overlap when buffer time is set
-            if (bufferTime > 0) {
-              // Calculate buffer windows around existing appointments
-              const bufferBeforeStart = new Date(appStart);
-              bufferBeforeStart.setMinutes(bufferBeforeStart.getMinutes() - bufferTime);
-              
-              const bufferAfterEnd = new Date(appEnd);
-              bufferAfterEnd.setMinutes(bufferAfterEnd.getMinutes() + bufferTime);
-              
-              // Check if our new appointment time overlaps with the buffer zones
-              // For buffer time to work properly, we need to check if the new appointment
-              // starts during or after the buffer before the booked appointment,
-              // AND ends during or before the buffer after the booked appointment
-              const withinBufferZone = (
-                // New appointment start time is within the buffer zone
-                (currentTime >= bufferBeforeStart && currentTime <= bufferAfterEnd) ||
-                // New appointment end time is within the buffer zone
-                (appointmentEnd >= bufferBeforeStart && appointmentEnd <= bufferAfterEnd) ||
-                // New appointment completely encompasses the booked appointment and buffer zones
-                (currentTime <= bufferBeforeStart && appointmentEnd >= bufferAfterEnd)
-              );
-              
-              // Log for debugging (only in development)
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`[Buffer Check] New appointment: ${currentTime.toTimeString()} - ${appointmentEnd.toTimeString()}`);
-                console.log(`[Buffer Check] Booked appointment: ${appStart.toTimeString()} - ${appEnd.toTimeString()}`);
-                console.log(`[Buffer Check] Buffer zone: ${bufferBeforeStart.toTimeString()} - ${bufferAfterEnd.toTimeString()}`);
-                console.log(`[Buffer Check] Within buffer zone: ${withinBufferZone}, Buffer time: ${bufferTime} minutes`);
-              }
-              
-              if (withinBufferZone) {
-                // This time slot overlaps with the buffer zone of an existing appointment
-                return true;
-              }
+            // Log for debugging (only in development)
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`[Overlap Check] New appointment: ${currentTime.toTimeString()} - ${appointmentEnd.toTimeString()}`);
+              console.log(`[Overlap Check] Booked appointment: ${appStart.toTimeString()} - ${appEnd.toTimeString()}`);
+              console.log(`[Overlap Check] Direct overlap: ${overlapsAppointment}`);
             }
             
-            // If there's no buffer time or no buffer zone overlap, check direct overlap
+            // Only check for direct appointment overlap, not buffer zones
             return overlapsAppointment;
           });
           
@@ -281,8 +254,9 @@ export function useAppointmentAvailability({
           }
         }
         
-        // Determine if this is a buffer time slot
-        const isBufferTime = !isAvailable && reason === 'No available slots' && bufferTime > 0;
+        // Buffer time is no longer a property of time slots - it's only used to control interval
+        // Remove the isBufferTime concept as it's not needed when using buffer time as intervals
+        const isBufferTime = false;
         
         // Add the slot
         slots.push({
@@ -293,8 +267,22 @@ export function useAppointmentAvailability({
           isBufferTime // Add this property to identify buffer time slots
         });
         
-        // Move to next 15-minute slot for more granular scheduling
-        currentTime = new Date(currentTime.getTime() + 15 * 60 * 1000);
+        // Find the buffer time from the relevant rules (for interval calculation)
+        let intervalMinutes = 15; // Default interval is 15 minutes
+        
+        // Use buffer time as interval if available and greater than 0
+        if (relevantRules.length > 0) {
+          for (const rule of relevantRules) {
+            if (rule.bufferTime && rule.bufferTime > 0) {
+              intervalMinutes = rule.bufferTime;
+              break;
+            }
+          }
+        }
+        
+        // Use the buffer time as the interval between slots
+        console.log(`Using interval of ${intervalMinutes} minutes based on buffer time settings`);
+        currentTime = new Date(currentTime.getTime() + intervalMinutes * 60 * 1000);
       }
       
       return slots;

@@ -4553,7 +4553,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`AVAILABILITY RULE: Using buffer time of ${facilityRule.bufferTime} minutes for ${appointmentType.name}`);
           
           // Generate time slots based on facility hours
-          // Use the buffer time as the interval if it exists and is greater than 0
+          // IMPORTANT: Buffer time determines the interval between slots (not "dead zones")
+          // If buffer time is 60 minutes, slots should be hourly (e.g., 8:00, 9:00, 10:00)
+          // Default to 15-minute intervals if no buffer time is specified
           const intervalToUse = (appointmentType.bufferTime && appointmentType.bufferTime > 0) 
             ? appointmentType.bufferTime 
             : (facilitySettings.timeInterval || 15);

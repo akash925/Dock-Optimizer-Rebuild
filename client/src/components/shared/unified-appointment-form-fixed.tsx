@@ -1032,9 +1032,7 @@ export default function UnifiedAppointmentForm({
                                     <div className="flex items-center justify-between w-full">
                                       <span className="font-medium">{slot.time}</span>
                                       <span className="text-sm ml-2">
-                                        {!slot.available && slot.isBufferTime && (
-                                          <span className="text-amber-600 text-xs">(Buffer time)</span>
-                                        )}
+                                        {/* Remove buffer time display in slot UI since it's now used as interval */}
                                         {!slot.available && !slot.isBufferTime && (
                                           <span className="text-red-600 text-xs">({slot.reason || "Unavailable"})</span>
                                         )}
