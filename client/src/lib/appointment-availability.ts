@@ -130,6 +130,19 @@ export function generateAvailableTimeSlots(
  * @param bufferTime - Optional buffer time between appointments in minutes
  * @returns Array of time slots
  */
+/**
+ * Generate time slots for a specific time range with support for buffer time
+ * Buffer time now determines the interval between slots (not "dead zones")
+ * For example, a buffer time of 60 minutes will create hourly slots (8:00, 9:00, 10:00)
+ * @param startTime - Start time in HH:MM format
+ * @param endTime - End time in HH:MM format
+ * @param interval - Interval in minutes (if buffer time is specified, this is ignored)
+ * @param duration - Duration of appointment in minutes
+ * @param available - Whether these slots are available
+ * @param remainingCapacity - Optional remaining capacity for these slots
+ * @param bufferTime - Optional buffer time determining interval between appointments
+ * @returns Array of time slots
+ */
 function generateTimeSlotsForRange(
   startTime: string,
   endTime: string,
@@ -148,42 +161,25 @@ function generateTimeSlotsForRange(
   // Calculate the last possible start time based on appointment duration
   const lastPossibleStart = endMinutes - duration;
   
-  // If buffer time is specified, we need to handle it specially
-  if (bufferTime > 0) {
-    console.log(`[generateTimeSlotsForRange] Using buffer time: ${bufferTime} minutes`);
+  // If buffer time is specified and greater than the default interval, use it as the interval
+  // This will create slots at buffer time intervals (e.g., 60 minutes will create hourly slots)
+  const slotInterval = (bufferTime && bufferTime > interval) ? bufferTime : interval;
+  
+  console.log(`[generateTimeSlotsForRange] Using interval of ${slotInterval} minutes (buffer: ${bufferTime}, default: ${interval})`);
     
-    // Always generate all slots, but mark some as buffer slots
-    // First, create slots at every interval
-    for (let time = startMinutes; time <= lastPossibleStart; time += interval) {
-      // Determine if this is a valid appointment start time
-      // To be valid, there must be no overlap with buffer time around other appointments
-      const appointmentEndMinutes = time + duration;
-      
-      // By default, all slots are available unless they're within a buffer zone
-      slots.push({
-        time: convertMinutesToTime(time),
-        available: available,
-        remainingCapacity: remainingCapacity,
-        isBufferTime: false // Not a buffer time slot by default
-      });
-    }
+  // Generate slots at the determined interval
+  for (let time = startMinutes; time <= lastPossibleStart; time += slotInterval) {
+    const appointmentEndMinutes = time + duration;
     
-    // Post-process slots to handle buffer zone overlaps
-    // Real buffer enforcement happens in appointment-availability-fixed.tsx
-    // Here we just report the buffer information correctly
-    
-    console.log(`[generateTimeSlotsForRange] Generated ${slots.length} slots with buffer time: ${bufferTime} minutes`);
-  } else {
-    // Without buffer time, generate slots at each interval
-    for (let time = startMinutes; time <= lastPossibleStart; time += interval) {
-      slots.push({
-        time: convertMinutesToTime(time),
-        available: available,
-        remainingCapacity: remainingCapacity,
-        isBufferTime: false
-      });
-    }
+    slots.push({
+      time: convertMinutesToTime(time),
+      available: available,
+      remainingCapacity: remainingCapacity,
+      isBufferTime: false // Not a buffer time slot by default
+    });
   }
+  
+  console.log(`[generateTimeSlotsForRange] Generated ${slots.length} slots with interval: ${slotInterval} minutes`);
   
   return slots;
 }
