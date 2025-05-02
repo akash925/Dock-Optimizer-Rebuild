@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { format, addDays, startOfWeek, endOfWeek, isWithinInterval, areIntervalsOverlapping, addMinutes } from "date-fns";
 import { Schedule, Carrier } from "@shared/schema";
 import { formatTime } from "@/lib/utils";
@@ -55,64 +55,70 @@ export default function ScheduleWeekCalendar({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentTimePosition, setCurrentTimePosition] = useState<number>(0);
   
-  // Current week dates
-  const weekStart = startOfWeek(date, { weekStartsOn: 0 }); // Sunday as start of week
-  const weekEnd = endOfWeek(date, { weekStartsOn: 0 });
-  
-  // Format date range display - more compact format
-  const dateRangeDisplay = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
-  
-  // Generate days of the week
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  
-  // Generate hours from 12AM to 11PM based on timeFormat
-  const hours = Array.from({ length: 24 }, (_, i) => {
-    const hour = i; // Starting from 12 AM
-    return {
-      display: timeFormat === "24h"
-        ? `${hour.toString().padStart(2, '0')}:00`  // 24h format (e.g., "08:00", "14:00")
-        : hour < 12 
-          ? `${hour === 0 ? 12 : hour}am` 
-          : `${hour === 12 ? 12 : hour - 12}${hour < 12 ? 'am' : 'pm'}`,
-      value: hour
-    };
-  });
-  
-  // Filter schedules based on search inputs
-  const filteredSchedules = schedules.filter(schedule => {
-    // Filter by customer name
-    const customerMatch = customerSearch 
-      ? (schedule.customerName?.toLowerCase().includes(customerSearch.toLowerCase()) || false)
-      : true;
+  // Current week dates - memoized to avoid recalculation
+  const { weekStart, weekEnd, dateRangeDisplay, weekDays } = useMemo(() => {
+    const weekStart = startOfWeek(date, { weekStartsOn: 0 }); // Sunday as start of week
+    const weekEnd = endOfWeek(date, { weekStartsOn: 0 });
+    const dateRangeDisplay = `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
     
-    // Filter by carrier name
-    let carrierMatch = true;
-    if (carrierSearch) {
-      const carrier = carriers.find(c => c.id === schedule.carrierId);
-      const carrierName = (schedule as any).carrierName;
-      carrierMatch = carrier 
-        ? carrier.name.toLowerCase().includes(carrierSearch.toLowerCase())
-        : carrierName 
-          ? carrierName.toLowerCase().includes(carrierSearch.toLowerCase())
-          : false;
-    }
-    
-    return customerMatch && carrierMatch;
-  });
+    return { weekStart, weekEnd, dateRangeDisplay, weekDays };
+  }, [date]);
   
-  // Get week schedules
-  const weekSchedules = filteredSchedules.filter(schedule => {
-    const scheduleStart = new Date(schedule.startTime);
-    const scheduleEnd = new Date(schedule.endTime);
-    
-    // Check if schedule overlaps with the week
-    return isWithinInterval(scheduleStart, { start: weekStart, end: weekEnd }) ||
-           isWithinInterval(scheduleEnd, { start: weekStart, end: weekEnd }) ||
-           areIntervalsOverlapping(
-             { start: scheduleStart, end: scheduleEnd },
-             { start: weekStart, end: weekEnd }
-           );
-  });
+  // Generate hours from 12AM to 11PM based on timeFormat - memoized
+  const hours = useMemo(() => {
+    return Array.from({ length: 24 }, (_, i) => {
+      const hour = i; // Starting from 12 AM
+      return {
+        display: timeFormat === "24h"
+          ? `${hour.toString().padStart(2, '0')}:00`  // 24h format (e.g., "08:00", "14:00")
+          : hour < 12 
+            ? `${hour === 0 ? 12 : hour}am` 
+            : `${hour === 12 ? 12 : hour - 12}${hour < 12 ? 'am' : 'pm'}`,
+        value: hour
+      };
+    });
+  }, [timeFormat]);
+  
+  // Filter schedules based on search inputs - memoized for better performance
+  const filteredSchedules = useMemo(() => {
+    return schedules.filter(schedule => {
+      // Filter by customer name
+      const customerMatch = customerSearch 
+        ? (schedule.customerName?.toLowerCase().includes(customerSearch.toLowerCase()) || false)
+        : true;
+      
+      // Filter by carrier name
+      let carrierMatch = true;
+      if (carrierSearch) {
+        const carrier = carriers.find(c => c.id === schedule.carrierId);
+        const carrierName = (schedule as any).carrierName;
+        carrierMatch = carrier 
+          ? carrier.name.toLowerCase().includes(carrierSearch.toLowerCase())
+          : carrierName 
+            ? carrierName.toLowerCase().includes(carrierSearch.toLowerCase())
+            : false;
+      }
+      
+      return customerMatch && carrierMatch;
+    });
+  }, [schedules, customerSearch, carrierSearch, carriers]);
+  
+  // Get week schedules - memoized to prevent recalculation on every render
+  const weekSchedules = useMemo(() => {
+    return filteredSchedules.filter(schedule => {
+      const scheduleStart = new Date(schedule.startTime);
+      const scheduleEnd = new Date(schedule.endTime);
+      
+      // Check if schedule overlaps with the week
+      return isWithinInterval(scheduleStart, { start: weekStart, end: weekEnd }) ||
+             isWithinInterval(scheduleEnd, { start: weekStart, end: weekEnd }) ||
+             areIntervalsOverlapping(
+               { start: scheduleStart, end: scheduleEnd },
+               { start: weekStart, end: weekEnd }
+             );
+    });
+  }, [filteredSchedules, weekStart, weekEnd]);
   
   // Function to get the day index for a schedule
   const getScheduleDayIndex = (schedule: Schedule) => {
