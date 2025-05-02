@@ -89,10 +89,11 @@ export default function ScheduleWeekCalendar({
     let carrierMatch = true;
     if (carrierSearch) {
       const carrier = carriers.find(c => c.id === schedule.carrierId);
+      const carrierName = (schedule as any).carrierName;
       carrierMatch = carrier 
         ? carrier.name.toLowerCase().includes(carrierSearch.toLowerCase())
-        : schedule.carrierName 
-          ? schedule.carrierName.toLowerCase().includes(carrierSearch.toLowerCase())
+        : carrierName 
+          ? carrierName.toLowerCase().includes(carrierSearch.toLowerCase())
           : false;
     }
     
@@ -575,11 +576,11 @@ export default function ScheduleWeekCalendar({
                             }
                           </div>
                           
-                          {/* Carrier name + Facility name in same row to save space */}
+                          {/* Carrier name + Facility info in same row to save space */}
                           <div className="text-[8px] flex justify-between truncate">
-                            <span className="truncate text-gray-700">{carrier?.name || schedule.carrierName || ""}</span>
-                            {schedule.facilityName && (
-                              <span className="truncate text-blue-700 pl-1">{schedule.facilityName}</span>
+                            <span className="truncate text-gray-700">{carrier?.name || (schedule as any).carrierName || ""}</span>
+                            {(schedule as any).facilityName && (
+                              <span className="truncate text-blue-700 pl-1">{(schedule as any).facilityName}</span>
                             )}
                           </div>
                         </div>
@@ -591,7 +592,7 @@ export default function ScheduleWeekCalendar({
                             <span className="font-medium">Time:</span> {startTimeStr}-{endTimeStr}
                           </div>
                           <div>
-                            <span className="font-medium">Facility:</span> {schedule.facilityName || "Not specified"}
+                            <span className="font-medium">Facility:</span> {(schedule as any).facilityName || "Not specified"}
                           </div>
                           <div>
                             <span className="font-medium">Type:</span> 
@@ -602,7 +603,7 @@ export default function ScheduleWeekCalendar({
                             </span>
                           </div>
                           <div>
-                            <span className="font-medium">Carrier:</span> {carrier?.name || schedule.carrierName || "Unknown"}
+                            <span className="font-medium">Carrier:</span> {carrier?.name || (schedule as any).carrierName || "Unknown"}
                           </div>
                           {schedule.truckNumber && (
                             <div>
