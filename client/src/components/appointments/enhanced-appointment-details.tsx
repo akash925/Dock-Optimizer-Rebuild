@@ -5,6 +5,15 @@ import { Schedule } from '@shared/schema';
 import { AppointmentDetailsDialog } from '@/components/schedules/appointment-details-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+// Define ExtendedSchedule interface matching the one in appointment-details-dialog.tsx
+interface ExtendedSchedule extends Omit<Schedule, 'facilityId'> {
+  dockName?: string;
+  appointmentTypeName?: string;
+  facilityName?: string;
+  facilityId?: number;
+  facilityTimezone?: string;
+}
+
 interface EnhancedAppointmentDetailsProps {
   scheduleId: number | null;
   onClose: () => void;
@@ -59,8 +68,10 @@ export default function EnhancedAppointmentDetails({ scheduleId, onClose }: Enha
                          'America/New_York'; // Default to Eastern time
 
   // Convert schedule to the expected format for AppointmentDetailsDialog
-  const extendedSchedule = {
+  const extendedSchedule: ExtendedSchedule = {
     ...schedule,
+    // Remove facilityId from schedule and add it back as undefined if it's null
+    facilityId: schedule.facilityId === null ? undefined : schedule.facilityId,
     facilityName,
     facilityTimezone,
     dockName: schedule.dockId ? `Dock #${schedule.dockId}` : undefined,
