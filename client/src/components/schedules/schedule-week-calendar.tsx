@@ -50,6 +50,7 @@ export default function ScheduleWeekCalendar({
   const [customerSearch, setCustomerSearch] = useState("");
   const [carrierSearch, setCarrierSearch] = useState("");
   const [selectedTimezone, setSelectedTimezone] = useState(timezone || "");
+  const [isLoading, setIsLoading] = useState(false);
   
   // State for current time indicator
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -145,18 +146,26 @@ export default function ScheduleWeekCalendar({
   
 
   
-  // Move to previous/next week
+  // Move to previous/next week with loading indicators
   const goToPreviousWeek = () => {
-    onDateChange(addDays(date, -7));
+    setIsLoading(true);
+    setTimeout(() => onDateChange(addDays(date, -7)), 10);
   };
   
   const goToNextWeek = () => {
-    onDateChange(addDays(date, 7));
+    setIsLoading(true);
+    setTimeout(() => onDateChange(addDays(date, 7)), 10);
   };
   
   const goToToday = () => {
-    onDateChange(new Date());
+    setIsLoading(true);
+    setTimeout(() => onDateChange(new Date()), 10);
   };
+  
+  // Reset loading state when schedules or date changes
+  useEffect(() => {
+    setIsLoading(false);
+  }, [schedules, date]);
   
   // Clear all filters
   const clearFilters = () => {
@@ -233,6 +242,16 @@ export default function ScheduleWeekCalendar({
 
   return (
     <div className="bg-white rounded-lg shadow p-3 pb-0 mb-4 relative w-full overflow-hidden">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-primary rounded-full"></div>
+            <span className="text-sm mt-2">Loading calendar...</span>
+          </div>
+        </div>
+      )}
+      
       {/* Ultra Compact Filters - Combined row with calendar navigation */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
         <div className="flex items-center space-x-1">
@@ -241,6 +260,7 @@ export default function ScheduleWeekCalendar({
             size="icon" 
             onClick={goToPreviousWeek}
             className="h-7 w-7"
+            disabled={isLoading}
           >
             <ChevronLeft className="h-3 w-3" />
           </Button>
@@ -249,6 +269,7 @@ export default function ScheduleWeekCalendar({
             size="icon" 
             onClick={goToNextWeek}
             className="h-7 w-7"
+            disabled={isLoading}
           >
             <ChevronRight className="h-3 w-3" />
           </Button>
@@ -257,6 +278,7 @@ export default function ScheduleWeekCalendar({
             size="sm"
             onClick={goToToday}
             className="h-7 px-2 text-xs"
+            disabled={isLoading}
           >
             today
           </Button>
@@ -271,9 +293,11 @@ export default function ScheduleWeekCalendar({
               className="h-7 px-3 text-xs"
               onClick={() => {
                 if (typeof window !== 'undefined') {
+                  setIsLoading(true);
                   window.location.href = '/schedules?view=day';
                 }
               }}
+              disabled={isLoading}
             >
               Day
             </Button>
@@ -282,6 +306,7 @@ export default function ScheduleWeekCalendar({
               size="sm" 
               className="h-7 px-3 text-xs"
               onClick={() => onDateChange(date)} // Just refresh current date
+              disabled={isLoading}
             >
               Week
             </Button>
@@ -291,9 +316,11 @@ export default function ScheduleWeekCalendar({
               className="h-7 px-3 text-xs"
               onClick={() => {
                 if (typeof window !== 'undefined') {
+                  setIsLoading(true);
                   window.location.href = '/schedules?view=month';
                 }
               }}
+              disabled={isLoading}
             >
               Month
             </Button>
