@@ -29,9 +29,10 @@ import hanzoLogo from '@assets/hanzo logo.jpeg';
 
 // Main component
 export default function ExternalBooking() {
-  // Get the slug from the URL
-  const [_, params] = useRoute('/external/:slug');
-  const slug = params?.slug || '';
+  // Get the slug from the URL (supporting both /external/:slug and /booking/:slug routes)
+  const [matchExternal, paramsExternal] = useRoute('/external/:slug');
+  const [matchBooking, paramsBooking] = useRoute('/booking/:slug');
+  const slug = (matchExternal ? paramsExternal?.slug : matchBooking ? paramsBooking?.slug : '') || '';
   
   // Fetch booking page data
   const { 
