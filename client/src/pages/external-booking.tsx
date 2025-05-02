@@ -1552,12 +1552,12 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
                 </p>
               </div>
               
+              {/* Security notice */}
               <div className="border-l-4 border-yellow-400 bg-yellow-50 p-4">
                 <p className="text-sm text-gray-800">
-                  <span className="font-semibold">Please provide MC Numbers when available for
-                  incoming and outgoing shipments.</span> This helps protect the
-                  security of our customer's shipments and reduce the risk of
-                  fraud.
+                  <span className="font-semibold">{bookingPage?.description || 
+                    "Please provide MC Numbers when available for incoming and outgoing shipments."}</span>
+                  {!bookingPage?.description && " This helps protect the security of our customer's shipments and reduce the risk of fraud."}
                 </p>
               </div>
               
@@ -1569,13 +1569,13 @@ Scheduled: ${extractedData.appointmentDate} ${extractedData.appointmentTime}`;
                 <div className="space-y-1 text-sm text-gray-700">
                   {/* Show parsed facility addresses */}
                   {Object.values(parsedFacilities).map(({ facility }) => (
-                    <p key={facility.id}>{facility.name} - {facility.address}</p>
+                    <p key={facility.id}>{facility.name} - {facility.address1}{facility.address2 ? `, ${facility.address2}` : ''}, {facility.city}, {facility.state} {facility.pincode}</p>
                   ))}
                 </div>
               </div>
               
               <p className="text-sm text-gray-700">
-                Please arrive 15 minutes before your appointment and check in at the guard shack.
+                {"Please arrive 15 minutes before your appointment and check in at the guard shack."}
               </p>
             </div>
             
