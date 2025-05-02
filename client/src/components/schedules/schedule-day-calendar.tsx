@@ -15,6 +15,8 @@ interface ScheduleWithTime extends Schedule {
   _displayStartHour?: number;
   _displayEndHour?: number;
   _spanMultipleHours?: boolean;
+  startTime: string | Date;
+  endTime: string | Date;
 }
 
 // Type for organizing schedules by hour and dock
@@ -140,25 +142,23 @@ export default function ScheduleDayCalendar({
     // Performance optimization: Use the selected date string once
     const selectedDay = date.toISOString().split('T')[0];
     
-    // Filter only schedules for this day - using a faster and simpler approach
-    // Avoid complex filtering logic that can cause slow loading
+    // Filter only schedules for this day - using a safer approach
+    // that avoids TypeScript errors
     const appointmentsToShow = schedules.filter(schedule => {
       // Skip invalid schedules quickly
       if (!schedule.startTime || !schedule.endTime) return false;
       
       try {
-        // Use direct string comparison for dates - much faster than Date objects
-        // We expect startTime and endTime to be ISO strings
-        const startStr = typeof schedule.startTime === 'string' 
-          ? schedule.startTime.substring(0, 10) // Get YYYY-MM-DD part
-          : new Date(schedule.startTime).toISOString().substring(0, 10);
-          
-        const endStr = typeof schedule.endTime === 'string'
-          ? schedule.endTime.substring(0, 10)
-          : new Date(schedule.endTime).toISOString().substring(0, 10);
+        // Create date objects for safer comparison
+        const scheduleStartDate = new Date(schedule.startTime);
+        const scheduleEndDate = new Date(schedule.endTime);
+        
+        // Convert to simple date strings (YYYY-MM-DD format)
+        const startDateString = scheduleStartDate.toISOString().split('T')[0];
+        const endDateString = scheduleEndDate.toISOString().split('T')[0];
         
         // Include any appointments that overlap with selected day
-        return selectedDay >= startStr && selectedDay <= endStr;
+        return selectedDay >= startDateString && selectedDay <= endDateString;
       } catch (e) {
         // Handle any parsing errors safely
         return false;
