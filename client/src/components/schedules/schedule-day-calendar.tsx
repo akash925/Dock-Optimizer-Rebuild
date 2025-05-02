@@ -1,10 +1,24 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { format, addDays, subDays, startOfDay, addHours, differenceInMinutes } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { Schedule, Facility } from '@shared/schema';
-import { Dock } from '@shared/schema';
-import { cn } from '@/lib/utils';
+import { useState, useMemo, useEffect } from "react";
+import { Schedule, Dock, Facility } from "@shared/schema";
+import { format, addDays, subDays } from "date-fns";
+import { cn } from "@/lib/utils";
+import { 
+  ChevronLeft, 
+  ChevronRight,
+  Loader2
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+// Extended Schedule interface with additional derived properties for UI
+interface ScheduleWithTime extends Schedule {
+  formattedTime: string;
+  _displayStartHour?: number;
+  _displayEndHour?: number;
+  _spanMultipleHours?: boolean;
+}
+
+// Type for organizing schedules by hour and dock
+type SchedulesByHourAndDock = Record<number, Record<number, ScheduleWithTime[]>>;
 
 interface ScheduleDayCalendarProps {
   schedules: Schedule[];
@@ -18,16 +32,6 @@ interface ScheduleDayCalendarProps {
   timeFormat?: "12h" | "24h";
 }
 
-interface ScheduleWithTime extends Schedule {
-  formattedTime: string;
-  _displayStartHour?: number;
-  _displayEndHour?: number;
-  _spanMultipleHours?: boolean;
-}
-
-// Helper type for our schedules by hour and dock
-type SchedulesByHourAndDock = Record<number, Record<number, ScheduleWithTime[]>>;
-
 export default function ScheduleDayCalendar({
   schedules,
   docks,
@@ -36,107 +40,116 @@ export default function ScheduleDayCalendar({
   onScheduleClick,
   onCellClick,
   onDateChange,
-  timezone,
+  timezone = "America/Chicago",
   timeFormat = "12h"
 }: ScheduleDayCalendarProps) {
   // State for loading indicator
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Improved navigation handlers for better performance
-  // Use direct state updates instead of full page reloads
+  // Define hour range for the day view
+  const hourStart = 6; // 6 AM
+  const hourEnd = 22;  // 10 PM
+  
+  // Calculate display information for current date
+  const dayOfWeek = format(date, "EEEE");
+  const dateDisplay = format(date, "MMMM d, yyyy");
+  
+  // Generate hours array for rendering
+  const hours = useMemo(() => {
+    const result = [];
+    for (let i = hourStart; i <= hourEnd; i++) {
+      // Format based on 12h or 24h preference
+      let label;
+      if (timeFormat === "12h") {
+        const hour12 = i % 12 || 12;
+        const ampm = i < 12 || i === 24 ? "am" : "pm";
+        label = `${hour12}${ampm}`;
+      } else {
+        label = `${i.toString().padStart(2, '0')}:00`;
+      }
+      
+      // Create a Date object for this hour on the selected date
+      const hourDate = new Date(date);
+      hourDate.setHours(i, 0, 0, 0);
+      
+      result.push({
+        value: i,
+        label,
+        date: hourDate
+      });
+    }
+    return result;
+  }, [hourStart, hourEnd, date, timeFormat]);
+  
+  // Navigation functions
   const goToPreviousDay = () => {
     setIsLoading(true);
-    // Using requestAnimationFrame for smoother transitions
-    requestAnimationFrame(() => {
-      onDateChange(subDays(date, 1));
-      // Short timeout to allow state updates to complete
-      setTimeout(() => setIsLoading(false), 100);
-    });
+    const newDate = subDays(date, 1);
+    onDateChange(newDate);
   };
-
+  
   const goToNextDay = () => {
     setIsLoading(true);
-    requestAnimationFrame(() => {
-      onDateChange(addDays(date, 1));
-      setTimeout(() => setIsLoading(false), 100);
-    });
+    const newDate = addDays(date, 1);
+    onDateChange(newDate);
   };
-
+  
   const goToToday = () => {
     setIsLoading(true);
-    requestAnimationFrame(() => {
-      onDateChange(new Date());
-      setTimeout(() => setIsLoading(false), 100);
-    });
+    onDateChange(new Date());
   };
-
-  // Format date for display - memoized to avoid recalculation
-  const { dateDisplay, dayOfWeek } = useMemo(() => ({
-    dateDisplay: format(date, 'MMMM d, yyyy'),
-    dayOfWeek: format(date, 'EEEE')
-  }), [date]);
-
-  // Generate hours for the day view (3am to 11pm) - memoized
-  const hourStart = 3; // Start at 3am
-  const hourEnd = 23; // End at 11pm
   
-  const hours = useMemo(() => {
-    return Array.from({ length: hourEnd - hourStart + 1 }, (_, i) => {
-      const hour = hourStart + i;
-      return {
-        label: timeFormat === "12h" 
-          ? `${hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}${hour < 12 ? 'am' : 'pm'}`
-          : `${hour.toString().padStart(2, '0')}:00`,
-        value: hour,
-        date: addHours(startOfDay(date), hour)
-      };
-    });
-  }, [date, timeFormat, hourStart, hourEnd]);
-
   // Reset loading state when schedules or date changes
   useEffect(() => {
     setIsLoading(false);
   }, [schedules, date]);
-
-  // Get schedules for this day and organize them - optimized for faster loading
+  
+  // Get schedules for this day and organize them - optimized for performance
   const organizedSchedules = useMemo(() => {
     // Create the result object with proper typing
-    const result: Record<number, Record<number, ScheduleWithTime[]>> = {};
+    const result: SchedulesByHourAndDock = {};
     
     // Initialize empty slots for all hours
     for (let i = hourStart; i <= hourEnd; i++) {
       result[i] = {};
     }
     
-    // Use all schedules and apply visual filtering instead of data filtering
-    // This ensures we show all relevant appointments for the selected date
-    // Creating a more efficient approach that displays results faster
+    // Performance optimization: Use the selected date string once
+    const selectedDay = date.toISOString().split('T')[0];
+    
+    // Filter only schedules for this day - using a faster and simpler approach
+    // Avoid complex filtering logic that can cause slow loading
     const appointmentsToShow = schedules.filter(schedule => {
+      // Skip invalid schedules quickly
       if (!schedule.startTime || !schedule.endTime) return false;
       
-      // Quickly check if we have valid dates before doing expensive operations
-      const startDate = new Date(schedule.startTime);
-      const endDate = new Date(schedule.endTime);
-      
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false;
-      
-      // Use simple date comparison for the selected day (without time component)
-      const selectedDay = date.toISOString().split('T')[0];
-      const appointmentStartDay = startDate.toISOString().split('T')[0];
-      const appointmentEndDay = endDate.toISOString().split('T')[0];
-      
-      // Show if the date falls within appointment range (inclusive)
-      return selectedDay >= appointmentStartDay && selectedDay <= appointmentEndDay;
+      try {
+        // Use direct string comparison for dates - much faster than Date objects
+        // We expect startTime and endTime to be ISO strings
+        const startStr = typeof schedule.startTime === 'string' 
+          ? schedule.startTime.substring(0, 10) // Get YYYY-MM-DD part
+          : new Date(schedule.startTime).toISOString().substring(0, 10);
+          
+        const endStr = typeof schedule.endTime === 'string'
+          ? schedule.endTime.substring(0, 10)
+          : new Date(schedule.endTime).toISOString().substring(0, 10);
+        
+        // Include any appointments that overlap with selected day
+        return selectedDay >= startStr && selectedDay <= endStr;
+      } catch (e) {
+        // Handle any parsing errors safely
+        return false;
+      }
     });
     
-    // Process the filtered appointments
+    // Process only the filtered appointments - no unnecessary work
     appointmentsToShow.forEach(schedule => {
-      // Skip any schedule without dock ID - must have a dock
-      if (!schedule.dockId) return;
+      // We don't strictly need a dock ID for visualization
+      const dockId = schedule.dockId || 0; // Use 0 for no dock
       
+      // Use faster string-based date handling
       const startDate = new Date(schedule.startTime);
       const endDate = new Date(schedule.endTime);
-      const dockId = schedule.dockId;
 
       // Create a readable time format string
       let startTimeFormatted, endTimeFormatted;
@@ -347,10 +360,27 @@ export default function ScheduleDayCalendar({
                 {organizedSchedules[hour.value] && 
                   Object.entries(organizedSchedules[hour.value]).flatMap(([dockId, dockSchedules]) => {
                     return dockSchedules.map((schedule) => {
-                      const dock = docks.find(d => d.id === schedule.dockId);
-                      const facilityId = dock?.facilityId;
-                      const facility = facilities?.find(f => f.id === facilityId);
-                      const facilityName = facility?.name || "";
+                      // Performance optimization: Get facility name more efficiently
+                      let facilityName = "";
+                      
+                      // Option 1: Direct from schedule if available (fastest path)
+                      if ((schedule as any).facilityName) {
+                        facilityName = (schedule as any).facilityName;
+                      } 
+                      // Option 2: From schedule's facilityId if available
+                      else if (schedule.facilityId) {
+                        const facility = facilities?.find(f => f.id === schedule.facilityId);
+                        facilityName = facility?.name || "";
+                      }
+                      // Option 3: From dock's facility as fallback
+                      else if (schedule.dockId) {
+                        const dock = docks.find(d => d.id === schedule.dockId);
+                        if (dock?.facilityId) {
+                          const facility = facilities?.find(f => f.id === dock.facilityId);
+                          facilityName = facility?.name || "";
+                        }
+                      }
+                      
                       const isInbound = schedule.type === "inbound";
                       
                       // Calculate appropriate height for multi-hour appointments
