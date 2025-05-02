@@ -34,7 +34,7 @@ import {
   Trash2,
   Search,
   Loader2,
-
+  ArrowUpDown,
   Download,
   Filter,
   X,
@@ -108,6 +108,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterOptions>({
     category: null,
     location: null,
@@ -172,6 +173,12 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       console.log("Adding tags filter:", filters.tags.join(','));
     }
     
+    // Add sort parameter if selected
+    if (sortBy) {
+      params.append('sort', sortBy);
+      console.log("Adding sort parameter:", sortBy);
+    }
+    
     const queryString = params.toString();
     console.log("Query params:", queryString);
     return queryString;
@@ -194,10 +201,10 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     placeholderData: [],
   });
   
-  // Refetch when debounced search term or filters change
+  // Refetch when debounced search term, filters, or sort options change
   useEffect(() => {
     refetch();
-  }, [debouncedSearchTerm, filters.category, filters.location, filters.status, filters.tags, refetch]);
+  }, [debouncedSearchTerm, filters.category, filters.location, filters.status, filters.tags, sortBy, refetch]);
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -455,6 +462,27 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Sort Dropdown */}
+              <Select 
+                value={sortBy || 'name'} 
+                onValueChange={(value) => setSortBy(value)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <span className="flex items-center gap-2">
+                    <ArrowUpDown className="h-4 w-4" />
+                    <span>Sort By</span>
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="category">Category</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="location">Location</SelectItem>
+                  <SelectItem value="updated_at">Recently Updated</SelectItem>
+                  <SelectItem value="purchase_date">Purchase Date</SelectItem>
+                </SelectContent>
+              </Select>
+
               <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="gap-2">
@@ -628,26 +656,26 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
           <>
             <div className="w-full max-w-full rounded-md border">
               {/* Responsive table with horizontal scroll */}
-              <div className="overflow-auto" style={{ maxWidth: '100%' }}>
-                <Table className="w-full">
+              <div className="overflow-x-auto" style={{ maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
+                <Table className="min-w-full table-fixed">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10" style={{ minWidth: '50px' }}></TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '160px' }}>Asset Name</TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px' }}>Category</TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px' }}>Manufacturer</TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px' }}>Status</TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px' }}>Location</TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px' }}>Serial/Barcode</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '160px', width: '15%' }}>Asset Name</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px', width: '10%' }}>Category</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px', width: '10%' }}>Manufacturer</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Status</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px', width: '10%' }}>Location</TableHead>
+                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px', width: '12%' }}>Serial/Barcode</TableHead>
                       {/* Hide less important columns on smaller screens */}
-                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px' }}>Owner</TableHead>
-                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px' }}>Department</TableHead>
-                      <TableHead className="hidden md:table-cell whitespace-nowrap" style={{ minWidth: '120px' }}>Purchase Price</TableHead>
-                      <TableHead className="hidden md:table-cell whitespace-nowrap" style={{ minWidth: '120px' }}>Purchase Date</TableHead>
-                      <TableHead className="hidden xl:table-cell whitespace-nowrap" style={{ minWidth: '150px' }}>Implementation Date</TableHead>
-                      <TableHead className="hidden xl:table-cell whitespace-nowrap" style={{ minWidth: '150px' }}>Next Maintenance</TableHead>
-                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px' }}>Tags</TableHead>
-                      <TableHead className="text-right whitespace-nowrap" style={{ minWidth: '80px' }}>Actions</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Owner</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Department</TableHead>
+                      <TableHead className="hidden md:table-cell whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Purchase Price</TableHead>
+                      <TableHead className="hidden md:table-cell whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Purchase Date</TableHead>
+                      <TableHead className="hidden xl:table-cell whitespace-nowrap" style={{ minWidth: '150px', width: '10%' }}>Implementation Date</TableHead>
+                      <TableHead className="hidden xl:table-cell whitespace-nowrap" style={{ minWidth: '150px', width: '10%' }}>Next Maintenance</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Tags</TableHead>
+                      <TableHead className="text-right whitespace-nowrap" style={{ minWidth: '80px', width: '5%' }}>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                 <TableBody>
