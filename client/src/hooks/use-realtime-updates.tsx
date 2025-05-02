@@ -12,6 +12,9 @@ export function useRealtimeUpdates() {
   const queryClient = useQueryClient();
   const [connected, setConnected] = useState(false);
   const [socketError, setSocketError] = useState<string | null>(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [isFallbackPolling, setIsFallbackPolling] = useState(false);
+  const maxReconnectAttempts = 5;
 
   useEffect(() => {
     // Only connect if user is authenticated
@@ -20,18 +23,26 @@ export function useRealtimeUpdates() {
       return;
     }
 
+    // Reset state for new connection
+    setSocketError(null);
+    
     // Create WebSocket connection
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     
-    console.log('[WebSocket] Connecting to:', wsUrl);
+    console.log(`[WebSocket] Connecting to: ${wsUrl} (Attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
     const socket = new WebSocket(wsUrl);
+    
+    let pollingInterval: NodeJS.Timeout | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
 
     // Connection opened
     socket.addEventListener('open', () => {
       console.log('[WebSocket] Connected');
       setConnected(true);
       setSocketError(null);
+      setReconnectAttempts(0);
+      setIsFallbackPolling(false);
 
       // Authenticate the WebSocket connection with user info
       if (user) {
@@ -52,7 +63,7 @@ export function useRealtimeUpdates() {
         // Handle different message types
         switch (message.type) {
           case 'connected':
-            console.log('[WebSocket] Connection confirmed');
+            console.log('[WebSocket] Connection confirmed by server');
             break;
 
           case 'schedule_update':
@@ -77,6 +88,24 @@ export function useRealtimeUpdates() {
       // Only set error if it was an abnormal closure
       if (event.code !== 1000 && event.code !== 1001) {
         setSocketError(`Connection closed (${event.code}): ${event.reason || 'Unknown reason'}`);
+        
+        // Try to reconnect if we haven't exceeded max attempts
+        if (reconnectAttempts < maxReconnectAttempts) {
+          console.log(`[WebSocket] Attempting to reconnect in 5 seconds (Attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+          
+          reconnectTimeout = setTimeout(() => {
+            setReconnectAttempts(prev => prev + 1);
+          }, 5000);
+        } else {
+          console.log('[WebSocket] Max reconnect attempts reached, falling back to polling');
+          setIsFallbackPolling(true);
+          
+          // Setup polling as fallback
+          pollingInterval = setInterval(() => {
+            console.log('[Polling] Checking for updates via poll');
+            queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+          }, 30000); // Poll every 30 seconds
+        }
       }
     });
 
@@ -89,12 +118,24 @@ export function useRealtimeUpdates() {
     // Cleanup on unmount
     return () => {
       console.log('[WebSocket] Closing connection on cleanup');
+      
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+      
       socket.close();
     };
-  }, [user, queryClient]);
+  }, [user, queryClient, reconnectAttempts, maxReconnectAttempts]);
 
   return {
     connected,
-    socketError
+    socketError,
+    reconnectAttempts,
+    isFallbackPolling,
+    maxReconnectAttempts
   };
 }

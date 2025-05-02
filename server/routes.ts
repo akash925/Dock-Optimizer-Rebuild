@@ -77,8 +77,7 @@ import { fixAdminPassword } from "./fix-admin-password";
 import { seedRoles } from "./seed-roles";
 import { hashPassword as authHashPassword } from "./auth";
 
-import { WebSocketServer, WebSocket } from 'ws';
-
+// This import was already declared elsewhere in the file, so we'll just keep the interface
 // Type for the WebSocket client with tenant metadata
 interface TenantWebSocket extends WebSocket {
   tenantId?: number;
@@ -5023,18 +5022,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     path: '/ws' 
   });
   
-  // Store connected clients with their tenant information
+  // Store connected clients with their tenant information and ping status
   const clients = new Map<WebSocket, { 
     tenantId?: number,
-    userId?: number
+    userId?: number,
+    isAlive: boolean
   }>();
+  
+  // Set up ping interval to detect disconnected clients
+  const pingInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+      const clientInfo = clients.get(ws);
+      if (clientInfo && clientInfo.isAlive === false) {
+        console.log('[WebSocket] Terminating inactive client');
+        clients.delete(ws);
+        return ws.terminate();
+      }
+      
+      // Mark client as inactive and send ping
+      if (clientInfo) {
+        clientInfo.isAlive = false;
+        clients.set(ws, clientInfo);
+      }
+      
+      // Send ping (client should respond with pong)
+      ws.ping();
+    });
+  }, 30000); // Check every 30 seconds
+  
+  // Clean up interval on server shutdown
+  wss.on('close', () => {
+    console.log('[WebSocket] Server closing, clearing ping interval');
+    clearInterval(pingInterval);
+  });
   
   // Handle WebSocket connections
   wss.on('connection', (ws, req) => {
     console.log('[WebSocket] New client connected');
     
-    // Store client connection
-    clients.set(ws, {});
+    // Store client connection with alive status
+    clients.set(ws, { isAlive: true });
+    
+    // Handle pong messages (heartbeat response)
+    ws.on('pong', () => {
+      const clientInfo = clients.get(ws);
+      if (clientInfo) {
+        clientInfo.isAlive = true;
+        clients.set(ws, clientInfo);
+      }
+    });
     
     // Send initial connection message
     ws.send(JSON.stringify({ type: 'connected' }));
@@ -5047,7 +5083,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle auth message
         if (data.type === 'auth' && data.tenantId) {
           console.log(`[WebSocket] Authenticated client for tenant ${data.tenantId}`);
+          const currentInfo = clients.get(ws) || { isAlive: true };
           clients.set(ws, { 
+            ...currentInfo,
             tenantId: data.tenantId,
             userId: data.userId
           });
