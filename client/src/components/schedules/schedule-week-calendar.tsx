@@ -615,17 +615,15 @@ export default function ScheduleWeekCalendar({
                         >
                           {/* ULTRA-PROMINENT CUSTOMER NAME - Guaranteed to be visible with background */}
                           <div 
-                            className={`font-black text-[11px] lg:text-[12px] mb-0.5 py-1 leading-normal text-gray-900 px-2 -mx-0 -mt-0 rounded-t-sm ${
-                              isInbound ? 'bg-blue-100' : 'bg-purple-100'
+                            className={`font-semibold text-[10px] lg:text-[11px] mb-0.5 pt-1 leading-tight text-gray-900 px-1 -mx-1 -mt-1 rounded-t-sm ${
+                              isInbound ? 'bg-blue-50' : 'bg-purple-50'
                             }`}
                             style={{ 
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
                               maxWidth: "100%",
-                              fontWeight: 900,
-                              letterSpacing: "0.01em",
-                              textShadow: "0 0 0.4px rgba(0,0,0,0.4)",
+                              fontWeight: 600,
                               borderBottom: isInbound ? '2px solid #60a5fa' : '2px solid #c084fc'
                             }}
                           >

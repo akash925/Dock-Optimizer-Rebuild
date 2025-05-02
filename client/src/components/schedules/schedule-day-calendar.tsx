@@ -185,6 +185,10 @@ export default function ScheduleDayCalendar({
         endTimeFormatted = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
       }
       
+      // Add a space between time and am/pm for better readability
+      startTimeFormatted = startTimeFormatted.replace(/([ap]m)$/, ' $1');
+      endTimeFormatted = endTimeFormatted.replace(/([ap]m)$/, ' $1');
+      
       const formattedTime = `${startTimeFormatted} - ${endTimeFormatted}`;
       
       // Calculate relevant display hours for this day view
