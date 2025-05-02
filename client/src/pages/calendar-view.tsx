@@ -18,6 +18,7 @@ import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 import AppointmentForm from '@/components/shared/appointment-form-fixed';
 import AppointmentDetails from '@/components/calendar/appointment-details';
 import { WebSocketStatus } from '@/components/shared/websocket-status';
+import { useRealtimeUpdates } from '@/hooks/use-realtime-updates';
 
 // List of common timezones
 const COMMON_TIMEZONES = [

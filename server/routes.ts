@@ -5102,6 +5102,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Add test routes for WebSocket functionality
+  app.post('/api/test/websocket-broadcast', (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    // Get the current user's tenant ID
+    const tenantId = req.user?.tenantId;
+    
+    try {
+      const { type, message } = req.body;
+      
+      // Create the message payload
+      const payload = {
+        type: type || 'test_message',
+        data: {
+          message: message || 'Test broadcast from server',
+          timestamp: new Date().toISOString(),
+          source: 'test-api'
+        }
+      };
+      
+      console.log(`[WebSocket Test] Broadcasting message to tenant ${tenantId}:`, payload);
+      
+      // Send to all connected clients for this tenant
+      let clientCount = 0;
+      clients.forEach((clientInfo, client) => {
+        if (
+          client.readyState === WebSocket.OPEN && 
+          (clientInfo.tenantId === tenantId || clientInfo.tenantId === 0)
+        ) {
+          client.send(JSON.stringify(payload));
+          clientCount++;
+        }
+      });
+      
+      console.log(`[WebSocket Test] Sent test message to ${clientCount} connected clients`);
+      
+      res.status(200).json({ 
+        success: true, 
+        clientCount,
+        message: `Broadcast sent to ${clientCount} clients`
+      });
+    } catch (error) {
+      console.error('[WebSocket Test] Error broadcasting test message:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to broadcast test message' 
+      });
+    }
+  });
+  
+  app.post('/api/test/websocket-disconnect', (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    try {
+      // First inform all clients they're about to be disconnected
+      const disconnectWarning = {
+        type: 'test_disconnect',
+        data: {
+          message: 'Test disconnect initiated',
+          timestamp: new Date().toISOString(),
+          reconnectDelay: 5000
+        }
+      };
+      
+      console.log('[WebSocket Test] Sending disconnect warning to all clients');
+      
+      // Send the warning
+      clients.forEach((clientInfo, client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(disconnectWarning));
+        }
+      });
+      
+      // Wait a moment to let the warning message arrive
+      setTimeout(() => {
+        console.log('[WebSocket Test] Closing all WebSocket connections for testing');
+        
+        // Count how many clients we're disconnecting
+        let clientCount = 0;
+        
+        // Close all connections
+        clients.forEach((clientInfo, client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.terminate();
+            clientCount++;
+          }
+        });
+        
+        console.log(`[WebSocket Test] Disconnected ${clientCount} clients for testing`);
+      }, 1000);
+      
+      res.status(200).json({ 
+        success: true, 
+        message: 'Disconnecting all WebSocket clients for testing'
+      });
+    } catch (error) {
+      console.error('[WebSocket Test] Error disconnecting clients:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to disconnect WebSocket clients' 
+      });
+    }
+  });
+  
   // Add a global function to broadcast schedule updates to relevant tenants
   app.locals.broadcastScheduleUpdate = (schedule: any) => {
     const tenantId = schedule.tenantId;

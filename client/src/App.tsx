@@ -25,6 +25,7 @@ import BookingPages from "@/pages/booking-pages";
 import AssetManagerPage from "@/pages/asset-manager-page";
 import AssetEditPage from "@/pages/asset-edit-page";
 import CalendarView from "@/pages/calendar-view";
+import WebSocketTestPage from "@/pages/websocket-test";
 import AuthDebugPage from "@/pages/auth-debug-page";
 import TestFixedAppointment from "@/pages/test-fixed-appointment";
 import TestFixedAppointmentV2 from "@/pages/test-fixed-appointment-v2";
@@ -85,6 +86,7 @@ const protectedRoutes: RouteConfig[] = [
   { path: "/booking-pages", component: BookingPages, roles: ["admin", "manager"], module: "bookingPages" },
   { path: "/asset-manager", component: AssetManagerPage, roles: ["admin", "manager"], module: "assetManager" },
   { path: "/asset-manager/assets/:id/edit", component: AssetEditPage, roles: ["admin", "manager"], module: "assetManager" },
+  { path: "/websocket-test", component: WebSocketTestPage, roles: ["admin", "manager"], module: null },
   { path: "/settings", component: Settings, roles: ["admin", "manager"], module: null }
 ];
 
