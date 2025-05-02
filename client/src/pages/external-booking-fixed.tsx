@@ -1054,7 +1054,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
   const form = useForm<CustomerInfoFormValues>({
     resolver: zodResolver(customerInfoSchema),
     defaultValues: {
-      companyName: bookingData.companyName || bookingData.bolExtractedData?.customerName || '',
+      companyName: bookingData.companyName || (bookingData.bolExtractedData?.customerName !== 'contain logistics information.' ? bookingData.bolExtractedData?.customerName : '') || '',
       contactName: bookingData.contactName || '',
       email: bookingData.email || '',
       phone: bookingData.phone || '',
@@ -1128,26 +1128,33 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
   const handleBolProcessed = (data: ParsedBolData, fileUrl: string) => {
     console.log('BOL Processed:', data);
     
-    // Update booking data with the parsed BOL information
+    // Validate the extracted data before using it
+    const validatedData = {
+      bolNumber: data.bolNumber || '',
+      customerName: (data.customerName && data.customerName !== 'contain logistics information.') ? data.customerName : '',
+      carrierName: data.carrierName || '',
+      mcNumber: data.mcNumber || '',
+      weight: data.weight || '',
+      notes: data.notes || ''
+    };
+    
+    console.log('Validated BOL data:', validatedData);
+    
+    // Update booking data with the validated BOL information
     updateBookingData({
-      bolExtractedData: {
-        bolNumber: data.bolNumber || '',
-        customerName: data.customerName || '',
-        carrierName: data.carrierName || '',
-        mcNumber: data.mcNumber || '',
-        weight: data.weight || '',
-        notes: data.notes || ''
-      },
+      bolExtractedData: validatedData,
       bolFileUploaded: true
     });
     
     // Pre-fill form fields if they're empty and we have BOL data
-    if (data.customerName && !bookingData.companyName) {
-      updateBookingData({ companyName: data.customerName });
+    if (validatedData.customerName && !bookingData.companyName) {
+      updateBookingData({ companyName: validatedData.customerName });
     }
     
-    if (data.carrierName && !bookingData.carrierName) {
-      updateBookingData({ carrierName: data.carrierName });
+    if (validatedData.carrierName && !bookingData.carrierName) {
+      updateBookingData({ carrierName: validatedData.carrierName });
+      // Also set carrierId to null to ensure carrier is properly validated
+      updateBookingData({ carrierId: null });
     }
   };
   
