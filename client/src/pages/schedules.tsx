@@ -407,20 +407,21 @@ export default function Schedules() {
     },
   ];
   
-  // Filter and search schedules
+  // Filter and search schedules - optimized for faster rendering
   const filteredSchedules = schedules.filter((schedule: Schedule) => {
-    // We should disable exact date matching for week view to show all appointments for the week
+    // We should disable exact date matching for day/week view to show all appointments
+    // Let the calendar component handle date filtering for better performance
     let dateMatches = true;
     
-    if (viewMode === "day") {
-      // For day view, we need exact date match
+    // Only apply date filtering for list view
+    if (viewMode === "list") {
       const scheduleDate = new Date(schedule.startTime);
       dateMatches = 
         scheduleDate.getDate() === selectedDate.getDate() &&
         scheduleDate.getMonth() === selectedDate.getMonth() &&
         scheduleDate.getFullYear() === selectedDate.getFullYear();
     }
-    // For week view (handled by the calendar component) and list view, don't filter by date
+    // For day, week, and month views, don't filter by date here
     
     // Status filter
     const statusMatches = filterStatus.includes("all") || filterStatus.includes(schedule.status);

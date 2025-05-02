@@ -98,7 +98,7 @@ export default function ScheduleDayCalendar({
     setIsLoading(false);
   }, [schedules, date]);
 
-  // Get schedules for this day and organize them - completely rebuilt to fix multi-hour display
+  // Get schedules for this day and organize them - optimized for faster loading
   const organizedSchedules = useMemo(() => {
     // Create the result object with proper typing
     const result: Record<number, Record<number, ScheduleWithTime[]>> = {};
@@ -108,22 +108,25 @@ export default function ScheduleDayCalendar({
       result[i] = {};
     }
     
-    // First step - identify appointments that should be shown on this date
-    // Even if start/end spans across multiple days, we want to show on this date if date falls within range
+    // Use all schedules and apply visual filtering instead of data filtering
+    // This ensures we show all relevant appointments for the selected date
+    // Creating a more efficient approach that displays results faster
     const appointmentsToShow = schedules.filter(schedule => {
       if (!schedule.startTime || !schedule.endTime) return false;
       
+      // Quickly check if we have valid dates before doing expensive operations
       const startDate = new Date(schedule.startTime);
       const endDate = new Date(schedule.endTime);
       
-      // Normalize dates to compare only year, month, day
-      const selectedDateNormalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const startDateNormalized = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-      const endDateNormalized = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return false;
+      
+      // Use simple date comparison for the selected day (without time component)
+      const selectedDay = date.toISOString().split('T')[0];
+      const appointmentStartDay = startDate.toISOString().split('T')[0];
+      const appointmentEndDay = endDate.toISOString().split('T')[0];
       
       // Show if the date falls within appointment range (inclusive)
-      return selectedDateNormalized >= startDateNormalized && 
-             selectedDateNormalized <= endDateNormalized;
+      return selectedDay >= appointmentStartDay && selectedDay <= appointmentEndDay;
     });
     
     // Process the filtered appointments
@@ -383,8 +386,8 @@ export default function ScheduleDayCalendar({
                           )}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* CUSTOMER NAME FIRST - Larger, bolder, and more prominent */}
-                          <div className="font-extrabold truncate text-lg mb-2 pb-1 border-b border-gray-200 text-gray-800">
+                          {/* CUSTOMER NAME FIRST - Largest, most prominent element matching week view */}
+                          <div className="font-black truncate text-base lg:text-lg mb-2 pb-1 border-b-2 border-gray-300 text-gray-800">
                             {schedule.customerName || "Unnamed"}
                           </div>
                           

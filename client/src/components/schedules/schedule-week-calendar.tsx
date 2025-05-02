@@ -601,8 +601,8 @@ export default function ScheduleWeekCalendar({
                           }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* CUSTOMER NAME FIRST - Much more prominent with border underneath */}
-                          <div className="font-extrabold truncate text-sm mb-1 pb-0.5 border-b border-gray-200 text-gray-800">
+                          {/* CUSTOMER NAME FIRST - Largest, most prominent element */}
+                          <div className="font-black truncate text-base lg:text-lg mb-2 pb-1 border-b-2 border-gray-300 text-gray-800">
                             {schedule.customerName || "(No customer)"}
                           </div>
                           
