@@ -942,15 +942,15 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                   key={slot.time}
                                   type="button"
                                   variant={field.value === slot.time ? "default" : "outline"}
-                                  className={`relative ${field.value === slot.time ? "booking-button" : "booking-button-secondary"}`}
+                                  className={`relative min-w-[110px] h-auto py-2 ${field.value === slot.time ? "booking-button" : "booking-button-secondary"}`}
                                   onClick={() => {
                                     field.onChange(slot.time);
                                     handleTimeChange(slot.time);
                                   }}
                                 >
-                                  <div className="flex flex-col">
+                                  <div className="flex flex-col w-full overflow-hidden">
                                     {/* Primary display: Facility Time with facility timezone identifier */}
-                                    <div className="font-medium">
+                                    <div className="font-medium whitespace-nowrap text-sm">
                                       <span>{displayTime}</span>
                                       {selectedFacility?.timezone && (
                                         <span className="text-xs ml-1">
@@ -961,7 +961,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                     
                                     {/* Secondary display: User's local time if different */}
                                     {Intl.DateTimeFormat().resolvedOptions().timeZone !== selectedFacility?.timezone && (
-                                      <span className="text-xs text-gray-500 mt-1">
+                                      <span className="text-xs text-gray-500 mt-1 whitespace-nowrap truncate">
                                         {/* Convert to user's timezone */}
                                         {(() => {
                                           try {
