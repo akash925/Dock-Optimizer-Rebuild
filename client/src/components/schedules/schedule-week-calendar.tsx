@@ -601,47 +601,63 @@ export default function ScheduleWeekCalendar({
                           }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* CUSTOMER NAME FIRST - Largest, most prominent element */}
-                          <div className="font-black truncate text-base lg:text-lg mb-2 pb-1 border-b-2 border-gray-300 text-gray-800">
+                          {/* ULTRA-PROMINENT CUSTOMER NAME - Guaranteed to be visible */}
+                          <div 
+                            className="font-black text-base lg:text-lg mb-1 leading-tight text-gray-900 tracking-tight"
+                            style={{ 
+                              textShadow: "0px 0px 0.5px rgba(0,0,0,0.2)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: "100%"
+                            }}
+                          >
                             {schedule.customerName || "(No customer)"}
                           </div>
                           
-                          {/* Time below customer name with status indicator */}
-                          <div className="flex justify-between items-center text-[9px]">
-                            <span className="font-medium">{startTimeStr}-{endTimeStr}</span>
-                            <span className={`ml-1 px-1 rounded-sm whitespace-nowrap ${
-                              schedule.status === "completed" ? 'bg-green-100 text-green-700' :
-                              schedule.status === "in-progress" ? 'bg-yellow-100 text-yellow-700' :
-                              schedule.status === "cancelled" ? 'bg-gray-100 text-gray-700' :
-                              'bg-blue-100 text-blue-700'
+                          {/* Colored bar under customer name for visual separation */}
+                          <div className={`h-1 w-full rounded-sm mb-1 ${
+                            isInbound ? 'bg-blue-400' : 'bg-purple-400'
+                          }`}></div>
+                          
+                          {/* Type badge + Status inline */}
+                          <div className="flex items-center gap-1 truncate">
+                            <span className={`text-[10px] px-1 py-0.5 rounded-sm font-bold uppercase ${
+                              isInbound ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
                             }`}>
-                              {schedule.status?.charAt(0).toUpperCase() + schedule.status?.slice(1) || "Scheduled"}
+                              {isInbound ? "IN" : "OUT"}
                             </span>
-                          </div>
-                          
-                          {/* Facility info prominently displayed */}
-                          {(schedule as any).facilityName && (
-                            <div className="text-[9px] truncate text-blue-700 font-medium my-0.5">
-                              {(schedule as any).facilityName}
-                            </div>
-                          )}
-                          
-                          {/* Type badge + Truck # prominently displayed */}
-                          <div className="text-[9px] flex items-center gap-1 truncate mt-0.5">
-                            <span className={`inline-block px-1 py-0.5 rounded-sm font-medium ${
-                              isInbound ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                            <span className={`text-[10px] px-1 py-0.5 rounded-sm font-bold uppercase ${
+                              schedule.status === "completed" ? 'bg-green-100 text-green-800' :
+                              schedule.status === "in-progress" ? 'bg-yellow-100 text-yellow-800' :
+                              schedule.status === "cancelled" ? 'bg-red-100 text-red-800' :
+                              'bg-blue-100 text-blue-800'
                             }`}>
-                              {isInbound ? "INBOUND" : "OUTBOUND"}
+                              {schedule.status?.substring(0,3).toUpperCase() || "SCH"}
                             </span>
                             {schedule.truckNumber && 
-                              <span className="font-medium">#{schedule.truckNumber}</span>
+                              <span className="text-[10px] px-1 py-0.5 bg-gray-100 rounded-sm font-bold">
+                                #{schedule.truckNumber}
+                              </span>
                             }
                           </div>
                           
-                          {/* Carrier name shortened to save space */}
-                          <div className="text-[8px] truncate text-gray-700 mt-0.5">
-                            {carrier?.name || (schedule as any).carrierName || ""}
+                          {/* Facility name and time */}
+                          <div className="flex justify-between items-center text-[10px] mt-1">
+                            <span className="font-medium truncate">{startTimeStr}-{endTimeStr}</span>
+                            {(schedule as any).facilityName && (
+                              <span className="truncate text-blue-800 font-semibold ml-1">
+                                {(schedule as any).facilityName}
+                              </span>
+                            )}
                           </div>
+                          
+                          {/* Carrier info if space permits */}
+                          {carrier?.name && (
+                            <div className="text-[9px] truncate text-gray-700 mt-0.5 font-medium">
+                              {carrier.name}
+                            </div>
+                          )}
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">

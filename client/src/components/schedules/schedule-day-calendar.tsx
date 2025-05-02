@@ -386,40 +386,60 @@ export default function ScheduleDayCalendar({
                           )}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* CUSTOMER NAME FIRST - Largest, most prominent element matching week view */}
-                          <div className="font-black truncate text-base lg:text-lg mb-2 pb-1 border-b-2 border-gray-300 text-gray-800">
+                          {/* ULTRA-PROMINENT CUSTOMER NAME - Guaranteed to be visible */}
+                          <div 
+                            className="font-black text-base lg:text-lg mb-1 leading-tight text-gray-900 tracking-tight"
+                            style={{ 
+                              textShadow: "0px 0px 0.5px rgba(0,0,0,0.2)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: "100%"
+                            }}
+                          >
                             {schedule.customerName || "Unnamed"}
                           </div>
                           
-                          {/* Time and facility info */}
-                          <div className="font-medium truncate text-xs">
-                            {schedule.formattedTime}
-                          </div>
-                          <div className="truncate text-xs mt-0.5 font-medium text-blue-700">
-                            {facilityName}
-                          </div>
+                          {/* Colored bar under customer name for visual separation */}
+                          <div className={`h-1 w-full rounded-sm mb-1 ${
+                            isInbound ? 'bg-blue-400' : 'bg-purple-400'
+                          }`}></div>
                           
-                          {/* Type badge + Carrier info */}
-                          <div className="flex gap-1 items-center mt-1.5">
+                          {/* Type badge + Status inline */}
+                          <div className="flex items-center gap-1 truncate">
                             <span className={cn(
-                              "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                              "text-[10px] px-1 py-0.5 rounded-sm font-bold uppercase",
                               isInbound ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
                             )}>
-                              {isInbound ? "INBOUND" : "OUTBOUND"}
+                              {isInbound ? "IN" : "OUT"}
                             </span>
                             <span className={cn(
-                              "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                              "text-[10px] px-1 py-0.5 rounded-sm font-bold uppercase",
                               schedule.status === "completed" ? "bg-green-100 text-green-800" :
                               schedule.status === "in-progress" ? "bg-yellow-100 text-yellow-800" :
-                              schedule.status === "cancelled" ? "bg-gray-100 text-gray-800" :
-                              "bg-gray-100 text-gray-800"
+                              schedule.status === "cancelled" ? "bg-red-100 text-red-800" :
+                              "bg-blue-100 text-blue-800"
                             )}>
-                              {schedule.status?.toUpperCase() || "SCHEDULED"}
+                              {schedule.status?.substring(0,3).toUpperCase() || "SCH"}
+                            </span>
+                            {schedule.truckNumber && 
+                              <span className="text-[10px] px-1 py-0.5 bg-gray-100 rounded-sm font-bold">
+                                #{schedule.truckNumber}
+                              </span>
+                            }
+                          </div>
+
+                          {/* Facility name and time */}
+                          <div className="flex justify-between items-center text-[10px] mt-1">
+                            <span className="font-medium truncate">{schedule.formattedTime}</span>
+                            <span className="truncate text-blue-800 font-semibold ml-1">
+                              {facilityName}
                             </span>
                           </div>
                           
-                          <div className="truncate text-gray-600 mt-1 text-xs">
-                            {schedule.carrierName || "No carrier"} {schedule.truckNumber ? `• ${schedule.truckNumber}` : ""}
+                          {/* Carrier info if space permits */}
+                          <div className="text-[9px] truncate text-gray-700 mt-0.5 font-medium">
+                            {schedule.carrierName || "No carrier"}
                           </div>
                         </div>
                       );
