@@ -601,8 +601,8 @@ export default function ScheduleWeekCalendar({
                           }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* Customer name FIRST with highest visibility */}
-                          <div className="font-bold truncate text-xs">
+                          {/* CUSTOMER NAME FIRST - Most prominent with border underneath */}
+                          <div className="font-bold truncate text-xs mb-0.5 pb-0.5 border-b border-gray-100">
                             {schedule.customerName || "(No customer)"}
                           </div>
                           
@@ -619,24 +619,28 @@ export default function ScheduleWeekCalendar({
                             </span>
                           </div>
                           
-                          {/* Type badge + Truck # more prominently displayed */}
-                          <div className="text-[9px] flex items-center gap-1 truncate">
-                            <span className={`inline-block px-1 rounded-sm font-medium ${
+                          {/* Facility info prominently displayed */}
+                          {(schedule as any).facilityName && (
+                            <div className="text-[9px] truncate text-blue-700 font-medium my-0.5">
+                              {(schedule as any).facilityName}
+                            </div>
+                          )}
+                          
+                          {/* Type badge + Truck # prominently displayed */}
+                          <div className="text-[9px] flex items-center gap-1 truncate mt-0.5">
+                            <span className={`inline-block px-1 py-0.5 rounded-sm font-medium ${
                               isInbound ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
                             }`}>
-                              {isInbound ? "IN" : "OUT"}
+                              {isInbound ? "INBOUND" : "OUTBOUND"}
                             </span>
                             {schedule.truckNumber && 
                               <span className="font-medium">#{schedule.truckNumber}</span>
                             }
                           </div>
                           
-                          {/* Carrier name + Facility info in same row to save space */}
-                          <div className="text-[8px] flex justify-between truncate">
-                            <span className="truncate text-gray-700">{carrier?.name || (schedule as any).carrierName || ""}</span>
-                            {(schedule as any).facilityName && (
-                              <span className="truncate text-blue-700 pl-1">{(schedule as any).facilityName}</span>
-                            )}
+                          {/* Carrier name shortened to save space */}
+                          <div className="text-[8px] truncate text-gray-700 mt-0.5">
+                            {carrier?.name || (schedule as any).carrierName || ""}
                           </div>
                         </div>
                       </TooltipTrigger>

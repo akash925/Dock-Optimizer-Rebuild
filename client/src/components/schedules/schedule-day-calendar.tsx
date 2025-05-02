@@ -85,49 +85,80 @@ export default function ScheduleDayCalendar({
 
   // Get schedules for this day and organize them by hour and dock - memoized for performance
   const organizedSchedules = useMemo(() => {
-    const result: SchedulesByHourAndDock = {};
+    // Create the result object with proper typing
+    const result: Record<number, Record<number, ScheduleWithTime[]>> = {};
+    
+    // Initialize empty slots for all hours
+    for (let i = hourStart; i <= hourEnd; i++) {
+      result[i] = {};
+    }
     
     schedules.forEach(schedule => {
+      // Skip any schedule with missing required fields
       if (!schedule.startTime || !schedule.endTime || !schedule.dockId) return;
       
-      const scheduleDate = new Date(schedule.startTime);
+      const startDate = new Date(schedule.startTime);
+      const endDate = new Date(schedule.endTime);
+      const dockId = schedule.dockId;
       
       // Check if the schedule is for the selected date
       if (
-        scheduleDate.getDate() === date.getDate() &&
-        scheduleDate.getMonth() === date.getMonth() &&
-        scheduleDate.getFullYear() === date.getFullYear()
+        startDate.getDate() === date.getDate() &&
+        startDate.getMonth() === date.getMonth() &&
+        startDate.getFullYear() === date.getFullYear()
       ) {
-        const hour = scheduleDate.getHours();
+        // Format time for display based on timeFormat
+        const formattedStartHour = timeFormat === "12h" 
+          ? `${startDate.getHours() === 0 ? 12 : startDate.getHours() > 12 ? startDate.getHours() - 12 : startDate.getHours()}${startDate.getHours() < 12 ? 'am' : 'pm'}`
+          : startDate.getHours().toString().padStart(2, '0');
+          
+        const formattedEndHour = timeFormat === "12h"
+          ? `${endDate.getHours() === 0 ? 12 : endDate.getHours() > 12 ? endDate.getHours() - 12 : endDate.getHours()}${endDate.getHours() < 12 ? 'am' : 'pm'}`
+          : endDate.getHours().toString().padStart(2, '0');
+          
+        const formattedStartMinutes = startDate.getMinutes().toString().padStart(2, '0');
+        const formattedEndMinutes = endDate.getMinutes().toString().padStart(2, '0');
         
-        // Skip if the hour is outside our display range
-        if (hour < hourStart || hour > hourEnd) return;
+        const formattedTime = timeFormat === "12h"
+          ? `${formattedStartHour}:${formattedStartMinutes} - ${formattedEndHour}:${formattedEndMinutes}`
+          : `${formattedStartHour}:${formattedStartMinutes} - ${formattedEndHour}:${formattedEndMinutes}`;
         
-        // Format time for display
-        let formattedTime;
-        // Fallback to direct formatting
-        formattedTime = `${scheduleDate.getHours().toString().padStart(2, '0')}:${scheduleDate.getMinutes().toString().padStart(2, '0')} - ${new Date(schedule.endTime).getHours().toString().padStart(2, '0')}:${new Date(schedule.endTime).getMinutes().toString().padStart(2, '0')}`;
+        // Get start hour and potentially span across multiple hours
+        const startHour = startDate.getHours();
+        const endHour = endDate.getHours();
         
-        // Initialize hour object if it doesn't exist
-        if (!result[hour]) {
-          result[hour] = {};
+        // Calculate how many hours this spans
+        const hoursSpanned: number[] = [];
+        for (let h = startHour; h <= endHour; h++) {
+          if (h >= hourStart && h <= hourEnd) {
+            hoursSpanned.push(h);
+          }
         }
         
-        // Initialize dock array if it doesn't exist
-        if (!result[hour][schedule.dockId]) {
-          result[hour][schedule.dockId] = [];
-        }
-        
-        // Add schedule to the proper hour and dock
-        result[hour][schedule.dockId].push({
+        // Convert schedule to ScheduleWithTime
+        const scheduleWithTime: ScheduleWithTime = {
           ...schedule,
           formattedTime
+        };
+        
+        // Add the schedule to each hour it spans
+        hoursSpanned.forEach(hour => {
+          // Initialize dock array if it doesn't exist
+          if (!result[hour][dockId]) {
+            result[hour][dockId] = [];
+          }
+          
+          // Only add the schedule once per dock/hour combination
+          const existingSchedule = result[hour][dockId].find(s => s.id === schedule.id);
+          if (!existingSchedule) {
+            result[hour][dockId].push(scheduleWithTime);
+          }
         });
       }
     });
     
     return result;
-  }, [schedules, date, hourStart, hourEnd, timezone]);
+  }, [schedules, date, hourStart, hourEnd, timezone, timeFormat]);
 
   return (
     <div className="bg-white rounded-lg shadow p-4 mb-4 max-w-full overflow-hidden relative">
@@ -271,14 +302,20 @@ export default function ScheduleDayCalendar({
                       const endTime = new Date(schedule.endTime);
                       const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
                       
-                      // Make 4-hour appointments taller
-                      const heightClass = durationHours >= 4 ? "h-auto min-h-[6rem]" : "h-auto min-h-[4rem]";
+                      // Scale height based on duration - more precise scaling for better visibility
+                      const heightClass = 
+                        durationHours >= 5 ? "h-auto min-h-[10rem]" : 
+                        durationHours >= 4 ? "h-auto min-h-[8rem]" :
+                        durationHours >= 3 ? "h-auto min-h-[7rem]" :
+                        durationHours >= 2 ? "h-auto min-h-[5.5rem]" :
+                        durationHours >= 1 ? "h-auto min-h-[4rem]" : 
+                        "h-auto min-h-[3rem]";
                       
                       return (
                         <div
                           key={schedule.id}
                           className={cn(
-                            "p-2 rounded-sm text-xs cursor-pointer border transition-colors overflow-hidden flex flex-col",
+                            "p-2 rounded-sm cursor-pointer border transition-colors overflow-hidden flex flex-col",
                             heightClass,
                             schedule.status === "completed" 
                               ? "bg-green-50 border-green-200"
@@ -292,16 +329,39 @@ export default function ScheduleDayCalendar({
                           )}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          <div className="font-bold truncate text-sm mb-1">
-                            {schedule.formattedTime}
-                          </div>
-                          <div className="truncate text-xs mt-0.5 font-medium">
-                            {facilityName}
-                          </div>
-                          <div className="truncate font-medium mt-1">
+                          {/* CUSTOMER NAME FIRST - Most prominent */}
+                          <div className="font-bold truncate text-base mb-1 pb-0.5 border-b border-gray-100">
                             {schedule.customerName || "Unnamed"}
                           </div>
-                          <div className="truncate text-gray-600 mt-0.5">
+                          
+                          {/* Time and facility info */}
+                          <div className="font-medium truncate text-xs">
+                            {schedule.formattedTime}
+                          </div>
+                          <div className="truncate text-xs mt-0.5 font-medium text-blue-700">
+                            {facilityName}
+                          </div>
+                          
+                          {/* Type badge + Carrier info */}
+                          <div className="flex gap-1 items-center mt-1.5">
+                            <span className={cn(
+                              "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                              isInbound ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
+                            )}>
+                              {isInbound ? "INBOUND" : "OUTBOUND"}
+                            </span>
+                            <span className={cn(
+                              "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                              schedule.status === "completed" ? "bg-green-100 text-green-800" :
+                              schedule.status === "in-progress" ? "bg-yellow-100 text-yellow-800" :
+                              schedule.status === "cancelled" ? "bg-gray-100 text-gray-800" :
+                              "bg-gray-100 text-gray-800"
+                            )}>
+                              {schedule.status?.toUpperCase() || "SCHEDULED"}
+                            </span>
+                          </div>
+                          
+                          <div className="truncate text-gray-600 mt-1 text-xs">
                             {schedule.carrierName || "No carrier"} {schedule.truckNumber ? `• ${schedule.truckNumber}` : ""}
                           </div>
                         </div>
