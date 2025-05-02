@@ -99,7 +99,7 @@ export async function parseBol(file: File): Promise<ParsedBolData> {
         console.log(`Text extraction complete (${textContent.length} chars), analyzing content...`);
         
         // Extract BOL data using regex patterns and NLP techniques
-        extractStructuredData(textContent, parsedData);
+        extractStructuredData(textContent, parsedData, file);
         
         // Add the original file name to parsed data
         if (!parsedData.bolNumber && file.name.match(/BOL[-_]?(\d+)/i)) {
@@ -117,13 +117,43 @@ export async function parseBol(file: File): Promise<ParsedBolData> {
           parsedData.notes = "Automatically extracted from BOL document";
         }
         
-        // Calculate a confidence score based on how many fields were successfully extracted
-        const extractedFields = Object.keys(parsedData).filter(key => 
-          !['parsedOcrText', 'extractionMethod', 'processingTimestamp', 'fileName', 'fileSize', 'fileType', 'notes'].includes(key)
-        );
-        parsedData.extractionConfidence = Math.min(100, Math.round((extractedFields.length / 8) * 100));
+        // Calculate a confidence score based on how many fields were successfully extracted and their importance
+        const criticalFields = ['bolNumber', 'customerName'];
+        const importantFields = ['carrierName', 'mcNumber', 'pickupOrDropoff'];
+        const otherFields = ['weight', 'palletCount', 'fromAddress', 'toAddress', 'truckId', 'trailerNumber', 'shipDate'];
         
-        console.log(`Extraction complete with ${parsedData.extractionConfidence}% confidence`);
+        const extractedCriticalFields = criticalFields.filter(field => !!parsedData[field as keyof ParsedBolData]);
+        const extractedImportantFields = importantFields.filter(field => !!parsedData[field as keyof ParsedBolData]);
+        const extractedOtherFields = otherFields.filter(field => !!parsedData[field as keyof ParsedBolData]);
+        
+        // Weight the confidence score heavily toward critical fields, then important fields, then other fields
+        const criticalFieldScore = (extractedCriticalFields.length / criticalFields.length) * 50; // Critical fields are 50% of score
+        const importantFieldScore = (extractedImportantFields.length / importantFields.length) * 30; // Important fields are 30% of score
+        const otherFieldScore = (extractedOtherFields.length / otherFields.length) * 20; // Other fields are 20% of score
+        
+        parsedData.extractionConfidence = Math.min(100, Math.round(criticalFieldScore + importantFieldScore + otherFieldScore));
+        
+        // Ensure proper formatting of all fields
+        if (parsedData.customerName) {
+          // Ensure proper capitalization of customer name
+          parsedData.customerName = parsedData.customerName
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+        }
+        
+        if (parsedData.mcNumber && !parsedData.mcNumber.toUpperCase().startsWith('MC')) {
+          parsedData.mcNumber = `MC${parsedData.mcNumber}`;
+        }
+        
+        // Provide a final log with detailed analysis
+        console.log(`BOL Extraction Analysis:
+          - Critical fields found: ${extractedCriticalFields.length}/${criticalFields.length} (${criticalFieldScore}%)
+          - Important fields found: ${extractedImportantFields.length}/${importantFields.length} (${importantFieldScore}%)
+          - Other fields found: ${extractedOtherFields.length}/${otherFields.length} (${otherFieldScore}%)
+          - Overall confidence: ${parsedData.extractionConfidence}%
+        `);
+        
         console.log('Extracted data:', parsedData);
         
         resolve(parsedData);
@@ -324,16 +354,57 @@ function extractStructuredData(textContent: string, parsedData: ParsedBolData, f
   
   // Extract MC number - typically formatted as "MC-12345" or "MC #12345"
   const mcNumberPatterns = [
+    // Common MC number patterns
     /MC[\s-#]*(\d+)/i,
     /Motor\s+Carrier\s+#\s*(\d+)/i,
-    /MC\s*Number:?\s*(\d+)/i
+    /MC\s*Number:?\s*(\d+)/i,
+    // Additional patterns for DOT and USDOT numbers that might be used instead
+    /(?:DOT|USDOT)[\s-#]*(\d+)/i,
+    /(?:DOT|USDOT)\s*Number:?\s*(\d+)/i,
+    // Look for carrier ID patterns
+    /Carrier\s*(?:ID|Number|No)[\s:#-]*(\d+)/i,
+    // Pattern for carrier line with MC number
+    /carrier.*?MC[:\s#-]*(\d+)/i
   ];
+  
+  // Try all patterns and store possible matches
+  const possibleMcNumbers: { value: string; confidence: number }[] = [];
   
   for (const pattern of mcNumberPatterns) {
     const match = textContent.match(pattern);
-    if (match && match[1]) {
-      parsedData.mcNumber = match[1];
-      break;
+    if (match && match[1]?.trim()) {
+      const value = match[1].trim();
+      
+      // Skip unlikely MC numbers (too short)
+      if (value.length < 4 || value.length > 10) {
+        continue;
+      }
+      
+      // Calculate confidence score
+      let confidence = 60; // Base confidence
+      
+      // Higher confidence for explicit MC patterns
+      if (pattern.toString().includes('MC')) {
+        confidence += 30;
+      } else if (pattern.toString().includes('Motor Carrier')) {
+        confidence += 25;
+      } else if (pattern.toString().includes('DOT')) {
+        confidence += 20; // DOT numbers are also good identifiers
+      }
+      
+      possibleMcNumbers.push({ value, confidence });
+    }
+  }
+  
+  // Sort by confidence and choose the best match
+  if (possibleMcNumbers.length > 0) {
+    possibleMcNumbers.sort((a, b) => b.confidence - a.confidence);
+    console.log('Possible MC numbers found:', possibleMcNumbers);
+    parsedData.mcNumber = possibleMcNumbers[0].value;
+    
+    // Add MC prefix if it's just a number
+    if (parsedData.mcNumber.match(/^\d+$/) && !parsedData.mcNumber.startsWith('MC')) {
+      parsedData.mcNumber = `MC${parsedData.mcNumber}`;
     }
   }
   
