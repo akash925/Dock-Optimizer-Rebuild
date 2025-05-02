@@ -921,7 +921,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                             {availabilitySlots.map((slot) => {
                               // Create a date object from the time string for display formatting
                               const [hours, minutes] = slot.time.split(':').map(Number);
@@ -942,26 +942,26 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                   key={slot.time}
                                   type="button"
                                   variant={field.value === slot.time ? "default" : "outline"}
-                                  className={`relative min-w-[110px] h-auto py-2 ${field.value === slot.time ? "booking-button" : "booking-button-secondary"}`}
+                                  className={`relative min-w-[120px] h-auto min-h-[85px] py-2 px-1 ${field.value === slot.time ? "booking-button" : "booking-button-secondary"}`}
                                   onClick={() => {
                                     field.onChange(slot.time);
                                     handleTimeChange(slot.time);
                                   }}
                                 >
-                                  <div className="flex flex-col w-full overflow-hidden">
+                                  <div className="flex flex-col w-full justify-center">
                                     {/* Primary display: Facility Time with facility timezone identifier */}
-                                    <div className="font-medium whitespace-nowrap text-sm">
+                                    <div className="font-medium text-sm text-center">
                                       <span>{displayTime}</span>
                                       {selectedFacility?.timezone && (
-                                        <span className="text-xs ml-1">
+                                        <div className="text-xs">
                                           ({getTimeZoneAbbreviation(selectedFacility.timezone)})
-                                        </span>
+                                        </div>
                                       )}
                                     </div>
                                     
                                     {/* Secondary display: User's local time if different */}
                                     {Intl.DateTimeFormat().resolvedOptions().timeZone !== selectedFacility?.timezone && (
-                                      <span className="text-xs text-gray-500 mt-1 whitespace-nowrap truncate">
+                                      <div className="text-xs text-gray-500 mt-1 text-center">
                                         {/* Convert to user's timezone */}
                                         {(() => {
                                           try {
@@ -978,13 +978,18 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                               Intl.DateTimeFormat().resolvedOptions().timeZone
                                             );
                                             
-                                            return `${format(userTime, 'h:mm a')} (${userTzAbbr})`;
+                                            return (
+                                              <>
+                                                <div>{format(userTime, 'h:mm a')}</div>
+                                                <div>({userTzAbbr})</div>
+                                              </>
+                                            );
                                           } catch (e) {
                                             console.error("Error converting timezone:", e);
                                             return "";
                                           }
                                         })()}
-                                      </span>
+                                      </div>
                                     )}
                                   </div>
                                   
