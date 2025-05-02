@@ -2627,33 +2627,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/appointment-types/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
-      console.log(`[AppointmentType] Updating appointment type with ID: ${id}`);
+      const userTenantId = req.user?.tenantId;
+      const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
       
-      const appointmentType = await storage.getAppointmentType(id);
+      console.log(`[AppointmentType] Updating appointment type with ID: ${id}, userTenantId: ${userTenantId || 'none'}, isSuperAdmin: ${isSuperAdmin}`);
+      
+      // Get the appointment type WITH tenant filtering if applicable
+      // If user has a tenant ID and isn't a super admin, filter by tenant
+      const appointmentType = await storage.getAppointmentType(
+        id, 
+        (!isSuperAdmin && userTenantId) ? userTenantId : undefined
+      );
+      
       if (!appointmentType) {
-        console.log(`[AppointmentType] Not found: ${id}`);
-        return res.status(404).json({ message: "Appointment type not found" });
+        console.log(`[getAppointmentType] Fetching appointment type with ID: ${id}`);
+        console.log(`[getAppointmentType] Found appointment type: ${id} - ${appointmentType?.name || 'not found'}`);
+        
+        return res.status(404).json({ message: "Appointment type not found or you don't have access to it" });
       }
       
-      // Check tenant isolation if user has a tenantId
-      if (req.user?.tenantId) {
-        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
-        
-        // Use our helper function to check tenant access
+      // Additional tenant isolation check with facility ownership
+      if (userTenantId && !isSuperAdmin) {
+        // Use our helper function to check tenant access to the facility
         const facility = await checkTenantFacilityAccess(
           appointmentType.facilityId,
-          req.user.tenantId,
+          userTenantId,
           isSuperAdmin,
           'AppointmentType'
         );
         
         if (!facility) {
-          console.log(`[AppointmentType] Access denied - appointment type ${id} is not in organization ${req.user.tenantId}`);
+          console.log(`[AppointmentType] Access denied - appointment type ${id} facility ${appointmentType.facilityId} is not in organization ${userTenantId}`);
           return res.status(403).json({ message: "Access denied to this appointment type" });
         }
         
         // Set tenant ID for multi-tenant isolation (ensure it's maintained on update)
-        req.body.tenantId = req.user.tenantId;
+        req.body.tenantId = userTenantId;
       }
       
       // Add lastModifiedBy if field exists in schema
