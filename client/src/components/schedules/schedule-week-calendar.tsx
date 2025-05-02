@@ -531,7 +531,7 @@ export default function ScheduleWeekCalendar({
                       <TooltipTrigger asChild>
                         <div 
                           className={cn(
-                            "absolute rounded-sm px-1 py-0.5 text-[10px] cursor-pointer border",
+                            "absolute rounded-sm px-1.5 py-0.5 text-[10px] cursor-pointer border overflow-hidden flex flex-col",
                             statusColor
                           )}
                           style={{
@@ -539,14 +539,23 @@ export default function ScheduleWeekCalendar({
                             height: `${height}px`,
                             left: leftPosition,
                             width: width,
-                            minWidth: 'calc(6rem - 4px)',
-                            zIndex: 10
+                            minWidth: 'calc(7rem - 4px)', // Slightly wider for better content display
+                            zIndex: 10,
+                            maxHeight: `${Math.max(height, 70)}px` // Ensure minimum height for content visibility
                           }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* Time at the top */}
-                          <div className="font-medium truncate text-[9px]">
-                            {startTimeStr}-{endTimeStr}
+                          {/* Time at the top with status indicator */}
+                          <div className="flex justify-between items-center text-[9px]">
+                            <span className="font-medium">{startTimeStr}-{endTimeStr}</span>
+                            <span className={`ml-1 px-1 rounded-sm whitespace-nowrap ${
+                              schedule.status === "completed" ? 'bg-green-100 text-green-700' :
+                              schedule.status === "in-progress" ? 'bg-yellow-100 text-yellow-700' :
+                              schedule.status === "cancelled" ? 'bg-gray-100 text-gray-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {schedule.status?.charAt(0).toUpperCase() + schedule.status?.slice(1) || "Scheduled"}
+                            </span>
                           </div>
                           
                           {/* Customer name with highest visibility */}
@@ -554,23 +563,25 @@ export default function ScheduleWeekCalendar({
                             {schedule.customerName || "(No customer)"}
                           </div>
                           
-                          {/* Carrier + Type + Truck # */}
+                          {/* Type badge + Truck # more prominently displayed */}
                           <div className="text-[9px] flex items-center gap-1 truncate">
-                            <span className="truncate">{carrier?.name || schedule.carrierName || ""}</span>
-                            <span className={`inline-block px-1 rounded-sm ${
+                            <span className={`inline-block px-1 rounded-sm font-medium ${
                               isInbound ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
                             }`}>
                               {isInbound ? "IN" : "OUT"}
                             </span>
-                            {schedule.truckNumber && <span>#{schedule.truckNumber}</span>}
+                            {schedule.truckNumber && 
+                              <span className="font-medium">#{schedule.truckNumber}</span>
+                            }
                           </div>
                           
-                          {/* Facility name in smaller font */}
-                          {schedule.facilityName && (
-                            <div className="text-[8px] text-blue-700 truncate">
-                              {schedule.facilityName}
-                            </div>
-                          )}
+                          {/* Carrier name + Facility name in same row to save space */}
+                          <div className="text-[8px] flex justify-between truncate">
+                            <span className="truncate text-gray-700">{carrier?.name || schedule.carrierName || ""}</span>
+                            {schedule.facilityName && (
+                              <span className="truncate text-blue-700 pl-1">{schedule.facilityName}</span>
+                            )}
+                          </div>
                         </div>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">

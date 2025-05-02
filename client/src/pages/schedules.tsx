@@ -449,8 +449,22 @@ export default function Schedules() {
           </div>
         )}
         
-        {/* Middle: Filters in a single line - scrollable on small screens */}
+        {/* Middle: Filters and New Appointment button in a single line - scrollable on small screens */}
         <div className="flex items-center ml-auto space-x-2 overflow-x-auto pb-2 scrollbar-none sm:justify-end">
+          {/* New Appointment Button - moved from bottom to be with filters */}
+          <Button 
+            onClick={() => {
+              setEditScheduleId(null);
+              // Skip appointment type dialog and open form directly
+              setClickedCellDate(new Date());
+              setIsFormOpen(true);
+            }}
+            className="bg-primary text-white h-9"
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            New Appointment
+          </Button>
+          
           {/* Facility filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -715,19 +729,7 @@ export default function Schedules() {
           </Button>
         </div>
         
-        {/* Right side: New Button */}
-        <Button 
-          onClick={() => {
-            setEditScheduleId(null);
-            // Skip appointment type dialog and open form directly
-            setClickedCellDate(new Date());
-            setIsFormOpen(true);
-          }}
-          className="bg-primary text-white h-9 ml-auto"
-        >
-          <PlusCircle className="h-4 w-4 mr-2" />
-          New Appointment
-        </Button>
+        {/* Right side: New Button - REMOVED - now moved to filters section above */}
       </div>
       
       {/* Schedule View */}
