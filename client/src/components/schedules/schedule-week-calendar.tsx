@@ -580,7 +580,7 @@ export default function ScheduleWeekCalendar({
                       <TooltipTrigger asChild>
                         <div 
                           className={cn(
-                            "absolute rounded-sm px-1.5 py-0.5 text-[10px] cursor-pointer border overflow-hidden flex flex-col",
+                            "absolute rounded-sm p-1 text-xs cursor-pointer border overflow-hidden flex flex-col",
                             statusColor
                           )}
                           style={{
@@ -593,32 +593,34 @@ export default function ScheduleWeekCalendar({
                               ? `calc(${width} - ${(overlapCount - 1) * 5}px)` // Make room for other appointments
                               : width,
                             minWidth: isOverlapping 
-                              ? 'calc(6rem - 4px)' 
-                              : 'calc(7rem - 4px)',
+                              ? 'calc(8rem - 4px)' 
+                              : 'calc(9rem - 4px)',
                             zIndex: isOverlapping ? 10 + overlapIndex : 10, // Stack newer appointments on top
-                            maxHeight: `${Math.max(height, 70)}px`, // Ensure minimum height for content visibility
-                            opacity: isOverlapping ? 0.95 : 1 // Slight transparency for overlapping appointments
+                            minHeight: '40px', // Minimum height to ensure content visibility
+                            maxHeight: `${Math.max(height, 80)}px`, // More maximum height for content
+                            opacity: isOverlapping ? 0.95 : 1, // Slight transparency for overlapping appointments
+                            display: 'flex',
+                            flexDirection: 'column',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)'
                           }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* ULTRA-PROMINENT CUSTOMER NAME - Guaranteed to be visible */}
+                          {/* ULTRA-PROMINENT CUSTOMER NAME - Guaranteed to be visible with background */}
                           <div 
-                            className="font-black text-base lg:text-lg mb-1 leading-tight text-gray-900 tracking-tight"
+                            className={`font-black text-base lg:text-lg mb-1 leading-tight text-gray-900 tracking-tight px-1.5 py-1 -mx-1 -mt-1 rounded-t-sm ${
+                              isInbound ? 'bg-blue-50' : 'bg-purple-50'
+                            }`}
                             style={{ 
                               textShadow: "0px 0px 0.5px rgba(0,0,0,0.2)",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
-                              maxWidth: "100%"
+                              maxWidth: "100%",
+                              borderBottom: isInbound ? '2px solid #60a5fa' : '2px solid #c084fc'
                             }}
                           >
                             {schedule.customerName || "(No customer)"}
                           </div>
-                          
-                          {/* Colored bar under customer name for visual separation */}
-                          <div className={`h-1 w-full rounded-sm mb-1 ${
-                            isInbound ? 'bg-blue-400' : 'bg-purple-400'
-                          }`}></div>
                           
                           {/* Type badge + Status inline */}
                           <div className="flex items-center gap-1 truncate">

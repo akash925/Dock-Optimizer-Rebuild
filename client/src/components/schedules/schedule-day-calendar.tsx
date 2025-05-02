@@ -382,28 +382,31 @@ export default function ScheduleDayCalendar({
                                   ? "bg-yellow-50 border-yellow-300"
                                   : isInbound 
                                     ? "bg-blue-50 border-blue-200" 
-                                    : "bg-purple-50 border-purple-200"
+                                    : "bg-purple-50 border-purple-200",
+                            "hover:shadow-md"
                           )}
+                          style={{
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+                            minHeight: '40px'
+                          }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
-                          {/* ULTRA-PROMINENT CUSTOMER NAME - Guaranteed to be visible */}
+                          {/* ULTRA-PROMINENT CUSTOMER NAME - Guaranteed to be visible with background */}
                           <div 
-                            className="font-black text-base lg:text-lg mb-1 leading-tight text-gray-900 tracking-tight"
+                            className={`font-black text-base lg:text-lg mb-1 leading-tight text-gray-900 tracking-tight px-1.5 py-1 -mx-1 -mt-1 rounded-t-sm ${
+                              isInbound ? 'bg-blue-50' : 'bg-purple-50'
+                            }`}
                             style={{ 
                               textShadow: "0px 0px 0.5px rgba(0,0,0,0.2)",
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
-                              maxWidth: "100%"
+                              maxWidth: "100%",
+                              borderBottom: isInbound ? '2px solid #60a5fa' : '2px solid #c084fc'
                             }}
                           >
                             {schedule.customerName || "Unnamed"}
                           </div>
-                          
-                          {/* Colored bar under customer name for visual separation */}
-                          <div className={`h-1 w-full rounded-sm mb-1 ${
-                            isInbound ? 'bg-blue-400' : 'bg-purple-400'
-                          }`}></div>
                           
                           {/* Type badge + Status inline */}
                           <div className="flex items-center gap-1 truncate">
