@@ -144,15 +144,15 @@ export default function ExternalBooking() {
   
   // Fetch facilities that are in this booking page
   const { data: facilities = [], isLoading: isLoadingFacilities } = useQuery<Facility[]>({
-    queryKey: ['/api/facilities'],
-    enabled: !!bookingPage,
+    queryKey: ['/api/facilities', { bookingPageSlug: slug }],
+    enabled: !!bookingPage && !!slug,
     retry: false
   });
   
   // Fetch appointment types
   const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useQuery<AppointmentType[]>({
-    queryKey: ['/api/appointment-types'],
-    enabled: !!bookingPage && !!facilities,
+    queryKey: ['/api/appointment-types', { bookingPageSlug: slug }],
+    enabled: !!bookingPage && !!facilities && !!slug,
     retry: false
   });
   

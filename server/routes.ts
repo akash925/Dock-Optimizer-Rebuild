@@ -1573,7 +1573,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Facility routes
   app.get("/api/facilities", async (req, res) => {
     try {
-      // Check authentication first
+      // Special case for external booking pages - allow unauthenticated access with booking page context
+      const bookingPageSlug = req.query.bookingPageSlug as string | undefined;
+      
+      // If a booking page slug is provided, use it to determine the tenant context
+      if (bookingPageSlug) {
+        console.log(`[Facilities] Request with bookingPageSlug: ${bookingPageSlug}`);
+        
+        // Get the booking page to determine its tenant
+        const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+        if (!bookingPage) {
+          console.log(`[Facilities] No booking page found with slug: ${bookingPageSlug}`);
+          return res.status(404).json({ message: "Booking page not found" });
+        }
+        
+        const bookingPageTenantId = bookingPage.tenantId;
+        console.log(`[Facilities] Found booking page with tenant ID: ${bookingPageTenantId}`);
+        
+        // Get facilities for this booking page's tenant
+        console.log(`[Facilities] Fetching facilities for booking page tenant ${bookingPageTenantId}`);
+        const orgFacilities = await storage.getFacilitiesByOrganizationId(bookingPageTenantId);
+        
+        // If the booking page has specific facilities defined, filter to only those
+        let facilities = orgFacilities;
+        if (bookingPage.facilities && Array.isArray(bookingPage.facilities) && bookingPage.facilities.length > 0) {
+          console.log(`[Facilities] Filtering to only facilities specified in booking page: ${bookingPage.facilities}`);
+          facilities = orgFacilities.filter(facility => 
+            bookingPage.facilities.includes(facility.id)
+          );
+        }
+        
+        console.log(`[Tenant Isolation] Found ${facilities.length} facilities for booking page ${bookingPageSlug} (tenant ${bookingPageTenantId})`);
+        facilities.forEach(facility => {
+          console.log(`[Tenant Isolation] Booking page ${bookingPageSlug} has facility: ID ${facility.id}, Name: ${facility.name}`);
+        });
+        
+        return res.json(facilities);
+      }
+      
+      // Standard authentication check for non-booking page requests
       if (!req.isAuthenticated()) {
         console.log(`[Facilities] Unauthenticated request - access denied`);
         return res.status(401).json({ message: "Authentication required" });
@@ -2577,17 +2615,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Appointment Type routes
   app.get("/api/appointment-types", async (req, res) => {
     try {
+      // Special case for external booking pages - allow unauthenticated access with booking page context
+      const bookingPageSlug = req.query.bookingPageSlug as string | undefined;
+      
+      // If a booking page slug is provided, use it to determine the tenant context
+      if (bookingPageSlug) {
+        console.log(`[AppointmentTypes] Request with bookingPageSlug: ${bookingPageSlug}`);
+        
+        // Get the booking page to determine its tenant
+        const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+        if (!bookingPage) {
+          console.log(`[AppointmentTypes] No booking page found with slug: ${bookingPageSlug}`);
+          return res.status(404).json({ message: "Booking page not found" });
+        }
+        
+        const bookingPageTenantId = bookingPage.tenantId;
+        console.log(`[AppointmentTypes] Found booking page with tenant ID: ${bookingPageTenantId}`);
+        
+        // Get appointment types for this booking page's tenant
+        console.log(`[AppointmentTypes] Fetching appointment types for booking page tenant ${bookingPageTenantId}`);
+        const appointmentTypes = await storage.getAppointmentTypes(bookingPageTenantId);
+        
+        console.log(`[Tenant Isolation] Found ${appointmentTypes.length} appointment types for booking page ${bookingPageSlug} (tenant ${bookingPageTenantId})`);
+        
+        return res.json(appointmentTypes);
+      }
+      
+      // Standard authentication check for non-booking page requests
+      if (!req.isAuthenticated()) {
+        console.log(`[AppointmentTypes] Unauthenticated request - access denied`);
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
       // Get the tenant ID from the authenticated user
       const tenantId = req.user?.tenantId;
-      console.log(`Fetching appointment types for user with tenantId: ${tenantId}`);
+      console.log(`[AppointmentTypes] Fetching appointment types for user with tenantId: ${tenantId}`);
       
       // Use our updated method that filters by tenant internally
       const appointmentTypes = await storage.getAppointmentTypes(tenantId);
-      console.log(`Found ${appointmentTypes.length} appointment types for tenant ID ${tenantId || 'all'}`);
+      console.log(`[AppointmentTypes] Found ${appointmentTypes.length} appointment types for tenant ID ${tenantId || 'all'}`);
       
       res.json(appointmentTypes);
     } catch (err) {
-      console.error("Error fetching appointment types:", err);
+      console.error("[AppointmentTypes] Error fetching appointment types:", err);
       res.status(500).json({ message: "Failed to fetch appointment types", error: err instanceof Error ? err.message : String(err) });
     }
   });
