@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import AppointmentDetails from "@/components/calendar/appointment-details";
 import {
   Calendar,
   Loader2,
@@ -84,6 +85,7 @@ export default function AppointmentsPage() {
   const [facilityFilter, setFacilityFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
   
   // Fetch all schedules
   const { data: schedules, isLoading, error } = useQuery({
@@ -266,8 +268,14 @@ export default function AppointmentsPage() {
     return facility ? facility.name : `Facility #${dock.facilityId}`;
   };
   
+  // Safe version for export
+  const getSafeFacilityName = (dockId: number | null) => {
+    return dockId ? getFacilityName(dockId) : "No facility assigned";
+  };
+  
   // Get carrier name from ID
-  const getCarrierName = (carrierId: number) => {
+  const getCarrierName = (carrierId: number | null) => {
+    if (!carrierId) return "No carrier assigned";
     if (!carriers) return "Loading...";
     const carrier = carriers.find((c: any) => c.id === carrierId);
     return carrier ? carrier.name : `Carrier #${carrierId}`;
@@ -364,8 +372,8 @@ export default function AppointmentsPage() {
       "Event Date": formatDate(schedule.startTime),
       "Event Time": formatTime(schedule.startTime),
       "Event Type": schedule.type,
-      "Facility": getFacilityName(schedule.dockId),
-      "Carrier Name": getCarrierName(schedule.carrierId),
+      "Facility": getSafeFacilityName(schedule.dockId),
+      "Carrier Name": schedule.carrierId ? getCarrierName(schedule.carrierId) : "No carrier",
       "MC #": schedule.mcNumber || "",
       "Truck Number": schedule.truckNumber,
       "Customer Name": schedule.customerName || "",
@@ -405,8 +413,8 @@ export default function AppointmentsPage() {
       "Event Date": formatDate(schedule.startTime),
       "Event Time": formatTime(schedule.startTime),
       "Event Type": schedule.type,
-      "Facility": getFacilityName(schedule.dockId),
-      "Carrier Name": getCarrierName(schedule.carrierId),
+      "Facility": getSafeFacilityName(schedule.dockId),
+      "Carrier Name": schedule.carrierId ? getCarrierName(schedule.carrierId) : "No carrier",
       "MC #": schedule.mcNumber || "",
       "Truck Number": schedule.truckNumber,
       "Customer Name": schedule.customerName || "",
@@ -787,6 +795,12 @@ export default function AppointmentsPage() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Appointment Details Modal */}
+      <AppointmentDetails 
+        scheduleId={selectedScheduleId} 
+        onClose={() => setSelectedScheduleId(null)}
+      />
     </div>
   );
 }
