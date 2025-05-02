@@ -615,7 +615,7 @@ export default function ScheduleWeekCalendar({
                         >
                           {/* ULTRA-PROMINENT CUSTOMER NAME - Guaranteed to be visible with background */}
                           <div 
-                            className={`font-black text-base lg:text-lg mb-1 leading-tight text-gray-900 tracking-tight px-1.5 py-1 -mx-1 -mt-1 rounded-t-sm ${
+                            className={`font-bold text-xs lg:text-sm mb-1 leading-tight text-gray-900 tracking-tight px-1.5 py-1 -mx-1 -mt-1 rounded-t-sm ${
                               isInbound ? 'bg-blue-50' : 'bg-purple-50'
                             }`}
                             style={{ 
@@ -624,6 +624,7 @@ export default function ScheduleWeekCalendar({
                               textOverflow: "ellipsis",
                               whiteSpace: "nowrap",
                               maxWidth: "100%",
+                              letterSpacing: "-0.025em",
                               borderBottom: isInbound ? '2px solid #60a5fa' : '2px solid #c084fc'
                             }}
                           >
