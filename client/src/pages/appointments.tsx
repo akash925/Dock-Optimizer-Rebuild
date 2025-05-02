@@ -260,19 +260,44 @@ export default function AppointmentsPage() {
     return dock ? dock.name : `Dock #${dockId}`;
   };
   
-  // Get facility name from dock ID
-  const getFacilityName = (dockId: number | null) => {
-    if (!dockId) return "No facility assigned";
-    if (!docks || !facilities) return "Loading...";
-    const dock = docks.find((d: any) => d.id === dockId);
-    if (!dock) return `Unknown Facility`;
-    const facility = facilities.find((f: any) => f.id === dock.facilityId);
-    return facility ? facility.name : `Facility #${dock.facilityId}`;
+  // Get facility name from schedule
+  const getFacilityName = (schedule: Schedule) => {
+    // First check if schedule has facilityId and facilityName directly
+    if (schedule.facilityId) {
+      // If schedule has facilityName directly, use it (fastest path)
+      if (schedule.facilityName) {
+        return schedule.facilityName;
+      }
+      
+      // If not, look up the facility by ID
+      if (facilities) {
+        const facility = facilities.find(f => f.id === schedule.facilityId);
+        if (facility) {
+          return facility.name;
+        }
+      }
+      return `Facility #${schedule.facilityId}`;
+    }
+    
+    // If no direct facilityId, try to get it from dock
+    if (schedule.dockId) {
+      if (!docks || !facilities) return "Loading...";
+      const dock = docks.find(d => d.id === schedule.dockId);
+      if (!dock) return "Unknown Facility";
+      
+      // Get facility from dock
+      if (dock.facilityId) {
+        const facility = facilities.find(f => f.id === dock.facilityId);
+        return facility ? facility.name : `Facility #${dock.facilityId}`;
+      }
+    }
+    
+    return "No facility assigned";
   };
   
   // Safe version for export
-  const getSafeFacilityName = (dockId: number | null) => {
-    return dockId ? getFacilityName(dockId) : "No facility assigned";
+  const getSafeFacilityName = (schedule: Schedule) => {
+    return getFacilityName(schedule);
   };
   
   // Get carrier name from ID
@@ -700,7 +725,7 @@ export default function AppointmentsPage() {
                   </TableCell>
                   <TableCell>{getAppointmentTypeBadge(schedule.type)}</TableCell>
                   <TableCell>{schedule.customerName || "-"}</TableCell>
-                  <TableCell>{getFacilityName(schedule.dockId)}</TableCell>
+                  <TableCell>{getFacilityName(schedule)}</TableCell>
                   <TableCell>{getDockName(schedule.dockId)}</TableCell>
                   <TableCell>{getCarrierName(schedule.carrierId)}</TableCell>
                   <TableCell>{schedule.mcNumber || "-"}</TableCell>
