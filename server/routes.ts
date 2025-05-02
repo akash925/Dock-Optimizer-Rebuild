@@ -1577,6 +1577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bookingPageSlug = req.query.bookingPageSlug as string | undefined;
       
       // If a booking page slug is provided, use it to determine the tenant context
+      // This takes priority over the authenticated user's context
       if (bookingPageSlug) {
         console.log(`[Facilities] Request with bookingPageSlug: ${bookingPageSlug}`);
         
@@ -1595,12 +1596,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const orgFacilities = await storage.getFacilitiesByOrganizationId(bookingPageTenantId);
         
         // If the booking page has specific facilities defined, filter to only those
+        // Be careful with type checking since booking page facilities might be stored in different formats
         let facilities = orgFacilities;
-        if (bookingPage.facilities && Array.isArray(bookingPage.facilities) && bookingPage.facilities.length > 0) {
-          console.log(`[Facilities] Filtering to only facilities specified in booking page: ${bookingPage.facilities}`);
-          facilities = orgFacilities.filter(facility => 
-            bookingPage.facilities.includes(facility.id)
-          );
+        if (bookingPage.facilities) {
+          console.log(`[Facilities] Processing booking page facilities: ${typeof bookingPage.facilities}, value: ${JSON.stringify(bookingPage.facilities)}`);
+          
+          let facilityIds = [];
+          
+          // Parse the facilities depending on format
+          try {
+            if (Array.isArray(bookingPage.facilities)) {
+              facilityIds = bookingPage.facilities.map(id => 
+                typeof id === 'string' ? parseInt(id, 10) : id
+              );
+            } else if (typeof bookingPage.facilities === 'string') {
+              try {
+                // Try to parse as JSON
+                const parsed = JSON.parse(bookingPage.facilities);
+                if (Array.isArray(parsed)) {
+                  facilityIds = parsed.map(id => 
+                    typeof id === 'string' ? parseInt(id, 10) : id
+                  );
+                }
+              } catch (e) {
+                // If not valid JSON, try to parse as comma-separated list
+                facilityIds = bookingPage.facilities
+                  .split(',')
+                  .map(s => parseInt(s.trim(), 10))
+                  .filter(n => !isNaN(n));
+              }
+            }
+          } catch (err) {
+            console.error(`[Facilities] Error parsing booking page facilities: ${err}`);
+          }
+          
+          console.log(`[Facilities] Filtering to only facilities specified in booking page: ${facilityIds}`);
+          
+          if (facilityIds.length > 0) {
+            facilities = orgFacilities.filter(facility => 
+              facilityIds.includes(facility.id)
+            );
+          }
         }
         
         console.log(`[Tenant Isolation] Found ${facilities.length} facilities for booking page ${bookingPageSlug} (tenant ${bookingPageTenantId})`);
@@ -1608,6 +1644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[Tenant Isolation] Booking page ${bookingPageSlug} has facility: ID ${facility.id}, Name: ${facility.name}`);
         });
         
+        // For consistent API response
         return res.json(facilities);
       }
       
@@ -2617,10 +2654,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Special case for external booking pages - allow unauthenticated access with booking page context
       const bookingPageSlug = req.query.bookingPageSlug as string | undefined;
+      const facilityIdParam = req.query.facilityId ? Number(req.query.facilityId) : undefined;
       
       // If a booking page slug is provided, use it to determine the tenant context
+      // This takes priority over the authenticated user's context
       if (bookingPageSlug) {
-        console.log(`[AppointmentTypes] Request with bookingPageSlug: ${bookingPageSlug}`);
+        console.log(`[AppointmentTypes] Request with bookingPageSlug: ${bookingPageSlug}, facilityId: ${facilityIdParam || 'none'}`);
         
         // Get the booking page to determine its tenant
         const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
@@ -2632,12 +2671,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const bookingPageTenantId = bookingPage.tenantId;
         console.log(`[AppointmentTypes] Found booking page with tenant ID: ${bookingPageTenantId}`);
         
-        // Get appointment types for this booking page's tenant
+        // Get appointment types for this booking page's tenant, optionally filtered by facility
         console.log(`[AppointmentTypes] Fetching appointment types for booking page tenant ${bookingPageTenantId}`);
-        const appointmentTypes = await storage.getAppointmentTypes(bookingPageTenantId);
         
-        console.log(`[Tenant Isolation] Found ${appointmentTypes.length} appointment types for booking page ${bookingPageSlug} (tenant ${bookingPageTenantId})`);
+        let appointmentTypes;
+        if (facilityIdParam) {
+          // If facility ID specified, get appointment types for that facility
+          appointmentTypes = await storage.getAppointmentTypesByFacility(facilityIdParam, bookingPageTenantId);
+          console.log(`[AppointmentTypes] Filtered by facility ID ${facilityIdParam}`);
+        } else {
+          // Otherwise get all appointment types for tenant
+          appointmentTypes = await storage.getAppointmentTypes(bookingPageTenantId);
+        }
         
+        // If the booking page has excluded appointment types, filter those out
+        if (bookingPage.excludedAppointmentTypes) {
+          let excludedIds = [];
+          
+          // Parse the excludedAppointmentTypes based on format
+          try {
+            if (Array.isArray(bookingPage.excludedAppointmentTypes)) {
+              excludedIds = bookingPage.excludedAppointmentTypes.map(id => 
+                typeof id === 'string' ? parseInt(id, 10) : id
+              );
+            } else if (typeof bookingPage.excludedAppointmentTypes === 'string') {
+              try {
+                // Try to parse as JSON
+                const parsed = JSON.parse(bookingPage.excludedAppointmentTypes);
+                if (Array.isArray(parsed)) {
+                  excludedIds = parsed.map(id => 
+                    typeof id === 'string' ? parseInt(id, 10) : id
+                  );
+                }
+              } catch (e) {
+                // If not valid JSON, try to parse as comma-separated list
+                excludedIds = bookingPage.excludedAppointmentTypes
+                  .split(',')
+                  .map(s => parseInt(s.trim(), 10))
+                  .filter(n => !isNaN(n));
+              }
+            }
+            
+            console.log(`[AppointmentTypes] Excluding appointment types: ${excludedIds}`);
+            
+            if (excludedIds.length > 0) {
+              appointmentTypes = appointmentTypes.filter(type => 
+                !excludedIds.includes(type.id)
+              );
+            }
+          } catch (err) {
+            console.error(`[AppointmentTypes] Error parsing excluded appointment types: ${err}`);
+          }
+        }
+        
+        console.log(`[Tenant Isolation] Returning ${appointmentTypes.length} appointment types for booking page ${bookingPageSlug} (tenant ${bookingPageTenantId})`);
         return res.json(appointmentTypes);
       }
       
@@ -2649,7 +2736,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get the tenant ID from the authenticated user
       const tenantId = req.user?.tenantId;
-      console.log(`[AppointmentTypes] Fetching appointment types for user with tenantId: ${tenantId}`);
+      const username = req.user?.username;
+      const isSuperAdmin = req.user?.role === 'super-admin' || username?.includes('admin@conmitto.io');
+      
+      console.log(`[AppointmentTypes] Fetching appointment types for user ${username} with tenantId: ${tenantId || 'none'}, isSuperAdmin: ${isSuperAdmin || false}`);
       
       // Use our updated method that filters by tenant internally
       const appointmentTypes = await storage.getAppointmentTypes(tenantId);

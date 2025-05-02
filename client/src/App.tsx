@@ -9,6 +9,7 @@ import DockStatus from "@/pages/dock-status";
 import DoorManager from "@/pages/door-manager";
 import BasicDoorManager from "@/pages/basic-door-manager";
 import ExternalBooking from "@/pages/external-booking-fixed";
+import DynamicBookingPage from "@/pages/dynamic-booking-page";
 import BookingConfirmation from "@/pages/booking-confirmation";
 import DriverCheckIn from "@/pages/driver-check-in";
 import Reschedule from "@/pages/reschedule";
