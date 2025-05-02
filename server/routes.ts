@@ -4154,14 +4154,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate appointment time is available
       try {
         const date = new Date(appointmentDate);
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const formattedDate = format(date, "yyyy-MM-dd");
         
-        // Check availability for this date, facility, and appointment type
-        const availabilityResponse = await storage.getDailyAvailability(facilityId, formattedDate);
+        // First, check if we have specific daily availability for this date
+        const availabilitySettings = await storage.getAppointmentSettings(facilityId);
         
-        if (!availabilityResponse || !availabilityResponse.availableTimes || !availabilityResponse.availableTimes.includes(appointmentTime)) {
-          console.log(`[BookAppointment] Error: Selected time ${appointmentTime} is not available`);
-          return res.status(400).json({ message: "Selected time is not available" });
+        if (!availabilitySettings) {
+          console.log(`[BookAppointment] Error: No availability settings found for facility ${facilityId}`);
+          return res.status(400).json({ message: "No availability settings found for this facility" });
+        }
+        
+        // Check if the time is within facility operating hours
+        let isAvailable = false;
+        
+        // Convert appointment time to a comparable format (minutes since midnight)
+        const timeParts = appointmentTime.split(':');
+        const appointmentMinutes = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]);
+        
+        // Check against appointment settings business hours for day of week
+        const dayField = [
+          'sundayBusinessHours',
+          'mondayBusinessHours',
+          'tuesdayBusinessHours',
+          'wednesdayBusinessHours',
+          'thursdayBusinessHours',
+          'fridayBusinessHours',
+          'saturdayBusinessHours'
+        ][dayOfWeek];
+        
+        const businessHours = availabilitySettings[dayField];
+        
+        if (businessHours) {
+          // Parse opening and closing times
+          const [openingHours, openingMins] = businessHours.openingTime.split(':').map(p => parseInt(p));
+          const [closingHours, closingMins] = businessHours.closingTime.split(':').map(p => parseInt(p));
+          
+          const openingMinutes = openingHours * 60 + openingMins;
+          const closingMinutes = closingHours * 60 + closingMins;
+          
+          // Check if appointment time is within business hours
+          isAvailable = appointmentMinutes >= openingMinutes && appointmentMinutes <= closingMinutes;
+          
+          console.log(`[BookAppointment] Time availability check:`, {
+            dayOfWeek,
+            appointmentTime,
+            appointmentMinutes,
+            businessHours: businessHours ? `${businessHours.openingTime}-${businessHours.closingTime}` : 'closed',
+            openingMinutes,
+            closingMinutes,
+            isAvailable
+          });
+          
+          if (!isAvailable) {
+            console.log(`[BookAppointment] Error: Selected time ${appointmentTime} is outside business hours`);
+            return res.status(400).json({ message: "Selected time is outside business hours" });
+          }
+        } else {
+          // If no business hours defined for this day, facility is closed
+          console.log(`[BookAppointment] Error: Facility is closed on this day`);
+          return res.status(400).json({ message: "Facility is closed on the selected day" });
+        }
+        
+        // Now check against specific time slots if available
+        try {
+          // Get the facility's appointments for this date to check for conflicts
+          const startDate = new Date(formattedDate);
+          startDate.setHours(0, 0, 0, 0);
+          const endDate = new Date(formattedDate);
+          endDate.setHours(23, 59, 59, 999);
+          
+          // Use the getSchedulesByDateRange method with facilityId filter
+          const existingAppointments = await storage.getSchedulesByDateRange(startDate, endDate);
+          
+          // Filter to only appointments for this facility
+          const facilityAppointments = existingAppointments.filter(a => a.facilityId === facilityId);
+          
+          // Count appointments at the same time slot
+          const appointmentsAtSameTime = facilityAppointments.filter(appt => {
+            // Check if this appointment overlaps with the requested time
+            const apptStartTime = format(new Date(appt.startTime), "HH:mm");
+            return apptStartTime === appointmentTime;
+          });
+          
+          // Check if we've reached the max concurrent appointments
+          if (appointmentsAtSameTime.length >= availabilitySettings.maxConcurrentInbound) {
+            console.log(`[BookAppointment] Error: No availability for time ${appointmentTime} - max concurrent appointments reached`);
+            return res.status(400).json({ message: "Selected time is already fully booked" });
+          }
+        } catch (err) {
+          console.error(`[BookAppointment] Error checking appointment conflicts: ${err}`);
         }
       } catch (error) {
         console.error(`[BookAppointment] Error checking availability: ${error}`);
