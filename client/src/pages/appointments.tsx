@@ -239,6 +239,8 @@ export default function AppointmentsPage() {
     switch (status.toLowerCase()) {
       case "scheduled":
         return <Badge variant="outline" className="border-blue-500 text-blue-500">Scheduled</Badge>;
+      case "pending":
+        return <Badge variant="outline" className="border-amber-500 text-amber-500">Pending</Badge>;
       case "in-progress":
         return <Badge variant="outline" className="border-yellow-500 text-yellow-500">In Progress</Badge>;
       case "completed":
@@ -677,12 +679,12 @@ export default function AppointmentsPage() {
                 <TableHead>Event Date</TableHead>
                 <TableHead>Event Time</TableHead>
                 <TableHead>Event Type</TableHead>
+                <TableHead>Customer</TableHead>
                 <TableHead>Facility</TableHead>
                 <TableHead>Dock Door</TableHead>
                 <TableHead>Carrier</TableHead>
                 <TableHead>MC #</TableHead>
                 <TableHead>Truck #</TableHead>
-                <TableHead>Customer</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -697,12 +699,12 @@ export default function AppointmentsPage() {
                     <div className="text-muted-foreground">{formatTime(schedule.startTime)}</div>
                   </TableCell>
                   <TableCell>{getAppointmentTypeBadge(schedule.type)}</TableCell>
+                  <TableCell>{schedule.customerName || "-"}</TableCell>
                   <TableCell>{getFacilityName(schedule.dockId)}</TableCell>
                   <TableCell>{getDockName(schedule.dockId)}</TableCell>
                   <TableCell>{getCarrierName(schedule.carrierId)}</TableCell>
                   <TableCell>{schedule.mcNumber || "-"}</TableCell>
                   <TableCell>{schedule.truckNumber}</TableCell>
-                  <TableCell>{schedule.customerName || "-"}</TableCell>
                   <TableCell>{getAppointmentStatusBadge(schedule.status)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => setSelectedScheduleId(schedule.id)}>
