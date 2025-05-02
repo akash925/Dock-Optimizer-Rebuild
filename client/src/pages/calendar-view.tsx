@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
-import { Loader2, CalendarRange, Wifi, WifiOff } from 'lucide-react';
+import { Loader2, CalendarRange } from 'lucide-react';
 import FullCalendarView from '@/components/calendar/full-calendar-view';
 import FullCalendar from '@fullcalendar/react';
 import { Schedule } from '@shared/schema';
@@ -17,9 +17,7 @@ import { Label } from '@/components/ui/label';
 import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 import AppointmentForm from '@/components/shared/appointment-form-fixed';
 import AppointmentDetails from '@/components/calendar/appointment-details';
-import { useRealtimeUpdates } from '@/hooks/use-realtime-updates';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { WebSocketStatus } from '@/components/shared/websocket-status';
 
 // List of common timezones
 const COMMON_TIMEZONES = [
@@ -190,31 +188,7 @@ export default function CalendarPage() {
         </div>
         
         {/* WebSocket connection status indicator */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger>
-              <Badge 
-                variant={wsConnected ? "default" : "outline"} 
-                className={`ml-2 ${wsConnected ? "bg-green-500" : "text-amber-500 border-amber-500"}`}
-              >
-                {wsConnected ? (
-                  <Wifi className="h-3 w-3 mr-1" />
-                ) : (
-                  <WifiOff className="h-3 w-3 mr-1" />
-                )}
-                {wsConnected ? "Real-time" : "Polling"}
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent>
-              {wsConnected ? (
-                <p>Real-time updates active</p>
-              ) : (
-                <p>Using polling updates (15s interval)</p>
-              )}
-              {socketError && <p className="text-destructive">{socketError}</p>}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <WebSocketStatus />
       </div>
 
       {/* Condensed controls row with minimal spacing */}

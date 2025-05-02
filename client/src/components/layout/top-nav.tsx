@@ -17,6 +17,7 @@ import {
   Scan
 } from "lucide-react";
 import { BarcodeScanButton } from "@/components/asset-manager/barcode-scan-button";
+import { WebSocketStatus } from "@/components/shared/websocket-status";
 import organizationLogo from "@/assets/organization_logo.jpeg";
 import { Button } from "@/components/ui/button";
 import SearchBar from "@/components/search/search-bar";
@@ -134,6 +135,11 @@ export default function TopNav() {
       
       <div className="flex items-center gap-2">
         <div className="flex items-center">
+          {/* WebSocket status indicator */}
+          <div className="mr-2 hidden md:block">
+            <WebSocketStatus />
+          </div>
+          
           {/* Direct "Test Booking Page" link */}
           {bookingPages.length > 0 && (
             <Link href={`/external/${bookingPages[0].slug}`} className="hidden md:flex mr-2">
