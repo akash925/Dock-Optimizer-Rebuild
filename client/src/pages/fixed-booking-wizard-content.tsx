@@ -8,6 +8,8 @@ import ServiceSelectionStepForm from './service-selection-step';
 // Import directly from original external-booking-fixed
 import { DateTimeSelectionStep, CustomerInfoStep, ConfirmationStep } from './external-booking-fixed';
 import hanzoLogoImport from '@assets/hanzo logo.jpeg';
+import { formatInTimeZone } from 'date-fns-tz';
+import { getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 
 // This is a clean rewrite of the BookingWizardContent component with proper hooks order
 export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any }) {
@@ -265,8 +267,24 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
             )}
             {bookingData.startTime && (
               <div className="booking-info-item">
-                <strong>Time:</strong> {new Date(bookingData.startTime).toLocaleTimeString()} 
-                {bookingData.facilityTimezone && ` (${bookingData.facilityTimezone})`}
+                <strong>Time:</strong> {(() => {
+                  // Get the facility timezone from the selected facility
+                  const facilityTimezone = 
+                    bookingData.facilityTimezone || 
+                    (facilities.find((f: any) => f.id === bookingData.facilityId)?.timezone || 'America/New_York');
+                  
+                  // Format the time in the facility timezone with abbreviation
+                  const facilityTime = formatInTimeZone(
+                    new Date(bookingData.startTime),
+                    facilityTimezone,
+                    'h:mm a'
+                  );
+                  
+                  // Get the timezone abbreviation
+                  const facilityAbbr = getTimeZoneAbbreviation(facilityTimezone);
+                  
+                  return `${facilityTime} (${facilityAbbr})`;
+                })()}
               </div>
             )}
           </div>
