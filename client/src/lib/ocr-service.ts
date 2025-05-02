@@ -151,25 +151,160 @@ export async function parseBol(file: File): Promise<ParsedBolData> {
 /**
  * Extract structured data from text content
  */
-function extractStructuredData(textContent: string, parsedData: ParsedBolData): void {
+function extractStructuredData(textContent: string, parsedData: ParsedBolData, file?: File): void {
   // Extract BOL number - look for patterns like "BOL #12345" or "B/L: 12345"
-  const bolNumberMatch = textContent.match(/(?:BOL|B\/L|Bill\sof\sLading)[^\d]*(\d+)/i);
-  if (bolNumberMatch) {
-    parsedData.bolNumber = bolNumberMatch[1];
+  const bolNumberPatterns = [
+    // Most specific BOL number pattern - "BOL #12345" or "B/L: 12345"
+    /(?:BOL|B\/L|Bill\sof\sLading)[^\d]*#?\s*(\d+)/i,
+    // Look for BOL prefix followed by alphanumeric identifiers
+    /(?:BOL|B\/L)[^\w]*([A-Z0-9]{5,})/i,
+    // Look for BOL/BL/B L prefixes (common abbreviations) with numbers
+    /\b(?:BOL|BL|B\s*L)[:\s#-]*([A-Z0-9]{4,})/i,
+    // Look for "Bill of Lading Number" patterns
+    /(?:Bill\s*of\s*Lading|Lading)\s*(?:Number|No|#)[:\s]*([A-Za-z0-9-]{4,})/i,
+    // Look for any pattern like "Number: 12345" in BOL context
+    /(?:Number|No|#)[:\s]*([A-Za-z0-9-]{4,})/i,
+    // Look for standalone BOL-like identifiers (typically 6+ digits or alphanumeric)
+    /\b(BOL[A-Z0-9]{4,})\b/i
+  ];
+  
+  // Try all patterns and store possible matches
+  const possibleBolNumbers: { value: string; confidence: number }[] = [];
+  
+  for (const pattern of bolNumberPatterns) {
+    const match = textContent.match(pattern);
+    if (match && match[1]?.trim()) {
+      const value = match[1].trim();
+      
+      // Skip unlikely BOL numbers (too short, no digits)
+      if (value.length < 4 || !value.match(/\d/)) {
+        continue;
+      }
+      
+      // Calculate confidence score
+      let confidence = 50; // Base confidence
+      
+      // Higher confidence for patterns with explicit BOL labels
+      if (pattern.toString().includes('BOL') || pattern.toString().includes('Lading')) {
+        confidence += 25;
+      }
+      
+      // Higher confidence for alphanumeric patterns with digits
+      if (value.match(/^[A-Z0-9]+$/) && value.match(/\d/)) {
+        confidence += 15;
+      }
+      
+      // Boost confidence for typical BOL number formats
+      if (value.match(/^\d{5,}$/) || value.match(/^BOL\d{4,}$/i)) {
+        confidence += 10;
+      }
+      
+      possibleBolNumbers.push({ value, confidence });
+    }
+  }
+  
+  // Check the file name for BOL number pattern as a fallback
+  const fileNameBolMatch = file?.name?.match(/BOL[-_]?(\d+)/i);
+  if (fileNameBolMatch && fileNameBolMatch[1]) {
+    possibleBolNumbers.push({ 
+      value: fileNameBolMatch[1],
+      confidence: 40 // Lower base confidence for filename-derived numbers
+    });
+  }
+  
+  // Sort by confidence and choose the best match
+  if (possibleBolNumbers.length > 0) {
+    possibleBolNumbers.sort((a, b) => b.confidence - a.confidence);
+    console.log('Possible BOL numbers found:', possibleBolNumbers);
+    parsedData.bolNumber = possibleBolNumbers[0].value;
+    
+    // Format BOL number consistently if it's just a number
+    if (parsedData.bolNumber.match(/^\d+$/)) {
+      // Format numbers with BOL prefix
+      parsedData.bolNumber = `BOL${parsedData.bolNumber}`;
+    } else if (parsedData.bolNumber.match(/^[A-Z0-9]+$/) && !parsedData.bolNumber.toLowerCase().startsWith('bol')) {
+      // Add BOL prefix to alphanumeric codes that don't already have it
+      parsedData.bolNumber = `BOL${parsedData.bolNumber}`;
+    }
   }
   
   // Extract customer name - typically indicated with keywords
   const customerPatterns = [
-    /(?:customer|customer\sname|consignee|ship\sto)[^\w\n]*([A-Za-z0-9\s.,&]+)(?:\n|$)/i,
-    /(?:SHIP\sTO|CONSIGNEE|RECEIVER)[^\w\n]*([A-Za-z0-9\s.,&]+)(?:\n|$)/i,
-    /(?:TO):?[^\w\n]*([A-Za-z0-9\s.,&]+)(?:\n|$)/i
+    // More specific "Sold To" pattern often found in BOLs
+    /(?:Sold\s*To|Sold\s*To\s*Customer|Sold\s*To\s*Party)[:\s]*([A-Za-z0-9\s.,&\-']+)(?:\n|$)/i,
+    // Expanded pattern to match customer/buyer/purchaser
+    /(?:customer|customer\sname|buyer|purchaser|consignee|ship\sto)[^\w\n]*([A-Za-z0-9\s.,&\-']+)(?:\n|$)/i,
+    // Common headers in BOL forms
+    /(?:SHIP\sTO|CONSIGNEE|RECEIVER|DESTINATION)[^\w\n]*([A-Za-z0-9\s.,&\-']+)(?:\n|$)/i,
+    // Expanded pattern to match lines with "TO:" prefix
+    /(?:TO|DELIVER\sTO):?[^\w\n]*([A-Za-z0-9\s.,&\-']+)(?:\n|$)/i,
+    // Look for company name patterns (often appear as the customer)
+    /(?:^|\n)([A-Z][A-Za-z0-9\s.,&\-']+(?:Inc|LLC|Corp|Company|Co\.|Ltd\.))(?:\n|$)/i
   ];
+  
+  // Try all patterns and store possible matches to choose the best one
+  const possibleCustomers: { value: string; confidence: number }[] = [];
   
   for (const pattern of customerPatterns) {
     const match = textContent.match(pattern);
     if (match && match[1].trim()) {
-      parsedData.customerName = match[1].trim();
-      break;
+      const value = match[1].trim();
+      
+      // Skip if the value appears to be an address or contains too many numbers
+      if (value.match(/^\d+\s+[A-Za-z]/) || (value.match(/\d/g) || []).length > 5) {
+        continue;
+      }
+      
+      // Skip values that are too short (likely not company names)
+      if (value.length < 3) {
+        continue;
+      }
+      
+      // Skip values that are too generic
+      const genericTerms = ['customer', 'consignee', 'receiver', 'ship to', 'buyer', 'same'];
+      if (genericTerms.some(term => value.toLowerCase() === term)) {
+        continue;
+      }
+      
+      // Calculate a confidence score based on characteristics of good company names
+      let confidence = 50; // Base confidence
+      
+      // Boost confidence for values with proper capitalization (like company names)
+      if (value.match(/^[A-Z][a-z]/) || value.match(/\s[A-Z][a-z]/g)) {
+        confidence += 10;
+      }
+      
+      // Boost confidence for values with company identifiers
+      if (value.match(/Inc\.?$|LLC$|Corp\.?$|Company$|Co\.?$|Ltd\.?$/i)) {
+        confidence += 15;
+      }
+      
+      // Boost confidence for patterns with explicit customer labels
+      if (pattern.toString().includes('Sold') || pattern.toString().includes('customer')) {
+        confidence += 20;
+      }
+      
+      possibleCustomers.push({ value, confidence });
+    }
+  }
+  
+  // Sort by confidence and choose the best match
+  if (possibleCustomers.length > 0) {
+    possibleCustomers.sort((a, b) => b.confidence - a.confidence);
+    console.log('Possible customer names found:', possibleCustomers);
+    parsedData.customerName = possibleCustomers[0].value;
+  }
+  
+  // Clean up the customer name if we found one
+  if (parsedData.customerName) {
+    // Remove any trailing commas, colons, etc.
+    parsedData.customerName = parsedData.customerName.replace(/[,;:]+$/, '').trim();
+    // Fix capitalization if it's ALL CAPS (common in BOL documents)
+    if (parsedData.customerName === parsedData.customerName.toUpperCase()) {
+      parsedData.customerName = parsedData.customerName
+        .split(' ')
+        .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+        .join(' ');
     }
   }
   
