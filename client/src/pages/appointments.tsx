@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { formatDate, formatTime, getDockStatus } from "@/lib/utils";
 import { Schedule } from "@shared/schema";
+import { EnhancedSchedule } from "@/lib/schedule-helpers";
 import * as XLSX from 'xlsx';
 
 import {
@@ -262,16 +263,17 @@ export default function AppointmentsPage() {
   
   // Get facility name from schedule
   const getFacilityName = (schedule: Schedule) => {
-    // First check if schedule has facilityId and facilityName directly
+    // First check if schedule has facilityId directly
     if (schedule.facilityId) {
-      // If schedule has facilityName directly, use it (fastest path)
-      if (schedule.facilityName) {
-        return schedule.facilityName;
+      // Handle the case where this is an enhanced schedule with facilityName already
+      const enhancedSchedule = schedule as EnhancedSchedule;
+      if (enhancedSchedule.facilityName) {
+        return enhancedSchedule.facilityName;
       }
       
       // If not, look up the facility by ID
       if (facilities) {
-        const facility = facilities.find(f => f.id === schedule.facilityId);
+        const facility = facilities.find((f: any) => f.id === schedule.facilityId);
         if (facility) {
           return facility.name;
         }
@@ -282,12 +284,12 @@ export default function AppointmentsPage() {
     // If no direct facilityId, try to get it from dock
     if (schedule.dockId) {
       if (!docks || !facilities) return "Loading...";
-      const dock = docks.find(d => d.id === schedule.dockId);
+      const dock = docks.find((d: any) => d.id === schedule.dockId);
       if (!dock) return "Unknown Facility";
       
       // Get facility from dock
       if (dock.facilityId) {
-        const facility = facilities.find(f => f.id === dock.facilityId);
+        const facility = facilities.find((f: any) => f.id === dock.facilityId);
         return facility ? facility.name : `Facility #${dock.facilityId}`;
       }
     }
