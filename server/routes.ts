@@ -12,6 +12,7 @@ import { testEmailTemplate } from "./email-test";
 import { adminRoutes } from "./modules/admin/routes";
 import { pool } from "./db";
 import { WebSocketServer, WebSocket } from "ws";
+import { format } from "date-fns";
 
 /**
  * Helper function to check tenant isolation security for facility-related resources.
@@ -3614,6 +3615,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to retrieve booking page" });
     }
   });
+
+  // We'll add the dynamic booking page endpoint after multer is defined
 
   app.get("/api/booking-pages/:id", async (req, res) => {
     try {

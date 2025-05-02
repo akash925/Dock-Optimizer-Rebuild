@@ -163,8 +163,8 @@ const adminRoutes: RouteConfig[] = [
 const publicRoutes: RouteConfig[] = [
   { path: "/auth", component: AuthPage },
   { path: "/door-manager-demo", component: BasicDoorManager },
-  { path: "/external/:slug", component: ExternalBooking },
-  { path: "/booking/:slug", component: ExternalBooking },
+  { path: "/external/:slug", component: ExternalBooking }, // Old legacy endpoint
+  { path: "/booking/:slug", component: DynamicBookingPage }, // New dynamic booking page
   { path: "/booking-confirmation", component: BookingConfirmation },
   { path: "/driver-check-in", component: DriverCheckIn },
   { path: "/reschedule", component: Reschedule },
