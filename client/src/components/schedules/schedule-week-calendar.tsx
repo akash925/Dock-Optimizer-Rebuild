@@ -293,8 +293,16 @@ export default function ScheduleWeekCalendar({
               className="h-7 px-3 text-xs"
               onClick={() => {
                 if (typeof window !== 'undefined') {
-                  setIsLoading(true);
-                  window.location.href = '/schedules?view=day';
+                  // Use custom event instead of hard page reload
+                  // This will be handled by the optimized transition code in schedules.tsx
+                  const dateParam = `&date=${date.toISOString().split('T')[0]}`;
+                  const newUrl = `/schedules?view=day${dateParam}`;
+                  window.history.pushState({}, '', newUrl);
+                  
+                  // Signal view change to parent component
+                  window.dispatchEvent(new CustomEvent('viewchange', { 
+                    detail: { view: 'day', date }
+                  }));
                 }
               }}
               disabled={isLoading}

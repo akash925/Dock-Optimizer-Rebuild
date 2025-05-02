@@ -93,7 +93,16 @@ export default function ScheduleMonthCalendar({
               className="h-7 px-3 text-xs"
               onClick={() => {
                 if (typeof window !== 'undefined') {
-                  window.location.href = '/schedules?view=day';
+                  // Use custom event instead of hard page reload
+                  // This will be handled by the optimized transition code in schedules.tsx
+                  const dateParam = `&date=${date.toISOString().split('T')[0]}`;
+                  const newUrl = `/schedules?view=day${dateParam}`;
+                  window.history.pushState({}, '', newUrl);
+                  
+                  // Signal view change to parent component
+                  window.dispatchEvent(new CustomEvent('viewchange', { 
+                    detail: { view: 'day', date }
+                  }));
                 }
               }}
             >
@@ -105,7 +114,15 @@ export default function ScheduleMonthCalendar({
               className="h-7 px-3 text-xs"
               onClick={() => {
                 if (typeof window !== 'undefined') {
-                  window.location.href = '/schedules?view=week';
+                  // Use custom event instead of hard page reload
+                  const dateParam = `&date=${date.toISOString().split('T')[0]}`;
+                  const newUrl = `/schedules?view=week${dateParam}`;
+                  window.history.pushState({}, '', newUrl);
+                  
+                  // Signal view change to parent component
+                  window.dispatchEvent(new CustomEvent('viewchange', { 
+                    detail: { view: 'week', date }
+                  }));
                 }
               }}
             >

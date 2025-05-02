@@ -99,10 +99,33 @@ export default function ScheduleDayCalendar({
     onDateChange(new Date());
   };
   
-  // Reset loading state when schedules or date changes
+  // Improved loading state management for smoother transitions
   useEffect(() => {
-    setIsLoading(false);
+    // Short delay to allow component to render before removing loading state
+    // This prevents flickering during transitions
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 150);
+    
+    return () => clearTimeout(timer);
   }, [schedules, date]);
+  
+  // Handle incoming view changes more gracefully
+  useEffect(() => {
+    // Listen for incoming view change events from parent
+    const handleExternalViewChange = (e: CustomEvent) => {
+      if (e.detail && e.detail.view === 'day') {
+        // Don't set loading to true if we're already in day view
+        // This prevents unnecessary reloads when just changing dates
+        setIsLoading(false);
+      }
+    };
+    
+    window.addEventListener('viewchange', handleExternalViewChange as EventListener);
+    return () => {
+      window.removeEventListener('viewchange', handleExternalViewChange as EventListener);
+    };
+  }, []);
   
   // Get schedules for this day and organize them - optimized for performance
   const organizedSchedules = useMemo(() => {

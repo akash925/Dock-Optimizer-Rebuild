@@ -162,12 +162,23 @@ export default function Schedules() {
       // Extract view and date information from the event
       const { view, date } = event.detail;
       
-      // Set transitioning state to show loading indicator
-      setIsViewTransitioning(true);
+      // Check if we're just cycling back to the same view
+      const isSameView = view === viewMode;
+      
+      // Use a shorter transition if we're staying in the same view or going from week to day
+      const isOptimizedTransition = 
+        isSameView || 
+        (viewMode === 'week' && view === 'day');
+        
+      if (!isOptimizedTransition) {
+        // Set transitioning state to show loading indicator for major view changes
+        setIsViewTransitioning(true);
+      }
       
       // Update the view mode state
       if (view === 'day' || view === 'week' || view === 'month' || view === 'list') {
-        setTimeout(() => {
+        // Update immediately for optimized transitions
+        if (isOptimizedTransition) {
           setViewMode(view);
           
           // Update the selected date if provided
@@ -175,11 +186,24 @@ export default function Schedules() {
             setSelectedDate(new Date(date));
           }
           
-          // Clear transitioning state after a short delay
+          // Skip long transition for optimized paths
+          setIsViewTransitioning(false);
+        } else {
+          // Use traditional delayed transition for bigger view changes
           setTimeout(() => {
-            setIsViewTransitioning(false);
-          }, 300);
-        }, 50);
+            setViewMode(view);
+            
+            // Update the selected date if provided
+            if (date) {
+              setSelectedDate(new Date(date));
+            }
+            
+            // Clear transitioning state after a short delay
+            setTimeout(() => {
+              setIsViewTransitioning(false);
+            }, 300);
+          }, 50);
+        }
       }
     };
     
@@ -190,7 +214,7 @@ export default function Schedules() {
     return () => {
       window.removeEventListener('viewchange', handleViewChange as EventListener);
     };
-  }, []);
+  }, [viewMode, setViewMode, setSelectedDate]);
   
   // Handle closing the appointment details dialog
   const handleDetailsDialogClose = useCallback((open: boolean) => {
