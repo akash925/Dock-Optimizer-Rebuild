@@ -190,6 +190,8 @@ export default function BookingConfirmation() {
   
   // Email the appointment details
   const handleEmailShare = () => {
+    if (!bookingDetails) return;
+    
     const subject = `Dock Appointment Confirmation: ${bookingDetails.confirmationNumber}`;
     const appointmentType = bookingDetails.type ? bookingDetails.type.toLowerCase() : "appointment";
     
@@ -200,7 +202,8 @@ Here are your ${appointmentType} appointment details for Hanzo Logistics:
 
 Confirmation Number: ${bookingDetails.confirmationNumber}
 Date: ${bookingDetails.appointmentDate}
-Time: ${bookingDetails.appointmentTime}
+Time: ${bookingDetails.facilityTimeDisplay} (Facility time)
+      ${bookingDetails.userTimeDisplay} (Your local time)
 Location: ${bookingDetails.location}
 Carrier: ${bookingDetails.carrierName}
 ${bookingDetails.truckNumber ? `Truck #: ${bookingDetails.truckNumber}` : ''}
@@ -276,7 +279,10 @@ Hanzo Logistics
                 
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-gray-500">Appointment Time</span>
-                  <span>{bookingDetails.appointmentTime}</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium">{bookingDetails.facilityTimeDisplay} <span className="text-xs ml-1 text-primary font-normal">(Facility time)</span></span>
+                    <span className="text-sm text-gray-600">{bookingDetails.userTimeDisplay} <span className="text-xs ml-1 text-gray-500">(Your local time)</span></span>
+                  </div>
                 </div>
               </div>
               
@@ -372,7 +378,8 @@ Here are your ${bookingDetails.type ? bookingDetails.type.toLowerCase() : "appoi
 
 Confirmation Number: ${bookingDetails.confirmationNumber}
 Date: ${bookingDetails.appointmentDate}
-Time: ${bookingDetails.appointmentTime}
+Time: ${bookingDetails.facilityTimeDisplay} (Facility time)
+      ${bookingDetails.userTimeDisplay} (Your local time)
 Location: ${bookingDetails.location}
 Carrier: ${bookingDetails.carrierName}
 ${bookingDetails.truckNumber ? `Truck #: ${bookingDetails.truckNumber}` : ''}
