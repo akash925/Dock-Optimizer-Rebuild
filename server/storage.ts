@@ -224,6 +224,7 @@ export class MemStorage implements IStorage {
   private bookingPages: Map<number, BookingPage>;
   private assets: Map<number, Asset>;
   private companyAssets: Map<number, CompanyAsset>;
+  private userPreferences: Map<number, UserPreferences>;
   
   // Admin console related
   private tenants: Map<number, Tenant>;
@@ -250,6 +251,7 @@ export class MemStorage implements IStorage {
   private roleIdCounter: number = 1;
   private organizationUserIdCounter: number = 1;
   private organizationModuleIdCounter: number = 1;
+  private userPreferencesIdCounter: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -265,6 +267,7 @@ export class MemStorage implements IStorage {
     this.bookingPages = new Map();
     this.assets = new Map();
     this.companyAssets = new Map();
+    this.userPreferences = new Map();
     
     // Admin console related
     this.tenants = new Map();
