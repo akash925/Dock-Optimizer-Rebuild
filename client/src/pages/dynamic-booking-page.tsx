@@ -158,6 +158,10 @@ export default function DynamicBookingPage() {
   const pathParts = currentPath.split('/').filter(part => part.trim() !== '');
   const slug = pathParts[pathParts.length - 1];
   
+  // Debug the URL and slug extraction
+  console.log("DEBUG - Current URL path:", currentPath);
+  console.log("DEBUG - Extracted slug:", slug);
+  
   // Check for reset parameter in the URL
   const urlParams = new URLSearchParams(window.location.search);
   const shouldReset = urlParams.get('reset') === 'true';
