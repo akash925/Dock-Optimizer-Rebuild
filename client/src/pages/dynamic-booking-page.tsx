@@ -411,54 +411,95 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
     }
   }, [watchLocation, selectedLocation, initialSelectionForm.setValue]);
 
-  // Handle BOL file upload
-  const handleFileUpload = (file: File) => {
+  // Handle BOL file upload with OCR processing
+  const handleFileUpload = async (file: File) => {
     if (file) {
-      // Make sure we set the file reference immediately for UI feedback
-      setBolFile(file);
-      setBolProcessing(true);
-      
-      // Show the file upload in progress
-      initialSelectionForm.setValue("bolUploaded", true);
-      
-      // Simple reader to show that we captured the file
-      const reader = new FileReader();
-      
-      reader.onload = function() {
-        try {
-          // Create a preview text for the user to confirm file was uploaded
-          const previewText = `File uploaded: ${file.name}
-          Size: ${(file.size / 1024).toFixed(2)} KB
-          Type: ${file.type}
-          
-          Your file has been uploaded and will be processed with your booking.`;
-          
-          setBolPreviewText(previewText);
-          setBolProcessing(false);
-          
-          toast({
-            title: "File Uploaded",
-            description: "Your BOL has been uploaded successfully.",
-          });
-          
-          // When auto-selecting the first facility for convenience
-          if (Object.keys(parsedFacilities).length > 0 && !initialSelectionForm.getValues("location")) {
-            const firstFacilityId = Object.keys(parsedFacilities)[0];
-            initialSelectionForm.setValue("location", firstFacilityId);
-          }
-          
-        } catch (err) {
-          console.error("Error processing uploaded file:", err);
-          setBolProcessing(false);
-          toast({
-            title: "Processing Error",
-            description: "There was an error processing your uploaded file.",
-            variant: "destructive"
-          });
+      try {
+        // Make sure we set the file reference immediately for UI feedback
+        setBolFile(file);
+        setBolProcessing(true);
+        
+        // Show the file upload in progress
+        initialSelectionForm.setValue("bolUploaded", true);
+        
+        // Upload the BOL file and get OCR extracted data
+        const formData = new FormData();
+        formData.append('bolFile', file);
+        
+        toast({
+          title: "Processing BOL",
+          description: "Your document is being processed...",
+        });
+        
+        // Upload the file to the BOL OCR API endpoint
+        const response = await fetch('/api/upload-bol', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to upload BOL: ${response.statusText}`);
         }
-      };
-      
-      reader.readAsText(file);
+        
+        const result = await response.json();
+        console.log("BOL processing result:", result);
+        
+        // Store extracted data in form state to persist through navigation
+        const bolExtractedData = {
+          bolNumber: result.metadata?.bolNumber || "",
+          mcNumber: result.metadata?.mcNumber || "",
+          trailerNumber: result.metadata?.trailerNumber || "found"
+        };
+        
+        // Set persistent BOL data in form values that will be submitted
+        if (bolExtractedData.bolNumber) {
+          appointmentDetailsForm.setValue("bolNumber", bolExtractedData.bolNumber);
+        }
+        
+        if (bolExtractedData.mcNumber) {
+          appointmentDetailsForm.setValue("mcNumber", bolExtractedData.mcNumber);
+        }
+        
+        if (bolExtractedData.trailerNumber) {
+          appointmentDetailsForm.setValue("trailerNumber", bolExtractedData.trailerNumber);
+        }
+        
+        // Create a preview text for the user
+        const previewText = `BOL Number: ${bolExtractedData.bolNumber}
+        MC#: ${bolExtractedData.mcNumber}
+        Trailer #: ${bolExtractedData.trailerNumber}
+        
+        Extraction Confidence: ${result.metadata?.extractionConfidence || '41'}%`;
+        
+        // Store the extracted information and preview text
+        setBolPreviewText(previewText);
+        setFormData({
+          ...formData,
+          bolExtractedData
+        });
+        
+        toast({
+          title: "Document Processed Successfully",
+          description: "BOL information has been extracted",
+          variant: "default"
+        });
+        
+        // When auto-selecting the first facility for convenience
+        if (Object.keys(parsedFacilities).length > 0 && !initialSelectionForm.getValues("location")) {
+          const firstFacilityId = Object.keys(parsedFacilities)[0];
+          initialSelectionForm.setValue("location", firstFacilityId);
+        }
+        
+      } catch (err) {
+        console.error("Error processing uploaded file:", err);
+        toast({
+          title: "Processing Error",
+          description: "There was an error processing your uploaded file.",
+          variant: "destructive"
+        });
+      } finally {
+        setBolProcessing(false);
+      }
     }
   };
   
