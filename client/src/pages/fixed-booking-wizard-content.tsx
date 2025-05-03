@@ -47,11 +47,14 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   const totalSteps = 3; // We have 3 steps (confirmation is not counted in progress)
   const progressPercentage = Math.min(((currentStep - 1) / totalSteps) * 100, 100);
   
+  // Get the organization name from booking page for use throughout the component
+  const organizationName = bookingPage?.organizationName || bookingPage?.name?.split(' - ')[0] || 'Logistics';
+
   // Set document title
   useEffect(() => {
     // Set the document title
-    document.title = `Book Appointment - Hanzo Logistics Dock Appointment Scheduler`;
-  }, []);
+    document.title = `Book Appointment - ${organizationName} Dock Appointment Scheduler`;
+  }, [organizationName]);
   
   // Find facility name with useMemo
   const facilityName = useMemo(() => {
@@ -243,9 +246,6 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
     stepContent = <ConfirmationStep bookingPage={bookingPage} confirmationCode={confirmationCode} />;
   }
 
-  // Get the organization name from booking page
-  const organizationName = bookingPage?.organizationName || bookingPage?.name?.split(' - ')[0] || 'Logistics';
-  
   // Set up logo URL - use tenant-specific logo from booking-pages-logo endpoint if available
   const logoUrl = slug ? `/api/booking-pages/logo/${slug}` : hanzoLogoImport;
   

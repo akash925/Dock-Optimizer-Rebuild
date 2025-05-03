@@ -638,7 +638,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
           <div className="flex items-center">
             {bookingPage.useOrganizationLogo ? (
               <img 
-                src={`/api/booking-pages/${slug}/logo`}
+                src={`/api/booking-pages/logo/${slug}`}
                 alt={`${bookingPage.name} Logo`}
                 className="h-10 w-auto object-contain mr-3"
                 onError={(e) => {

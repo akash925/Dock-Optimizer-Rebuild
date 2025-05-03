@@ -26,7 +26,7 @@ export default function BookingRouter() {
     isLoading, 
     error 
   } = useQuery({
-    queryKey: ['/api/booking-pages/slug', slug],
+    queryKey: [`/api/booking-pages/slug/${slug}`],
     enabled: !!slug,
   });
   
