@@ -173,7 +173,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
     enabled: !!slug,
     queryFn: async () => {
       console.log("Fetching booking page data with slug:", slug);
-      const response = await fetch(`http://localhost:5000/api/booking-pages/slug/${slug}`);
+      const response = await fetch(`/api/booking-pages/slug/${slug}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch booking page: ${response.status} ${response.statusText}`);
       }
@@ -190,7 +190,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
     enabled: !!bookingPage && !!slug,
     queryFn: async () => {
       console.log("Fetching facilities with bookingPageSlug:", slug);
-      const response = await fetch(`http://localhost:5000/api/facilities?bookingPageSlug=${slug}`);
+      const response = await fetch(`/api/facilities?bookingPageSlug=${slug}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch facilities: ${response.status} ${response.statusText}`);
       }
@@ -207,7 +207,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
     enabled: !!bookingPage && !!facilities && !!slug,
     queryFn: async () => {
       console.log("Fetching appointment types with bookingPageSlug:", slug);
-      const response = await fetch(`http://localhost:5000/api/appointment-types?bookingPageSlug=${slug}`);
+      const response = await fetch(`/api/appointment-types?bookingPageSlug=${slug}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch appointment types: ${response.status} ${response.statusText}`);
       }
@@ -484,9 +484,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
       const formattedDate = format(date, "yyyy-MM-dd");
       console.log(`Fetching availability for facility ${facilityId}, appointment type ${appointmentTypeId}, date ${formattedDate}, booking page slug ${slug}`);
       
-      // Important: Use port 5000 and include bookingPageSlug parameter for proper tenant isolation
+      // Include bookingPageSlug parameter for proper tenant isolation with relative URL
       const response = await fetch(
-        `http://localhost:5000/api/facilities/${facilityId}/availability?date=${formattedDate}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${slug}`
+        `/api/facilities/${facilityId}/availability?date=${formattedDate}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${slug}`
       );
       const data = await response.json();
       
@@ -567,8 +567,8 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
       formDataObj.append('bookingPageSlug', slug);
       
       // Make API request to book appointment
-      // Important: Use port 5000 explicitly for API requests to maintain tenant isolation
-      const response = await fetch('http://localhost:5000/api/booking-pages/book-appointment', {
+      // Use relative URL path for API requests to work in any environment
+      const response = await fetch('/api/booking-pages/book-appointment', {
         method: 'POST',
         body: formDataObj,
       });
@@ -593,8 +593,8 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
         description: "Your appointment has been booked successfully.",
       });
       
-      // Redirect to confirmation page with explicit port 5000 to maintain tenant isolation
-      window.location.href = `http://localhost:5000/booking/${slug}/confirmation?appointmentId=${result.id}`;
+      // Redirect to confirmation page with relative URL to work in any environment
+      window.location.href = `/booking/${slug}/confirmation?appointmentId=${result.id}`;
       
     } catch (error) {
       console.error("Error submitting appointment:", error);

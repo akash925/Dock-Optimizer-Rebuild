@@ -41,7 +41,7 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
     queryFn: async ({ queryKey }) => {
       const [baseUrl, params] = queryKey as [string, { bookingPageSlug: string }]; // Type assertion to fix TS error
       // Important: Use port 5000 directly for API requests
-      const apiUrl = `http://localhost:5000${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      const apiUrl = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
       console.log(`[FixedBookingWizardContent] Fetching facilities with URL: ${apiUrl}`);
       
       try {
@@ -279,8 +279,8 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   }
 
   // Set up logo URL - use tenant-specific logo from booking-pages-logo endpoint if available
-  // Important: Use port 5000 directly for API requests
-  const logoUrl = slug ? `http://localhost:5000/api/booking-pages/logo/${slug}` : hanzoLogoImport;
+  // Use relative URL path for API requests to work in any environment
+  const logoUrl = slug ? `/api/booking-pages/logo/${slug}` : hanzoLogoImport;
   console.log(`[FixedBookingWizardContent] Using logo URL: ${logoUrl} for slug: ${slug}`);
   
   return (
