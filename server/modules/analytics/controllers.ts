@@ -5,7 +5,8 @@ import {
   carriers, 
   schedules,
   docks,
-  tenants
+  tenants,
+  organizationFacilities
 } from '@shared/schema';
 import { sql, and, eq, inArray } from 'drizzle-orm';
 
@@ -23,10 +24,11 @@ export async function getHeatmapData(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // First, get all facilities for this tenant to filter schedules
+    // First, get all facilities for this tenant through the junction table
     const tenantFacilities = await db.select({ id: facilities.id })
       .from(facilities)
-      .where(eq(facilities.tenantId, tenantId));
+      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
+      .where(eq(organizationFacilities.organizationId, tenantId));
     
     const facilityIds = tenantFacilities.map(f => f.id);
     if (!facilityIds.length) {
@@ -74,8 +76,9 @@ export async function getHeatmapData(req: Request, res: Response) {
         COUNT(*) as count
       FROM ${schedules} s
       JOIN ${facilities} f ON s.facility_id = f.id
+      JOIN ${organizationFacilities} of ON f.id = of.facility_id
       ${whereClause}
-      AND f.tenant_id = ${tenantId}
+      AND of.organization_id = ${tenantId}
       GROUP BY day_of_week, hour_of_day
       ORDER BY day_of_week, hour_of_day
     `);
@@ -101,8 +104,8 @@ export async function getFacilityStats(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // Build WHERE clause for date filtering with tenant isolation
-    let whereClause = sql`WHERE f.tenant_id = ${tenantId}`;
+    // Build WHERE clause for date filtering with tenant isolation using the junction table
+    let whereClause = sql`WHERE of.organization_id = ${tenantId}`;
     
     // Add date range filtering
     if (startDate && endDate) {
@@ -127,6 +130,7 @@ export async function getFacilityStats(req: Request, res: Response) {
         COUNT(s.id) as "appointmentCount"
       FROM ${facilities} f
       LEFT JOIN ${schedules} s ON f.id = s.facility_id
+      JOIN ${organizationFacilities} of ON f.id = of.facility_id
       ${whereClause}
       GROUP BY f.id, f.name, f.address1
       ORDER BY "appointmentCount" DESC
@@ -153,10 +157,11 @@ export async function getCarrierStats(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // First, get all facilities for this tenant to filter schedules
+    // First, get all facilities for this tenant through the organization_facilities junction table
     const tenantFacilities = await db.select({ id: facilities.id })
       .from(facilities)
-      .where(eq(facilities.tenantId, tenantId));
+      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
+      .where(eq(organizationFacilities.organizationId, tenantId));
     
     const facilityIds = tenantFacilities.map(f => f.id);
     if (!facilityIds.length) {
@@ -216,10 +221,11 @@ export async function getCustomerStats(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // First, get all facilities for this tenant to filter schedules
+    // First, get all facilities for this tenant through the organization_facilities junction table
     const tenantFacilities = await db.select({ id: facilities.id })
       .from(facilities)
-      .where(eq(facilities.tenantId, tenantId));
+      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
+      .where(eq(organizationFacilities.organizationId, tenantId));
     
     const facilityIds = tenantFacilities.map(f => f.id);
     if (!facilityIds.length) {
@@ -279,10 +285,11 @@ export async function getAttendanceStats(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // First, get all facilities for this tenant to filter schedules
+    // First, get all facilities for this tenant through the organization_facilities junction table
     const tenantFacilities = await db.select({ id: facilities.id })
       .from(facilities)
-      .where(eq(facilities.tenantId, tenantId));
+      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
+      .where(eq(organizationFacilities.organizationId, tenantId));
     
     const facilityIds = tenantFacilities.map(f => f.id);
     if (!facilityIds.length) {
@@ -339,10 +346,11 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // First, get all facilities for this tenant to filter docks
+    // First, get all facilities for this tenant through the organization_facilities junction table
     const tenantFacilities = await db.select({ id: facilities.id })
       .from(facilities)
-      .where(eq(facilities.tenantId, tenantId));
+      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
+      .where(eq(organizationFacilities.organizationId, tenantId));
     
     const facilityIds = tenantFacilities.map(f => f.id);
     if (!facilityIds.length) {
