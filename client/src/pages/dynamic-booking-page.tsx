@@ -531,10 +531,19 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
       );
       const data = await response.json();
       
+      console.log("Availability response raw data:", data);
+      
+      // Handle the two response formats - either data.availableTimes or data.slots.map(s => s.time)
       if (data.availableTimes) {
-        console.log("Available times:", data.availableTimes);
+        console.log("Available times from availableTimes field:", data.availableTimes);
         setAvailableTimes(data.availableTimes);
+      } else if (data.slots && Array.isArray(data.slots)) {
+        // Extract times from slots array
+        const times = data.slots.map(slot => slot.time);
+        console.log("Available times extracted from slots array:", times);
+        setAvailableTimes(times);
       } else {
+        console.log("No available times found in response:", data);
         setAvailableTimes([]);
         toast({
           title: "No Available Times",
