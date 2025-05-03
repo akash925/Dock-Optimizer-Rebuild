@@ -57,19 +57,21 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       // If using organization logo (or fallback from above), use organization logo
       console.log(`[Booking Page Logo] Using organization logo for tenant ${bookingPage.tenantId}`);
       
-      // Special case handling for known organizations
-      if (bookingPage.tenantId === 5) { // Fresh Connect Central
-        console.log(`[Booking Page Logo] Using organization logo path for Fresh Connect Central`);
-        return res.json({ logo: '/assets/fresh-connect-logo.png' });
-      } else if (bookingPage.tenantId === 2) { // Hanzo Logistics
-        console.log(`[Booking Page Logo] Using organization logo path for Hanzo Logistics`);
-        return res.json({ logo: '/assets/hanzo_logo.jpeg' });
+      // First, check if we have actual logo data in the organization record
+      if (logoData) {
+        console.log(`[Booking Page Logo] Using logo from organization record for tenant ID ${bookingPage.tenantId}`);
+        return res.json({ logo: logoData });
       }
       
-      // If we have logo data in the organization record, return it
-      if (logoData) {
-        console.log(`[Booking Page Logo] Using logo from organization record: ${logoData}`);
-        return res.json({ logo: logoData });
+      // Fallback to static logos only if no actual logo data exists
+      // Special case handling for known organizations
+      if (bookingPage.tenantId === 5) { // Fresh Connect Central
+        console.log(`[Booking Page Logo] Using fallback logo path for Fresh Connect Central`);
+        return res.json({ logo: '/assets/fresh-connect-logo.png' });
+      } else if (bookingPage.tenantId === 2) { // Hanzo Logistics
+        console.log(`[Booking Page Logo] Using fallback logo path for Hanzo Logistics`);
+        // Make sure we're consistent with the path format across all endpoints
+        return res.json({ logo: '/assets/hanzo-logo.png' });
       }
       
       // Default fallback if no logo is found

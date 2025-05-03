@@ -332,20 +332,21 @@ export const organizationsRoutes = (app: Express) => {
         return res.status(404).json({ message: 'Organization not found' });
       }
       
-      // Process the image data - store only the file path or shortened data
+      // Process the image data - store the actual data URL
       let processedLogoData = logoData;
       
-      // If it's a data URL, store it in a file and save the path
-      if (logoData.startsWith('data:image')) {
-        // For now, we'll just use a static path for the logo
-        // In a real implementation, you would save the file to disk or cloud storage
-        processedLogoData = `/assets/org-${id}-logo.png`;
-        
-        // Use a hardcoded path for Hanzo logo for demo
-        if (id === 2) {
-          processedLogoData = '/assets/hanzo-logo.png';
-        }
+      // Make sure the logo data is valid
+      if (!logoData.startsWith('data:image')) {
+        console.warn(`Invalid logo data format received for organization ${id}`);
+        return res.status(400).json({ message: 'Invalid logo data format. Must be a data URL.' });
       }
+      
+      // For database storage, we directly store the data URL
+      // This allows us to retrieve the exact logo that was uploaded
+      console.log(`Storing logo data for organization ${id}`);
+      
+      // No need to hardcode paths anymore - we'll store the actual image data
+      // This fixes the issue where uploaded logos weren't being saved properly
       
       // Update just the logo field
       const updatedOrg = await storage.updateTenant(id, {
@@ -406,11 +407,22 @@ export const organizationsRoutes = (app: Express) => {
       // Add tenant isolation logging
       console.log(`Logo request for organization ${id} by user from tenant ${userOrgId}`);
       
-      // Special handling for Fresh Connect
-      if (id === 5) {
-        return res.json({ logo: "/assets/fresh-connect-logo.png" });
-      } else if (id === 2) {
-        return res.json({ logo: "/assets/hanzo-logo.png" });
+      // Return the actual logo from the database
+      // This ensures we're always returning what was uploaded and stored
+      console.log(`Retrieving logo for organization ${id}`);
+      
+      if (existingOrg.logo) {
+        console.log(`Found stored logo data for organization ${id}`);
+      } else {
+        console.log(`No logo data found for organization ${id}, using fallback path`);
+        
+        // Only use fallback paths if we don't have actual logo data
+        // This maintains backward compatibility
+        if (id === 5) {
+          return res.json({ logo: "/assets/fresh-connect-logo.png" });
+        } else if (id === 2) {
+          return res.json({ logo: "/assets/hanzo-logo.png" });
+        }
       }
       
       // Return the logo or null if not set

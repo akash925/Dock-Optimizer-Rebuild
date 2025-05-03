@@ -798,6 +798,25 @@ export default function Settings() {
                                     queryClient.invalidateQueries({ 
                                       queryKey: ['/api/admin/organizations', user.tenantId, 'logo'] 
                                     });
+                                    
+                                    // Also invalidate any endpoint that might use this logo
+                                    // This ensures the booking pages logo endpoint will refresh
+                                    queryClient.invalidateQueries({
+                                      queryKey: ['/api/booking-pages']
+                                    });
+                                    
+                                    // Show success notification only after successful upload
+                                    toast({
+                                      title: "Logo Updated",
+                                      description: "Your organization logo has been updated successfully.",
+                                    });
+                                    
+                                    // Force refresh the sidebar logo by invalidating org details
+                                    queryClient.invalidateQueries({
+                                      queryKey: ['/api/admin/orgs', user.tenantId]
+                                    });
+                                    
+                                    console.log('Logo updated successfully, queries invalidated for refresh');
                                   }).catch(error => {
                                     console.error('Error uploading logo:', error);
                                     toast({
@@ -807,11 +826,6 @@ export default function Settings() {
                                     });
                                   });
                                 }
-                                
-                                toast({
-                                  title: "Logo Updated",
-                                  description: "Your organization logo has been updated successfully.",
-                                });
                               }
                             };
                             
