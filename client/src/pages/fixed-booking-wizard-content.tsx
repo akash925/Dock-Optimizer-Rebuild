@@ -279,7 +279,9 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   }
 
   // Set up logo URL - use tenant-specific logo from booking-pages-logo endpoint if available
-  const logoUrl = slug ? `/api/booking-pages/logo/${slug}` : hanzoLogoImport;
+  // Important: Use port 5000 directly for API requests
+  const logoUrl = slug ? `http://localhost:5000/api/booking-pages/logo/${slug}` : hanzoLogoImport;
+  console.log(`[FixedBookingWizardContent] Using logo URL: ${logoUrl} for slug: ${slug}`);
   
   return (
     <div className="booking-wizard-container">
