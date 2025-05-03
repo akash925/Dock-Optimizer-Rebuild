@@ -151,8 +151,8 @@ function ServiceSelectionStepOld({ bookingPage }: { bookingPage: any }) {
     queryKey: [`/api/facilities`, { bookingPageSlug: slug }],
     queryFn: async ({ queryKey }) => {
       const [baseUrl, params] = queryKey as [string, { bookingPageSlug: string }];
-      // Important: Use port 5000 directly for API requests
-      const apiUrl = `http://localhost:5000${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      // Use relative URL path for API requests to work in any environment
+      const apiUrl = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
       console.log(`[ExternalBookingFixed] Fetching facilities with URL: ${apiUrl}`);
       
       try {
@@ -184,8 +184,8 @@ function ServiceSelectionStepOld({ bookingPage }: { bookingPage: any }) {
     queryKey: [`/api/appointment-types`, { bookingPageSlug: slug }],
     queryFn: async ({ queryKey }) => {
       const [baseUrl, params] = queryKey as [string, { bookingPageSlug: string }];
-      // Important: Use port 5000 directly for API requests
-      const apiUrl = `http://localhost:5000${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      // Use relative URL path for API requests to work in any environment
+      const apiUrl = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
       console.log(`[ExternalBookingFixed] Fetching appointment types with URL: ${apiUrl}`);
       
       try {
