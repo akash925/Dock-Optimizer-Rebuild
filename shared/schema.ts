@@ -268,6 +268,9 @@ export const insertUserPreferencesSchema = createInsertSchema(userPreferences).o
   updatedAt: true,
 });
 
+export type UserPreferences = typeof userPreferences.$inferSelect;
+export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
+
 // Facility Model
 export const facilities = pgTable("facilities", {
   id: serial("id").primaryKey(),

@@ -13,6 +13,11 @@ import { adminRoutes } from "./modules/admin/routes";
 import { pool } from "./db";
 import { WebSocketServer, WebSocket } from "ws";
 import { format } from "date-fns";
+import { 
+  userPreferences, 
+  insertUserPreferencesSchema,
+  type UserPreferences
+} from "@shared/schema";
 
 // Import BOL OCR routes using ES modules
 import bolOcrRoutes from "./routes/bol-ocr.mjs";
@@ -1915,6 +1920,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       console.error('Error fetching users:', err);
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // User Notification Preferences routes
+  app.get("/api/user-preferences", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized: Please log in" });
+      }
+      
+      // Get the user's organization ID - fallback to tenant ID if organization isn't specified
+      const organizationId = req.query.organizationId ? 
+        Number(req.query.organizationId) : 
+        (req.user?.tenantId || 0);
+      
+      if (!organizationId) {
+        return res.status(400).json({ 
+          message: "Bad Request: Organization ID is required" 
+        });
+      }
+      
+      const preferences = await storage.getUserPreferences(req.user!.id, organizationId);
+      
+      if (!preferences) {
+        // Return default preferences if none exist
+        return res.json({
+          userId: req.user!.id,
+          organizationId,
+          emailNotificationsEnabled: true,
+          emailScheduleChanges: true,
+          emailTruckArrivals: true,
+          emailDockAssignments: true,
+          emailWeeklyReports: false,
+          pushNotificationsEnabled: true,
+          pushUrgentAlertsOnly: true,
+          pushAllUpdates: false
+        });
+      }
+      
+      res.json(preferences);
+    } catch (err) {
+      console.error('Error fetching user preferences:', err);
+      res.status(500).json({ message: "Failed to fetch user preferences" });
+    }
+  });
+
+  app.post("/api/user-preferences", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized: Please log in" });
+      }
+      
+      // Validate the request body against the schema
+      const validatedData = insertUserPreferencesSchema.parse({
+        ...req.body,
+        userId: req.user!.id
+      });
+      
+      // Check if preferences already exist for this user and organization
+      const existingPrefs = await storage.getUserPreferences(
+        req.user!.id, 
+        validatedData.organizationId
+      );
+      
+      if (existingPrefs) {
+        // Update existing preferences
+        const updatedPrefs = await storage.updateUserPreferences(
+          req.user!.id,
+          validatedData.organizationId,
+          validatedData
+        );
+        return res.json(updatedPrefs);
+      }
+      
+      // Create new preferences
+      const preferences = await storage.createUserPreferences(validatedData);
+      res.status(201).json(preferences);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid preference data", 
+          errors: err.errors 
+        });
+      }
+      console.error('Error creating user preferences:', err);
+      res.status(500).json({ message: "Failed to create user preferences" });
+    }
+  });
+
+  app.put("/api/user-preferences/:organizationId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized: Please log in" });
+      }
+      
+      const organizationId = Number(req.params.organizationId);
+      
+      // Ensure preferences exist for this user and organization
+      const existingPrefs = await storage.getUserPreferences(req.user!.id, organizationId);
+      
+      if (!existingPrefs) {
+        return res.status(404).json({ 
+          message: "Preferences not found for this user and organization" 
+        });
+      }
+      
+      // Update the preferences
+      const updatedPrefs = await storage.updateUserPreferences(
+        req.user!.id,
+        organizationId,
+        req.body
+      );
+      
+      res.json(updatedPrefs);
+    } catch (err) {
+      console.error('Error updating user preferences:', err);
+      res.status(500).json({ message: "Failed to update user preferences" });
     }
   });
 
