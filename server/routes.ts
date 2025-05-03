@@ -4909,10 +4909,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Get the appointment type to determine duration and other settings - with tenant isolation
-      const appointmentType = await storage.getAppointmentType(parsedAppointmentTypeId, tenantId);
+      // Get the appointment type to determine duration and other settings
+      // Use the effectiveTenantId (from booking page or user) for tenant isolation
+      const appointmentType = await storage.getAppointmentType(parsedAppointmentTypeId, effectiveTenantId);
       if (!appointmentType) {
-        console.log("VALIDATION ERROR: Appointment type not found");
+        console.log(`VALIDATION ERROR: Appointment type ${parsedAppointmentTypeId} not found for tenant ${effectiveTenantId || 'none'}`);
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
