@@ -46,10 +46,10 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       // Special case handling for known organizations
       if (bookingPage.tenantId === 5) { // Fresh Connect Central
         console.log(`[Booking Page Logo] Using custom logo path for Fresh Connect Central`);
-        return res.json({ logo: '/src/assets/fresh-connect-logo.png' });
+        return res.json({ logo: '/assets/fresh-connect-logo.png' });
       } else if (bookingPage.tenantId === 2) { // Hanzo Logistics
         console.log(`[Booking Page Logo] Using custom logo path for Hanzo Logistics`);
-        return res.json({ logo: '/src/assets/hanzo_logo.jpeg' });
+        return res.json({ logo: '/assets/hanzo_logo.jpeg' });
       }
       
       // If we have logo data in the organization, return it

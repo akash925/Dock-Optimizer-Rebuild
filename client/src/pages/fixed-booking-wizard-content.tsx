@@ -8,7 +8,8 @@ import ServiceSelectionStepForm from './service-selection-step';
 // Import directly from original external-booking-fixed
 import { DateTimeSelectionStep, CustomerInfoStep, ConfirmationStep } from './external-booking-fixed';
 // We'll use the dynamic logo endpoint instead of a static logo
-import hanzoLogoImport from '@assets/hanzo logo.jpeg'; // Fallback logo
+// Using relative path to assets
+import hanzoLogoImport from '../assets/hanzo_logo.jpeg'; // Fallback logo
 import { formatInTimeZone } from 'date-fns-tz';
 import { getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 
