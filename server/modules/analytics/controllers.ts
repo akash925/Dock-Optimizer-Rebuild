@@ -189,8 +189,14 @@ export async function getCustomerStats(req: Request, res: Response) {
   try {
     const { startDate, endDate } = req.query;
     
-    // Build WHERE clause for date filtering
-    let whereClause = sql`WHERE s.customer_name IS NOT NULL`;
+    // Get the tenant ID from the authenticated user
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
+    }
+    
+    // Build WHERE clause for date filtering with tenant isolation
+    let whereClause = sql`WHERE s.customer_name IS NOT NULL AND s.tenant_id = ${tenantId}`;
     
     // Add date range filtering
     if (startDate && endDate) {
@@ -206,7 +212,7 @@ export async function getCustomerStats(req: Request, res: Response) {
       whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
     }
     
-    // Query to get appointment counts by customer name with date filtering
+    // Query to get appointment counts by customer name with date filtering and tenant isolation
     const customerStats = await db.execute(sql`
       SELECT 
         DISTINCT s.customer_name as id,
@@ -234,8 +240,14 @@ export async function getAttendanceStats(req: Request, res: Response) {
   try {
     const { startDate, endDate } = req.query;
     
-    // Build WHERE clause for date filtering
-    let whereClause = sql`WHERE 1=1`;
+    // Get the tenant ID from the authenticated user
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
+    }
+    
+    // Build WHERE clause for date filtering with tenant isolation
+    let whereClause = sql`WHERE s.tenant_id = ${tenantId}`;
     
     // Add date range filtering
     if (startDate && endDate) {
@@ -251,7 +263,7 @@ export async function getAttendanceStats(req: Request, res: Response) {
       whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
     }
     
-    // Query to get counts by attendance status with date filtering
+    // Query to get counts by attendance status with date filtering and tenant isolation
     const attendanceStats = await db.execute(sql`
       SELECT 
         COALESCE(s.status, 'Not Reported') as "attendanceStatus",
@@ -277,13 +289,19 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
   try {
     const { facilityId, startDate, endDate } = req.query;
     
-    // Build WHERE clause for date filtering
-    let whereClause = sql`WHERE 1=1`;
-    let dockWhereClause = sql`WHERE 1=1`;
+    // Get the tenant ID from the authenticated user
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
+    }
+    
+    // Build WHERE clause for date filtering with tenant isolation
+    let whereClause = sql`WHERE s.tenant_id = ${tenantId}`;
+    let dockWhereClause = sql`WHERE f.tenant_id = ${tenantId}`;
     
     if (facilityId) {
       whereClause = sql`${whereClause} AND d.facility_id = ${facilityId}`;
-      dockWhereClause = sql`${dockWhereClause} AND facility_id = ${facilityId}`;
+      dockWhereClause = sql`${dockWhereClause} AND d.facility_id = ${facilityId}`;
     }
     
     // Add date range filtering
@@ -305,7 +323,7 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
       dateFilter = `AND start_time >= '${sevenDaysAgo.toISOString()}'`;
     }
     
-    // Query to get utilization by dock
+    // Query to get utilization by dock with tenant isolation
     const dockUtilizationStats = await db.execute(sql`
       WITH total_time AS (
         SELECT 
@@ -328,6 +346,7 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
           d.id as dock_id,
           SUM(EXTRACT(EPOCH FROM (s.end_time - s.start_time)) / 3600) as used_hours
         FROM ${docks} d
+        JOIN ${facilities} f ON d.facility_id = f.id
         LEFT JOIN ${schedules} s ON d.id = s.dock_id
         ${whereClause}
         GROUP BY d.id
