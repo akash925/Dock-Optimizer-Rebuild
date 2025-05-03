@@ -5252,32 +5252,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If facility settings exist, use them
       if (facilitySettingsResult.rows.length > 0) {
         const facilitySettings = facilitySettingsResult.rows[0];
-        
-        // Check operating hours for the day of week if available
-        const requestedDate = new Date(parsedDate);
-        const dayOfWeek = requestedDate.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
-        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const dayName = dayNames[dayOfWeek];
-        
-        // Check if facility is open on this day
-        const operatingHoursColumn = `${dayName.toLowerCase()}_hours`;
-        const operatingHours = facilitySettings[operatingHoursColumn];
-        
-        if (operatingHours) {
-          try {
-            // Parse operating hours format (e.g., "08:00-17:00")
-            const [start, end] = operatingHours.split('-');
-            if (start && end) {
-              startTime = start.trim();
-              endTime = end.trim();
-              isAvailable = true;
-            }
-          } catch (e) {
-            console.error(`Error parsing operating hours: ${operatingHours}`, e);
-          }
-        }
+        console.log(`Found appointment settings for facility ${parsedFacilityId}:`, facilitySettings);
+        // We don't use specific operating hours columns from appointment_settings
+        // since those columns don't exist in our table
       } else {
         console.log(`No facility settings found for facility ${parsedFacilityId}, using defaults`);
+      }
+      
+      // Instead, get the facility hours directly from the facilities table
+      const requestedDate = new Date(parsedDate);
+      const dayOfWeek = requestedDate.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+      const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+      const dayName = dayNames[dayOfWeek];
+      
+      // Query facility hours from the facilities table
+      const facilityHoursQuery = `
+        SELECT 
+          ${dayName}_open as is_open,
+          ${dayName}_start as start_time,
+          ${dayName}_end as end_time
+        FROM facilities
+        WHERE id = $1
+        LIMIT 1
+      `;
+      
+      const facilityHoursResult = await pool.query(facilityHoursQuery, [parsedFacilityId]);
+      
+      if (facilityHoursResult.rows.length > 0) {
+        const facilityHours = facilityHoursResult.rows[0];
+        
+        // Check if the facility is open on this day
+        if (facilityHours.is_open && facilityHours.start_time && facilityHours.end_time) {
+          startTime = facilityHours.start_time;
+          endTime = facilityHours.end_time;
+          isAvailable = true;
+          console.log(`Facility ${parsedFacilityId} hours for ${dayName}: ${startTime}-${endTime}`);
+        } else {
+          console.log(`Facility ${parsedFacilityId} is closed on ${dayName}`);
+          isAvailable = false;
+        }
+      } else {
+        console.log(`No facility found for ID ${parsedFacilityId}, using default hours`);
       }
       
       // Generate time slots at the specified interval (default to 30 mins if not specified)
@@ -5346,8 +5361,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      // Generate all possible time slots
-      const allTimeSlots = generateAvailableTimeSlots(startTime, endTime, intervalMinutes);
+      // Generate all possible time slots (will be empty if facility is closed)
+      const allTimeSlots = isAvailable ? generateAvailableTimeSlots(startTime, endTime, intervalMinutes) : [];
       
       // For each time slot, check if we have at least one dock available
       const availableTimes = [];
@@ -5392,8 +5407,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: parsedDate,
         facilityId: parsedFacilityId,
         appointmentTypeId: parsedAppointmentTypeId,
-        appointmentTypeDuration: 240, // Send duration for client-side calculations
-        timezone: "America/New_York", // Send timezone for client display
+        appointmentTypeDuration: appointmentType.duration || 30, // Use actual appointment type duration
+        timezone: appointmentType.timezone || "America/New_York", // Use actual appointment type timezone
         slots: slots // Add detailed slots array for external booking pages
       });
     } catch (err) {
