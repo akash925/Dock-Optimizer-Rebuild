@@ -299,11 +299,28 @@ export default function AppointmentForm({
   
   // Fetch custom questions for selected appointment type
   const { data: customQuestions = [], isLoading: isLoadingCustomQuestions } = useQuery<any[]>({
-    queryKey: ["/api/custom-questions", watchedAppointmentTypeId],
+    queryKey: ["/api/custom-questions", watchedAppointmentTypeId, bookingPageSlug],
     enabled: !!watchedAppointmentTypeId,
     // Added retry and staleTime to ensure we get the data
     retry: 3,
     staleTime: 0,
+    // Pass booking page slug as a query parameter when in external booking flow
+    queryFn: async ({ queryKey }) => {
+      const appointmentTypeId = queryKey[1] as number;
+      const bookingPage = queryKey[2] as string | undefined;
+      
+      let url = `/api/custom-questions/${appointmentTypeId}`;
+      if (bookingPage) {
+        url += `?bookingPageSlug=${encodeURIComponent(bookingPage)}`;
+      }
+      
+      console.log(`[CustomQuestions] Fetching with URL: ${url}`);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch custom questions');
+      }
+      return response.json();
+    }
   });
 
   // Handle setting custom field defaults when questions are loaded
@@ -372,10 +389,17 @@ export default function AppointmentForm({
         setIsLoadingTimeSlots(true);
         console.log(`[Internal Form] Fetching available times for facilityId=${facilityId}, typeId=${appointmentTypeId}, date=${appointmentDate}`);
         
-        // Call the availability API endpoint used by the external booking system
-        // No need to include bookingPageSlug here as the internal appointment form
-        // should use the logged-in user's tenant context
-        const response = await fetch(`/api/availability?date=${appointmentDate}&facilityId=${facilityId}&typeId=${appointmentTypeId}`);
+        // Call the availability API endpoint, adding bookingPageSlug when present
+        let url = `/api/availability?date=${appointmentDate}&facilityId=${facilityId}&typeId=${appointmentTypeId}`;
+        
+        // If this is in the context of an external booking page, include the slug to use correct tenant context
+        if (bookingPageSlug) {
+          url += `&bookingPageSlug=${encodeURIComponent(bookingPageSlug)}`;
+          console.log(`[Internal Form] Using booking page context: ${bookingPageSlug}`);
+        }
+        
+        console.log(`[Availability] Fetching with URL: ${url}`);
+        const response = await fetch(url);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch available times: ${response.status}`);
@@ -505,10 +529,20 @@ export default function AppointmentForm({
         };
       }
       
+      // Prepare to send data to appropriate API endpoint
+      let apiEndpoint = "/api/schedules";
+      
+      // If we have a booking page slug, we're in an external booking context
+      // Use the public appointment booking endpoint instead
+      if (bookingPageSlug) {
+        apiEndpoint = `/api/book-appointment?bookingPageSlug=${encodeURIComponent(bookingPageSlug)}`;
+        console.log(`[Appointment] Using external booking endpoint with slug: ${bookingPageSlug}`);
+      }
+      
       // API call - use the object with carrier data if applicable
       const response = await apiRequest(
         "POST", 
-        "/api/schedules", 
+        apiEndpoint, 
         formattedDataWithCarrier
       );
       return await response.json();
@@ -1459,6 +1493,36 @@ export default function AppointmentForm({
                       // Log for debugging
                       console.log(`[CustomQuestions] Rendering question: ${question.label} (${question.type}), isRequired=${isRequired}, defaultValue=${question.defaultValue}, currentValue=${currentValue}`);
                       
+                      // Generate validation function for the field
+                      const validateCustomField = (value: string | undefined) => {
+                        if (isRequired && (!value || value.trim() === '')) {
+                          return `${question.label} is required`;
+                        }
+                        
+                        // Email validation
+                        if (question.type.toLowerCase() === 'email' && value) {
+                          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                          if (!emailRegex.test(value)) {
+                            return "Please enter a valid email address";
+                          }
+                        }
+                        
+                        // Phone validation
+                        if (question.type.toLowerCase() === 'phone' && value) {
+                          const phoneRegex = /^[0-9()\-\s+]+$/;
+                          if (!phoneRegex.test(value)) {
+                            return "Please enter a valid phone number";
+                          }
+                        }
+                        
+                        return true;
+                      };
+                      
+                      // Register the field with the form
+                      const registerField = form.register(`customFields.${fieldName}`, {
+                        validate: validateCustomField
+                      });
+                      
                       switch (question.type.toLowerCase()) {
                         case 'text':
                         case 'email':
@@ -1466,126 +1530,137 @@ export default function AppointmentForm({
                         case 'phone':
                           return (
                             <div key={question.id} className="space-y-2">
-                              <label className="text-sm font-medium">
-                                {question.label} {isRequired && <span className="text-destructive">*</span>}
-                              </label>
-                              <Input 
-                                type={question.type === 'phone' ? 'tel' : question.type} 
-                                placeholder={question.placeholder || `Enter ${question.label}`}
-                                value={currentValue}
-                                onChange={(e) => {
-                                  // Store in form data under a dynamic field name
-                                  form.setValue('customFields', {
-                                    ...customFields,
-                                    [fieldName]: e.target.value
-                                  });
-                                }} 
-                                required={isRequired}
-                              />
+                              <FormItem>
+                                <FormLabel>
+                                  {question.label} {isRequired && <span className="text-destructive">*</span>}
+                                </FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type={question.type === 'phone' ? 'tel' : question.type} 
+                                    placeholder={question.placeholder || `Enter ${question.label}`}
+                                    defaultValue={currentValue}
+                                    {...registerField}
+                                    required={isRequired}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             </div>
                           );
                           
                         case 'textarea':
                           return (
                             <div key={question.id} className="space-y-2">
-                              <label className="text-sm font-medium">
-                                {question.label} {isRequired && <span className="text-destructive">*</span>}
-                              </label>
-                              <Textarea 
-                                placeholder={question.placeholder || `Enter ${question.label}`}
-                                value={currentValue}
-                                onChange={(e) => {
-                                  form.setValue('customFields', {
-                                    ...customFields,
-                                    [fieldName]: e.target.value
-                                  });
-                                }}
-                                required={isRequired}
-                              />
+                              <FormItem>
+                                <FormLabel>
+                                  {question.label} {isRequired && <span className="text-destructive">*</span>}
+                                </FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    placeholder={question.placeholder || `Enter ${question.label}`}
+                                    defaultValue={currentValue}
+                                    {...registerField}
+                                    required={isRequired}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             </div>
                           );
                           
                         case 'select':
                           return (
                             <div key={question.id} className="space-y-2">
-                              <label className="text-sm font-medium">
-                                {question.label} {isRequired && <span className="text-destructive">*</span>}
-                              </label>
-                              <Select
-                                value={currentValue}
-                                onValueChange={(value) => {
-                                  form.setValue('customFields', {
-                                    ...customFields,
-                                    [fieldName]: value
-                                  });
-                                }}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder={`Select ${question.label}`} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {question.options && Array.isArray(question.options) && 
-                                    question.options.map((option: string, index: number) => (
-                                      <SelectItem key={index} value={option}>
-                                        {option}
-                                      </SelectItem>
-                                    ))
-                                  }
-                                </SelectContent>
-                              </Select>
+                              <FormItem>
+                                <FormLabel>
+                                  {question.label} {isRequired && <span className="text-destructive">*</span>}
+                                </FormLabel>
+                                <FormControl>
+                                  <Select
+                                    defaultValue={currentValue}
+                                    onValueChange={(value) => {
+                                      form.setValue(`customFields.${fieldName}`, value, {
+                                        shouldValidate: true
+                                      });
+                                    }}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder={`Select ${question.label}`} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {question.options && Array.isArray(question.options) && 
+                                        question.options.map((option: string, index: number) => (
+                                          <SelectItem key={index} value={option}>
+                                            {option}
+                                          </SelectItem>
+                                        ))
+                                      }
+                                    </SelectContent>
+                                  </Select>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             </div>
                           );
                           
                         case 'checkbox':
                           return (
                             <div key={question.id} className="space-y-2">
-                              <div className="flex items-center space-x-2">
-                                <Checkbox 
-                                  id={`checkbox-${question.id}`}
-                                  checked={currentValue === 'true' || currentValue === true}
-                                  onCheckedChange={(checked) => {
-                                    form.setValue('customFields', {
-                                      ...customFields,
-                                      [fieldName]: checked
-                                    });
-                                  }}
-                                  required={isRequired}
-                                />
-                                <label 
-                                  htmlFor={`checkbox-${question.id}`}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                >
-                                  {question.label} {isRequired && <span className="text-destructive">*</span>}
-                                </label>
-                              </div>
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+                                <FormControl>
+                                  <Checkbox 
+                                    id={`checkbox-${question.id}`}
+                                    checked={currentValue === 'true' || currentValue === true}
+                                    onCheckedChange={(checked) => {
+                                      form.setValue(`customFields.${fieldName}`, checked, {
+                                        shouldValidate: true
+                                      });
+                                    }}
+                                    required={isRequired}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel htmlFor={`checkbox-${question.id}`}>
+                                    {question.label} {isRequired && <span className="text-destructive">*</span>}
+                                  </FormLabel>
+                                  {question.description && (
+                                    <p className="text-sm text-muted-foreground">{question.description}</p>
+                                  )}
+                                </div>
+                              </FormItem>
                             </div>
                           );
                           
                         case 'radio':
                           return (
                             <div key={question.id} className="space-y-3">
-                              <label className="text-sm font-medium">
-                                {question.label} {isRequired && <span className="text-destructive">*</span>}
-                              </label>
-                              <RadioGroup
-                                value={currentValue}
-                                onValueChange={(value) => {
-                                  form.setValue('customFields', {
-                                    ...customFields,
-                                    [fieldName]: value
-                                  });
-                                }}
-                                required={isRequired}
-                              >
-                                {question.options && Array.isArray(question.options) && 
-                                  question.options.map((option: string, index: number) => (
-                                    <div key={index} className="flex items-center space-x-2">
-                                      <RadioGroupItem value={option} id={`radio-${question.id}-${index}`} />
-                                      <Label htmlFor={`radio-${question.id}-${index}`}>{option}</Label>
-                                    </div>
-                                  ))
-                                }
-                              </RadioGroup>
+                              <FormItem>
+                                <FormLabel>
+                                  {question.label} {isRequired && <span className="text-destructive">*</span>}
+                                </FormLabel>
+                                <FormControl>
+                                  <RadioGroup
+                                    defaultValue={currentValue}
+                                    onValueChange={(value) => {
+                                      form.setValue(`customFields.${fieldName}`, value, {
+                                        shouldValidate: true
+                                      });
+                                    }}
+                                    required={isRequired}
+                                    className="space-y-1"
+                                  >
+                                    {question.options && Array.isArray(question.options) && 
+                                      question.options.map((option: string, index: number) => (
+                                        <div key={index} className="flex items-center space-x-2">
+                                          <RadioGroupItem value={option} id={`radio-${question.id}-${index}`} />
+                                          <Label htmlFor={`radio-${question.id}-${index}`}>{option}</Label>
+                                        </div>
+                                      ))
+                                    }
+                                  </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             </div>
                           );
                           
