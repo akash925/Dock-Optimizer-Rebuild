@@ -5304,12 +5304,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Generated ${availableTimes.length} available slots for facility ${parsedFacilityId} on ${parsedDate}`);
       
-      // Return the available time slots
-      res.json({ 
+      // Generate enhanced slot information for external booking pages
+      const slots = availableTimes.map(timeStr => {
+        return {
+          time: timeStr,
+          available: true,
+          remainingCapacity: 1,
+          reason: ""
+        };
+      });
+      
+      // Return the available time slots with enhanced data structure for external booking
+      res.json({
         availableTimes,
         date: parsedDate,
         facilityId: parsedFacilityId,
-        appointmentTypeId: parsedAppointmentTypeId
+        appointmentTypeId: parsedAppointmentTypeId,
+        slots: slots // Add detailed slots array for external booking pages
       });
     } catch (err) {
       console.error("Failed to calculate availability:", err);
