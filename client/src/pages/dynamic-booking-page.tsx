@@ -525,23 +525,37 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
       const formattedDate = format(date, "yyyy-MM-dd");
       console.log(`Fetching availability for facility ${facilityId}, appointment type ${appointmentTypeId}, date ${formattedDate}, booking page slug ${slug}`);
       
-      // Include bookingPageSlug parameter for proper tenant isolation with relative URL
+      // Try using the direct availability endpoint with more consistent response structure
       const response = await fetch(
-        `/api/facilities/${facilityId}/availability?date=${formattedDate}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${slug}`
+        `/api/availability?date=${formattedDate}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${slug}`
       );
       const data = await response.json();
       
       console.log("Availability response raw data:", data);
       
       // Handle the two response formats - either data.availableTimes or data.slots.map(s => s.time)
-      if (data.availableTimes) {
+      if (data.availableTimes && Array.isArray(data.availableTimes) && data.availableTimes.length > 0) {
         console.log("Available times from availableTimes field:", data.availableTimes);
         setAvailableTimes(data.availableTimes);
-      } else if (data.slots && Array.isArray(data.slots)) {
+      } else if (data.slots && Array.isArray(data.slots) && data.slots.length > 0) {
         // Extract times from slots array
-        const times = data.slots.map(slot => slot.time);
+        const times = data.slots
+          .filter(slot => slot.available) // Only include available slots
+          .map(slot => slot.time);
+        
         console.log("Available times extracted from slots array:", times);
-        setAvailableTimes(times);
+        
+        if (times.length > 0) {
+          setAvailableTimes(times);
+        } else {
+          console.log("No available times found in slots (all unavailable)");
+          setAvailableTimes([]);
+          toast({
+            title: "No Available Times",
+            description: "There are no available time slots for the selected date.",
+            variant: "destructive"
+          });
+        }
       } else {
         console.log("No available times found in response:", data);
         setAvailableTimes([]);
