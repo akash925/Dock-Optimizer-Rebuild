@@ -6,7 +6,7 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
    * Endpoint to get an organization logo by booking page slug
    * This allows public booking pages to display tenant-specific logos without requiring authentication
    */
-  app.get('/api/booking-pages/:slug/logo', async (req, res) => {
+  app.get('/api/booking-pages/logo/:slug', async (req, res) => {
     try {
       const { slug } = req.params;
       console.log(`[Booking Page Logo] Fetching logo for booking page with slug: ${slug}`);

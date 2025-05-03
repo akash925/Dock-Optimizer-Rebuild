@@ -42,7 +42,7 @@ export default function ExternalBooking({ slug }: ExternalBookingProps) {
     isLoading: pageLoading, 
     error: pageError 
   } = useQuery({
-    queryKey: ['/api/booking-pages/slug', slug],
+    queryKey: [`/api/booking-pages/slug/${slug}`],
     enabled: !!slug,
   });
   
