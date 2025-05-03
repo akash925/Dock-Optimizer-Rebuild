@@ -2009,13 +2009,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/user-preferences/:organizationId", async (req, res) => {
+  // Handle PUT request to update user preferences, supporting both URL params and body
+  app.put("/api/user-preferences/:organizationId?", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Unauthorized: Please log in" });
       }
       
-      const organizationId = Number(req.params.organizationId);
+      // Get organizationId from URL params or from request body
+      const organizationId = Number(req.params.organizationId || req.body.organizationId);
+      
+      if (isNaN(organizationId)) {
+        return res.status(400).json({ message: "Invalid organization ID" });
+      }
+      
+      // Log for debugging
+      console.log(`[UserPrefs] PUT request received for user ${req.user!.id}, org ${organizationId}`);
+      console.log('[UserPrefs] Request body:', req.body);
       
       // Ensure preferences exist for this user and organization
       const existingPrefs = await storage.getUserPreferences(req.user!.id, organizationId);
