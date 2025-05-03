@@ -54,14 +54,15 @@ export default function BookingRouter() {
   }
   
   // Store the tenant ID associated with this booking page for context
-  console.log(`BookingRouter - Booking page '${bookingPage.name}' belongs to tenant ID: ${bookingPage.tenantId}`);
+  console.log(`BookingRouter - Booking page '${bookingPage?.name || 'Unknown'}' belongs to tenant ID: ${bookingPage?.tenantId || 'None'}`);
   
   // Important: Set a consistent tenant ID in the component state to ensure proper isolation
+  // This ensures both booking page routes use the same booking page data
   
   // Route to the appropriate booking page component based on URL pattern
   // Pass the slug to both components for consistent handling
   if (matchExternal) {
-    return <ExternalBooking />;
+    return <ExternalBooking slug={slug} />;
   } else {
     return <DynamicBookingPage slug={slug} />;
   }
