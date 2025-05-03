@@ -232,21 +232,19 @@ export async function getCustomerStats(req: Request, res: Response) {
       return res.json([]);
     }
     
-    // Build WHERE clause for date filtering
-    let dateWhereClause = '';
-    
-    // Add date range filtering
+    // Build date filter SQL fragment
+    let dateFilter;
     if (startDate && endDate) {
-      dateWhereClause = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
+      dateFilter = sql` AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
     } else if (startDate) {
-      dateWhereClause = ` AND s.start_time >= '${startDate}'`;
+      dateFilter = sql` AND s.start_time >= ${startDate}`;
     } else if (endDate) {
-      dateWhereClause = ` AND s.start_time <= '${endDate}'`;
+      dateFilter = sql` AND s.start_time <= ${endDate}`;
     } else {
       // Default to last 7 days if no date range specified
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      dateWhereClause = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
+      dateFilter = sql` AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
     }
     
     // Query to get appointment counts by customer name with date filtering and tenant isolation
@@ -258,7 +256,7 @@ export async function getCustomerStats(req: Request, res: Response) {
       FROM ${schedules} s
       WHERE s.customer_name IS NOT NULL
       AND s.facility_id IN (${sql.join(facilityIds)})
-      ${sql.raw(dateWhereClause)}
+      ${dateFilter}
       GROUP BY s.customer_name
       ORDER BY "appointmentCount" DESC
       LIMIT 10
@@ -296,21 +294,19 @@ export async function getAttendanceStats(req: Request, res: Response) {
       return res.json([]);
     }
     
-    // Build WHERE clause for date filtering
-    let dateWhereClause = '';
-    
-    // Add date range filtering
+    // Build date filter SQL fragment
+    let dateFilter;
     if (startDate && endDate) {
-      dateWhereClause = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
+      dateFilter = sql` AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
     } else if (startDate) {
-      dateWhereClause = ` AND s.start_time >= '${startDate}'`;
+      dateFilter = sql` AND s.start_time >= ${startDate}`;
     } else if (endDate) {
-      dateWhereClause = ` AND s.start_time <= '${endDate}'`;
+      dateFilter = sql` AND s.start_time <= ${endDate}`;
     } else {
       // Default to last 7 days if no date range specified
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      dateWhereClause = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
+      dateFilter = sql` AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
     }
     
     // Query to get counts by attendance status with date filtering and tenant isolation
@@ -320,7 +316,7 @@ export async function getAttendanceStats(req: Request, res: Response) {
         COUNT(*) as count
       FROM ${schedules} s
       WHERE s.facility_id IN (${sql.join(facilityIds)})
-      ${sql.raw(dateWhereClause)}
+      ${dateFilter}
       GROUP BY s.status
       ORDER BY count DESC
     `);
@@ -357,25 +353,25 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
       return res.json([]);
     }
     
-    // Build WHERE clauses for facility filtering
-    let facilityWhereClause = '';
+    // Build WHERE clause for facility filtering using SQL fragments
+    let facilityFilter = sql``;
     if (facilityId) {
-      facilityWhereClause = ` AND d.facility_id = ${facilityId}`;
+      facilityFilter = sql` AND d.facility_id = ${facilityId}`;
     }
     
-    // Add date range filtering
-    let dateFilterClause = '';
+    // Build date filter SQL fragment
+    let dateFilter;
     if (startDate && endDate) {
-      dateFilterClause = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
+      dateFilter = sql` AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
     } else if (startDate) {
-      dateFilterClause = ` AND s.start_time >= '${startDate}'`;
+      dateFilter = sql` AND s.start_time >= ${startDate}`;
     } else if (endDate) {
-      dateFilterClause = ` AND s.end_time <= '${endDate}'`;
+      dateFilter = sql` AND s.end_time <= ${endDate}`;
     } else {
       // Default to last 7 days if no date range specified
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      dateFilterClause = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
+      dateFilter = sql` AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
     }
     
     // Query to get utilization by dock with tenant isolation through the junction table
@@ -396,7 +392,7 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
         JOIN ${facilities} f ON d.facility_id = f.id
         JOIN ${organizationFacilities} of ON f.id = of.facility_id
         WHERE of.organization_id = ${tenantId}
-        ${sql.raw(facilityWhereClause)}
+        ${facilityFilter}
       ),
       used_time AS (
         SELECT 
@@ -408,8 +404,8 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
         LEFT JOIN ${schedules} s ON d.id = s.dock_id
         WHERE of.organization_id = ${tenantId}
         AND s.facility_id IN (${sql.join(facilityIds)})
-        ${sql.raw(facilityWhereClause)}
-        ${sql.raw(dateFilterClause)}
+        ${facilityFilter}
+        ${dateFilter || sql``}
         GROUP BY d.id
       )
       SELECT 
