@@ -115,6 +115,51 @@
   min-height: 22px !important;
 }
 
+/* Enhanced styling for our custom events */
+.hanzo-custom-event {
+  border-width: 1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Force white text throughout for readability */
+.hanzo-custom-event .fc-event-title,
+.hanzo-custom-event .fc-event-time,
+.hanzo-custom-event * {
+  color: white !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
+
+/* Customer name styling with priority */
+.hanzo-custom-event[data-customer] .fc-event-title {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  margin-bottom: 3px !important;
+  line-height: 1.2 !important;
+}
+
+/* Type badges */
+.hanzo-custom-event .fc-event-title:after {
+  content: attr(data-type);
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+.hanzo-custom-event[data-type="inbound"] .fc-event-title:after {
+  background: rgba(255, 255, 255, 0.3);
+  content: "IN";
+}
+
+.hanzo-custom-event[data-type="outbound"] .fc-event-title:after {
+  background: rgba(255, 255, 255, 0.3);
+  content: "OUT";
+}
+
 /* Make earlier events appear on top */
 .event-hour-6  { z-index: 24; }
 .event-hour-7  { z-index: 23; }

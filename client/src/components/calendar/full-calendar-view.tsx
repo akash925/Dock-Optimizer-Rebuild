@@ -723,11 +723,47 @@ export default function FullCalendarView({
               
               // Simple DOM setup without complex manipulation
               eventDidMount={(eventInfo) => {
-                // Just set the data attribute for styling
+                // Add special class for our enhanced styling
+                if (eventInfo.el) {
+                  eventInfo.el.classList.add('hanzo-custom-event');
+                  
+                  // Add type attribute used by our CSS
+                  const type = eventInfo.event.extendedProps?.type?.toLowerCase();
+                  if (type) {
+                    eventInfo.el.setAttribute('data-type', type);
+                  }
+                  
+                  // Force the event to be more prominent
+                  eventInfo.el.style.fontSize = '13px';
+                  eventInfo.el.style.fontWeight = 'bold';
+                }
+                
+                // Set the data attribute for styling based on hour
                 if (eventInfo.el && eventInfo.event.start) {
                   const startHour = eventInfo.event.start.getHours();
                   const hourStr = startHour.toString().padStart(2, '0');
                   eventInfo.el.setAttribute('data-time', `${hourStr}:00`);
+                  
+                  // Add customized attribute for customer prioritization
+                  const customerName = eventInfo.event.extendedProps?.customerName;
+                  if (customerName) {
+                    eventInfo.el.setAttribute('data-customer', customerName);
+                    
+                    // Force customer name to be clearly visible by adding important inline styles
+                    // This overrides any FullCalendar styling that might be interfering
+                    const titleElement = eventInfo.el.querySelector('.fc-event-title');
+                    if (titleElement) {
+                      titleElement.textContent = customerName;
+                      titleElement.style.color = 'white';
+                      titleElement.style.fontSize = '15px';
+                      titleElement.style.fontWeight = 'bold';
+                      titleElement.style.overflow = 'hidden';
+                      titleElement.style.whiteSpace = 'nowrap';
+                      titleElement.style.textOverflow = 'ellipsis';
+                      titleElement.style.display = 'block';
+                      titleElement.style.marginBottom = '3px';
+                    }
+                  }
                 }
               }}
               eventContent={(eventInfo) => {
