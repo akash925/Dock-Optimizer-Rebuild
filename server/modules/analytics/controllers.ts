@@ -7,7 +7,7 @@ import {
   docks,
   tenants
 } from '@shared/schema';
-import { sql, and, eq } from 'drizzle-orm';
+import { sql, and, eq, inArray } from 'drizzle-orm';
 
 /**
  * Get heatmap data for analytics dashboard
@@ -23,11 +23,21 @@ export async function getHeatmapData(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
+    // First, get all facilities for this tenant to filter schedules
+    const tenantFacilities = await db.select({ id: facilities.id })
+      .from(facilities)
+      .where(eq(facilities.tenantId, tenantId));
+    
+    const facilityIds = tenantFacilities.map(f => f.id);
+    if (!facilityIds.length) {
+      return res.json([]);
+    }
+    
     // Build dynamic WHERE clause based on filter params
-    let whereClause = sql`WHERE s.tenant_id = ${tenantId}`;
+    let whereClause = sql`WHERE s.facility_id IN (${sql.join(facilityIds)})`;
     
     if (facilityId) {
-      whereClause = sql`${whereClause} AND s.dock_id = ${facilityId}`;
+      whereClause = sql`${whereClause} AND s.facility_id = ${facilityId}`;
     }
     
     if (appointmentTypeId) {
@@ -63,7 +73,7 @@ export async function getHeatmapData(req: Request, res: Response) {
         EXTRACT(HOUR FROM s.start_time) as hour_of_day,
         COUNT(*) as count
       FROM ${schedules} s
-      JOIN ${facilities} f ON s.dock_id = f.id
+      JOIN ${facilities} f ON s.facility_id = f.id
       ${whereClause}
       AND f.tenant_id = ${tenantId}
       GROUP BY day_of_week, hour_of_day
@@ -116,7 +126,7 @@ export async function getFacilityStats(req: Request, res: Response) {
         f.address1 as address,
         COUNT(s.id) as "appointmentCount"
       FROM ${facilities} f
-      LEFT JOIN ${schedules} s ON f.id = s.dock_id
+      LEFT JOIN ${schedules} s ON f.id = s.facility_id
       ${whereClause}
       GROUP BY f.id, f.name, f.address1
       ORDER BY "appointmentCount" DESC
