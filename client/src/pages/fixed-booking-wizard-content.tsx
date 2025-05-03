@@ -7,7 +7,8 @@ import { useBookingTheme } from '@/contexts/BookingThemeContext';
 import ServiceSelectionStepForm from './service-selection-step';
 // Import directly from original external-booking-fixed
 import { DateTimeSelectionStep, CustomerInfoStep, ConfirmationStep } from './external-booking-fixed';
-import hanzoLogoImport from '@assets/hanzo logo.jpeg';
+// We'll use the dynamic logo endpoint instead of a static logo
+import hanzoLogoImport from '@assets/hanzo logo.jpeg'; // Fallback logo
 import { formatInTimeZone } from 'date-fns-tz';
 import { getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 
@@ -29,6 +30,9 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   } = useBookingWizard();
   
   const { theme, isLoading: themeLoading } = useBookingTheme();
+  
+  // Get the slug from the booking page
+  const slug = bookingPage?.slug || '';
   
   // Fetch facilities data
   const { data: facilities = [] } = useQuery<any[]>({
@@ -239,17 +243,31 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
     stepContent = <ConfirmationStep bookingPage={bookingPage} confirmationCode={confirmationCode} />;
   }
 
+  // Get the organization name from booking page
+  const organizationName = bookingPage?.organizationName || bookingPage?.name?.split(' - ')[0] || 'Logistics';
+  
+  // Set up logo URL - use tenant-specific logo from booking-pages-logo endpoint if available
+  const logoUrl = slug ? `/api/booking-pages/logo/${slug}` : hanzoLogoImport;
+  
   return (
     <div className="booking-wizard-container">
       <div className="booking-wizard-header">
         <img 
-          src={hanzoLogoImport} 
-          alt="Hanzo Logistics Logo" 
+          src={logoUrl}
+          alt={`${organizationName} Logo`}
           className="booking-wizard-logo"
+          onError={(e) => {
+            // Fallback to default logo if the dynamic URL fails
+            const target = e.target as HTMLImageElement;
+            if (target.src !== hanzoLogoImport) {
+              target.src = hanzoLogoImport;
+              console.warn(`Failed to load tenant logo for slug ${slug}, falling back to default`);
+            }
+          }}
         />
-        <h1 className="booking-wizard-title">Hanzo Logistics Dock Appointment Scheduler</h1>
+        <h1 className="booking-wizard-title">{organizationName} Dock Appointment Scheduler</h1>
         <p className="booking-wizard-subtitle">
-          Please use this form to pick the type of Dock Appointment that you need at Hanzo Logistics.
+          Please use this form to pick the type of Dock Appointment that you need at {organizationName}.
         </p>
         
         {/* Add prominent facility and appointment type banner */}
