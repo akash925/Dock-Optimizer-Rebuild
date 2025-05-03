@@ -1923,6 +1923,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route to test email notifications
+  app.get("/api/test-notification-email", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized: Please log in" });
+      }
+      
+      console.log('[EMAIL TEST] Starting test for user:', req.user!.id);
+      
+      // Check if the user has email notifications enabled
+      const userPrefs = await storage.getUserPreferences(
+        req.user!.id, 
+        req.user!.tenantId || 2 // Default to Hanzo tenant ID if not set
+      );
+      
+      if (!userPrefs) {
+        return res.status(404).json({ 
+          message: "User preferences not found. Please save preferences first."
+        });
+      }
+      
+      console.log('[EMAIL TEST] User preferences:', JSON.stringify(userPrefs, null, 2));
+      
+      if (!userPrefs.emailNotificationsEnabled) {
+        return res.status(400).json({
+          message: "Email notifications are disabled for this user. Please enable them in settings first."
+        });
+      }
+      
+      // Create a test schedule for the email
+      const testSchedule = {
+        id: 999, // Test ID
+        facilityId: 1,
+        dockId: 1,
+        carrierId: 1,
+        appointmentTypeId: 1,
+        truckNumber: 'TEST-TRUCK',
+        trailerNumber: 'TEST-TRAILER',
+        driverName: 'Test Driver',
+        driverPhone: '555-123-4567',
+        driverEmail: req.user!.email,
+        customerName: 'Test Customer',
+        carrierName: 'Test Carrier',
+        mcNumber: 'MC-TEST',
+        bolNumber: 'BOL-TEST',
+        poNumber: 'PO-TEST',
+        palletCount: '10',
+        weight: '1000',
+        appointmentMode: 'trailer',
+        startTime: new Date(Date.now() + 86400000), // Tomorrow
+        endTime: new Date(Date.now() + 90000000), // Tomorrow + 1 hour
+        actualStartTime: null,
+        actualEndTime: null,
+        type: 'inbound',
+        status: 'scheduled',
+        notes: 'This is a test appointment sent from your notification preferences',
+        customFormData: null,
+        createdBy: req.user!.id,
+        createdAt: new Date(),
+        lastModifiedAt: null,
+        lastModifiedBy: null,
+        
+        // Enhanced properties
+        facilityName: 'Test Facility',
+        appointmentTypeName: 'Test Appointment Type',
+        dockName: 'Test Dock',
+        timezone: 'America/New_York'
+      };
+      
+      // Send a test confirmation email
+      const confirmationCode = `TEST${testSchedule.id}`;
+      const result = await sendConfirmationEmail(
+        req.user!.email, 
+        confirmationCode,
+        testSchedule
+      );
+      
+      if (result === true) {
+        return res.json({ 
+          success: true, 
+          message: `Test email sent successfully to ${req.user!.email}` 
+        });
+      } else if (typeof result === 'object') {
+        return res.status(500).json({
+          success: false,
+          message: "Email generated but not sent (likely due to SendGrid configuration)",
+          preview: {
+            htmlLength: result.html?.length || 0,
+            textLength: result.text?.length || 0,
+            hasAttachment: !!result.attachments?.length
+          }
+        });
+      } else {
+        return res.status(500).json({
+          success: false,
+          message: "Failed to send test email. Check server logs for details."
+        });
+      }
+    } catch (err) {
+      console.error('[EMAIL TEST] Error sending test email:', err);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to send test email due to server error" 
+      });
+    }
+  });
+
   // User Notification Preferences routes
   app.get("/api/user-preferences", async (req, res) => {
     try {
