@@ -373,6 +373,8 @@ export default function AppointmentForm({
         console.log(`[Internal Form] Fetching available times for facilityId=${facilityId}, typeId=${appointmentTypeId}, date=${appointmentDate}`);
         
         // Call the availability API endpoint used by the external booking system
+        // No need to include bookingPageSlug here as the internal appointment form
+        // should use the logged-in user's tenant context
         const response = await fetch(`/api/availability?date=${appointmentDate}&facilityId=${facilityId}&typeId=${appointmentTypeId}`);
         
         if (!response.ok) {

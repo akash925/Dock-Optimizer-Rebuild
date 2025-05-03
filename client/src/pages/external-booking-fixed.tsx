@@ -623,7 +623,8 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         console.log(`Fetching available times for date=${dateStr}, facilityId=${bookingData.facilityId}, typeId=${bookingData.appointmentTypeId}`);
         
         // Call the API to get available times using the standardized parameter name (typeId)
-        const response = await fetch(`/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}`);
+        // Include bookingPageSlug to ensure proper tenant context
+        const response = await fetch(`/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}&bookingPageSlug=${slug}`);
         
         if (!response.ok) {
           const errorText = await response.text();
