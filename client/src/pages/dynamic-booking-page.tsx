@@ -167,24 +167,54 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
   const urlParams = new URLSearchParams(window.location.search);
   const shouldReset = urlParams.get('reset') === 'true';
   
-  // Fetch booking page data from API
+  // Fetch booking page data from API with explicit port 5000 for proper tenant isolation
   const { data: bookingPage, isLoading: isLoadingBookingPage } = useQuery({
     queryKey: ['/api/booking-pages/slug', slug],
     enabled: !!slug,
+    queryFn: async () => {
+      console.log("Fetching booking page data with slug:", slug);
+      const response = await fetch(`http://localhost:5000/api/booking-pages/slug/${slug}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch booking page: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Booking page data received:", data.name);
+      return data;
+    },
     retry: 1
   });
   
-  // Fetch facilities that are in this booking page
+  // Fetch facilities that are in this booking page - using custom fetcher with explicit port
   const { data: facilities = [], isLoading: isLoadingFacilities } = useQuery<Facility[]>({
     queryKey: ['/api/facilities', { bookingPageSlug: slug }],
     enabled: !!bookingPage && !!slug,
+    queryFn: async () => {
+      console.log("Fetching facilities with bookingPageSlug:", slug);
+      const response = await fetch(`http://localhost:5000/api/facilities?bookingPageSlug=${slug}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch facilities: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Facilities data received:", data.length);
+      return data;
+    },
     retry: false
   });
   
-  // Fetch appointment types
+  // Fetch appointment types with explicit port for proper tenant isolation
   const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useQuery<AppointmentType[]>({
     queryKey: ['/api/appointment-types', { bookingPageSlug: slug }],
     enabled: !!bookingPage && !!facilities && !!slug,
+    queryFn: async () => {
+      console.log("Fetching appointment types with bookingPageSlug:", slug);
+      const response = await fetch(`http://localhost:5000/api/appointment-types?bookingPageSlug=${slug}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch appointment types: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Appointment types data received:", data.length);
+      return data;
+    },
     retry: false
   });
   
