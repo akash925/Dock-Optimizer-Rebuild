@@ -3651,6 +3651,32 @@ export class DatabaseStorage implements IStorage {
     
     return success;
   }
+  
+  // User Preferences operations
+  async getUserPreferences(userId: number, organizationId: number): Promise<UserPreferences | undefined> {
+    return Array.from(this.userPreferences.values()).find(
+      (pref) => pref.userId === userId && pref.organizationId === organizationId
+    );
+  }
+  
+  async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
+    const id = this.userPreferencesIdCounter++;
+    const createdAt = new Date();
+    const userPref: UserPreferences = { ...preferences, id, createdAt };
+    this.userPreferences.set(id, userPref);
+    return userPref;
+  }
+  
+  async updateUserPreferences(userId: number, organizationId: number, preferencesUpdate: Partial<UserPreferences>): Promise<UserPreferences | undefined> {
+    // Find the user preferences first
+    const userPref = await this.getUserPreferences(userId, organizationId);
+    if (!userPref) return undefined;
+    
+    // Update the preferences
+    const updatedPreferences = { ...userPref, ...preferencesUpdate };
+    this.userPreferences.set(userPref.id, updatedPreferences);
+    return updatedPreferences;
+  }
 }
 
 // Initialize database
