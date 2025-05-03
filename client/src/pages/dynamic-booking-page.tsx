@@ -134,7 +134,11 @@ type InitialSelectionFormValues = z.infer<typeof initialSelectionSchema>;
 type CompanyInfoFormValues = z.infer<typeof companyInfoSchema>;
 type AppointmentDetailsFormValues = z.infer<typeof appointmentDetailsSchema>;
 
-export default function DynamicBookingPage() {
+interface DynamicBookingPageProps {
+  slug: string;
+}
+
+export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
   const [location, setLocation] = useState<string | null>(null);
   const { toast } = useToast();
   const [currentNav, setCurrentNav] = useState("/");
@@ -152,17 +156,12 @@ export default function DynamicBookingPage() {
   const parsedFacilitiesRef = useRef<ParsedFacilities>({});
   const [parsedFacilities, setParsedFacilities] = useState<ParsedFacilities>({});
   
-  // Get the slug parameter from the URL using proper route matching
-  const [matchedRoute, params] = useRoute('/booking/:slug');
-  const slug = params?.slug || '';
-  
   // Get current location
   const [currentPath] = useLocation();
   
-  // Debug the URL and slug extraction
-  console.log("DEBUG - Current URL path:", currentPath);
-  console.log("DEBUG - Route matched:", matchedRoute);
-  console.log("DEBUG - Extracted slug:", slug);
+  // Debug the booking page with provided slug
+  console.log("DEBUG - DynamicBookingPage - Current URL path:", currentPath);
+  console.log("DEBUG - DynamicBookingPage - Using slug:", slug);
   
   // Check for reset parameter in the URL
   const urlParams = new URLSearchParams(window.location.search);

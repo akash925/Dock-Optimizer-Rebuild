@@ -8,8 +8,7 @@ import Schedules from "@/pages/schedules";
 import DockStatus from "@/pages/dock-status";
 import DoorManager from "@/pages/door-manager";
 import BasicDoorManager from "@/pages/basic-door-manager";
-import ExternalBooking from "@/pages/external-booking-fixed";
-import DynamicBookingPage from "@/pages/dynamic-booking-page";
+import BookingRouter from "@/pages/booking-router";
 import BookingConfirmation from "@/pages/booking-confirmation";
 import DriverCheckIn from "@/pages/driver-check-in";
 import Reschedule from "@/pages/reschedule";
@@ -163,8 +162,8 @@ const adminRoutes: RouteConfig[] = [
 const publicRoutes: RouteConfig[] = [
   { path: "/auth", component: AuthPage },
   { path: "/door-manager-demo", component: BasicDoorManager },
-  { path: "/external/:slug", component: ExternalBooking }, // Old legacy endpoint
-  { path: "/booking/:slug", component: DynamicBookingPage }, // New dynamic booking page
+  { path: "/external/:slug", component: BookingRouter }, // Both routes handled by our unified router
+  { path: "/booking/:slug", component: BookingRouter }, // Both routes handled by our unified router
   { path: "/booking-confirmation", component: BookingConfirmation },
   { path: "/driver-check-in", component: DriverCheckIn },
   { path: "/reschedule", component: Reschedule },
