@@ -75,12 +75,23 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
     enabled: !!bookingPage?.slug
   });
   
-  // Fetch appointment types
+  // Fetch appointment types - add bookingPageSlug for tenant isolation
   const { 
     data: appointmentTypes = [], 
     isLoading: typesLoading 
   } = useQuery<any[]>({
-    queryKey: ['/api/appointment-types'],
+    queryKey: ['/api/appointment-types', { bookingPageSlug: bookingPage?.slug }],
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl, params] = queryKey;
+      const url = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      console.log(`[ServiceSelectionStep] Fetching appointment types with URL: ${url}`);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch appointment types for this booking page');
+      }
+      return response.json();
+    },
+    enabled: !!bookingPage?.slug
   });
   
   // Filter facilities based on booking page configuration

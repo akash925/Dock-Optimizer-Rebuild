@@ -35,9 +35,20 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   // Get the slug from the booking page
   const slug = bookingPage?.slug || '';
   
-  // Fetch facilities data
+  // Fetch facilities data - include bookingPageSlug for tenant isolation
   const { data: facilities = [] } = useQuery<any[]>({
-    queryKey: ['/api/facilities'],
+    queryKey: ['/api/facilities', { bookingPageSlug: slug }],
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl, params] = queryKey;
+      const url = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      console.log(`[FixedBookingWizardContent] Fetching facilities with URL: ${url}`);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch facilities for this booking page');
+      }
+      return response.json();
+    },
+    enabled: !!slug
   });
   
   // Get facility and appointment type information
