@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation, Link } from "wouter";
+import { useLocation, Link, useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -156,8 +156,11 @@ export default function DynamicBookingPage() {
   const [matchedRoute, params] = useRoute('/booking/:slug');
   const slug = params?.slug || '';
   
+  // Get current location
+  const [currentPath] = useLocation();
+  
   // Debug the URL and slug extraction
-  console.log("DEBUG - Current URL path:", location.pathname);
+  console.log("DEBUG - Current URL path:", currentPath);
   console.log("DEBUG - Route matched:", matchedRoute);
   console.log("DEBUG - Extracted slug:", slug);
   

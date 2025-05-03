@@ -34,13 +34,18 @@ export default function ExternalBooking() {
   const [matchBooking, paramsBooking] = useRoute('/booking/:slug');
   const slug = (matchExternal ? paramsExternal?.slug : matchBooking ? paramsBooking?.slug : '') || '';
   
+  console.log("DEBUG - ExternalBooking - Current path:", location.pathname);
+  console.log("DEBUG - ExternalBooking - Match external:", matchExternal, paramsExternal);
+  console.log("DEBUG - ExternalBooking - Match booking:", matchBooking, paramsBooking);
+  console.log("DEBUG - ExternalBooking - Extracted slug:", slug);
+  
   // Fetch booking page data
   const { 
     data: bookingPage, 
     isLoading: pageLoading, 
     error: pageError 
   } = useQuery({
-    queryKey: [`/api/booking-pages/slug/${slug}`],
+    queryKey: ['/api/booking-pages/slug', slug],
     enabled: !!slug,
   });
   
