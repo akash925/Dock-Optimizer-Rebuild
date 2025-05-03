@@ -14,6 +14,9 @@ import { pool } from "./db";
 import { WebSocketServer, WebSocket } from "ws";
 import { format } from "date-fns";
 
+// Import BOL OCR routes using ES modules
+import bolOcrRoutes from "./routes/bol-ocr.mjs";
+
 /**
  * Helper function to check tenant isolation security for facility-related resources.
  * Returns a facility if it belongs to the user's organization, otherwise returns null.
@@ -139,6 +142,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('Booking pages logo endpoint registered');
   } catch (error) {
     console.error('Error registering booking pages logo endpoint:', error);
+  }
+  
+  // Register BOL OCR routes
+  try {
+    app.use('/api/bol-ocr', bolOcrRoutes);
+    console.log('BOL OCR routes registered');
+  } catch (error) {
+    console.error('Error registering BOL OCR routes:', error);
   }
   
   // Test login for development and debugging

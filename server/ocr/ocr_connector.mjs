@@ -5,10 +5,15 @@
  * using child process execution to perform OCR on BOL images.
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+import { fileURLToPath } from 'url';
+
+// Get the directory name in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Path to the Python script
 const PYTHON_EXECUTABLE = 'python3';
@@ -275,7 +280,7 @@ print(json.dumps(result))
 };
 
 // Export the functions
-module.exports = {
+export {
   processImageFile,
   processBase64Image,
   testOcr

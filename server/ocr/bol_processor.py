@@ -13,11 +13,46 @@ import json
 import base64
 import tempfile
 from typing import Dict, List, Any, Optional, Union, Tuple
-import numpy as np
-from PIL import Image
-import cv2
-from paddleocr import PaddleOCR, PPStructure
-from pdf2image import convert_from_path, convert_from_bytes
+import sys
+
+# Handle dependencies with try/except for more resilience
+DEPENDENCIES_AVAILABLE = True
+ERROR_MESSAGE = ""
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
+    DEPENDENCIES_AVAILABLE = False
+    ERROR_MESSAGE += "Missing numpy library. "
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    Image = ImageDraw = ImageFont = None
+    DEPENDENCIES_AVAILABLE = False
+    ERROR_MESSAGE += "Missing PIL/Pillow library. "
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+    DEPENDENCIES_AVAILABLE = False
+    ERROR_MESSAGE += "Missing OpenCV (cv2) library. This may require system package 'libgl1'. "
+
+try:
+    from paddleocr import PaddleOCR, PPStructure
+except ImportError:
+    PaddleOCR = PPStructure = None
+    DEPENDENCIES_AVAILABLE = False
+    ERROR_MESSAGE += "Missing PaddleOCR library. "
+
+try:
+    from pdf2image import convert_from_path, convert_from_bytes
+except ImportError:
+    convert_from_path = convert_from_bytes = None
+    DEPENDENCIES_AVAILABLE = False
+    ERROR_MESSAGE += "Missing pdf2image library. "
 
 class BOLProcessor:
     """
@@ -38,23 +73,34 @@ class BOLProcessor:
             use_gpu (bool): Whether to use GPU acceleration (default: False for CPU only)
             show_log (bool): Whether to show PaddleOCR logs (default: False)
         """
-        # Initialize PP-Structure for layout analysis and table recognition
-        self.pp_structure = PPStructure(
-            table=True,  # Enable table recognition
-            ocr=True,    # Enable OCR for text
-            show_log=show_log,
-            lang=lang,
-            layout=True, # Enable layout analysis
-            use_gpu=use_gpu
-        )
-        
-        # Initialize regular PaddleOCR for general text detection
-        self.ocr = PaddleOCR(
-            use_angle_cls=True,  # Enable angle classification for rotated text
-            lang=lang,
-            use_gpu=use_gpu,
-            show_log=show_log
-        )
+        # Check if all dependencies are available
+        if not DEPENDENCIES_AVAILABLE:
+            self.pp_structure = None
+            self.ocr = None
+            return
+            
+        try:
+            # Initialize PP-Structure for layout analysis and table recognition
+            self.pp_structure = PPStructure(
+                table=True,  # Enable table recognition
+                ocr=True,    # Enable OCR for text
+                show_log=show_log,
+                lang=lang,
+                layout=True, # Enable layout analysis
+                use_gpu=use_gpu
+            )
+            
+            # Initialize regular PaddleOCR for general text detection
+            self.ocr = PaddleOCR(
+                use_angle_cls=True,  # Enable angle classification for rotated text
+                lang=lang,
+                use_gpu=use_gpu,
+                show_log=show_log
+            )
+        except Exception as e:
+            self.pp_structure = None
+            self.ocr = None
+            print(f"Error initializing PaddleOCR: {str(e)}")
 
     def _preprocess_image(self, image: Union[str, bytes, np.ndarray]) -> np.ndarray:
         """
