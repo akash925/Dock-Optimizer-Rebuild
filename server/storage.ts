@@ -1440,6 +1440,62 @@ export class MemStorage implements IStorage {
       return [];
     }
   }
+
+  // User Notification Preferences operations
+  async getUserPreferences(userId: number, organizationId: number): Promise<UserPreferences | undefined> {
+    try {
+      return Array.from(this.userPreferences.values()).find(
+        preferences => preferences.userId === userId && preferences.organizationId === organizationId
+      );
+    } catch (error) {
+      console.error('Error getting user preferences:', error);
+      return undefined;
+    }
+  }
+
+  async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
+    try {
+      const id = this.userPreferencesIdCounter++;
+      const newPreferences: UserPreferences = {
+        ...preferences,
+        id,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      this.userPreferences.set(id, newPreferences);
+      return newPreferences;
+    } catch (error) {
+      console.error('Error creating user preferences:', error);
+      throw error;
+    }
+  }
+
+  async updateUserPreferences(
+    userId: number, 
+    organizationId: number, 
+    updates: Partial<UserPreferences>
+  ): Promise<UserPreferences | undefined> {
+    try {
+      const existingPrefs = await this.getUserPreferences(userId, organizationId);
+      
+      if (!existingPrefs) {
+        return undefined;
+      }
+      
+      const updatedPrefs: UserPreferences = {
+        ...existingPrefs,
+        ...updates,
+        updatedAt: new Date()
+      };
+      
+      this.userPreferences.set(existingPrefs.id, updatedPrefs);
+      return updatedPrefs;
+    } catch (error) {
+      console.error('Error updating user preferences:', error);
+      throw error;
+    }
+  }
 }
 
 // Database Storage Implementation
