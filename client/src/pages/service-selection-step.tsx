@@ -66,7 +66,7 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
     queryFn: async ({ queryKey }) => {
       const [baseUrl, params] = queryKey;
       // Important: Use port 5000 directly for API requests
-      const apiUrl = `http://localhost:5000${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      const apiUrl = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
       console.log(`[ServiceSelectionStep] Fetching facilities with URL: ${apiUrl}`);
       
       try {
@@ -106,8 +106,8 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
     queryKey: ['/api/appointment-types', { bookingPageSlug: bookingPage?.slug }],
     queryFn: async ({ queryKey }) => {
       const [baseUrl, params] = queryKey;
-      // Important: Use port 5000 directly for API requests
-      const apiUrl = `http://localhost:5000${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      // Use relative URL path for API requests to work in any environment
+      const apiUrl = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
       console.log(`[ServiceSelectionStep] Fetching appointment types with URL: ${apiUrl}`);
       console.log(`[ServiceSelectionStep] Booking page slug: ${params.bookingPageSlug}, full bookingPage:`, bookingPage);
       

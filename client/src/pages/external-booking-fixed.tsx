@@ -665,8 +665,8 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
           }
           
           // Get holidays for this organization
-          // Important: Use port 5000 directly for API requests
-          const holidaysApiUrl = `http://localhost:5000/api/organizations/${organizationId}/holidays`;
+          // Use relative URL path for API requests to work in any environment
+          const holidaysApiUrl = `/api/organizations/${organizationId}/holidays`;
           console.log(`[ExternalBookingFixed] Fetching holidays with URL: ${holidaysApiUrl}`);
           
           const holidaysResponse = await fetch(holidaysApiUrl);
