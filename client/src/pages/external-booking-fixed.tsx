@@ -45,8 +45,8 @@ export default function ExternalBooking({ slug }: ExternalBookingProps) {
     queryKey: [`/api/booking-pages/slug/${slug}`],
     queryFn: async ({ queryKey }) => {
       const [baseUrl] = queryKey as [string];
-      // Important: Use port 5000 directly for API requests
-      const apiUrl = `http://localhost:5000${baseUrl}`;
+      // Use relative URLs for API requests to work in any environment
+      const apiUrl = `${baseUrl}`;
       console.log(`[ExternalBookingFixed] Fetching booking page with URL: ${apiUrl}`);
       
       try {
@@ -640,8 +640,8 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
       
       try {
         // First, get the organization ID for this facility
-        // Important: Use port 5000 directly for API requests
-        const orgApiUrl = `http://localhost:5000/api/facilities/${selectedFacility.id}/organization`;
+        // Use relative URL path for API requests to work in any environment
+        const orgApiUrl = `/api/facilities/${selectedFacility.id}/organization`;
         console.log(`[ExternalBookingFixed] Fetching organization for facility with URL: ${orgApiUrl}`);
         
         let organizationId;
