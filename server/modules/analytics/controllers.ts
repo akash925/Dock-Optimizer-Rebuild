@@ -153,21 +153,31 @@ export async function getCarrierStats(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // Build WHERE clause for date filtering with tenant isolation
-    let whereClause = sql`WHERE c.tenant_id = ${tenantId}`;
+    // First, get all facilities for this tenant to filter schedules
+    const tenantFacilities = await db.select({ id: facilities.id })
+      .from(facilities)
+      .where(eq(facilities.tenantId, tenantId));
+    
+    const facilityIds = tenantFacilities.map(f => f.id);
+    if (!facilityIds.length) {
+      return res.json([]);
+    }
+    
+    // Build WHERE clause for date filtering
+    let dateWhereClause = '';
     
     // Add date range filtering
     if (startDate && endDate) {
-      whereClause = sql`${whereClause} AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
+      dateWhereClause = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
     } else if (startDate) {
-      whereClause = sql`${whereClause} AND s.start_time >= ${startDate}`;
+      dateWhereClause = ` AND s.start_time >= '${startDate}'`;
     } else if (endDate) {
-      whereClause = sql`${whereClause} AND s.start_time <= ${endDate}`;
+      dateWhereClause = ` AND s.start_time <= '${endDate}'`;
     } else {
       // Default to last 7 days if no date range specified
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
+      dateWhereClause = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
     }
     
     // Query to get appointment counts by carrier with date filtering and tenant isolation
@@ -177,8 +187,9 @@ export async function getCarrierStats(req: Request, res: Response) {
         c.name,
         COUNT(s.id) as "appointmentCount"
       FROM ${carriers} c
-      LEFT JOIN ${schedules} s ON c.id = s.carrier_id AND s.tenant_id = ${tenantId}
-      ${whereClause}
+      LEFT JOIN ${schedules} s ON c.id = s.carrier_id
+      WHERE s.facility_id IN (${sql.join(facilityIds)})
+      ${sql.raw(dateWhereClause)}
       GROUP BY c.id, c.name
       ORDER BY "appointmentCount" DESC
       LIMIT 10
@@ -205,21 +216,31 @@ export async function getCustomerStats(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // Build WHERE clause for date filtering with tenant isolation
-    let whereClause = sql`WHERE s.customer_name IS NOT NULL AND s.tenant_id = ${tenantId}`;
+    // First, get all facilities for this tenant to filter schedules
+    const tenantFacilities = await db.select({ id: facilities.id })
+      .from(facilities)
+      .where(eq(facilities.tenantId, tenantId));
+    
+    const facilityIds = tenantFacilities.map(f => f.id);
+    if (!facilityIds.length) {
+      return res.json([]);
+    }
+    
+    // Build WHERE clause for date filtering
+    let dateWhereClause = '';
     
     // Add date range filtering
     if (startDate && endDate) {
-      whereClause = sql`${whereClause} AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
+      dateWhereClause = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
     } else if (startDate) {
-      whereClause = sql`${whereClause} AND s.start_time >= ${startDate}`;
+      dateWhereClause = ` AND s.start_time >= '${startDate}'`;
     } else if (endDate) {
-      whereClause = sql`${whereClause} AND s.start_time <= ${endDate}`;
+      dateWhereClause = ` AND s.start_time <= '${endDate}'`;
     } else {
       // Default to last 7 days if no date range specified
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
+      dateWhereClause = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
     }
     
     // Query to get appointment counts by customer name with date filtering and tenant isolation
@@ -229,7 +250,9 @@ export async function getCustomerStats(req: Request, res: Response) {
         s.customer_name as name,
         COUNT(s.id) as "appointmentCount"
       FROM ${schedules} s
-      ${whereClause}
+      WHERE s.customer_name IS NOT NULL
+      AND s.facility_id IN (${sql.join(facilityIds)})
+      ${sql.raw(dateWhereClause)}
       GROUP BY s.customer_name
       ORDER BY "appointmentCount" DESC
       LIMIT 10
@@ -256,21 +279,31 @@ export async function getAttendanceStats(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // Build WHERE clause for date filtering with tenant isolation
-    let whereClause = sql`WHERE s.tenant_id = ${tenantId}`;
+    // First, get all facilities for this tenant to filter schedules
+    const tenantFacilities = await db.select({ id: facilities.id })
+      .from(facilities)
+      .where(eq(facilities.tenantId, tenantId));
+    
+    const facilityIds = tenantFacilities.map(f => f.id);
+    if (!facilityIds.length) {
+      return res.json([]);
+    }
+    
+    // Build WHERE clause for date filtering
+    let dateWhereClause = '';
     
     // Add date range filtering
     if (startDate && endDate) {
-      whereClause = sql`${whereClause} AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
+      dateWhereClause = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
     } else if (startDate) {
-      whereClause = sql`${whereClause} AND s.start_time >= ${startDate}`;
+      dateWhereClause = ` AND s.start_time >= '${startDate}'`;
     } else if (endDate) {
-      whereClause = sql`${whereClause} AND s.start_time <= ${endDate}`;
+      dateWhereClause = ` AND s.start_time <= '${endDate}'`;
     } else {
       // Default to last 7 days if no date range specified
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
+      dateWhereClause = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
     }
     
     // Query to get counts by attendance status with date filtering and tenant isolation
@@ -279,7 +312,8 @@ export async function getAttendanceStats(req: Request, res: Response) {
         COALESCE(s.status, 'Not Reported') as "attendanceStatus",
         COUNT(*) as count
       FROM ${schedules} s
-      ${whereClause}
+      WHERE s.facility_id IN (${sql.join(facilityIds)})
+      ${sql.raw(dateWhereClause)}
       GROUP BY s.status
       ORDER BY count DESC
     `);
@@ -305,32 +339,35 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // Build WHERE clause for date filtering with tenant isolation
-    let whereClause = sql`WHERE s.tenant_id = ${tenantId}`;
-    let dockWhereClause = sql`WHERE f.tenant_id = ${tenantId}`;
+    // First, get all facilities for this tenant to filter docks
+    const tenantFacilities = await db.select({ id: facilities.id })
+      .from(facilities)
+      .where(eq(facilities.tenantId, tenantId));
     
+    const facilityIds = tenantFacilities.map(f => f.id);
+    if (!facilityIds.length) {
+      return res.json([]);
+    }
+    
+    // Build WHERE clauses for facility filtering
+    let facilityWhereClause = '';
     if (facilityId) {
-      whereClause = sql`${whereClause} AND d.facility_id = ${facilityId}`;
-      dockWhereClause = sql`${dockWhereClause} AND d.facility_id = ${facilityId}`;
+      facilityWhereClause = ` AND d.facility_id = ${facilityId}`;
     }
     
     // Add date range filtering
-    let dateFilter = '';
+    let dateFilterClause = '';
     if (startDate && endDate) {
-      whereClause = sql`${whereClause} AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
-      dateFilter = `AND start_time >= '${startDate}' AND end_time <= '${endDate}'`;
+      dateFilterClause = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
     } else if (startDate) {
-      whereClause = sql`${whereClause} AND s.start_time >= ${startDate}`;
-      dateFilter = `AND start_time >= '${startDate}'`;
+      dateFilterClause = ` AND s.start_time >= '${startDate}'`;
     } else if (endDate) {
-      whereClause = sql`${whereClause} AND s.end_time <= ${endDate}`;
-      dateFilter = `AND end_time <= '${endDate}'`;
+      dateFilterClause = ` AND s.end_time <= '${endDate}'`;
     } else {
       // Default to last 7 days if no date range specified
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
-      dateFilter = `AND start_time >= '${sevenDaysAgo.toISOString()}'`;
+      dateFilterClause = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
     }
     
     // Query to get utilization by dock with tenant isolation
@@ -349,7 +386,8 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
           END)) / 3600 as total_hours
         FROM ${docks} d
         JOIN ${facilities} f ON d.facility_id = f.id
-        ${dockWhereClause}
+        WHERE f.tenant_id = ${tenantId}
+        ${sql.raw(facilityWhereClause)}
       ),
       used_time AS (
         SELECT 
@@ -358,7 +396,10 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
         FROM ${docks} d
         JOIN ${facilities} f ON d.facility_id = f.id
         LEFT JOIN ${schedules} s ON d.id = s.dock_id
-        ${whereClause}
+        WHERE f.tenant_id = ${tenantId}
+        AND s.facility_id IN (${sql.join(facilityIds)})
+        ${sql.raw(facilityWhereClause)}
+        ${sql.raw(dateFilterClause)}
         GROUP BY d.id
       )
       SELECT 
