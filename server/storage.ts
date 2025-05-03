@@ -2857,36 +2857,49 @@ export class DatabaseStorage implements IStorage {
 
   async updateFacility(id: number, facilityUpdate: Partial<Facility>): Promise<Facility | undefined> {
     try {
-      // Use direct SQL to avoid tenantId/tenant_id column name issues
-      const updateColumns = Object.keys(facilityUpdate)
-        .filter(key => key !== 'id' && key !== 'createdAt') // Skip these fields
-        .map(key => {
-          // Convert camelCase to snake_case for SQL
-          const sqlKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-          return `"${sqlKey}" = $${Object.keys(facilityUpdate).indexOf(key) + 2}`;
-        })
-        .join(', ');
+      // Filter out properties we don't want to update
+      const filteredUpdate = { ...facilityUpdate };
+      delete filteredUpdate.id;
+      delete filteredUpdate.createdAt;
       
-      // Add last_modified_at to updated columns
-      const fullUpdateSql = `${updateColumns}, "last_modified_at" = NOW()`;
+      // Get the keys to update
+      const updateKeys = Object.keys(filteredUpdate);
+      
+      // If there are no valid keys to update, return the existing facility
+      if (updateKeys.length === 0) {
+        return await this.getFacility(id);
+      }
+      
+      // Build an array of values for parameterized query
+      const values = [id]; // First parameter is always the ID
+      
+      // Build the SET clause with correct parameter indexing
+      const setClause = updateKeys.map((key, index) => {
+        // Convert camelCase to snake_case for SQL
+        const sqlKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        // Use index+2 because $1 is reserved for the id
+        return `"${sqlKey}" = $${index + 2}`;
+      }).join(', ');
+      
+      // Add values in the same order as the setClause
+      updateKeys.forEach(key => {
+        values.push(filteredUpdate[key]);
+      });
+      
+      // Add last_modified_at update
+      const fullSetClause = `${setClause}, "last_modified_at" = NOW()`;
       
       // Create the complete SQL query
       const query = `
         UPDATE facilities
-        SET ${fullUpdateSql}
+        SET ${fullSetClause}
         WHERE id = $1
         RETURNING *
       `;
       
-      // Extract values in correct order
-      const values = [id];
-      Object.keys(facilityUpdate)
-        .filter(key => key !== 'id' && key !== 'createdAt')
-        .forEach(key => {
-          values.push(facilityUpdate[key]);
-        });
-      
-      console.log(`Updating facility ${id} with:`, JSON.stringify(facilityUpdate, null, 2));
+      console.log(`Updating facility ${id} with:`, JSON.stringify(filteredUpdate, null, 2));
+      console.log('Query:', query);
+      console.log('Values:', values);
       
       const result = await pool.query(query, values);
       
