@@ -587,18 +587,77 @@ export default function Settings() {
                 )}
               </div>
               
-              <div className="flex justify-end pt-4 border-t">
-                <Button 
-                  onClick={() => saveNotificationPreferencesMutation.mutate({})}
-                  disabled={saveNotificationPreferencesMutation.isPending}
-                >
-                  {saveNotificationPreferencesMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Save changes
-                </Button>
+              <div className="pt-4 border-t">
+                {/* Test Email Section */}
+                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-md">
+                  <h4 className="font-medium text-blue-700 dark:text-blue-300 mb-2">
+                    Test Email Notifications
+                  </h4>
+                  <p className="text-sm text-blue-600 dark:text-blue-400 mb-3">
+                    Send a test email to verify your notification settings are configured correctly.
+                  </p>
+                  
+                  {/* Test Email Button */}
+                  <div className="flex items-center">
+                    <Button 
+                      variant="outline"
+                      className="bg-white dark:bg-transparent border-blue-200 text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900"
+                      onClick={async () => {
+                        try {
+                          toast({
+                            title: "Sending test email...",
+                            description: "Please wait while we send a test email to your account."
+                          });
+                          
+                          const res = await fetch('/api/test-notification-email');
+                          const data = await res.json();
+                          
+                          if (res.ok) {
+                            toast({
+                              title: "Test Email Sent",
+                              description: `A test email has been sent to ${user?.email}. Please check your inbox (and spam folder).`,
+                            });
+                          } else {
+                            toast({
+                              title: "Failed to Send Test Email",
+                              description: data.message || "There was an error sending the test email.",
+                              variant: "destructive"
+                            });
+                          }
+                        } catch (error) {
+                          console.error('Error sending test email:', error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to send test email. Please try again later.",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Send Test Email
+                    </Button>
+                    
+                    <p className="text-xs text-neutral-500 ml-4">
+                      This will send a test email to: {user?.email}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => saveNotificationPreferencesMutation.mutate({})}
+                    disabled={saveNotificationPreferencesMutation.isPending}
+                  >
+                    {saveNotificationPreferencesMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    Save changes
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </div>
