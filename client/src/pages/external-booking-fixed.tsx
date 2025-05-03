@@ -43,6 +43,30 @@ export default function ExternalBooking({ slug }: ExternalBookingProps) {
     error: pageError 
   } = useQuery({
     queryKey: [`/api/booking-pages/slug/${slug}`],
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl] = queryKey as [string];
+      // Important: Use port 5000 directly for API requests
+      const apiUrl = `http://localhost:5000${baseUrl}`;
+      console.log(`[ExternalBookingFixed] Fetching booking page with URL: ${apiUrl}`);
+      
+      try {
+        const response = await fetch(apiUrl);
+        console.log(`[ExternalBookingFixed] Booking page API response status:`, response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[ExternalBookingFixed] Error fetching booking page: ${errorText}`);
+          throw new Error(`Failed to fetch booking page: ${response.status} ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[ExternalBookingFixed] Successfully fetched booking page:`, data);
+        return data;
+      } catch (err) {
+        console.error(`[ExternalBookingFixed] Exception fetching booking page:`, err);
+        throw err;
+      }
+    },
     enabled: !!slug,
   });
   
@@ -124,7 +148,31 @@ function ServiceSelectionStepOld({ bookingPage }: { bookingPage: any }) {
     data: facilities = [], 
     isLoading: facilitiesLoading 
   } = useQuery<any[]>({
-    queryKey: [`/api/facilities?bookingPageSlug=${slug}`],
+    queryKey: [`/api/facilities`, { bookingPageSlug: slug }],
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl, params] = queryKey as [string, { bookingPageSlug: string }];
+      // Important: Use port 5000 directly for API requests
+      const apiUrl = `http://localhost:5000${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      console.log(`[ExternalBookingFixed] Fetching facilities with URL: ${apiUrl}`);
+      
+      try {
+        const response = await fetch(apiUrl);
+        console.log(`[ExternalBookingFixed] Facilities API response status:`, response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[ExternalBookingFixed] Error fetching facilities: ${errorText}`);
+          throw new Error(`Failed to fetch facilities: ${response.status} ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[ExternalBookingFixed] Successfully fetched ${data.length} facilities`);
+        return data;
+      } catch (err) {
+        console.error(`[ExternalBookingFixed] Exception fetching facilities:`, err);
+        throw err;
+      }
+    },
     enabled: !!slug,
   });
   
@@ -133,7 +181,31 @@ function ServiceSelectionStepOld({ bookingPage }: { bookingPage: any }) {
     data: appointmentTypes = [], 
     isLoading: typesLoading 
   } = useQuery<any[]>({
-    queryKey: [`/api/appointment-types?bookingPageSlug=${slug}`],
+    queryKey: [`/api/appointment-types`, { bookingPageSlug: slug }],
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl, params] = queryKey as [string, { bookingPageSlug: string }];
+      // Important: Use port 5000 directly for API requests
+      const apiUrl = `http://localhost:5000${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      console.log(`[ExternalBookingFixed] Fetching appointment types with URL: ${apiUrl}`);
+      
+      try {
+        const response = await fetch(apiUrl);
+        console.log(`[ExternalBookingFixed] Appointment types API response status:`, response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[ExternalBookingFixed] Error fetching appointment types: ${errorText}`);
+          throw new Error(`Failed to fetch appointment types: ${response.status} ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[ExternalBookingFixed] Successfully fetched ${data.length} appointment types`);
+        return data;
+      } catch (err) {
+        console.error(`[ExternalBookingFixed] Exception fetching appointment types:`, err);
+        throw err;
+      }
+    },
     enabled: !!slug,
   });
   
@@ -626,12 +698,22 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         
         // Call the API to get available times using the standardized parameter name (typeId)
         // Include bookingPageSlug to ensure proper tenant context
-        const response = await fetch(`/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}&bookingPageSlug=${slug}`);
+        // Important: Use port 5000 directly for API requests
+        const apiUrl = `http://localhost:5000/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}&bookingPageSlug=${slug}`;
+        console.log(`[ExternalBookingFixed] Fetching availability with URL: ${apiUrl}`);
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`API Error (${response.status}):`, errorText);
-          throw new Error(`Failed to fetch available times: ${response.status} ${errorText}`);
+        try {
+          const response = await fetch(apiUrl);
+          console.log(`[ExternalBookingFixed] Availability API response status:`, response.status);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[ExternalBookingFixed] Error fetching availability: ${errorText}`);
+            throw new Error(`Failed to fetch availability: ${response.status} ${errorText}`);
+          }
+        } catch (err) {
+          console.error(`[ExternalBookingFixed] Exception fetching availability:`, err);
+          throw err;
         }
         
         const data = await response.json();
