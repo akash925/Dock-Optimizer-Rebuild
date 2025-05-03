@@ -2025,22 +2025,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log for debugging
       console.log(`[UserPrefs] PUT request received for user ${req.user!.id}, org ${organizationId}`);
-      console.log('[UserPrefs] Request body:', req.body);
+      console.log('[UserPrefs] Request body:', JSON.stringify(req.body, null, 2));
+      
+      // Process booleans explicitly to avoid any type inconsistencies
+      const sanitizedPrefs = {
+        organizationId: organizationId,
+        emailNotificationsEnabled: req.body.emailNotificationsEnabled === true,
+        emailScheduleChanges: req.body.emailScheduleChanges === true,
+        emailTruckArrivals: req.body.emailTruckArrivals === true,
+        emailDockAssignments: req.body.emailDockAssignments === true,
+        emailWeeklyReports: req.body.emailWeeklyReports === true,
+        pushNotificationsEnabled: req.body.pushNotificationsEnabled === true,
+        pushUrgentAlertsOnly: req.body.pushUrgentAlertsOnly === true,
+        pushAllUpdates: req.body.pushAllUpdates === true
+      };
+      
+      console.log('[UserPrefs] Sanitized preferences:', JSON.stringify(sanitizedPrefs, null, 2));
       
       // Ensure preferences exist for this user and organization
       const existingPrefs = await storage.getUserPreferences(req.user!.id, organizationId);
       
       if (!existingPrefs) {
-        return res.status(404).json({ 
-          message: "Preferences not found for this user and organization" 
-        });
+        // If preferences don't exist, create them
+        console.log(`[UserPrefs] Creating new preferences for user ${req.user!.id}, org ${organizationId}`);
+        // Create a properly formatted user preferences object with userId included
+        const prefsToCreate = {
+          userId: req.user!.id,
+          ...sanitizedPrefs
+        };
+        console.log(`[UserPrefs] Creating with data:`, JSON.stringify(prefsToCreate, null, 2));
+        const newPrefs = await storage.createUserPreferences(prefsToCreate);
+        return res.json(newPrefs);
       }
       
       // Update the preferences
+      console.log(`[UserPrefs] Updating existing preferences for user ${req.user!.id}, org ${organizationId}`);
       const updatedPrefs = await storage.updateUserPreferences(
         req.user!.id,
         organizationId,
-        req.body
+        sanitizedPrefs
       );
       
       res.json(updatedPrefs);
