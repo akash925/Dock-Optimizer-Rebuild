@@ -525,19 +525,48 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
       const formattedDate = format(date, "yyyy-MM-dd");
       console.log(`Fetching availability for facility ${facilityId}, appointment type ${appointmentTypeId}, date ${formattedDate}, booking page slug ${slug}`);
       
-      // Try using the direct availability endpoint with more consistent response structure
+      // Use the more reliable availability endpoint format
       const response = await fetch(
-        `/api/availability?date=${formattedDate}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${slug}`
+        `/api/availability/${slug}/${formattedDate}?facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}`
       );
-      const data = await response.json();
       
-      console.log("Availability response raw data:", data);
+      // Check if response is JSON
+      if (!response.ok) {
+        throw new Error(`API request failed with status: ${response.status}`);
+      }
       
-      // Handle the two response formats - either data.availableTimes or data.slots.map(s => s.time)
-      if (data.availableTimes && Array.isArray(data.availableTimes) && data.availableTimes.length > 0) {
+      // Get response text first to log any potential parsing issues
+      const responseText = await response.text();
+      console.log("Raw availability response text (first 100 chars):", responseText.substring(0, 100));
+      
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Failed to parse availability response as JSON:", e);
+        console.log("Response starts with:", responseText.substring(0, 100));
+        throw new Error("Invalid JSON response from availability endpoint");
+      }
+      
+      console.log("Availability response parsed data:", data);
+      
+      // Handle the possible response formats
+      if (data.availableTimes && Array.isArray(data.availableTimes)) {
         console.log("Available times from availableTimes field:", data.availableTimes);
-        setAvailableTimes(data.availableTimes);
-      } else if (data.slots && Array.isArray(data.slots) && data.slots.length > 0) {
+        
+        if (data.availableTimes.length > 0) {
+          setAvailableTimes(data.availableTimes);
+        } else {
+          console.log("Empty availableTimes array");
+          setAvailableTimes([]);
+          toast({
+            title: "No Available Times",
+            description: "There are no available time slots for the selected date.",
+            variant: "destructive"
+          });
+        }
+      } else if (data.slots && Array.isArray(data.slots)) {
         // Extract times from slots array
         const times = data.slots
           .filter(slot => slot.available) // Only include available slots
@@ -557,7 +586,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
           });
         }
       } else {
-        console.log("No available times found in response:", data);
+        console.log("No recognized availability data format in response:", data);
         setAvailableTimes([]);
         toast({
           title: "No Available Times",

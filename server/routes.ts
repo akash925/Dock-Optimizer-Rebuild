@@ -5148,6 +5148,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // New availability endpoint specifically for booking pages with slug pattern
+  app.get("/api/availability/:bookingPageSlug/:date", async (req, res) => {
+    try {
+      const { bookingPageSlug, date } = req.params;
+      const { facilityId, appointmentTypeId } = req.query;
+      
+      console.log(`[Availability API] Received request for booking page ${bookingPageSlug}, date ${date}, facilityId ${facilityId}, appointmentTypeId ${appointmentTypeId}`);
+      
+      if (!bookingPageSlug) {
+        console.log('[Availability API] Error: missing booking page slug');
+        return res.status(400).json({ error: 'Booking page slug is required' });
+      }
+      
+      // Get booking page to establish tenant context
+      const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+      if (!bookingPage) {
+        console.log(`[Availability API] Error: booking page not found for slug ${bookingPageSlug}`);
+        return res.status(404).json({ error: 'Booking page not found' });
+      }
+      
+      console.log(`[Availability API] Found booking page ${bookingPage.name} with tenant ID ${bookingPage.tenantId}`);
+      
+      // Ensure we're sending JSON response
+      res.setHeader('Content-Type', 'application/json');
+      
+      // Forward to the shared availability handler with tenant context from booking page
+      await getAvailabilityHandler(req, res, {
+        date,
+        facilityId: facilityId || bookingPage.defaultFacilityId,
+        appointmentTypeId: appointmentTypeId || bookingPage.defaultAppointmentTypeId,
+        bookingPageSlug,
+        effectiveTenantId: bookingPage.tenantId
+      });
+    } catch (err) {
+      console.error('Error in booking page availability endpoint:', err);
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({ error: 'Failed to get availability for booking page' });
+    }
+  });
+  
   // Define a shared handler function for availability logic
   async function getAvailabilityHandler(req, res, params) {
     const { date, facilityId, appointmentTypeId, bookingPageSlug, effectiveTenantId } = params;
