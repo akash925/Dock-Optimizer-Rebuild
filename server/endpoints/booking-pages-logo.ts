@@ -43,12 +43,19 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       // Return the logo URL or data
       const logoData = organization.logo ? organization.logo : null;
       
-      // Check if this booking page has useOrganizationLogo flag set to false
-      // and has a custom logo URL defined
-      if (bookingPage.useOrganizationLogo === false && bookingPage.customLogo) {
-        console.log(`[Booking Page Logo] Using custom logo from booking page: ${bookingPage.customLogo}`);
-        return res.json({ logo: bookingPage.customLogo });
+      // Check if booking page has useOrganizationLogo flag
+      if (bookingPage.useOrganizationLogo === false) {
+        // Use custom logo if available
+        if (bookingPage.customLogo) {
+          console.log(`[Booking Page Logo] Using custom logo from booking page: ${bookingPage.customLogo}`);
+          return res.json({ logo: bookingPage.customLogo });
+        } else {
+          console.log(`[Booking Page Logo] useOrganizationLogo is false but no custom logo provided`);
+        }
       }
+      
+      // If using organization logo (or fallback from above), use organization logo
+      console.log(`[Booking Page Logo] Using organization logo for tenant ${bookingPage.tenantId}`);
       
       // Special case handling for known organizations
       if (bookingPage.tenantId === 5) { // Fresh Connect Central
@@ -59,8 +66,9 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
         return res.json({ logo: '/assets/hanzo_logo.jpeg' });
       }
       
-      // If we have logo data in the organization, return it
+      // If we have logo data in the organization record, return it
       if (logoData) {
+        console.log(`[Booking Page Logo] Using logo from organization record: ${logoData}`);
         return res.json({ logo: logoData });
       }
       
