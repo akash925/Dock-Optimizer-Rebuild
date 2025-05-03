@@ -5310,7 +5310,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           time: timeStr,
           available: true,
           remainingCapacity: 1,
-          reason: ""
+          remaining: 1, // Add 'remaining' for compatibility with existing UI
+          reason: "",
+          isBufferTime: false
         };
       });
       
@@ -5320,6 +5322,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: parsedDate,
         facilityId: parsedFacilityId,
         appointmentTypeId: parsedAppointmentTypeId,
+        appointmentTypeDuration: 240, // Send duration for client-side calculations
+        timezone: "America/New_York", // Send timezone for client display
         slots: slots // Add detailed slots array for external booking pages
       });
     } catch (err) {

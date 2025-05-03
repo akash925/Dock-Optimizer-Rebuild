@@ -403,7 +403,7 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
         JOIN ${organizationFacilities} of ON f.id = of.facility_id
         LEFT JOIN ${schedules} s ON d.id = s.dock_id
         WHERE of.organization_id = ${tenantId}
-        AND s.facility_id IN (${sql.join(facilityIds)})
+        ${facilityIds.length > 0 ? sql`AND s.facility_id IN (${sql.join(facilityIds)})` : sql``}
         ${facilityFilter}
         ${dateFilter || sql``}
         GROUP BY d.id
