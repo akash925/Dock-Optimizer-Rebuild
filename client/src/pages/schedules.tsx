@@ -309,8 +309,10 @@ export default function Schedules() {
       setIsFormOpen(true);
     } else {
       console.error("Invalid date received from cell click:", date);
-      // Fallback to current date/time if we got an invalid date
-      setClickedCellDate(new Date());
+      // Fallback to current date at noon if we got an invalid date
+      const todayNoon = new Date();
+      todayNoon.setHours(12, 0, 0, 0);
+      setClickedCellDate(todayNoon);
       setIsFormOpen(true);
     }
   };
@@ -560,7 +562,10 @@ export default function Schedules() {
             onClick={() => {
               setEditScheduleId(null);
               // Skip appointment type dialog and open form directly
-              setClickedCellDate(new Date());
+              // Create date with noon time to prevent timezone date shifts
+              const todayNoon = new Date();
+              todayNoon.setHours(12, 0, 0, 0);
+              setClickedCellDate(todayNoon);
               setIsFormOpen(true);
             }}
             className="bg-primary text-white h-9"

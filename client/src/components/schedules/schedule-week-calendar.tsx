@@ -471,7 +471,14 @@ export default function ScheduleWeekCalendar({
                             ? "bg-blue-50/30" 
                             : hour.value % 2 === 0 ? "bg-gray-50/30" : ""
                         )}
-                        onClick={() => onCellClick && onCellClick(cellDate, undefined)}
+                        onClick={() => {
+                          if (onCellClick) {
+                            // Set time to noon to prevent timezone date shifts
+                            const noonDate = new Date(cellDate);
+                            noonDate.setHours(12, 0, 0, 0);
+                            onCellClick(noonDate, undefined);
+                          }
+                        }}
                       ></div>
                     );
                   })}
