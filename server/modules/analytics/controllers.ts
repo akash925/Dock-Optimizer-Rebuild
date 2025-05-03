@@ -5,7 +5,7 @@ import {
   carriers, 
   schedules,
   docks,
-  organizations
+  tenants
 } from '@shared/schema';
 import { sql, and, eq } from 'drizzle-orm';
 
@@ -85,8 +85,14 @@ export async function getFacilityStats(req: Request, res: Response) {
   try {
     const { startDate, endDate } = req.query;
     
-    // Build WHERE clause for date filtering
-    let whereClause = sql`WHERE 1=1`;
+    // Get the tenant ID from the authenticated user
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
+    }
+    
+    // Build WHERE clause for date filtering with tenant isolation
+    let whereClause = sql`WHERE f.tenant_id = ${tenantId}`;
     
     // Add date range filtering
     if (startDate && endDate) {
@@ -102,7 +108,7 @@ export async function getFacilityStats(req: Request, res: Response) {
       whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
     }
     
-    // Query to get appointment counts by facility location with date filtering
+    // Query to get appointment counts by facility location with date filtering and tenant isolation
     const facilityStats = await db.execute(sql`
       SELECT 
         f.id,
@@ -131,8 +137,14 @@ export async function getCarrierStats(req: Request, res: Response) {
   try {
     const { startDate, endDate } = req.query;
     
-    // Build WHERE clause for date filtering
-    let whereClause = sql`WHERE 1=1`;
+    // Get the tenant ID from the authenticated user
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
+    }
+    
+    // Build WHERE clause for date filtering with tenant isolation
+    let whereClause = sql`WHERE c.tenant_id = ${tenantId}`;
     
     // Add date range filtering
     if (startDate && endDate) {
@@ -148,14 +160,14 @@ export async function getCarrierStats(req: Request, res: Response) {
       whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
     }
     
-    // Query to get appointment counts by carrier with date filtering
+    // Query to get appointment counts by carrier with date filtering and tenant isolation
     const carrierStats = await db.execute(sql`
       SELECT 
         c.id,
         c.name,
         COUNT(s.id) as "appointmentCount"
       FROM ${carriers} c
-      LEFT JOIN ${schedules} s ON c.id = s.carrier_id
+      LEFT JOIN ${schedules} s ON c.id = s.carrier_id AND s.tenant_id = ${tenantId}
       ${whereClause}
       GROUP BY c.id, c.name
       ORDER BY "appointmentCount" DESC
