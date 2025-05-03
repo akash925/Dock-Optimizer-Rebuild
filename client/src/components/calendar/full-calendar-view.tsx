@@ -204,14 +204,17 @@ export default function FullCalendarView({
     // Determine color based on status and attention needed
     let statusColor = '';
     
+    // Enhanced color scheme with better contrast for text readability
     if (attention.needsAttention) {
-      statusColor = attention.isUrgent ? '#DC2626' : '#F97316'; // Red for urgent, orange for warning
+      // Higher saturation for attention states
+      statusColor = attention.isUrgent ? '#d00000' : '#e85d04'; // Deeper red for urgent, stronger orange for warning
     } else {
-      statusColor = schedule.status === 'completed' ? '#4ADE80' : 
-                  schedule.status === 'checked-in' ? '#F59E0B' :
-                  schedule.status === 'canceled' ? '#EF4444' : 
-                  schedule.status === 'no-show' ? '#6B7280' : 
-                  (isInbound ? '#3B82F6' : '#10B981');
+      // Richer, deeper colors for all states to ensure text readability
+      statusColor = schedule.status === 'completed' ? '#2b9348' : // Deeper green 
+                  schedule.status === 'checked-in' ? '#e09f3e' : // Rich amber
+                  schedule.status === 'canceled' ? '#c1121f' : // Deeper red
+                  schedule.status === 'no-show' ? '#495057' : // Darker gray
+                  (isInbound ? '#1a5fb4' : '#0b7285'); // Deeper blue for inbound, teal for outbound
     }
     
     // Date utilities - always display times in Eastern Time
@@ -774,50 +777,63 @@ export default function FullCalendarView({
                   <div className="w-full h-full p-1 flex flex-col justify-start overflow-hidden">
                     {/* CUSTOMER NAME FIRST: Primary information with highest prominence */}
                     {customerName && (
-                      <div className="font-bold text-[13px] truncate mb-1 leading-tight">
+                      <div className="font-bold text-[15px] truncate leading-tight text-white mb-1.5">
                         {customerName}
                       </div>
                     )}
                     
-                    {/* TIME SECOND: Appointment time range with medium prominence */}
-                    <div className="text-[10px] font-medium mb-0.5 opacity-90">{eventInfo.timeText}</div>
-                    
-                    {/* Type badge - compact and clear */}
-                    <div className="flex flex-wrap items-center gap-x-1 text-[9px]">
+                    {/* Type badge + Time - critical info */}
+                    <div className="flex items-center justify-between w-full text-[11px] font-medium mb-1">
+                      {/* Time with clean display */}
+                      <div className="text-white/90">{eventInfo.timeText}</div>
+                      
+                      {/* Type badge - right aligned */}
                       {eventData?.type && 
-                        <span className={`inline-block px-1 rounded-sm font-medium ${
-                          eventData.type.toLowerCase() === 'inbound' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                        <span className={`inline-block px-1.5 py-0.5 rounded ${
+                          eventData.type.toLowerCase() === 'inbound' ? 'bg-blue-200 text-blue-800' : 'bg-emerald-200 text-emerald-800'
                         }`}>
                           {eventData.type === 'inbound' ? 'IN' : 'OUT'}
                         </span>
                       }
-                      
-                      {/* Truck # - essential operational info */}
-                      {truckNumber && <span className="inline-block font-medium">#{truckNumber}</span>}
                     </div>
                     
-                    {/* Minimal location info - very compact */}
-                    <div className="flex items-center text-[8px] mt-0.5 opacity-75 space-x-1">
-                      {/* Facility name when relevant */}
-                      {facilityName && <span className="line-clamp-1">{facilityName}</span>}
-                      
-                      {/* Dock number when available */}
-                      {dockId && <span>• Dock #{dockId}</span>}
-                    </div>
-                    
-                    {/* Status badge - only shown when needed */}
-                    {showStatusBadge && (
-                      <div className="mt-0.5 text-[8px] font-bold bg-white/30 text-white rounded px-1 max-w-fit">
-                        {status.toUpperCase()}
+                    {/* Truck number - important operational info */}
+                    {truckNumber && (
+                      <div className="text-[11px] font-medium text-white mb-1">
+                        Truck #{truckNumber}
                       </div>
                     )}
                     
-                    {/* Attention badge - only shown when needed */}
-                    {showAttentionBadge && (
-                      <div className="mt-0.5 text-[8px] font-bold bg-white/30 text-white rounded px-1 max-w-fit animate-pulse">
-                        {attentionReason.toUpperCase()}
+                    {/* Carrier name when available */}
+                    {carrierName && (
+                      <div className="text-[10px] opacity-90 mb-0.5 text-white/80">
+                        {carrierName}
                       </div>
                     )}
+                    
+                    {/* Bottom row with dock info */}
+                    <div className="mt-auto flex items-center justify-between text-[9px] pt-0.5 text-white/70">
+                      {/* Location info */}
+                      <div className="flex items-center space-x-1">
+                        {dockId && <span className="font-medium">Dock #{dockId}</span>}
+                        {dockId && facilityName && <span>•</span>}
+                        {facilityName && <span className="truncate max-w-[70px]">{facilityName}</span>}
+                      </div>
+                      
+                      {/* Status badge - only shown when needed */}
+                      {showStatusBadge && (
+                        <div className="font-bold bg-red-300 text-red-900 rounded px-1 py-0.5">
+                          {status.toUpperCase()}
+                        </div>
+                      )}
+                      
+                      {/* Attention badge - only shown when needed */}
+                      {showAttentionBadge && (
+                        <div className="font-bold bg-amber-300 text-amber-900 rounded px-1 py-0.5 animate-pulse">
+                          {attentionReason.toUpperCase()}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               }}
