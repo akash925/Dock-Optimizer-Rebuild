@@ -5236,9 +5236,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const appointmentType = appointmentTypeResult.rows[0];
       
-      // Get facility settings
+      // Get facility settings from appointment_settings table
       const facilitySettingsQuery = `
-        SELECT * FROM facility_settings
+        SELECT * FROM appointment_settings
         WHERE facility_id = $1
         LIMIT 1
       `;
@@ -5301,7 +5301,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           s.end_time,
           s.dock_id
         FROM schedules s
-        WHERE s.facility_id = $1
+        JOIN docks d ON s.dock_id = d.id
+        WHERE d.facility_id = $1
         AND s.start_time >= $2
         AND s.start_time < $3
         ORDER BY s.start_time
