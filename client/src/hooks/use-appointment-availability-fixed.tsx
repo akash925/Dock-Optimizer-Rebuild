@@ -32,6 +32,7 @@ export interface UseAppointmentAvailabilityProps {
   date?: string | Date | null;
   duration?: number;
   onTimeSlotGenerated?: (slots: AvailabilitySlot[], firstAvailableSlot: string | null) => void;
+  bookingPageSlug?: string; // Optional booking page slug for tenant context
 }
 
 interface BookedAppointment {
@@ -52,7 +53,8 @@ export function useAppointmentAvailability({
   facilityTimezone,
   date,
   duration,
-  onTimeSlotGenerated
+  onTimeSlotGenerated,
+  bookingPageSlug // Add support for booking page slug
 }: UseAppointmentAvailabilityProps) {
   // State
   const [availabilityRules, setAvailabilityRules] = useState<AvailabilityRule[]>([]);
