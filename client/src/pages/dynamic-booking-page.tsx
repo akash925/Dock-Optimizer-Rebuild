@@ -674,7 +674,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
           <div className="flex items-center">
             {bookingPage.useOrganizationLogo ? (
               <img 
-                src={`http://localhost:5000/api/booking-pages/logo/${slug}`}
+                src={`/api/booking-pages/logo/${slug}`}
                 alt={`${bookingPage.name} Logo`}
                 className="h-10 w-auto object-contain mr-3"
                 onError={(e) => {
@@ -685,7 +685,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
               />
             ) : bookingPage.customLogo ? (
               <img 
-                src={bookingPage.customLogo?.startsWith('http') ? bookingPage.customLogo : `http://localhost:5000${bookingPage.customLogo}`} 
+                src={bookingPage.customLogo?.startsWith('http') ? bookingPage.customLogo : `${bookingPage.customLogo}`} 
                 alt={`${bookingPage.name} Custom Logo`}
                 className="h-10 w-auto object-contain mr-3"
                 onError={(e) => {
