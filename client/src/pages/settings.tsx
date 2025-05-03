@@ -103,23 +103,25 @@ export default function Settings() {
     mutationFn: async (data: any) => {
       if (!user?.tenantId) throw new Error('User tenant ID is required');
       
+      // Build the payload with proper boolean values
       const payload = {
         organizationId: user.tenantId,
-        emailNotificationsEnabled,
-        emailScheduleChanges,
-        emailTruckArrivals,
-        emailDockAssignments,
-        emailWeeklyReports,
-        pushNotificationsEnabled,
-        pushUrgentAlertsOnly,
-        pushAllUpdates
+        emailNotificationsEnabled: emailNotificationsEnabled === true,
+        emailScheduleChanges: emailScheduleChanges === true,
+        emailTruckArrivals: emailTruckArrivals === true,
+        emailDockAssignments: emailDockAssignments === true,
+        emailWeeklyReports: emailWeeklyReports === true,
+        pushNotificationsEnabled: pushNotificationsEnabled === true,
+        pushUrgentAlertsOnly: pushUrgentAlertsOnly === true,
+        pushAllUpdates: pushAllUpdates === true
       };
       
+      console.log('Saving notification preferences:', payload);
+      
+      // For PUT requests, use a simpler endpoint with the payload containing organizationId
       const response = await apiRequest(
         userPreferencesData ? "PUT" : "POST", 
-        userPreferencesData 
-          ? `/api/user-preferences/${user.tenantId}` 
-          : "/api/user-preferences", 
+        "/api/user-preferences", 
         payload
       );
       
