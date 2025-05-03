@@ -39,9 +39,17 @@ export default function Settings() {
   const { user, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState("account");
   
-  // Form states
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
+  // User notification preference states
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
+  const [emailScheduleChanges, setEmailScheduleChanges] = useState(true);
+  const [emailTruckArrivals, setEmailTruckArrivals] = useState(true);
+  const [emailDockAssignments, setEmailDockAssignments] = useState(true);
+  const [emailWeeklyReports, setEmailWeeklyReports] = useState(false);
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
+  const [pushUrgentAlertsOnly, setPushUrgentAlertsOnly] = useState(true);
+  const [pushAllUpdates, setPushAllUpdates] = useState(false);
+  
+  // Other states
   const [darkMode, setDarkMode] = useState(false);
   
   // Scheduling states
@@ -59,6 +67,83 @@ export default function Settings() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [defaultBarcodeFormat, setDefaultBarcodeFormat] = useState<string>("CODE128");
   const [barcodePrefix, setBarcodePrefix] = useState<string>("H");
+  
+  // Fetch user notification preferences
+  const { data: userPreferencesData, isLoading: isLoadingPreferences } = useQuery({
+    queryKey: ['/api/user-preferences'],
+    queryFn: async () => {
+      const response = await fetch(`/api/user-preferences?organizationId=${user?.tenantId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user preferences');
+      }
+      return response.json();
+    },
+    enabled: !!user?.tenantId
+  });
+  
+  // Update preference states from fetched data
+  useEffect(() => {
+    if (userPreferencesData) {
+      // Email notification settings
+      setEmailNotificationsEnabled(userPreferencesData.emailNotificationsEnabled);
+      setEmailScheduleChanges(userPreferencesData.emailScheduleChanges);
+      setEmailTruckArrivals(userPreferencesData.emailTruckArrivals);
+      setEmailDockAssignments(userPreferencesData.emailDockAssignments);
+      setEmailWeeklyReports(userPreferencesData.emailWeeklyReports);
+      
+      // Push notification settings
+      setPushNotificationsEnabled(userPreferencesData.pushNotificationsEnabled);
+      setPushUrgentAlertsOnly(userPreferencesData.pushUrgentAlertsOnly);
+      setPushAllUpdates(userPreferencesData.pushAllUpdates);
+    }
+  }, [userPreferencesData]);
+  
+  // Save notification preferences mutation
+  const saveNotificationPreferencesMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (!user?.tenantId) throw new Error('User tenant ID is required');
+      
+      const payload = {
+        organizationId: user.tenantId,
+        emailNotificationsEnabled,
+        emailScheduleChanges,
+        emailTruckArrivals,
+        emailDockAssignments,
+        emailWeeklyReports,
+        pushNotificationsEnabled,
+        pushUrgentAlertsOnly,
+        pushAllUpdates
+      };
+      
+      const response = await apiRequest(
+        userPreferencesData ? "PUT" : "POST", 
+        "/api/user-preferences", 
+        payload
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to save notification preferences');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Notification Settings Saved",
+        description: "Your notification preferences have been updated."
+      });
+      
+      // Invalidate preferences query to refetch with updated data
+      queryClient.invalidateQueries({ queryKey: ['/api/user-preferences'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Saving Preferences",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
   
   // Load organization logo from API and barcode settings from localStorage
   const { data: orgData, isLoading: isLoadingOrg } = useQuery({
@@ -370,63 +455,85 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Email Notifications</h3>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="email-notifications">Receive email notifications</Label>
-                    <p className="text-sm text-neutral-500">
-                      Get updates about schedules and dock status via email
-                    </p>
-                  </div>
-                  <Switch
-                    id="email-notifications"
-                    checked={emailNotifications}
-                    onCheckedChange={setEmailNotifications}
-                  />
+              {isLoadingPreferences ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-                
-                {emailNotifications && (
-                  <div className="ml-6 space-y-2 pt-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="email-schedule-changes" defaultChecked />
-                      <label
-                        htmlFor="email-schedule-changes"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Schedule changes
-                      </label>
+              ) : (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Email Notifications</h3>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="email-notifications">Receive email notifications</Label>
+                      <p className="text-sm text-neutral-500">
+                        Get updates about schedules and dock status via email
+                      </p>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="email-truck-arrivals" defaultChecked />
-                      <label
-                        htmlFor="email-truck-arrivals"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Truck arrival alerts
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="email-dock-assignments" defaultChecked />
-                      <label
-                        htmlFor="email-dock-assignments"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Dock assignments
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="email-weekly-reports" />
-                      <label
-                        htmlFor="email-weekly-reports"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Weekly performance reports
-                      </label>
-                    </div>
+                    <Switch
+                      id="email-notifications"
+                      checked={emailNotificationsEnabled}
+                      onCheckedChange={setEmailNotificationsEnabled}
+                    />
                   </div>
-                )}
-              </div>
+                  
+                  {emailNotificationsEnabled && (
+                    <div className="ml-6 space-y-2 pt-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="email-schedule-changes" 
+                          checked={emailScheduleChanges}
+                          onCheckedChange={(checked) => setEmailScheduleChanges(checked === true)}
+                        />
+                        <label
+                          htmlFor="email-schedule-changes"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Schedule changes
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="email-truck-arrivals" 
+                          checked={emailTruckArrivals}
+                          onCheckedChange={(checked) => setEmailTruckArrivals(checked === true)}
+                        />
+                        <label
+                          htmlFor="email-truck-arrivals"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Truck arrival alerts
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="email-dock-assignments" 
+                          checked={emailDockAssignments}
+                          onCheckedChange={(checked) => setEmailDockAssignments(checked === true)}
+                        />
+                        <label
+                          htmlFor="email-dock-assignments"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Dock assignments
+                        </label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="email-weekly-reports" 
+                          checked={emailWeeklyReports}
+                          onCheckedChange={(checked) => setEmailWeeklyReports(checked === true)}
+                        />
+                        <label
+                          htmlFor="email-weekly-reports"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          Weekly performance reports
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Push Notifications</h3>
@@ -439,15 +546,19 @@ export default function Settings() {
                   </div>
                   <Switch
                     id="push-notifications"
-                    checked={pushNotifications}
-                    onCheckedChange={setPushNotifications}
+                    checked={pushNotificationsEnabled}
+                    onCheckedChange={setPushNotificationsEnabled}
                   />
                 </div>
                 
-                {pushNotifications && (
+                {pushNotificationsEnabled && (
                   <div className="ml-6 space-y-2 pt-2">
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="push-urgent-alerts" defaultChecked />
+                      <Checkbox 
+                        id="push-urgent-alerts" 
+                        checked={pushUrgentAlertsOnly}
+                        onCheckedChange={(checked) => setPushUrgentAlertsOnly(checked === true)}
+                      />
                       <label
                         htmlFor="push-urgent-alerts"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -456,7 +567,11 @@ export default function Settings() {
                       </label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="push-all-updates" />
+                      <Checkbox 
+                        id="push-all-updates" 
+                        checked={pushAllUpdates}
+                        onCheckedChange={(checked) => setPushAllUpdates(checked === true)}
+                      />
                       <label
                         htmlFor="push-all-updates"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -469,8 +584,15 @@ export default function Settings() {
               </div>
               
               <div className="flex justify-end pt-4 border-t">
-                <Button onClick={() => handleSaveSettings("notification")}>
-                  <Save className="h-4 w-4 mr-2" />
+                <Button 
+                  onClick={() => saveNotificationPreferencesMutation.mutate({})}
+                  disabled={saveNotificationPreferencesMutation.isPending}
+                >
+                  {saveNotificationPreferencesMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
                   Save changes
                 </Button>
               </div>
