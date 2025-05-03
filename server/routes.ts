@@ -7,7 +7,7 @@ import { getBookingStyles } from "./controllers/admin-controller";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
-import { sendConfirmationEmail, sendEmail } from "./notifications";
+import { sendConfirmationEmail, sendEmail, generateICalEvent } from "./notifications";
 import { testEmailTemplate } from "./email-test";
 import { adminRoutes } from "./modules/admin/routes";
 import { pool } from "./db";
@@ -4619,27 +4619,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const organization = await storage.getTenantById(tenantId);
         const orgName = organization ? organization.name : bookingPage.name;
         
-        // Send confirmation email
+        // Get local confirmation code for calendar invite
+        const confirmationCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+        
+        // Create enhanced appointment object for email
+        const enhancedAppointment: any = {
+          ...appointmentData,
+          id: createdAppointment.id,
+          facilityName: facility.name,
+          appointmentTypeName: appointmentType.name,
+          timezone: facility.timezone || 'America/New_York'
+        };
+        
+        // Generate calendar invite attachment
+        const icsContent = generateICalEvent(enhancedAppointment, confirmationCode);
+        
+        // Send confirmation email with calendar attachment
         await sendEmail({
           to: appointmentData.contactEmail,
           from: process.env.SENDGRID_FROM_EMAIL || 'noreply@dockoptimizer.com',
           subject: `${orgName}: Appointment Confirmation - ${format(appointmentData.startTime, "MMM d, yyyy")} at ${format(appointmentData.startTime, "h:mm a")}`,
           html: `
-            <h2>Your appointment has been confirmed</h2>
-            <p>Thank you for scheduling an appointment with ${orgName}.</p>
-            <p><strong>Appointment Details:</strong></p>
-            <ul>
-              <li><strong>Date:</strong> ${format(appointmentData.startTime, "MMMM d, yyyy")}</li>
-              <li><strong>Time:</strong> ${format(appointmentData.startTime, "h:mm a")}</li>
-              <li><strong>Location:</strong> ${facility.name}</li>
-              <li><strong>Type:</strong> ${appointmentType.name}</li>
-              <li><strong>Direction:</strong> ${appointmentData.type === 'pickup' ? 'Pickup' : 'Dropoff'}</li>
-              <li><strong>Truck #:</strong> ${appointmentData.truckNumber}</li>
-              ${appointmentData.trailerNumber ? `<li><strong>Trailer #:</strong> ${appointmentData.trailerNumber}</li>` : ''}
-              ${appointmentData.driverName ? `<li><strong>Driver Name:</strong> ${appointmentData.driverName}</li>` : ''}
-            </ul>
-            <p>${bookingPage.confirmationMessage || ""}</p>
-          `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: #2d8cff; margin-bottom: 10px;">Your appointment has been confirmed</h2>
+                <p style="font-size: 16px; color: #333;">Thank you for scheduling an appointment with ${orgName}.</p>
+              </div>
+              
+              <div style="background-color: #f7f9fc; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <h3 style="color: #333; margin-top: 0;">Appointment Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; width: 40%;"><strong>Date:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${format(appointmentData.startTime, "MMMM d, yyyy")}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Time:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${format(appointmentData.startTime, "h:mm a")} - ${format(appointmentData.endTime, "h:mm a")}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Location:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${facility.name}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Type:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${appointmentType.name}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Direction:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${appointmentData.type === 'pickup' ? 'Pickup' : 'Dropoff'}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Truck #:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${appointmentData.truckNumber}</td>
+                  </tr>
+                  ${appointmentData.trailerNumber ? `
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Trailer #:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${appointmentData.trailerNumber}</td>
+                  </tr>` : ''}
+                  ${appointmentData.driverName ? `
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Driver Name:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${appointmentData.driverName}</td>
+                  </tr>` : ''}
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Confirmation #:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${confirmationCode}</td>
+                  </tr>
+                </table>
+              </div>
+              
+              ${bookingPage.confirmationMessage ? 
+                `<div style="margin-bottom: 20px; padding: 15px; background-color: #f0f8ff; border-left: 4px solid #2d8cff; border-radius: 3px;">
+                  <p style="margin: 0; color: #333;">${bookingPage.confirmationMessage}</p>
+                </div>` : ''}
+              
+              <div style="text-align: center; color: #666; font-size: 14px; margin-top: 30px;">
+                <p>A calendar invitation has been attached to this email.</p>
+                <p>Please contact us if you need to make any changes to your appointment.</p>
+              </div>
+            </div>
+          `,
+          attachments: [
+            {
+              content: Buffer.from(icsContent).toString('base64'),
+              filename: 'appointment.ics',
+              type: 'text/calendar',
+              disposition: 'attachment'
+            }
+          ]
         });
         console.log(`[BookAppointment] Confirmation email sent to ${appointmentData.contactEmail}`);
       } catch (emailError) {
