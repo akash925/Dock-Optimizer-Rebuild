@@ -39,14 +39,28 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   const { data: facilities = [] } = useQuery<any[]>({
     queryKey: ['/api/facilities', { bookingPageSlug: slug }],
     queryFn: async ({ queryKey }) => {
-      const [baseUrl, params] = queryKey;
-      const url = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
-      console.log(`[FixedBookingWizardContent] Fetching facilities with URL: ${url}`);
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch facilities for this booking page');
+      const [baseUrl, params] = queryKey as [string, { bookingPageSlug: string }]; // Type assertion to fix TS error
+      // Important: Use port 5000 directly for API requests
+      const apiUrl = `http://localhost:5000${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      console.log(`[FixedBookingWizardContent] Fetching facilities with URL: ${apiUrl}`);
+      
+      try {
+        const response = await fetch(apiUrl);
+        console.log(`[FixedBookingWizardContent] Facilities API response status:`, response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[FixedBookingWizardContent] Error fetching facilities: ${errorText}`);
+          throw new Error(`Failed to fetch facilities: ${response.status} ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[FixedBookingWizardContent] Successfully fetched ${data.length} facilities`);
+        return data;
+      } catch (err) {
+        console.error(`[FixedBookingWizardContent] Exception fetching facilities:`, err);
+        throw err;
       }
-      return response.json();
     },
     enabled: !!slug
   });

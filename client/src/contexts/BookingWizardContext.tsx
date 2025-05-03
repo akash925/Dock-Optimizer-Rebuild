@@ -6,6 +6,9 @@ interface BookingFormData {
   facilityId: number | null;
   appointmentTypeId: number | null;
   pickupOrDropoff: string; // "pickup" or "dropoff"
+  facilityName?: string; // Added for displaying facility name
+  appointmentTypeName?: string; // Added for displaying appointment type name
+  appointmentTypes?: any[]; // Added to store appointment types data
   
   // BOL Data
   bolFile?: File | null;

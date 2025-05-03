@@ -123,6 +123,12 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
         
         const data = await response.json();
         console.log(`[ServiceSelectionStep] Successfully fetched ${data.length} appointment types`);
+        
+        // Store appointment types in booking data for reference elsewhere
+        if (data.length > 0) {
+          updateBookingData({ appointmentTypes: data });
+        }
+        
         return data;
       } catch (err) {
         console.error(`[ServiceSelectionStep] Exception fetching appointment types:`, err);
