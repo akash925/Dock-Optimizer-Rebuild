@@ -3654,16 +3654,28 @@ export class DatabaseStorage implements IStorage {
   
   // User Preferences operations
   async getUserPreferences(userId: number, organizationId: number): Promise<UserPreferences | undefined> {
-    return Array.from(this.userPreferences.values()).find(
-      (pref) => pref.userId === userId && pref.organizationId === organizationId
-    );
+    const [userPref] = await db
+      .select()
+      .from(userPreferences)
+      .where(
+        and(
+          eq(userPreferences.userId, userId),
+          eq(userPreferences.organizationId, organizationId)
+        )
+      );
+    
+    return userPref;
   }
   
   async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
-    const id = this.userPreferencesIdCounter++;
-    const createdAt = new Date();
-    const userPref: UserPreferences = { ...preferences, id, createdAt };
-    this.userPreferences.set(id, userPref);
+    const [userPref] = await db
+      .insert(userPreferences)
+      .values({
+        ...preferences,
+        createdAt: new Date()
+      })
+      .returning();
+    
     return userPref;
   }
   
@@ -3672,11 +3684,19 @@ export class DatabaseStorage implements IStorage {
     const userPref = await this.getUserPreferences(userId, organizationId);
     if (!userPref) return undefined;
     
-    // Update the preferences
-    const updatedPreferences = { ...userPref, ...preferencesUpdate };
-    this.userPreferences.set(userPref.id, updatedPreferences);
-    return updatedPreferences;
+    // Update the preferences but remove id and createdAt from the update
+    const { id, createdAt, ...updateValues } = preferencesUpdate as any;
+    
+    const [updatedPref] = await db
+      .update(userPreferences)
+      .set(updateValues)
+      .where(eq(userPreferences.id, userPref.id))
+      .returning();
+    
+    return updatedPref;
   }
+  
+
 }
 
 // Initialize database
