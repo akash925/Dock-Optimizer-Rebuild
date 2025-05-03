@@ -116,26 +116,64 @@
 }
 
 /* Enhanced styling for our custom events */
-.hanzo-custom-event {
-  border-width: 1px !important;
-  padding: 0 !important;
+/* Global FullCalendar event overrides - apply to all events */
+.fc-timegrid-event .fc-event-title {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  margin-bottom: 4px !important;
+  line-height: 1.2 !important;
+  color: white !important;
   overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  display: block !important;
 }
 
-/* Force white text throughout for readability */
-.hanzo-custom-event .fc-event-title,
-.hanzo-custom-event .fc-event-time,
-.hanzo-custom-event * {
+/* Force better contrast text for all events */
+.fc .fc-timegrid-event .fc-event-title,
+.fc .fc-timegrid-event .fc-event-time,
+.fc .fc-timegrid-event-harness .fc-event-main * {
   color: white !important;
   font-family: system-ui, -apple-system, sans-serif !important;
 }
 
-/* Customer name styling with priority */
-.hanzo-custom-event[data-customer] .fc-event-title {
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  margin-bottom: 3px !important;
-  line-height: 1.2 !important;
+/* Enhanced visibility for event titles */
+.fc .fc-timegrid-event {
+  border-width: 1px !important;
+  padding: 2px 4px !important;
+  overflow: hidden !important;
+  background-color: #1a5fb4 !important; /* Default blue for inbound */
+}
+
+/* Different event types - use stronger, more readable colors */
+.fc .fc-timegrid-event[data-type="inbound"] {
+  background-color: #1a5fb4 !important; /* Deeper blue for inbound */
+}
+
+.fc .fc-timegrid-event[data-type="outbound"] {
+  background-color: #0b7285 !important; /* Teal for outbound */
+}
+
+/* Status colors */
+.fc .fc-timegrid-event[data-status="completed"] {
+  background-color: #2b9348 !important; /* Deeper green */
+}
+
+.fc .fc-timegrid-event[data-status="checked-in"] {
+  background-color: #e09f3e !important; /* Rich amber */
+}
+
+.fc .fc-timegrid-event[data-status="canceled"] {
+  background-color: #c1121f !important; /* Deeper red */
+}
+
+.fc .fc-timegrid-event[data-status="no-show"] {
+  background-color: #495057 !important; /* Darker gray */
+}
+
+/* Focus on customer name - make it most visible */
+.fc .fc-timegrid-event .fc-event-title-container {
+  margin-bottom: 2px !important;
 }
 
 /* Type badges */

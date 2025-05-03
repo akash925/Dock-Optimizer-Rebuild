@@ -723,47 +723,60 @@ export default function FullCalendarView({
               
               // Simple DOM setup without complex manipulation
               eventDidMount={(eventInfo) => {
-                // Add special class for our enhanced styling
+                const extendedProps = eventInfo.event.extendedProps || {};
+                
+                // Add basic event data attributes for CSS targeting
                 if (eventInfo.el) {
-                  eventInfo.el.classList.add('hanzo-custom-event');
-                  
-                  // Add type attribute used by our CSS
-                  const type = eventInfo.event.extendedProps?.type?.toLowerCase();
+                  // Add type attribute
+                  const type = extendedProps.type?.toLowerCase();
                   if (type) {
                     eventInfo.el.setAttribute('data-type', type);
                   }
                   
-                  // Force the event to be more prominent
+                  // Add status attribute for status-specific styling
+                  const status = extendedProps.status?.toLowerCase();
+                  if (status) {
+                    eventInfo.el.setAttribute('data-status', status);
+                  }
+                  
+                  // Apply direct styles to ensure visibility
                   eventInfo.el.style.fontSize = '13px';
                   eventInfo.el.style.fontWeight = 'bold';
+                  
+                  // Add customer name as attribute
+                  const customerName = extendedProps.customerName;
+                  if (customerName) {
+                    eventInfo.el.setAttribute('data-customer', customerName);
+                  }
+                  
+                  // Force customer name to be most prominent element
+                  const titleElements = eventInfo.el.querySelectorAll('.fc-event-title');
+                  if (titleElements.length > 0) {
+                    // Get the first title element
+                    const titleElement = titleElements[0];
+                    
+                    // Set customer name as title text if available
+                    if (customerName) {
+                      titleElement.textContent = customerName;
+                    }
+                    
+                    // Apply important inline styles to override FullCalendar
+                    titleElement.style.color = 'white';
+                    titleElement.style.fontSize = '15px';
+                    titleElement.style.fontWeight = 'bold';
+                    titleElement.style.overflow = 'hidden';
+                    titleElement.style.whiteSpace = 'nowrap';
+                    titleElement.style.textOverflow = 'ellipsis';
+                    titleElement.style.display = 'block';
+                    titleElement.style.marginBottom = '4px';
+                  }
                 }
                 
-                // Set the data attribute for styling based on hour
+                // Time-based attributes for priority calculations
                 if (eventInfo.el && eventInfo.event.start) {
                   const startHour = eventInfo.event.start.getHours();
                   const hourStr = startHour.toString().padStart(2, '0');
                   eventInfo.el.setAttribute('data-time', `${hourStr}:00`);
-                  
-                  // Add customized attribute for customer prioritization
-                  const customerName = eventInfo.event.extendedProps?.customerName;
-                  if (customerName) {
-                    eventInfo.el.setAttribute('data-customer', customerName);
-                    
-                    // Force customer name to be clearly visible by adding important inline styles
-                    // This overrides any FullCalendar styling that might be interfering
-                    const titleElement = eventInfo.el.querySelector('.fc-event-title');
-                    if (titleElement) {
-                      titleElement.textContent = customerName;
-                      titleElement.style.color = 'white';
-                      titleElement.style.fontSize = '15px';
-                      titleElement.style.fontWeight = 'bold';
-                      titleElement.style.overflow = 'hidden';
-                      titleElement.style.whiteSpace = 'nowrap';
-                      titleElement.style.textOverflow = 'ellipsis';
-                      titleElement.style.display = 'block';
-                      titleElement.style.marginBottom = '3px';
-                    }
-                  }
                 }
               }}
               eventContent={(eventInfo) => {
