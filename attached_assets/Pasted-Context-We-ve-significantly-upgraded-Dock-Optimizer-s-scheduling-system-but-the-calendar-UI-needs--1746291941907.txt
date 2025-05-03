@@ -1,0 +1,49 @@
+Context:
+We've significantly upgraded Dock Optimizer's scheduling system, but the calendar UI needs polishing for readability and clarity. Focus is needed on better displaying Customer Names prominently, reducing wasted space, and improving the visual appeal and clarity, inspired by our original Dock Optimizer app.
+
+🎯 Goals for Implementation:
+1. Prioritize Customer Name on Appointment Cards
+
+Modify the calendar’s appointment preview cards (colorful blocks) to always show:
+
+Customer Name first (clearly, bold, largest font)
+
+Appointment time range second (smaller font below Customer Name)
+
+Remove or hide unnecessary/redundant details from the preview card itself, leaving detailed information available only on hover.
+
+Ensure the hover-over tooltip displays the detailed information clearly and is unchanged (as it currently is correct).
+
+2. Improve Spacing and Readability
+
+Reduce the vertical padding/margin between header bars and the calendar grid to minimize wasted white space, referencing the original Dock Optimizer UI for compactness.
+
+Narrow the spacing between calendar date labels to achieve a more compact and visually balanced layout, like the original Dock Optimizer screenshot.
+
+3. General UI Styling Improvements
+
+Use font weights effectively (bold for critical elements like Customer Name, normal for secondary details).
+
+Maintain consistent rounded corners for appointment cards but reduce padding inside each card slightly for compactness.
+
+Ensure colors remain distinct for inbound/outbound or appointment types for clear differentiation.
+
+Maintain existing functionality and responsiveness (desktop and tablet views).
+
+✅ Acceptance Criteria:
+Calendar appointment cards now clearly and immediately highlight the Customer Name.
+
+Significant reduction in unnecessary white space between UI elements (header bars, date labels, and grid lines).
+
+Clear visual reference taken from the original Dock Optimizer application (included screenshots).
+
+Full preservation of hover tooltip details (already correctly implemented).
+
+Zero regressions to existing calendar functionality.
+
+📦 Deliverables:
+Updated calendar component files (/schedules page) implementing above changes clearly and cleanly.
+
+Updated CSS/SCSS clearly marked to indicate UI spacing and layout adjustments.
+
+Brief documentation or inline comments clarifying layout decisions and referencing the original Dock Optimizer for comparison.

@@ -771,54 +771,50 @@ export default function FullCalendarView({
                 const showAttentionBadge = !showStatusBadge && needsAttention;
                 
                 return (
-                  <div className="w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
-                    {/* Time with more prominence */}
-                    <div className="text-xs font-semibold mb-0.5">{eventInfo.timeText}</div>
-                    
-                    {/* Customer name on second line with highest visibility */}
+                  <div className="w-full h-full p-1 flex flex-col justify-start overflow-hidden">
+                    {/* CUSTOMER NAME FIRST: Primary information with highest prominence */}
                     {customerName && (
-                      <div className="font-bold text-[11px] truncate mb-0.5">
+                      <div className="font-bold text-[13px] truncate mb-1 leading-tight">
                         {customerName}
                       </div>
                     )}
                     
-                    {/* Third line: Carrier + Type + Truck # */}
-                    <div className="text-[10px] line-clamp-1 overflow-hidden text-ellipsis">
-                      {carrierName && <span className="font-medium mr-1">{carrierName}</span>}
+                    {/* TIME SECOND: Appointment time range with medium prominence */}
+                    <div className="text-[10px] font-medium mb-0.5 opacity-90">{eventInfo.timeText}</div>
+                    
+                    {/* Type badge - compact and clear */}
+                    <div className="flex flex-wrap items-center gap-x-1 text-[9px]">
                       {eventData?.type && 
-                        <span className={`inline-block mr-1 px-1 rounded-sm ${
-                          eventData.type.toLowerCase() === 'inbound' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
+                        <span className={`inline-block px-1 rounded-sm font-medium ${
+                          eventData.type.toLowerCase() === 'inbound' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
                         }`}>
                           {eventData.type === 'inbound' ? 'IN' : 'OUT'}
                         </span>
                       }
-                      {truckNumber && <span className="inline-block">#{truckNumber}</span>}
+                      
+                      {/* Truck # - essential operational info */}
+                      {truckNumber && <span className="inline-block font-medium">#{truckNumber}</span>}
                     </div>
                     
-                    {/* Facility name in smaller font */}
-                    {facilityName && (
-                      <div className="text-[9px] text-blue-700 line-clamp-1 mt-0.5">
-                        {facilityName}
-                      </div>
-                    )}
+                    {/* Minimal location info - very compact */}
+                    <div className="flex items-center text-[8px] mt-0.5 opacity-75 space-x-1">
+                      {/* Facility name when relevant */}
+                      {facilityName && <span className="line-clamp-1">{facilityName}</span>}
+                      
+                      {/* Dock number when available */}
+                      {dockId && <span>• Dock #{dockId}</span>}
+                    </div>
                     
-                    {/* Dock info - less prominent */}
-                    {dockId && (
-                      <div className="text-[9px] text-gray-600">
-                        Dock #{dockId}
-                      </div>
-                    )}
-                    
-                    {/* Status badge */}
+                    {/* Status badge - only shown when needed */}
                     {showStatusBadge && (
-                      <div className="mt-1 text-[9px] font-bold bg-white/20 text-white rounded px-1 py-0.5 max-w-fit">
+                      <div className="mt-0.5 text-[8px] font-bold bg-white/30 text-white rounded px-1 max-w-fit">
                         {status.toUpperCase()}
                       </div>
                     )}
                     
-                    {/* Attention badge */}
+                    {/* Attention badge - only shown when needed */}
                     {showAttentionBadge && (
-                      <div className="mt-1 text-[9px] font-bold bg-white/20 text-white rounded px-1 py-0.5 max-w-fit animate-pulse">
+                      <div className="mt-0.5 text-[8px] font-bold bg-white/30 text-white rounded px-1 max-w-fit animate-pulse">
                         {attentionReason.toUpperCase()}
                       </div>
                     )}

@@ -1,4 +1,4 @@
-/* Minimal calendar styling - simpler version */
+/* Enhanced calendar styling for improved vertical density and readability */
 
 /* Container basics with responsive approach */
 .calendar-container {
@@ -17,6 +17,44 @@
   flex-grow: 1;
 }
 
+/* Calendar header with reduced spacing - more compact vertical layout */
+.fc-header-toolbar {
+  margin-bottom: 0.5em !important; /* Reduced from default 1.5em */
+  padding: 0 0.25rem;
+}
+
+/* Day header row - smaller with tighter spacing */
+.fc-col-header {
+  font-size: 0.85rem;
+}
+
+/* Make column headers more compact */
+.fc-timegrid-axis-frame, .fc-col-header-cell {
+  padding: 4px !important;
+  height: 1.8rem !important;
+}
+
+/* Time slots - more compact vertical sizing */
+.fc-timegrid-slots td {
+  height: 2.5em !important; /* Reduced slot height */
+}
+
+/* More compact time labels */
+.fc-timegrid-axis-cushion {
+  padding: 2px 4px !important;
+  font-size: 0.75rem !important;
+}
+
+/* Reduce spacing between days in week view */
+.fc-timegrid-cols table {
+  border-spacing: 0 !important;
+}
+
+.fc .fc-daygrid-day-frame {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
 /* Media queries for responsive behavior */
 @media (max-width: 768px) {
   .fc .fc-toolbar {
@@ -26,29 +64,29 @@
   
   .fc .fc-toolbar-title {
     font-size: 1rem !important;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
   }
 }
 
 @media (max-width: 640px) {
   .fc .fc-timegrid-slots td {
-    height: 2.5em;
+    height: 2em !important;
   }
   
   .fc .fc-timegrid-event-harness {
-    min-height: 2em;
+    min-height: 1.8em;
   }
 }
 
-/* Calendar header styling */
+/* Calendar header styling - smaller, tighter */
 .fc-toolbar-title {
-  font-size: 1.25rem !important;
+  font-size: 1.15rem !important;
   font-weight: 600 !important;
 }
 
 /* Improve header spacing */
 .fc .fc-col-header-cell-cushion {
-  padding: 8px;
+  padding: 4px !important;
   text-decoration: none !important;
   color: inherit;
 }
@@ -58,11 +96,12 @@
   padding: 0 !important;
 }
 
-/* Ensure events appear correctly */
+/* Ensure events appear correctly with improved density */
 .fc-event {
   border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-  margin: 1px 0;
+  border-radius: 3px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.14);
+  margin: 1px 0 !important;
 }
 
 /* Make calendar stay within bounds */
@@ -70,33 +109,10 @@
   max-width: 100%;
 }
 
-/* Improve timegrid event display */
+/* Improve timegrid event display - more compact */
 .fc-timegrid-event {
-  padding: 2px 4px !important;
-  min-height: 25px !important;
-}
-
-/* Calendar nav buttons */
-.calendar-view-button {
-  display: inline-flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* View buttons container */
-.view-buttons-container {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: white;
-  padding: 1rem 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-/* Event appearance */
-.fc-event {
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  padding: 1px 3px !important;
+  min-height: 22px !important;
 }
 
 /* Make earlier events appear on top */
