@@ -4746,11 +4746,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Check availability for booking appointments
   app.get("/api/availability", async (req, res) => {
     try {
-      const { date, facilityId, appointmentTypeId, typeId } = req.query;
-      const tenantId = req.user?.tenantId;
+      const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
+      // Get the tenant ID from user session
+      const userTenantId = req.user?.tenantId;
       
       // Support both parameter naming conventions for backward compatibility
       const finalTypeId = typeId || appointmentTypeId;
+      
+      // Variable to hold the effective tenant ID to use for this request
+      let effectiveTenantId = userTenantId;
+      
+      // If a booking page slug is provided, use it to determine the tenant context
+      // This takes priority over the authenticated user's context
+      if (bookingPageSlug) {
+        console.log(`[AvailabilityEndpoint] Request with bookingPageSlug: ${bookingPageSlug}`);
+        
+        // Get the booking page to determine its tenant
+        const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug as string);
+        if (bookingPage && bookingPage.tenantId) {
+          effectiveTenantId = bookingPage.tenantId;
+          console.log(`[AvailabilityEndpoint] Using booking page tenant context: ${effectiveTenantId}`);
+        } else {
+          console.log(`[AvailabilityEndpoint] No valid booking page found for slug: ${bookingPageSlug}`);
+        }
+      }
       
       // INSTRUMENTATION: Log the incoming request parameters
       console.log("===== /api/availability ENDPOINT INSTRUMENTATION =====");
@@ -4760,7 +4779,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appointmentTypeId, 
         typeId, 
         finalTypeId,
-        tenantId: tenantId || 'none' 
+        bookingPageSlug: bookingPageSlug || 'none',
+        userTenantId: userTenantId || 'none',
+        effectiveTenantId: effectiveTenantId || 'none'
       });
       
       if (!date || !facilityId || !finalTypeId) {
@@ -4783,10 +4804,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[AvailabilityEndpoint] Super admin access granted for facility ${parsedFacilityId}`);
       } else {
         // If not super admin, enforce tenant isolation
-        let userTenantId = tenantId;
+        // Use effectiveTenantId (from booking page or user) for access control
+        let facilityTenantId = effectiveTenantId;
         
-        // If no tenant ID in session, try to determine tenant from the requested facility
-        if (!userTenantId) {
+        // If no tenant ID yet, try to determine tenant from the requested facility
+        if (!facilityTenantId) {
           try {
             // Look up which organization owns this facility with direct SQL
             const facilityOrgQuery = `
@@ -4802,17 +4824,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (orgResult.rows.length > 0) {
               const orgInfo = orgResult.rows[0];
               console.log(`[AvailabilityEndpoint] Facility ${parsedFacilityId} belongs to organization ${orgInfo.id} (${orgInfo.name})`);
-              userTenantId = orgInfo.id;
+              facilityTenantId = orgInfo.id;
             }
           } catch (error) {
             console.error(`[AvailabilityEndpoint] Error determining facility organization:`, error);
           }
         }
         
-        // If using a tenantId (from session or derived), verify facility access
-        if (userTenantId) {
+        // If using a tenantId (from session, booking page, or derived), verify facility access
+        if (facilityTenantId) {
           try {
-            // Verify facility belongs to the user's organization using direct SQL
+            // Verify facility belongs to the effective tenant using direct SQL
             const checkAccessQuery = `
               SELECT 1 
               FROM organization_facilities 
@@ -4820,31 +4842,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
               LIMIT 1
             `;
             
-            const accessResult = await pool.query(checkAccessQuery, [userTenantId, parsedFacilityId]);
+            const accessResult = await pool.query(checkAccessQuery, [facilityTenantId, parsedFacilityId]);
             
             const hasAccess = isSuperAdmin || accessResult.rows.length > 0;
             
-            // The following condition is incorrect and allows cross-tenant access:
-            // const matchesTenant = !tenantId || tenantId === userTenantId;
-            
-            // Instead, only allow access if:
-            // 1. User has no tenant ID (public access)
-            // 2. User's tenant ID matches the facility's organization ID
-            if (tenantId && tenantId !== userTenantId) {
-              console.log(`[AvailabilityEndpoint] Access denied - facility ${parsedFacilityId} belongs to tenant ${userTenantId}, user is from tenant ${tenantId}`);
-              return res.status(403).json({ 
-                message: "Access denied to this facility's availability" 
-              });
+            // If we have a user tenant ID, and it's different from our effective tenant ID,
+            // we're dealing with cross-tenant access via a booking page
+            if (userTenantId && userTenantId !== facilityTenantId) {
+              console.log(`[AvailabilityEndpoint] Cross-tenant access via booking page - facility ${parsedFacilityId} belongs to tenant ${facilityTenantId}, user is from tenant ${userTenantId}`);
+              
+              // For cross-tenant access via booking page, we allow it but log it
+              if (bookingPageSlug) {
+                console.log(`[AvailabilityEndpoint] Allowing cross-tenant access via booking page ${bookingPageSlug}`);
+              } else {
+                // If no booking page slug, don't allow cross-tenant access
+                console.log(`[AvailabilityEndpoint] Denying cross-tenant access - facility ${parsedFacilityId} belongs to tenant ${facilityTenantId}, user is from tenant ${userTenantId}`);
+                return res.status(403).json({ 
+                  message: "Access denied to this facility's availability" 
+                });
+              }
             }
             
             if (!hasAccess) {
-              console.log(`[AvailabilityEndpoint] Access denied - facility ${parsedFacilityId} does not belong to tenant ${tenantId || userTenantId}`);
+              console.log(`[AvailabilityEndpoint] Access denied - facility ${parsedFacilityId} does not belong to tenant ${facilityTenantId}`);
               return res.status(403).json({ 
                 message: "Access denied to this facility's availability"
               });
             }
             
-            console.log(`[AvailabilityEndpoint] Verified tenant access to facility ${parsedFacilityId} for tenant ${userTenantId}`);
+            console.log(`[AvailabilityEndpoint] Verified tenant access to facility ${parsedFacilityId} for tenant ${facilityTenantId}`);
           } catch (error) {
             console.error(`[AvailabilityEndpoint] Error checking facility access:`, error);
             return res.status(500).json({ 
@@ -4853,7 +4879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Additional check: verify appointment type belongs to the user's tenant
+        // Additional check: verify appointment type belongs to the facility's tenant
         try {
           const appointmentTypeQuery = `
             SELECT t.id, t.name 
@@ -4869,12 +4895,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const appointmentTypeOrg = aptResult.rows[0];
             console.log(`[AvailabilityEndpoint] Appointment type ${parsedAppointmentTypeId} belongs to organization ${appointmentTypeOrg.id} (${appointmentTypeOrg.name})`);
             
-            // Critical tenant isolation check:
-            // If the user has a tenant ID and it doesn't match the appointment type's organization,
-            // OR if the facility's tenant doesn't match the appointment type's tenant, deny access
-            if ((tenantId && appointmentTypeOrg.id !== tenantId) || 
-                (userTenantId && appointmentTypeOrg.id !== userTenantId)) {
-              console.log(`[AvailabilityEndpoint] Access denied - appointment type ${parsedAppointmentTypeId} belongs to org ${appointmentTypeOrg.id}, user is from tenant ${tenantId}, facility belongs to tenant ${userTenantId}`);
+            // For appointment types, we should only validate against the facility's tenant
+            // or the booking page tenant (effectiveTenantId), not the user's tenant ID
+            if (facilityTenantId && appointmentTypeOrg.id !== facilityTenantId) {
+              console.log(`[AvailabilityEndpoint] Access denied - appointment type ${parsedAppointmentTypeId} belongs to org ${appointmentTypeOrg.id}, facility belongs to tenant ${facilityTenantId}`);
               return res.status(403).json({ 
                 message: "Access denied: you don't have permission to access this resource"
               });
