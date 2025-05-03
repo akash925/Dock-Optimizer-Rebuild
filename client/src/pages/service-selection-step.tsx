@@ -56,12 +56,23 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
     }
   });
   
-  // Fetch facilities data
+  // Fetch facilities data - use booking page slug to get the correct tenant's facilities
   const { 
     data: facilities = [], 
     isLoading: facilitiesLoading 
   } = useQuery<any[]>({
-    queryKey: ['/api/facilities'],
+    queryKey: ['/api/facilities', { bookingPageSlug: bookingPage?.slug }],
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl, params] = queryKey;
+      const url = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      console.log(`[ServiceSelectionStep] Fetching facilities with URL: ${url}`);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch facilities for this booking page');
+      }
+      return response.json();
+    },
+    enabled: !!bookingPage?.slug
   });
   
   // Fetch appointment types
@@ -244,7 +255,7 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
         <div className="prose max-w-none">
           <h2 className="text-xl font-bold">Schedule Your Appointment</h2>
           <p className="text-sm">
-            Please use this form to schedule a dock appointment at Hanzo Logistics. 
+            Please use this form to schedule a dock appointment at {bookingPage?.name || 'Dock Optimizer'}.
             For support using this page, please <a href="#" className="text-blue-600 hover:underline">check out this video</a>.
           </p>
           
