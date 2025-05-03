@@ -378,7 +378,7 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
       dateFilterClause = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
     }
     
-    // Query to get utilization by dock with tenant isolation
+    // Query to get utilization by dock with tenant isolation through the junction table
     const dockUtilizationStats = await db.execute(sql`
       WITH total_time AS (
         SELECT 
@@ -394,7 +394,8 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
           END)) / 3600 as total_hours
         FROM ${docks} d
         JOIN ${facilities} f ON d.facility_id = f.id
-        WHERE f.tenant_id = ${tenantId}
+        JOIN ${organizationFacilities} of ON f.id = of.facility_id
+        WHERE of.organization_id = ${tenantId}
         ${sql.raw(facilityWhereClause)}
       ),
       used_time AS (
@@ -403,8 +404,9 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
           SUM(EXTRACT(EPOCH FROM (s.end_time - s.start_time)) / 3600) as used_hours
         FROM ${docks} d
         JOIN ${facilities} f ON d.facility_id = f.id
+        JOIN ${organizationFacilities} of ON f.id = of.facility_id
         LEFT JOIN ${schedules} s ON d.id = s.dock_id
-        WHERE f.tenant_id = ${tenantId}
+        WHERE of.organization_id = ${tenantId}
         AND s.facility_id IN (${sql.join(facilityIds)})
         ${sql.raw(facilityWhereClause)}
         ${sql.raw(dateFilterClause)}
