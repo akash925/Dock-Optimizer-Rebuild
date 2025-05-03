@@ -1589,6 +1589,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ message: "Booking page not found" });
         }
         
+        if (!bookingPage.tenantId) {
+          console.log(`[Facilities] Error: Booking page ${bookingPageSlug} has no tenant ID`);
+          return res.status(500).json({ message: "Booking page has no organization" });
+        }
+        
         const bookingPageTenantId = bookingPage.tenantId;
         console.log(`[Facilities] Found booking page with tenant ID: ${bookingPageTenantId}`);
         
@@ -2669,16 +2674,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ message: "Booking page not found" });
         }
         
+        if (!bookingPage.tenantId) {
+          console.log(`[AppointmentTypes] Error: Booking page ${bookingPageSlug} has no tenant ID`);
+          return res.status(500).json({ message: "Booking page has no organization" });
+        }
+        
         const bookingPageTenantId = bookingPage.tenantId;
         console.log(`[AppointmentTypes] Found booking page with tenant ID: ${bookingPageTenantId}`);
         
         // Get appointment types for this booking page's tenant, optionally filtered by facility
         console.log(`[AppointmentTypes] Fetching appointment types for booking page tenant ${bookingPageTenantId}`);
         
+        // Extra validation to make sure the facility belongs to the booking page's organization
+        if (facilityIdParam) {
+          const facility = await storage.getFacility(facilityIdParam);
+          if (!facility || facility.tenantId !== bookingPageTenantId) {
+            console.log(`[AppointmentTypes] Facility ${facilityIdParam} does not belong to booking page tenant ${bookingPageTenantId}`);
+            return res.status(400).json({ message: "Invalid facility for this booking page" });
+          }
+        }
+        
         let appointmentTypes;
         if (facilityIdParam) {
           // If facility ID specified, get appointment types for that facility
-          appointmentTypes = await storage.getAppointmentTypesByFacility(facilityIdParam, bookingPageTenantId);
+          appointmentTypes = await storage.getAppointmentTypesByFacility(facilityIdParam);
           console.log(`[AppointmentTypes] Filtered by facility ID ${facilityIdParam}`);
         } else {
           // Otherwise get all appointment types for tenant
@@ -3566,24 +3585,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const slug = req.params.slug;
       console.log(`[BookingPage] Retrieving booking page with slug: ${slug}`);
       
-      // Pass tenantId to enforce tenant isolation if user is authenticated
-      const tenantId = req.isAuthenticated() ? req.user?.tenantId : undefined;
-      const isSuperAdmin = req.isAuthenticated() && (req.user?.role === 'super-admin' || req.user?.username?.includes('admin@conmitto.io'));
-      
-      // If the user is a super admin, we don't need to enforce tenant isolation
-      const bookingPage = await storage.getBookingPageBySlug(
-        slug, 
-        isSuperAdmin ? undefined : tenantId
-      );
+      // For public booking pages, we don't enforce tenant isolation by authenticated user
+      // Instead, we find the booking page by slug and then use its tenantId for subsequent operations
+      const bookingPage = await storage.getBookingPageBySlug(slug);
       
       if (!bookingPage) {
-        console.log(`[BookingPage] No booking page found with slug: ${slug} for user tenant: ${tenantId || 'none'}`);
+        console.log(`[BookingPage] No booking page found with slug: ${slug}`);
         return res.status(404).json({ message: "Booking page not found" });
       }
       
       console.log(`[BookingPage] Successfully retrieved booking page:`, {
         id: bookingPage.id,
         name: bookingPage.name,
+        tenantId: bookingPage.tenantId,
         facilities: bookingPage.facilities,
         excludedAppointmentTypes: bookingPage.excludedAppointmentTypes
       });

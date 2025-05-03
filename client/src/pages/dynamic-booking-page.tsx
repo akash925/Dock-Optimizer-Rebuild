@@ -153,8 +153,9 @@ export default function DynamicBookingPage() {
   const [parsedFacilities, setParsedFacilities] = useState<ParsedFacilities>({});
   
   // Get the slug parameter from the URL (e.g., /booking/hanzo-logistics)
-  const [_, params] = useLocation();
-  const pathParts = params.split('/');
+  const [currentPath] = useLocation();
+  // Extract slug from path - should be the last part of the URL path
+  const pathParts = currentPath.split('/').filter(part => part.trim() !== '');
   const slug = pathParts[pathParts.length - 1];
   
   // Check for reset parameter in the URL
