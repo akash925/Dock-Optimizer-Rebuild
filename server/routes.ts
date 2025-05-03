@@ -5114,31 +5114,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } else {
       // If not super admin, enforce tenant isolation
       try {
-        // Check if the facility belongs to the effective tenant
+        // Check if the facility belongs to the effective tenant using the organization_facilities junction table
         const facilityQuery = `
-          SELECT f.tenant_id 
+          SELECT of.organization_id
           FROM facilities f 
-          WHERE f.id = $1
+          JOIN organization_facilities of ON f.id = of.facility_id
+          WHERE f.id = $1 AND of.organization_id = $2
           LIMIT 1
         `;
-        const facilityResult = await pool.query(facilityQuery, [parsedFacilityId]);
+        const facilityResult = await pool.query(facilityQuery, [parsedFacilityId, effectiveTenantId]);
         
         if (facilityResult.rows.length === 0) {
-          console.log(`[AvailabilityHandler] Facility ${parsedFacilityId} not found`);
-          return res.status(404).json({ message: "Facility not found" });
+          console.log(`[AvailabilityHandler] Facility ${parsedFacilityId} not found or not accessible by tenant ${effectiveTenantId}`);
+          
+          // Double-check if the facility exists at all
+          const checkFacilityQuery = `SELECT id FROM facilities WHERE id = $1 LIMIT 1`;
+          const checkResult = await pool.query(checkFacilityQuery, [parsedFacilityId]);
+          
+          if (checkResult.rows.length === 0) {
+            return res.status(404).json({ message: "Facility not found" });
+          } else {
+            return res.status(403).json({ 
+              message: "Access denied to this facility's availability"
+            });
+          }
         }
         
-        const facilityTenantId = facilityResult.rows[0].tenant_id;
-        
-        // If there's an effective tenant ID (from booking page or user), validate access
-        if (effectiveTenantId && facilityTenantId !== effectiveTenantId) {
-          console.log(`[AvailabilityHandler] Access denied - facility ${parsedFacilityId} does not belong to tenant ${effectiveTenantId}`);
-          return res.status(403).json({ 
-            message: "Access denied to this facility's availability"
-          });
-        }
-        
-        console.log(`[AvailabilityHandler] Verified tenant access to facility ${parsedFacilityId} for tenant ${facilityTenantId}`);
+        console.log(`[AvailabilityHandler] Verified tenant access to facility ${parsedFacilityId} for organization ${effectiveTenantId}`);
       } catch (error) {
         console.error(`[AvailabilityHandler] Error checking facility access:`, error);
         return res.status(500).json({ 
@@ -5173,28 +5175,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `;
       const facilitySettingsResult = await pool.query(facilitySettingsQuery, [parsedFacilityId]);
       
-      if (facilitySettingsResult.rows.length === 0) {
-        return res.status(404).json({ message: "Facility settings not found" });
-      }
-      
-      const facilitySettings = facilitySettingsResult.rows[0];
-      
-      // Parse the requested date
-      const requestedDate = new Date(parsedDate);
-      const dayOfWeek = requestedDate.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
-      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      const dayName = dayNames[dayOfWeek];
-      
-      // Default facility hours and availability
-      let isAvailable = true;
+      // Default facility hours if settings not found
       let startTime = "08:00";
       let endTime = "17:00";
+      let isAvailable = true;
+      
+      // If facility settings exist, use them
+      if (facilitySettingsResult.rows.length > 0) {
+        const facilitySettings = facilitySettingsResult.rows[0];
+        
+        // Check operating hours for the day of week if available
+        const requestedDate = new Date(parsedDate);
+        const dayOfWeek = requestedDate.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const dayName = dayNames[dayOfWeek];
+        
+        // Check if facility is open on this day
+        const operatingHoursColumn = `${dayName.toLowerCase()}_hours`;
+        const operatingHours = facilitySettings[operatingHoursColumn];
+        
+        if (operatingHours) {
+          try {
+            // Parse operating hours format (e.g., "08:00-17:00")
+            const [start, end] = operatingHours.split('-');
+            if (start && end) {
+              startTime = start.trim();
+              endTime = end.trim();
+              isAvailable = true;
+            }
+          } catch (e) {
+            console.error(`Error parsing operating hours: ${operatingHours}`, e);
+          }
+        }
+      } else {
+        console.log(`No facility settings found for facility ${parsedFacilityId}, using defaults`);
+      }
       
       // Generate time slots at the specified interval (default to 30 mins if not specified)
       const intervalMinutes = appointmentType.duration || 30;
       
-      // Format the slot times
-      const availableTimes = generateAvailableTimeSlots(startTime, endTime, intervalMinutes);
+      // Check for existing appointments on this date to mark busy slots
+      const dateStart = new Date(parsedDate);
+      dateStart.setHours(0, 0, 0, 0);
+      
+      const dateEnd = new Date(parsedDate);
+      dateEnd.setHours(23, 59, 59, 999);
+      
+      // Use correct time format for PostgreSQL
+      const dateStartStr = dateStart.toISOString();
+      const dateEndStr = dateEnd.toISOString();
+      
+      // Query to get all appointments for this date and facility
+      const busyTimesQuery = `
+        SELECT 
+          s.start_time, 
+          s.end_time,
+          s.dock_id
+        FROM schedules s
+        WHERE s.facility_id = $1
+        AND s.start_time >= $2
+        AND s.start_time < $3
+        ORDER BY s.start_time
+      `;
+      
+      // Get all existing appointments
+      const busyTimesResult = await pool.query(busyTimesQuery, [
+        parsedFacilityId, 
+        dateStartStr, 
+        dateEndStr
+      ]);
+      
+      // Get all docks for this facility
+      const docksQuery = `
+        SELECT id FROM docks
+        WHERE facility_id = $1
+      `;
+      
+      const docksResult = await pool.query(docksQuery, [parsedFacilityId]);
+      const docks = docksResult.rows.map(d => d.id);
+      
+      // Create a busy time map by dock
+      const busyTimesByDock = {};
+      
+      // Initialize with empty arrays for each dock
+      docks.forEach(dockId => {
+        busyTimesByDock[dockId] = [];
+      });
+      
+      // Populate busy times for each dock
+      busyTimesResult.rows.forEach(appointment => {
+        if (appointment.dock_id) {
+          if (!busyTimesByDock[appointment.dock_id]) {
+            busyTimesByDock[appointment.dock_id] = [];
+          }
+          
+          busyTimesByDock[appointment.dock_id].push({
+            start: new Date(appointment.start_time),
+            end: new Date(appointment.end_time)
+          });
+        }
+      });
+      
+      // Generate all possible time slots
+      const allTimeSlots = generateAvailableTimeSlots(startTime, endTime, intervalMinutes);
+      
+      // For each time slot, check if we have at least one dock available
+      const availableTimes = [];
+      
+      allTimeSlots.forEach(timeStr => {
+        // Convert HH:MM string to a Date object for comparison
+        const slotTime = new Date(`${parsedDate}T${timeStr}:00`);
+        const slotEndTime = new Date(slotTime.getTime() + (intervalMinutes * 60 * 1000));
+        
+        // Check if at least one dock is free at this time
+        const isSlotAvailable = docks.some(dockId => {
+          const dockBusyTimes = busyTimesByDock[dockId] || [];
+          
+          // Check if this dock is free for this time slot
+          return !dockBusyTimes.some(busyTime => 
+            (slotTime < busyTime.end && slotEndTime > busyTime.start)
+          );
+        });
+        
+        if (isSlotAvailable) {
+          availableTimes.push(timeStr);
+        }
+      });
+      
+      console.log(`Generated ${availableTimes.length} available slots for facility ${parsedFacilityId} on ${parsedDate}`);
       
       // Return the available time slots
       res.json({ 

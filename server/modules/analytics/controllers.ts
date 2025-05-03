@@ -129,8 +129,8 @@ export async function getFacilityStats(req: Request, res: Response) {
         f.address1 as address,
         COUNT(s.id) as "appointmentCount"
       FROM ${facilities} f
-      LEFT JOIN ${schedules} s ON f.id = s.facility_id
       JOIN ${organizationFacilities} of ON f.id = of.facility_id
+      LEFT JOIN ${schedules} s ON f.id = s.facility_id
       ${whereClause}
       GROUP BY f.id, f.name, f.address1
       ORDER BY "appointmentCount" DESC
