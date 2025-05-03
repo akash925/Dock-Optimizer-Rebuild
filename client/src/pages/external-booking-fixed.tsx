@@ -640,38 +640,59 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
       
       try {
         // First, get the organization ID for this facility
-        const orgResponse = await fetch(`/api/facilities/${selectedFacility.id}/organization`);
+        // Important: Use port 5000 directly for API requests
+        const orgApiUrl = `http://localhost:5000/api/facilities/${selectedFacility.id}/organization`;
+        console.log(`[ExternalBookingFixed] Fetching organization for facility with URL: ${orgApiUrl}`);
         
-        if (!orgResponse.ok) {
-          console.warn(`Failed to fetch organization for facility ${selectedFacility.id}`);
+        let organizationId;
+        try {
+          const orgResponse = await fetch(orgApiUrl);
+          console.log(`[ExternalBookingFixed] Organization API response status:`, orgResponse.status);
+          
+          if (!orgResponse.ok) {
+            const errorText = await orgResponse.text();
+            console.error(`[ExternalBookingFixed] Error fetching organization: ${errorText}`);
+            console.warn(`Failed to fetch organization for facility ${selectedFacility.id}`);
+            return;
+          }
+          
+          const orgData = await orgResponse.json();
+          organizationId = orgData.organizationId;
+          
+          if (!organizationId) {
+            console.warn(`No organization found for facility ${selectedFacility.id}`);
+            return;
+          }
+          
+          // Get holidays for this organization
+          // Important: Use port 5000 directly for API requests
+          const holidaysApiUrl = `http://localhost:5000/api/organizations/${organizationId}/holidays`;
+          console.log(`[ExternalBookingFixed] Fetching holidays with URL: ${holidaysApiUrl}`);
+          
+          const holidaysResponse = await fetch(holidaysApiUrl);
+          console.log(`[ExternalBookingFixed] Holidays API response status:`, holidaysResponse.status);
+          
+          if (!holidaysResponse.ok) {
+            const errorText = await holidaysResponse.text();
+            console.error(`[ExternalBookingFixed] Error fetching holidays: ${errorText}`);
+            console.warn(`Failed to fetch holidays for organization ${organizationId}`);
+            return;
+          }
+          
+          const holidays = await holidaysResponse.json();
+          
+          // Filter only enabled holidays and extract dates
+          const enabledHolidayDates = holidays
+            .filter((holiday: any) => holiday.enabled)
+            .map((holiday: any) => holiday.date);
+          
+          console.log(`[EXTERNAL BOOKING] Found ${enabledHolidayDates.length} enabled holidays for organization ${organizationId}:`, enabledHolidayDates);
+          
+          setOrganizationHolidays(enabledHolidayDates);
+        } catch (err) {
+          console.error(`[ExternalBookingFixed] Exception fetching organization data:`, err);
           return;
         }
-        
-        const { organizationId } = await orgResponse.json();
-        
-        if (!organizationId) {
-          console.warn(`No organization found for facility ${selectedFacility.id}`);
-          return;
-        }
-        
-        // Get holidays for this organization
-        const holidaysResponse = await fetch(`/api/organizations/${organizationId}/holidays`);
-        
-        if (!holidaysResponse.ok) {
-          console.warn(`Failed to fetch holidays for organization ${organizationId}`);
-          return;
-        }
-        
-        const holidays = await holidaysResponse.json();
-        
-        // Filter only enabled holidays and extract dates
-        const enabledHolidayDates = holidays
-          .filter((holiday: any) => holiday.enabled)
-          .map((holiday: any) => holiday.date);
-        
-        console.log(`[EXTERNAL BOOKING] Found ${enabledHolidayDates.length} enabled holidays for organization ${organizationId}:`, enabledHolidayDates);
-        
-        setOrganizationHolidays(enabledHolidayDates);
       } catch (error) {
         console.error("Error fetching organization holidays:", error);
       } finally {
@@ -702,6 +723,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         const apiUrl = `http://localhost:5000/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}&bookingPageSlug=${slug}`;
         console.log(`[ExternalBookingFixed] Fetching availability with URL: ${apiUrl}`);
         
+        let data;
         try {
           const response = await fetch(apiUrl);
           console.log(`[ExternalBookingFixed] Availability API response status:`, response.status);
@@ -711,13 +733,13 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
             console.error(`[ExternalBookingFixed] Error fetching availability: ${errorText}`);
             throw new Error(`Failed to fetch availability: ${response.status} ${errorText}`);
           }
+          
+          data = await response.json();
+          console.log("[ExternalBookingFixed] Available times response:", data);
         } catch (err) {
           console.error(`[ExternalBookingFixed] Exception fetching availability:`, err);
           throw err;
         }
-        
-        const data = await response.json();
-        console.log("Available times response:", data);
         
         // Log the response data structure in detail
         console.log('[EXTERNAL FLOW] API response data structure:', JSON.stringify(data, null, 2));
