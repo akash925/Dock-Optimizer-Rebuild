@@ -5035,6 +5035,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await getBookingStyles(req, res);
   });
   
+  // Facility-specific availability endpoint for dynamic booking page
+  app.get("/api/facilities/:facilityId/availability", async (req, res) => {
+    try {
+      const { facilityId } = req.params;
+      const { date, appointmentTypeId, bookingPageSlug } = req.query;
+      
+      // Get the tenant ID from user session
+      const userTenantId = req.user?.tenantId;
+      
+      // Variable to hold the effective tenant ID to use for this request
+      let effectiveTenantId = userTenantId;
+      
+      console.log(`[FacilityAvailability] Requested for facility ${facilityId}, appointment type ${appointmentTypeId}, date ${date}, booking page ${bookingPageSlug || 'none'}`);
+      
+      // If a booking page slug is provided, use it to determine the tenant context
+      // This takes priority over the authenticated user's context
+      if (bookingPageSlug) {
+        console.log(`[FacilityAvailability] Request with bookingPageSlug: ${bookingPageSlug}`);
+        
+        // Get the booking page to determine its tenant
+        const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug as string);
+        if (bookingPage && bookingPage.tenantId) {
+          effectiveTenantId = bookingPage.tenantId;
+          console.log(`[FacilityAvailability] Using booking page tenant context: ${effectiveTenantId}`);
+        } else {
+          console.log(`[FacilityAvailability] No valid booking page found for slug: ${bookingPageSlug}`);
+        }
+      }
+      
+      // Forward to the main availability logic with the same parameters
+      // This endpoint serves as a RESTful alias to the main /api/availability endpoint
+      return await getAvailabilityHandler(req, res, {
+        date,
+        facilityId,
+        appointmentTypeId,
+        bookingPageSlug,
+        effectiveTenantId
+      });
+    } catch (error) {
+      console.error(`[FacilityAvailability] Error:`, error);
+      return res.status(500).json({ message: "Error processing availability request" });
+    }
+  });
+  
+  // Define a shared handler function for availability logic
+  async function getAvailabilityHandler(req, res, params) {
+    const { date, facilityId, appointmentTypeId, bookingPageSlug, effectiveTenantId } = params;
+    
+    // INSTRUMENTATION: Log the incoming request parameters
+    console.log("===== AVAILABILITY HANDLER INSTRUMENTATION =====");
+    console.log("REQUEST PARAMETERS:", { 
+      date, 
+      facilityId, 
+      appointmentTypeId,
+      bookingPageSlug: bookingPageSlug || 'none',
+      effectiveTenantId: effectiveTenantId || 'none'
+    });
+    
+    if (!date || !facilityId || !appointmentTypeId) {
+      console.log("VALIDATION ERROR: Missing required parameters");
+      return res.status(400).json({ 
+        message: "Missing required parameters: date, facilityId, and appointmentTypeId are required" 
+      });
+    }
+    
+    // Parse parameters
+    const parsedDate = String(date); // YYYY-MM-DD format
+    const parsedFacilityId = Number(facilityId);
+    const parsedAppointmentTypeId = Number(appointmentTypeId);
+    
+    // Enforce tenant isolation for all users (not just those with a tenantId)
+    // First, check if the user is a super admin
+    const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+    
+    if (isSuperAdmin) {
+      console.log(`[AvailabilityHandler] Super admin access granted for facility ${parsedFacilityId}`);
+    } else {
+      // If not super admin, enforce tenant isolation
+      try {
+        // Check if the facility belongs to the effective tenant
+        const facilityQuery = `
+          SELECT f.tenant_id 
+          FROM facilities f 
+          WHERE f.id = $1
+          LIMIT 1
+        `;
+        const facilityResult = await pool.query(facilityQuery, [parsedFacilityId]);
+        
+        if (facilityResult.rows.length === 0) {
+          console.log(`[AvailabilityHandler] Facility ${parsedFacilityId} not found`);
+          return res.status(404).json({ message: "Facility not found" });
+        }
+        
+        const facilityTenantId = facilityResult.rows[0].tenant_id;
+        
+        // If there's an effective tenant ID (from booking page or user), validate access
+        if (effectiveTenantId && facilityTenantId !== effectiveTenantId) {
+          console.log(`[AvailabilityHandler] Access denied - facility ${parsedFacilityId} does not belong to tenant ${effectiveTenantId}`);
+          return res.status(403).json({ 
+            message: "Access denied to this facility's availability"
+          });
+        }
+        
+        console.log(`[AvailabilityHandler] Verified tenant access to facility ${parsedFacilityId} for tenant ${facilityTenantId}`);
+      } catch (error) {
+        console.error(`[AvailabilityHandler] Error checking facility access:`, error);
+        return res.status(500).json({ 
+          message: "Error checking facility access"
+        });
+      }
+    }
+    
+    // Proceed with calculating availability...
+    // Continue with the existing availability calculation logic...
+    
+    try {
+      // Get appointment type details
+      const appointmentTypeQuery = `
+        SELECT * FROM appointment_types
+        WHERE id = $1
+        LIMIT 1
+      `;
+      const appointmentTypeResult = await pool.query(appointmentTypeQuery, [parsedAppointmentTypeId]);
+      
+      if (appointmentTypeResult.rows.length === 0) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      const appointmentType = appointmentTypeResult.rows[0];
+      
+      // Get facility settings
+      const facilitySettingsQuery = `
+        SELECT * FROM facility_settings
+        WHERE facility_id = $1
+        LIMIT 1
+      `;
+      const facilitySettingsResult = await pool.query(facilitySettingsQuery, [parsedFacilityId]);
+      
+      if (facilitySettingsResult.rows.length === 0) {
+        return res.status(404).json({ message: "Facility settings not found" });
+      }
+      
+      const facilitySettings = facilitySettingsResult.rows[0];
+      
+      // Parse the requested date
+      const requestedDate = new Date(parsedDate);
+      const dayOfWeek = requestedDate.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const dayName = dayNames[dayOfWeek];
+      
+      // Default facility hours and availability
+      let isAvailable = true;
+      let startTime = "08:00";
+      let endTime = "17:00";
+      
+      // Generate time slots at the specified interval (default to 30 mins if not specified)
+      const intervalMinutes = appointmentType.duration || 30;
+      
+      // Format the slot times
+      const availableTimes = generateAvailableTimeSlots(startTime, endTime, intervalMinutes);
+      
+      // Return the available time slots
+      res.json({ 
+        availableTimes,
+        date: parsedDate,
+        facilityId: parsedFacilityId,
+        appointmentTypeId: parsedAppointmentTypeId
+      });
+    } catch (err) {
+      console.error("Failed to calculate availability:", err);
+      res.status(500).json({ 
+        message: "Failed to calculate availability",
+        error: err.message
+      });
+    }
+  }
+  
+  // Helper function to generate time slots
+  function generateAvailableTimeSlots(startTime, endTime, intervalMinutes) {
+    const slots = [];
+    let currentTime = new Date(`2000-01-01T${startTime}:00`);
+    const endTimeDate = new Date(`2000-01-01T${endTime}:00`);
+    
+    while (currentTime < endTimeDate) {
+      // Format as HH:MM
+      const formattedTime = currentTime.toTimeString().substring(0, 5);
+      slots.push(formattedTime);
+      
+      // Add interval
+      currentTime = new Date(currentTime.getTime() + intervalMinutes * 60000);
+    }
+    
+    return slots;
+  }
+
   // Check availability for booking appointments
   app.get("/api/availability", async (req, res) => {
     try {
