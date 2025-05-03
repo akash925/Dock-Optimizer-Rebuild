@@ -638,22 +638,24 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
           <div className="flex items-center">
             {bookingPage.useOrganizationLogo ? (
               <img 
-                src="/api/organization/logo" 
-                alt="Organization Logo"
+                src={`/api/booking-pages/${slug}/logo`}
+                alt={`${bookingPage.name} Logo`}
                 className="h-10 w-auto object-contain mr-3"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = '/placeholder-logo.png';
+                  console.log(`Logo load failed for booking page ${slug}, using placeholder`);
                 }}
               />
             ) : bookingPage.customLogo ? (
               <img 
                 src={bookingPage.customLogo} 
-                alt="Custom Logo"
+                alt={`${bookingPage.name} Custom Logo`}
                 className="h-10 w-auto object-contain mr-3"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = '/placeholder-logo.png';
+                  console.log(`Custom logo load failed for booking page ${slug}, using placeholder`);
                 }}
               />
             ) : (

@@ -132,6 +132,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Error registering organization modules routes:', error);
   }
   
+  // Register booking page logo endpoint
+  try {
+    const { registerBookingPagesLogoEndpoint } = await import('./endpoints/booking-pages-logo');
+    registerBookingPagesLogoEndpoint(app);
+    console.log('Booking pages logo endpoint registered');
+  } catch (error) {
+    console.error('Error registering booking pages logo endpoint:', error);
+  }
+  
   // Test login for development and debugging
   app.get("/api/test-login", async (req, res, next) => {
     try {
