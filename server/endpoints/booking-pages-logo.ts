@@ -43,12 +43,19 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       // Return the logo URL or data
       const logoData = organization.logo ? organization.logo : null;
       
+      // Check if this booking page has useOrganizationLogo flag set to false
+      // and has a custom logo URL defined
+      if (bookingPage.useOrganizationLogo === false && bookingPage.customLogo) {
+        console.log(`[Booking Page Logo] Using custom logo from booking page: ${bookingPage.customLogo}`);
+        return res.json({ logo: bookingPage.customLogo });
+      }
+      
       // Special case handling for known organizations
       if (bookingPage.tenantId === 5) { // Fresh Connect Central
-        console.log(`[Booking Page Logo] Using custom logo path for Fresh Connect Central`);
+        console.log(`[Booking Page Logo] Using organization logo path for Fresh Connect Central`);
         return res.json({ logo: '/assets/fresh-connect-logo.png' });
       } else if (bookingPage.tenantId === 2) { // Hanzo Logistics
-        console.log(`[Booking Page Logo] Using custom logo path for Hanzo Logistics`);
+        console.log(`[Booking Page Logo] Using organization logo path for Hanzo Logistics`);
         return res.json({ logo: '/assets/hanzo_logo.jpeg' });
       }
       
