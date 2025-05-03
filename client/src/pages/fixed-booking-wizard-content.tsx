@@ -249,6 +249,12 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   // Determine which step to show - no hooks in conditional logic
   let stepContent;
   if (currentStep === 1) {
+    console.log('[FixedBookingWizardContent] Rendering ServiceSelectionStepForm with bookingPage:', {
+      id: bookingPage?.id,
+      slug: bookingPage?.slug,
+      tenantId: bookingPage?.tenantId,
+      facilities: bookingPage?.facilities ? JSON.stringify(bookingPage?.facilities).substring(0, 100) : null
+    });
     stepContent = <ServiceSelectionStepForm bookingPage={bookingPage} />;
   } else if (currentStep === 2) {
     stepContent = <DateTimeSelectionStep bookingPage={bookingPage} />;

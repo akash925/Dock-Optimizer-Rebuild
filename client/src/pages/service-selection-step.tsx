@@ -78,21 +78,43 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
   // Fetch appointment types - add bookingPageSlug for tenant isolation
   const { 
     data: appointmentTypes = [], 
-    isLoading: typesLoading 
+    isLoading: typesLoading,
+    error: typesError
   } = useQuery<any[]>({
     queryKey: ['/api/appointment-types', { bookingPageSlug: bookingPage?.slug }],
     queryFn: async ({ queryKey }) => {
       const [baseUrl, params] = queryKey;
       const url = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
       console.log(`[ServiceSelectionStep] Fetching appointment types with URL: ${url}`);
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch appointment types for this booking page');
+      console.log(`[ServiceSelectionStep] Booking page slug: ${params.bookingPageSlug}, full bookingPage:`, bookingPage);
+      
+      try {
+        const response = await fetch(url);
+        console.log(`[ServiceSelectionStep] Appointment types API response status:`, response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[ServiceSelectionStep] Error fetching appointment types: ${errorText}`);
+          throw new Error(`Failed to fetch appointment types: ${response.status} ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[ServiceSelectionStep] Successfully fetched ${data.length} appointment types`);
+        return data;
+      } catch (err) {
+        console.error(`[ServiceSelectionStep] Exception fetching appointment types:`, err);
+        throw err;
       }
-      return response.json();
     },
     enabled: !!bookingPage?.slug
   });
+  
+  // Log any errors
+  useEffect(() => {
+    if (typesError) {
+      console.error('[ServiceSelectionStep] Error from appointment types query:', typesError);
+    }
+  }, [typesError]);
   
   // Filter facilities based on booking page configuration
   const availableFacilities = useMemo(() => {
