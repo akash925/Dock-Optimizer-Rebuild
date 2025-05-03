@@ -4,9 +4,10 @@ import {
   facilities, 
   carriers, 
   schedules,
-  docks
+  docks,
+  organizations
 } from '@shared/schema';
-import { sql } from 'drizzle-orm';
+import { sql, and, eq } from 'drizzle-orm';
 
 /**
  * Get heatmap data for analytics dashboard
@@ -16,47 +17,55 @@ export async function getHeatmapData(req: Request, res: Response) {
   try {
     const { facilityId, appointmentTypeId, customerId, carrierId, startDate, endDate } = req.query;
     
+    // Get the organization ID (tenant ID) from the authenticated user
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
+    }
+    
     // Build dynamic WHERE clause based on filter params
-    let whereClause = sql`WHERE 1=1`;
+    let whereClause = sql`WHERE s.tenant_id = ${tenantId}`;
     
     if (facilityId) {
-      whereClause = sql`${whereClause} AND dock_id = ${facilityId}`;
+      whereClause = sql`${whereClause} AND s.dock_id = ${facilityId}`;
     }
     
     if (appointmentTypeId) {
-      whereClause = sql`${whereClause} AND appointment_type_id = ${appointmentTypeId}`;
+      whereClause = sql`${whereClause} AND s.appointment_type_id = ${appointmentTypeId}`;
     }
     
     if (customerId) {
-      whereClause = sql`${whereClause} AND customer_name = ${customerId}`;
+      whereClause = sql`${whereClause} AND s.customer_name = ${customerId}`;
     }
     
     if (carrierId) {
-      whereClause = sql`${whereClause} AND carrier_id = ${carrierId}`;
+      whereClause = sql`${whereClause} AND s.carrier_id = ${carrierId}`;
     }
     
     // Add date range filtering
     if (startDate && endDate) {
-      whereClause = sql`${whereClause} AND start_time >= ${startDate} AND start_time <= ${endDate}`;
+      whereClause = sql`${whereClause} AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
     } else if (startDate) {
-      whereClause = sql`${whereClause} AND start_time >= ${startDate}`;
+      whereClause = sql`${whereClause} AND s.start_time >= ${startDate}`;
     } else if (endDate) {
-      whereClause = sql`${whereClause} AND start_time <= ${endDate}`;
+      whereClause = sql`${whereClause} AND s.start_time <= ${endDate}`;
     } else {
       // Default to last 7 days if no date range specified
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      whereClause = sql`${whereClause} AND start_time >= ${sevenDaysAgo.toISOString()}`;
+      whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
     }
     
-    // Query to aggregate appointments by day and hour
+    // Query to aggregate appointments by day and hour with tenant isolation
     const heatmapData = await db.execute(sql`
       SELECT 
-        EXTRACT(DOW FROM start_time) as day_of_week,
-        EXTRACT(HOUR FROM start_time) as hour_of_day,
+        EXTRACT(DOW FROM s.start_time) as day_of_week,
+        EXTRACT(HOUR FROM s.start_time) as hour_of_day,
         COUNT(*) as count
-      FROM ${schedules}
+      FROM ${schedules} s
+      JOIN ${facilities} f ON s.dock_id = f.id
       ${whereClause}
+      AND f.tenant_id = ${tenantId}
       GROUP BY day_of_week, hour_of_day
       ORDER BY day_of_week, hour_of_day
     `);
