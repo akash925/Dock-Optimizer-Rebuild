@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Card, 
@@ -59,21 +59,43 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
   // Fetch facilities data - use booking page slug to get the correct tenant's facilities
   const { 
     data: facilities = [], 
-    isLoading: facilitiesLoading 
+    isLoading: facilitiesLoading,
+    error: facilitiesError
   } = useQuery<any[]>({
     queryKey: ['/api/facilities', { bookingPageSlug: bookingPage?.slug }],
     queryFn: async ({ queryKey }) => {
       const [baseUrl, params] = queryKey;
-      const url = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
-      console.log(`[ServiceSelectionStep] Fetching facilities with URL: ${url}`);
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch facilities for this booking page');
+      // Important: Use port 5000 directly for API requests
+      const apiUrl = `http://localhost:5000${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      console.log(`[ServiceSelectionStep] Fetching facilities with URL: ${apiUrl}`);
+      
+      try {
+        const response = await fetch(apiUrl);
+        console.log(`[ServiceSelectionStep] Facilities API response status:`, response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[ServiceSelectionStep] Error fetching facilities: ${errorText}`);
+          throw new Error(`Failed to fetch facilities: ${response.status} ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[ServiceSelectionStep] Successfully fetched ${data.length} facilities`);
+        return data;
+      } catch (err) {
+        console.error(`[ServiceSelectionStep] Exception fetching facilities:`, err);
+        throw err;
       }
-      return response.json();
     },
     enabled: !!bookingPage?.slug
   });
+  
+  // Log any facilities errors
+  useEffect(() => {
+    if (facilitiesError) {
+      console.error('[ServiceSelectionStep] Error from facilities query:', facilitiesError);
+    }
+  }, [facilitiesError]);
   
   // Fetch appointment types - add bookingPageSlug for tenant isolation
   const { 
@@ -84,12 +106,13 @@ export default function ServiceSelectionStep({ bookingPage }: { bookingPage: any
     queryKey: ['/api/appointment-types', { bookingPageSlug: bookingPage?.slug }],
     queryFn: async ({ queryKey }) => {
       const [baseUrl, params] = queryKey;
-      const url = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
-      console.log(`[ServiceSelectionStep] Fetching appointment types with URL: ${url}`);
+      // Important: Use port 5000 directly for API requests
+      const apiUrl = `http://localhost:5000${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      console.log(`[ServiceSelectionStep] Fetching appointment types with URL: ${apiUrl}`);
       console.log(`[ServiceSelectionStep] Booking page slug: ${params.bookingPageSlug}, full bookingPage:`, bookingPage);
       
       try {
-        const response = await fetch(url);
+        const response = await fetch(apiUrl);
         console.log(`[ServiceSelectionStep] Appointment types API response status:`, response.status);
         
         if (!response.ok) {
