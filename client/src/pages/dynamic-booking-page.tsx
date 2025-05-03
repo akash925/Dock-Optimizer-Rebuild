@@ -452,7 +452,12 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
     
     try {
       const formattedDate = format(date, "yyyy-MM-dd");
-      const response = await apiRequest('GET', `/api/facilities/${facilityId}/availability?date=${formattedDate}&appointmentTypeId=${appointmentTypeId}`);
+      console.log(`Fetching availability for facility ${facilityId}, appointment type ${appointmentTypeId}, date ${formattedDate}, booking page slug ${slug}`);
+      
+      // Important: Use port 5000 and include bookingPageSlug parameter for proper tenant isolation
+      const response = await fetch(
+        `http://localhost:5000/api/facilities/${facilityId}/availability?date=${formattedDate}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${slug}`
+      );
       const data = await response.json();
       
       if (data.availableTimes) {
@@ -532,7 +537,8 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
       formDataObj.append('bookingPageSlug', slug);
       
       // Make API request to book appointment
-      const response = await fetch('/api/booking-pages/book-appointment', {
+      // Important: Use port 5000 explicitly for API requests to maintain tenant isolation
+      const response = await fetch('http://localhost:5000/api/booking-pages/book-appointment', {
         method: 'POST',
         body: formDataObj,
       });
@@ -557,8 +563,8 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
         description: "Your appointment has been booked successfully.",
       });
       
-      // Redirect to confirmation page
-      window.location.href = `/booking/${slug}/confirmation?appointmentId=${result.id}`;
+      // Redirect to confirmation page with explicit port 5000 to maintain tenant isolation
+      window.location.href = `http://localhost:5000/booking/${slug}/confirmation?appointmentId=${result.id}`;
       
     } catch (error) {
       console.error("Error submitting appointment:", error);
