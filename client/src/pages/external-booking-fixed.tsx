@@ -719,8 +719,8 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         
         // Call the API to get available times using the standardized parameter name (typeId)
         // Include bookingPageSlug to ensure proper tenant context
-        // Important: Use port 5000 directly for API requests
-        const apiUrl = `http://localhost:5000/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}&bookingPageSlug=${slug}`;
+        // Use relative URL path for API requests to work in any environment
+        const apiUrl = `/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}&bookingPageSlug=${slug}`;
         console.log(`[ExternalBookingFixed] Fetching availability with URL: ${apiUrl}`);
         
         let data;
