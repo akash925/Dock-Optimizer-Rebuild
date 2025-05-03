@@ -17,10 +17,11 @@ import {
   RoleRecord, InsertRoleRecord,
   OrganizationUser, InsertOrganizationUser,
   OrganizationModule, InsertOrganizationModule, AvailableModule,
+  UserPreferences, InsertUserPreferences,
   ScheduleStatus, DockStatus, HolidayScope, TimeInterval, AssetCategory,
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
   appointmentTypes, dailyAvailability, customQuestions, bookingPages, assets, companyAssets,
-  tenants, roles, organizationUsers, organizationModules, organizationFacilities
+  tenants, roles, organizationUsers, organizationModules, organizationFacilities, userPreferences
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -198,6 +199,11 @@ export interface IStorage {
     details: string;
     username?: string;
   }>>;
+  
+  // User Notification Preferences operations
+  getUserPreferences(userId: number, organizationId: number): Promise<UserPreferences | undefined>;
+  createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
+  updateUserPreferences(userId: number, organizationId: number, preferences: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
   
   // Session store
   sessionStore: any; // Type-safe session store

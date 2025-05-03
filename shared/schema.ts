@@ -242,6 +242,32 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   isRead: true,
 });
 
+// User Notification Preferences Model
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  organizationId: integer("organization_id").notNull(),
+  // Email notification preferences
+  emailNotificationsEnabled: boolean("email_notifications_enabled").notNull().default(true),
+  emailScheduleChanges: boolean("email_schedule_changes").notNull().default(true),
+  emailTruckArrivals: boolean("email_truck_arrivals").notNull().default(true),
+  emailDockAssignments: boolean("email_dock_assignments").notNull().default(true),
+  emailWeeklyReports: boolean("email_weekly_reports").notNull().default(false),
+  // Push notification preferences
+  pushNotificationsEnabled: boolean("push_notifications_enabled").notNull().default(true),
+  pushUrgentAlertsOnly: boolean("push_urgent_alerts_only").notNull().default(true),
+  pushAllUpdates: boolean("push_all_updates").notNull().default(false),
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertUserPreferencesSchema = createInsertSchema(userPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Facility Model
 export const facilities = pgTable("facilities", {
   id: serial("id").primaryKey(),
@@ -481,6 +507,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   createdSchedules: many(schedules, { relationName: "user_created_schedules" }),
   modifiedSchedules: many(schedules, { relationName: "user_modified_schedules" }),
   notifications: many(notifications),
+  preferences: many(userPreferences),
   // Adding tenant relation for multi-tenancy
   tenant: one(tenants, {
     fields: [users.tenantId],
@@ -939,6 +966,20 @@ export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 
+export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userPreferences.userId],
+    references: [users.id],
+  }),
+  organization: one(tenants, {
+    fields: [userPreferences.organizationId],
+    references: [tenants.id],
+  }),
+}));
+
+export type UserPreferences = typeof userPreferences.$inferSelect;
+export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
+
 // Tenant relations
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   featureFlags: many(featureFlags),
@@ -946,6 +987,7 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   organizationUsers: many(organizationUsers),
   organizationModules: many(organizationModules),
   activityLogs: many(activityLogs),
+  userPreferences: many(userPreferences),
 }));
 
 // Feature flags relations
