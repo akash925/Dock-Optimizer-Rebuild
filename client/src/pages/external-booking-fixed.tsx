@@ -124,7 +124,8 @@ function ServiceSelectionStepOld({ bookingPage }: { bookingPage: any }) {
     data: facilities = [], 
     isLoading: facilitiesLoading 
   } = useQuery<any[]>({
-    queryKey: ['/api/facilities'],
+    queryKey: [`/api/facilities?bookingPageSlug=${slug}`],
+    enabled: !!slug,
   });
   
   // Fetch appointment types
@@ -132,7 +133,8 @@ function ServiceSelectionStepOld({ bookingPage }: { bookingPage: any }) {
     data: appointmentTypes = [], 
     isLoading: typesLoading 
   } = useQuery<any[]>({
-    queryKey: ['/api/appointment-types'],
+    queryKey: [`/api/appointment-types?bookingPageSlug=${slug}`],
+    enabled: !!slug,
   });
   
   // Filter facilities based on booking page configuration

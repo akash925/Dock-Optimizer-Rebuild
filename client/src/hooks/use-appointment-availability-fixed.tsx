@@ -79,6 +79,11 @@ export function useAppointmentAvailability({
         queryParams.append('appointmentTypeId', String(effectiveTypeId));
       }
       
+      // Add bookingPageSlug for tenant context if available
+      if (bookingPageSlug) {
+        queryParams.append('bookingPageSlug', bookingPageSlug);
+      }
+      
       const url = `/api/appointment-master/availability-rules?${queryParams.toString()}`;
       const response = await apiRequest('GET', url);
       
@@ -93,7 +98,7 @@ export function useAppointmentAvailability({
       setError(error instanceof Error ? error : new Error('Failed to fetch availability rules'));
       return [];
     }
-  }, [facilityId, appointmentTypeId, typeId]);
+  }, [facilityId, appointmentTypeId, typeId, bookingPageSlug]);
 
   // Function to fetch booked appointments for a specific date
   const fetchBookedAppointments = useCallback(async (dateStr: string) => {
@@ -103,6 +108,11 @@ export function useAppointmentAvailability({
       const queryParams = new URLSearchParams();
       queryParams.append('facilityId', String(facilityId));
       queryParams.append('date', dateStr);
+      
+      // Add bookingPageSlug for tenant context if available
+      if (bookingPageSlug) {
+        queryParams.append('bookingPageSlug', bookingPageSlug);
+      }
       
       const url = `/api/schedules/booked?${queryParams.toString()}`;
       const response = await apiRequest('GET', url);
@@ -118,7 +128,7 @@ export function useAppointmentAvailability({
       setError(error instanceof Error ? error : new Error('Failed to fetch booked appointments'));
       return [];
     }
-  }, [facilityId]);
+  }, [facilityId, bookingPageSlug]);
 
   /**
    * Generate available time slots based on:
@@ -330,8 +340,14 @@ export function useAppointmentAvailability({
     if (!facilityId) return false;
     
     try {
-      // First, get the organization ID for this facility
-      const orgResponse = await apiRequest('GET', `/api/facilities/${facilityId}/organization`);
+      // Build query parameters with bookingPageSlug if available
+      let queryParams = '';
+      if (bookingPageSlug) {
+        queryParams = `?bookingPageSlug=${encodeURIComponent(bookingPageSlug)}`;
+      }
+      
+      // First, get the organization ID for this facility with tenant context if available
+      const orgResponse = await apiRequest('GET', `/api/facilities/${facilityId}/organization${queryParams}`);
       
       if (!orgResponse.ok) {
         console.warn(`Failed to fetch organization for facility ${facilityId}`);
@@ -346,7 +362,7 @@ export function useAppointmentAvailability({
       }
       
       // Check if date is a holiday for this organization
-      const holidaysResponse = await apiRequest('GET', `/api/organizations/${organizationId}/holidays`);
+      const holidaysResponse = await apiRequest('GET', `/api/organizations/${organizationId}/holidays${queryParams}`);
       
       if (!holidaysResponse.ok) {
         console.warn(`Failed to fetch holidays for organization ${organizationId}`);
@@ -363,7 +379,7 @@ export function useAppointmentAvailability({
       console.error("Error checking if date is a holiday:", error);
       return false;
     }
-  }, [facilityId]);
+  }, [facilityId, bookingPageSlug]);
   
   // Main function to fetch availability for a specific date
   const fetchAvailabilityForDate = useCallback(async (dateStr: string) => {
