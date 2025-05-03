@@ -117,7 +117,9 @@ export default function Settings() {
       
       const response = await apiRequest(
         userPreferencesData ? "PUT" : "POST", 
-        "/api/user-preferences", 
+        userPreferencesData 
+          ? `/api/user-preferences/${user.tenantId}` 
+          : "/api/user-preferences", 
         payload
       );
       
