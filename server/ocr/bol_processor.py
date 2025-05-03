@@ -287,6 +287,28 @@ class BOLProcessor:
         Returns:
             Dict with structured extracted information including text and tables
         """
+        # Check if dependencies are available
+        if not DEPENDENCIES_AVAILABLE:
+            return {
+                "success": False,
+                "error": f"Missing required dependencies: {ERROR_MESSAGE}",
+                "error_type": "DependencyError",
+                "required_libraries": [
+                    "numpy", "opencv-python (cv2)", "paddleocr", "Pillow (PIL)", "pdf2image"
+                ],
+                "system_dependencies": [
+                    "libgl1" # Required by OpenCV
+                ]
+            }
+            
+        # Check if OCR engine was initialized properly
+        if self.pp_structure is None or self.ocr is None:
+            return {
+                "success": False,
+                "error": "OCR engine was not initialized properly",
+                "error_type": "InitializationError"
+            }
+        
         try:
             # Preprocess the image
             preprocessed_img = self._preprocess_image(image_data)
@@ -341,12 +363,24 @@ class BOLProcessor:
 # Simple function to check if OCR is working
 def test_ocr():
     """Test function to verify OCR installation and functionality"""
+    
+    # Check if dependencies are available
+    if not DEPENDENCIES_AVAILABLE:
+        return {
+            "success": False,
+            "message": "OCR test failed due to missing dependencies",
+            "error": ERROR_MESSAGE,
+            "error_type": "DependencyError",
+            "required_libraries": [
+                "numpy", "opencv-python (cv2)", "paddleocr", "Pillow (PIL)", "pdf2image"
+            ],
+            "system_dependencies": [
+                "libgl1" # Required by OpenCV
+            ]
+        }
+    
     try:
         # Create a simple test image with text
-        from PIL import Image, ImageDraw, ImageFont
-        import numpy as np
-        
-        # Create a white image
         width, height = 400, 200
         image = Image.new('RGB', (width, height), color='white')
         draw = ImageDraw.Draw(image)

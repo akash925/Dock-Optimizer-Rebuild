@@ -237,10 +237,30 @@ const testOcr = async () => {
     const pythonProcess = spawn(PYTHON_EXECUTABLE, ['-c', `
 import sys
 sys.path.append('${path.dirname(__dirname)}')
-from ocr.bol_processor import test_ocr
-import json
-result = test_ocr()
-print(json.dumps(result))
+try:
+    # Check if dependencies are available first
+    from ocr.bol_processor import test_ocr, DEPENDENCIES_AVAILABLE, ERROR_MESSAGE
+    import json
+    
+    result = test_ocr()
+    print(json.dumps(result))
+except ImportError as e:
+    import json
+    print(json.dumps({
+        "success": False,
+        "error": f"Failed to import OCR module: {str(e)}",
+        "error_type": "ImportError",
+        "message": "OCR module is not properly installed"
+    }))
+except Exception as e:
+    import json
+    import traceback
+    print(json.dumps({
+        "success": False,
+        "error": str(e),
+        "error_type": type(e).__name__,
+        "traceback": traceback.format_exc()
+    }))
 `]);
     
     let stdoutData = '';
@@ -259,7 +279,17 @@ print(json.dumps(result))
     // Handle process exit
     pythonProcess.on('close', (code) => {
       if (code !== 0) {
-        reject(new Error(`OCR test process exited with code ${code}: ${stderrData}`));
+        if (stderrData) {
+          reject(new Error(`OCR test process exited with code ${code}: ${stderrData}`));
+        } else {
+          // We might still have useful output in stdout even with a non-zero exit code
+          try {
+            const result = JSON.parse(stdoutData);
+            resolve(result);
+          } catch (error) {
+            reject(new Error(`OCR test process exited with code ${code} and couldn't parse output: ${stdoutData}`));
+          }
+        }
         return;
       }
       

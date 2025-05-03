@@ -15,16 +15,40 @@ import tempfile
 import traceback
 from pathlib import Path
 
-# Import the OCR processor
+# Import the OCR processor with dependency check
 try:
-    from bol_processor import BOLProcessor
+    from bol_processor import BOLProcessor, DEPENDENCIES_AVAILABLE, ERROR_MESSAGE
 except ImportError:
     # Try relative import in case the script is run from a different directory
     sys.path.append(str(Path(__file__).parent))
-    from bol_processor import BOLProcessor
+    try:
+        from bol_processor import BOLProcessor, DEPENDENCIES_AVAILABLE, ERROR_MESSAGE
+    except ImportError:
+        # If we still can't import, return an error
+        print(json.dumps({
+            "success": False,
+            "error": "Failed to import BOLProcessor module",
+            "error_type": "ImportError",
+            "required_installation": "Make sure BOL processor module is properly installed"
+        }))
+        sys.exit(1)
 
 def process_image_file(file_path):
     """Process an image file with the BOL processor"""
+    # Check if dependencies are available
+    if not DEPENDENCIES_AVAILABLE:
+        return {
+            "success": False,
+            "error": f"Missing required dependencies: {ERROR_MESSAGE}",
+            "error_type": "DependencyError",
+            "required_libraries": [
+                "numpy", "opencv-python (cv2)", "paddleocr", "Pillow (PIL)", "pdf2image"
+            ],
+            "system_dependencies": [
+                "libgl1" # Required by OpenCV
+            ]
+        }
+    
     try:
         processor = BOLProcessor(show_log=False)
         result = processor.process_image(file_path)
@@ -39,6 +63,20 @@ def process_image_file(file_path):
 
 def process_image_base64(base64_data):
     """Process a base64-encoded image with the BOL processor"""
+    # Check if dependencies are available
+    if not DEPENDENCIES_AVAILABLE:
+        return {
+            "success": False,
+            "error": f"Missing required dependencies: {ERROR_MESSAGE}",
+            "error_type": "DependencyError",
+            "required_libraries": [
+                "numpy", "opencv-python (cv2)", "paddleocr", "Pillow (PIL)", "pdf2image"
+            ],
+            "system_dependencies": [
+                "libgl1" # Required by OpenCV
+            ]
+        }
+    
     try:
         # Check if the data is prefixed with a data URL
         if base64_data.startswith('@'):
