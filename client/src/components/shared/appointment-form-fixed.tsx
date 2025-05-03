@@ -444,8 +444,30 @@ export default function AppointmentForm({
   // Create appointment mutation
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: AppointmentFormValues) => {
-      // Prepare data for the API
-      const startDate = new Date(`${data.appointmentDate}T${data.appointmentTime}`);
+      // Prepare data for the API with careful timezone handling
+      // First parse the appointment date (format: YYYY-MM-DD)
+      let startDate;
+      try {
+        // Parse date components to ensure consistent timezone handling
+        if (typeof data.appointmentDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.appointmentDate)) {
+          const [year, month, day] = data.appointmentDate.split('-').map(num => parseInt(num, 10));
+          
+          // Create a date object with the time from appointmentTime
+          const [hours, minutes] = data.appointmentTime.split(':').map(num => parseInt(num, 10));
+          
+          // Create date using UTC to avoid automatic timezone adjustments
+          startDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+          console.log(`[AppointmentForm] Created startDate: ${startDate.toISOString()} from date=${data.appointmentDate}, time=${data.appointmentTime}`);
+        } else {
+          // Fallback to simpler parsing (only if date format is unexpected)
+          startDate = new Date(`${data.appointmentDate}T${data.appointmentTime}`);
+          console.log(`[AppointmentForm] Using fallback date parsing: ${startDate.toISOString()}`);
+        }
+      } catch (error) {
+        // Final fallback if any parsing errors
+        console.error("[AppointmentForm] Error parsing date:", error);
+        startDate = new Date(`${data.appointmentDate}T${data.appointmentTime}`);
+      }
       
       // Calculate end time based on appointment type duration
       let endDate;
@@ -1354,17 +1376,26 @@ export default function AppointmentForm({
                       form.getValues("appointmentDate") 
                         ? (() => {
                             try {
-                              // Parse the date string with care
+                              // Parse the date string consistently with selection logic
                               const dateVal = form.getValues("appointmentDate");
+                              
                               // Check if the value looks like a YYYY-MM-DD date
                               if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
                                 const [year, month, day] = dateVal.split('-').map(num => parseInt(num, 10));
-                                // Months in JS are 0-indexed
+                                
+                                // Critical fix: Create date at noon local time to avoid timezone issues
+                                // This matches how we set the date in the calendar selection
                                 const date = new Date(year, month - 1, day);
+                                date.setHours(12, 0, 0, 0);
+                                
                                 return format(date, "PPP");
                               }
-                              // Alternative date format
-                              return format(new Date(dateVal), "PPP");
+                              
+                              // Alternative format handling
+                              const date = new Date(dateVal);
+                              // Set to noon to avoid timezone shifts
+                              date.setHours(12, 0, 0, 0);
+                              return format(date, "PPP");
                             } catch (e) {
                               console.error("Error formatting date in summary:", e);
                               return form.getValues("appointmentDate") || "Not selected";
