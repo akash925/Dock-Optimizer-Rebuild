@@ -263,8 +263,8 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
     msg.attachments = params.attachments;
   }
 
-  // In development mode, just return the content for testing
-  if (process.env.NODE_ENV === 'development') {
+  // Skip email sending only if explicitly told to do so
+  if (process.env.SKIP_EMAIL_SENDING === 'true') {
     console.log(`[DEV MODE] Email would be sent to: ${params.to} with subject: ${params.subject}`);
     console.log(`[DEV MODE] From: ${senderEmail}`);
     console.log('Email HTML preview:');
@@ -281,6 +281,10 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
       attachments: params.attachments
     };
   }
+  
+  // Always log email attempt for debugging 
+  console.log(`Attempting to send email to: ${params.to} with subject: ${params.subject}`);
+  console.log(`From: ${senderEmail}`);
 
   // In production, attempt to send via SendGrid
   if (!process.env.SENDGRID_API_KEY) {
