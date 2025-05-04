@@ -1,77 +1,51 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-
-export interface StandardQuestion {
-  id: number;
-  appointmentTypeId: number;
-  fieldKey: string;
-  label: string;
-  fieldType: 'TEXT' | 'SELECT' | 'CHECKBOX' | 'PHONE' | 'EMAIL' | 'NUMBER';
-  included: boolean;
-  required: boolean;
-  orderPosition: number;
-  createdAt: string;
-}
+import { StandardQuestion } from '@/components/shared/standard-questions-form-fields';
 
 interface UseStandardQuestionsProps {
   appointmentTypeId?: number;
   bookingPageSlug?: string;
 }
 
-export const useStandardQuestions = ({ 
-  appointmentTypeId, 
-  bookingPageSlug 
-}: UseStandardQuestionsProps) => {
-  const [standardQuestions, setStandardQuestions] = useState<StandardQuestion[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchStandardQuestions = async () => {
-      if (!appointmentTypeId) return;
-      
-      setIsLoading(true);
-      setError(null);
+export function useStandardQuestions({ appointmentTypeId, bookingPageSlug }: UseStandardQuestionsProps) {
+  // Create the appropriate query key based on the context
+  const queryKey = bookingPageSlug 
+    ? [`/api/booking-pages/slug/${bookingPageSlug}/appointment-types/${appointmentTypeId}/questions`]
+    : [`/api/appointment-types/${appointmentTypeId}/questions`];
+  
+  const { 
+    data = [], 
+    isLoading, 
+    error 
+  } = useQuery<StandardQuestion[]>({
+    queryKey,
+    queryFn: async () => {
+      if (!appointmentTypeId) return [];
       
       try {
-        // Build URL with optional booking page slug
-        let url = `/api/standard-questions/${appointmentTypeId}`;
-        if (bookingPageSlug) {
-          url += `?bookingPageSlug=${encodeURIComponent(bookingPageSlug)}`;
-        }
+        // Choose the appropriate endpoint based on context
+        const endpoint = bookingPageSlug
+          ? `/api/booking-pages/slug/${bookingPageSlug}/appointment-types/${appointmentTypeId}/questions`
+          : `/api/appointment-types/${appointmentTypeId}/questions`;
+          
+        const res = await apiRequest('GET', endpoint);
         
-        const res = await apiRequest('GET', url);
         if (!res.ok) {
-          throw new Error('Failed to fetch standard questions');
+          throw new Error(`Failed to fetch standard questions: ${res.status}`);
         }
         
-        const data = await res.json();
-        console.log('Fetched standard questions:', data);
-        
-        // Sort by orderPosition
-        const sortedQuestions = [...data].sort((a, b) => a.orderPosition - b.orderPosition);
-        setStandardQuestions(sortedQuestions);
+        return await res.json();
       } catch (err) {
         console.error('Error fetching standard questions:', err);
-        setError(err instanceof Error ? err : new Error('Unknown error'));
-        toast({
-          title: 'Error',
-          description: 'Failed to load standard questions',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
+        return [];
       }
-    };
-
-    fetchStandardQuestions();
-  }, [appointmentTypeId, bookingPageSlug, toast]);
-
+    },
+    enabled: !!appointmentTypeId,
+  });
+  
   return {
-    standardQuestions,
+    standardQuestions: data,
     isLoading,
     error
   };
-};
+}

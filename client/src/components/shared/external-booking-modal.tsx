@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { useToast } from '@/hooks/use-toast';
 import { Schedule, Facility, BookingPage } from '@shared/schema';
-import { BookingWizardContent } from './booking-wizard-content';
+import { BookingWizardContent } from '@/components/shared/booking-wizard-content';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 
