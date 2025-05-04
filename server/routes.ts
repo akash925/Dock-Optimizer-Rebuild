@@ -4301,7 +4301,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
           
           // Direct tenant check without relying on facility relationships
-          if (!isSuperAdmin && appointmentType.tenantId !== req.user.tenantId) {
+          console.log(`[StandardQuestion] Debug - Comparing appointment type tenantId (${appointmentType.tenantId} - ${typeof appointmentType.tenantId}) with user tenantId (${req.user?.tenantId} - ${typeof req.user?.tenantId})`);
+          
+          if (!isSuperAdmin && Number(appointmentType.tenantId) !== Number(req.user.tenantId)) {
             console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} belongs to tenant ${appointmentType.tenantId}, user is from tenant ${req.user.tenantId}`);
             return res.status(403).json({ message: "You can only delete standard questions for appointment types in your organization" });
           }

@@ -3226,8 +3226,16 @@ export class DatabaseStorage implements IStorage {
         return undefined;
       }
       
-      console.log(`[getAppointmentType] Found appointment type: ${result.rows[0].id} - ${result.rows[0].name}`);
-      return result.rows[0];
+      // Map snake_case to camelCase for field names
+      const appointmentType = result.rows[0];
+      console.log(`[getAppointmentType] Found appointment type: ${appointmentType.id} - ${appointmentType.name}`);
+      
+      // Map tenant_id to tenantId for compatibility
+      if (appointmentType.tenant_id !== undefined) {
+        appointmentType.tenantId = appointmentType.tenant_id;
+      }
+      
+      return appointmentType;
     } catch (error) {
       console.error(`[getAppointmentType] Error retrieving appointment type ${id}:`, error);
       
@@ -3287,7 +3295,14 @@ export class DatabaseStorage implements IStorage {
         
         const result = await pool.query(query, [tenantId]);
         console.log(`[getAppointmentTypes] Found ${result.rows.length} appointment types for tenant ID ${tenantId} using facility-based filter`);
-        return result.rows;
+        
+        // Map tenant_id to tenantId for compatibility
+        return result.rows.map(type => {
+          if (type.tenant_id !== undefined) {
+            type.tenantId = type.tenant_id;
+          }
+          return type;
+        });
       }
       
       // If no tenant ID is provided, return all appointment types (for super admin)
