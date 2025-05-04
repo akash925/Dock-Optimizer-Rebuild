@@ -215,7 +215,13 @@ export default function BookingConfirmation() {
   // Generate a check-in URL with the confirmation code
   const getCheckInUrl = () => {
     if (!bookingDetails) return '';
-    const code = bookingDetails.confirmationNumber.replace('HZL-', '');
+    // Handle confirmation numbers with both formats (HC123 or HZL-123) by extracting just the code
+    let code = bookingDetails.confirmationNumber;
+    if (code.startsWith('HZL-')) {
+      code = code.replace('HZL-', '');
+    } else if (code.startsWith('HC')) {
+      code = code.replace('HC', '');
+    }
     return `${window.location.origin}/driver-check-in?code=${code}`;
   };
   

@@ -4734,11 +4734,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate calendar invite attachment
         const icsContent = generateICalEvent(enhancedAppointment, confirmationCode);
         
-        // Send confirmation email with calendar attachment
+        // Create check-in URL with QR code for email
+        const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+        const checkInUrl = `${baseUrl}/driver-check-in?code=${confirmationCode}`;
+        
+        // Format dates with correct timezone information
+        let formattedStartDate = format(appointmentData.startTime, "MMMM d, yyyy");
+        let formattedStartTime = format(appointmentData.startTime, "h:mm a");
+        let formattedEndTime = format(appointmentData.endTime, "h:mm a");
+        
+        // Get facility timezone info
+        const facilityTimezone = facility.timezone || 'America/New_York';
+        
+        // Send confirmation email with calendar attachment and QR code
         await sendEmail({
           to: appointmentData.contactEmail,
           from: process.env.SENDGRID_FROM_EMAIL || 'noreply@dockoptimizer.com',
-          subject: `${orgName}: Appointment Confirmation - ${format(appointmentData.startTime, "MMM d, yyyy")} at ${format(appointmentData.startTime, "h:mm a")}`,
+          subject: `${orgName}: Appointment Confirmation #${confirmationCode} - ${formattedStartDate}`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
               <div style="text-align: center; margin-bottom: 20px;">
@@ -4751,11 +4763,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <table style="width: 100%; border-collapse: collapse;">
                   <tr>
                     <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0; width: 40%;"><strong>Date:</strong></td>
-                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${format(appointmentData.startTime, "MMMM d, yyyy")}</td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${formattedStartDate}</td>
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Time:</strong></td>
-                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${format(appointmentData.startTime, "h:mm a")} - ${format(appointmentData.endTime, "h:mm a")}</td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${formattedStartTime} - ${formattedEndTime} (${facilityTimezone.split('/')[1].replace('_', ' ')})</td>
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Location:</strong></td>
@@ -4771,7 +4783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Truck #:</strong></td>
-                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${appointmentData.truckNumber}</td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${appointmentData.truckNumber || 'Not provided'}</td>
                   </tr>
                   ${appointmentData.trailerNumber ? `
                   <tr>
@@ -4785,9 +4797,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   </tr>` : ''}
                   <tr>
                     <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>Confirmation #:</strong></td>
-                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;">${confirmationCode}</td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e0e0e0;"><strong>${confirmationCode}</strong></td>
                   </tr>
                 </table>
+              </div>
+              
+              <!-- Express Check-In QR Code -->
+              <div style="background-color: #e8f4ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #b3d7ff;">
+                <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                  <div style="background-color: white; padding: 15px; border-radius: 5px; border: 1px solid #b3d7ff; margin-bottom: 10px; text-align: center;">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(checkInUrl)}" 
+                         alt="Check-in QR Code" style="width: 150px; height: 150px;">
+                    <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc;">${confirmationCode}</p>
+                  </div>
+                  <div style="background-color: #f0f8ff; padding: 10px; border-radius: 5px; max-width: 300px; border: 1px solid #b3d7ff;">
+                    <p style="margin: 0; font-size: 14px; color: #333;"><strong>How to use:</strong></p>
+                    <ul style="margin: 5px 0 0; padding-left: 25px; font-size: 14px; color: #333;">
+                      <li>Present this QR code to dock staff upon arrival</li>
+                      <li>This allows for expedited check-in without paperwork</li>
+                      <li>Or use your confirmation number: ${confirmationCode}</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
               
               ${bookingPage.confirmationMessage ? 
@@ -4795,9 +4827,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   <p style="margin: 0; color: #333;">${bookingPage.confirmationMessage}</p>
                 </div>` : ''}
               
+              <div style="background-color: #fff8e8; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffecb5;">
+                <p style="margin: 0; color: #333;"><strong>Important:</strong></p>
+                <ul style="margin: 5px 0 0; padding-left: 25px; font-size: 14px; color: #333;">
+                  <li>Please arrive 15 minutes before your scheduled time</li>
+                  <li>Have your confirmation number or QR code ready</li>
+                  <li>Check in with dock staff upon arrival</li>
+                </ul>
+              </div>
+              
               <div style="text-align: center; color: #666; font-size: 14px; margin-top: 30px;">
                 <p>A calendar invitation has been attached to this email.</p>
                 <p>Please contact us if you need to make any changes to your appointment.</p>
+                <p>You can check in online at: <a href="${checkInUrl}" style="color: #2d8cff;">${checkInUrl}</a></p>
               </div>
             </div>
           `,

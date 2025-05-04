@@ -43,8 +43,14 @@ export default function DriverCheckIn() {
         }
         
         // Look up the appointment by confirmation code
-        // Use a consistent format HC123 across the system
-        const formattedCode = code.startsWith('HC') ? code : `HC${code}`;
+        // Handle various format possibilities: HC123, HZL-123, or just 123
+        let formattedCode = code;
+        if (!code.startsWith('HC')) {
+          // Remove any prefix like HZL- if present
+          const numericPart = code.replace(/^[A-Za-z]+-?/, '');
+          formattedCode = `HC${numericPart}`;
+        }
+        console.log('Looking up appointment with code:', formattedCode);
         const response = await fetch(`/api/schedules/confirmation/${formattedCode}`);
         
         if (!response.ok) {
