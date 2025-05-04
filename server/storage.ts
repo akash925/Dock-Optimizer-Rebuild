@@ -2568,13 +2568,26 @@ export class DatabaseStorage implements IStorage {
 
   async getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined> {
     try {
-      // Remove any HC prefix if present and convert to number
-      const cleanCode = code.replace(/^HC/, '');
+      // Handle multiple possible formats:
+      // - HC123 (standard format)
+      // - HZL-123 (legacy format)
+      // - Just 123 (numeric ID only)
+      
+      // First log the incoming code for debugging
+      console.log(`[getScheduleByConfirmationCode] Processing code: ${code}`);
+      
+      // Remove any prefix (HC, HZL-, etc.) and extract just the numeric part
+      const cleanCode = code.replace(/^[A-Za-z]+-?/, '');
+      console.log(`[getScheduleByConfirmationCode] Cleaned code: ${cleanCode}`);
+      
       const scheduleId = parseInt(cleanCode, 10);
       
       if (isNaN(scheduleId)) {
+        console.log(`[getScheduleByConfirmationCode] Invalid numeric code: ${cleanCode}`);
         return undefined;
       }
+      
+      console.log(`[getScheduleByConfirmationCode] Looking up schedule with ID: ${scheduleId}`);
       
       // For now, simply call getSchedule with the ID
       // In the future, we might want a more sophisticated confirmation code system
