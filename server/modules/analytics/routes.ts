@@ -1,13 +1,6 @@
 import express from 'express';
 import * as controllers from './controllers';
-
-// Add authentication middleware
-const isAuthenticated = (req: any, res: any, next: any) => {
-  if (req.isAuthenticated && req.isAuthenticated()) {
-    return next();
-  }
-  return res.status(401).json({ error: 'Unauthorized' });
-};
+import { isAuthenticated } from '../../middleware/auth';
 
 // Middleware to disable caching for analytics endpoints
 const disableCache = (req: express.Request, res: express.Response, next: express.NextFunction) => {

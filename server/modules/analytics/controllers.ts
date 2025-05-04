@@ -99,11 +99,14 @@ export async function getFacilityStats(req: Request, res: Response) {
     const { startDate, endDate } = req.query;
     
     // Get the tenant ID from the authenticated user
+    // Authentication is already enforced by middleware, so req.user will always exist
     const tenantId = req.user?.tenantId;
     
-    // For demo and testing purposes, use a default tenant ID if not authenticated
-    // This is a temporary fix - in production, we would require authentication
-    const effectiveTenantId = tenantId || 2; // Default to Hanzo Logistics (tenant ID 2) if not authenticated
+    if (!tenantId) {
+      return res.status(400).json({ error: 'No tenant ID associated with user' });
+    }
+    
+    const effectiveTenantId = tenantId;
     console.log(`[Analytics] Using tenant ID ${effectiveTenantId} for facility stats`);
     
     // Build WHERE clauses for date filtering with tenant isolation using the junction table
@@ -345,9 +348,11 @@ export async function getDockUtilizationStats(req: Request, res: Response) {
     // Get the tenant ID from the authenticated user
     const tenantId = req.user?.tenantId;
     
-    // For demo and testing purposes, use a default tenant ID if not authenticated
-    // This is a temporary fix - in production, we would require authentication
-    const effectiveTenantId = tenantId || 2; // Default to Hanzo Logistics (tenant ID 2) if not authenticated
+    if (!tenantId) {
+      return res.status(400).json({ error: 'No tenant ID associated with user' });
+    }
+    
+    const effectiveTenantId = tenantId;
     console.log(`[Analytics] Using tenant ID ${effectiveTenantId} for dock utilization stats`);
     
     // First, get all facilities for this tenant through the organization_facilities junction table
