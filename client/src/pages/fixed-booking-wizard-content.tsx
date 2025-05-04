@@ -313,19 +313,11 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   return (
     <div className="booking-wizard-container">
       <div className="booking-wizard-header">
+        {/* Use the fallback directly as no logo is available in the server-side endpoint */}
         <img 
-          src={logoUrl}
+          src={getFallbackLogo()}
           alt={`${organizationName} Logo`}
           className="booking-wizard-logo"
-          onError={(e) => {
-            // Fallback to organization-specific logo if the dynamic URL fails
-            const target = e.target as HTMLImageElement;
-            const fallbackLogo = getFallbackLogo();
-            if (target.src !== fallbackLogo) {
-              target.src = fallbackLogo;
-              console.warn(`Failed to load tenant logo for slug ${slug}, falling back to organization-specific logo`);
-            }
-          }}
         />
         <h1 className="booking-wizard-title">{organizationName} Dock Appointment Scheduler</h1>
         <p className="booking-wizard-subtitle">
