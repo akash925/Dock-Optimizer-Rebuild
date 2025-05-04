@@ -23,6 +23,9 @@ import {
 // Import BOL OCR routes using ES modules
 import bolOcrRoutes from "./routes/bol-ocr.mjs";
 
+// Import analytics module routes
+import analyticsRoutes from "./modules/analytics/routes";
+
 // Import QR code endpoints
 import { registerQrCodeRoutes } from "./endpoints/qr-codes";
 
@@ -159,6 +162,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('BOL OCR routes registered');
   } catch (error) {
     console.error('Error registering BOL OCR routes:', error);
+  }
+  
+  // Register Analytics routes
+  try {
+    app.use('/api/analytics', analyticsRoutes);
+    console.log('Analytics routes registered');
+  } catch (error) {
+    console.error('Error registering analytics routes:', error);
   }
   
   // Register QR code routes
