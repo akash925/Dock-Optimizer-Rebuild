@@ -17,7 +17,7 @@ import { getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 
 // This is a clean rewrite of the BookingWizardContent component with proper hooks order
 export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any }) {
-  // All React hooks must be called at the top level, before any conditional logic
+  // ALL REACT HOOKS MUST BE DECLARED AT THE TOP LEVEL BEFORE ANY CONDITIONAL LOGIC
   const { 
     currentStep, 
     setCurrentStep,
@@ -34,8 +34,15 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   
   const { theme, isLoading: themeLoading } = useBookingTheme();
   
+  // LOGO LOADING STATE - KEPT AT TOP LEVEL
+  const [logoLoaded, setLogoLoaded] = useState(false);
+  const [logoSrc, setLogoSrc] = useState('');
+  
   // Get the slug from the booking page
   const slug = bookingPage?.slug || '';
+  
+  // Get the organization name from booking page
+  const organizationName = bookingPage?.organizationName || bookingPage?.name?.split(' - ')[0] || 'Logistics';
   
   // Fetch facilities data - include bookingPageSlug for tenant isolation
   const { data: facilities = [] } = useQuery<any[]>({
@@ -75,9 +82,6 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   const totalSteps = 3; // We have 3 steps (confirmation is not counted in progress)
   const progressPercentage = Math.min(((currentStep - 1) / totalSteps) * 100, 100);
   
-  // Get the organization name from booking page for use throughout the component
-  const organizationName = bookingPage?.organizationName || bookingPage?.name?.split(' - ')[0] || 'Logistics';
-
   // Set document title
   useEffect(() => {
     // Set the document title
@@ -290,14 +294,34 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
     stepContent = <ConfirmationStep bookingPage={bookingPage} confirmationCode={confirmationCode} />;
   }
 
-  // Set up logo URL - use tenant-specific logo from booking-pages-logo endpoint if available
-  // Use tenantId directly as parameter instead of slug for the logo endpoint
+  // Set up logo URL - use tenant-specific logo from booking-pages-logo endpoint
   const logoUrl = bookingPage?.tenantId ? `${window.location.origin}/api/booking-pages/logo/${bookingPage.tenantId}` : '';
   console.log(`[FixedBookingWizardContent] Using logo URL: ${logoUrl} for tenantId: ${bookingPage?.tenantId}`);
   
-  // State to track logo loading status
-  const [logoLoaded, setLogoLoaded] = useState(false);
-  const [logoSrc, setLogoSrc] = useState('');
+  // Select the appropriate fallback logo based on the tenant context
+  const getFallbackLogo = () => {
+    // Check the booking page tenant ID first - this is the most reliable indicator
+    if (bookingPage?.tenantId === 5) {
+      console.log(`Using Fresh Connect fallback logo for tenant ID 5`);
+      return freshConnectLogoPath;
+    } else if (bookingPage?.tenantId === 2) {
+      console.log(`Using Hanzo fallback logo for tenant ID 2`);
+      return hanzoLogoPath;
+    }
+    
+    // If tenant ID not available, try to infer from organization name
+    if (organizationName && (organizationName.includes('Fresh Connect') || slug?.includes('fresh-connect'))) {
+      console.log(`Using Fresh Connect fallback logo based on name: ${organizationName}`);
+      return freshConnectLogoPath;
+    } else if (organizationName && (organizationName.includes('Hanzo') || slug?.includes('hanzo'))) {
+      console.log(`Using Hanzo fallback logo based on name: ${organizationName}`);
+      return hanzoLogoPath;
+    }
+    
+    // Default to Hanzo logo if all else fails
+    console.log(`Using default Hanzo fallback logo (no tenant ID or matching name found)`);
+    return hanzoLogoPath;
+  };
   
   // Try to load the organization logo from the API endpoint
   useEffect(() => {
@@ -328,31 +352,6 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
       setLogoLoaded(true);
     }
   }, [bookingPage?.tenantId]);
-  
-  // Select the appropriate fallback logo based on the tenant context (from the booking page)
-  const getFallbackLogo = () => {
-    // Check the booking page tenant ID first - this is the most reliable indicator
-    if (bookingPage?.tenantId === 5) {
-      console.log(`Using Fresh Connect fallback logo for tenant ID 5`);
-      return freshConnectLogoPath;
-    } else if (bookingPage?.tenantId === 2) {
-      console.log(`Using Hanzo fallback logo for tenant ID 2`);
-      return hanzoLogoPath;
-    }
-    
-    // If tenant ID not available, try to infer from organization name
-    if (organizationName && (organizationName.includes('Fresh Connect') || slug?.includes('fresh-connect'))) {
-      console.log(`Using Fresh Connect fallback logo based on name: ${organizationName}`);
-      return freshConnectLogoPath;
-    } else if (organizationName && (organizationName.includes('Hanzo') || slug?.includes('hanzo'))) {
-      console.log(`Using Hanzo fallback logo based on name: ${organizationName}`);
-      return hanzoLogoPath;
-    }
-    
-    // Default to Hanzo logo if all else fails
-    console.log(`Using default Hanzo fallback logo (no tenant ID or matching name found)`);
-    return hanzoLogoPath;
-  };
   
   return (
     <div className="booking-wizard-container">
