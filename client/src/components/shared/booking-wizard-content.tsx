@@ -37,16 +37,21 @@ const step1Schema = z.object({
   }),
 });
 
+// Date and time step now comes second (step 2)
 const step2Schema = z.object({
+  // No fields needed for validation here as date/time selection is handled separately
+  // But we could add validation if needed in the future
+});
+
+// Company and contact info step now comes third (step 3)
+const step3Schema = z.object({
   companyName: z.string().min(2, "Company name is required"),
   contactName: z.string().min(2, "Contact name is required"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
   // Allow customFields to hold any type of value (string, array, or file)
   customFields: z.record(z.any()).optional(),
-});
-
-const step3Schema = z.object({
+  // Carrier info has been moved to this step
   carrierId: z.number().optional(),
   carrierName: z.string().min(1, "Carrier name is required"),
   driverName: z.string().min(1, "Driver name is required"),
@@ -411,69 +416,115 @@ export function BookingWizardContent({
       case 2:
         return (
           <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="companyName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Company Name*</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            {/* Date selection */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium">Select Date and Time</h3>
+              <div className="rounded-md border">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    setSelectedDate(date);
+                    if (date) {
+                      // When date is selected, we'll update the booking data
+                      updateBookingData({ selectedDate: date });
+                      
+                      // In a real implementation, we would fetch available times here
+                      setIsCheckingAvailability(true);
+                      // Simulate API call
+                      setTimeout(() => {
+                        // Sample available times - in a real app, this would come from an API
+                        const times = ['9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM'];
+                        setAvailableTimes(times);
+                        setIsCheckingAvailability(false);
+                      }, 500);
+                    }
+                  }}
+                  className="rounded-md border"
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return date < today;
+                  }}
+                  initialFocus
+                />
+              </div>
+              {selectedDate && (
+                <p className="text-sm text-muted-foreground">
+                  Selected date: {format(selectedDate, 'EEEE, MMMM do, yyyy')}
+                </p>
               )}
-            />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="contactName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contact Name*</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            {/* Time selection */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium">Available Times</h3>
+              {!selectedDate ? (
+                <div className="text-sm text-muted-foreground">
+                  Please select a date to see available times.
+                </div>
+              ) : isCheckingAvailability ? (
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading available times...</span>
+                </div>
+              ) : availableTimes.length === 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  No available times for the selected date. Please choose another date.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {availableTimes.map((time) => (
+                    <Button
+                      key={time}
+                      variant={selectedTime === time ? "default" : "outline"}
+                      onClick={() => {
+                        setSelectedTime(time);
+                        
+                        // When time is selected, set the start/end times in booking data
+                        if (selectedDate) {
+                          const [hour, minute] = time.match(/(\d+):(\d+)/)[0].split(':');
+                          const isPM = time.includes('PM');
+                          let hourNum = parseInt(hour, 10);
+                          if (isPM && hourNum < 12) hourNum += 12;
+                          if (!isPM && hourNum === 12) hourNum = 0;
+                          
+                          const startDate = new Date(selectedDate);
+                          startDate.setHours(hourNum, parseInt(minute, 10), 0, 0);
+                          
+                          // Assume appointments are 1 hour long by default
+                          const endDate = new Date(startDate);
+                          endDate.setHours(endDate.getHours() + 1);
+                          
+                          updateBookingData({
+                            startTime: startDate,
+                            endTime: endDate,
+                          });
+                        }
+                      }}
+                      className="justify-center"
+                    >
+                      {time}
+                    </Button>
+                  ))}
+                </div>
               )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email*</FormLabel>
-                  <FormControl>
-                    <Input type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              {selectedTime && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Selected time: {selectedTime}
+                </p>
               )}
-            />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone*</FormLabel>
-                  <FormControl>
-                    <Input type="tel" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Standard questions from the appointment type */}
-            {bookingData.appointmentTypeId && (
-              <StandardQuestionsFormFields
-                form={form}
-                questions={standardQuestions}
-                isLoading={isLoadingQuestions}
-              />
+            {/* Show available slots if needed */}
+            {selectedTime && (
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800">Available</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  This time slot is available for booking.
+                </AlertDescription>
+              </Alert>
             )}
           </div>
         );
@@ -481,129 +532,167 @@ export function BookingWizardContent({
       case 3:
         return (
           <div className="space-y-4">
-            {/* Date selection */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-medium">Select Date*</h3>
-              <div className="rounded-md border">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  className="rounded-md border"
-                  disabled={(date) => date < new Date()}
-                  initialFocus
-                />
-              </div>
-              {selectedDate && (
-                <p className="text-sm text-muted-foreground">
-                  Selected date: {format(selectedDate, 'PPP')}
-                </p>
-              )}
-            </div>
+            {/* Company and contact information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Company Information</h3>
+              <FormField
+                control={form.control}
+                name="companyName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Name*</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Time selection (would normally be fetched from API based on selected date) */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-medium">Select Time*</h3>
-              <div className="grid grid-cols-4 gap-2">
-                {['9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM'].map(time => (
-                  <Button
-                    key={time}
-                    variant={selectedTime === time ? "default" : "outline"}
-                    onClick={() => setSelectedTime(time)}
-                    className="justify-start"
-                  >
-                    {time}
-                  </Button>
-                ))}
-              </div>
-            </div>
+              <FormField
+                control={form.control}
+                name="contactName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Name*</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <Separator />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email*</FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone*</FormLabel>
+                    <FormControl>
+                      <Input type="tel" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Carrier information */}
-            <FormField
-              control={form.control}
-              name="carrierName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Carrier Name*</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-4 pt-4">
+              <Separator className="my-2" />
+              <h3 className="text-lg font-medium">Carrier Information</h3>
+              <FormField
+                control={form.control}
+                name="carrierName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Carrier Name*</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="driverName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Driver Name*</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="driverName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Driver Name*</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="driverPhone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Driver Phone*</FormLabel>
-                  <FormControl>
-                    <Input type="tel" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="driverPhone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Driver Phone*</FormLabel>
+                    <FormControl>
+                      <Input type="tel" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="truckNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Truck Number*</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="truckNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Truck Number*</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="trailerNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Trailer Number</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="trailerNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Trailer Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Additional Notes</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Additional Notes</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Standard questions from the appointment type */}
+            {bookingData.appointmentTypeId && (
+              <>
+                <Separator className="my-4" />
+                <h3 className="text-lg font-medium mb-4">Additional Information</h3>
+                <StandardQuestionsFormFields
+                  form={form}
+                  questions={standardQuestions}
+                  isLoading={isLoadingQuestions}
+                />
+              </>
+            )}
           </div>
         );
 
