@@ -84,6 +84,7 @@ import {
   insertAppointmentTypeSchema,
   insertDailyAvailabilitySchema,
   insertCustomQuestionSchema,
+  insertStandardQuestionSchema,
   insertBookingPageSchema,
 } from "@shared/schema";
 
@@ -4200,7 +4201,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/standard-questions", checkRole(["admin", "manager"]), async (req, res) => {
     try {
+      console.log(`[StandardQuestion] Request body:`, req.body);
+      
       const validatedData = insertStandardQuestionSchema.parse(req.body);
+      console.log(`[StandardQuestion] Validated data:`, validatedData);
+      
       const tenantId = req.user?.tenantId;
       
       // Check if appointment type exists if appointmentTypeId is provided
@@ -4234,9 +4239,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(standardQuestion);
     } catch (err) {
       if (err instanceof z.ZodError) {
+        console.error(`[StandardQuestion] Zod validation error:`, err.errors);
         return res.status(400).json({ message: "Invalid standard question data", errors: err.errors });
       }
-      res.status(500).json({ message: "Failed to create standard question" });
+      console.error(`[StandardQuestion] Error creating standard question:`, err);
+      res.status(500).json({ message: "Failed to create standard question", error: err instanceof Error ? err.message : String(err) });
     }
   });
   
