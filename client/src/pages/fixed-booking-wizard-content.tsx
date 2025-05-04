@@ -291,9 +291,43 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   }
 
   // Set up logo URL - use tenant-specific logo from booking-pages-logo endpoint if available
-  // Use relative URL path for API requests to work in any environment
-  const logoUrl = slug ? `${window.location.origin}/api/booking-pages/logo/${slug}` : '';
-  console.log(`[FixedBookingWizardContent] Using logo URL: ${logoUrl} for slug: ${slug}`);
+  // Use tenantId directly as parameter instead of slug for the logo endpoint
+  const logoUrl = bookingPage?.tenantId ? `${window.location.origin}/api/booking-pages/logo/${bookingPage.tenantId}` : '';
+  console.log(`[FixedBookingWizardContent] Using logo URL: ${logoUrl} for tenantId: ${bookingPage?.tenantId}`);
+  
+  // State to track logo loading status
+  const [logoLoaded, setLogoLoaded] = useState(false);
+  const [logoSrc, setLogoSrc] = useState('');
+  
+  // Try to load the organization logo from the API endpoint
+  useEffect(() => {
+    if (bookingPage?.tenantId) {
+      fetch(`/api/booking-pages/logo/${bookingPage.tenantId}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Logo not found');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.logo) {
+            console.log(`Successfully loaded logo from API for tenant ID ${bookingPage.tenantId}`);
+            setLogoSrc(data.logo);
+            setLogoLoaded(true);
+          } else {
+            throw new Error('Logo data missing');
+          }
+        })
+        .catch(error => {
+          console.error(`Error loading logo: ${error.message}, using fallback`);
+          setLogoSrc(getFallbackLogo());
+          setLogoLoaded(true);
+        });
+    } else {
+      setLogoSrc(getFallbackLogo());
+      setLogoLoaded(true);
+    }
+  }, [bookingPage?.tenantId]);
   
   // Select the appropriate fallback logo based on the tenant context (from the booking page)
   const getFallbackLogo = () => {
@@ -307,10 +341,10 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
     }
     
     // If tenant ID not available, try to infer from organization name
-    if (organizationName && (organizationName.includes('Fresh Connect') || slug.includes('fresh-connect'))) {
+    if (organizationName && (organizationName.includes('Fresh Connect') || slug?.includes('fresh-connect'))) {
       console.log(`Using Fresh Connect fallback logo based on name: ${organizationName}`);
       return freshConnectLogoPath;
-    } else if (organizationName && (organizationName.includes('Hanzo') || slug.includes('hanzo'))) {
+    } else if (organizationName && (organizationName.includes('Hanzo') || slug?.includes('hanzo'))) {
       console.log(`Using Hanzo fallback logo based on name: ${organizationName}`);
       return hanzoLogoPath;
     }
@@ -323,12 +357,18 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
   return (
     <div className="booking-wizard-container">
       <div className="booking-wizard-header">
-        {/* Use the fallback directly as no logo is available in the server-side endpoint */}
-        <img 
-          src={getFallbackLogo()}
-          alt={`${organizationName} Logo`}
-          className="booking-wizard-logo"
-        />
+        {/* Use the logo from state which is either from API or fallback */}
+        {logoLoaded ? (
+          <img 
+            src={logoSrc}
+            alt={`${organizationName} Logo`}
+            className="booking-wizard-logo"
+          />
+        ) : (
+          <div className="booking-logo-loading">
+            <Loader2 className="animate-spin h-10 w-10 text-primary" />
+          </div>
+        )}
         <h1 className="booking-wizard-title">{organizationName} Dock Appointment Scheduler</h1>
         <p className="booking-wizard-subtitle">
           Please use this form to pick the type of Dock Appointment that you need at {organizationName}.
