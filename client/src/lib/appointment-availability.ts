@@ -83,7 +83,17 @@ export function generateAvailableTimeSlots(
   
   // First process active rules to mark available slots
   for (const rule of activeRules) {
-    console.log(`[generateAvailableTimeSlots] Processing active rule: ${rule.startTime}-${rule.endTime}, bufferTime: ${rule.bufferTime || 0}, maxConcurrent: ${rule.maxConcurrent || 1}`);
+    console.log(`[generateAvailableTimeSlots] Processing active rule: ${rule.startTime}-${rule.endTime}, bufferTime: ${rule.bufferTime || 0}, maxConcurrent: ${rule.maxConcurrent || 1}, maxAppointmentsPerDay: ${rule.maxAppointmentsPerDay || 'unlimited'}`);
+    
+    // Calculate remaining appointments for the day if maxAppointmentsPerDay is set
+    let maxSlotsForDay = Infinity;
+    if (rule.maxAppointmentsPerDay && rule.maxAppointmentsPerDay > 0) {
+      // TODO: Here we should query for existing appointments for this day
+      // and subtract from maxAppointmentsPerDay to get remaining capacity
+      maxSlotsForDay = rule.maxAppointmentsPerDay;
+      console.log(`[generateAvailableTimeSlots] Limiting to ${maxSlotsForDay} appointments per day`);
+    }
+    
     const ruleSlots = generateTimeSlotsForRange(
       rule.startTime, 
       rule.endTime, 
@@ -91,7 +101,8 @@ export function generateAvailableTimeSlots(
       duration,
       true, // Available slots
       rule.maxConcurrent || 1,
-      rule.bufferTime || 0 // Pass the buffer time to respect gaps between appointments
+      rule.bufferTime || 0, // Pass the buffer time to respect gaps between appointments
+      maxSlotsForDay // Pass max slots for the day 
     );
     
     // Merge with existing slots
@@ -128,6 +139,7 @@ export function generateAvailableTimeSlots(
  * @param available - Whether these slots are available
  * @param remainingCapacity - Optional remaining capacity for these slots
  * @param bufferTime - Optional buffer time between appointments in minutes
+ * @param maxSlotsForDay - Optional maximum number of slots to generate for this day
  * @returns Array of time slots
  */
 /**
@@ -141,6 +153,7 @@ export function generateAvailableTimeSlots(
  * @param available - Whether these slots are available
  * @param remainingCapacity - Optional remaining capacity for these slots
  * @param bufferTime - Optional buffer time determining interval between appointments
+ * @param maxSlotsForDay - Optional maximum number of slots to generate for this day
  * @returns Array of time slots
  */
 function generateTimeSlotsForRange(
@@ -150,7 +163,8 @@ function generateTimeSlotsForRange(
   duration: number,
   available: boolean = true,
   remainingCapacity: number = 1,
-  bufferTime: number = 0
+  bufferTime: number = 0,
+  maxSlotsForDay: number = Infinity
 ): AvailabilitySlot[] {
   const slots: AvailabilitySlot[] = [];
   
