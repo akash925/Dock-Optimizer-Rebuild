@@ -227,6 +227,11 @@ export default function BookingConfirmation() {
     const appointmentType = bookingDetails.type ? bookingDetails.type.toLowerCase() : "appointment";
     const orgName = schedule?.organizationName || 'our logistics facility';
     
+    // Format time display based on user preference
+    const timeDisplay = showUserTimeFirst 
+      ? `${bookingDetails.userTimeDisplay} (Your local time)\n      ${bookingDetails.facilityTimeDisplay} (Facility time)`
+      : `${bookingDetails.facilityTimeDisplay} (Facility time)\n      ${bookingDetails.userTimeDisplay} (Your local time)`;
+    
     const body = `
 Hello,
 
@@ -234,8 +239,7 @@ Here are your ${appointmentType} appointment details for ${orgName}:
 
 Confirmation Number: ${bookingDetails.confirmationNumber}
 Date: ${bookingDetails.appointmentDate}
-Time: ${bookingDetails.facilityTimeDisplay} (Facility time)
-      ${bookingDetails.userTimeDisplay} (Your local time)
+Time: ${timeDisplay}
 Location: ${bookingDetails.location}
 Carrier: ${bookingDetails.carrierName}
 ${bookingDetails.truckNumber ? `Truck #: ${bookingDetails.truckNumber}` : ''}
@@ -275,6 +279,33 @@ ${orgName}
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-6 md:py-12 px-2 md:px-4">
       <div className="max-w-3xl mx-auto w-full">
+        <div className="relative w-full flex justify-end mb-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Settings className="h-5 w-5 text-gray-500" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <div className="px-4 py-3 border-b">
+                <p className="text-sm font-medium">Display preferences</p>
+              </div>
+              <div className="p-4 flex items-center gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="time-display-preference" className="text-sm text-gray-600">
+                    Show my local time first
+                  </Label>
+                </div>
+                <Switch 
+                  id="time-display-preference"
+                  checked={showUserTimeFirst}
+                  onCheckedChange={setShowUserTimeFirst}
+                />
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <div className="flex flex-col items-center mb-6 md:mb-8">
           {/* Use the tenant-aware logo endpoint */}
           <img 
@@ -320,8 +351,17 @@ ${orgName}
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-gray-500">Appointment Time</span>
                   <div className="flex flex-col gap-1">
-                    <span className="font-medium">{bookingDetails.facilityTimeDisplay} <span className="text-xs ml-1 text-primary font-normal">(Facility time)</span></span>
-                    <span className="text-sm text-gray-600">{bookingDetails.userTimeDisplay} <span className="text-xs ml-1 text-gray-500">(Your local time)</span></span>
+                    {showUserTimeFirst ? (
+                      <>
+                        <span className="font-medium">{bookingDetails.userTimeDisplay} <span className="text-xs ml-1 text-primary font-normal">(Your local time)</span></span>
+                        <span className="text-sm text-gray-600">{bookingDetails.facilityTimeDisplay} <span className="text-xs ml-1 text-gray-500">(Facility time)</span></span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium">{bookingDetails.facilityTimeDisplay} <span className="text-xs ml-1 text-primary font-normal">(Facility time)</span></span>
+                        <span className="text-sm text-gray-600">{bookingDetails.userTimeDisplay} <span className="text-xs ml-1 text-gray-500">(Your local time)</span></span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -418,8 +458,10 @@ Here are your ${bookingDetails.type ? bookingDetails.type.toLowerCase() : "appoi
 
 Confirmation Number: ${bookingDetails.confirmationNumber}
 Date: ${bookingDetails.appointmentDate}
-Time: ${bookingDetails.facilityTimeDisplay} (Facility time)
-      ${bookingDetails.userTimeDisplay} (Your local time)
+Time: ${showUserTimeFirst 
+  ? `${bookingDetails.userTimeDisplay} (Your local time)\n      ${bookingDetails.facilityTimeDisplay} (Facility time)`
+  : `${bookingDetails.facilityTimeDisplay} (Facility time)\n      ${bookingDetails.userTimeDisplay} (Your local time)`
+}
 Location: ${bookingDetails.location}
 Carrier: ${bookingDetails.carrierName}
 ${bookingDetails.truckNumber ? `Truck #: ${bookingDetails.truckNumber}` : ''}
