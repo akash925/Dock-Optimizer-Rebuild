@@ -128,6 +128,13 @@ export interface IStorage {
   updateCustomQuestion(id: number, customQuestion: Partial<CustomQuestion>): Promise<CustomQuestion | undefined>;
   deleteCustomQuestion(id: number): Promise<boolean>;
   
+  // Standard Question operations
+  getStandardQuestion(id: number): Promise<StandardQuestion | undefined>;
+  getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]>;
+  createStandardQuestion(standardQuestion: InsertStandardQuestion): Promise<StandardQuestion>;
+  updateStandardQuestion(id: number, standardQuestion: Partial<StandardQuestion>): Promise<StandardQuestion | undefined>;
+  deleteStandardQuestion(id: number): Promise<boolean>;
+  
   // Booking Pages operations
   getBookingPage(id: number): Promise<BookingPage | undefined>;
   getBookingPageBySlug(slug: string): Promise<BookingPage | undefined>;
@@ -222,6 +229,7 @@ export class MemStorage implements IStorage {
   private appointmentTypes: Map<number, AppointmentType>;
   private dailyAvailability: Map<number, DailyAvailability>;
   private customQuestions: Map<number, CustomQuestion>;
+  private standardQuestions: Map<number, StandardQuestion>;
   private bookingPages: Map<number, BookingPage>;
   private assets: Map<number, Asset>;
   private companyAssets: Map<number, CompanyAsset>;
@@ -245,6 +253,7 @@ export class MemStorage implements IStorage {
   private appointmentTypeIdCounter: number = 1;
   private dailyAvailabilityIdCounter: number = 1;
   private customQuestionIdCounter: number = 1;
+  private standardQuestionIdCounter: number = 1;
   private bookingPageIdCounter: number = 1;
   private assetIdCounter: number = 1;
   private companyAssetIdCounter: number = 1;
@@ -265,6 +274,7 @@ export class MemStorage implements IStorage {
     this.appointmentTypes = new Map();
     this.dailyAvailability = new Map();
     this.customQuestions = new Map();
+    this.standardQuestions = new Map();
     this.bookingPages = new Map();
     this.assets = new Map();
     this.companyAssets = new Map();
@@ -963,6 +973,43 @@ export class MemStorage implements IStorage {
 
   async deleteCustomQuestion(id: number): Promise<boolean> {
     return this.customQuestions.delete(id);
+  }
+  
+  // Standard Question operations
+  async getStandardQuestion(id: number): Promise<StandardQuestion | undefined> {
+    return this.standardQuestions.get(id);
+  }
+
+  async getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]> {
+    return Array.from(this.standardQuestions.values()).filter(
+      (question) => question.appointmentTypeId === appointmentTypeId
+    );
+  }
+
+  async createStandardQuestion(insertStandardQuestion: InsertStandardQuestion): Promise<StandardQuestion> {
+    const id = this.standardQuestionIdCounter++;
+    const standardQuestion: StandardQuestion = {
+      ...insertStandardQuestion,
+      id
+    };
+    this.standardQuestions.set(id, standardQuestion);
+    return standardQuestion;
+  }
+
+  async updateStandardQuestion(id: number, standardQuestionUpdate: Partial<StandardQuestion>): Promise<StandardQuestion | undefined> {
+    const standardQuestion = this.standardQuestions.get(id);
+    if (!standardQuestion) return undefined;
+    
+    const updatedStandardQuestion = {
+      ...standardQuestion,
+      ...standardQuestionUpdate
+    };
+    this.standardQuestions.set(id, updatedStandardQuestion);
+    return updatedStandardQuestion;
+  }
+
+  async deleteStandardQuestion(id: number): Promise<boolean> {
+    return this.standardQuestions.delete(id);
   }
   
   // Booking Pages operations
