@@ -68,17 +68,17 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       
       // Properly map organization names to their correct logos using correct paths
       // Note: These must match the paths that are actually served by the static files middleware
-      // Absolute paths are resolved from the public directory
+      // These should be relative to the public directory and should use the correct directory
       if (organization.id === 5 || organization.name.includes('Fresh Connect')) {
-        fallbackLogoPath = '/logo/fresh-connect-logo.png';
+        fallbackLogoPath = '/assets/fresh-connect-logo.png';
         console.log(`[Booking Page Logo] Using Fresh Connect logo path: ${fallbackLogoPath}`);
       } else if (organization.id === 2 || organization.name.includes('Hanzo')) {
-        fallbackLogoPath = '/logo/hanzo-logo.png';
+        fallbackLogoPath = '/assets/hanzo-logo.png';
         console.log(`[Booking Page Logo] Using Hanzo logo path: ${fallbackLogoPath}`);
       } else {
         // Default fallback - use a generic path based on organization name
         const safeOrgName = organization.name.toLowerCase().replace(/\s+/g, '-');
-        fallbackLogoPath = `/logo/${safeOrgName}-logo.png`;
+        fallbackLogoPath = `/assets/${safeOrgName}-logo.png`;
         console.log(`[Booking Page Logo] Using dynamic logo path: ${fallbackLogoPath}`);
       }
       
