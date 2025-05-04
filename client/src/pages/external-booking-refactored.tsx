@@ -113,7 +113,8 @@ export default function ExternalBooking() {
 }
 
 // Content component that consumes the context
-function BookingWizardContent({ 
+// Note: This component is also exported for use in the internal appointment modal
+export function BookingWizardContent({ 
   slug, 
   shouldReset,
   bookingPage,

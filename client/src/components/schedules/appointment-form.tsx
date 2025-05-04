@@ -1,4 +1,4 @@
-import UnifiedAppointmentForm from "@/components/shared/unified-appointment-form-fixed";
+import ExternalBookingModal from "@/components/shared/external-booking-modal";
 import { Schedule } from "@shared/schema";
 
 interface AppointmentFormProps {
@@ -24,19 +24,19 @@ export default function ScheduleAppointmentForm({
   timezone,
   timeFormat,
 }: AppointmentFormProps) {
-  // Use our unified appointment form component with standard questions
+  // Use our external booking wizard component as a modal for internal booking
+  // This ensures consistency between external and internal booking flows
   return (
-    <UnifiedAppointmentForm
-      mode="internal"
+    <ExternalBookingModal
       isOpen={isOpen}
       onClose={onClose}
       initialData={initialData}
-      editMode={mode}
+      facilityId={initialData?.facilityId}
+      appointmentTypeId={appointmentTypeId}
+      timezone={timezone}
       initialDate={initialDate}
       initialDockId={initialDockId}
-      appointmentTypeId={appointmentTypeId}
-      facilityTimezone={timezone}
-      facilityId={initialData?.facilityId}
+      editMode={mode}
     />
   );
 }
