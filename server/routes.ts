@@ -3722,9 +3722,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/appointment-types/:id/questions", async (req, res) => {
     try {
       const appointmentTypeId = Number(req.params.id);
-      const tenantId = req.user?.tenantId;
+      let tenantId = req.user?.tenantId;
+      const bookingPageSlug = req.query.bookingPageSlug as string;
       
-      console.log(`[CustomQuestions] Fetching questions for appointment type ID: ${appointmentTypeId}, tenantId: ${tenantId || 'none'}`);
+      console.log(`[CustomQuestions] Fetching questions for appointment type ID: ${appointmentTypeId}, tenantId: ${tenantId || 'none'}${bookingPageSlug ? `, bookingPageSlug: ${bookingPageSlug}` : ''}`);
+      
+      // Check if we have a booking page slug (for external booking flow)
+      if (bookingPageSlug) {
+        try {
+          // Get the booking page to determine the correct tenant context
+          const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+          if (bookingPage) {
+            tenantId = bookingPage.tenantId;
+            console.log(`[CustomQuestions] Using tenant ID ${tenantId} from booking page ${bookingPageSlug}`);
+          } else {
+            console.warn(`[CustomQuestions] Booking page not found: ${bookingPageSlug}`);
+          }
+        } catch (err) {
+          console.error(`[CustomQuestions] Error retrieving booking page ${bookingPageSlug}:`, err);
+        }
+      }
       
       // Get the appointment type first with tenant isolation
       const appointmentType = await storage.getAppointmentType(appointmentTypeId, tenantId);
@@ -3733,8 +3750,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment type not found" });
       }
       
-      // Check tenant isolation if user has a tenantId
-      if (req.user?.tenantId) {
+      // Skip tenant check when using booking page context
+      if (req.user?.tenantId && !bookingPageSlug) {
         const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
         
         // Use our helper function to check tenant access

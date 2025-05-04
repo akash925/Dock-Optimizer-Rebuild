@@ -1270,8 +1270,8 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
   
   // Get the custom questions if any
   const { data: customQuestions } = useQuery({
-    queryKey: [`/api/appointment-types/${bookingData.appointmentTypeId}/questions`],
-    enabled: !!bookingData.appointmentTypeId,
+    queryKey: [`/api/appointment-types/${bookingData.appointmentTypeId}/questions`, { bookingPageSlug: bookingPage?.slug }],
+    enabled: !!bookingData.appointmentTypeId && !!bookingPage?.slug,
   });
   
   // Handle back button
