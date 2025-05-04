@@ -336,37 +336,21 @@ function formatDateForTimezone(date: Date, timezone: string, formatStr: string):
     // Make sure the format string is correct (replace 'yyyy' with actual year format token)
     // The issue is sometimes 'yyyy' is showing up literally instead of being replaced with the year
     if (formatStr.includes('yyyy')) {
-      // Create a direct format that handles the year correctly
-      const correctedFormatStr = formatStr
-        .replace('yyyy', 'yyyy') // Keep this for date-fns-timezone, which needs this token
-        .replace('EEEE', 'EEEE'); // Keep day of week token
-      
-      console.log(`[EMAIL] Using corrected format string: ${correctedFormatStr}`);
-      
       try {
-        // Format with timezone using date-fns-timezone
-        const formattedResult = formatToTimeZone(safeDate, correctedFormatStr, { timeZone: timezone });
+        // Directly create date components to ensure correct formatting
+        const year = safeDate.getFullYear();
+        const month = formatToTimeZone(safeDate, 'MMMM', { timeZone: timezone });
+        const dayOfWeek = formatToTimeZone(safeDate, 'EEEE', { timeZone: timezone });
+        const dayOfMonth = formatToTimeZone(safeDate, 'd', { timeZone: timezone });
+        const time = formatToTimeZone(safeDate, 'h:mm a', { timeZone: timezone });
         
-        // Additional check to make sure 'yyyy' was replaced properly
-        if (formattedResult.includes('yyyy')) {
-          console.warn(`[EMAIL] 'yyyy' still present in output, using alternate format method`);
-          
-          // Format the date explicitly with all components to avoid the '1111' issue
-          const year = safeDate.getFullYear();
-          const month = formatToTimeZone(safeDate, 'MMMM', { timeZone: timezone });
-          const dayOfWeek = formatToTimeZone(safeDate, 'EEEE', { timeZone: timezone });
-          const dayOfMonth = formatToTimeZone(safeDate, 'd', { timeZone: timezone });
-          const time = formatToTimeZone(safeDate, 'h:mm a', { timeZone: timezone });
-          
-          // Construct the full date string manually
-          const finalResult = `${dayOfWeek}, ${month} ${dayOfMonth}, ${year} ${time}`;
-          
-          console.log(`[EMAIL] Formatted with manual date components: ${finalResult}`);
-          return finalResult;
-        }
+        // Construct the full date string manually
+        const finalResult = formatStr.includes('EEEE') 
+          ? `${dayOfWeek}, ${month} ${dayOfMonth}, ${year} ${time}`
+          : `${month} ${dayOfMonth}, ${year} ${time}`;
         
-        console.log(`[EMAIL] Formatted result: ${formattedResult}`);
-        return formattedResult;
+        console.log(`[EMAIL] Formatted with manual date components: ${finalResult}`);
+        return finalResult;
       } catch (tzError) {
         console.error(`[EMAIL] Error with timezone formatting: ${tzError}`);
         // Fallback to basic date format without timezone
