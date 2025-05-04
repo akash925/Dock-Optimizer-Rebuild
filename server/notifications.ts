@@ -1413,7 +1413,7 @@ export async function sendReminderEmail(
         <div style="text-align: center; margin: 15px auto; background-color: #fff8e6; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba; max-width: 320px;">
           <h3 style="color: #856404; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
           <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #ffeeba;">
-            <img src="${qrCodeBase64}" 
+            <img src="${qrCodeUrl}" 
                  alt="Check-in QR Code" 
                  style="width: 150px; height: 150px; display: block; margin: 0 auto;">
             <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #856404; text-align: center;">
