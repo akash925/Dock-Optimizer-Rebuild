@@ -225,7 +225,7 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
         console.log(`[Booking Page Logo] Using default Dock Optimizer logo`);
       }
       
-      console.log(`[Booking Page Logo] Using organization-specific logo path for ${organization.name}: ${fallbackLogoPath}`);
+      console.log(`[Booking Page Logo] Using organization-specific logo path for ${organization.name}`);
       return res.json({ logo: fallbackLogoPath });
     } catch (error) {
       console.error('[Booking Page Logo] Error fetching logo:', error);
