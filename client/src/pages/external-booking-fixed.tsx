@@ -25,7 +25,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { CarrierSelector } from '@/components/shared/carrier-selector';
 import '../styles/booking-wizard.css';
-import hanzoLogo from '@assets/hanzo logo.jpeg';
+import hanzoLogo from '../assets/hanzo_logo.jpeg';
+import freshConnectLogo from '../assets/organization_logo.jpeg'; // Using fallback for Fresh Connect
+import dockOptimizerLogo from '../assets/dock_optimizer_logo.jpg';
 
 // Define the props interface
 interface ExternalBookingProps {
