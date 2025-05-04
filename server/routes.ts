@@ -4217,19 +4217,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ message: "Invalid appointment type ID" });
         }
         
-        // Add tenant isolation check
-        if (req.user?.tenantId) {
+        // Direct tenant isolation check without relying on facility relationships
+        console.log(`[StandardQuestion] Debug - Comparing appointment type tenantId (${appointmentType.tenantId} - ${typeof appointmentType.tenantId}) with user tenantId (${req.user?.tenantId} - ${typeof req.user?.tenantId})`);
+        
+        if (req.user?.tenantId && Number(appointmentType.tenantId) !== Number(req.user.tenantId)) {
           const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
           
-          const facility = await checkTenantFacilityAccess(
-            appointmentType.facilityId,
-            req.user.tenantId,
-            isSuperAdmin,
-            'StandardQuestion-Create'
-          );
-          
-          if (!facility) {
-            console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+          // Allow super admins to bypass tenant isolation
+          if (!isSuperAdmin) {
+            console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} belongs to tenant ${appointmentType.tenantId}, user is from tenant ${req.user.tenantId}`);
             return res.status(403).json({ message: "You can only create standard questions for appointment types in your organization" });
           }
         }
@@ -4259,21 +4255,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Standard question not found" });
       }
       
-      // Tenant isolation check if appointment type is set
+      // Direct tenant isolation check if appointment type is set
       if (standardQuestion.appointmentTypeId && req.user?.tenantId) {
         const appointmentType = await storage.getAppointmentType(standardQuestion.appointmentTypeId);
         if (appointmentType) {
           const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
           
-          const facility = await checkTenantFacilityAccess(
-            appointmentType.facilityId,
-            req.user.tenantId,
-            isSuperAdmin,
-            'StandardQuestion-Update'
-          );
+          // Direct tenant check without relying on facility relationships
+          console.log(`[StandardQuestion] Debug - Comparing appointment type tenantId (${appointmentType.tenantId} - ${typeof appointmentType.tenantId}) with user tenantId (${req.user?.tenantId} - ${typeof req.user?.tenantId})`);
           
-          if (!facility) {
-            console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+          if (!isSuperAdmin && Number(appointmentType.tenantId) !== Number(req.user.tenantId)) {
+            console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} belongs to tenant ${appointmentType.tenantId}, user is from tenant ${req.user.tenantId}`);
             return res.status(403).json({ message: "You can only update standard questions for appointment types in your organization" });
           }
         }
@@ -4302,21 +4294,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Standard question not found" });
       }
       
-      // Tenant isolation check if appointment type is set
+      // Direct tenant isolation check if appointment type is set
       if (standardQuestion.appointmentTypeId && req.user?.tenantId) {
         const appointmentType = await storage.getAppointmentType(standardQuestion.appointmentTypeId);
         if (appointmentType) {
           const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
           
-          const facility = await checkTenantFacilityAccess(
-            appointmentType.facilityId,
-            req.user.tenantId,
-            isSuperAdmin,
-            'StandardQuestion-Delete'
-          );
-          
-          if (!facility) {
-            console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+          // Direct tenant check without relying on facility relationships
+          if (!isSuperAdmin && appointmentType.tenantId !== req.user.tenantId) {
+            console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} belongs to tenant ${appointmentType.tenantId}, user is from tenant ${req.user.tenantId}`);
             return res.status(403).json({ message: "You can only delete standard questions for appointment types in your organization" });
           }
         }
