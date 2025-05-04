@@ -1322,10 +1322,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Broadcast the check-in status change via WebSockets for real-time updates
       if (app.locals.broadcastScheduleUpdate) {
+        // Get facility's organization info to determine tenantId if needed
+        let tenantId = null;
+        if (schedule.facilityId) {
+          try {
+            const query = `
+              SELECT t.id FROM tenants t
+              JOIN organization_facilities of ON t.id = of.organization_id
+              WHERE of.facility_id = $1
+              LIMIT 1
+            `;
+            const result = await pool.query(query, [schedule.facilityId]);
+            if (result.rows.length > 0) {
+              tenantId = result.rows[0].id;
+              console.log(`[QR Check-in] Found tenant ID ${tenantId} for facility ${schedule.facilityId}`);
+            }
+          } catch (err) {
+            console.error('[QR Check-in] Error looking up tenant ID:', err);
+          }
+        }
+        
         console.log(`[WebSocket] Broadcasting QR code check-in: Schedule ${scheduleId}`);
         app.locals.broadcastScheduleUpdate({
           ...updatedSchedule,
-          tenantId: schedule.tenantId
+          tenantId: tenantId
         });
       }
       

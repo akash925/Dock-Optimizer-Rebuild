@@ -43,7 +43,9 @@ export default function DriverCheckIn() {
         }
         
         // Look up the appointment by confirmation code
-        const response = await fetch(`/api/schedules/confirmation/${code}`);
+        // Use a consistent format HC123 across the system
+        const formattedCode = code.startsWith('HC') ? code : `HC${code}`;
+        const response = await fetch(`/api/schedules/confirmation/${formattedCode}`);
         
         if (!response.ok) {
           if (response.status === 404) {
