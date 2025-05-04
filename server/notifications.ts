@@ -465,6 +465,35 @@ function getTimezoneAbbr(timezone: string, date: Date): string {
 }
 
 /**
+ * Generate a QR code SVG for appointment check-in
+ */
+function generateQRCodeSVG(confirmationCode: string, baseUrl: string): string {
+  // Use the QRCode.js library from a CDN in the email HTML
+  const qrCodeScript = `
+  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+  <script>
+    new QRCode(document.getElementById("qrcode"), {
+      text: "${baseUrl}/driver-check-in?code=${confirmationCode.replace('HC', '')}",
+      width: 120,
+      height: 120,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  </script>
+  `;
+  
+  // Return a placeholder for the QR code or generate a static SVG
+  // Since emails don't support JavaScript, just provide a link
+  return `<div id="qrcode" style="width:120px; height:120px; margin: 0 auto;"></div>
+    <p style="text-align:center; margin-top: 10px; font-size: 14px;">
+      <a href="${baseUrl}/driver-check-in?code=${confirmationCode.replace('HC', '')}" style="color: #0366d6; text-decoration: underline;">
+        Scan QR code for check-in or click here
+      </a>
+    </p>`;
+}
+
+/**
  * Send a confirmation email for a new or rescheduled appointment
  */
 export async function sendConfirmationEmail(

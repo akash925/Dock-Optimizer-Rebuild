@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2, Loader2, Settings } from "lucide-react";
+import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2, Loader2, Settings, Scan } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { 
@@ -433,27 +433,38 @@ ${orgName}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
-            {/* QR Code Display */}
-            <div className="bg-blue-50 p-4 rounded-md border border-blue-100 w-full">
-              <div className="flex flex-col md:flex-row items-center gap-4">
-                <div className="bg-white p-3 rounded-md shadow-sm">
+            {/* Enhanced QR Code Display */}
+            <div className="bg-blue-100 p-5 rounded-lg border border-blue-200 w-full">
+              <h3 className="font-bold text-xl text-blue-800 mb-3 flex items-center">
+                <Scan className="mr-2 h-5 w-5" />
+                Express Check-In QR Code
+              </h3>
+              <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="bg-white p-4 rounded-lg shadow-md border border-blue-200">
                   <QRCodeSVG 
                     value={getCheckInUrl()}
-                    size={120}
+                    size={160}
                     bgColor="#FFFFFF"
                     fgColor="#000000"
                     level="H"
                     includeMargin={false}
                   />
+                  <div className="text-center mt-2 font-mono text-sm font-medium text-blue-800">
+                    {bookingDetails.confirmationNumber}
+                  </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-blue-800 mb-1">Check-In QR Code</h3>
-                  <p className="text-sm text-blue-700 mb-3">
-                    Show this QR code to dock staff when you arrive at the warehouse.
-                  </p>
+                  <div className="bg-blue-50 p-3 rounded-lg mb-4 border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-1">How to use this QR code:</h4>
+                    <ul className="text-sm text-blue-700 space-y-2 list-disc pl-5">
+                      <li>Present this QR code to the dock staff for expedited check-in</li>
+                      <li>Staff will scan this code to instantly access your appointment details</li>
+                      <li>This helps reduce wait times and paperwork at arrival</li>
+                    </ul>
+                  </div>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="bg-blue-100 border-blue-200 hover:bg-blue-200">
+                      <Button className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white">
                         <Share2 className="mr-2 h-4 w-4" />
                         Share via Email
                       </Button>
