@@ -1,5 +1,5 @@
 // Test script for QR code in emails
-import { sendConfirmationEmail } from './server/notifications.js';
+import { sendConfirmationEmail } from './server/notifications.ts';
 import fs from 'fs';
 
 // Sample schedule for testing
