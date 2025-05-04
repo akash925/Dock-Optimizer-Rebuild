@@ -104,42 +104,22 @@ export default function ExternalBookingModal({
           </DialogTitle>
         </DialogHeader>
         
-        <BookingWizardProvider 
-          initialData={{
-            type: initialData?.type || 'inbound',
-            appointmentMode: 'trailer',
-            facilityId: facilityId || initialData?.facilityId,
-            appointmentTypeId: appointmentTypeId || initialData?.appointmentTypeId,
-            scheduledStart: initialData?.scheduledStart,
-            facilityTimezone: timezone,
-            // Populate with initial data if editing
-            ...(initialData && {
-              customerName: initialData.customerName,
-              carrierName: initialData.carrierName,
-              mcNumber: initialData.mcNumber,
-              truckNumber: initialData.truckNumber,
-              trailerNumber: initialData.trailerNumber,
-              driverName: initialData.driverName,
-              driverPhone: initialData.driverPhone,
-              driverEmail: initialData.driverEmail,
-              bolNumber: initialData.bolNumber,
-              poNumber: initialData.poNumber,
-              palletCount: initialData.palletCount,
-              weight: initialData.weight,
-              notes: initialData.notes,
-            })
-          }}
-        >
+        <BookingWizardProvider>
           <BookingWizardContent 
             bookingPage={fakeBookingPage}
             isLoadingBookingPage={false}
             bookingPageError={null}
             shouldReset={false}
-            internalMode={true}
+            slug="internal"
+            navigate={() => {}}
+            toast={toast}
+            initialFacilityId={facilityId}
+            initialAppointmentTypeId={appointmentTypeId}
             initialDate={initialDate}
             initialDockId={initialDockId}
             onSubmitSuccess={handleAppointmentSubmit}
             onCancel={onClose}
+            internalMode={true}
           />
         </BookingWizardProvider>
       </DialogContent>

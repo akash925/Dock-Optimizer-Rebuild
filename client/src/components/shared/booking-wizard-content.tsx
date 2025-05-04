@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,7 +8,6 @@ import { Facility, BookingPage, AppointmentType } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { useStandardQuestions } from '@/hooks/use-standard-questions';
 import { StandardQuestionsFormFields } from './standard-questions-form-fields';
-import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -20,72 +19,57 @@ import { Calendar } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, ArrowRight, ArrowLeft, Upload, CheckCircle } from 'lucide-react';
-import { CarrierSelector } from '@/components/shared/carrier-selector';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 
-// Create a type for our parsed facilities data
-interface ParsedFacilities {
-  [facilityId: string]: {
-    facility: Facility;
-    excludedAppointmentTypes: number[];
-  }
-}
+// Define a type for the step schemas
+type StepSchema = z.ZodObject<any>;
 
-// Step 1: Initial Selections
-const initialSelectionSchema = z.object({
-  location: z.string().min(1, 'Please select a location'),
-  appointmentType: z.string().min(1, 'Please select an appointment type'),
-  pickupOrDropoff: z.enum(['pickup', 'dropoff'], {
-    required_error: 'Please select whether this is a pickup or dropoff',
+// Define the schemas for each step
+const step1Schema = z.object({
+  facilityId: z.number({
+    required_error: "Please select a facility",
+  }),
+  appointmentTypeId: z.number({
+    required_error: "Please select an appointment type",
+  }),
+  pickupOrDropoff: z.enum(["pickup", "dropoff"], {
+    required_error: "Please select pickup or dropoff",
   }),
 });
 
-// Step 2: Customer Information
-const companyInfoSchema = z.object({
-  customerName: z.string().min(2, 'Customer name is required'),
-  contactName: z.string().min(2, 'Contact name is required'),
-  contactEmail: z.string().email('Please enter a valid email'),
-  contactPhone: z.string().min(10, 'Please enter a valid phone number'),
+const step2Schema = z.object({
+  companyName: z.string().min(2, "Company name is required"),
+  contactName: z.string().min(2, "Contact name is required"),
+  email: z.string().email("Please enter a valid email"),
+  phone: z.string().min(10, "Please enter a valid phone number"),
+  customFields: z.record(z.string()).optional(),
 });
 
-// Step 3: Appointment Details
-const appointmentDetailsSchema = z.object({
-  appointmentDate: z.string().min(1, 'Please select a date'),
-  appointmentTime: z.string().min(1, 'Please select a time'),
-  carrierName: z.string().min(1, 'Carrier name is required'),
+const step3Schema = z.object({
   carrierId: z.number().optional(),
-  // Added validation for MC Number format
-  mcNumber: z.string().regex(/^\d{3}-\d{3}-\d{4}$/, 'MC Number must be in format: XXX-XXX-XXXX').optional().or(z.literal('')),
-  truckNumber: z.string().min(1, 'Truck number is required'),
+  carrierName: z.string().min(1, "Carrier name is required"),
+  driverName: z.string().min(1, "Driver name is required"),
+  driverPhone: z.string().min(10, "Please enter a valid phone number"),
+  truckNumber: z.string().min(1, "Truck number is required"),
   trailerNumber: z.string().optional(),
-  driverName: z.string().min(1, 'Driver name is required'),
-  driverPhone: z.string().min(10, 'Please enter a valid phone number'),
-  poNumber: z.string().optional(),
-  bolNumber: z.string().optional(), 
-  palletCount: z.string().optional(),
-  weight: z.string().optional(),
-  additionalNotes: z.string().optional(),
+  notes: z.string().optional(),
 });
 
-type InitialSelectionFormValues = z.infer<typeof initialSelectionSchema>;
-type CompanyInfoFormValues = z.infer<typeof companyInfoSchema>;
-type AppointmentDetailsFormValues = z.infer<typeof appointmentDetailsSchema>;
-
-interface BookingWizardContentProps {
+export interface BookingWizardContentProps {
   bookingPage?: BookingPage;
   isLoadingBookingPage: boolean;
   bookingPageError: Error | null;
   shouldReset: boolean;
   slug?: string;
-  internalMode?: boolean;
+  navigate: (to: string, options?: { replace?: boolean }) => void;
+  toast: any;
+  initialFacilityId?: number;
+  initialAppointmentTypeId?: number;
   initialDate?: Date;
   initialDockId?: number;
-  initialAppointmentTypeId?: number;
-  initialFacilityId?: number;
   onSubmitSuccess?: (data: any) => void;
   onCancel?: () => void;
-  navigate?: (to: string, options?: { replace?: boolean }) => void;
-  toast?: any;
+  internalMode?: boolean;
 }
 
 export function BookingWizardContent({
@@ -94,578 +78,307 @@ export function BookingWizardContent({
   bookingPageError,
   shouldReset,
   slug,
-  internalMode = false,
+  navigate,
+  toast,
+  initialFacilityId,
+  initialAppointmentTypeId,
   initialDate,
   initialDockId,
-  initialAppointmentTypeId,
-  initialFacilityId,
   onSubmitSuccess,
   onCancel,
-  navigate,
-  toast: externalToast,
+  internalMode = false
 }: BookingWizardContentProps) {
+  // Get data from context
   const { 
+    currentStep, 
+    setCurrentStep, 
     bookingData, 
-    resetBooking, 
-    updateTruckInfo,
-    updateScheduleDetails,
-    setBolFile,
-    setAppointmentDateTime
+    updateBookingData,
+    resetBookingData,
+    isLoading,
+    setIsLoading
   } = useBookingWizard();
-  
-  const { toast: internalToast } = useToast();
-  const toast = externalToast || internalToast;
-  
-  const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [bolProcessing, setBolProcessing] = useState(false);
-  const [parsedFacilities, setParsedFacilities] = useState<ParsedFacilities>({});
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState<number | undefined>(
-    initialAppointmentTypeId
-  );
-  
-  // Reference to prevent infinite re-renders
-  const parsedFacilitiesRef = React.useRef<ParsedFacilities>({});
-  
+
+  // Local state for UI management
+  const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate || null);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [timeError, setTimeError] = useState<string | null>(null);
+
   // Fetch facilities
   const { data: facilities = [], isLoading: isLoadingFacilities } = useQuery<Facility[]>({
-    queryKey: ['/api/facilities'],
-    enabled: !!(bookingPage || internalMode),
+    queryKey: internalMode ? ['/api/facilities'] : [`/api/booking-pages/slug/${slug}/facilities`],
+    enabled: !isLoadingBookingPage && !!bookingPage,
   });
-  
-  // Fetch appointment types
+
+  // Fetch appointment types based on selected facility
   const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useQuery<AppointmentType[]>({
-    queryKey: ['/api/appointment-types'],
-    enabled: !!(bookingPage || internalMode) && !!facilities?.length,
+    queryKey: internalMode 
+      ? ['/api/appointment-types', { facilityId: selectedFacility?.id || initialFacilityId }] 
+      : [`/api/booking-pages/slug/${slug}/facilities/${selectedFacility?.id || initialFacilityId}/appointment-types`],
+    enabled: !!selectedFacility || !!initialFacilityId,
   });
-  
+
   // Fetch standard questions for the selected appointment type
-  const { 
-    standardQuestions, 
-    isLoading: isLoadingStandardQuestions 
-  } = useStandardQuestions({
-    appointmentTypeId: selectedAppointmentTypeId,
-    bookingPageSlug: internalMode ? undefined : slug
+  const { standardQuestions, isLoading: isLoadingQuestions } = useStandardQuestions({
+    appointmentTypeId: bookingData.appointmentTypeId || undefined,
+    bookingPageSlug: slug,
   });
-  
-  // Process facilities data when it's available
-  useEffect(() => {
-    if ((bookingPage || internalMode) && facilities?.length && appointmentTypes?.length) {
-      console.log('Processing facilities and appointment types...');
-      
-      // Only process facilities once
-      if (Object.keys(parsedFacilitiesRef.current).length === 0) {
-        try {
-          // Use all facilities by default
-          const facilitiesMap: ParsedFacilities = {};
-          
-          // Add every facility to the map
-          facilities.forEach(facility => {
-            facilitiesMap[facility.id] = {
-              facility,
-              excludedAppointmentTypes: []
-            };
-          });
-          
-          console.log('Available facilities:', Object.keys(facilitiesMap).length);
-          
-          // Store in ref to prevent infinite updates
-          parsedFacilitiesRef.current = facilitiesMap;
-          
-          // Set facilities state once
-          setParsedFacilities(facilitiesMap);
-          
-          // If initialFacilityId is provided, set it as the selected location
-          if (initialFacilityId) {
-            initialSelectionForm.setValue('location', String(initialFacilityId));
-            setSelectedLocation(String(initialFacilityId));
-          }
-          
-          // If initialAppointmentTypeId is provided, set it as the selected type
-          if (initialAppointmentTypeId) {
-            initialSelectionForm.setValue('appointmentType', String(initialAppointmentTypeId));
-            setSelectedAppointmentTypeId(initialAppointmentTypeId);
-          }
-        } catch (err) {
-          console.error('Error processing facilities data:', err);
-        }
-      }
+
+  // Create a form for the current step
+  const getSchemaForStep = (step: number): StepSchema => {
+    switch (step) {
+      case 1:
+        return step1Schema;
+      case 2:
+        return step2Schema;
+      case 3:
+        return step3Schema;
+      default:
+        return step1Schema;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookingPage, facilities, appointmentTypes, initialFacilityId, initialAppointmentTypeId]);
-  
-  // Handle form reset when coming from booking confirmation page or when prop changes
-  useEffect(() => {
-    if (shouldReset) {
-      console.log('Resetting all forms');
-      
-      // Reset the context state
-      resetBooking();
-      
-      // Reset forms to default values
-      initialSelectionForm.reset({
-        location: '',
-        appointmentType: '',
-        pickupOrDropoff: 'dropoff',
-      });
-      
-      companyInfoForm.reset({
-        customerName: '',
-        contactName: '',
-        contactEmail: '',
-        contactPhone: '',
-      });
-      
-      appointmentDetailsForm.reset({
-        appointmentDate: '',
-        appointmentTime: '',
-        carrierName: '',
-        carrierId: undefined,
-        mcNumber: '',
-        truckNumber: '',
-        trailerNumber: '',
-        driverName: '',
-        contactEmail: '',
-        driverPhone: '',
-        poNumber: '',
-        bolNumber: '',
-        palletCount: '',
-        weight: '',
-        additionalNotes: '',
-      });
-      
-      // Reset the step
-      setStep(1);
-      setSelectedLocation(null);
-      
-      // Clean up the URL if we're in external mode
-      if (navigate && !internalMode) {
-        navigate('/external-booking', { replace: true });
-      }
-      
-      toast({
-        title: 'Form Reset',
-        description: 'Starting a new appointment booking.',
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldReset, resetBooking, toast]);
-  
-  // Step 1 Form
-  const initialSelectionForm = useForm<InitialSelectionFormValues>({
-    resolver: zodResolver(initialSelectionSchema),
+  };
+
+  const currentStepSchema = getSchemaForStep(currentStep);
+
+  const form = useForm<z.infer<typeof currentStepSchema>>({
+    resolver: zodResolver(currentStepSchema),
     defaultValues: {
-      location: initialFacilityId ? String(initialFacilityId) : '',
-      appointmentType: initialAppointmentTypeId ? String(initialAppointmentTypeId) : '',
-      pickupOrDropoff: 'dropoff', // Default to dropoff
-    },
-  });
-  
-  // Step 2 Form
-  const companyInfoForm = useForm<CompanyInfoFormValues>({
-    resolver: zodResolver(companyInfoSchema),
-    defaultValues: {
-      customerName: bookingData.customerName || '',
-      contactName: bookingData.driverName || '',
-      contactEmail: bookingData.driverEmail || '',
-      contactPhone: bookingData.driverPhone || '',
-    },
-  });
-  
-  // Step 3 Form
-  const appointmentDetailsForm = useForm<AppointmentDetailsFormValues>({
-    resolver: zodResolver(appointmentDetailsSchema),
-    defaultValues: {
-      appointmentDate: bookingData.scheduledStart 
-        ? format(new Date(bookingData.scheduledStart), 'yyyy-MM-dd')
-        : initialDate ? format(initialDate, 'yyyy-MM-dd') : '',
-      appointmentTime: bookingData.scheduledStart 
-        ? format(new Date(bookingData.scheduledStart), 'HH:mm')
-        : '',
-      carrierName: bookingData.carrierName || '',
+      // Step 1
+      facilityId: bookingData.facilityId || initialFacilityId || undefined,
+      appointmentTypeId: bookingData.appointmentTypeId || initialAppointmentTypeId || undefined,
+      pickupOrDropoff: bookingData.pickupOrDropoff || undefined,
+      
+      // Step 2
+      companyName: bookingData.companyName || '',
+      contactName: bookingData.contactName || '',
+      email: bookingData.email || '',
+      phone: bookingData.phone || '',
+      customFields: bookingData.customFields || {},
+      
+      // Step 3
       carrierId: bookingData.carrierId || undefined,
-      mcNumber: bookingData.mcNumber || '',
-      truckNumber: bookingData.truckNumber || '',
-      trailerNumber: bookingData.trailerNumber || '',
+      carrierName: bookingData.carrierName || '',
       driverName: bookingData.driverName || '',
       driverPhone: bookingData.driverPhone || '',
-      poNumber: bookingData.poNumber || '',
-      bolNumber: bookingData.bolNumber || '',
-      palletCount: bookingData.palletCount || '',
-      weight: bookingData.weight || '',
-      additionalNotes: bookingData.notes || '',
-    },
+      truckNumber: bookingData.truckNumber || '',
+      trailerNumber: bookingData.trailerNumber || '',
+      notes: bookingData.notes || '',
+    }
   });
-  
-  // Watch the location field to update appointment types
-  const watchLocation = initialSelectionForm.watch('location');
-  const watchAppointmentType = initialSelectionForm.watch('appointmentType');
-  
-  // Update available appointment types when location changes
+
+  // Initialize from props
   useEffect(() => {
-    if (watchLocation !== selectedLocation && watchLocation) {
-      setSelectedLocation(watchLocation);
-      
-      // Reset the appointment type when location changes
-      if (watchLocation && !initialAppointmentTypeId) {
-        initialSelectionForm.setValue('appointmentType', '');
-        setSelectedAppointmentTypeId(undefined);
+    if (initialFacilityId && facilities.length > 0) {
+      const facility = facilities.find(f => f.id === initialFacilityId);
+      if (facility) {
+        setSelectedFacility(facility);
+        updateBookingData({ facilityId: initialFacilityId });
       }
     }
-  }, [watchLocation, selectedLocation, initialSelectionForm, initialAppointmentTypeId]);
-  
-  // Update selected appointment type ID when the appointment type changes
+  }, [initialFacilityId, facilities, updateBookingData]);
+
   useEffect(() => {
-    if (watchAppointmentType) {
-      const typeId = parseInt(watchAppointmentType);
-      setSelectedAppointmentTypeId(typeId);
+    if (initialAppointmentTypeId && appointmentTypes.length > 0) {
+      const appointmentType = appointmentTypes.find(at => at.id === initialAppointmentTypeId);
+      if (appointmentType) {
+        updateBookingData({ appointmentTypeId: initialAppointmentTypeId });
+      }
     }
-  }, [watchAppointmentType]);
-  
-  // Handle BOL file upload
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
+  }, [initialAppointmentTypeId, appointmentTypes, updateBookingData]);
+
+  // Handle facility selection
+  const handleFacilityChange = (facilityId: string) => {
+    const id = parseInt(facilityId, 10);
+    const facility = facilities.find(f => f.id === id);
+    setSelectedFacility(facility || null);
+    updateBookingData({ facilityId: id });
+    // Reset appointment type when facility changes
+    form.setValue('appointmentTypeId', undefined as any);
+    updateBookingData({ appointmentTypeId: null });
+  };
+
+  // Handle form submission for each step
+  const onSubmit = async (data: any) => {
+    console.log(`Step ${currentStep} data:`, data);
+    
+    // Update context with form data
+    updateBookingData(data);
+    
+    // Move to next step or submit appointment
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      // Final step - submit appointment
+      setIsLoading(true);
       
-      setBolProcessing(true);
-      
-      // Read file contents for preview
-      const reader = new FileReader();
-      
-      reader.onload = function(event) {
-        try {
-          // Extract text from the file for preview
-          const previewText = event.target?.result as string || `File: ${file.name}`;
+      try {
+        // Format data for submission
+        const formattedData = {
+          facilityId: bookingData.facilityId,
+          appointmentTypeId: bookingData.appointmentTypeId,
+          type: bookingData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound',
+          startTime: bookingData.startTime,
+          endTime: bookingData.endTime,
+          customerName: bookingData.companyName, 
+          contactName: bookingData.contactName,
+          contactEmail: bookingData.email,
+          contactPhone: bookingData.phone,
+          carrierId: bookingData.carrierId,
+          carrierName: bookingData.carrierName,
+          driverName: bookingData.driverName,
+          driverPhone: bookingData.driverPhone,
+          truckNumber: bookingData.truckNumber,
+          trailerNumber: bookingData.trailerNumber,
+          notes: bookingData.notes,
+          // Include custom fields
+          customFields: bookingData.customFields,
+          // Additional fields for internal booking
+          status: 'scheduled',
+          source: internalMode ? 'internal' : 'external',
+          dockId: initialDockId
+        };
+        
+        console.log("Submitting appointment:", formattedData);
+        
+        if (onSubmitSuccess) {
+          onSubmitSuccess(formattedData);
+        } else {
+          // Default submission logic for external booking
+          const res = await apiRequest('POST', '/api/schedules/external', formattedData);
           
-          // Update the central state with the file and preview text
-          setBolFile(file, previewText.substring(0, 500));
-          
-          // Get appointment type details if available
-          if (watchLocation && facilities && appointmentTypes) {
-            const facilityId = parseInt(watchLocation);
-            const facility = facilities.find(f => f.id === facilityId);
-            
-            if (facility) {
-              // Update facility info in context
-              updateScheduleDetails({
-                facilityId: facility.id,
-                facilityTimezone: facility.timezone || 'America/New_York'
-              });
-            }
+          if (!res.ok) {
+            throw new Error('Failed to create appointment');
           }
           
-          setBolProcessing(false);
+          const result = await res.json();
           
           toast({
-            title: 'File Uploaded',
-            description: `Successfully uploaded ${file.name}`,
+            title: "Appointment Scheduled",
+            description: "Your appointment has been successfully scheduled.",
           });
           
-        } catch (error) {
-          console.error('Error processing file:', error);
-          setBolProcessing(false);
-          toast({
-            title: 'Upload Failed',
-            description: 'There was an error processing the file',
-            variant: 'destructive'
-          });
+          // Navigate to confirmation page
+          navigate(`/booking-confirmation/${result.confirmationCode}`, { replace: true });
         }
-      };
-      
-      // Handle errors
-      reader.onerror = function() {
-        setBolProcessing(false);
+      } catch (error) {
+        console.error("Error submitting appointment:", error);
         toast({
-          title: 'Upload Failed',
-          description: 'There was an error reading the file',
-          variant: 'destructive'
+          title: "Error",
+          description: "Failed to schedule appointment. Please try again.",
+          variant: "destructive",
         });
-      };
-      
-      // Read as text
-      reader.readAsText(file);
-    }
-  };
-  
-  // Handle Step 1 Submission
-  const onInitialSelectionSubmit = (data: InitialSelectionFormValues) => {
-    // Get facility details
-    let facilityTimezone = 'America/New_York'; // Default timezone
-    let appointmentDuration = 60; // Default duration in minutes
-    
-    // Get facility details if possible
-    if (data.location && facilities) {
-      const facilityId = parseInt(data.location);
-      const facility = facilities.find(f => f.id === facilityId);
-      
-      if (facility) {
-        facilityTimezone = facility.timezone || facilityTimezone;
+      } finally {
+        setIsLoading(false);
       }
     }
-    
-    // Get appointment type details if possible
-    if (data.appointmentType && appointmentTypes) {
-      const appointmentTypeId = parseInt(data.appointmentType);
-      const appointmentType = appointmentTypes.find(t => t.id === appointmentTypeId);
-      
-      if (appointmentType) {
-        appointmentDuration = appointmentType.duration || appointmentDuration;
-      }
-    }
-    
-    // Update booking wizard context with step 1 data
-    updateScheduleDetails({
-      facilityId: parseInt(data.location),
-      facilityTimezone,
-      appointmentTypeId: parseInt(data.appointmentType)
-    });
-    
-    // Update direction (type) based on pickup/dropoff selection
-    updateTruckInfo({
-      type: data.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound'
-    });
-    
-    // Proceed to next step
-    setStep(2);
   };
-  
-  // Handle Step 2 Submission
-  const onCompanyInfoSubmit = (data: CompanyInfoFormValues) => {
-    // Update booking wizard context with step 2 data
-    updateTruckInfo({
-      customerName: data.customerName,
-      driverName: data.contactName,
-      driverEmail: data.contactEmail,
-      driverPhone: data.contactPhone
-    });
-    
-    // Set the values in the appointments form, but maintain separation of concerns
-    appointmentDetailsForm.setValue('driverName', data.contactName);
-    appointmentDetailsForm.setValue('driverPhone', data.contactPhone);
-    
-    // Proceed to step 3
-    setStep(3);
-  };
-  
-  // Handle Step 3 Submission
-  const onAppointmentDetailsSubmit = async (data: AppointmentDetailsFormValues) => {
-    setIsSubmitting(true);
-    
-    try {
-      // Update booking wizard context with step 3 data
-      updateTruckInfo({
-        carrierId: data.carrierId || null,
-        carrierName: data.carrierName,
-        mcNumber: data.mcNumber || '',
-        truckNumber: data.truckNumber,
-        trailerNumber: data.trailerNumber || '',
-        driverName: data.driverName,
-        driverPhone: data.driverPhone
-      });
-      
-      // Update schedule details
-      updateScheduleDetails({
-        bolNumber: data.bolNumber || '',
-        poNumber: data.poNumber || '',
-        palletCount: data.palletCount || '',
-        weight: data.weight || '',
-        notes: data.additionalNotes || ''
-      });
-      
-      // Set the appointment date and time, properly handling timezone
-      setAppointmentDateTime(
-        data.appointmentDate,
-        data.appointmentTime,
-        bookingData.facilityTimezone || 'America/New_York'
-      );
-      
-      // In internal mode, use the provided callback
-      if (internalMode && onSubmitSuccess) {
-        onSubmitSuccess(bookingData);
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // In external mode, make API request to create appointment
-      const res = await apiRequest('POST', '/api/external-booking', bookingData);
-      const result = await res.json();
-      
-      toast({
-        title: 'Appointment Scheduled',
-        description: 'Your appointment has been successfully scheduled. A confirmation email will be sent shortly.',
-      });
-      
-      // Navigate to confirmation page with booking ID and confirmation number
-      if (result && result.id && navigate) {
-        navigate(`/external-booking/confirmation?id=${result.id}&confirmation=${result.confirmationNumber || 'pending'}`, { replace: true });
-      }
-      
-      setIsSubmitting(false);
-    } catch (error) {
-      console.error('Error submitting appointment:', error);
-      setIsSubmitting(false);
-      
-      toast({
-        title: 'Submission Error',
-        description: error instanceof Error ? error.message : 'Failed to schedule appointment',
-        variant: 'destructive'
-      });
+
+  // Handle going back to previous step
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    } else if (onCancel) {
+      onCancel();
     }
   };
-  
-  // If loading, show loading indicator
-  if (isLoadingBookingPage && !internalMode) {
+
+  // If still loading the booking page, show loading indicator
+  if (isLoadingBookingPage) {
     return (
-      <div className="flex justify-center items-center p-12">
+      <div className="flex flex-col items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="mt-2">Loading booking page...</p>
       </div>
     );
   }
-  
-  // If error and not in internal mode, show error message
-  if (bookingPageError && !internalMode) {
+
+  // If there was an error loading the booking page, show error message
+  if (bookingPageError) {
     return (
-      <div className="p-8 max-w-lg mx-auto">
-        <Alert variant="destructive">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            We couldn't find the booking page you're looking for. Please check the URL and try again.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <Alert variant="destructive" className="mb-4">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          Failed to load booking page. Please try again later or contact support.
+        </AlertDescription>
+      </Alert>
     );
   }
-  
-  return (
-    <div className="max-w-4xl mx-auto">
-      {/* Progress Steps */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center">
-          <div className="text-sm font-medium">
-            Step {step} of 3
-          </div>
-          <div className="flex space-x-1 text-xs text-gray-500">
-            <span className={step >= 1 ? "text-primary font-bold" : ""}>Location</span>
-            <span>→</span>
-            <span className={step >= 2 ? "text-primary font-bold" : ""}>Customer</span>
-            <span>→</span>
-            <span className={step >= 3 ? "text-primary font-bold" : ""}>Details</span>
-          </div>
-        </div>
-        <div className="mt-2 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-primary rounded-full transition-all duration-300 ease-in-out" 
-            style={{ width: `${(step / 3) * 100}%` }}
-          ></div>
-        </div>
-      </div>
-      
-      {/* Step 1: Initial Selection */}
-      {step === 1 && (
-        <Form {...initialSelectionForm}>
-          <form onSubmit={initialSelectionForm.handleSubmit(onInitialSelectionSubmit)} className="space-y-6">
+
+  // Render step content
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-4">
             <FormField
-              control={initialSelectionForm.control}
-              name="location"
+              control={form.control}
+              name="facilityId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Location*</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
+                    disabled={isLoadingFacilities}
+                    onValueChange={(value) => {
+                      field.onChange(parseInt(value, 10));
+                      handleFacilityChange(value);
+                    }}
+                    value={field.value?.toString()}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Facility" />
+                        <SelectValue placeholder="Select a location" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {isLoadingFacilities ? (
-                        <div className="p-2 text-center">
-                          <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                          <div className="text-xs mt-1">Loading facilities...</div>
-                        </div>
-                      ) : facilities && Object.keys(parsedFacilities).length > 0 ? (
-                        Object.values(parsedFacilities).map(({ facility }) => (
-                          <SelectItem 
-                            key={facility.id} 
-                            value={String(facility.id)}
-                          >
-                            {facility.name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <div className="p-2 text-center text-sm text-gray-500">
-                          No facilities available
-                        </div>
-                      )}
+                      {facilities.map((facility) => (
+                        <SelectItem key={facility.id} value={facility.id.toString()}>
+                          {facility.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
-              control={initialSelectionForm.control}
-              name="appointmentType"
+              control={form.control}
+              name="appointmentTypeId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Dock Appointment Type*</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                    disabled={!selectedLocation}
+                    disabled={!selectedFacility || isLoadingAppointmentTypes}
+                    onValueChange={(value) => {
+                      field.onChange(parseInt(value, 10));
+                      updateBookingData({ appointmentTypeId: parseInt(value, 10) });
+                    }}
+                    value={field.value?.toString()}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={selectedLocation ? "Select Appointment Type" : "Select a location first"} />
+                        <SelectValue placeholder="Select an appointment type" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {isLoadingAppointmentTypes ? (
-                        <div className="p-2 text-center">
-                          <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                          <div className="text-xs mt-1">Loading appointment types...</div>
-                        </div>
-                      ) : selectedLocation && appointmentTypes ? (
-                        appointmentTypes
-                          .filter(type => {
-                            // If in a booking page context, check for excluded types
-                            if (parsedFacilities[selectedLocation]) {
-                              const excluded = parsedFacilities[selectedLocation].excludedAppointmentTypes;
-                              return !excluded.includes(type.id);
-                            }
-                            
-                            // For internal mode, filter types by selected facility
-                            return type.facilityId === parseInt(selectedLocation);
-                          })
-                          .map(type => (
-                            <SelectItem 
-                              key={type.id} 
-                              value={String(type.id)}
-                            >
-                              {type.name}
-                            </SelectItem>
-                          ))
-                      ) : (
-                        <div className="p-2 text-center text-sm text-gray-500">
-                          {selectedLocation ? "No appointment types available" : "Select a location first"}
-                        </div>
-                      )}
+                      {appointmentTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id.toString()}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
-              control={initialSelectionForm.control}
+              control={form.control}
               name="pickupOrDropoff"
               render={({ field }) => (
                 <FormItem className="space-y-3">
@@ -673,16 +386,16 @@ export function BookingWizardContent({
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="flex space-x-4"
+                      value={field.value}
+                      className="flex flex-col space-y-1"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="dropoff" id="dropoff" />
-                        <Label htmlFor="dropoff">Dropoff</Label>
+                        <Label htmlFor="dropoff">Dropoff (Inbound)</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="pickup" id="pickup" />
-                        <Label htmlFor="pickup">Pickup</Label>
+                        <Label htmlFor="pickup">Pickup (Outbound)</Label>
                       </div>
                     </RadioGroup>
                   </FormControl>
@@ -690,418 +403,284 @@ export function BookingWizardContent({
                 </FormItem>
               )}
             />
-            
-            <div className="pt-4 flex justify-between">
-              {internalMode && (
-                <Button 
-                  variant="outline" 
-                  type="button" 
-                  onClick={onCancel}
-                >
-                  Cancel
-                </Button>
-              )}
-              <div className={internalMode ? "" : "ml-auto"}>
-                <Button type="submit">
-                  Next Step <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </form>
-        </Form>
-      )}
-      
-      {/* Step 2: Customer Information */}
-      {step === 2 && (
-        <Form {...companyInfoForm}>
-          <form onSubmit={companyInfoForm.handleSubmit(onCompanyInfoSubmit)} className="space-y-6">
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-4">
             <FormField
-              control={companyInfoForm.control}
-              name="customerName"
+              control={form.control}
+              name="companyName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Company Name*</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter company name" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
-              control={companyInfoForm.control}
+              control={form.control}
               name="contactName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Contact Name*</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter contact name" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={companyInfoForm.control}
-                name="contactEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email*</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter email address" type="email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email*</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone*</FormLabel>
+                  <FormControl>
+                    <Input type="tel" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Standard questions from the appointment type */}
+            {bookingData.appointmentTypeId && (
+              <StandardQuestionsFormFields
+                form={form}
+                questions={standardQuestions}
+                isLoading={isLoadingQuestions}
               />
-              
-              <FormField
-                control={companyInfoForm.control}
-                name="contactPhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone*</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter phone number" type="tel" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="pt-4 flex justify-between">
-              <Button 
-                variant="outline" 
-                type="button" 
-                onClick={() => setStep(1)}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button type="submit">
-                Next Step <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </form>
-        </Form>
-      )}
-      
-      {/* Step 3: Appointment Details */}
-      {step === 3 && (
-        <Form {...appointmentDetailsForm}>
-          <form onSubmit={appointmentDetailsForm.handleSubmit(onAppointmentDetailsSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={appointmentDetailsForm.control}
-                name="appointmentDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Appointment Date*</FormLabel>
-                    <div className="flex-grow">
-                      <input
-                        type="date"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        min={format(new Date(), 'yyyy-MM-dd')}
-                        {...field}
-                      />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={appointmentDetailsForm.control}
-                name="appointmentTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Appointment Time*</FormLabel>
-                    <FormControl>
-                      <input
-                        type="time"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <Separator className="my-4" />
-            
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Carrier Information</h3>
-              
-              <FormField
-                control={appointmentDetailsForm.control}
-                name="carrierName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Carrier*</FormLabel>
-                    <CarrierSelector
-                      onCarrierSelect={(carrier) => {
-                        appointmentDetailsForm.setValue('carrierId', carrier.id);
-                        appointmentDetailsForm.setValue('carrierName', carrier.name);
-                        
-                        // Set MC Number if available
-                        if (carrier.mcNumber) {
-                          appointmentDetailsForm.setValue('mcNumber', carrier.mcNumber);
-                        }
-                      }}
-                      initialCarrierName={field.value}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={appointmentDetailsForm.control}
-                name="mcNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>MC Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. 123-456-7890" {...field} value={field.value || ''} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="truckNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Truck Number*</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter truck number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="trailerNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Trailer Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter trailer number" {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            )}
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-4">
+            {/* Date selection */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium">Select Date*</h3>
+              <div className="rounded-md border">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  className="rounded-md border"
+                  disabled={(date) => date < new Date()}
+                  initialFocus
                 />
               </div>
-            </div>
-            
-            <Separator className="my-4" />
-            
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Driver Information</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="driverName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Driver Name*</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter driver name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="driverPhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Driver Phone*</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter driver phone" type="tel" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="mt-4">
-                <label className="block text-sm font-medium mb-2">
-                  Upload BOL Document (Optional)
-                </label>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="relative"
-                    disabled={bolProcessing}
-                  >
-                    {bolProcessing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload File
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      onChange={handleFileUpload}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      disabled={bolProcessing}
-                    />
-                  </Button>
-                  {bookingData.bolFile && (
-                    <div className="text-sm text-green-600 flex items-center">
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      File uploaded: {bookingData.bolFile.name}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <Separator className="my-4" />
-            
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Shipment Details</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="poNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>PO Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter PO number" {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="bolNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>BOL Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter BOL number" {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="palletCount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pallet Count</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter pallet count" {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={appointmentDetailsForm.control}
-                  name="weight"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Weight (lbs)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter weight" {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={appointmentDetailsForm.control}
-                name="additionalNotes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Additional Notes</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Enter any additional information about this appointment"
-                        className="min-h-[100px]"
-                        {...field}
-                        value={field.value || ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Standard Questions Component */}
-              {selectedAppointmentTypeId && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">Additional Information</h3>
-                  <StandardQuestionsFormFields
-                    form={appointmentDetailsForm}
-                    standardQuestions={standardQuestions}
-                    isLoading={isLoadingStandardQuestions}
-                  />
-                </div>
+              {selectedDate && (
+                <p className="text-sm text-muted-foreground">
+                  Selected date: {format(selectedDate, 'PPP')}
+                </p>
               )}
             </div>
-            
-            <div className="pt-6 flex justify-between">
-              <Button 
-                variant="outline" 
-                type="button" 
-                onClick={() => setStep(2)}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  'Schedule Appointment'
-                )}
-              </Button>
+
+            {/* Time selection (would normally be fetched from API based on selected date) */}
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium">Select Time*</h3>
+              <div className="grid grid-cols-4 gap-2">
+                {['9:00 AM', '10:00 AM', '11:00 AM', '1:00 PM', '2:00 PM', '3:00 PM'].map(time => (
+                  <Button
+                    key={time}
+                    variant={selectedTime === time ? "default" : "outline"}
+                    onClick={() => setSelectedTime(time)}
+                    className="justify-start"
+                  >
+                    {time}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </form>
-        </Form>
-      )}
+
+            <Separator />
+
+            {/* Carrier information */}
+            <FormField
+              control={form.control}
+              name="carrierName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Carrier Name*</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="driverName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Driver Name*</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="driverPhone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Driver Phone*</FormLabel>
+                  <FormControl>
+                    <Input type="tel" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="truckNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Truck Number*</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="trailerNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Trailer Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Additional Notes</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="py-2">
+      {/* Progress indicator */}
+      <div className="mb-6">
+        <div className="flex items-center justify-center">
+          <div className="flex items-center">
+            {[1, 2, 3].map((step) => (
+              <React.Fragment key={step}>
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
+                    currentStep >= step
+                      ? "border-primary bg-primary text-white"
+                      : "border-muted bg-background"
+                  }`}
+                >
+                  {currentStep > step ? (
+                    <CheckCircle className="h-5 w-5" />
+                  ) : (
+                    <span>{step}</span>
+                  )}
+                </div>
+                {step < 3 && (
+                  <div
+                    className={`mx-2 h-1 w-10 ${
+                      currentStep > step ? "bg-primary" : "bg-muted"
+                    }`}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {renderStepContent()}
+          
+          <div className="mt-8 flex justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              disabled={isLoading}
+            >
+              {currentStep === 1 ? "Cancel" : (
+                <>
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </>
+              )}
+            </Button>
+            
+            <Button
+              type="submit"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                  {currentStep === 3 ? "Scheduling..." : "Processing..."}
+                </>
+              ) : (
+                <>
+                  {currentStep === 3 ? "Schedule Appointment" : "Next Step"} 
+                  {currentStep < 3 && <ArrowRight className="ml-2 h-4 w-4" />}
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }
