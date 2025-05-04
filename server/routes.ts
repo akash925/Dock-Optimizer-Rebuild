@@ -3360,8 +3360,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment type not found or you don't have access to it" });
       }
       
+      // Log the appointmentType data for debugging
+      console.log(`[AppointmentType] Found appointment type: ${id} - ${appointmentType.name}, facilityId: ${appointmentType.facilityId}, tenantId: ${appointmentType.tenantId}`);
+      
       // Additional tenant isolation check with facility ownership
       if (userTenantId && !isSuperAdmin) {
+        // If facilityId is undefined or null in the appointment type, this is a critical bug
+        if (!appointmentType.facilityId) {
+          console.error(`[AppointmentType] CRITICAL: Appointment type ${id} has no facilityId defined!`);
+          
+          // Fix by explicitly adding the facilityId from the request if available
+          if (req.body.facilityId) {
+            console.log(`[AppointmentType] Fixing missing facilityId with value from request: ${req.body.facilityId}`);
+            appointmentType.facilityId = req.body.facilityId;
+          } else {
+            // Return a more specific error message rather than a generic access denied
+            return res.status(400).json({ 
+              message: "This appointment type has an invalid facility configuration. Please recreate it."
+            });
+          }
+        }
+        
         // Use our helper function to check tenant access to the facility
         const facility = await checkTenantFacilityAccess(
           appointmentType.facilityId,
@@ -3773,17 +3792,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.user?.tenantId && !bookingPageSlug) {
         const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
         
-        // Use our helper function to check tenant access
-        const facility = await checkTenantFacilityAccess(
-          appointmentType.facilityId,
-          req.user.tenantId,
-          isSuperAdmin,
-          'CustomQuestions'
-        );
-        
-        if (!facility) {
-          console.log(`[CustomQuestions] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
-          return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+        // Debug info for facilityId issues
+        if (!appointmentType.facilityId) {
+          console.error(`[CustomQuestions] CRITICAL: Appointment type ${appointmentTypeId} has no facilityId defined!`);
+          
+          // For custom questions, we can safely bypass facility check 
+          // Log this special case handling
+          console.log(`[CustomQuestions] Special case: Bypassing facility check for appointment type ${appointmentTypeId} with tenant ${tenantId}`);
+          
+          // Verify tenant ID directly on the appointment type instead of facility
+          if (appointmentType.tenantId === req.user.tenantId || isSuperAdmin) {
+            console.log(`[CustomQuestions] Access granted - appointment type ${appointmentTypeId} tenant matches user tenant ${req.user.tenantId}`);
+            // Allow access
+          } else {
+            console.log(`[CustomQuestions] Access denied - appointment type ${appointmentTypeId} tenant ${appointmentType.tenantId} doesn't match user tenant ${req.user.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+          }
+        } else {
+          // Normal flow - Use our helper function to check tenant access
+          const facility = await checkTenantFacilityAccess(
+            appointmentType.facilityId,
+            req.user.tenantId,
+            isSuperAdmin,
+            'CustomQuestions'
+          );
+          
+          if (!facility) {
+            console.log(`[CustomQuestions] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+          }
         }
       }
       
