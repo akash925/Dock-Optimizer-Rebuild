@@ -858,7 +858,7 @@ export default function FullCalendarView({
                 // For short events, use reduced layout
                 if (isShortEvent) {
                   return (
-                    <div className={eventContentClass}>
+                    <div className={`${eventContentClass} short-event`}>
                       <div className="event-header mb-0">
                         {/* ENHANCED CUSTOMER NAME: Primary information with highest prominence */}
                         {customerName && (
