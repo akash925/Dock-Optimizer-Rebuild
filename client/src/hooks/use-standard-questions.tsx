@@ -9,13 +9,13 @@ interface UseStandardQuestionsProps {
 
 export function useStandardQuestions({ appointmentTypeId, bookingPageSlug }: UseStandardQuestionsProps) {
   const { data: questions, isLoading, error } = useQuery({
-    queryKey: ['custom-questions', appointmentTypeId, bookingPageSlug],
+    queryKey: ['standard-questions', appointmentTypeId, bookingPageSlug],
     queryFn: async () => {
       if (!appointmentTypeId) {
         return [];
       }
       
-      let url = `/api/custom-questions/${appointmentTypeId}`;
+      let url = `/api/standard-questions/${appointmentTypeId}`;
       
       // Add booking page slug as a query parameter if provided
       if (bookingPageSlug) {
