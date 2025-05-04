@@ -18,6 +18,7 @@ interface CarrierSelectorProps {
   required?: boolean;
   placeholder?: string;
   className?: string;
+  onChange?: (carrier: { id?: number; name: string; mcNumber?: string }) => void;
 }
 
 export function CarrierSelector({
@@ -28,7 +29,8 @@ export function CarrierSelector({
   label = "Carrier",
   required = false,
   placeholder = "Select carrier...",
-  className
+  className,
+  onChange
 }: CarrierSelectorProps) {
   const [open, setOpen] = useState(false);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
@@ -101,8 +103,17 @@ export function CarrierSelector({
       }
     }
     
+    // Call onChange callback if provided
+    if (onChange) {
+      onChange({
+        id: carrier.id,
+        name: carrier.name,
+        mcNumber: carrier.mcNumber
+      });
+    }
+    
     setOpen(false);
-  }, [form, idFieldName, nameFieldName, mcNumberFieldName]);
+  }, [form, idFieldName, nameFieldName, mcNumberFieldName, onChange]);
   
   const handleAddCarrier = useCallback(() => {
     if (searchQuery.trim()) {
@@ -129,12 +140,13 @@ export function CarrierSelector({
       form.setValue(idFieldName, undefined, { shouldValidate: true });
       
       // Don't reset MC Number if mcNumberFieldName is provided
+      let currentMcNumber = "";
       if (mcNumberFieldName) {
-        const currentMcNumber = form.getValues(mcNumberFieldName);
+        currentMcNumber = form.getValues(mcNumberFieldName) || "";
         console.log("Current MC Number:", currentMcNumber);
         
         // Always ensure the MC Number field is properly set with validation
-        form.setValue(mcNumberFieldName, currentMcNumber || "", {
+        form.setValue(mcNumberFieldName, currentMcNumber, {
           shouldValidate: true,
           shouldDirty: true,
           shouldTouch: true
@@ -143,8 +155,16 @@ export function CarrierSelector({
         // Also update the DOM input value to ensure it's displayed
         const mcNumberField = document.querySelector(`input[name="${mcNumberFieldName}"]`) as HTMLInputElement;
         if (mcNumberField) {
-          mcNumberField.value = currentMcNumber || "";
+          mcNumberField.value = currentMcNumber;
         }
+      }
+      
+      // Call onChange callback if provided
+      if (onChange) {
+        onChange({
+          name: trimmedName,
+          mcNumber: currentMcNumber
+        });
       }
       
       // Log final form state for debugging
@@ -157,7 +177,7 @@ export function CarrierSelector({
       setOpen(false);
       setAddingNewCarrier(false);
     }
-  }, [searchQuery, form, idFieldName, nameFieldName, mcNumberFieldName]);
+  }, [searchQuery, form, idFieldName, nameFieldName, mcNumberFieldName, onChange]);
   
   return (
     <FormItem className={cn("flex flex-col", className)}>

@@ -1502,6 +1502,24 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
                     idFieldName="carrierId"
                     nameFieldName="carrierName"
                     mcNumberFieldName="mcNumber"
+                    // Adding an onChange handler to ensure the carrier data is saved to the booking state
+                    onChange={(carrier) => {
+                      console.log("CarrierSelector onChange:", carrier);
+                      // Update both form fields and parent state
+                      if (carrier?.id) {
+                        updateBookingData({ 
+                          carrierId: carrier.id,
+                          carrierName: carrier.name,
+                          mcNumber: carrier.mcNumber || ""
+                        });
+                      } else if (carrier?.name) {
+                        updateBookingData({ 
+                          carrierId: null,
+                          carrierName: carrier.name,
+                          mcNumber: form.getValues("mcNumber") || ""
+                        });
+                      }
+                    }}
                   />
                   <FormDescription className="text-xs">
                     Select from the list or type to search. If your carrier isn't listed, type a new name to create it.
@@ -1577,6 +1595,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
                     id="mcNumber"
                     className="booking-input"
                     {...field}
+                    value={field.value || bookingData.mcNumber || ''}
                     onChange={(e) => {
                       field.onChange(e);
                       updateBookingData({ mcNumber: e.target.value });
