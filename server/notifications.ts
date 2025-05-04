@@ -649,8 +649,10 @@ export async function sendConfirmationEmail(
   
   // Generate QR code
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  const qrCodeBase64 = await generateQRCodeBase64(checkInUrl);
-  console.log(`[EMAIL] Generated QR code for confirmation email to ${to}`);
+  // Instead of generating the QR code directly, use a URL to our QR code endpoint
+  // This is more reliable in email clients than base64-encoded images
+  const qrCodeUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
+  console.log(`[EMAIL] Using QR code URL for confirmation email to ${to}: ${qrCodeUrl}`);
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -728,7 +730,7 @@ export async function sendConfirmationEmail(
         <div style="text-align: center; margin: 15px auto; background-color: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d7ff; max-width: 320px;">
           <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
           <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #b3d7ff;">
-            <img src="${qrCodeBase64}" 
+            <img src="${qrCodeUrl}" 
                  alt="Check-in QR Code" 
                  style="width: 150px; height: 150px; display: block; margin: 0 auto;">
             <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center;">
