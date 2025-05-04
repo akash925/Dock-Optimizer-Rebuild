@@ -4106,6 +4106,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Standard Question routes
+  app.get("/api/standard-questions/:appointmentTypeId", async (req, res) => {
+    try {
+      const appointmentTypeId = parseInt(req.params.appointmentTypeId);
+      let tenantId = req.user?.tenantId;
+      const bookingPageSlug = req.query.bookingPageSlug as string;
+      
+      if (isNaN(appointmentTypeId)) {
+        console.log(`[StandardQuestions] Invalid appointment type ID: ${req.params.appointmentTypeId}`);
+        return res.status(400).send("Invalid appointment type ID");
+      }
+      
+      // Check if we have a booking page slug (for external booking flow)
+      if (bookingPageSlug) {
+        console.log(`[StandardQuestions] Request includes booking page slug: ${bookingPageSlug}`);
+        try {
+          // Get the booking page to determine the correct tenant context
+          const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+          if (bookingPage) {
+            tenantId = bookingPage.tenantId;
+            console.log(`[StandardQuestions] Using tenant ID ${tenantId} from booking page ${bookingPageSlug}`);
+          } else {
+            console.warn(`[StandardQuestions] Booking page not found: ${bookingPageSlug}`);
+          }
+        } catch (err) {
+          console.error(`[StandardQuestions] Error retrieving booking page ${bookingPageSlug}:`, err);
+        }
+      }
+      
+      console.log(`[StandardQuestions] Fetching questions for appointment type ID: ${appointmentTypeId}, tenantId: ${tenantId || 'none'}`);
+      
+      // Get the appointment type first with tenant isolation
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId, tenantId);
+      if (!appointmentType) {
+        console.log(`[StandardQuestions] Appointment type not found: ${appointmentTypeId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Skip tenant check when using booking page context
+      if (req.user?.tenantId && !bookingPageSlug) {
+        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+        
+        // Debug info for facilityId issues
+        if (!appointmentType.facilityId) {
+          console.error(`[StandardQuestions] CRITICAL: Appointment type ${appointmentTypeId} has no facilityId defined!`);
+          
+          // We can safely bypass facility check 
+          console.log(`[StandardQuestions] Special case: Bypassing facility check for appointment type ${appointmentTypeId} with tenant ${tenantId}`);
+          
+          // Verify tenant ID directly on the appointment type instead of facility
+          if (appointmentType.tenantId === req.user.tenantId || isSuperAdmin) {
+            console.log(`[StandardQuestions] Access granted - appointment type ${appointmentTypeId} tenant matches user tenant ${req.user.tenantId}`);
+            // Allow access
+          } else {
+            console.log(`[StandardQuestions] Access denied - appointment type ${appointmentTypeId} tenant ${appointmentType.tenantId} doesn't match user tenant ${req.user.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+          }
+        } else {
+          // Normal flow - Use our helper function to check tenant access
+          const facility = await checkTenantFacilityAccess(
+            appointmentType.facilityId,
+            req.user.tenantId,
+            isSuperAdmin,
+            'StandardQuestions'
+          );
+          
+          if (!facility) {
+            console.log(`[StandardQuestions] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+          }
+        }
+      }
+      
+      const standardQuestions = await storage.getStandardQuestionsByAppointmentType(appointmentTypeId);
+      console.log(`[StandardQuestions] Found ${standardQuestions.length} questions for appointment type ${appointmentTypeId}`);
+      
+      // Add debug information for tracking
+      console.log(`[StandardQuestions] Required fields: ${standardQuestions.filter(q => q.isRequired).map(q => q.id).join(', ') || 'none'}`);
+      
+      // Map order_position to order in the response for frontend compatibility
+      const mappedQuestions = standardQuestions.map(question => ({
+        ...question,
+        order: question.order_position
+      }));
+      
+      res.json(mappedQuestions);
+    } catch (err) {
+      console.error(`[StandardQuestions] Error fetching questions:`, err);
+      res.status(500).json({ message: "Failed to fetch standard questions" });
+    }
+  });
+  
+  app.post("/api/standard-questions", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const validatedData = insertStandardQuestionSchema.parse(req.body);
+      const tenantId = req.user?.tenantId;
+      
+      // Check if appointment type exists if appointmentTypeId is provided
+      if (validatedData.appointmentTypeId) {
+        // Use tenant ID for isolation
+        const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId, tenantId);
+        if (!appointmentType) {
+          console.log(`[StandardQuestion] Appointment type not found: ${validatedData.appointmentTypeId}${tenantId ? ` for tenant ${tenantId}` : ''}`);
+          return res.status(400).json({ message: "Invalid appointment type ID" });
+        }
+        
+        // Add tenant isolation check
+        if (req.user?.tenantId) {
+          const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+          
+          const facility = await checkTenantFacilityAccess(
+            appointmentType.facilityId,
+            req.user.tenantId,
+            isSuperAdmin,
+            'StandardQuestion-Create'
+          );
+          
+          if (!facility) {
+            console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+            return res.status(403).json({ message: "You can only create standard questions for appointment types in your organization" });
+          }
+        }
+      }
+      
+      const standardQuestion = await storage.createStandardQuestion(validatedData);
+      res.status(201).json(standardQuestion);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid standard question data", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to create standard question" });
+    }
+  });
+  
+  app.put("/api/standard-questions/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid question ID" });
+      }
+      
+      const standardQuestion = await storage.getStandardQuestion(id);
+      if (!standardQuestion) {
+        return res.status(404).json({ message: "Standard question not found" });
+      }
+      
+      // Tenant isolation check if appointment type is set
+      if (standardQuestion.appointmentTypeId && req.user?.tenantId) {
+        const appointmentType = await storage.getAppointmentType(standardQuestion.appointmentTypeId);
+        if (appointmentType) {
+          const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+          
+          const facility = await checkTenantFacilityAccess(
+            appointmentType.facilityId,
+            req.user.tenantId,
+            isSuperAdmin,
+            'StandardQuestion-Update'
+          );
+          
+          if (!facility) {
+            console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+            return res.status(403).json({ message: "You can only update standard questions for appointment types in your organization" });
+          }
+        }
+      }
+      
+      const validatedData = insertStandardQuestionSchema.partial().parse(req.body);
+      const updatedQuestion = await storage.updateStandardQuestion(id, validatedData);
+      res.json(updatedQuestion);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid standard question data", errors: err.errors });
+      }
+      res.status(500).json({ message: "Failed to update standard question" });
+    }
+  });
+  
+  app.delete("/api/standard-questions/:id", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid question ID" });
+      }
+      
+      const standardQuestion = await storage.getStandardQuestion(id);
+      if (!standardQuestion) {
+        return res.status(404).json({ message: "Standard question not found" });
+      }
+      
+      // Tenant isolation check if appointment type is set
+      if (standardQuestion.appointmentTypeId && req.user?.tenantId) {
+        const appointmentType = await storage.getAppointmentType(standardQuestion.appointmentTypeId);
+        if (appointmentType) {
+          const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+          
+          const facility = await checkTenantFacilityAccess(
+            appointmentType.facilityId,
+            req.user.tenantId,
+            isSuperAdmin,
+            'StandardQuestion-Delete'
+          );
+          
+          if (!facility) {
+            console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+            return res.status(403).json({ message: "You can only delete standard questions for appointment types in your organization" });
+          }
+        }
+      }
+      
+      const success = await storage.deleteStandardQuestion(id);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete standard question" });
+      }
+      
+      res.status(204).send();
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete standard question" });
+    }
+  });
+
   // Booking Pages routes
   app.get("/api/booking-pages", async (req, res) => {
     try {
