@@ -3830,7 +3830,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add debug information for tracking
       console.log(`[CustomQuestions] Required fields: ${customQuestions.filter(q => q.isRequired).map(q => q.id).join(', ') || 'none'}`);
       
-      res.json(customQuestions);
+      // Map order_position to order in the response for frontend compatibility
+      const mappedQuestions = customQuestions.map(question => ({
+        ...question,
+        order: question.order_position
+      }));
+      
+      res.json(mappedQuestions);
     } catch (err) {
       console.error(`[CustomQuestions] Error fetching questions:`, err);
       res.status(500).json({ message: "Failed to fetch custom questions" });
@@ -4086,7 +4092,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const questions = await storage.getCustomQuestionsByAppointmentType(appointmentTypeId);
       console.log(`[CustomQuestions] Found ${questions.length} questions for appointment type ${appointmentTypeId}`);
-      res.json(questions);
+      
+      // Map order_position to order in the response for frontend compatibility
+      const mappedQuestions = questions.map(question => ({
+        ...question,
+        order: question.order_position
+      }));
+      
+      res.json(mappedQuestions);
     } catch (error) {
       console.error(`[CustomQuestions] Error fetching questions:`, error);
       res.status(500).send("Error fetching custom questions");
