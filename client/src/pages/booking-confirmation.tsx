@@ -459,13 +459,13 @@ ${orgName}
               </h3>
               <div className="flex flex-col md:flex-row items-center gap-6">
                 <div className="bg-white p-4 rounded-lg shadow-md border border-blue-200">
-                  <QRCodeSVG 
-                    value={getCheckInUrl()}
-                    size={160}
-                    bgColor="#FFFFFF"
-                    fgColor="#000000"
-                    level="H"
-                    includeMargin={false}
+                  {/* Using an image of the QR code from our server endpoint instead of an SVG */}
+                  <img 
+                    src={`/api/qr-code?data=${encodeURIComponent(getCheckInUrl())}`}
+                    alt="Check-in QR Code"
+                    width="160"
+                    height="160"
+                    className="rounded-sm"
                   />
                   <div className="text-center mt-2 font-mono text-sm font-medium text-blue-800">
                     {bookingDetails.confirmationNumber}
