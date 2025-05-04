@@ -409,6 +409,23 @@ export default function UnifiedAppointmentForm({
         appointmentTypeName = selectedAppointmentType.name || "";
       }
 
+      // Extract standard questions data
+      const standardQuestionsData: Record<string, any> = {};
+      if (standardQuestions && standardQuestions.length > 0) {
+        standardQuestions.forEach(question => {
+          if (question.included) {
+            // Use the fieldKey as the property name and get its value from the form data
+            const fieldKey = question.fieldKey;
+            const fieldValue = data[fieldKey];
+            if (fieldValue !== undefined) {
+              standardQuestionsData[fieldKey] = fieldValue;
+            }
+          }
+        });
+      }
+      
+      console.log("Standard questions data:", standardQuestionsData);
+      
       // API payload with enhanced data
       const scheduleData = {
         carrierId: data.carrierId || null,
@@ -441,6 +458,8 @@ export default function UnifiedAppointmentForm({
         facilityId: selectedFacilityId || null,
         facilityName: facilityName, // Include the facility name for better display
         facilityTimezone: facilityTimezone,
+        // Include standard questions data
+        standardQuestionsData: Object.keys(standardQuestionsData).length > 0 ? standardQuestionsData : undefined,
       };
       
       console.log("Submitting appointment with sanitized data:", scheduleData);
