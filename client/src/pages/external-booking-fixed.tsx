@@ -1289,23 +1289,35 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
   // Handle custom field changes
   const handleCustomFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, questionId: number, isRequired: boolean = false) => {
     const value = e.target.value;
+    const fieldId = `customField_${questionId}`;
     
-    // Validate required fields
-    if (isRequired && !value && form.formState.isSubmitted) {
-      form.setError(`customField_${questionId}` as any, {
-        type: 'required',
-        message: 'This field is required'
-      });
-    } else if (form.formState.errors[`customField_${questionId}` as any]) {
-      form.clearErrors(`customField_${questionId}` as any);
-    }
-    
+    // Update booking data with new value
     updateBookingData({
       customFields: {
         ...bookingData.customFields,
         [questionId]: value
       }
     });
+    
+    // Validate required fields
+    if (isRequired && !value && form.formState.isSubmitted) {
+      // Field is required but empty, and form has been submitted before
+      form.setError(fieldId as any, {
+        type: 'required',
+        message: 'This field is required'
+      });
+      console.log(`Validation error for custom field ${questionId}: required but empty`);
+    } else if (isRequired && !value) {
+      // Field is required but empty, form not submitted yet - just log it
+      console.log(`Custom field ${questionId} is required but empty (validation will happen on submit)`);
+    } else if (form.formState.errors[fieldId as any]) {
+      // Field now has a value, clear any existing errors
+      form.clearErrors(fieldId as any);
+      console.log(`Cleared validation error for custom field ${questionId}`);
+    }
+    
+    // For debugging
+    console.log(`Custom field ${questionId} changed to "${value}" (required: ${isRequired ? 'yes' : 'no'})`);
   };
   
   // Handle BOL processing
