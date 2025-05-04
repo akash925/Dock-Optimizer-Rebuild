@@ -123,7 +123,7 @@ export function BookingWizardContent({
   });
 
   // Fetch standard questions for the selected appointment type
-  const { standardQuestions, isLoading: isLoadingQuestions } = useStandardQuestions({
+  const { questions: standardQuestions, isLoading: isLoadingQuestions } = useStandardQuestions({
     appointmentTypeId: bookingData.appointmentTypeId || undefined,
     bookingPageSlug: slug,
   });
