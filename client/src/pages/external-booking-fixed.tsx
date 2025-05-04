@@ -1355,6 +1355,28 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
       ...values
     });
     
+    // Validate required custom fields
+    if (customQuestions && customQuestions.length > 0) {
+      const requiredFields = customQuestions.filter(q => q.isRequired);
+      let hasError = false;
+      
+      for (const field of requiredFields) {
+        if (!bookingData.customFields?.[field.id]) {
+          form.setError(`customField_${field.id}` as any, {
+            type: 'required',
+            message: 'This field is required'
+          });
+          hasError = true;
+        }
+      }
+      
+      // If there are validation errors, prevent form submission
+      if (hasError) {
+        console.log('Validation failed for required custom fields');
+        return;
+      }
+    }
+    
     // Submit the form
     await onSubmit();
   };
@@ -1743,7 +1765,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
                       id={`custom-${question.id}`}
                       className="booking-input"
                       value={bookingData.customFields?.[question.id] || ''}
-                      onChange={(e) => handleCustomFieldChange(e, question.id)}
+                      onChange={(e) => handleCustomFieldChange(e, question.id, question.isRequired)}
                       required={question.isRequired}
                     />
                   ) : question.fieldType === 'textarea' ? (
@@ -1751,19 +1773,25 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
                       id={`custom-${question.id}`}
                       className="booking-input"
                       value={bookingData.customFields?.[question.id] || ''}
-                      onChange={(e) => handleCustomFieldChange(e, question.id)}
+                      onChange={(e) => handleCustomFieldChange(e, question.id, question.isRequired)}
                       required={question.isRequired}
                     />
                   ) : question.fieldType === 'select' ? (
                     <Select
                       value={bookingData.customFields?.[question.id] || ''}
                       onValueChange={(value) => {
+                        // Update booking data with the selected value
                         updateBookingData({
                           customFields: {
                             ...bookingData.customFields,
                             [question.id]: value
                           }
-                        })
+                        });
+                        
+                        // Clear any validation errors for this field if it has a value
+                        if (value && question.isRequired && form.formState.errors[`customField_${question.id}` as any]) {
+                          form.clearErrors(`customField_${question.id}` as any);
+                        }
                       }}
                     >
                       <SelectTrigger>
