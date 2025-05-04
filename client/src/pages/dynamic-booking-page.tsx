@@ -764,9 +764,19 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
               alt={`${bookingPage.name} Logo`}
               className="h-16 w-auto object-contain"
               onError={(e) => {
+                // Try to handle logo loading failures gracefully
                 const target = e.target as HTMLImageElement;
-                target.src = '/placeholder-logo.png';
-                console.log(`Logo load failed for booking page ${slug}, using placeholder`);
+                console.log(`Logo load failed for booking page ${slug}, trying alternative paths`);
+                
+                // Try organization-specific paths as fallbacks
+                const orgName = bookingPage?.name || '';
+                if (orgName.includes('Fresh Connect')) {
+                  target.src = '/assets/fresh-connect-logo.png';
+                } else if (orgName.includes('Hanzo')) {
+                  target.src = '/assets/hanzo-logo.png';
+                } else {
+                  target.src = '/assets/logo/dock-optimizer-logo.png';
+                }
               }}
             />
           </div>
