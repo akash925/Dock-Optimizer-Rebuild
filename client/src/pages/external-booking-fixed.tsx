@@ -1845,6 +1845,7 @@ function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any;
   const getFacilityName = () => {
     // First check bookingData for a direct facilityName value
     if (bookingData.facilityName) {
+      console.log("Using facilityName from bookingData:", bookingData.facilityName);
       return bookingData.facilityName;
     }
     
@@ -1852,9 +1853,24 @@ function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any;
     if (bookingData.facilityId && Array.isArray(facilities)) {
       const facility = facilities.find((f: any) => f.id === bookingData.facilityId);
       if (facility?.name) {
+        console.log("Found facility name from facilities array:", facility.name);
         return facility.name;
       }
     }
+    
+    // If we stored the selectedFacility in state, use that
+    if (selectedFacility?.name) {
+      console.log("Using name from selectedFacility:", selectedFacility.name);
+      return selectedFacility.name;
+    }
+    
+    // Log the issue for debugging
+    console.warn("Could not determine facility name:", {
+      bookingDataFacilityName: bookingData.facilityName,
+      bookingDataFacilityId: bookingData.facilityId,
+      facilities: facilities?.map((f: any) => ({ id: f.id, name: f.name })),
+      selectedFacility
+    });
     
     return 'Unknown Facility';
   };
