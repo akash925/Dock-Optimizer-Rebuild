@@ -227,7 +227,8 @@ export function BookingWizardContent({
           contactName: bookingData.contactName,
           contactEmail: bookingData.email,
           contactPhone: bookingData.phone,
-          carrierId: bookingData.carrierId,
+          // Use 0 as default carrierId if not provided to avoid "Invalid carrier ID" error
+          carrierId: bookingData.carrierId || 0,
           carrierName: bookingData.carrierName,
           driverName: bookingData.driverName,
           driverPhone: bookingData.driverPhone,
@@ -235,7 +236,7 @@ export function BookingWizardContent({
           trailerNumber: bookingData.trailerNumber,
           notes: bookingData.notes,
           // Include custom fields
-          customFields: bookingData.customFields,
+          customFields: bookingData.customFields || {},
           // Additional fields for internal booking
           status: 'scheduled',
           source: internalMode ? 'internal' : 'external',
