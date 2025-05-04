@@ -108,15 +108,15 @@
 
 /* Improved timegrid event display */
 .fc-timegrid-event {
-  padding: 2px 4px !important;
-  min-height: 26px !important; /* Slightly taller for better readability */
+  padding: 1px 3px !important; /* Reduced padding for 1-hour slots */
+  min-height: 24px !important; /* Slightly taller for better readability */
 }
 
 /* CUSTOMER NAME ENHANCEMENT: Large, prominent customer names */
 .fc-timegrid-event .fc-event-title {
-  font-size: 16px !important; /* Larger font size */
+  font-size: 14px !important; /* Slightly smaller for 1-hour slots */
   font-weight: 700 !important;
-  margin-bottom: 4px !important;
+  margin-bottom: 2px !important; /* Reduced for smaller appointments */
   line-height: 1.2 !important;
   color: white !important;
   overflow: hidden !important;
@@ -138,7 +138,6 @@
 /* Higher contrast event backgrounds */
 .fc .fc-timegrid-event {
   border-width: 1px !important;
-  padding: 3px 5px !important; /* More padding for content */
   overflow: hidden !important;
   background-color: #1a5fb4 !important; /* Default blue for inbound */
 }
@@ -171,7 +170,7 @@
 
 /* Focus on customer name with more space */
 .fc .fc-timegrid-event .fc-event-title-container {
-  margin-bottom: 3px !important;
+  margin-bottom: 2px !important;
 }
 
 /* Type badges with better contrast */
@@ -179,7 +178,7 @@
   position: absolute;
   top: 3px;
   right: 3px;
-  font-size: 10px;
+  font-size: 9px; /* Smaller for 1-hour slots */
   padding: 1px 4px;
   border-radius: 3px;
   font-weight: bold;
@@ -254,12 +253,12 @@
 /* Improved status badges at the bottom of events */
 .status-badge {
   display: inline-block;
-  font-size: 9px;
+  font-size: 8px; /* Smaller for 1-hour slots */
   font-weight: bold;
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 1px 2px;
+  border-radius: 2px;
   text-transform: uppercase;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .status-completed {
@@ -289,7 +288,7 @@
 /* New Section: Customer Name Emphasis Styles */
 /* These styles specifically enhance the customer name visibility */
 .customer-name {
-  font-size: 16px !important;
+  font-size: 14px !important; /* Smaller for 1-hour slots */
   font-weight: 700 !important;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5) !important;
   letter-spacing: 0.01em !important;
@@ -297,17 +296,40 @@
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
-  margin-bottom: 3px !important;
-  line-height: 1.2 !important;
+  margin-bottom: 1px !important; /* Reduced for smaller slots */
+  line-height: 1.15 !important;
   color: white !important;
-  padding-right: 18px !important; /* Space for type badge */
+  padding-right: 15px !important; /* Space for type badge */
 }
 
 /* Add subtle divider between content sections */
 .event-divider {
   height: 1px;
-  background-color: rgba(255, 255, 255, 0.2);
-  margin: 2px 0;
+  background-color: rgba(255, 255, 255, 0.15);
+  margin: 1px 0;
+  display: none; /* Hide divider in 1-hour slots to save space */
+}
+
+/* Special styles for short events */
+.fc .fc-timegrid-event.short-event {
+  padding: 1px 2px !important;
+}
+
+.short-event .event-divider {
+  display: none;
+}
+
+.short-event .event-body {
+  display: none; /* Hide body for very short events */
+}
+
+.short-event .customer-name {
+  font-size: 12px !important;
+  margin-bottom: 0 !important;
+}
+
+.short-event .event-footer {
+  margin-top: 1px;
 }
 
 /* Improve event content layout */
@@ -318,11 +340,11 @@
 }
 
 .event-header {
-  margin-bottom: 3px;
+  margin-bottom: 1px; /* Reduced for smaller slots */
 }
 
 .event-body {
-  flex: 1;
+  flex: 0; /* Don't let body expand in smaller slots */
 }
 
 .event-footer {
@@ -330,22 +352,43 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 9px;
+  font-size: 8px; /* Smaller for 1-hour slots */
 }
 
 /* Enhanced facility name display */
 .facility-name {
-  font-size: 9px;
+  font-size: 8px; /* Smaller for 1-hour slots */
   opacity: 0.9;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: calc(100% - 50px); /* Leave space for status badges */
+  max-width: calc(100% - 40px); /* Leave space for status badges */
 }
 
 /* Dock information styling */
 .dock-info {
-  font-size: 9px;
+  font-size: 8px; /* Smaller for 1-hour slots */
   font-weight: 600;
-  margin-right: 3px;
+  margin-right: 2px;
+}
+
+/* Adaptive time display */
+.time-display {
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 600;
+  color: white !important;
+  opacity: 0.95;
+  white-space: nowrap;
+}
+
+/* Compact time display for shorter events */
+.compact-time {
+  font-size: 9px;
+}
+
+/* Ultra-compact for 30min events */
+.ultra-compact {
+  font-size: 8px;
+  font-weight: 400;
 }

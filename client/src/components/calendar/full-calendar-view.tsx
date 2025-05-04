@@ -780,8 +780,18 @@ export default function FullCalendarView({
                 }
               }}
               eventContent={(eventInfo) => {
-                // Get the start date safely
+                // Get the start date and end date
                 const startDate = eventInfo.event.start || new Date();
+                const endDate = eventInfo.event.end || new Date();
+                
+                // Calculate event duration in minutes
+                const durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
+                
+                // Determine if this is a short event (1 hour or less)
+                const isShortEvent = durationMinutes <= 60;
+                
+                // For very short events (30 minutes or less), use ultra-compact layout
+                const isUltraShortEvent = durationMinutes <= 30;
                 
                 // Extract event data from both standard and extended props
                 const eventData = eventInfo.event.extendedProps;
@@ -821,8 +831,73 @@ export default function FullCalendarView({
                 const showStatusBadge = status && status !== 'scheduled';
                 const showAttentionBadge = !showStatusBadge && needsAttention;
                 
+                // Dynamic class names based on event duration
+                const eventContentClass = `event-content w-full h-full flex flex-col justify-start overflow-hidden ${isUltraShortEvent ? 'p-1' : isShortEvent ? 'p-1.5' : 'p-2'}`;
+                const customerNameClass = `customer-name ${isUltraShortEvent ? 'text-xs' : 'text-sm'}`;
+                
+                // For ultra-short events, use a more compact layout
+                if (isUltraShortEvent) {
+                  return (
+                    <div className={eventContentClass}>
+                      {/* Only show customer name and type for ultra-short events */}
+                      <div className="event-header mb-0">
+                        {customerName && (
+                          <div className={customerNameClass}>{customerName}</div>
+                        )}
+                        
+                        {/* Minimal time display */}
+                        <div className="flex items-center justify-between w-full text-[9px] font-medium">
+                          <div className="ultra-compact text-white/95">{eventInfo.timeText}</div>
+                          {eventType && <span className="ml-auto text-xs">{eventType === 'inbound' ? 'IN' : 'OUT'}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // For short events, use reduced layout
+                if (isShortEvent) {
+                  return (
+                    <div className={eventContentClass}>
+                      <div className="event-header mb-0">
+                        {/* ENHANCED CUSTOMER NAME: Primary information with highest prominence */}
+                        {customerName && (
+                          <div className={customerNameClass}>{customerName}</div>
+                        )}
+                        
+                        {/* Type badge + Time - critical info */}
+                        <div className="flex items-center justify-between w-full text-[10px] font-medium">
+                          <div className="compact-time text-white/95 font-semibold">{eventInfo.timeText}</div>
+                          
+                          {/* Type badge - compact version */}
+                          {eventType && 
+                            <span className="ml-auto text-xs font-semibold">
+                              {eventType === 'inbound' ? 'IN' : 'OUT'}
+                            </span>
+                          }
+                        </div>
+                      </div>
+                      
+                      {/* Footer with minimal info */}
+                      <div className="event-footer mt-auto flex items-center justify-between text-white/80">
+                        <div className="flex items-center space-x-1 text-[8px]">
+                          {dockId && <span className="font-medium">D{dockId}</span>}
+                          {truckNumber && <span className="opacity-90">T#{truckNumber}</span>}
+                        </div>
+                        
+                        {showStatusBadge && (
+                          <span className={`text-[7px] font-bold uppercase`}>
+                            {status.substring(0,3)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // For normal events, use the full layout
                 return (
-                  <div className="event-content w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
+                  <div className={eventContentClass}>
                     <div className="event-header">
                       {/* ENHANCED CUSTOMER NAME: Primary information with highest prominence */}
                       {customerName && (
@@ -834,7 +909,7 @@ export default function FullCalendarView({
                       {/* Type badge + Time - critical info */}
                       <div className="flex items-center justify-between w-full text-[11px] font-medium mb-1">
                         {/* Time with clean display */}
-                        <div className="text-white/95 font-semibold">{eventInfo.timeText}</div>
+                        <div className="time-display">{eventInfo.timeText}</div>
                         
                         {/* Type badge - right aligned with enhanced contrast */}
                         {eventType && 
