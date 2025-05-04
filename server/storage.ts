@@ -132,6 +132,7 @@ export interface IStorage {
   getStandardQuestion(id: number): Promise<StandardQuestion | undefined>;
   getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]>;
   createStandardQuestion(standardQuestion: InsertStandardQuestion): Promise<StandardQuestion>;
+  createStandardQuestionWithId(id: number, standardQuestion: InsertStandardQuestion): Promise<StandardQuestion>;
   updateStandardQuestion(id: number, standardQuestion: Partial<StandardQuestion>): Promise<StandardQuestion | undefined>;
   deleteStandardQuestion(id: number): Promise<boolean>;
   
@@ -3464,6 +3465,22 @@ export class DatabaseStorage implements IStorage {
       .insert(standardQuestions)
       .values(question)
       .returning();
+    return newQuestion;
+  }
+  
+  async createStandardQuestionWithId(id: number, question: InsertStandardQuestion): Promise<StandardQuestion> {
+    // Insert a standard question with a specific ID (for backward compatibility with UI)
+    const values = {
+      ...question,
+      id: id
+    };
+    
+    const [newQuestion] = await db
+      .insert(standardQuestions)
+      .values(values)
+      .returning();
+      
+    console.log(`[StandardQuestion] Created new standard question with forced ID ${id}:`, newQuestion);
     return newQuestion;
   }
   

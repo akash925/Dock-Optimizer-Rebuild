@@ -4363,10 +4363,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const standardQuestion = await storage.getStandardQuestion(id);
+      
+      // If the question doesn't exist, create it with the specified ID
       if (!standardQuestion) {
-        return res.status(404).json({ message: "Standard question not found" });
+        console.log(`[StandardQuestion] Question ID ${id} not found, creating it on-demand`);
+        
+        // Extract data from request body, including appointmentTypeId which is required
+        const validatedData = insertStandardQuestionSchema.parse(req.body);
+        
+        // Check for tenant isolation if appointmentTypeId is provided
+        if (validatedData.appointmentTypeId && req.user?.tenantId) {
+          const appointmentType = await storage.getAppointmentType(validatedData.appointmentTypeId);
+          if (appointmentType) {
+            const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+            
+            // Direct tenant check
+            console.log(`[StandardQuestion] Create - Comparing appointment type tenantId (${appointmentType.tenantId}) with user tenantId (${req.user?.tenantId})`);
+            
+            if (!isSuperAdmin && Number(appointmentType.tenantId) !== Number(req.user.tenantId)) {
+              console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} belongs to tenant ${appointmentType.tenantId}, user is from tenant ${req.user.tenantId}`);
+              return res.status(403).json({ message: "You can only create standard questions for appointment types in your organization" });
+            }
+          }
+        }
+        
+        // Create a new question with the provided data, forcing the ID to match the requested one
+        const newQuestion = await storage.createStandardQuestionWithId(id, validatedData);
+        return res.status(201).json(newQuestion);
       }
       
+      // Otherwise, proceed with update as normal
       // Direct tenant isolation check if appointment type is set
       if (standardQuestion.appointmentTypeId && req.user?.tenantId) {
         const appointmentType = await storage.getAppointmentType(standardQuestion.appointmentTypeId);
@@ -4374,7 +4400,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
           
           // Direct tenant check without relying on facility relationships
-          console.log(`[StandardQuestion] Debug - Comparing appointment type tenantId (${appointmentType.tenantId} - ${typeof appointmentType.tenantId}) with user tenantId (${req.user?.tenantId} - ${typeof req.user?.tenantId})`);
+          console.log(`[StandardQuestion] Update - Comparing appointment type tenantId (${appointmentType.tenantId} - ${typeof appointmentType.tenantId}) with user tenantId (${req.user?.tenantId} - ${typeof req.user?.tenantId})`);
           
           if (!isSuperAdmin && Number(appointmentType.tenantId) !== Number(req.user.tenantId)) {
             console.log(`[StandardQuestion] Access denied - appointment type ${appointmentType.id} belongs to tenant ${appointmentType.tenantId}, user is from tenant ${req.user.tenantId}`);
