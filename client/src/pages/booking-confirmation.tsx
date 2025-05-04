@@ -342,26 +342,45 @@ ${orgName}
                 <span className="text-lg font-bold">{bookingDetails.confirmationNumber}</span>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-500">Appointment Date</span>
-                  <span>{bookingDetails.appointmentDate}</span>
-                </div>
-                
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-500">Appointment Time</span>
-                  <div className="flex flex-col gap-1">
-                    {showUserTimeFirst ? (
-                      <>
-                        <span className="font-medium">{bookingDetails.userTimeDisplay} <span className="text-xs ml-1 text-primary font-normal">(Your local time)</span></span>
-                        <span className="text-sm text-gray-600">{bookingDetails.facilityTimeDisplay} <span className="text-xs ml-1 text-gray-500">(Facility time)</span></span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="font-medium">{bookingDetails.facilityTimeDisplay} <span className="text-xs ml-1 text-primary font-normal">(Facility time)</span></span>
-                        <span className="text-sm text-gray-600">{bookingDetails.userTimeDisplay} <span className="text-xs ml-1 text-gray-500">(Your local time)</span></span>
-                      </>
-                    )}
+              {/* Enhanced Date/Time Display */}
+              <div className="mb-4 bg-green-50 p-4 rounded-lg border border-green-100">
+                <h3 className="font-bold text-lg text-green-800 mb-2 flex items-center">
+                  <CalendarCheck className="mr-2 h-5 w-5" />
+                  Appointment Date & Time
+                </h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-green-700">Date</span>
+                    <span className="text-xl font-bold">{bookingDetails.appointmentDate}</span>
+                  </div>
+                  
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-green-700">Time</span>
+                    <div className="flex flex-col gap-2">
+                      {showUserTimeFirst ? (
+                        <>
+                          <div className="bg-white p-2 rounded border border-green-200">
+                            <span className="text-xs text-green-600 uppercase font-bold block">Your Local Time</span>
+                            <span className="text-xl font-bold">{bookingDetails.userTimeDisplay}</span>
+                          </div>
+                          <div className="bg-white/50 p-2 rounded border border-green-100">
+                            <span className="text-xs text-green-600 uppercase font-bold block">Facility Time</span>
+                            <span className="text-lg font-medium">{bookingDetails.facilityTimeDisplay}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="bg-white p-2 rounded border border-green-200">
+                            <span className="text-xs text-green-600 uppercase font-bold block">Facility Time</span>
+                            <span className="text-xl font-bold">{bookingDetails.facilityTimeDisplay}</span>
+                          </div>
+                          <div className="bg-white/50 p-2 rounded border border-green-100">
+                            <span className="text-xs text-green-600 uppercase font-bold block">Your Local Time</span>
+                            <span className="text-lg font-medium">{bookingDetails.userTimeDisplay}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
