@@ -306,29 +306,49 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
 }
 
 /**
- * Format a date for a specific timezone
+ * Format a date for a specific timezone with enhanced error handling and debugging
  */
 function formatDateForTimezone(date: Date, timezone: string, formatStr: string): string {
   try {
+    console.log(`[EMAIL] Formatting date: ${date} for timezone: ${timezone} with format: ${formatStr}`);
+    
     // Check if date is valid before proceeding
-    if (!(date instanceof Date) || isNaN(date.getTime())) {
-      console.warn(`Invalid date provided to formatDateForTimezone: ${date}`);
+    if (!(date instanceof Date)) {
+      console.warn(`[EMAIL] Non-Date object provided to formatDateForTimezone: ${date} (type: ${typeof date})`);
       // Return current date/time as fallback
       const now = new Date();
+      console.log(`[EMAIL] Using fallback current date: ${now.toISOString()}`);
+      return formatToTimeZone(now, formatStr, { timeZone: timezone });
+    }
+    
+    if (isNaN(date.getTime())) {
+      console.warn(`[EMAIL] Invalid Date object provided to formatDateForTimezone: ${date}`);
+      // Return current date/time as fallback
+      const now = new Date();
+      console.log(`[EMAIL] Using fallback current date: ${now.toISOString()}`);
       return formatToTimeZone(now, formatStr, { timeZone: timezone });
     }
     
     // Create a safe copy of the date
     const safeDate = new Date(date.getTime());
-    return formatToTimeZone(safeDate, formatStr, { timeZone: timezone });
+    console.log(`[EMAIL] Using safe date copy: ${safeDate.toISOString()} for timezone: ${timezone}`);
+    
+    // Format with timezone
+    const formattedResult = formatToTimeZone(safeDate, formatStr, { timeZone: timezone });
+    console.log(`[EMAIL] Formatted result: ${formattedResult}`);
+    return formattedResult;
   } catch (error) {
-    console.error(`Error formatting date for timezone ${timezone}:`, error);
+    console.error(`[EMAIL] Error formatting date for timezone ${timezone}:`, error);
+    
     // Fallback to simple format if timezone formatting fails
     try {
+      console.log(`[EMAIL] Attempting fallback formatting without timezone`);
       return format(date, formatStr);
     } catch (fallbackError) {
-      console.error('Fallback formatting also failed:', fallbackError);
+      console.error('[EMAIL] Fallback formatting also failed:', fallbackError);
+      
       // Ultimate fallback - return basic ISO string or formatted current date
+      console.log(`[EMAIL] Using ultimate fallback - current date in locale string format`);
       return new Date().toLocaleString();
     }
   }
@@ -412,33 +432,68 @@ export async function sendConfirmationEmail(
   console.log(`[EMAIL] Sending to: ${to}, confirmationCode: ${confirmationCode}`);
   console.log(`[EMAIL] Schedule: ID=${schedule.id}, facilityName=${schedule.facilityName}`);
 
-  // Safely parse dates - handling both Date objects and string inputs
+  // Safely parse dates with enhanced debugging
   const parseDate = (dateInput: Date | string | null): Date => {
+    console.log(`[EMAIL] Parsing date input: ${dateInput} (type: ${typeof dateInput})`);
+    
     if (!dateInput) {
-      console.warn('[EMAIL] Null date provided, using current time as fallback');
-      return new Date();
+      console.warn('[EMAIL] No date input provided, using current date as fallback');
+      const now = new Date();
+      console.log(`[EMAIL] Created fallback date: ${now.toISOString()}`);
+      return now;
     }
     
-    // If it's already a Date object
     if (dateInput instanceof Date) {
-      if (isNaN(dateInput.getTime())) {
-        console.warn('[EMAIL] Invalid Date object provided, using current time as fallback');
-        return new Date();
+      const isValidDate = !isNaN(dateInput.getTime());
+      console.log(`[EMAIL] Input is Date object, valid: ${isValidDate}, value: ${isValidDate ? dateInput.toISOString() : 'INVALID'}`);
+      if (!isValidDate) {
+        console.warn('[EMAIL] Invalid Date object received, using current date as fallback');
+        const now = new Date();
+        console.log(`[EMAIL] Created fallback date: ${now.toISOString()}`);
+        return now;
       }
       return dateInput;
     }
     
-    // If it's a string, attempt to parse it
     try {
-      const parsed = new Date(dateInput);
-      if (isNaN(parsed.getTime())) {
-        console.warn(`[EMAIL] Invalid date string: ${dateInput}, using current time as fallback`);
-        return new Date();
+      // If string is ISO format, parse directly
+      const trimmedInput = typeof dateInput === 'string' ? dateInput.trim() : String(dateInput);
+      console.log(`[EMAIL] Attempting to parse string: "${trimmedInput}"`);
+      
+      // Handle various possible date formats
+      let parsed: Date;
+      
+      // Try ISO format first
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(trimmedInput)) {
+        console.log(`[EMAIL] Detected ISO format, parsing directly`);
+        parsed = new Date(trimmedInput);
+      } 
+      // Try timestamp format (all digits)
+      else if (/^\d+$/.test(trimmedInput)) {
+        console.log(`[EMAIL] Detected timestamp format, parsing as number`);
+        parsed = new Date(parseInt(trimmedInput, 10));
+      }
+      // Default parse attempt
+      else {
+        console.log(`[EMAIL] Using default Date constructor for parsing`);
+        parsed = new Date(trimmedInput);
+      }
+      
+      const isValidParsed = !isNaN(parsed.getTime());
+      console.log(`[EMAIL] Parsed result: ${isValidParsed ? parsed.toISOString() : 'INVALID'}`);
+      
+      if (!isValidParsed) {
+        console.warn(`[EMAIL] Failed to parse date from string: "${trimmedInput}", using current date as fallback`);
+        const now = new Date();
+        console.log(`[EMAIL] Created fallback date: ${now.toISOString()}`);
+        return now;
       }
       return parsed;
     } catch (e: unknown) {
-      console.error(`[EMAIL] Failed to parse date: ${dateInput}`, e);
-      return new Date();
+      console.error(`[EMAIL] Exception while parsing date: ${e}`, e);
+      const now = new Date();
+      console.log(`[EMAIL] Created fallback date after exception: ${now.toISOString()}`);
+      return now;
     }
   };
 
