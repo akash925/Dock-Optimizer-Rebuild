@@ -48,6 +48,43 @@ export default function AppointmentMaster() {
   // Appointment Type Management
   const [showNewAppointmentTypeDialog, setShowNewAppointmentTypeDialog] = useState(false);
   const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState<number | null>(null);
+  
+  // Function to load standard questions for an appointment type
+  const loadStandardQuestionsForAppointmentType = (appointmentTypeId: number) => {
+    console.log(`[StandardQuestions] Loading questions for appointment type ${appointmentTypeId}`);
+    
+    fetch(`/api/standard-questions/appointment-type/${appointmentTypeId}`)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Failed to fetch standard questions: ${res.statusText}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log(`[StandardQuestions] Loaded ${data.length} questions for appointment type ${appointmentTypeId}:`, data);
+        
+        // Transform backend data to match frontend format
+        const formattedQuestions = data.map((q: any) => ({
+          id: q.id,
+          label: q.label,
+          type: q.fieldType.toLowerCase(),
+          required: q.required,
+          included: q.included,
+          order: q.orderPosition,
+          appointmentType: "both" // Default value
+        }));
+        
+        setStandardFields(formattedQuestions);
+      })
+      .catch(error => {
+        console.error(`[StandardQuestions] Error loading questions:`, error);
+        toast({
+          title: "Error",
+          description: `Failed to load standard questions: ${error.message}`,
+          variant: "destructive"
+        });
+      });
+  };
   const [appointmentTypeFormStep, setAppointmentTypeFormStep] = useState(1); // 1: Details, 2: Scheduling, 3: Questions
   
   // Appointment Type Form Data
@@ -651,6 +688,9 @@ export default function AppointmentMaster() {
                                   <DropdownMenuItem onClick={() => {
                                     const appointmentTypeId = appointmentType.id;
                                     setSelectedAppointmentTypeId(appointmentTypeId);
+                                    
+                                    // Load standard questions from the database
+                                    loadStandardQuestionsForAppointmentType(appointmentTypeId);
                                     // Set the form data from the selected appointment type
                                     // Get the duration and set the buffer time if it was previously 0
                                     const duration = appointmentType.duration || 60;

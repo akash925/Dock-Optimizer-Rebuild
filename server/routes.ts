@@ -4108,7 +4108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Standard Question routes
-  app.get("/api/standard-questions/:appointmentTypeId", async (req, res) => {
+  app.get("/api/standard-questions/appointment-type/:appointmentTypeId", async (req, res) => {
     try {
       const appointmentTypeId = parseInt(req.params.appointmentTypeId);
       let tenantId = req.user?.tenantId;
@@ -4242,6 +4242,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`[StandardQuestion] Error creating standard question:`, err);
       res.status(500).json({ message: "Failed to create standard question", error: err instanceof Error ? err.message : String(err) });
     }
+  });
+  
+  // Keep backwards compatibility by adding the original endpoint path
+  app.get("/api/standard-questions/:appointmentTypeId", async (req, res) => {
+    // Redirect to the new endpoint format
+    const appointmentTypeId = req.params.appointmentTypeId;
+    const queryParams = new URLSearchParams();
+    
+    // Copy all query parameters
+    for (const [key, value] of Object.entries(req.query)) {
+      if (typeof value === 'string') {
+        queryParams.append(key, value);
+      }
+    }
+    
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    res.redirect(`/api/standard-questions/appointment-type/${appointmentTypeId}${queryString}`);
   });
   
   // New unified endpoint for custom questions that can handle both direct access and booking page context
