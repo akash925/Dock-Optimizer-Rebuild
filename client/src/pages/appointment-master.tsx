@@ -302,23 +302,51 @@ export default function AppointmentMaster() {
 
   const saveCustomFieldMutation = useMutation({
     mutationFn: async (field: Partial<QuestionFormField>) => {
-      // Mock API call
-      return new Promise<QuestionFormField>((resolve) => {
-        setTimeout(() => {
-          const newField = {
-            id: selectedQuestionId || Math.max(0, ...customFields.map(f => f.id)) + 1,
-            label: field.label || "Untitled Field",
-            type: field.type || "text",
-            required: !!field.required,
-            included: field.included !== undefined ? field.included : true,
-            options: field.options || [],
-            placeholder: field.placeholder || "",
-            order: field.order || customFields.length + 1,
-            appointmentType: field.appointmentType || "both"
-          } as QuestionFormField;
-          resolve(newField);
-        }, 500);
-      });
+      if (!selectedAppointmentTypeId) {
+        throw new Error('You must select an appointment type first');
+      }
+      
+      const payload = {
+        appointmentTypeId: selectedAppointmentTypeId,
+        label: field.label || "Untitled Field",
+        type: field.type || "text",
+        isRequired: !!field.required, // Convert to isRequired for backend
+        options: field.options ? JSON.stringify(field.options) : "[]",
+        placeholder: field.placeholder || "",
+        order_position: field.order || customFields.length + 1, // Use order_position field for database
+        appointmentType: field.appointmentType || "both"
+      };
+      
+      let url = '/api/custom-questions';
+      let method = 'POST';
+      
+      // If editing existing question, use PUT to update
+      if (selectedQuestionId) {
+        url = `/api/custom-questions/${selectedQuestionId}`;
+        method = 'PUT';
+      }
+      
+      const res = await apiRequest(method, url, payload);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to save custom field');
+      }
+      
+      const newField = await res.json();
+      
+      // Convert DB format to component format
+      return {
+        id: newField.id,
+        label: newField.label,
+        type: newField.type,
+        required: !!newField.isRequired,
+        included: true,
+        options: newField.options ? JSON.parse(newField.options) : [],
+        placeholder: newField.placeholder || "",
+        order: newField.order_position,
+        appointmentType: newField.appointmentType || "both"
+      } as QuestionFormField;
     },
     onSuccess: (newField) => {
       const updatedFields = selectedQuestionId 
@@ -337,20 +365,58 @@ export default function AppointmentMaster() {
         appointmentType: "both"
       });
       
+      // Invalidate custom questions data for the selected appointment type
+      queryClient.invalidateQueries({ queryKey: ["/api/custom-questions", selectedAppointmentTypeId] });
+      
       toast({
         title: "Success",
         description: `Field ${selectedQuestionId ? "updated" : "created"} successfully`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to save custom field: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Delete custom field mutation
+  const deleteCustomFieldMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest('DELETE', `/api/custom-questions/${id}`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to delete custom field');
+      }
+      return id;
+    },
+    onSuccess: (id) => {
+      setCustomFields(customFields.filter(field => field.id !== id));
+      
+      // Invalidate custom questions data for the selected appointment type
+      if (selectedAppointmentTypeId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/custom-questions", selectedAppointmentTypeId] });
+      }
+      
+      toast({
+        title: "Field Deleted",
+        description: "The custom field has been removed",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete custom field: ${error.message}`,
+        variant: "destructive",
       });
     }
   });
   
   // Delete custom field
   const deleteCustomField = (id: number) => {
-    setCustomFields(customFields.filter(field => field.id !== id));
-    toast({
-      title: "Field Deleted",
-      description: "The custom field has been removed",
-    });
+    deleteCustomFieldMutation.mutate(id);
   };
   
   // Edit custom field
@@ -419,9 +485,54 @@ export default function AppointmentMaster() {
     };
     
     if (selectedAppointmentTypeId) {
-      updateAppointmentTypeMutation.mutate(formData);
+      updateAppointmentTypeMutation.mutate(formData, {
+        onSuccess: (updatedType) => {
+          // After updating the appointment type, also load the custom questions
+          loadCustomQuestionsForAppointmentType(updatedType.id);
+        }
+      });
     } else {
-      createAppointmentTypeMutation.mutate(formData);
+      createAppointmentTypeMutation.mutate(formData, {
+        onSuccess: (newType) => {
+          // After creating a new appointment type, set it as selected and load an empty questions list
+          setSelectedAppointmentTypeId(newType.id);
+          setCustomFields([]);
+        }
+      });
+    }
+  };
+  
+  // Helper function to load custom questions for a specific appointment type
+  const loadCustomQuestionsForAppointmentType = async (appointmentTypeId: number) => {
+    try {
+      const response = await fetch(`/api/custom-questions/${appointmentTypeId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch custom questions');
+      }
+      
+      const questions = await response.json();
+      
+      // Convert API format to component format
+      const formattedQuestions = questions.map((q: any) => ({
+        id: q.id,
+        label: q.label,
+        type: q.type,
+        required: !!q.isRequired, // Convert isRequired to required
+        included: true,
+        options: q.options ? JSON.parse(q.options) : [],
+        placeholder: q.placeholder || "",
+        order: q.order_position, // Map order_position to order
+        appointmentType: q.appointmentType || "both"
+      }));
+      
+      setCustomFields(formattedQuestions);
+    } catch (error) {
+      console.error('Error loading custom questions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load custom questions for this appointment type",
+        variant: "destructive"
+      });
     }
   };
   
@@ -546,7 +657,8 @@ export default function AppointmentMaster() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => {
-                                    setSelectedAppointmentTypeId(appointmentType.id);
+                                    const appointmentTypeId = appointmentType.id;
+                                    setSelectedAppointmentTypeId(appointmentTypeId);
                                     // Set the form data from the selected appointment type
                                     // Get the duration and set the buffer time if it was previously 0
                                     const duration = appointmentType.duration || 60;
@@ -570,6 +682,10 @@ export default function AppointmentMaster() {
                                       allowAppointmentsPastBusinessHours: appointmentType.allowAppointmentsPastBusinessHours || false,
                                       overrideFacilityHours: appointmentType.overrideFacilityHours || false
                                     });
+                                    
+                                    // Load custom questions for this appointment type
+                                    loadCustomQuestionsForAppointmentType(appointmentTypeId);
+                                    
                                     setAppointmentTypeFormStep(1);
                                     setShowNewAppointmentTypeDialog(true);
                                   }}>
