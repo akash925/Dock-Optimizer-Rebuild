@@ -4184,12 +4184,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[StandardQuestions] Found ${standardQuestions.length} questions for appointment type ${appointmentTypeId}`);
       
       // Add debug information for tracking
-      console.log(`[StandardQuestions] Required fields: ${standardQuestions.filter(q => q.isRequired).map(q => q.id).join(', ') || 'none'}`);
+      console.log(`[StandardQuestions] Required fields: ${standardQuestions.filter(q => q.required).map(q => q.id).join(', ') || 'none'}`);
       
       // Map order_position to order in the response for frontend compatibility
       const mappedQuestions = standardQuestions.map(question => ({
         ...question,
-        order: question.order_position
+        order: question.orderPosition,
+        options: question.options || []
       }));
       
       res.json(mappedQuestions);
@@ -4327,7 +4328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fieldType: question.fieldType,
         included: question.included,
         orderPosition: question.orderPosition,
-        options: question.options
+        options: question.options || []
       }));
       
       res.json(mappedQuestions);
