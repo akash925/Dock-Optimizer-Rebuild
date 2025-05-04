@@ -1268,6 +1268,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // QR Code check-in endpoint - for driver self-service check-in
+  app.post("/api/schedules/:id/check-in", async (req, res) => {
+    try {
+      const scheduleId = Number(req.params.id);
+      const schedule = await storage.getSchedule(scheduleId);
+      
+      if (!schedule) {
+        console.log(`[QR Check-in] Schedule not found with ID: ${scheduleId}`);
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+      
+      // Only allow check-in for appointments that are scheduled (not cancelled, etc.)
+      const validStatusForCheckIn = ['scheduled', 'confirmed'];
+      if (!validStatusForCheckIn.includes(schedule.status)) {
+        console.log(`[QR Check-in] Invalid status for check-in: ${schedule.status}`);
+        return res.status(400).json({ 
+          message: "Cannot check in - appointment has invalid status",
+          status: schedule.status
+        });
+      }
+      
+      // Check that appointment is within valid time range (not too early/late)
+      const now = new Date();
+      const appointmentStart = new Date(schedule.startTime);
+      const appointmentEnd = new Date(schedule.endTime);
+      
+      // Allow check-in up to 30 minutes before scheduled time
+      const earlyCheckInWindow = new Date(appointmentStart);
+      earlyCheckInWindow.setMinutes(appointmentStart.getMinutes() - 30);
+      
+      // Allow check-in up to 30 minutes after end time
+      const lateCheckInWindow = new Date(appointmentEnd);
+      lateCheckInWindow.setMinutes(appointmentEnd.getMinutes() + 30);
+      
+      // Only enforce time window in production
+      if (process.env.NODE_ENV === 'production' && (now < earlyCheckInWindow || now > lateCheckInWindow)) {
+        console.log(`[QR Check-in] Outside valid time window. Current: ${now.toISOString()}, Window: ${earlyCheckInWindow.toISOString()} - ${lateCheckInWindow.toISOString()}`);
+        return res.status(400).json({ 
+          message: "Cannot check in - outside valid time window",
+          currentTime: now,
+          appointmentStart: appointmentStart,
+          appointmentEnd: appointmentEnd
+        });
+      }
+      
+      // Update schedule status to 'checked-in'
+      const updatedSchedule = await storage.updateSchedule(scheduleId, {
+        status: "checked-in",
+        actualStartTime: now,
+        lastModifiedAt: now
+      });
+      
+      // Broadcast the check-in status change via WebSockets for real-time updates
+      if (app.locals.broadcastScheduleUpdate) {
+        console.log(`[WebSocket] Broadcasting QR code check-in: Schedule ${scheduleId}`);
+        app.locals.broadcastScheduleUpdate({
+          ...updatedSchedule,
+          tenantId: schedule.tenantId
+        });
+      }
+      
+      console.log(`[QR Check-in] Successfully checked in schedule ID: ${scheduleId}`);
+      res.json(updatedSchedule);
+    } catch (err) {
+      console.error("[QR Check-in] Error checking in schedule:", err);
+      res.status(500).json({ message: "Failed to check in" });
+    }
+  });
+  
   // Check-out endpoint - completes appointment
   app.patch("/api/schedules/:id/check-out", async (req, res) => {
     try {

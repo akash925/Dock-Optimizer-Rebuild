@@ -59,7 +59,7 @@ export async function registerQrCodeRoutes(app: any) {
       
       // Generate QR code directly to the response
       const options = {
-        errorCorrectionLevel: 'H', // High error correction level
+        errorCorrectionLevel: 'H' as const, // High error correction level
         margin: 1,
         width: 200,
         color: {
@@ -68,7 +68,7 @@ export async function registerQrCodeRoutes(app: any) {
         }
       };
       
-      QRCode.toFileStream(res, checkInUrl, options);
+      await QRCode.toFileStream(res, checkInUrl, options);
     } catch (error) {
       console.error('Error generating QR code for confirmation code:', error);
       res.status(500).json({ error: 'Failed to generate QR code' });
