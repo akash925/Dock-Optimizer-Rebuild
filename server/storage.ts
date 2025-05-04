@@ -3442,6 +3442,47 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount ? result.rowCount > 0 : false;
   }
   
+  // Standard Questions operations
+  async getStandardQuestion(id: number): Promise<StandardQuestion | undefined> {
+    const [question] = await db
+      .select()
+      .from(standardQuestions)
+      .where(eq(standardQuestions.id, id));
+    return question;
+  }
+  
+  async getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]> {
+    return await db
+      .select()
+      .from(standardQuestions)
+      .where(eq(standardQuestions.appointmentTypeId, appointmentTypeId))
+      .orderBy(standardQuestions.orderPosition);
+  }
+  
+  async createStandardQuestion(question: InsertStandardQuestion): Promise<StandardQuestion> {
+    const [newQuestion] = await db
+      .insert(standardQuestions)
+      .values(question)
+      .returning();
+    return newQuestion;
+  }
+  
+  async updateStandardQuestion(id: number, questionUpdate: Partial<StandardQuestion>): Promise<StandardQuestion | undefined> {
+    const [updatedQuestion] = await db
+      .update(standardQuestions)
+      .set(questionUpdate)
+      .where(eq(standardQuestions.id, id))
+      .returning();
+    return updatedQuestion;
+  }
+  
+  async deleteStandardQuestion(id: number): Promise<boolean> {
+    const result = await db
+      .delete(standardQuestions)
+      .where(eq(standardQuestions.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+  
   // Booking Pages operations
   async getBookingPage(id: number, tenantId?: number): Promise<BookingPage | undefined> {
     try {
