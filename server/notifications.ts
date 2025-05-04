@@ -351,12 +351,17 @@ function formatDateForTimezone(date: Date, timezone: string, formatStr: string):
         if (formattedResult.includes('yyyy')) {
           console.warn(`[EMAIL] 'yyyy' still present in output, using alternate format method`);
           
-          // Try alternate formatting method for just the year
+          // Format the date explicitly with all components to avoid the '1111' issue
           const year = safeDate.getFullYear();
-          const partialResult = formatToTimeZone(safeDate, formatStr.replace('yyyy', '####'), { timeZone: timezone });
-          const finalResult = partialResult.replace('####', year.toString());
+          const month = formatToTimeZone(safeDate, 'MMMM', { timeZone: timezone });
+          const dayOfWeek = formatToTimeZone(safeDate, 'EEEE', { timeZone: timezone });
+          const dayOfMonth = formatToTimeZone(safeDate, 'd', { timeZone: timezone });
+          const time = formatToTimeZone(safeDate, 'h:mm a', { timeZone: timezone });
           
-          console.log(`[EMAIL] Formatted with manual year replacement: ${finalResult}`);
+          // Construct the full date string manually
+          const finalResult = `${dayOfWeek}, ${month} ${dayOfMonth}, ${year} ${time}`;
+          
+          console.log(`[EMAIL] Formatted with manual date components: ${finalResult}`);
           return finalResult;
         }
         
