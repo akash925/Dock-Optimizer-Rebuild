@@ -21,6 +21,7 @@ export interface AvailabilitySlot {
   available: boolean;
   remainingCapacity?: number;
   isBufferTime?: boolean;
+  reason?: string;
 }
 
 /**
@@ -180,20 +181,47 @@ function generateTimeSlotsForRange(
   const slotInterval = (bufferTime && bufferTime > interval) ? bufferTime : interval;
   
   console.log(`[generateTimeSlotsForRange] Using interval of ${slotInterval} minutes (buffer: ${bufferTime}, default: ${interval})`);
-    
-  // Generate slots at the determined interval
-  for (let time = startMinutes; time <= lastPossibleStart; time += slotInterval) {
-    const appointmentEndMinutes = time + duration;
-    
-    slots.push({
-      time: convertMinutesToTime(time),
-      available: available,
-      remainingCapacity: remainingCapacity,
-      isBufferTime: false // Not a buffer time slot by default
-    });
+  
+  // If maxSlotsForDay is set, log it
+  if (maxSlotsForDay !== Infinity) {
+    console.log(`[generateTimeSlotsForRange] Limiting to ${maxSlotsForDay} total slots for the day`);
   }
   
-  console.log(`[generateTimeSlotsForRange] Generated ${slots.length} slots with interval: ${slotInterval} minutes`);
+  // Track how many slots we've created to enforce maxSlotsForDay
+  let slotCount = 0;
+  
+  // Generate slots at the determined interval
+  for (let time = startMinutes; time <= lastPossibleStart; time += slotInterval) {
+    // If we've reached the max slots for the day, mark remaining slots as unavailable
+    if (available && maxSlotsForDay !== Infinity && slotCount >= maxSlotsForDay) {
+      console.log(`[generateTimeSlotsForRange] Reached maximum daily slots (${maxSlotsForDay}), marking remaining slots as unavailable`);
+      
+      // Add remaining time slots but mark them as unavailable with reason
+      slots.push({
+        time: convertMinutesToTime(time),
+        available: false,
+        remainingCapacity: 0,
+        isBufferTime: false,
+        reason: "Maximum appointments for the day reached"
+      });
+    } else {
+      // Add normal slot
+      slots.push({
+        time: convertMinutesToTime(time),
+        available: available,
+        // If this is an available slot, increment our count
+        remainingCapacity: available ? remainingCapacity : 0,
+        isBufferTime: false
+      });
+      
+      // Only count slots that are available toward our daily limit
+      if (available) {
+        slotCount++;
+      }
+    }
+  }
+  
+  console.log(`[generateTimeSlotsForRange] Generated ${slots.length} slots with interval: ${slotInterval} minutes, ${slotCount} available slots`);
   
   return slots;
 }
@@ -226,7 +254,9 @@ function mergeTimeSlots(
         // Buffer slots are never available
         available: isBuffer ? false : newSlot.available,
         isBufferTime: isBuffer,
-        remainingCapacity: isBuffer ? 0 : Math.max(existingSlot.remainingCapacity || 0, newSlot.remainingCapacity || 0)
+        remainingCapacity: isBuffer ? 0 : Math.max(existingSlot.remainingCapacity || 0, newSlot.remainingCapacity || 0),
+        // Preserve reason from either slot, with priority to the new slot
+        reason: newSlot.reason || existingSlot.reason
       });
     } else {
       // If no conflict, add the new slot
