@@ -280,9 +280,29 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
   
   // Handle form submission
   const onSubmit = (values: ServiceSelectionFormValues) => {
+    const facilityId = parseInt(values.facilityId, 10);
+    const appointmentTypeId = parseInt(values.appointmentTypeId, 10);
+    
+    // Find the selected facility to get its name
+    const selectedFacility = facilities.find((f: any) => f.id === facilityId);
+    
+    // Find the selected appointment type to get its name
+    const selectedAppointmentType = appointmentTypes.find((t: any) => t.id === appointmentTypeId);
+    
+    console.log(`[ServiceSelectionStep] Form submitted with:`, {
+      facilityId,
+      facilityName: selectedFacility?.name,
+      appointmentTypeId,
+      appointmentTypeName: selectedAppointmentType?.name,
+      pickupOrDropoff: values.pickupOrDropoff
+    });
+    
+    // Update booking data with detailed information
     updateBookingData({
-      facilityId: parseInt(values.facilityId, 10),
-      appointmentTypeId: parseInt(values.appointmentTypeId, 10),
+      facilityId,
+      facilityName: selectedFacility?.name || '',
+      appointmentTypeId,
+      appointmentTypeName: selectedAppointmentType?.name || '',
       pickupOrDropoff: values.pickupOrDropoff
     });
     
@@ -294,9 +314,21 @@ ${data.notes ? `Notes: ${data.notes}` : ''}
     form.setValue("facilityId", value);
     form.setValue("appointmentTypeId", "");
     
-    // Update the bookingData as well for consistency
+    // Find the selected facility to get its name
+    const facilityId = parseInt(value, 10);
+    const selectedFacility = facilities.find((f: any) => f.id === facilityId);
+    
+    // Log the facility selection for debugging
+    console.log(`[ServiceSelectionStep] Selected facility:`, {
+      id: facilityId,
+      name: selectedFacility?.name,
+      allFacilities: facilities.map((f: any) => ({ id: f.id, name: f.name }))
+    });
+    
+    // Update the bookingData with facility ID, facility name, and reset appointment type
     updateBookingData({ 
-      facilityId: parseInt(value, 10),
+      facilityId: facilityId,
+      facilityName: selectedFacility?.name || '',
       appointmentTypeId: null 
     });
   };
