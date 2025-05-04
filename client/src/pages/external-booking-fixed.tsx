@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
-import { Loader2, Clock as ClockIcon, CheckCircle } from 'lucide-react';
+import { Loader2, Clock as ClockIcon, CheckCircle, Scan } from 'lucide-react';
 import { format, addHours, isValid, parseISO, parse } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { getUserTimeZone, formatTimeRangeForDualZones, formatDateRangeInTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
@@ -1927,6 +1927,47 @@ function ConfirmationStep({ bookingPage, confirmationCode }: { bookingPage: any;
               <div className="text-sm font-medium text-green-700 mb-1">Your appointment has been confirmed at</div>
               <div className="text-xl font-bold text-green-800">{getFacilityName()}</div>
               {formatAppointmentTime()}
+            </div>
+          </div>
+          
+          {/* QR Code Section */}
+          <div className="bg-blue-100 p-5 rounded-lg border border-blue-200 w-full mb-6">
+            <h3 className="font-bold text-xl text-blue-800 mb-3 flex items-center">
+              <Scan className="mr-2 h-5 w-5" />
+              Express Check-In QR Code
+            </h3>
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="bg-white p-4 rounded-lg shadow-md border border-blue-200">
+                {/* Using a direct URL to our QR code endpoint with the confirmation code */}
+                {confirmationCode && (
+                  <img 
+                    src={`/api/qr-code/${confirmationCode}`}
+                    alt="Check-in QR Code"
+                    width="160"
+                    height="160"
+                    className="rounded-sm"
+                  />
+                )}
+                <div className="text-center mt-2 font-mono text-sm font-medium text-blue-800">
+                  {confirmationCode}
+                </div>
+              </div>
+              <div className="flex-1">
+                <div className="bg-blue-50 p-3 rounded-lg mb-4 border border-blue-200">
+                  <h4 className="font-semibold text-blue-800 mb-1">How to use this QR code:</h4>
+                  <ul className="text-sm text-blue-700 space-y-2 list-disc pl-5">
+                    <li>Present this QR code to the dock staff for expedited check-in</li>
+                    <li>You can also scan it yourself when you arrive to self check-in</li>
+                    <li>Your confirmation code is: <span className="font-bold">{confirmationCode}</span></li>
+                    <li>The code can be entered manually if scanning isn't available</li>
+                    <li>This helps reduce wait times and paperwork at arrival</li>
+                  </ul>
+                </div>
+                <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                  <h4 className="font-semibold text-yellow-800 mb-1">Driver instructions:</h4>
+                  <p className="text-sm text-yellow-700">Save this page or take a screenshot of the QR code. You can also email this confirmation to yourself for easy reference.</p>
+                </div>
+              </div>
             </div>
           </div>
           
