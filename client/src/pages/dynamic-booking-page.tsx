@@ -21,6 +21,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import BolUpload from "@/components/shared/bol-upload";
 
+// Import logo images for fallbacks
+import dockOptimizerLogoPath from '../assets/dock_optimizer_logo.jpg';
+import hanzoLogoPath from '../assets/hanzo_logo.jpeg';
+import freshConnectLogoPath from '../assets/organization_logo.jpeg'; // Using fallback for Fresh Connect
+
 // Types for API data
 type BookingPage = {
   id: number;
@@ -148,6 +153,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
   const [bolPreviewText, setBolPreviewText] = useState<string | null>(null);
   const [bolProcessing, setBolProcessing] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [organizationHolidays, setOrganizationHolidays] = useState<string[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
@@ -213,6 +219,34 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
       }
       const data = await response.json();
       console.log("Appointment types data received:", data.length);
+      return data;
+    },
+    retry: false
+  });
+  
+  // Fetch organization holidays with tenant isolation
+  const { data: holidays = [], isLoading: isLoadingHolidays } = useQuery({
+    queryKey: ['/api/holidays', { bookingPageSlug: slug }],
+    enabled: !!bookingPage && !!slug,
+    queryFn: async () => {
+      console.log("Fetching organization holidays with bookingPageSlug:", slug);
+      const response = await fetch(`/api/holidays?bookingPageSlug=${slug}`);
+      if (!response.ok) {
+        console.warn(`No holidays found or error fetching holidays: ${response.status}`);
+        return [];
+      }
+      const data = await response.json();
+      console.log("Organization holidays received:", data.length);
+      
+      // Convert holiday dates to strings for easy comparison
+      const holidayDates = data.map((holiday: any) => {
+        const date = new Date(holiday.date);
+        return format(date, 'yyyy-MM-dd');
+      });
+      
+      // Update state for use in availability calculations
+      setOrganizationHolidays(holidayDates);
+      
       return data;
     },
     retry: false
@@ -525,6 +559,19 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
       const formattedDate = format(date, "yyyy-MM-dd");
       console.log(`[ExternalBooking] Fetching availability for facility ${facilityId}, appointment type ${appointmentTypeId}, date ${formattedDate}, booking page slug ${slug}`);
       
+      // Check if the selected date is a holiday
+      if (organizationHolidays.includes(formattedDate)) {
+        console.log(`[ExternalBooking] Selected date ${formattedDate} is a holiday, no slots available`);
+        setAvailableTimes([]);
+        toast({
+          title: "Holiday",
+          description: "The selected date is a company holiday. Please select another date.",
+          variant: "default",
+        });
+        setIsLoadingAvailability(false);
+        return;
+      }
+      
       // Log the date we're fetching
       console.log(`[ExternalBooking] Fetching availability for date: ${formattedDate}`);
       
@@ -558,7 +605,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
           toast({
             title: "No Available Times",
             description: "There are no available time slots for the selected date. Please try another date.",
-            variant: "destructive"
+            variant: "default"
           });
         }
       } else if (data.slots && Array.isArray(data.slots)) {
@@ -576,7 +623,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
           toast({
             title: "No Available Times",
             description: "There are no available time slots for the selected date. Please try another date.",
-            variant: "destructive"
+            variant: "default"
           });
         }
       } else {
@@ -585,7 +632,7 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
         toast({
           title: "No Available Times",
           description: "There are no available time slots for the selected date. Please try another date.",
-          variant: "destructive"
+          variant: "default"
         });
       }
     } catch (error) {
@@ -767,17 +814,20 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
               onError={(e) => {
                 // Try to handle logo loading failures gracefully
                 const target = e.target as HTMLImageElement;
-                console.log(`Logo load failed for booking page ${slug}, trying alternative paths`);
+                console.log(`Logo load failed for booking page ${slug}, trying direct path`);
                 
-                // Try organization-specific paths as fallbacks
-                const orgName = bookingPage?.name || '';
-                if (orgName.includes('Fresh Connect')) {
-                  target.src = '/assets/fresh-connect-logo.png';
-                } else if (orgName.includes('Hanzo')) {
-                  target.src = '/assets/hanzo-logo.png';
-                } else {
-                  target.src = '/assets/logo/dock-optimizer-logo.png';
+                // Select the appropriate fallback logo based on the tenant context
+                let fallbackLogo = dockOptimizerLogoPath;
+                if (bookingPage?.tenantId === 5 || (bookingPage?.name && bookingPage.name.includes('Fresh Connect'))) {
+                  console.log(`Using Fresh Connect fallback logo for tenant ID ${bookingPage?.tenantId}`);
+                  fallbackLogo = freshConnectLogoPath;
+                } else if (bookingPage?.tenantId === 2 || (bookingPage?.name && bookingPage.name.includes('Hanzo'))) {
+                  console.log(`Using Hanzo fallback logo for tenant ID ${bookingPage?.tenantId}`);
+                  fallbackLogo = hanzoLogoPath;
                 }
+                
+                // Set the fallback logo
+                target.src = fallbackLogo;
               }}
             />
           </div>

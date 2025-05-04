@@ -8,8 +8,9 @@ import ServiceSelectionStepForm from './service-selection-step';
 // Import directly from original external-booking-fixed
 import { DateTimeSelectionStep, CustomerInfoStep, ConfirmationStep } from './external-booking-fixed';
 // We'll use the dynamic logo endpoint instead of a static logo
-// Using relative path to assets
-import hanzoLogoImport from '../assets/hanzo_logo.jpeg'; // Fallback logo
+// Import organization logos as fallbacks using relative paths
+import hanzoLogoPath from '../assets/hanzo_logo.jpeg'; 
+import freshConnectLogoPath from '../assets/organization_logo.jpeg'; // Using fallback for Fresh Connect
 import { formatInTimeZone } from 'date-fns-tz';
 import { getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 
@@ -280,8 +281,19 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
 
   // Set up logo URL - use tenant-specific logo from booking-pages-logo endpoint if available
   // Use relative URL path for API requests to work in any environment
-  const logoUrl = slug ? `/api/booking-pages/logo/${slug}` : hanzoLogoImport;
+  const logoUrl = slug ? `/api/booking-pages/logo/${slug}` : hanzoLogoPath;
   console.log(`[FixedBookingWizardContent] Using logo URL: ${logoUrl} for slug: ${slug}`);
+  
+  // Select the appropriate fallback logo based on the tenant context (from the booking page)
+  const getFallbackLogo = () => {
+    if (bookingPage?.tenantId === 5 || organizationName.includes('Fresh Connect')) {
+      console.log(`Using Fresh Connect fallback logo for tenant ID ${bookingPage?.tenantId}`);
+      return freshConnectLogoPath;
+    } else {
+      console.log(`Using Hanzo fallback logo for tenant ID ${bookingPage?.tenantId}`);
+      return hanzoLogoPath;
+    }
+  };
   
   return (
     <div className="booking-wizard-container">
@@ -291,11 +303,12 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
           alt={`${organizationName} Logo`}
           className="booking-wizard-logo"
           onError={(e) => {
-            // Fallback to default logo if the dynamic URL fails
+            // Fallback to organization-specific logo if the dynamic URL fails
             const target = e.target as HTMLImageElement;
-            if (target.src !== hanzoLogoImport) {
-              target.src = hanzoLogoImport;
-              console.warn(`Failed to load tenant logo for slug ${slug}, falling back to default`);
+            const fallbackLogo = getFallbackLogo();
+            if (target.src !== fallbackLogo) {
+              target.src = fallbackLogo;
+              console.warn(`Failed to load tenant logo for slug ${slug}, falling back to organization-specific logo`);
             }
           }}
         />
