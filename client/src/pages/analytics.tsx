@@ -57,7 +57,9 @@ function useFacilityStats(dateParams: { startDate?: string; endDate?: string }) 
       if (dateParams.endDate) params.append('endDate', dateParams.endDate);
       
       console.log("Query params:", params.toString());
-      const res = await fetch(`/api/analytics/facilities?${params.toString()}`);
+      const res = await fetch(`/api/analytics/facilities?${params.toString()}`, {
+        credentials: 'include' // Include credentials for authentication
+      });
       if (!res.ok) throw new Error('Failed to fetch facility data');
       const data = await res.json();
       console.log("Facility data:", data);
@@ -115,7 +117,9 @@ function useCarrierStats(dateParams: { startDate?: string; endDate?: string }) {
       if (dateParams.endDate) params.append('endDate', dateParams.endDate);
       
       console.log("Carrier query params:", params.toString());
-      const res = await fetch(`/api/analytics/carriers?${params.toString()}`);
+      const res = await fetch(`/api/analytics/carriers?${params.toString()}`, {
+        credentials: 'include' // Include credentials for authentication
+      });
       if (!res.ok) throw new Error('Failed to fetch carrier data');
       const data = await res.json();
       console.log("Carrier data:", data);
@@ -172,7 +176,9 @@ function useCustomerStats(dateParams: { startDate?: string; endDate?: string }) 
       if (dateParams.startDate) params.append('startDate', dateParams.startDate);
       if (dateParams.endDate) params.append('endDate', dateParams.endDate);
       
-      const res = await fetch(`/api/analytics/customers?${params.toString()}`);
+      const res = await fetch(`/api/analytics/customers?${params.toString()}`, {
+        credentials: 'include' // Include credentials for authentication
+      });
       if (!res.ok) throw new Error('Failed to fetch customer data');
       return res.json();
     }

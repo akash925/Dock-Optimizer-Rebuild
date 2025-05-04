@@ -11,11 +11,20 @@ const disableCache = (req: express.Request, res: express.Response, next: express
   next();
 };
 
+// Add debug middleware to log auth status
+const debugAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.log(`[Analytics] Authentication check: isAuthenticated=${req.isAuthenticated()}, user=${req.user ? JSON.stringify(req.user) : 'undefined'}`);
+  next();
+};
+
 // Create router for analytics module
 const router = express.Router();
 
 // Apply cache disabling middleware to all routes
 router.use(disableCache);
+
+// Apply debug middleware first
+router.use(debugAuth);
 
 // Apply authentication middleware to all routes
 router.use(isAuthenticated);
