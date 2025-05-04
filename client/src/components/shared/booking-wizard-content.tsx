@@ -42,7 +42,8 @@ const step2Schema = z.object({
   contactName: z.string().min(2, "Contact name is required"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  customFields: z.record(z.string()).optional(),
+  // Allow customFields to hold any type of value (string, array, or file)
+  customFields: z.record(z.any()).optional(),
 });
 
 const step3Schema = z.object({

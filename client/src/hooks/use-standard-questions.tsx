@@ -8,51 +8,50 @@ interface UseStandardQuestionsProps {
 }
 
 export function useStandardQuestions({ appointmentTypeId, bookingPageSlug }: UseStandardQuestionsProps) {
-  // Create the appropriate query key based on the context
-  let endpoint = '';
-  if (appointmentTypeId) {
-    endpoint = bookingPageSlug 
-      ? `/api/custom-questions/${appointmentTypeId}?bookingPageSlug=${bookingPageSlug}`
-      : `/api/custom-questions/${appointmentTypeId}`;
-  }
-  
-  const queryKey = [endpoint];
-  
-  const { 
-    data = [], 
-    isLoading, 
-    error, 
-    refetch
-  } = useQuery<StandardQuestion[]>({
-    queryKey,
+  const { data: questions, isLoading, error } = useQuery({
+    queryKey: ['custom-questions', appointmentTypeId, bookingPageSlug],
     queryFn: async () => {
-      if (!appointmentTypeId) return [];
-      
-      try {
-        console.log(`Fetching standard questions for appointment type ${appointmentTypeId}${bookingPageSlug ? ` with booking page ${bookingPageSlug}` : ''}`);
-          
-        const res = await apiRequest('GET', endpoint);
-        
-        if (!res.ok) {
-          console.error(`Failed to fetch standard questions: ${res.status}`);
-          throw new Error(`Failed to fetch standard questions: ${res.status}`);
-        }
-        
-        const questions = await res.json();
-        console.log(`Received ${questions.length} standard questions:`, questions);
-        return questions;
-      } catch (err) {
-        console.error('Error fetching standard questions:', err);
+      if (!appointmentTypeId) {
         return [];
       }
+      
+      let url = `/api/custom-questions/${appointmentTypeId}`;
+      
+      // Add booking page slug as a query parameter if provided
+      if (bookingPageSlug) {
+        url += `?bookingPageSlug=${encodeURIComponent(bookingPageSlug)}`;
+      }
+      
+      const response = await apiRequest('GET', url);
+      const data = await response.json();
+      
+      // Ensure options are correctly handled (convert from JSON string if needed)
+      return data.map((question: any) => {
+        // Handle options coming as string (JSON) instead of array
+        if (question.options && typeof question.options === 'string') {
+          try {
+            question.options = JSON.parse(question.options);
+          } catch (e) {
+            console.error(`Error parsing options for question ${question.id}:`, e);
+            question.options = [];
+          }
+        }
+        
+        // Ensure options is always an array
+        if (!question.options) {
+          question.options = [];
+        }
+        
+        return question;
+      }) as StandardQuestion[];
     },
-    enabled: !!appointmentTypeId && endpoint !== '',
+    enabled: !!appointmentTypeId,
+    staleTime: 30000, // 30 seconds before refetching
   });
-  
+
   return {
-    standardQuestions: data,
+    questions: questions || [],
     isLoading,
-    error,
-    refetchQuestions: refetch
+    error
   };
 }

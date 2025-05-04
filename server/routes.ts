@@ -4243,6 +4243,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // New unified endpoint for custom questions that can handle both direct access and booking page context
+  app.get("/api/custom-questions/:appointmentTypeId", async (req, res) => {
+    try {
+      const appointmentTypeId = parseInt(req.params.appointmentTypeId);
+      if (isNaN(appointmentTypeId)) {
+        return res.status(400).json({ message: "Invalid appointment type ID" });
+      }
+      
+      console.log(`[CustomQuestions] Fetching questions for appointment type ${appointmentTypeId}`);
+      
+      // Check if we have a booking page slug in the query params
+      const bookingPageSlug = req.query.bookingPageSlug as string | undefined;
+      let tenantId = req.user?.tenantId;
+      let appointmentType;
+      
+      if (bookingPageSlug) {
+        console.log(`[CustomQuestions] Using booking page context: ${bookingPageSlug}`);
+        // Get the booking page to determine tenant context
+        const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+        if (!bookingPage) {
+          return res.status(404).json({ message: "Booking page not found" });
+        }
+        
+        // Use the booking page's tenant ID instead of the user's
+        tenantId = bookingPage.tenantId;
+        console.log(`[CustomQuestions] Using tenant ID from booking page: ${tenantId}`);
+        
+        // Get the appointment type in the booking page context
+        appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      } else {
+        // Get the appointment type with tenant isolation
+        appointmentType = await storage.getAppointmentType(appointmentTypeId);
+        console.log(`[CustomQuestions] Using authenticated user context with tenant ID: ${tenantId}`);
+      }
+      
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // If we're in an authenticated context (not through booking page), verify access
+      if (!bookingPageSlug && req.user) {
+        const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
+        
+        // Debug info for facilityId issues
+        if (!appointmentType.facilityId) {
+          console.warn(`[CustomQuestions] Appointment type ${appointmentTypeId} has no facilityId defined!`);
+          
+          // Verify tenant ID directly on the appointment type instead of facility
+          if (appointmentType.tenantId === req.user.tenantId || isSuperAdmin) {
+            console.log(`[CustomQuestions] Access granted - appointment type ${appointmentTypeId} tenant matches user tenant ${req.user.tenantId}`);
+            // Allow access
+          } else {
+            console.log(`[CustomQuestions] Access denied - appointment type ${appointmentTypeId} tenant ${appointmentType.tenantId} doesn't match user tenant ${req.user.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+          }
+        } else {
+          // Normal flow - Check tenant access based on facility
+          const facility = await checkTenantFacilityAccess(
+            appointmentType.facilityId,
+            req.user.tenantId,
+            isSuperAdmin,
+            'CustomQuestions'
+          );
+          
+          if (!facility) {
+            console.log(`[CustomQuestions] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+          }
+        }
+      }
+      
+      const standardQuestions = await storage.getStandardQuestionsByAppointmentType(appointmentTypeId);
+      console.log(`[CustomQuestions] Found ${standardQuestions.length} questions for appointment type ${appointmentTypeId}`);
+      
+      // Transform fields for frontend compatibility
+      const mappedQuestions = standardQuestions.map(question => ({
+        id: question.id,
+        label: question.label,
+        required: question.required,
+        appointmentTypeId: question.appointmentTypeId,
+        fieldKey: question.fieldKey,
+        fieldType: question.fieldType,
+        included: question.included,
+        orderPosition: question.orderPosition,
+        options: question.options
+      }));
+      
+      res.json(mappedQuestions);
+    } catch (err) {
+      console.error(`[CustomQuestions] Error fetching questions:`, err);
+      res.status(500).json({ message: "Failed to fetch custom questions" });
+    }
+  });
+
   app.put("/api/standard-questions/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
