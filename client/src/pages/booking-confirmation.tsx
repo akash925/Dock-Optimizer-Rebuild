@@ -43,6 +43,7 @@ interface BookingDetails {
 export default function BookingConfirmation() {
   const [, navigate] = useLocation();
   const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
+  const [schedule, setSchedule] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
@@ -72,7 +73,23 @@ export default function BookingConfirmation() {
           throw new Error(`Failed to fetch schedule data: ${response.statusText}`);
         }
         
-        const schedule = await response.json();
+        const scheduleData = await response.json();
+        setSchedule(scheduleData);
+        
+        // Try to get organization information if we have facility or tenant ID
+        let organizationName = null;
+        if (scheduleData.tenantId) {
+          try {
+            const orgResponse = await fetch(`/api/organizations/${scheduleData.tenantId}`);
+            if (orgResponse.ok) {
+              const orgData = await orgResponse.json();
+              organizationName = orgData.name;
+              setSchedule(prev => ({...prev, organizationName}));
+            }
+          } catch (err) {
+            console.error("Error fetching organization info:", err);
+          }
+        }
         
         // Get dock information to get the facility/location
         const dockResponse = await fetch(`/api/docks/${schedule.dockId}`);
@@ -243,10 +260,17 @@ Hanzo Logistics
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-6 md:py-12 px-2 md:px-4">
       <div className="max-w-3xl mx-auto w-full">
         <div className="flex flex-col items-center mb-6 md:mb-8">
+          {/* Use the tenant-aware logo endpoint */}
           <img 
-            src="https://www.hanzologistics.com/wp-content/uploads/2021/11/Hanzo_Logo_no_tag-1.png" 
-            alt="Hanzo Logistics" 
+            src={`/api/booking-pages/logo/${schedule?.tenantId || ''}`}
+            alt={`${bookingDetails?.facilityName || 'Logistics'} Logo`}
             className="h-12 mb-3" 
+            onError={(e) => {
+              // Fallback to static logo if the API fails
+              const imgElement = e.target as HTMLImageElement;
+              imgElement.src = "/logo.png"; 
+              console.log("Using fallback logo due to error loading from API");
+            }}
           />
           <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-green-100 flex items-center justify-center mb-3 md:mb-4">
             <CheckCircle className="h-10 w-10 md:h-12 md:w-12 text-green-600" />
@@ -374,7 +398,7 @@ Hanzo Logistics
                           <p className="text-sm whitespace-pre-wrap border-t pt-2 mt-2">
                             {`Hello,
 
-Here are your ${bookingDetails.type ? bookingDetails.type.toLowerCase() : "appointment"} appointment details for Hanzo Logistics:
+Here are your ${bookingDetails.type ? bookingDetails.type.toLowerCase() : "appointment"} appointment details for ${schedule?.organizationName || 'our logistics facility'}:
 
 Confirmation Number: ${bookingDetails.confirmationNumber}
 Date: ${bookingDetails.appointmentDate}
@@ -395,7 +419,7 @@ IMPORTANT:
 You can check in by scanning the QR code in the attachment or visiting: ${getCheckInUrl()}
 
 Thank you,
-Hanzo Logistics`}
+${schedule?.organizationName || 'Dock Optimizer'}`}
                           </p>
                         </div>
                       </div>
