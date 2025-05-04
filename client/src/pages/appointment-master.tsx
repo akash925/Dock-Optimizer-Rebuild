@@ -42,6 +42,9 @@ export default function AppointmentMaster() {
   const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
   const [showQuestionDialog, setShowQuestionDialog] = useState(false);
   
+  // Initialize the standard question update mutation
+  const updateStandardQuestionMutation = useUpdateStandardQuestion();
+  
   // Appointment Type Management
   const [showNewAppointmentTypeDialog, setShowNewAppointmentTypeDialog] = useState(false);
   const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState<number | null>(null);
@@ -1336,7 +1339,7 @@ export default function AppointmentMaster() {
                                           description: `${field.label} included setting updated`,
                                         });
                                       },
-                                      onError: (error) => {
+                                      onError: (error: Error) => {
                                         // Revert local state on error
                                         const revertedFields = [...standardFields];
                                         revertedFields[index].included = !checked;
@@ -1376,7 +1379,7 @@ export default function AppointmentMaster() {
                                           description: `${field.label} required setting updated`,
                                         });
                                       },
-                                      onError: (error) => {
+                                      onError: (error: Error) => {
                                         // Revert local state on error
                                         const revertedFields = [...standardFields];
                                         revertedFields[index].required = !checked;
@@ -1631,9 +1634,23 @@ export default function AppointmentMaster() {
                 // In a real implementation this would use saveCustomFieldMutation
                 if (selectedQuestionId) {
                   // Update existing field
-                  const updatedFields = customFields.map(field => 
-                    field.id === selectedQuestionId ? {...questionForm, id: field.id, order: field.order} : field
-                  );
+                  const updatedFields = customFields.map(field => {
+                    if (field.id === selectedQuestionId) {
+                      // Ensure all required properties are included
+                      return {
+                        id: field.id,
+                        label: questionForm.label || field.label,
+                        type: questionForm.type || field.type,
+                        required: questionForm.required ?? field.required,
+                        included: questionForm.included ?? field.included,
+                        options: questionForm.options || field.options,
+                        placeholder: questionForm.placeholder || field.placeholder,
+                        order: field.order,
+                        appointmentType: questionForm.appointmentType || field.appointmentType
+                      };
+                    }
+                    return field;
+                  });
                   setCustomFields(updatedFields);
                   toast({
                     title: "Question updated",
@@ -1641,13 +1658,14 @@ export default function AppointmentMaster() {
                   });
                 } else {
                   // Add new field
-                  const newField = {
+                  const newField: QuestionFormField = {
                     id: customFields.length ? Math.max(...customFields.map(f => f.id)) + 1 : 13,
                     label: questionForm.label || "New Question",
                     type: questionForm.type || "text", 
                     required: questionForm.required || false,
-                    options: questionForm.options,
-                    placeholder: questionForm.placeholder,
+                    included: questionForm.included || true,
+                    options: questionForm.options || [],
+                    placeholder: questionForm.placeholder || "",
                     order: customFields.length + 13,
                     appointmentType: questionForm.appointmentType || "both"
                   };
