@@ -802,83 +802,91 @@ export default function FullCalendarView({
                                     '';
                                     
                 // Get other fields from event props
-                const customerName = eventData?.customerName || '';
+                // ENHANCEMENT: Try multiple sources for customer name to ensure it's always available
+                const customerName = 
+                  eventData?.customerName || 
+                  (eventData?.customFormData?.customerName) || 
+                  (eventInfo.event as any)._def?.extendedProps?.customerName ||
+                  ''; // Fallback for empty customer name
+                  
                 const carrierName = eventData?.carrierName || '';
                 const dockId = eventData?.dockId || '';
                 const status = eventData?.status || '';
                 const needsAttention = eventData?.needsAttention || false;
                 const attentionReason = eventData?.attentionReason || '';
                 const truckNumber = eventData?.truckNumber || '';
-                
-                console.log('Event data:', {
-                  id: eventInfo.event.id,
-                  facilityName,
-                  facilityId: eventData?.facilityId,
-                  customerName,
-                  carrierName
-                });
+                const eventType = eventData?.type || '';
                 
                 // Determine if we need to show a status badge
                 const showStatusBadge = status && status !== 'scheduled';
                 const showAttentionBadge = !showStatusBadge && needsAttention;
                 
                 return (
-                  <div className="w-full h-full p-1 flex flex-col justify-start overflow-hidden">
-                    {/* CUSTOMER NAME FIRST: Primary information with highest prominence */}
-                    {customerName && (
-                      <div className="font-bold text-[15px] truncate leading-tight text-white mb-1.5">
-                        {customerName}
-                      </div>
-                    )}
-                    
-                    {/* Type badge + Time - critical info */}
-                    <div className="flex items-center justify-between w-full text-[11px] font-medium mb-1">
-                      {/* Time with clean display */}
-                      <div className="text-white/90">{eventInfo.timeText}</div>
+                  <div className="event-content w-full h-full p-1.5 flex flex-col justify-start overflow-hidden">
+                    <div className="event-header">
+                      {/* ENHANCED CUSTOMER NAME: Primary information with highest prominence */}
+                      {customerName && (
+                        <div className="customer-name">
+                          {customerName}
+                        </div>
+                      )}
                       
-                      {/* Type badge - right aligned */}
-                      {eventData?.type && 
-                        <span className={`inline-block px-1.5 py-0.5 rounded ${
-                          eventData.type.toLowerCase() === 'inbound' ? 'bg-blue-200 text-blue-800' : 'bg-emerald-200 text-emerald-800'
-                        }`}>
-                          {eventData.type === 'inbound' ? 'IN' : 'OUT'}
-                        </span>
-                      }
+                      {/* Type badge + Time - critical info */}
+                      <div className="flex items-center justify-between w-full text-[11px] font-medium mb-1">
+                        {/* Time with clean display */}
+                        <div className="text-white/95 font-semibold">{eventInfo.timeText}</div>
+                        
+                        {/* Type badge - right aligned with enhanced contrast */}
+                        {eventType && 
+                          <span className={`inline-block px-2 py-0.5 rounded ${
+                            eventType.toLowerCase() === 'inbound' 
+                              ? 'bg-blue-200 text-blue-800 border border-blue-300' 
+                              : 'bg-emerald-200 text-emerald-800 border border-emerald-300'
+                          }`}>
+                            {eventType === 'inbound' ? 'IN' : 'OUT'}
+                          </span>
+                        }
+                      </div>
                     </div>
                     
-                    {/* Truck number - important operational info */}
-                    {truckNumber && (
-                      <div className="text-[11px] font-medium text-white mb-1">
-                        Truck #{truckNumber}
-                      </div>
-                    )}
+                    {/* Subtle divider for visual separation */}
+                    <div className="event-divider"></div>
                     
-                    {/* Carrier name when available */}
-                    {carrierName && (
-                      <div className="text-[10px] opacity-90 mb-0.5 text-white/80">
-                        {carrierName}
-                      </div>
-                    )}
+                    <div className="event-body">
+                      {/* Truck number - important operational info */}
+                      {truckNumber && (
+                        <div className="text-[12px] font-medium text-white mb-1">
+                          Truck #{truckNumber}
+                        </div>
+                      )}
+                      
+                      {/* Carrier name when available */}
+                      {carrierName && (
+                        <div className="text-[11px] opacity-95 mb-0.5 text-white/90 font-medium">
+                          {carrierName}
+                        </div>
+                      )}
+                    </div>
                     
-                    {/* Bottom row with dock info */}
-                    <div className="mt-auto flex items-center justify-between text-[9px] pt-0.5 text-white/70">
+                    {/* Bottom row with dock info and status badges */}
+                    <div className="event-footer mt-auto flex items-center justify-between pt-1 text-white/80">
                       {/* Location info */}
                       <div className="flex items-center space-x-1">
-                        {dockId && <span className="font-medium">Dock #{dockId}</span>}
+                        {dockId && <span className="dock-info">Dock #{dockId}</span>}
                         {dockId && facilityName && <span>•</span>}
-                        {facilityName && <span className="truncate max-w-[70px]">{facilityName}</span>}
+                        {facilityName && <span className="facility-name">{facilityName}</span>}
                       </div>
                       
-                      {/* Status badge - only shown when needed */}
+                      {/* Status badge - only shown when needed, with improved visibility */}
                       {showStatusBadge && (
-                        <div className="font-bold bg-red-300 text-red-900 rounded px-1 py-0.5">
+                        <div className={`status-badge status-${status.toLowerCase()}`}>
                           {status.toUpperCase()}
                         </div>
                       )}
                       
-                      {/* Attention badge - only shown when needed */}
+                      {/* Attention badge - only shown when needed, with improved visibility */}
                       {showAttentionBadge && (
-                        <div className="font-bold bg-amber-300 text-amber-900 rounded px-1 py-0.5 animate-pulse">
+                        <div className="status-badge animate-pulse bg-amber-300/30 text-amber-50 border border-amber-500/60">
                           {attentionReason.toUpperCase()}
                         </div>
                       )}
