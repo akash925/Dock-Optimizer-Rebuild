@@ -478,10 +478,10 @@ import QRCode from 'qrcode';
 // We need to make this async since QR code generation is async
 async function generateQRCodeBase64(data: string): Promise<string> {
   try {
-    // Options for QR code generation
+    // Options for QR code generation - use proper type
     const options = {
-      errorCorrectionLevel: 'H',
-      type: 'image/png',
+      errorCorrectionLevel: 'H' as const,
+      type: 'image/png' as const,
       margin: 1,
       width: 150,
       color: {
@@ -662,6 +662,11 @@ export async function sendConfirmationEmail(
   // Create reschedule/cancel links
   const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
   const cancelLink = `${host}/cancel?code=${confirmationCode}`;
+  
+  // Generate QR code
+  const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
+  const qrCodeBase64 = await generateQRCodeBase64(checkInUrl);
+  console.log(`[EMAIL] Generated QR code for confirmation email to ${to}`);
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -735,8 +740,26 @@ export async function sendConfirmationEmail(
           </table>
         </div>
         
-        <!-- Quick check-in QR code section -->
-        ${generateQRCodeSVG(confirmationCode, host)}
+        <!-- Quick check-in QR code section with inline base64 image -->
+        <div style="text-align: center; margin: 15px auto; background-color: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d7ff; max-width: 320px;">
+          <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
+          <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #b3d7ff;">
+            <img src="${qrCodeBase64}" 
+                 alt="Check-in QR Code" 
+                 style="width: 150px; height: 150px; display: block; margin: 0 auto;">
+            <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center;">
+              ${confirmationCode}
+            </p>
+          </div>
+          <div style="font-size: 13px; color: #333; text-align: left; margin-top: 10px;">
+            <p style="margin: 0 0 5px; font-weight: bold;">How to use:</p>
+            <ul style="margin: 0; padding-left: 20px;">
+              <li>Present this QR code to dock staff upon arrival</li>
+              <li>You can also scan it yourself to check in quickly</li>
+              <li>If you can't see the QR code above, use your confirmation code: <strong>${confirmationCode}</strong></li>
+            </ul>
+          </div>
+        </div>
         
         <div style="margin: 30px 0; text-align: center;">
           <p style="margin-bottom: 15px;">Need to make changes to your appointment?</p>
@@ -789,6 +812,8 @@ export async function sendConfirmationEmail(
     
     Reschedule: ${rescheduleLink}
     Cancel: ${cancelLink}
+    
+    For express check-in, display the QR code in this email or use your confirmation code: ${confirmationCode}
     
     If you have any questions, please contact the facility directly.
     
@@ -1314,6 +1339,11 @@ export async function sendReminderEmail(
   // Create reschedule/cancel links
   const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
   const cancelLink = `${host}/cancel?code=${confirmationCode}`;
+  
+  // Generate QR code
+  const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
+  const qrCodeBase64 = await generateQRCodeBase64(checkInUrl);
+  console.log(`[EMAIL] Generated QR code for reminder email to ${to}`);
 
   // Set reminder text based on hours until appointment
   let reminderText = '';
@@ -1391,8 +1421,26 @@ export async function sendReminderEmail(
           </table>
         </div>
         
-        <!-- Quick check-in QR code section -->
-        ${generateQRCodeSVG(confirmationCode, host)}
+        <!-- Quick check-in QR code section with inline base64 image -->
+        <div style="text-align: center; margin: 15px auto; background-color: #fff8e6; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba; max-width: 320px;">
+          <h3 style="color: #856404; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
+          <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #ffeeba;">
+            <img src="${qrCodeBase64}" 
+                 alt="Check-in QR Code" 
+                 style="width: 150px; height: 150px; display: block; margin: 0 auto;">
+            <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #856404; text-align: center;">
+              ${confirmationCode}
+            </p>
+          </div>
+          <div style="font-size: 13px; color: #333; text-align: left; margin-top: 10px;">
+            <p style="margin: 0 0 5px; font-weight: bold;">How to use:</p>
+            <ul style="margin: 0; padding-left: 20px;">
+              <li>Present this QR code to dock staff upon arrival</li>
+              <li>You can also scan it yourself to check in quickly</li>
+              <li>If you can't see the QR code above, use your confirmation code: <strong>${confirmationCode}</strong></li>
+            </ul>
+          </div>
+        </div>
         
         <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
           <h3 style="margin-top: 0; color: #856404;">Important Reminders</h3>
