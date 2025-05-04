@@ -215,14 +215,14 @@ export default function BookingConfirmation() {
   // Generate a check-in URL with the confirmation code
   const getCheckInUrl = () => {
     if (!bookingDetails) return '';
-    // Handle confirmation numbers with both formats (HC123 or HZL-123) by extracting just the code
-    let code = bookingDetails.confirmationNumber;
-    if (code.startsWith('HZL-')) {
-      code = code.replace('HZL-', '');
-    } else if (code.startsWith('HC')) {
-      code = code.replace('HC', '');
-    }
-    return `${window.location.origin}/driver-check-in?code=${code}`;
+    
+    // Use the full confirmation code in the URL to provide maximum compatibility
+    // The driver-check-in page will handle parsing different formats
+    const code = bookingDetails.confirmationNumber;
+    
+    // Add a timestamp parameter to prevent caching issues
+    const timestamp = new Date().getTime();
+    return `${window.location.origin}/driver-check-in?code=${encodeURIComponent(code)}&t=${timestamp}`;
   };
   
   // Email the appointment details
@@ -476,9 +476,15 @@ ${orgName}
                     <h4 className="font-semibold text-blue-800 mb-1">How to use this QR code:</h4>
                     <ul className="text-sm text-blue-700 space-y-2 list-disc pl-5">
                       <li>Present this QR code to the dock staff for expedited check-in</li>
-                      <li>Staff will scan this code to instantly access your appointment details</li>
+                      <li>You can also scan it yourself when you arrive to self check-in</li>
+                      <li>Your confirmation code is: <span className="font-bold">{bookingDetails.confirmationNumber}</span></li>
+                      <li>The code can be entered manually if scanning isn't available</li>
                       <li>This helps reduce wait times and paperwork at arrival</li>
                     </ul>
+                  </div>
+                  <div className="bg-yellow-50 p-3 rounded-lg mb-4 border border-yellow-200">
+                    <h4 className="font-semibold text-yellow-800 mb-1">Driver instructions:</h4>
+                    <p className="text-sm text-yellow-700">Save this page or take a screenshot of the QR code. You can also email this confirmation to yourself using the options below.</p>
                   </div>
                   <Dialog>
                     <DialogTrigger asChild>

@@ -43,15 +43,14 @@ export default function DriverCheckIn() {
         }
         
         // Look up the appointment by confirmation code
-        // Handle various format possibilities: HC123, HZL-123, or just 123
-        let formattedCode = code;
-        if (!code.startsWith('HC')) {
-          // Remove any prefix like HZL- if present
-          const numericPart = code.replace(/^[A-Za-z]+-?/, '');
-          formattedCode = `HC${numericPart}`;
-        }
-        console.log('Looking up appointment with code:', formattedCode);
-        const response = await fetch(`/api/schedules/confirmation/${formattedCode}`);
+        // Let the server handle the confirmation code format parsing
+        // The storage.getScheduleByConfirmationCode function we updated can handle all formats
+        
+        console.log('Looking up appointment with confirmation code:', code);
+        
+        // Pass the code directly to the API without client-side formatting
+        // This ensures consistent handling between booking confirmation and check-in
+        const response = await fetch(`/api/schedules/confirmation/${encodeURIComponent(code)}`);
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -107,9 +106,14 @@ export default function DriverCheckIn() {
           }
         }
         
+        // Get the original confirmation code from the initial query parameter
+        // that we already captured at the beginning of the function
+        const originalCode = code || '';
+        
+        // Use the original code if provided, otherwise fallback to standard format
         setAppointment({
           id: data.id,
-          confirmationNumber: `HC${data.id}`,
+          confirmationNumber: originalCode || `HC${data.id}`,
           truckNumber: data.truckNumber || 'Not provided',
           trailerNumber: data.trailerNumber,
           carrierName: data.carrierName,
