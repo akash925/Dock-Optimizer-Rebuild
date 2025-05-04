@@ -10,6 +10,7 @@ import {
   AppointmentType, InsertAppointmentType,
   DailyAvailability, InsertDailyAvailability,
   CustomQuestion, InsertCustomQuestion,
+  StandardQuestion, InsertStandardQuestion,
   BookingPage, InsertBookingPage,
   Asset, InsertAsset,
   CompanyAsset, InsertCompanyAsset, UpdateCompanyAsset,
@@ -20,7 +21,7 @@ import {
   UserPreferences, InsertUserPreferences,
   ScheduleStatus, DockStatus, HolidayScope, TimeInterval, AssetCategory,
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
-  appointmentTypes, dailyAvailability, customQuestions, bookingPages, assets, companyAssets,
+  appointmentTypes, dailyAvailability, customQuestions, standardQuestions, bookingPages, assets, companyAssets,
   tenants, roles, organizationUsers, organizationModules, organizationFacilities, userPreferences
 } from "@shared/schema";
 import session from "express-session";

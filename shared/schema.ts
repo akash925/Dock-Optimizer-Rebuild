@@ -622,6 +622,7 @@ export const appointmentTypesRelations = relations(appointmentTypes, ({ one, man
   }),
   dailyAvailability: many(dailyAvailability),
   customQuestions: many(customQuestions),
+  standardQuestions: many(standardQuestions, { relationName: "appointment_type_standard_questions" }),
   schedules: many(schedules)
 }));
 
@@ -717,8 +718,37 @@ export const bookingPagesRelations = relations(bookingPages, ({ one }) => ({
 export type BookingPage = typeof bookingPages.$inferSelect;
 export type InsertBookingPage = z.infer<typeof insertBookingPageSchema>;
 
+// Standard Questions Model (for appointment type standard fields configuration)
+export const standardQuestions = pgTable("standard_questions", {
+  id: serial("id").primaryKey(),
+  appointmentTypeId: integer("appointment_type_id").notNull(),
+  fieldKey: text("field_key").notNull(), // e.g. customerName, carrierName, etc.
+  label: text("label").notNull(), // Display name
+  fieldType: text("field_type").notNull().$type<keyof typeof FieldType>(),
+  included: boolean("included").notNull().default(true),
+  required: boolean("required").notNull().default(false),
+  orderPosition: integer("order_position").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertStandardQuestionSchema = createInsertSchema(standardQuestions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const standardQuestionsRelations = relations(standardQuestions, ({ one }) => ({
+  appointmentType: one(appointmentTypes, {
+    fields: [standardQuestions.appointmentTypeId],
+    references: [appointmentTypes.id],
+    relationName: "appointment_type_standard_questions"
+  })
+}));
+
 export type CustomQuestion = typeof customQuestions.$inferSelect;
 export type InsertCustomQuestion = z.infer<typeof insertCustomQuestionSchema>;
+
+export type StandardQuestion = typeof standardQuestions.$inferSelect;
+export type InsertStandardQuestion = z.infer<typeof insertStandardQuestionSchema>;
 
 // Asset Manager Module - for storing uploaded files and their metadata
 export const assets = pgTable("assets", {
