@@ -234,7 +234,9 @@ function useAttendanceStats(dateParams: { startDate?: string; endDate?: string }
       if (dateParams.endDate) params.append('endDate', dateParams.endDate);
       
       console.log("Attendance query params:", params.toString());
-      const res = await fetch(`/api/analytics/attendance?${params.toString()}`);
+      const res = await fetch(`/api/analytics/attendance?${params.toString()}`, {
+        credentials: 'include' // Include credentials for authentication
+      });
       if (!res.ok) throw new Error('Failed to fetch attendance data');
       const data = await res.json();
       console.log("Attendance data:", data);
@@ -292,7 +294,9 @@ function useDockUtilizationStats(dateParams: { startDate?: string; endDate?: str
       if (dateParams.endDate) params.append('endDate', dateParams.endDate);
       
       console.log("Dock utilization query params:", params.toString());
-      const res = await fetch(`/api/analytics/dock-utilization?${params.toString()}`);
+      const res = await fetch(`/api/analytics/dock-utilization?${params.toString()}`, {
+        credentials: 'include' // Include credentials for authentication
+      });
       if (!res.ok) throw new Error('Failed to fetch dock utilization data');
       const data = await res.json();
       console.log("Dock utilization data:", data);
@@ -348,7 +352,9 @@ function exportToCSV(dataType: 'facilities' | 'carriers' | 'customers' | 'attend
   if (dateParams?.startDate) params.append('startDate', dateParams.startDate);
   if (dateParams?.endDate) params.append('endDate', dateParams.endDate);
   
-  fetch(`${endpoint}?${params.toString()}`)
+  fetch(`${endpoint}?${params.toString()}`, {
+      credentials: 'include' // Include credentials for authentication
+    })
     .then(response => response.json())
     .then(data => {
       // Convert data to CSV
