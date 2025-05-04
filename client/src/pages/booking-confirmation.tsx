@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2, Loader2 } from "lucide-react";
+import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2, Loader2, Settings } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { 
@@ -20,6 +20,14 @@ import {
   DialogFooter,
   DialogClose
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
@@ -38,6 +46,8 @@ interface BookingDetails {
   trailerNumber: string | null;
   type: string;
   notes: string | null;
+  tenantId?: number | null;
+  organizationName?: string;
 }
 
 export default function BookingConfirmation() {
@@ -45,6 +55,8 @@ export default function BookingConfirmation() {
   const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
   const [schedule, setSchedule] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showUserTimeFirst, setShowUserTimeFirst] = useState(false);
+  const [showTimePreferences, setShowTimePreferences] = useState(false);
   const { toast } = useToast();
   
   // Fetch the schedule and related data based on URL parameters
@@ -168,6 +180,8 @@ export default function BookingConfirmation() {
           trailerNumber: schedule.trailerNumber,
           type: schedule.type,
           notes: schedule.notes,
+          tenantId: schedule.tenantId,
+          organizationName: organizationName,
         });
         
       } catch (error) {
@@ -211,11 +225,12 @@ export default function BookingConfirmation() {
     
     const subject = `Dock Appointment Confirmation: ${bookingDetails.confirmationNumber}`;
     const appointmentType = bookingDetails.type ? bookingDetails.type.toLowerCase() : "appointment";
+    const orgName = schedule?.organizationName || 'our logistics facility';
     
     const body = `
 Hello,
 
-Here are your ${appointmentType} appointment details for Hanzo Logistics:
+Here are your ${appointmentType} appointment details for ${orgName}:
 
 Confirmation Number: ${bookingDetails.confirmationNumber}
 Date: ${bookingDetails.appointmentDate}
@@ -236,7 +251,7 @@ IMPORTANT:
 You can check in by scanning the QR code in the attachment or visiting: ${getCheckInUrl()}
 
 Thank you,
-Hanzo Logistics
+${orgName}
     `;
     
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -245,9 +260,10 @@ Hanzo Logistics
   if (loading || !bookingDetails) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-green-50 to-green-100">
+        {/* Use a generic logo while loading since we don't know the tenant yet */}
         <img 
-          src="https://www.hanzologistics.com/wp-content/uploads/2021/11/Hanzo_Logo_no_tag-1.png" 
-          alt="Hanzo Logistics" 
+          src="/logo.png" 
+          alt="Dock Optimizer" 
           className="h-12 mb-6" 
         />
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -263,7 +279,7 @@ Hanzo Logistics
           {/* Use the tenant-aware logo endpoint */}
           <img 
             src={`/api/booking-pages/logo/${schedule?.tenantId || ''}`}
-            alt={`${bookingDetails?.facilityName || 'Logistics'} Logo`}
+            alt={`${schedule?.organizationName || 'Logistics'} Logo`}
             className="h-12 mb-3" 
             onError={(e) => {
               // Fallback to static logo if the API fails
@@ -277,7 +293,7 @@ Hanzo Logistics
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 text-center">Appointment Confirmed!</h1>
           <p className="text-center text-gray-600 mt-2 px-2">
-            Your dock appointment has been successfully scheduled with Hanzo Logistics.
+            Your dock appointment has been successfully scheduled with {schedule?.organizationName || 'Dock Optimizer'}.
           </p>
         </div>
 
