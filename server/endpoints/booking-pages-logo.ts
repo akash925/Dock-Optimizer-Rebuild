@@ -129,6 +129,87 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       let fallbackLogoPath;
       
       // Use hardcoded base64 strings for logos instead of reading from file system
+      if (organization.id === 5 || organization.name.includes('Fresh Connect')) {
+        // Fresh Connect fallback logo
+        fallbackLogoPath = 'data:image/png;base64,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';
+        console.log(`[Booking Page Logo] Using hardcoded Fresh Connect logo`);
+      } else if (organization.id === 2 || organization.name.includes('Hanzo')) {
+        // Hanzo fallback logo
+        fallbackLogoPath = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPoAAAD6CAIAAAAHjs1qAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNi1jMTQ1IDc5LjE2MzQ5OSwgMjAxOC8wOC8xMy0xNjo0MDoyMiAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIDIwMTkgKFdpbmRvd3MpIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOjcwMkIzQTMyRTFEQTExRUE5QjRGQjQzNTJFODFCNzY1IiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOjcwMkIzQTMzRTFEQTExRUE5QjRGQjQzNTJFODFCNzY1Ij4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6NzAyQjNBMzBFMURBMTFFQTlCNEZCNDM1MkU4MUI3NjUiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6NzAyQjNBMzFFMURBMTFFQTlCNEZCNDM1MkU4MUI3NjUiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz4/ZdnrAAAMsElEQVR42uydCbAcVRmAz53dJOTFhERE9iWsIrIJIppILAthC1CIlAqUhVCUlQSQHQSxkCWyhk0QBARZhCBLZBcJooQgZZCwyCabgGxJ3nv35P/69Z1Tz8y9M90z09PT/X5VXb0zd7r7TJ/z9//P+c85PSLGANjJCIoA7AR0gJ2ADrAT0AF2AjrATkAH2AnoADsBHWAnoAPsBHSAnYAOsBPQAXYCOsBOQAfYCegAOwEdYCegA+wEdICdgA6wE9ABdgI6wE5AB9gJ6AA7AR1gJ6AD7AR0gJ2ADrAT0AF2AjrATkAH2AnoADsBHWAnoAPsBHSAnYAOsBPQAXYCOsBOQAfYCegAOwEdYCegA+wEdICdgA6wE9ABdgI6wE5AB9gJ6AA7AR1gJ6AD7CQFmilCdXrj3XfN0mXLzWuv/9/MmTvPzJr1hPfaqPVGm522297stttYM3bMGCo4C+gvrligMxctMnfcc695YNZM89TEh81bb73VVNqj1lnX7LXnZ81nDviMGbXOOiz9oDYixtAsWXT9n24yt91+p1n65pstHW/UqHXM/vvua74x5hQzYsSGdAcoQE8zcJn6ppv+bK666mozY/ZsM3rs3gX1CYyZdu0VZo+9DzCjN9mMPsBY0FONrjPzmgcmmMt+f4mp36+T3cZbuuTnpu/jf/JeV99vgqlfeaaZPXumv/3gvfeaW2+73Vw35Xpzyscz5muf/zzdgTGgJw76ylWrzM9/dbG565//Cnj/UDN6k/F57xS6zvT9fwp57cRN3jT1FbN8+2GHHWpOOPZoM3LjjcEO0JNj0af+9V9m7HH/N6f3Toi8vW/+Y971srljzNR/T/eeH3XkEea0b55sNt98c7AzGJccZJlwXWbsccflQK+vsrX5Yea91+YfPsnW5vLeOeeeZ/Y54KBSIYc6oLcQd0+6yxu1C4Fev8sWsN4zUyeaa//wR6AD9ORO3WfNmmX+cOXVAccNt7+YevxlZv7d1/mzAp4de8yxZsXKlUCnRk8odNXmX/n6CWbZsmVmyOjPmoWzpprZ8zcyU2fMMlOeedrblLWbpZTJMweN5eOPP97ccMP15v1ve/+Hy5YvN+PGn2SmT5/uDxr2368/9K5YscKcec655uZbbgt53b1fuXaN9YyOGeXNDDjnvPOBDvTkQP/Fl35jHnjooa75Ea3Vb5v8N++x94Ffsq+CRe/R39vQJ58qCfrhRx5l5s6bV/L9Xb81zozbZZypbzJn7dp/uOjR6yZOzrX6lRMnKPTDKiN83a9tOm3Zqaao/dJ3LzDXXj+l6WPKzOAf7nrAnH/eBQWb1RQBfXzuM5u/8GL35V/0/nz5A2bQ+t2hh1A/YPEzzy7Kd3HKkCU7ePCwtA4a9uj59O9/YGy9OemvgQVBH5LLPGzoUL8GWrF0aSToTz39dOD0XMhf+Na3/xvoQE8O9MtbUHMfed4fzOXnfNscPnYv89EtFnhWXd6oXy7U2+49Qzbc3nziYx80++67jznqqCPNJptswqgb0JMD/Zc/OLuiaXGHfEm6KNebi+88yMnuPm71/XbDqDv72NNBP+GkE81HRo9u+/e5Nbh2z4tnpnrw8GaP+dgjc75/tjuP4pFHHzULFy0CeprJwVfaY9DBY2F3oKlzlS7MV6y09+RuM3d0v07t6Wd2mfl3jzfLV6zwO4FLLv0toKebmljDzZwLZnKITVZn/9C71H32TXf4j926QqVgF/LDTRYf9dCvBpY/usDvBO6YNMlcP+V6oCcZuvtH7xng+vHTxYHVWRy3PsqfZaMdexD0MdnRZvc+/rijd7LmunbeQK/JtHhwrX7VpZf5f3/oIYf4HcDzL7wA9KRD9wNuBRxiwO3k8NkXk8wgDe5WZ/UGrz3dNnMU9KnT/uE93vHjO/rLNnLMaIyaMcvVtfJrg+fZzZ33nD8o+NKXv2IGbziY6XFAr5m0Vo9yoxVuwDLVJecwlrPmqrltJ1AVt78+YkfFHp4a0r2G9vbbbzdfPekr5t133wU60GsmBdBbcUFx7ejSS/tT4rR2D4N+Y3a6m82JKOdHNPCTTz1lTj3tdED3aGDQzNQ4HYvZM7vfiqVLzMrVa/ztrv4sbcuZ2M+Y+3ej4LWRZqFndGfaAeHucHf7VNXo3z31tJlOPPFE7/Hcv90B6GQTZabM9UGfusec+JX/mNsuONZsvcVCc+TeD3j7qLb2B9ZCrgVqvbZqYW5GROiAod5Zdna03L+ZGLTXXnv6f2shF3zrLIqeGj1FMxTG7vAhb6DtlNPONG+8+YbXS2/ttuKiRx9RMDlGj9H77j5lDYPu9tiqzW1nINDPvfBis2gRNTp5Y2lFruUmqrY+5PNfKJlZFuoLbz8yTe63uf1I5//N5rZ9ZocdzeP33wvo1OgpypIX25r9oYfmmBtv/nPZrK8g6P7ySr/mLkP/rLOzhx50kF+jv/SSH5QDemoU+jTSXxEG4u2F5a+VPcTufR+ZXrm5bDnQb731Nv/x0EP/A+hATzR0V9+bwppr8eLFZRdKQX/LLmVlQb/oO+dXwK5/v7zXn58/nxod6Mmetu9i6BrgCruE1e/Ri+fCq1Z3Y4W6BgBnnnlGxbr8hmtuoEYHenKhuzrrh7+4qEAXXnRRYO0dpcavxe9Pvutu/7Edw24GjP7Vb36j6Hlq9JS64VxrLvfctITXRGHhNr9xzbTiTtxvfTvrr+lzNx17zNGJLyM00I2+A91rLnddrEaPFzl+XA/eE0PGjJ68joCy6DG741yD1yLlpsd1wY1Mxh1/YlEz4HpnnNnR9Dwq9LTX6IcdfkRFfUFUbf5jvj1v8lsn3WnuuusfRd+TySAkoRrbLojqBkIzC06qqpR+GjgYaM0uYz5RcQ2vGv6aa64tmHnm1ugRuqC4NU1chZ6WWt0dFEfVxmGwxA18/fVGm5deeMHM/PcMM2PGDDNz5qPmtdde865V5RdEzf/VQNr4XXc1Y3fcwdsdF8fioZXyqwQ9dRNmwqBHhd4o7Ndff90svvzyiu87ufDmAFrQ9j/8/vsJTRLQP+6dWVxz2eGHH2567HJMlXDmqjlTzppXptvHHUMXhvbS6NRXX3vN3HLLbY3RiTvONrfdfrtp9kJILWkVxs/rj7OOMkeO/yLQSQqyqXLLmRtVT58+3Vx5VWNpJzfnzM2Y8lHPm5d/3mcPV5fQOuWUT9b0/2lhkkqhuwlb3Zj+ppFWXP5qVj9S7fWVrAw01ZxzTnZ/L4NOoHc3T1r4xJXvFT93+9W0SrXZyy+/bNaOuI9L6KD/aM4lv/nGg1WVyS2Hvs9NusvMmfuUt//hhx1qTspdNrPSXXZJQPOgS8sKujvNjQO6KsLqbF/G/bxNYy9p3cNOt1NHXK+urqC7vr6KpoBzzvmVVxZJb6uf9U2OC/RqnULoSWi+1gJ01fS/u/SS39aUTa9U8+bNNxN+8IPAazl70aJFdAZATwF2XUbqkksu9ba7C7Jaq50SArqMz0/yZu2pc9BCSu7k/NWBIG0O6Ik1F7rK41u20Wd+8YvmbXu9pFbrqY4ArnwGXTtJo2z/vvBn5pT80jkl1Iyj8LDNjMw6F+iJhR7UKbiFWZ2E6uslS5bU9D/c2l/HXbt2rafNG8t1dJ6pvuxZv/Yv/oJ2oekrgZ4y6G7t7s51P/jgg82KFStjK/C8efPMuHFfNK+/4a/p7s3Uy8kXTf/i0TvuMNttt22ZafGQKuhdCj1p3UPcoPeZdJd3d5X1RwwY1ug4Kh6ZX7Z8uRlc8NzNqYdAT1tn0FVFSBr0OMsufzbeeQ2tPgN6yqAn7X5Crlq9kn4hzuvndvLKKCeWuP0+0FOOPUn3E/rRj38Sq6Gpizrrtl90VnbDrAd6N1eElZ8vXLgw1kXEw6APHb1zl8ynTZp1F+hpwu4GWdSZ6Qy7+UG1TQdFZ4bHnuCGVwFffMnvzJDR27ZcgmPPPNO7aGIZe4j77LNP1+UCKCp6N1SM5Jkbm+5nXXz/ggsvMr+/4sqCGWdR7jgTFGLTLICdd9rBHwUz05v9xzVe5jz+hCd1Bp7kbhNIrZ5VbTx8wQJvutu9995nnn744ZbvG6MJLDvvtJO33LBqu7Lrz1OTU6P3mToJXXPdtXsLDC4+gd7jNWtvuPEm73Y6LdF2w63NPTu/3npmww03MltuuYUZO6axGMXo0aOB3k8fARHo1d91FmBvAIcKHQAd6AToQAc6AfoAgU7TEvqDfmVkAXQAOgA60AHQgQ6A3ib+K8AAi0WLIiUGkp0AAAAASUVORK5CYII=';
+        console.log(`[Booking Page Logo] Using hardcoded Hanzo logo`);
+      } else {
+        // Default Dock Optimizer logo
+        fallbackLogoPath = 'data:image/jpeg;base64,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<response clipped><NOTE>Only part of the code is shown due to length limitations. This base64 string is very long.</NOTE>
+        console.log(`[Booking Page Logo] Using default Dock Optimizer logo`);
+      }
+      
+      console.log(`[Booking Page Logo] Using organization-specific logo path for ${organization.name}`);
+      return res.json({ logo: fallbackLogoPath });
+    } catch (error) {
+      console.error('[Booking Page Logo] Error fetching logo by slug:', error);
+      return res.status(500).json({ message: 'Error fetching organization logo' });
+    }
+  };
+    try {
+      const { slug } = req.params;
+      console.log(`[Booking Page Logo] Fetching logo for booking page with slug: ${slug}`);
+      
+      if (!slug) {
+        return res.status(400).json({ message: 'Slug is required' });
+      }
+      
+      const storage = await getStorage();
+      
+      // Get the booking page to determine the tenant ID
+      const bookingPage = await storage.getBookingPageBySlug(slug);
+      if (!bookingPage) {
+        console.log(`[Booking Page Logo] Booking page with slug '${slug}' not found`);
+        return res.status(404).json({ message: 'Booking page not found' });
+      }
+      
+      console.log(`[Booking Page Logo] Found booking page '${bookingPage.name}' with tenant ID: ${bookingPage.tenantId}`);
+      
+      // No tenant ID, no logo
+      if (!bookingPage.tenantId) {
+        return res.status(404).json({ message: 'No tenant associated with this booking page' });
+      }
+      
+      // Get the organization for this tenant ID
+      const organization = await storage.getTenantById(bookingPage.tenantId);
+      if (!organization) {
+        console.log(`[Booking Page Logo] Organization with ID ${bookingPage.tenantId} not found`);
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      console.log(`[Booking Page Logo] Found organization '${organization.name}' for tenant ID: ${bookingPage.tenantId}`);
+      
+      // Return the logo URL or data
+      const logoData = organization.logo ? organization.logo : null;
+      
+      // Check if booking page has useOrganizationLogo flag
+      if (bookingPage.useOrganizationLogo === false) {
+        // Use custom logo if available
+        if (bookingPage.customLogo) {
+          console.log(`[Booking Page Logo] Using custom logo from booking page: ${bookingPage.customLogo}`);
+          return res.json({ logo: bookingPage.customLogo });
+        } else {
+          console.log(`[Booking Page Logo] useOrganizationLogo is false but no custom logo provided`);
+        }
+      }
+      
+      // If using organization logo (or fallback from above), use organization logo
+      console.log(`[Booking Page Logo] Using organization logo for tenant ${bookingPage.tenantId}`);
+      
+      // First, check if we have actual logo data in the organization record
+      if (logoData) {
+        console.log(`[Booking Page Logo] Using logo from organization record for tenant ID ${bookingPage.tenantId}`);
+        return res.json({ logo: logoData });
+      }
+      
+      // For organizations without a logo in the database, use organization-specific logos
+      let fallbackLogoPath;
+      
+      // Use hardcoded base64 strings for logos instead of reading from file system
       // This ensures they're always available regardless of file system structure
       if (organization.id === 5 || organization.name.includes('Fresh Connect')) {
         // Sample base64 for Fresh Connect logo (placeholder - replace with actual base64)
