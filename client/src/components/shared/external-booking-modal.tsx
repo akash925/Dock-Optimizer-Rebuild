@@ -83,13 +83,40 @@ export default function ExternalBookingModal({
 
   // Process appointment data from wizard and submit to API
   const handleAppointmentSubmit = (appointmentData: any) => {
-    // Transform data format if needed
+    console.log("Received data from wizard:", appointmentData);
+    
+    // Transform data format for API submission
     const formattedData = {
-      ...appointmentData,
+      ...(initialData || {}),  // Include any existing data if editing
       facilityId: facilityId || appointmentData.facilityId,
       appointmentTypeId: appointmentTypeId || appointmentData.appointmentTypeId,
-      // Any other transformations needed for the internal API
+      type: appointmentData.type || (appointmentData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound'),
+      status: 'scheduled',
+      startTime: appointmentData.startTime,
+      endTime: appointmentData.endTime, 
+      dockId: initialDockId || appointmentData.dockId,
+      
+      // Customer information
+      customerName: appointmentData.companyName,
+      contactName: appointmentData.contactName,
+      contactEmail: appointmentData.email,
+      contactPhone: appointmentData.phone,
+      
+      // Carrier and driver information
+      carrierId: appointmentData.carrierId,
+      carrierName: appointmentData.carrierName,
+      driverName: appointmentData.driverName,
+      driverPhone: appointmentData.driverPhone,
+      truckNumber: appointmentData.truckNumber,
+      trailerNumber: appointmentData.trailerNumber,
+      
+      // Additional information
+      notes: appointmentData.notes,
+      customFields: appointmentData.customFields, // Custom fields from standard questions
+      source: "internal" // Mark as created through internal interface
     };
+    
+    console.log("Submitting formatted data:", formattedData);
     
     // Submit appointment
     appointmentMutation.mutate(formattedData);

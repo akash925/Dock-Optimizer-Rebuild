@@ -1,165 +1,61 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-// Define the booking data interface
 interface BookingFormData {
-  // Step 1: Select Service
-  facilityId: number | null;
-  appointmentTypeId: number | null;
-  pickupOrDropoff: string; // "pickup" or "dropoff"
-  facilityName?: string; // Added for displaying facility name
-  appointmentTypeName?: string; // Added for displaying appointment type name
-  appointmentTypes?: any[]; // Added to store appointment types data
+  // Step 1: General Info
+  facilityId?: number;
+  appointmentTypeId?: number;
+  pickupOrDropoff?: 'pickup' | 'dropoff';
   
-  // BOL Data
-  bolFile?: File | null;
-  bolFileUploaded: boolean;
-  bolPreviewText?: string;
-  bolExtractedData?: {
-    bolNumber?: string;
-    customerName?: string;
-    carrierName?: string;
-    mcNumber?: string;
-    driverName?: string;
-    driverPhone?: string;
-    appointmentDate?: Date;
-    weight?: string;
-    notes?: string;
-  };
+  // Step 2: Customer Info 
+  companyName?: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  customFields?: Record<string, string>;
   
-  // Step 2: Select Date and Time
-  startTime: Date | null; 
-  endTime: Date | null;
-  timezone: string;
-  facilityTimezone?: string; // Facility timezone if different from user timezone
+  // Step 3: Truck & Carrier Info
+  carrierId?: number;
+  carrierName?: string;
+  driverName?: string;
+  driverPhone?: string;
+  truckNumber?: string;
+  trailerNumber?: string;
   
-  // Step 3: Customer Information
-  companyName: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  customerRef: string;
+  // Schedule Info
+  startTime?: Date;
+  endTime?: Date;
   
-  // Vehicle Information
-  carrierId?: number | null; // Carrier ID for existing carriers
-  carrierName: string;
-  driverName: string;
-  driverPhone: string;
-  mcNumber?: string; // MC Number for carrier
-  truckNumber: string;
-  trailerNumber: string;
-  
-  // Additional Information
-  notes: string;
-  
-  // Custom Questions answers
-  customFields: Record<string, string>;
+  // Additional
+  notes?: string;
+  bolFile?: File;
 }
 
-// Default empty state
-const defaultBookingData: BookingFormData = {
-  facilityId: null,
-  appointmentTypeId: null,
-  pickupOrDropoff: '',
-  bolFileUploaded: false,
-  startTime: null,
-  endTime: null,
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  companyName: '',
-  contactName: '',
-  email: '',
-  phone: '',
-  customerRef: '',
-  carrierId: null,
-  carrierName: '',
-  driverName: '',
-  driverPhone: '',
-  mcNumber: '',
-  truckNumber: '',
-  trailerNumber: '',
-  notes: '',
-  customFields: {},
-  bolExtractedData: {
-    bolNumber: '',
-    customerName: '',
-    carrierName: '',
-    mcNumber: '',
-    driverName: '',
-    driverPhone: '',
-    weight: '',
-    notes: ''
-  }
-};
-
-// Define the context type
 interface BookingWizardContextType {
   currentStep: number;
   setCurrentStep: (step: number) => void;
-  
   bookingData: BookingFormData;
   updateBookingData: (data: Partial<BookingFormData>) => void;
   resetBookingData: () => void;
-  
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
-  
-  appointmentCreated: boolean;
-  setAppointmentCreated: (created: boolean) => void;
-  
-  confirmationCode: string | null;
-  setConfirmationCode: (code: string | null) => void;
 }
 
-// Create the context
-const BookingWizardContext = createContext<BookingWizardContextType | undefined>(undefined);
+const BookingWizardContext = createContext<BookingWizardContextType | null>(null);
 
-// Provider component
 export function BookingWizardProvider({ children }: { children: ReactNode }) {
-  // Step state
   const [currentStep, setCurrentStep] = useState(1);
-  
-  // Booking data state
-  const [bookingData, setBookingData] = useState<BookingFormData>(defaultBookingData);
-  
-  // Loading state
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Appointment creation state
-  const [appointmentCreated, setAppointmentCreated] = useState(false);
-  
-  // Confirmation code
-  const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
-  
-  // Update booking data
+  const [bookingData, setBookingData] = useState<BookingFormData>({});
+
   const updateBookingData = (data: Partial<BookingFormData>) => {
-    // Special handling for BOL-extracted carrier data 
-    // to avoid setting multiple times and causing duplicate carrier fields
-    if (data.bolExtractedData) {
-      console.log("Updating BOL data in context:", data.bolExtractedData);
-      
-      // Update directly relevant fields if they're empty and BOL has them
-      if (data.bolExtractedData.carrierName && !data.carrierName) {
-        data.carrierName = data.bolExtractedData.carrierName;
-      }
-      
-      if (data.bolExtractedData.mcNumber && !data.mcNumber) {
-        data.mcNumber = data.bolExtractedData.mcNumber;
-      }
-    }
-    
-    setBookingData(prevData => ({
-      ...prevData,
-      ...data
-    }));
+    setBookingData(prev => ({ ...prev, ...data }));
   };
-  
-  // Reset booking data
+
   const resetBookingData = () => {
-    setBookingData(defaultBookingData);
+    setBookingData({});
     setCurrentStep(1);
-    setAppointmentCreated(false);
-    setConfirmationCode(null);
   };
-  
+
   return (
     <BookingWizardContext.Provider
       value={{
@@ -169,11 +65,7 @@ export function BookingWizardProvider({ children }: { children: ReactNode }) {
         updateBookingData,
         resetBookingData,
         isLoading,
-        setIsLoading,
-        appointmentCreated,
-        setAppointmentCreated,
-        confirmationCode,
-        setConfirmationCode
+        setIsLoading
       }}
     >
       {children}
@@ -181,13 +73,10 @@ export function BookingWizardProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Custom hook to use the booking wizard context
 export function useBookingWizard() {
   const context = useContext(BookingWizardContext);
-  
   if (!context) {
     throw new Error('useBookingWizard must be used within a BookingWizardProvider');
   }
-  
   return context;
 }
