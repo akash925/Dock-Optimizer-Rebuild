@@ -458,8 +458,10 @@ export default function UnifiedAppointmentForm({
         facilityId: selectedFacilityId || null,
         facilityName: facilityName, // Include the facility name for better display
         facilityTimezone: facilityTimezone,
-        // Include standard questions data
-        standardQuestionsData: Object.keys(standardQuestionsData).length > 0 ? standardQuestionsData : undefined,
+        // Include standard questions data properly wrapped
+        customFields: {
+          standardQuestions: Object.keys(standardQuestionsData).length > 0 ? standardQuestionsData : {}
+        },
       };
       
       console.log("Submitting appointment with sanitized data:", scheduleData);
