@@ -3902,16 +3902,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (req.user?.tenantId) {
           const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
           
-          const facility = await checkTenantFacilityAccess(
-            appointmentType.facilityId,
-            req.user.tenantId,
-            isSuperAdmin,
-            'CustomQuestion-Update'
-          );
-          
-          if (!facility) {
-            console.log(`[CustomQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
-            return res.status(403).json({ message: "You can only update questions for appointment types in your organization" });
+          // Debug info for facilityId issues
+          if (!appointmentType.facilityId) {
+            console.error(`[CustomQuestion-Update] CRITICAL: Appointment type ${appointmentType.id} has no facilityId defined!`);
+            
+            // For custom questions, we can safely bypass facility check 
+            // Log this special case handling
+            console.log(`[CustomQuestion-Update] Special case: Bypassing facility check for appointment type ${appointmentType.id} with tenant ${tenantId}`);
+            
+            // Verify tenant ID directly on the appointment type instead of facility
+            if (appointmentType.tenantId === req.user.tenantId || isSuperAdmin) {
+              console.log(`[CustomQuestion-Update] Access granted - appointment type ${appointmentType.id} tenant matches user tenant ${req.user.tenantId}`);
+              // Allow access
+            } else {
+              console.log(`[CustomQuestion-Update] Access denied - appointment type ${appointmentType.id} tenant ${appointmentType.tenantId} doesn't match user tenant ${req.user.tenantId}`);
+              return res.status(403).json({ message: "You can only update questions for appointment types in your organization" });
+            }
+          } else {
+            // Normal flow - Use our helper function to check tenant access
+            const facility = await checkTenantFacilityAccess(
+              appointmentType.facilityId,
+              req.user.tenantId,
+              isSuperAdmin,
+              'CustomQuestion-Update'
+            );
+            
+            if (!facility) {
+              console.log(`[CustomQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+              return res.status(403).json({ message: "You can only update questions for appointment types in your organization" });
+            }
           }
         }
       }
@@ -3946,16 +3965,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (req.user?.tenantId) {
           const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
           
-          const facility = await checkTenantFacilityAccess(
-            appointmentType.facilityId,
-            req.user.tenantId,
-            isSuperAdmin,
-            'CustomQuestion-Delete'
-          );
-          
-          if (!facility) {
-            console.log(`[CustomQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
-            return res.status(403).json({ message: "You can only delete questions for appointment types in your organization" });
+          // Debug info for facilityId issues
+          if (!appointmentType.facilityId) {
+            console.error(`[CustomQuestion-Delete] CRITICAL: Appointment type ${appointmentType.id} has no facilityId defined!`);
+            
+            // For custom questions, we can safely bypass facility check 
+            // Log this special case handling
+            console.log(`[CustomQuestion-Delete] Special case: Bypassing facility check for appointment type ${appointmentType.id} with tenant ${tenantId}`);
+            
+            // Verify tenant ID directly on the appointment type instead of facility
+            if (appointmentType.tenantId === req.user.tenantId || isSuperAdmin) {
+              console.log(`[CustomQuestion-Delete] Access granted - appointment type ${appointmentType.id} tenant matches user tenant ${req.user.tenantId}`);
+              // Allow access
+            } else {
+              console.log(`[CustomQuestion-Delete] Access denied - appointment type ${appointmentType.id} tenant ${appointmentType.tenantId} doesn't match user tenant ${req.user.tenantId}`);
+              return res.status(403).json({ message: "You can only delete questions for appointment types in your organization" });
+            }
+          } else {
+            // Normal flow - Use our helper function to check tenant access
+            const facility = await checkTenantFacilityAccess(
+              appointmentType.facilityId,
+              req.user.tenantId,
+              isSuperAdmin,
+              'CustomQuestion-Delete'
+            );
+            
+            if (!facility) {
+              console.log(`[CustomQuestion] Access denied - appointment type ${appointmentType.id} is not in organization ${req.user.tenantId}`);
+              return res.status(403).json({ message: "You can only delete questions for appointment types in your organization" });
+            }
           }
         }
       }
@@ -4014,17 +4052,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.user?.tenantId && !bookingPageSlug) {
         const isSuperAdmin = req.user.username?.includes('admin@conmitto.io') || false;
         
-        // Use our helper function to check tenant access
-        const facility = await checkTenantFacilityAccess(
-          appointmentType.facilityId,
-          req.user.tenantId,
-          isSuperAdmin,
-          'CustomQuestions-Alt'
-        );
-        
-        if (!facility) {
-          console.log(`[CustomQuestions] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
-          return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+        // Debug info for facilityId issues
+        if (!appointmentType.facilityId) {
+          console.error(`[CustomQuestions-Alt] CRITICAL: Appointment type ${appointmentTypeId} has no facilityId defined!`);
+          
+          // For custom questions, we can safely bypass facility check 
+          // Log this special case handling
+          console.log(`[CustomQuestions-Alt] Special case: Bypassing facility check for appointment type ${appointmentTypeId} with tenant ${tenantId}`);
+          
+          // Verify tenant ID directly on the appointment type instead of facility
+          if (appointmentType.tenantId === req.user.tenantId || isSuperAdmin) {
+            console.log(`[CustomQuestions-Alt] Access granted - appointment type ${appointmentTypeId} tenant matches user tenant ${req.user.tenantId}`);
+            // Allow access
+          } else {
+            console.log(`[CustomQuestions-Alt] Access denied - appointment type ${appointmentTypeId} tenant ${appointmentType.tenantId} doesn't match user tenant ${req.user.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+          }
+        } else {
+          // Normal flow - Use our helper function to check tenant access
+          const facility = await checkTenantFacilityAccess(
+            appointmentType.facilityId,
+            req.user.tenantId,
+            isSuperAdmin,
+            'CustomQuestions-Alt'
+          );
+          
+          if (!facility) {
+            console.log(`[CustomQuestions-Alt] Access denied - appointment type ${appointmentTypeId} is not in organization ${req.user.tenantId}`);
+            return res.status(403).json({ message: "Access denied to this appointment type's questions" });
+          }
         }
       }
       
