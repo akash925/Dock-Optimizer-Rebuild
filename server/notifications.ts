@@ -465,32 +465,37 @@ function getTimezoneAbbr(timezone: string, date: Date): string {
 }
 
 /**
- * Generate a QR code SVG for appointment check-in
+ * Generate a QR code for appointment check-in that works in email clients
  */
 function generateQRCodeSVG(confirmationCode: string, baseUrl: string): string {
-  // Use the QRCode.js library from a CDN in the email HTML
-  const qrCodeScript = `
-  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
-  <script>
-    new QRCode(document.getElementById("qrcode"), {
-      text: "${baseUrl}/driver-check-in?code=${confirmationCode.replace('HC', '')}",
-      width: 120,
-      height: 120,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
-    });
-  </script>
-  `;
+  // Create the check-in URL
+  const checkInUrl = `${baseUrl}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
   
-  // Return a placeholder for the QR code or generate a static SVG
-  // Since emails don't support JavaScript, just provide a link
-  return `<div id="qrcode" style="width:120px; height:120px; margin: 0 auto;"></div>
-    <p style="text-align:center; margin-top: 10px; font-size: 14px;">
-      <a href="${baseUrl}/driver-check-in?code=${confirmationCode.replace('HC', '')}" style="color: #0366d6; text-decoration: underline;">
-        Scan QR code for check-in or click here
-      </a>
-    </p>`;
+  // We'll use our server-side QR code generation endpoint directly in the <img> tag
+  // This ensures the QR code appears correctly in email clients
+  const qrCodeImageUrl = `${baseUrl}/api/qr-code?data=${encodeURIComponent(checkInUrl)}`;
+  
+  return `
+    <div style="text-align: center; margin: 15px auto; background-color: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d7ff; max-width: 320px;">
+      <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
+      <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #b3d7ff;">
+        <img src="${qrCodeImageUrl}" 
+             alt="Check-in QR Code" 
+             style="width: 150px; height: 150px; display: block; margin: 0 auto;">
+        <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center;">
+          ${confirmationCode}
+        </p>
+      </div>
+      <div style="font-size: 13px; color: #333; text-align: left; margin-top: 10px;">
+        <p style="margin: 0 0 5px; font-weight: bold;">How to use:</p>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li>Present this QR code to dock staff upon arrival</li>
+          <li>You can also scan it yourself to check in quickly</li>
+          <li>If you can't see the QR code above, use your confirmation code: <strong>${confirmationCode}</strong></li>
+        </ul>
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -697,6 +702,9 @@ export async function sendConfirmationEmail(
             </tr>` : ''}
           </table>
         </div>
+        
+        <!-- Quick check-in QR code section -->
+        ${generateQRCodeSVG(confirmationCode, host)}
         
         <div style="margin: 30px 0; text-align: center;">
           <p style="margin-bottom: 15px;">Need to make changes to your appointment?</p>
@@ -960,6 +968,9 @@ export async function sendRescheduleEmail(
             </tr>` : ''}
           </table>
         </div>
+        
+        <!-- Quick check-in QR code section -->
+        ${generateQRCodeSVG(confirmationCode, host)}
         
         <div style="margin: 30px 0; text-align: center;">
           <p style="margin-bottom: 15px;">Need to cancel this appointment?</p>
@@ -1348,12 +1359,16 @@ export async function sendReminderEmail(
           </table>
         </div>
         
+        <!-- Quick check-in QR code section -->
+        ${generateQRCodeSVG(confirmationCode, host)}
+        
         <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
           <h3 style="margin-top: 0; color: #856404;">Important Reminders</h3>
           <ul style="margin-top: 10px; padding-left: 20px;">
             <li>Please arrive 15 minutes before your scheduled time.</li>
             <li>Have your confirmation number and all required documentation ready.</li>
             <li>Follow all facility safety guidelines and instructions.</li>
+            <li>Use the QR code above for express check-in upon arrival.</li>
           </ul>
         </div>
         
@@ -1403,8 +1418,9 @@ export async function sendReminderEmail(
     
     IMPORTANT REMINDERS:
     - Please arrive 15 minutes before your scheduled time.
-    - Have your confirmation number and all required documentation ready.
+    - Have your confirmation number (${confirmationCode}) and all required documentation ready.
     - Follow all facility safety guidelines and instructions.
+    - Use the QR code from the HTML email or your confirmation code for express check-in.
     
     ${hoursUntilAppointment > 2 ? `Need to make changes? 
     Reschedule: ${rescheduleLink}
