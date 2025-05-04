@@ -547,6 +547,8 @@ interface AvailabilitySlot {
 
 function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   const { bookingData, updateBookingData, setCurrentStep } = useBookingWizard();
+  // Get the slug from the booking page for API calls
+  const slug = bookingPage?.slug;
   
   // Try to parse BOL date if available
   const getBolDate = () => {
@@ -615,12 +617,40 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   
   // Get the appointment type to determine duration
   const { data: appointmentTypes } = useQuery({
-    queryKey: ['/api/appointment-types'],
+    queryKey: ['/api/appointment-types', { bookingPageSlug: slug }],
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl, params] = queryKey as [string, { bookingPageSlug: string }];
+      // Use relative URL path for API requests to work in any environment
+      const apiUrl = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      console.log(`[DateTimeSelectionStep] Fetching appointment types with URL: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch appointment types: ${response.status}`);
+      }
+      
+      return await response.json();
+    },
+    enabled: !!slug,
   });
   
   // Get the facility to determine timezone
   const { data: facilities } = useQuery({
-    queryKey: ['/api/facilities'],
+    queryKey: ['/api/facilities', { bookingPageSlug: slug }],
+    queryFn: async ({ queryKey }) => {
+      const [baseUrl, params] = queryKey as [string, { bookingPageSlug: string }];
+      // Use relative URL path for API requests to work in any environment
+      const apiUrl = `${baseUrl}?bookingPageSlug=${params.bookingPageSlug}`;
+      console.log(`[DateTimeSelectionStep] Fetching facilities with URL: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch facilities: ${response.status}`);
+      }
+      
+      return await response.json();
+    },
+    enabled: !!slug,
   });
   
   // Get the selected appointment type

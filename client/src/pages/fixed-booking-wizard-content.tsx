@@ -281,7 +281,7 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
 
   // Set up logo URL - use tenant-specific logo from booking-pages-logo endpoint if available
   // Use relative URL path for API requests to work in any environment
-  const logoUrl = slug ? `/api/booking-pages/logo/${slug}` : hanzoLogoPath;
+  const logoUrl = slug ? `${window.location.origin}/api/booking-pages/logo/${slug}` : '';
   console.log(`[FixedBookingWizardContent] Using logo URL: ${logoUrl} for slug: ${slug}`);
   
   // Select the appropriate fallback logo based on the tenant context (from the booking page)
