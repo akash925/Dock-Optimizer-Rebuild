@@ -4807,7 +4807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
                 <div style="display: flex; flex-direction: column; align-items: center;">
                   <div style="background-color: white; padding: 15px; border-radius: 5px; border: 1px solid #b3d7ff; margin-bottom: 10px; text-align: center;">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(checkInUrl)}" 
+                    <img src="${baseUrl}/api/qr-code?data=${encodeURIComponent(checkInUrl)}" 
                          alt="Check-in QR Code" style="width: 150px; height: 150px;">
                     <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc;">${confirmationCode}</p>
                   </div>
