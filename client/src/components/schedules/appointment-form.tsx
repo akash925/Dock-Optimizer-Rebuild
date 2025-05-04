@@ -1,4 +1,4 @@
-import AppointmentForm from "@/components/shared/appointment-form-fixed";
+import UnifiedAppointmentForm from "@/components/shared/unified-appointment-form-fixed";
 import { Schedule } from "@shared/schema";
 
 interface AppointmentFormProps {
@@ -24,9 +24,9 @@ export default function ScheduleAppointmentForm({
   timezone,
   timeFormat,
 }: AppointmentFormProps) {
-  // Use our new improved appointment form component
+  // Use our unified appointment form component with standard questions
   return (
-    <AppointmentForm
+    <UnifiedAppointmentForm
       mode="internal"
       isOpen={isOpen}
       onClose={onClose}
@@ -36,6 +36,7 @@ export default function ScheduleAppointmentForm({
       initialDockId={initialDockId}
       appointmentTypeId={appointmentTypeId}
       facilityTimezone={timezone}
+      facilityId={initialData?.facilityId}
     />
   );
 }
