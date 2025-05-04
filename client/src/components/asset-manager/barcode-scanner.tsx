@@ -141,7 +141,7 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
   return (
     <div className="flex flex-col space-y-4">
       <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg font-medium">Scan Asset Barcode</h3>
+        <h3 className="text-lg font-medium">Scan Barcode</h3>
         <Button variant="ghost" size="icon" onClick={onClose} title="Close">
           <XCircle className="h-5 w-5" />
         </Button>

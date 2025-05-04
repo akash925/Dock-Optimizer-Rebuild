@@ -84,7 +84,7 @@ export function BarcodeScanButton({ variant = 'ghost', size = 'icon' }: BarcodeS
         size={size}
         onClick={handleOpenScanner}
         aria-label="Scan Barcode"
-        title="Scan Asset Barcode"
+        title="Scan Barcode"
       >
         <Scan className="h-5 w-5" />
       </Button>
