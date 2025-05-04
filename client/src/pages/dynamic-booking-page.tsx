@@ -523,83 +523,73 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
     
     try {
       const formattedDate = format(date, "yyyy-MM-dd");
-      console.log(`Fetching availability for facility ${facilityId}, appointment type ${appointmentTypeId}, date ${formattedDate}, booking page slug ${slug}`);
+      console.log(`[ExternalBooking] Fetching availability for facility ${facilityId}, appointment type ${appointmentTypeId}, date ${formattedDate}, booking page slug ${slug}`);
       
-      // Use the more reliable availability endpoint format
-      const response = await fetch(
-        `/api/availability/${slug}/${formattedDate}?facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}`
-      );
+      // Use the dedicated RESTful endpoint for booking pages
+      const endpoint = `/api/availability/${slug}/${formattedDate}?facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}`;
+      console.log(`[ExternalBooking] Requesting: ${endpoint}`);
       
-      // Check if response is JSON
+      const response = await fetch(endpoint);
+      
+      // Check if response is successful
       if (!response.ok) {
-        throw new Error(`API request failed with status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`[ExternalBooking] API error (${response.status}): ${errorText}`);
+        throw new Error(`API request failed with status: ${response.status} - ${errorText}`);
       }
       
-      // Get response text first to log any potential parsing issues
-      const responseText = await response.text();
-      console.log("Raw availability response text (first 100 chars):", responseText.substring(0, 100));
+      // Get and parse response data
+      const data = await response.json();
+      console.log("[ExternalBooking] Availability response:", data);
       
-      // Try to parse as JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error("Failed to parse availability response as JSON:", e);
-        console.log("Response starts with:", responseText.substring(0, 100));
-        throw new Error("Invalid JSON response from availability endpoint");
-      }
-      
-      console.log("Availability response parsed data:", data);
-      
-      // Handle the possible response formats
+      // Handle the response data
       if (data.availableTimes && Array.isArray(data.availableTimes)) {
-        console.log("Available times from availableTimes field:", data.availableTimes);
+        console.log(`[ExternalBooking] Found ${data.availableTimes.length} available time slots in availableTimes array`);
         
         if (data.availableTimes.length > 0) {
           setAvailableTimes(data.availableTimes);
         } else {
-          console.log("Empty availableTimes array");
+          console.log("[ExternalBooking] No available times found in response");
           setAvailableTimes([]);
           toast({
             title: "No Available Times",
-            description: "There are no available time slots for the selected date.",
+            description: "There are no available time slots for the selected date. Please try another date.",
             variant: "destructive"
           });
         }
       } else if (data.slots && Array.isArray(data.slots)) {
-        // Extract times from slots array
-        const times = data.slots
-          .filter(slot => slot.available) // Only include available slots
-          .map(slot => slot.time);
+        // Extract available times from slots array
+        const availableSlots = data.slots.filter(slot => slot.available);
+        const times = availableSlots.map(slot => slot.time);
         
-        console.log("Available times extracted from slots array:", times);
+        console.log(`[ExternalBooking] Found ${availableSlots.length} available slots out of ${data.slots.length} total slots`);
         
         if (times.length > 0) {
           setAvailableTimes(times);
         } else {
-          console.log("No available times found in slots (all unavailable)");
+          console.log("[ExternalBooking] No available times found in slots array (all slots unavailable)");
           setAvailableTimes([]);
           toast({
             title: "No Available Times",
-            description: "There are no available time slots for the selected date.",
+            description: "There are no available time slots for the selected date. Please try another date.",
             variant: "destructive"
           });
         }
       } else {
-        console.log("No recognized availability data format in response:", data);
+        console.error("[ExternalBooking] Unexpected response format:", data);
         setAvailableTimes([]);
         toast({
           title: "No Available Times",
-          description: "There are no available time slots for the selected date.",
+          description: "There are no available time slots for the selected date. Please try another date.",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error("Error fetching available times:", error);
+      console.error("[ExternalBooking] Error fetching available times:", error);
       setAvailableTimes([]);
       toast({
         title: "Error",
-        description: "Could not fetch available time slots. Please try again.",
+        description: "Could not fetch available time slots. Please try again later.",
         variant: "destructive"
       });
     } finally {
