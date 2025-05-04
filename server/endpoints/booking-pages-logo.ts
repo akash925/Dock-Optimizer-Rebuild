@@ -63,16 +63,13 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
         return res.json({ logo: logoData });
       }
       
-      // Fallback to static logos only if no actual logo data exists
-      // Special case handling for known organizations
-      if (bookingPage.tenantId === 5) { // Fresh Connect Central
-        console.log(`[Booking Page Logo] Using fallback logo path for Fresh Connect Central`);
-        return res.json({ logo: '/assets/fresh-connect-logo.png' });
-      } else if (bookingPage.tenantId === 2) { // Hanzo Logistics
-        console.log(`[Booking Page Logo] Using fallback logo path for Hanzo Logistics`);
-        // Make sure we're consistent with the path format across all endpoints
-        return res.json({ logo: '/assets/hanzo-logo.png' });
-      }
+      // For organizations without a logo in the database, fetch it from assets folder
+      // Create a consistent path convention using tenant name
+      const safeOrgName = organization.name.toLowerCase().replace(/\s+/g, '-');
+      const fallbackLogoPath = `/assets/${safeOrgName}-logo.png`;
+      
+      console.log(`[Booking Page Logo] Using fallback logo path for ${organization.name}: ${fallbackLogoPath}`);
+      return res.json({ logo: fallbackLogoPath });
       
       // Default fallback if no logo is found
       return res.json({ logo: null });

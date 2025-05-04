@@ -5173,14 +5173,253 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure we're sending JSON response
       res.setHeader('Content-Type', 'application/json');
       
-      // Forward to the shared availability handler with tenant context from booking page
-      await getAvailabilityHandler(req, res, {
-        date,
-        facilityId: facilityId || bookingPage.defaultFacilityId,
-        appointmentTypeId: appointmentTypeId || bookingPage.defaultAppointmentTypeId,
-        bookingPageSlug,
-        effectiveTenantId: bookingPage.tenantId
-      });
+      // Make sure we have the required parameters
+      if (!facilityId || !appointmentTypeId) {
+        console.log(`[Availability API] Error: missing facilityId or appointmentTypeId`);
+        return res.status(400).json({ error: 'facilityId and appointmentTypeId are required' });
+      }
+      
+      // Parse the parameters
+      const facilityIdNum = Number(facilityId);
+      const typeIdNum = Number(appointmentTypeId);
+      const dateObj = new Date(date);
+      
+      if (isNaN(facilityIdNum) || isNaN(typeIdNum) || isNaN(dateObj.getTime())) {
+        console.log(`[Availability API] Error: invalid parameters - facilityId: ${facilityId}, appointmentTypeId: ${appointmentTypeId}, date: ${date}`);
+        return res.status(400).json({ error: 'Invalid facilityId, appointmentTypeId, or date' });
+      }
+      
+      // Check if there are any facility or appointment type issues
+      try {
+        // Verify facility belongs to the booking page's organization
+        const facilityQuery = `
+          SELECT of.organization_id
+          FROM facilities f 
+          JOIN organization_facilities of ON f.id = of.facility_id
+          WHERE f.id = $1 AND of.organization_id = $2
+          LIMIT 1
+        `;
+        const facilityResult = await pool.query(facilityQuery, [facilityIdNum, bookingPage.tenantId]);
+        
+        if (facilityResult.rows.length === 0) {
+          console.log(`[Availability API] Facility ${facilityIdNum} not found or not accessible by tenant ${bookingPage.tenantId}`);
+          return res.status(404).json({ error: 'Facility not found or not accessible' });
+        }
+        
+        console.log(`[Availability API] Verified tenant access to facility ${facilityIdNum} for organization ${bookingPage.tenantId}`);
+      } catch (error) {
+        console.error(`[Availability API] Error checking facility access:`, error);
+        return res.status(500).json({ error: 'Error checking facility access' });
+      }
+      
+      // Generate time slots from the facility operating hours
+      try {
+        // Get the facility hours for the requested date
+        const dayOfWeek = dateObj.getUTCDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        const dayName = dayNames[dayOfWeek];
+        
+        // Query facility hours from the facilities table
+        const facilityHoursQuery = `
+          SELECT 
+            ${dayName}_open as is_open,
+            ${dayName}_start as start_time,
+            ${dayName}_end as end_time
+          FROM facilities
+          WHERE id = $1
+          LIMIT 1
+        `;
+        
+        const facilityHoursResult = await pool.query(facilityHoursQuery, [facilityIdNum]);
+        
+        // Default facility hours
+        let startTime = "08:00";
+        let endTime = "17:00";
+        let isOpen = true;
+        
+        if (facilityHoursResult.rows.length > 0) {
+          const facilityHours = facilityHoursResult.rows[0];
+          
+          // Check if the facility is open on this day
+          if (facilityHours.is_open && facilityHours.start_time && facilityHours.end_time) {
+            startTime = facilityHours.start_time;
+            endTime = facilityHours.end_time;
+            isOpen = true;
+            console.log(`[Availability API] Facility ${facilityIdNum} hours for ${dayName}: ${startTime}-${endTime}`);
+          } else {
+            console.log(`[Availability API] Facility ${facilityIdNum} is closed on ${dayName}`);
+            isOpen = false;
+          }
+        } else {
+          console.log(`[Availability API] No facility found for ID ${facilityIdNum}, using default hours`);
+        }
+        
+        // If facility is closed, return empty availability
+        if (!isOpen) {
+          return res.json({ 
+            availableTimes: [],
+            slots: [],
+            message: "Facility is closed on this day" 
+          });
+        }
+        
+        // Get appointment type for duration
+        const appointmentTypeQuery = `
+          SELECT * FROM appointment_types
+          WHERE id = $1
+          LIMIT 1
+        `;
+        const appointmentTypeResult = await pool.query(appointmentTypeQuery, [typeIdNum]);
+        
+        if (appointmentTypeResult.rows.length === 0) {
+          return res.status(404).json({ error: "Appointment type not found" });
+        }
+        
+        const appointmentType = appointmentTypeResult.rows[0];
+        const intervalMinutes = appointmentType.duration || 30;
+        
+        // Get existing appointments for this date
+        const dateStart = new Date(date);
+        dateStart.setHours(0, 0, 0, 0);
+        
+        const dateEnd = new Date(date);
+        dateEnd.setHours(23, 59, 59, 999);
+        
+        // Use correct time format for PostgreSQL
+        const dateStartStr = dateStart.toISOString();
+        const dateEndStr = dateEnd.toISOString();
+        
+        // Query to get all appointments for this date and facility
+        const busyTimesQuery = `
+          SELECT 
+            s.start_time, 
+            s.end_time,
+            s.dock_id
+          FROM schedules s
+          JOIN docks d ON s.dock_id = d.id
+          WHERE d.facility_id = $1
+          AND s.start_time >= $2
+          AND s.start_time < $3
+          ORDER BY s.start_time
+        `;
+        
+        // Get all existing appointments
+        const busyTimesResult = await pool.query(busyTimesQuery, [
+          facilityIdNum, 
+          dateStartStr, 
+          dateEndStr
+        ]);
+        
+        // Get all docks for this facility
+        const docksQuery = `
+          SELECT id FROM docks
+          WHERE facility_id = $1
+        `;
+        
+        const docksResult = await pool.query(docksQuery, [facilityIdNum]);
+        const docks = docksResult.rows.map(d => d.id);
+        
+        // Function to generate time slots
+        function generateTimeSlots(start, end, intervalMins) {
+          const result = [];
+          const startDate = new Date(`${date}T${start}`);
+          const endDate = new Date(`${date}T${end}`);
+          
+          let current = new Date(startDate);
+          
+          while (current < endDate) {
+            result.push(current.toTimeString().substring(0, 5)); // Format as HH:MM
+            current = new Date(current.getTime() + intervalMins * 60 * 1000);
+          }
+          
+          return result;
+        }
+        
+        // Generate all possible time slots
+        const allTimeSlots = generateTimeSlots(startTime, endTime, intervalMinutes);
+        console.log(`[Availability API] Generated ${allTimeSlots.length} potential time slots`);
+        
+        // Create a busy time map by dock
+        const busyTimesByDock = {};
+        
+        // Initialize with empty arrays for each dock
+        docks.forEach(dockId => {
+          busyTimesByDock[dockId] = [];
+        });
+        
+        // Populate busy times for each dock
+        busyTimesResult.rows.forEach(appointment => {
+          if (appointment.dock_id) {
+            if (!busyTimesByDock[appointment.dock_id]) {
+              busyTimesByDock[appointment.dock_id] = [];
+            }
+            
+            busyTimesByDock[appointment.dock_id].push({
+              start: new Date(appointment.start_time),
+              end: new Date(appointment.end_time)
+            });
+          }
+        });
+        
+        // For each time slot, check if we have at least one dock available
+        const availableTimes = [];
+        const availableSlots = [];
+        
+        allTimeSlots.forEach(timeStr => {
+          // Convert HH:MM string to a Date object for comparison
+          const slotTime = new Date(`${date}T${timeStr}:00`);
+          const slotEndTime = new Date(slotTime.getTime() + (intervalMinutes * 60 * 1000));
+          
+          // Count available docks at this time
+          let availableDockCount = 0;
+          
+          docks.forEach(dockId => {
+            const dockBusyTimes = busyTimesByDock[dockId] || [];
+            
+            // Check if this dock is free for this time slot
+            const isDockFree = !dockBusyTimes.some(busyTime => 
+              (slotTime < busyTime.end && slotEndTime > busyTime.start)
+            );
+            
+            if (isDockFree) {
+              availableDockCount++;
+            }
+          });
+          
+          if (availableDockCount > 0) {
+            availableTimes.push(timeStr);
+            availableSlots.push({
+              time: timeStr,
+              available: true,
+              remainingCapacity: availableDockCount,
+              remaining: availableDockCount, // Add 'remaining' for compatibility
+              reason: "",
+              isBufferTime: false
+            });
+          } else {
+            availableSlots.push({
+              time: timeStr,
+              available: false,
+              remainingCapacity: 0,
+              remaining: 0,
+              reason: "No available docks",
+              isBufferTime: false
+            });
+          }
+        });
+        
+        console.log(`[Availability API] Final available times: ${availableTimes.length} slots`);
+        
+        // Return both formats for compatibility
+        return res.json({
+          availableTimes: availableTimes,
+          slots: availableSlots
+        });
+        
+      } catch (error) {
+        console.error(`[Availability API] Error generating time slots:`, error);
+        return res.status(500).json({ error: 'Error generating time slots' });
+      }
     } catch (err) {
       console.error('Error in booking page availability endpoint:', err);
       res.setHeader('Content-Type', 'application/json');

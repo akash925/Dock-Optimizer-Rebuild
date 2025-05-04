@@ -763,36 +763,22 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
     <div className="min-h-screen bg-gray-50" style={styleVariables}>
       {/* Header with logo */}
       <header className="bg-white shadow-sm border-b py-4">
-        <div className="container max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center">
-            {bookingPage.useOrganizationLogo ? (
-              <img 
-                src={`/api/booking-pages/logo/${slug}`}
-                alt={`${bookingPage.name} Logo`}
-                className="h-10 w-auto object-contain mr-3"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/placeholder-logo.png';
-                  console.log(`Logo load failed for booking page ${slug}, using placeholder`);
-                }}
-              />
-            ) : bookingPage.customLogo ? (
-              <img 
-                src={bookingPage.customLogo?.startsWith('http') ? bookingPage.customLogo : `${bookingPage.customLogo}`} 
-                alt={`${bookingPage.name} Custom Logo`}
-                className="h-10 w-auto object-contain mr-3"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/placeholder-logo.png';
-                  console.log(`Custom logo load failed for booking page ${slug}, using placeholder`);
-                }}
-              />
-            ) : (
-              <h1 className="text-2xl font-bold">{bookingPage.name}</h1>
-            )}
+        <div className="container max-w-7xl mx-auto px-4 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center w-full mb-2">
+            {/* Always use organization logo for booking pages, displayed in center */}
+            <img 
+              src={`/api/booking-pages/logo/${slug}`}
+              alt={`${bookingPage.name} Logo`}
+              className="h-16 w-auto object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = '/placeholder-logo.png';
+                console.log(`Logo load failed for booking page ${slug}, using placeholder`);
+              }}
+            />
           </div>
           
-          <div className="text-sm text-muted-foreground">
+          <div className="text-md text-muted-foreground text-center">
             {bookingPage.title}
           </div>
         </div>
