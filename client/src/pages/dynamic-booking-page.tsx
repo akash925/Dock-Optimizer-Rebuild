@@ -525,6 +525,9 @@ export default function DynamicBookingPage({ slug }: DynamicBookingPageProps) {
       const formattedDate = format(date, "yyyy-MM-dd");
       console.log(`[ExternalBooking] Fetching availability for facility ${facilityId}, appointment type ${appointmentTypeId}, date ${formattedDate}, booking page slug ${slug}`);
       
+      // Log the date we're fetching
+      console.log(`[ExternalBooking] Fetching availability for date: ${formattedDate}`);
+      
       // Use the dedicated RESTful endpoint for booking pages
       const endpoint = `/api/availability/${slug}/${formattedDate}?facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}`;
       console.log(`[ExternalBooking] Requesting: ${endpoint}`);

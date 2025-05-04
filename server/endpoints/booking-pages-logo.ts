@@ -63,16 +63,22 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
         return res.json({ logo: logoData });
       }
       
-      // For organizations without a logo in the database, fetch it from assets folder
-      // Create a consistent path convention using tenant name
-      const safeOrgName = organization.name.toLowerCase().replace(/\s+/g, '-');
-      const fallbackLogoPath = `/assets/${safeOrgName}-logo.png`;
+      // For organizations without a logo in the database, use organization-specific logos
+      let fallbackLogoPath;
       
-      console.log(`[Booking Page Logo] Using fallback logo path for ${organization.name}: ${fallbackLogoPath}`);
+      // Properly map organization names to their correct logos
+      if (organization.id === 5 || organization.name.includes('Fresh Connect')) {
+        fallbackLogoPath = '/assets/fresh-connect-logo.png';
+      } else if (organization.id === 2 || organization.name.includes('Hanzo')) {
+        fallbackLogoPath = '/assets/hanzo-logo.png';
+      } else {
+        // Default fallback - use a generic path based on organization name
+        const safeOrgName = organization.name.toLowerCase().replace(/\s+/g, '-');
+        fallbackLogoPath = `/assets/${safeOrgName}-logo.png`;
+      }
+      
+      console.log(`[Booking Page Logo] Using organization-specific logo path for ${organization.name}: ${fallbackLogoPath}`);
       return res.json({ logo: fallbackLogoPath });
-      
-      // Default fallback if no logo is found
-      return res.json({ logo: null });
     } catch (error) {
       console.error('[Booking Page Logo] Error fetching logo:', error);
       return res.status(500).json({ message: 'Error fetching organization logo' });
