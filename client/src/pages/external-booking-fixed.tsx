@@ -1287,11 +1287,23 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
   };
   
   // Handle custom field changes
-  const handleCustomFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, questionId: number) => {
+  const handleCustomFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, questionId: number, isRequired: boolean = false) => {
+    const value = e.target.value;
+    
+    // Validate required fields
+    if (isRequired && !value && form.formState.isSubmitted) {
+      form.setError(`customField_${questionId}` as any, {
+        type: 'required',
+        message: 'This field is required'
+      });
+    } else if (form.formState.errors[`customField_${questionId}` as any]) {
+      form.clearErrors(`customField_${questionId}` as any);
+    }
+    
     updateBookingData({
       customFields: {
         ...bookingData.customFields,
-        [questionId]: e.target.value
+        [questionId]: value
       }
     });
   };

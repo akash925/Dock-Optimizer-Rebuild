@@ -3737,10 +3737,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`[CustomQuestions] Using tenant ID ${tenantId} from booking page ${bookingPageSlug}`);
           } else {
             console.warn(`[CustomQuestions] Booking page not found: ${bookingPageSlug}`);
+            return res.status(404).json({ message: "Booking page not found" });
           }
         } catch (err) {
           console.error(`[CustomQuestions] Error retrieving booking page ${bookingPageSlug}:`, err);
+          return res.status(500).json({ message: "Error retrieving booking page" });
         }
+      }
+      
+      // If no tenant context available, return empty questions
+      if (!tenantId) {
+        console.warn(`[CustomQuestions] No tenant context available for appointment type ${appointmentTypeId}`);
+        return res.json([]);
       }
       
       // Get the appointment type first with tenant isolation
@@ -3770,6 +3778,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const customQuestions = await storage.getCustomQuestionsByAppointmentType(appointmentTypeId);
       console.log(`[CustomQuestions] Found ${customQuestions.length} questions for appointment type ${appointmentTypeId}`);
+      
+      // Add debug information for tracking
+      console.log(`[CustomQuestions] Required fields: ${customQuestions.filter(q => q.isRequired).map(q => q.id).join(', ') || 'none'}`);
+      
       res.json(customQuestions);
     } catch (err) {
       console.error(`[CustomQuestions] Error fetching questions:`, err);
