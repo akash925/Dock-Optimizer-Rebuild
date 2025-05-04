@@ -333,7 +333,45 @@ function formatDateForTimezone(date: Date, timezone: string, formatStr: string):
     const safeDate = new Date(date.getTime());
     console.log(`[EMAIL] Using safe date copy: ${safeDate.toISOString()} for timezone: ${timezone}`);
     
-    // Format with timezone
+    // Make sure the format string is correct (replace 'yyyy' with actual year format token)
+    // The issue is sometimes 'yyyy' is showing up literally instead of being replaced with the year
+    if (formatStr.includes('yyyy')) {
+      // Create a direct format that handles the year correctly
+      const correctedFormatStr = formatStr
+        .replace('yyyy', 'yyyy') // Keep this for date-fns-timezone, which needs this token
+        .replace('EEEE', 'EEEE'); // Keep day of week token
+      
+      console.log(`[EMAIL] Using corrected format string: ${correctedFormatStr}`);
+      
+      try {
+        // Format with timezone using date-fns-timezone
+        const formattedResult = formatToTimeZone(safeDate, correctedFormatStr, { timeZone: timezone });
+        
+        // Additional check to make sure 'yyyy' was replaced properly
+        if (formattedResult.includes('yyyy')) {
+          console.warn(`[EMAIL] 'yyyy' still present in output, using alternate format method`);
+          
+          // Try alternate formatting method for just the year
+          const year = safeDate.getFullYear();
+          const partialResult = formatToTimeZone(safeDate, formatStr.replace('yyyy', '####'), { timeZone: timezone });
+          const finalResult = partialResult.replace('####', year.toString());
+          
+          console.log(`[EMAIL] Formatted with manual year replacement: ${finalResult}`);
+          return finalResult;
+        }
+        
+        console.log(`[EMAIL] Formatted result: ${formattedResult}`);
+        return formattedResult;
+      } catch (tzError) {
+        console.error(`[EMAIL] Error with timezone formatting: ${tzError}`);
+        // Fallback to basic date format without timezone
+        const basicFormatted = format(safeDate, 'EEEE, MMMM d, yyyy h:mm a');
+        console.log(`[EMAIL] Basic formatted result: ${basicFormatted}`);
+        return basicFormatted;
+      }
+    }
+    
+    // Standard formatting path without year issues
     const formattedResult = formatToTimeZone(safeDate, formatStr, { timeZone: timezone });
     console.log(`[EMAIL] Formatted result: ${formattedResult}`);
     return formattedResult;
@@ -343,13 +381,24 @@ function formatDateForTimezone(date: Date, timezone: string, formatStr: string):
     // Fallback to simple format if timezone formatting fails
     try {
       console.log(`[EMAIL] Attempting fallback formatting without timezone`);
-      return format(date, formatStr);
+      // For this fallback, explicitly use a format that works with standard date-fns
+      const fallbackFormatStr = formatStr
+        .replace('yyyy', 'yyyy')
+        .replace('EEEE', 'EEEE')
+        .replace('MMMM', 'MMMM')
+        .replace('aa', 'a');
+      return format(date, fallbackFormatStr);
     } catch (fallbackError) {
       console.error('[EMAIL] Fallback formatting also failed:', fallbackError);
       
-      // Ultimate fallback - return basic ISO string or formatted current date
-      console.log(`[EMAIL] Using ultimate fallback - current date in locale string format`);
-      return new Date().toLocaleString();
+      // Ultimate fallback - manual formatting to ensure year is correct
+      try {
+        const d = date instanceof Date ? date : new Date();
+        return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+      } catch (finalError) {
+        // Last resort
+        return new Date().toLocaleString();
+      }
     }
   }
 }
