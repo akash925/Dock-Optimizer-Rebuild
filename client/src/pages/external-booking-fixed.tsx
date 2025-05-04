@@ -737,7 +737,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   
   // When date changes, fetch available times
   useEffect(() => {
-    if (!selectedDate || !bookingData.facilityId || !bookingData.appointmentTypeId) return;
+    if (!selectedDate || !bookingData.facilityId || !bookingData.appointmentTypeId || !slug) return;
     
     const fetchAvailableTimes = async () => {
       try {
@@ -747,40 +747,40 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         // Format the date for the API
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
         
-        console.log(`Fetching available times for date=${dateStr}, facilityId=${bookingData.facilityId}, typeId=${bookingData.appointmentTypeId}`);
+        console.log(`Fetching available times for date=${dateStr}, facilityId=${bookingData.facilityId}, typeId=${bookingData.appointmentTypeId}, slug=${slug}`);
         
         // Call the API to get available times using the standardized parameter name (typeId)
         // Include bookingPageSlug to ensure proper tenant context
-        // Use relative URL path for API requests to work in any environment
-        const apiUrl = `/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}&bookingPageSlug=${slug}`;
-        console.log(`[ExternalBookingFixed] Fetching availability with URL: ${apiUrl}`);
+        // Use full URL with origin to avoid relative path issues
+        const apiUrl = `${window.location.origin}/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}&bookingPageSlug=${slug}`;
+        console.log(`[DateTimeSelectionStep] Fetching availability with URL: ${apiUrl}`);
         
         let data;
         try {
           const response = await fetch(apiUrl);
-          console.log(`[ExternalBookingFixed] Availability API response status:`, response.status);
+          console.log(`[DateTimeSelectionStep] Availability API response status:`, response.status);
           
           if (!response.ok) {
             const errorText = await response.text();
-            console.error(`[ExternalBookingFixed] Error fetching availability: ${errorText}`);
+            console.error(`[DateTimeSelectionStep] Error fetching availability: ${errorText}`);
             throw new Error(`Failed to fetch availability: ${response.status} ${errorText}`);
           }
           
           data = await response.json();
-          console.log("[ExternalBookingFixed] Available times response:", data);
+          console.log("[DateTimeSelectionStep] Available times response:", data);
         } catch (err) {
-          console.error(`[ExternalBookingFixed] Exception fetching availability:`, err);
+          console.error(`[DateTimeSelectionStep] Exception fetching availability:`, err);
           throw err;
         }
         
         // Log the response data structure in detail
-        console.log('[EXTERNAL FLOW] API response data structure:', JSON.stringify(data, null, 2));
-        console.log('[EXTERNAL FLOW] Checking for remaining slots in response:', 
+        console.log('[DateTimeSelectionStep] API response data structure:', JSON.stringify(data, null, 2));
+        console.log('[DateTimeSelectionStep] Checking for remaining slots in response:', 
           data.slots ? 'has slots array with details' : 'only has simple availableTimes array');
           
         // Store all availability slot data if available
         if (data.slots && Array.isArray(data.slots)) {
-          console.log('[EXTERNAL FLOW] Using enhanced slot data with capacity information');
+          console.log('[DateTimeSelectionStep] Using enhanced slot data with capacity information');
           // Filter for available slots and sort by time
           const availableSlots = data.slots
             .filter((slot: any) => slot.available)
@@ -790,11 +790,13 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
           // Set the available times for backward compatibility
           const times = availableSlots.map((slot: any) => slot.time);
           setAvailableTimes(times);
-        } else {
+          console.log(`[DateTimeSelectionStep] Found ${times.length} available times:`, times);
+        } else if (data.availableTimes && Array.isArray(data.availableTimes)) {
           // Fallback to old format if slots aren't available
-          console.log('[EXTERNAL FLOW] Using backward compatible simple time array');
-          const sortedTimes = [...(data.availableTimes || [])].sort();
+          console.log('[DateTimeSelectionStep] Using backward compatible simple time array');
+          const sortedTimes = [...data.availableTimes].sort();
           setAvailableTimes(sortedTimes);
+          console.log(`[DateTimeSelectionStep] Found ${sortedTimes.length} available times:`, sortedTimes);
           
           // Create basic slots with default remaining = 1
           const basicSlots = sortedTimes.map(time => ({
@@ -803,6 +805,10 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
             remaining: 1
           }));
           setAvailabilitySlots(basicSlots);
+        } else {
+          console.warn('[DateTimeSelectionStep] No availableTimes or slots array found in response');
+          setAvailableTimes([]);
+          setAvailabilitySlots([]);
         }
         
         // If we previously had a selected time on this date, check if it's still available
@@ -821,11 +827,12 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
         }
         
         if (availabilitySlots.length === 0) {
-          console.log("No available times for selected date");
+          console.log("[DateTimeSelectionStep] No available times for selected date");
         }
       } catch (error) {
-        console.error('Error fetching available times:', error);
+        console.error('[DateTimeSelectionStep] Error fetching available times:', error);
         setAvailableTimes([]);
+        setAvailabilitySlots([]);
         setSelectedTime('');
       } finally {
         setLoading(false);
@@ -833,7 +840,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
     };
     
     fetchAvailableTimes();
-  }, [selectedDate, bookingData.facilityId, bookingData.appointmentTypeId]);
+  }, [selectedDate, bookingData.facilityId, bookingData.appointmentTypeId, slug]);
   
   // When time changes, update the bookingData
   useEffect(() => {
@@ -1094,6 +1101,10 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                     {/* Primary display: Facility Time with facility timezone identifier */}
                                     <div className="font-medium text-sm text-center">
                                       <span>{displayTime}</span>
+                                      {/* Add capacity info */}
+                                      {slot.remaining > 1 && (
+                                        <span className="ml-1 text-xs font-semibold">{slot.remaining} slots</span>
+                                      )}
                                       {selectedFacility?.timezone && (
                                         <div className="text-xs">
                                           ({getTimeZoneAbbreviation(selectedFacility.timezone)})

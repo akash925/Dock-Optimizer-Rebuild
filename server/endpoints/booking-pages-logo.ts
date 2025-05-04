@@ -67,19 +67,43 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       let fallbackLogoPath;
       
       // Properly map organization names to their correct logos using correct paths
-      // Note: These must match the paths that are actually served by the static files middleware
-      // These should be relative to the public directory and should use the correct directory
-      if (organization.id === 5 || organization.name.includes('Fresh Connect')) {
-        fallbackLogoPath = '/assets/fresh-connect-logo.png';
-        console.log(`[Booking Page Logo] Using Fresh Connect logo path: ${fallbackLogoPath}`);
-      } else if (organization.id === 2 || organization.name.includes('Hanzo')) {
-        fallbackLogoPath = '/assets/hanzo-logo.png';
-        console.log(`[Booking Page Logo] Using Hanzo logo path: ${fallbackLogoPath}`);
-      } else {
-        // Default fallback - use a generic path based on organization name
-        const safeOrgName = organization.name.toLowerCase().replace(/\s+/g, '-');
-        fallbackLogoPath = `/assets/${safeOrgName}-logo.png`;
-        console.log(`[Booking Page Logo] Using dynamic logo path: ${fallbackLogoPath}`);
+      // These are the actual image files we have in the assets directory
+      // Instead of using paths, we'll encode these images directly as base64 data
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        
+        // Define paths to our asset files
+        let logoFileName;
+        if (organization.id === 5 || organization.name.includes('Fresh Connect')) {
+          logoFileName = 'organization_logo.jpeg';
+          console.log(`[Booking Page Logo] Using Fresh Connect logo file: ${logoFileName}`);
+        } else if (organization.id === 2 || organization.name.includes('Hanzo')) {
+          logoFileName = 'hanzo_logo.jpeg';
+          console.log(`[Booking Page Logo] Using Hanzo logo file: ${logoFileName}`);
+        } else {
+          logoFileName = 'dock_optimizer_logo.jpg';
+          console.log(`[Booking Page Logo] Using default Dock Optimizer logo file: ${logoFileName}`);
+        }
+        
+        // Read the file directly from the assets directory
+        const logoPath = path.join(process.cwd(), 'client', 'src', 'assets', logoFileName);
+        console.log(`[Booking Page Logo] Reading logo from path: ${logoPath}`);
+        
+        if (fs.existsSync(logoPath)) {
+          const logoData = fs.readFileSync(logoPath, {encoding: 'base64'});
+          const mimeType = logoFileName.endsWith('.jpeg') || logoFileName.endsWith('.jpg') 
+            ? 'image/jpeg' 
+            : 'image/png';
+          fallbackLogoPath = `data:${mimeType};base64,${logoData}`;
+          console.log(`[Booking Page Logo] Successfully loaded logo file with ${logoData.length} bytes`);
+        } else {
+          console.warn(`[Booking Page Logo] Logo file not found at ${logoPath}`);
+          fallbackLogoPath = '';
+        }
+      } catch (err) {
+        console.error(`[Booking Page Logo] Error loading logo file:`, err);
+        fallbackLogoPath = '';
       }
       
       console.log(`[Booking Page Logo] Using organization-specific logo path for ${organization.name}: ${fallbackLogoPath}`);
