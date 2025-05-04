@@ -22,6 +22,9 @@ import {
 // Import BOL OCR routes using ES modules
 import bolOcrRoutes from "./routes/bol-ocr.mjs";
 
+// Import QR code endpoints
+import { registerQrCodeRoutes } from "./endpoints/qr-codes";
+
 /**
  * Helper function to check tenant isolation security for facility-related resources.
  * Returns a facility if it belongs to the user's organization, otherwise returns null.
@@ -155,6 +158,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('BOL OCR routes registered');
   } catch (error) {
     console.error('Error registering BOL OCR routes:', error);
+  }
+  
+  // Register QR code routes
+  try {
+    await registerQrCodeRoutes(app);
+    console.log('QR code routes registered');
+  } catch (error) {
+    console.error('Error registering QR code routes:', error);
   }
   
   // Test login for development and debugging
