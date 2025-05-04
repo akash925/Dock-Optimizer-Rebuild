@@ -170,8 +170,18 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
         endTime: bookingData.endTime,
         createdVia: 'external',
         // Ensure MC Number is properly handled (optional but included)
-        mcNumber: bookingData.mcNumber || ''
+        mcNumber: bookingData.mcNumber || '',
+        // Always include facilityName to avoid "Unknown Facility" issues
+        facilityName: facilityName || 'Unknown Facility'
       };
+      
+      // Log facility information for debugging
+      console.log('Facility information in submission:', {
+        facilityId: bookingData.facilityId,
+        facilityName: facilityName,
+        facilityNameFromBookingData: bookingData.facilityName,
+        allFacilities: facilities ? facilities.map((f: any) => ({ id: f.id, name: f.name })) : []
+      });
       
       console.log('Submitting appointment data:', scheduleData);
       
