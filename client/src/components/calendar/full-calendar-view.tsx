@@ -855,41 +855,25 @@ export default function FullCalendarView({
                   );
                 }
                 
-                // For short events, use reduced layout
+                // For short events, use simplified layout focused on customer name
                 if (isShortEvent) {
                   return (
                     <div className={`${eventContentClass} short-event`}>
-                      <div className="event-header mb-0">
-                        {/* ENHANCED CUSTOMER NAME: Primary information with highest prominence */}
+                      {/* Simple centered layout with just customer name */}
+                      <div className="w-full text-center">
                         {customerName && (
-                          <div className={customerNameClass}>{customerName}</div>
+                          <div className="customer-name">{customerName}</div>
                         )}
                         
-                        {/* Type badge + Time - critical info */}
-                        <div className="flex items-center justify-between w-full text-[10px] font-medium">
-                          <div className="compact-time text-white/95 font-semibold">{eventInfo.timeText}</div>
-                          
-                          {/* Type badge - compact version */}
+                        {/* Minimal time and type display */}
+                        <div className="text-[9px] text-white/90 flex justify-center items-center">
+                          <span>{eventInfo.timeText}</span>
                           {eventType && 
-                            <span className="ml-auto text-xs font-semibold">
-                              {eventType === 'inbound' ? 'IN' : 'OUT'}
+                            <span className="ml-1 font-semibold">
+                              ({eventType === 'inbound' ? 'IN' : 'OUT'})
                             </span>
                           }
                         </div>
-                      </div>
-                      
-                      {/* Footer with minimal info */}
-                      <div className="event-footer mt-auto flex items-center justify-between text-white/80">
-                        <div className="flex items-center space-x-1 text-[8px]">
-                          {dockId && <span className="font-medium">D{dockId}</span>}
-                          {truckNumber && <span className="opacity-90">T#{truckNumber}</span>}
-                        </div>
-                        
-                        {showStatusBadge && (
-                          <span className={`text-[7px] font-bold uppercase`}>
-                            {status.substring(0,3)}
-                          </span>
-                        )}
                       </div>
                     </div>
                   );
