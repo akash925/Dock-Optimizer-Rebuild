@@ -459,9 +459,9 @@ ${orgName}
               </h3>
               <div className="flex flex-col md:flex-row items-center gap-6">
                 <div className="bg-white p-4 rounded-lg shadow-md border border-blue-200">
-                  {/* Using an image of the QR code from our server endpoint instead of an SVG */}
+                  {/* Using a direct URL to our QR code endpoint with the confirmation code */}
                   <img 
-                    src={`/api/qr-code?data=${encodeURIComponent(getCheckInUrl())}`}
+                    src={`/api/qr-code/${bookingDetails.confirmationNumber}`}
                     alt="Check-in QR Code"
                     width="160"
                     height="160"
