@@ -59,6 +59,7 @@ import {
 // Custom components
 import { CarrierSelector } from '@/components/shared/carrier-selector';
 import BolUpload from '@/components/shared/bol-upload';
+import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
 import { format as formatDate } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -96,7 +97,9 @@ const appointmentFormSchema = z.object({
   dockId: z.number().optional(),
   appointmentDate: z.string().min(1, "Date is required"),
   appointmentTime: z.string().min(1, "Time is required"),
-});
+})
+// Add a catch-all for dynamic standard question fields
+.catchall(z.any());
 
 // Types from schema
 type AppointmentFormValues = z.infer<typeof appointmentFormSchema>;
@@ -200,6 +203,16 @@ export default function UnifiedAppointmentForm({
     appointmentTypeId: appointmentTypeId,
     mode: appointmentMode,
     facilityTimezone: facilityTimezone
+  });
+
+  // Standard questions hook
+  const { 
+    standardQuestions, 
+    isLoading: isLoadingStandardQuestions, 
+    error: standardQuestionsError 
+  } = useStandardQuestions({
+    appointmentTypeId,
+    bookingPageSlug
   });
 
   // Fetch facilities and appointment types
@@ -792,6 +805,18 @@ export default function UnifiedAppointmentForm({
                 />
               </div>
               
+              {/* Standard Questions - Step 1 */}
+              {appointmentTypeId && standardQuestions.length > 0 && (
+                <div className="space-y-4 mt-4 border-t pt-4">
+                  <h3 className="text-lg font-medium">Additional Information</h3>
+                  <StandardQuestionsFormFields
+                    form={truckInfoForm}
+                    standardQuestions={standardQuestions}
+                    isLoading={isLoadingStandardQuestions}
+                  />
+                </div>
+              )}
+              
               {/* Form Actions */}
               <div className="flex justify-between mt-6">
                 {showBackButton && (
@@ -1057,6 +1082,18 @@ export default function UnifiedAppointmentForm({
                   )}
                 />
               </div>
+              
+              {/* Standard Questions - Step 2 */}
+              {appointmentTypeId && standardQuestions.length > 0 && (
+                <div className="space-y-4 mt-4 border-t pt-4">
+                  <h3 className="text-lg font-medium">Additional Information</h3>
+                  <StandardQuestionsFormFields
+                    form={truckInfoForm}
+                    standardQuestions={standardQuestions}
+                    isLoading={isLoadingStandardQuestions}
+                  />
+                </div>
+              )}
               
               {/* Notes */}
               <FormField
