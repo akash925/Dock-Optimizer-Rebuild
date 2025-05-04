@@ -472,19 +472,46 @@ function getTimezoneAbbr(timezone: string, date: Date): string {
 /**
  * Generate a QR code for appointment check-in that works in email clients
  */
+// Use the QRCode library directly to generate inline base64 QR codes for emails
+import QRCode from 'qrcode';
+
+// We need to make this async since QR code generation is async
+async function generateQRCodeBase64(data: string): Promise<string> {
+  try {
+    // Options for QR code generation
+    const options = {
+      errorCorrectionLevel: 'H',
+      type: 'image/png',
+      margin: 1,
+      width: 150,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    };
+    
+    // Generate a base64-encoded PNG image
+    const qrCodeBase64 = await QRCode.toDataURL(data, options);
+    return qrCodeBase64;
+  } catch (error) {
+    console.error('Error generating QR code as base64:', error);
+    // Return an empty transparent PNG if there's an error
+    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+  }
+}
+
+// This is now an async function that generates the QR code HTML
+// It uses a synchronous version for backward compatibility
 function generateQRCodeSVG(confirmationCode: string, baseUrl: string): string {
   // Create the check-in URL
   const checkInUrl = `${baseUrl}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
   
-  // We'll use our server-side QR code generation endpoint directly in the <img> tag
-  // This ensures the QR code appears correctly in email clients
-  const qrCodeImageUrl = `${baseUrl}/api/qr-code?data=${encodeURIComponent(checkInUrl)}`;
-  
+  // Use a placeholder first - will be updated in the actual email sending functions
   return `
     <div style="text-align: center; margin: 15px auto; background-color: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d7ff; max-width: 320px;">
       <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
       <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #b3d7ff;">
-        <img src="${qrCodeImageUrl}" 
+        <img src="CID:qrcode" 
              alt="Check-in QR Code" 
              style="width: 150px; height: 150px; display: block; margin: 0 auto;">
         <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center;">
