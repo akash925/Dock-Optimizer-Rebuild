@@ -112,20 +112,8 @@ export default function AppointmentMaster() {
   });
   
   // Standard fields configuration - these fields are part of every appointment type
-  const [standardFields, setStandardFields] = useState([
-    { id: 1, label: "Customer Name", type: "text", included: true, required: true },
-    { id: 2, label: "Carrier Name", type: "text", included: true, required: true },
-    { id: 3, label: "PO Number", type: "number", included: true, required: true },
-    { id: 4, label: "Driver/Dispatcher Email", type: "email", included: true, required: true },
-    { id: 5, label: "Driver/Dispatcher Phone Number", type: "text", included: true, required: true },
-    { id: 6, label: "Driver's License Number", type: "text", included: true, required: true },
-    { id: 7, label: "BOL Doc", type: "file", included: true, required: false },
-    { id: 8, label: "BOL Identifier", type: "text", included: true, required: false },
-    { id: 9, label: "Truck Number", type: "text", included: true, required: true },
-    { id: 10, label: "Trailer Number", type: "text", included: true, required: true },
-    { id: 11, label: "Driver's Name", type: "text", included: true, required: false },
-    { id: 12, label: "Item Description/Quantity", type: "text", included: true, required: false }
-  ]);
+  // Initial state will be replaced when we load the data from API
+  const [standardFields, setStandardFields] = useState<QuestionFormField[]>([]);
   
   // Mock data for custom question form fields
   const [customFields, setCustomFields] = useState<QuestionFormField[]>([
