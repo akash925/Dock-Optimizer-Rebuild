@@ -6874,5 +6874,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`[WebSocket] Sent update to ${clientCount} connected clients`);
   };
   
+  // Start the email reminder scheduler
+  try {
+    console.log("[ReminderScheduler] Initializing email reminder scheduler...");
+    startReminderScheduler();
+    console.log("[ReminderScheduler] Email reminder scheduler initialized successfully");
+  } catch (error) {
+    console.error("[ReminderScheduler] Error initializing email reminder scheduler:", error);
+  }
+  
   return httpServer;
 }

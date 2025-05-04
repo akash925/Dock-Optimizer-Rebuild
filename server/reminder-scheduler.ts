@@ -5,9 +5,17 @@
  * based on the emailReminderTime setting in each appointment type.
  */
 
-import { storage } from './storage';
+import { getStorage } from './storage';
 import { sendReminderEmail } from './notifications';
-import { EnhancedSchedule, Schedule, AppointmentType } from '@shared/schema';
+import { Schedule, AppointmentType } from '@shared/schema';
+
+// Define the EnhancedSchedule type since it's not exported from schema
+interface EnhancedSchedule extends Schedule {
+  appointmentType: string;
+  facilityName: string;
+  timezone: string;
+  dockName: string;
+}
 import { differenceInHours } from 'date-fns';
 
 // Track the reminder status to avoid sending duplicates
@@ -61,6 +69,9 @@ function shouldSendReminder(
 export async function processReminders(): Promise<void> {
   try {
     console.log('[ReminderScheduler] Running reminder check...');
+    
+    // Get the storage instance
+    const storage = await getStorage();
     
     // Get all upcoming schedules (next 7 days)
     const startDate = new Date();
@@ -161,7 +172,7 @@ export async function processReminders(): Promise<void> {
     // Clean up old entries from sentReminders map (keep it from growing indefinitely)
     // Only keep entries for appointments that are still in the future
     const now = new Date();
-    for (const [scheduleId, sent] of sentReminders.entries()) {
+    for (const [scheduleId, sent] of Array.from(sentReminders.entries())) {
       const schedule = schedules.find(s => s.id === scheduleId);
       
       // If the schedule is no longer in our list of upcoming appointments, remove it from the map
