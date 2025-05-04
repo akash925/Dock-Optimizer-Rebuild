@@ -24,6 +24,9 @@ const router = express.Router();
 // Apply cache disabling middleware to all routes
 router.use(disableCache);
 
+// Apply authentication middleware to all routes
+router.use(isAuthenticated);
+
 // Analytics routes
 router.get('/heatmap', controllers.getHeatmapData);
 router.get('/facilities', controllers.getFacilityStats);
