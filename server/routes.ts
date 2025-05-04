@@ -2469,7 +2469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startTime,
         endTime,
         notes: validatedData.notes || null,
-        customFormData: validatedData.customFields || null,
+        customFormData: validatedData.customFields ? { standardQuestions: validatedData.customFields } : null,
         createdBy: 1, // System user ID for external bookings
       };
       
