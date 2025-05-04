@@ -487,15 +487,15 @@ async function generateQRCodeBase64(data: string): Promise<string> {
 // This is now an async function that generates the QR code HTML
 // It uses a synchronous version for backward compatibility
 function generateQRCodeSVG(confirmationCode: string, baseUrl: string): string {
-  // Create the check-in URL
-  const checkInUrl = `${baseUrl}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
+  // Create a direct URL to the QR code endpoint that email clients can fetch
+  const qrCodeUrl = `${baseUrl}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
+  console.log(`[EMAIL] Using QR code URL in email HTML: ${qrCodeUrl}`);
   
-  // Use a placeholder first - will be updated in the actual email sending functions
   return `
     <div style="text-align: center; margin: 15px auto; background-color: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d7ff; max-width: 320px;">
       <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
       <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #b3d7ff;">
-        <img src="CID:qrcode" 
+        <img src="${qrCodeUrl}" 
              alt="Check-in QR Code" 
              style="width: 150px; height: 150px; display: block; margin: 0 auto;">
         <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center;">
@@ -1326,10 +1326,12 @@ export async function sendReminderEmail(
   const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
   const cancelLink = `${host}/cancel?code=${confirmationCode}`;
   
-  // Generate QR code
+  // Generate QR code using URL approach
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  const qrCodeBase64 = await generateQRCodeBase64(checkInUrl);
-  console.log(`[EMAIL] Generated QR code for reminder email to ${to}`);
+  // Instead of generating the QR code directly, use a URL to our QR code endpoint
+  // This is more reliable in email clients than base64-encoded images
+  const qrCodeUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
+  console.log(`[EMAIL] Using QR code URL for reminder email to ${to}: ${qrCodeUrl}`);
 
   // Set reminder text based on hours until appointment
   let reminderText = '';
