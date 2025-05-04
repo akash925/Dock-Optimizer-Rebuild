@@ -13,6 +13,7 @@ import { adminRoutes } from "./modules/admin/routes";
 import { pool } from "./db";
 import { WebSocketServer, WebSocket } from "ws";
 import { format } from "date-fns";
+import { startReminderScheduler } from "./reminder-scheduler";
 import { 
   userPreferences, 
   insertUserPreferencesSchema,
