@@ -492,7 +492,7 @@ export const customQuestions = pgTable("custom_questions", {
   placeholder: text("placeholder"),
   options: jsonb("options"), // for select, radio, checkbox
   defaultValue: text("default_value"),
-  order: integer("order").notNull(),
+  order: integer("order_position").notNull(),
   appointmentTypeId: integer("appointment_type_id"), // If null, applies to all types
   applicableType: text("applicable_type").$type<keyof typeof ScheduleType | "both">().default("both"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
