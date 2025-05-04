@@ -66,19 +66,34 @@ export function useUpdateStandardQuestion() {
   
   return useMutation({
     mutationFn: async ({ id, data }: UpdateStandardQuestionParams) => {
+      // Debug the data we're sending
+      console.log(`[StandardQuestion] Sending update for ID ${id}:`, data);
+      
       const response = await apiRequest('PUT', `/api/standard-questions/${id}`, data);
       
       if (!response.ok) {
         // Parse error response
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error occurred' }));
-        throw new Error(errorData.message || `Failed to update standard question: ${response.statusText}`);
+        let errorMessage = 'Unknown error occurred';
+        try {
+          const errorData = await response.json();
+          console.error(`[StandardQuestion] Update error for ID ${id}:`, errorData);
+          errorMessage = errorData.message || `Failed to update standard question: ${response.statusText}`;
+        } catch (e) {
+          console.error(`[StandardQuestion] Error parsing response:`, e);
+          errorMessage = `Failed to update standard question (${response.status}): ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       
-      return await response.json();
+      const result = await response.json();
+      console.log(`[StandardQuestion] Successfully updated ID ${id}:`, result);
+      return result;
     },
     onSuccess: (data, { id }) => {
       // Get appointment type ID from the updated question
       const appointmentTypeId = data.appointmentTypeId;
+      
+      console.log(`[StandardQuestion] Invalidating cache for appointment type ${appointmentTypeId}`);
       
       // Invalidate the standard questions query to refetch the updated data
       queryClient.invalidateQueries({ queryKey: ['standard-questions', appointmentTypeId] });
