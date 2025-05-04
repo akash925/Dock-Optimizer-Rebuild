@@ -1101,13 +1101,16 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                     {/* Primary display: Facility Time with facility timezone identifier */}
                                     <div className="font-medium text-sm text-center">
                                       <span>{displayTime}</span>
-                                      {/* Add capacity info */}
-                                      {slot.remaining > 1 && (
-                                        <span className="ml-1 text-xs font-semibold">{slot.remaining} slots</span>
-                                      )}
                                       {selectedFacility?.timezone && (
                                         <div className="text-xs">
                                           ({getTimeZoneAbbreviation(selectedFacility.timezone)})
+                                        </div>
+                                      )}
+                                      
+                                      {/* Display remaining capacity if greater than 1 */}
+                                      {(slot.remainingCapacity > 1 || slot.remaining > 1) && (
+                                        <div className="text-xs font-semibold text-green-600 mt-1">
+                                          {slot.remainingCapacity > 1 ? slot.remainingCapacity : slot.remaining} available
                                         </div>
                                       )}
                                     </div>
