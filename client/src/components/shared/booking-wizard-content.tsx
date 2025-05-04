@@ -240,8 +240,10 @@ export function BookingWizardContent({
           truckNumber: bookingData.truckNumber,
           trailerNumber: bookingData.trailerNumber,
           notes: bookingData.notes,
-          // Include custom fields
-          customFields: bookingData.customFields || {},
+          // Include custom fields with standard questions properly wrapped
+          customFields: {
+            standardQuestions: bookingData.customFields || {}
+          },
           // Additional fields for internal booking
           status: 'scheduled',
           source: internalMode ? 'internal' : 'external',
