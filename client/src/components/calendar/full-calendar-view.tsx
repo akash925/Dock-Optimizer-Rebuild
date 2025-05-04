@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
-import './calendar-clean.css'; // One clean CSS file with all needed fixes
+import './calendar-enhanced.css'; // Enhanced CSS for better readability and customer name emphasis
 import { DateSelectArg, EventClickArg, EventInput, EventHoveringArg } from '@fullcalendar/core';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
