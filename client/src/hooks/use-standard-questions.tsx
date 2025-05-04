@@ -1,10 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { StandardQuestion } from '@/components/shared/standard-questions-form-fields';
 
 interface UseStandardQuestionsProps {
   appointmentTypeId?: number;
   bookingPageSlug?: string;
+}
+
+interface UpdateStandardQuestionParams {
+  id: number;
+  data: Partial<StandardQuestion>;
 }
 
 export function useStandardQuestions({ appointmentTypeId, bookingPageSlug }: UseStandardQuestionsProps) {
@@ -54,4 +59,32 @@ export function useStandardQuestions({ appointmentTypeId, bookingPageSlug }: Use
     isLoading,
     error
   };
+}
+
+export function useUpdateStandardQuestion() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: UpdateStandardQuestionParams) => {
+      const response = await apiRequest('PUT', `/api/standard-questions/${id}`, data);
+      
+      if (!response.ok) {
+        // Parse error response
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error occurred' }));
+        throw new Error(errorData.message || `Failed to update standard question: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    },
+    onSuccess: (data, { id }) => {
+      // Get appointment type ID from the updated question
+      const appointmentTypeId = data.appointmentTypeId;
+      
+      // Invalidate the standard questions query to refetch the updated data
+      queryClient.invalidateQueries({ queryKey: ['standard-questions', appointmentTypeId] });
+      
+      // Also invalidate any query that might be using this specific question
+      queryClient.invalidateQueries({ queryKey: ['standard-questions', 'detail', id] });
+    }
+  });
 }

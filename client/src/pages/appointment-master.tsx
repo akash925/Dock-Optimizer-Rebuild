@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useUpdateStandardQuestion } from "@/hooks/use-standard-questions";
 import { Facility, AppointmentType, insertAppointmentTypeSchema } from "@shared/schema";
 import SeedAppointmentTypes from "@/components/appointment-master/seed-appointment-types";
 import { Button } from "@/components/ui/button";
@@ -1320,11 +1321,33 @@ export default function AppointmentMaster() {
                                 <Checkbox 
                                   checked={field.included}
                                   onCheckedChange={(checked) => {
+                                    // Update local state for immediate UI feedback
                                     const updatedFields = [...standardFields];
                                     updatedFields[index].included = !!checked;
                                     setStandardFields(updatedFields);
-                                    toast({
-                                      description: `${field.label} included setting updated`,
+                                    
+                                    // Persist to the database via API
+                                    updateStandardQuestionMutation.mutate({
+                                      id: field.id,
+                                      data: { included: !!checked }
+                                    }, {
+                                      onSuccess: () => {
+                                        toast({
+                                          description: `${field.label} included setting updated`,
+                                        });
+                                      },
+                                      onError: (error) => {
+                                        // Revert local state on error
+                                        const revertedFields = [...standardFields];
+                                        revertedFields[index].included = !checked;
+                                        setStandardFields(revertedFields);
+                                        
+                                        toast({
+                                          variant: "destructive",
+                                          title: "Failed to update setting",
+                                          description: error.message || "An error occurred while updating the question",
+                                        });
+                                      }
                                     });
                                   }}
                                 />
@@ -1338,11 +1361,33 @@ export default function AppointmentMaster() {
                                 <Checkbox 
                                   checked={field.required}
                                   onCheckedChange={(checked) => {
+                                    // Update local state for immediate UI feedback
                                     const updatedFields = [...standardFields];
                                     updatedFields[index].required = !!checked;
                                     setStandardFields(updatedFields);
-                                    toast({
-                                      description: `${field.label} required setting updated`,
+                                    
+                                    // Persist to the database via API
+                                    updateStandardQuestionMutation.mutate({
+                                      id: field.id,
+                                      data: { required: !!checked }
+                                    }, {
+                                      onSuccess: () => {
+                                        toast({
+                                          description: `${field.label} required setting updated`,
+                                        });
+                                      },
+                                      onError: (error) => {
+                                        // Revert local state on error
+                                        const revertedFields = [...standardFields];
+                                        revertedFields[index].required = !checked;
+                                        setStandardFields(revertedFields);
+                                        
+                                        toast({
+                                          variant: "destructive",
+                                          title: "Failed to update setting",
+                                          description: error.message || "An error occurred while updating the question",
+                                        });
+                                      }
                                     });
                                   }}
                                 />
