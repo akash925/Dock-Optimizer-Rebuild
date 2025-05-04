@@ -1,7 +1,7 @@
 // Test script for email QR code functionality
-const fs = require('fs');
-const path = require('path');
-const { createServer } = require('http');
+import fs from 'fs';
+import path from 'path';
+import { createServer } from 'http';
 
 // Setup a basic express-like app to handle the request
 const server = createServer((req, res) => {
