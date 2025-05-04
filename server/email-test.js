@@ -1,5 +1,5 @@
 // Email testing module
-import { sendConfirmationEmail, sendReminderEmail } from './notifications.ts';
+import { sendConfirmationEmail, sendReminderEmail } from './notifications.js';
 
 // Mock schedule data for testing
 const mockSchedule = {
