@@ -102,7 +102,8 @@ export function FixedBookingWizardContent({ bookingPage }: { bookingPage: any })
         startTime: bookingData.startTime,
         endTime: bookingData.endTime,
         createdVia: 'external',
-        mcNumber: bookingData.mcNumber || ''
+        mcNumber: bookingData.mcNumber || '',
+        creatorEmail: bookingData.email // Store the creator's email for future communications
       };
       
       console.log('Submitting appointment data:', scheduleData);

@@ -195,6 +195,7 @@ export const schedules = pgTable("schedules", {
   status: text("status").notNull(), // scheduled, in-progress, completed, cancelled
   notes: text("notes"),
   customFormData: jsonb("custom_form_data"), // Stores responses to custom questions
+  creatorEmail: text("creator_email"), // Email of the person who created the appointment (for external bookings)
   createdBy: integer("created_by").notNull(), // User ID who created the schedule
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),
