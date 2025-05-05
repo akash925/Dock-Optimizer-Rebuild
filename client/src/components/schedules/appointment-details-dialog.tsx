@@ -341,7 +341,7 @@ export function AppointmentDetailsDialog({
       formData.append('file', file);
       
       // Upload the file to the server
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/upload/checkout-photo', {
         method: 'POST',
         body: formData,
       });
@@ -672,8 +672,8 @@ export function AppointmentDetailsDialog({
                     if (file) {
                       // Store the file for later upload in the mutation
                       setUploadedFile(file);
-                      // Show preview of the filename
-                      setCheckOutPhotoPath(`/uploads/${file.name}`);
+                      // We'll set the real path after upload, just indicate file was selected
+                      setCheckOutPhotoPath("Selected file: " + file.name);
                     }
                   }}
                 />
@@ -695,12 +695,19 @@ export function AppointmentDetailsDialog({
               </p>
               {checkOutPhotoPath && (
                 <div className="mt-2 p-2 border rounded-md bg-slate-50 flex items-center justify-between">
-                  <span className="text-sm truncate">{checkOutPhotoPath.split('/').pop()}</span>
+                  <span className="text-sm truncate">
+                    {checkOutPhotoPath.startsWith('Selected file:') 
+                      ? checkOutPhotoPath 
+                      : checkOutPhotoPath.split('/').pop()}
+                  </span>
                   <Button 
                     variant="ghost" 
                     size="sm"
                     className="h-6 w-6 p-0"
-                    onClick={() => setCheckOutPhotoPath(null)}
+                    onClick={() => {
+                      setCheckOutPhotoPath(null);
+                      setUploadedFile(null);
+                    }}
                   >
                     <X className="h-4 w-4" />
                   </Button>
