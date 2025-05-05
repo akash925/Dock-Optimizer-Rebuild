@@ -16,7 +16,7 @@ import { sql, and, eq, inArray } from 'drizzle-orm';
  */
 export async function getHeatmapData(req: Request, res: Response) {
   try {
-    const { facilityId, appointmentTypeId, customerId, carrierId, startDate, endDate } = req.query;
+    const { appointmentTypeId, customerId, carrierId, startDate, endDate } = req.query;
     
     // Get the organization ID (tenant ID) from the authenticated user
     const tenantId = req.user?.tenantId;
@@ -24,23 +24,11 @@ export async function getHeatmapData(req: Request, res: Response) {
       return res.status(401).json({ error: 'Unauthorized: No tenant context found' });
     }
     
-    // First, get all facilities for this tenant through the junction table
-    const tenantFacilities = await db.select({ id: facilities.id })
-      .from(facilities)
-      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
-      .where(eq(organizationFacilities.organizationId, tenantId));
-    
-    const facilityIds = tenantFacilities.map(f => f.id);
-    if (!facilityIds.length) {
-      return res.json([]);
-    }
+    console.log(`[Analytics] getHeatmapData: Using tenant ID ${tenantId}`);
     
     // Build dynamic WHERE clause based on filter params
-    let whereClause = sql`WHERE s.facility_id IN (${sql.join(facilityIds)})`;
-    
-    if (facilityId) {
-      whereClause = sql`${whereClause} AND s.facility_id = ${facilityId}`;
-    }
+    // Use tenant_id directly since facility_id is not available in schedules table
+    let whereClause = sql`WHERE s.tenant_id = ${tenantId}`;
     
     if (appointmentTypeId) {
       whereClause = sql`${whereClause} AND s.appointment_type_id = ${appointmentTypeId}`;
@@ -68,6 +56,8 @@ export async function getHeatmapData(req: Request, res: Response) {
       whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
     }
     
+    console.log('[Analytics] getHeatmapData: Using tenant-based filtering for schedules');
+    
     // Query to aggregate appointments by day and hour with tenant isolation
     const heatmapData = await db.execute(sql`
       SELECT 
@@ -75,10 +65,7 @@ export async function getHeatmapData(req: Request, res: Response) {
         EXTRACT(HOUR FROM s.start_time) as hour_of_day,
         COUNT(*) as count
       FROM ${schedules} s
-      JOIN ${facilities} f ON s.facility_id = f.id
-      JOIN ${organizationFacilities} of ON f.id = of.facility_id
       ${whereClause}
-      AND of.organization_id = ${tenantId}
       GROUP BY day_of_week, hour_of_day
       ORDER BY day_of_week, hour_of_day
     `);
@@ -143,7 +130,8 @@ export async function getFacilityStats(req: Request, res: Response) {
     console.log('[Analytics] Executing facility stats query with tenant isolation');
     
     // Query to get appointment counts by facility location with date filtering and tenant isolation
-    // Note the important LEFT JOIN to ensure facilities with no appointments are still returned
+    // Note: schedules table doesn't have facility_id column - using tenant_id instead
+    console.log('[Analytics] Using tenant-based filtering for schedules in facility stats');
     const facilityStats = await db.execute(sql`
       SELECT 
         f.id,
@@ -152,7 +140,7 @@ export async function getFacilityStats(req: Request, res: Response) {
         COUNT(s.id) as "appointmentCount"
       FROM ${facilities} f
       JOIN ${organizationFacilities} of ON f.id = of.facility_id
-      LEFT JOIN ${schedules} s ON f.id = s.facility_id
+      LEFT JOIN ${schedules} s ON s.tenant_id = ${effectiveTenantId}
       ${whereClause}
       GROUP BY f.id, f.name, f.address1
       ORDER BY "appointmentCount" DESC
