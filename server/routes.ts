@@ -326,9 +326,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dock routes
   app.get("/api/docks", async (req, res) => {
     try {
-      const docks = await storage.getDocks();
-      res.json(docks);
+      const tenantId = req.user?.tenantId;
+      const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+      
+      console.log(`[GetDocks] Fetching docks for tenant ID: ${tenantId || 'none'}, isSuperAdmin: ${isSuperAdmin}`);
+      
+      // Get all docks first
+      const allDocks = await storage.getDocks();
+      
+      // If user is a super admin, return all docks
+      if (isSuperAdmin) {
+        console.log(`[GetDocks] Super admin access granted, returning all ${allDocks.length} docks`);
+        return res.json(allDocks);
+      }
+      
+      // If no tenant ID, return empty list for security
+      if (!tenantId) {
+        console.log('[GetDocks] No tenant ID, returning empty dock list for security');
+        return res.json([]);
+      }
+      
+      // For regular users with a tenant ID, filter docks by facilities that belong to their organization
+      // First, get all facilities for this tenant
+      const tenantFacilities = await storage.getFacilitiesByOrganizationId(tenantId);
+      const facilityIds = tenantFacilities.map(f => f.id);
+      
+      console.log(`[GetDocks] Found ${tenantFacilities.length} facilities for tenant ${tenantId}`);
+      
+      // Filter docks to only include those that belong to the tenant's facilities
+      const tenantDocks = allDocks.filter(dock => 
+        dock.facilityId && facilityIds.includes(dock.facilityId)
+      );
+      
+      console.log(`[GetDocks] Returning ${tenantDocks.length} docks for tenant ${tenantId}`);
+      res.json(tenantDocks);
     } catch (err) {
+      console.error('[GetDocks] Error fetching docks:', err);
       res.status(500).json({ message: "Failed to fetch docks" });
     }
   });
@@ -337,40 +370,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/facilities/:id/docks", async (req, res) => {
     try {
       const facilityId = Number(req.params.id);
-      const facility = await storage.getFacility(facilityId);
+      const tenantId = req.user?.tenantId;
+      const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+      
+      console.log(`[GetFacilityDocks] Fetching docks for facility ID: ${facilityId}, tenant ID: ${tenantId || 'none'}, isSuperAdmin: ${isSuperAdmin}`);
+      
+      // First check if the facility exists and belongs to the tenant's organization
+      const facility = await checkTenantFacilityAccess(
+        facilityId,
+        tenantId,
+        isSuperAdmin,
+        'GetFacilityDocks'
+      );
       
       if (!facility) {
-        return res.status(404).json({ message: "Facility not found" });
+        console.log(`[GetFacilityDocks] Facility ID ${facilityId} not found or access denied`);
+        return res.status(404).json({ message: "Facility not found or access denied" });
       }
       
+      // Get all docks and filter by facility ID
       const docks = await storage.getDocks();
       const facilityDocks = docks.filter(dock => dock.facilityId === facilityId);
       
+      console.log(`[GetFacilityDocks] Found ${facilityDocks.length} docks for facility ID ${facilityId}`);
       res.json(facilityDocks);
     } catch (err) {
-      console.error("Error fetching facility docks:", err);
+      console.error("[GetFacilityDocks] Error fetching facility docks:", err);
       res.status(500).json({ message: "Failed to fetch facility docks" });
     }
   });
 
   app.get("/api/docks/:id", async (req, res) => {
     try {
-      const dock = await storage.getDock(Number(req.params.id));
+      const dockId = Number(req.params.id);
+      const tenantId = req.user?.tenantId;
+      const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+      
+      console.log(`[GetDock] Fetching dock ID: ${dockId} for tenant ID: ${tenantId || 'none'}, isSuperAdmin: ${isSuperAdmin}`);
+      
+      // Get the dock
+      const dock = await storage.getDock(dockId);
       if (!dock) {
+        console.log(`[GetDock] Dock ID ${dockId} not found`);
         return res.status(404).json({ message: "Dock not found" });
       }
+      
+      // If user is a super admin, bypass tenant checks
+      if (isSuperAdmin) {
+        console.log(`[GetDock] Super admin access granted for dock ID ${dockId}`);
+        return res.json(dock);
+      }
+      
+      // If no tenant ID, deny access for security
+      if (!tenantId) {
+        console.log('[GetDock] No tenant ID, access denied for security');
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Check if dock belongs to a facility owned by the tenant's organization
+      if (dock.facilityId) {
+        const facility = await checkTenantFacilityAccess(
+          dock.facilityId,
+          tenantId,
+          isSuperAdmin,
+          'GetDock'
+        );
+        
+        if (!facility) {
+          console.log(`[GetDock] Access denied - dock ID ${dockId} facility ${dock.facilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ message: "Access denied to this dock" });
+        }
+      } else {
+        console.log(`[GetDock] Access denied - dock ID ${dockId} has no facility ID`);
+        return res.status(403).json({ message: "Access denied to this dock" });
+      }
+      
+      console.log(`[GetDock] Access granted for dock ID ${dockId} to tenant ${tenantId}`);
       res.json(dock);
     } catch (err) {
+      console.error('[GetDock] Error fetching dock:', err);
       res.status(500).json({ message: "Failed to fetch dock" });
     }
   });
 
   app.post("/api/docks", checkRole(["admin", "manager"]), async (req, res) => {
     try {
+      const tenantId = req.user?.tenantId;
+      const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
+      
+      console.log(`[CreateDock] Attempting to create dock for tenant ID: ${tenantId || 'none'}, isSuperAdmin: ${isSuperAdmin}`);
+      
+      // Validate the dock data
       const validatedData = insertDockSchema.parse(req.body);
+      
+      // If the dock has a facility ID, verify tenant access to that facility
+      if (validatedData.facilityId) {
+        // Check if user has access to this facility
+        const facility = await checkTenantFacilityAccess(
+          validatedData.facilityId,
+          tenantId,
+          isSuperAdmin,
+          'CreateDock'
+        );
+        
+        if (!facility) {
+          console.log(`[CreateDock] Access denied - facility ID ${validatedData.facilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ message: "Access denied to this facility" });
+        }
+      }
+      
+      // Create the dock
       const dock = await storage.createDock(validatedData);
+      console.log(`[CreateDock] Successfully created dock ID ${dock.id}`);
       res.status(201).json(dock);
     } catch (err) {
+      console.error('[CreateDock] Error creating dock:', err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid dock data", errors: err.errors });
       }
@@ -382,11 +496,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/facilities/:id/docks", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const facilityId = Number(req.params.id);
-      console.log(`Creating dock for facility ID: ${facilityId} with data:`, req.body);
+      const tenantId = req.user?.tenantId;
+      const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
       
-      const facility = await storage.getFacility(facilityId);
+      console.log(`[CreateFacilityDock] Creating dock for facility ID: ${facilityId}, tenant ID: ${tenantId || 'none'}, isSuperAdmin: ${isSuperAdmin}`);
+      
+      // Check if the facility exists and belongs to the tenant's organization
+      const facility = await checkTenantFacilityAccess(
+        facilityId,
+        tenantId,
+        isSuperAdmin,
+        'CreateFacilityDock'
+      );
+      
       if (!facility) {
-        return res.status(404).json({ message: "Facility not found" });
+        console.log(`[CreateFacilityDock] Facility ID ${facilityId} not found or access denied`);
+        return res.status(404).json({ message: "Facility not found or access denied" });
       }
       
       // Add facility ID to the dock data
@@ -397,15 +522,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate dock data
       const validatedData = insertDockSchema.parse(dockData);
-      console.log("Validated dock data:", validatedData);
+      console.log(`[CreateFacilityDock] Validated dock data for facility ID ${facilityId}:`, validatedData);
       
       // Create the dock
       const dock = await storage.createDock(validatedData);
-      console.log("Dock created successfully:", dock);
+      console.log(`[CreateFacilityDock] Successfully created dock ID ${dock.id} for facility ID ${facilityId}`);
       
       res.status(201).json(dock);
     } catch (err) {
-      console.error("Error creating dock for facility:", err);
+      console.error("[CreateFacilityDock] Error creating dock for facility:", err);
       
       if (err instanceof z.ZodError) {
         return res.status(400).json({ 
@@ -425,11 +550,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/docks/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
-      console.log(`Updating dock ID: ${id} with data:`, req.body);
+      const tenantId = req.user?.tenantId;
+      const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
       
+      console.log(`[UpdateDock] Updating dock ID: ${id}, tenant ID: ${tenantId || 'none'}, isSuperAdmin: ${isSuperAdmin}`);
+      
+      // First get the dock to check if it exists
       const dock = await storage.getDock(id);
       if (!dock) {
+        console.log(`[UpdateDock] Dock ID ${id} not found`);
         return res.status(404).json({ message: "Dock not found" });
+      }
+      
+      // Check if user has access to this dock's facility
+      if (dock.facilityId) {
+        const facility = await checkTenantFacilityAccess(
+          dock.facilityId,
+          tenantId,
+          isSuperAdmin,
+          'UpdateDock'
+        );
+        
+        if (!facility && !isSuperAdmin) {
+          console.log(`[UpdateDock] Access denied - dock ID ${id} facility ${dock.facilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ message: "Access denied to this dock" });
+        }
+      } else if (!isSuperAdmin) {
+        console.log(`[UpdateDock] Access denied - dock ID ${id} has no facility ID`);
+        return res.status(403).json({ message: "Access denied to this dock" });
       }
       
       // Make sure we have all required fields by combining existing and new data
@@ -442,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         insertDockSchema.parse(fieldsToCheck);
       } catch (validationErr) {
         if (validationErr instanceof z.ZodError) {
-          console.error("Validation error updating dock:", validationErr.format());
+          console.error("[UpdateDock] Validation error updating dock:", validationErr.format());
           return res.status(400).json({ 
             message: "Invalid dock data", 
             errors: validationErr.errors,
@@ -452,11 +600,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw validationErr;
       }
       
+      // If user is trying to change the facilityId, verify they have access to the new facility
+      if (req.body.facilityId && req.body.facilityId !== dock.facilityId) {
+        const newFacility = await checkTenantFacilityAccess(
+          req.body.facilityId,
+          tenantId,
+          isSuperAdmin,
+          'UpdateDock'
+        );
+        
+        if (!newFacility && !isSuperAdmin) {
+          console.log(`[UpdateDock] Access denied - new facility ID ${req.body.facilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ message: "Access denied to the target facility" });
+        }
+      }
+      
+      // Update the dock
       const updatedDock = await storage.updateDock(id, req.body);
-      console.log("Dock updated successfully:", updatedDock);
+      console.log(`[UpdateDock] Successfully updated dock ID ${id}`);
       res.json(updatedDock);
     } catch (err) {
-      console.error("Error updating dock:", err);
+      console.error("[UpdateDock] Error updating dock:", err);
       res.status(500).json({ 
         message: "Failed to update dock",
         error: err instanceof Error ? err.message : "Unknown error"
