@@ -51,10 +51,17 @@ export function StandardQuestionsFormFields({
   // Sort questions by order position
   const sortedQuestions = [...questions].sort((a, b) => a.orderPosition - b.orderPosition);
   
+  // Log questions for debugging
+  if (questions.length > 0) {
+    console.log('[StandardQuestionsFormFields] All questions:', sortedQuestions);
+    console.log('[StandardQuestionsFormFields] Included questions:', sortedQuestions.filter(q => q.included));
+  }
+
   return (
     <div className="space-y-4">
       {sortedQuestions
-        .filter(q => q.included) // Only show questions that are included
+        // Show all questions for now to debug, we'll put the filter back later if needed
+        //.filter(q => q.included) // Only show questions that are included
         .map((question) => {
           // Use the field key as the name in the form
           const fieldName = `customFields.${question.fieldKey}`;
@@ -70,10 +77,11 @@ export function StandardQuestionsFormFields({
                   <FormLabel>
                     {question.label}
                     {question.required && <span className="text-destructive ml-1">*</span>}
+                    {!question.included && <span className="text-muted-foreground text-xs ml-2">(Not included)</span>}
                   </FormLabel>
                   
                   <FormControl>
-                    {renderFormControl(question, field, disabled)}
+                    {renderFormControl(question, field, disabled || !question.included)}
                   </FormControl>
                   
                   <FormMessage />
