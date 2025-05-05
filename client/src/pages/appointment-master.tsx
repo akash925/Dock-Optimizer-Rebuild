@@ -53,8 +53,8 @@ export default function AppointmentMaster() {
   const loadStandardQuestionsForAppointmentType = (appointmentTypeId: number) => {
     console.log(`[StandardQuestions] Loading questions for appointment type ${appointmentTypeId}`);
     
-    // Use the fixed standard questions endpoint
-    fetch(`/api/standard-questions/${appointmentTypeId}`)
+    // Use the direct standard questions endpoint instead of the redirect
+    fetch(`/api/standard-questions/appointment-type/${appointmentTypeId}`)
       .then(res => {
         if (!res.ok) {
           throw new Error(`Failed to fetch standard questions: ${res.statusText}`);
