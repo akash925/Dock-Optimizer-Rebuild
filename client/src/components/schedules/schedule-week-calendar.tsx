@@ -611,8 +611,8 @@ export default function ScheduleWeekCalendar({
                               ? 'calc(8rem - 4px)' 
                               : 'calc(9rem - 4px)',
                             zIndex: isOverlapping ? 10 + overlapIndex : 10, // Stack newer appointments on top
-                            minHeight: '40px', // Minimum height to ensure content visibility
-                            maxHeight: `${Math.max(height, 80)}px`, // More maximum height for content
+                            minHeight: '50px', // Increased minimum height for better content visibility
+                            maxHeight: `${Math.max(height, 100)}px`, // Increased maximum height for content
                             opacity: isOverlapping ? 0.95 : 1, // Slight transparency for overlapping appointments
                             display: 'flex',
                             flexDirection: 'column',
