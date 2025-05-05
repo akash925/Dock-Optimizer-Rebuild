@@ -46,6 +46,8 @@ async function generateQRCodeSVG(confirmationCode, baseUrl) {
   }
 }
 
+const fs = require('fs');
+
 // Create a simple test function
 async function testQRCodeGeneration() {
   try {
@@ -66,6 +68,37 @@ async function testQRCodeGeneration() {
       console.log('✅ QR code SVG generated successfully!');
       console.log(`SVG size: ${svgOutput.length} characters`);
       console.log('Preview of SVG:\n', svgOutput.substring(0, 150) + '...');
+      
+      // Create a simple HTML file to view the QR code
+      const htmlOutput = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>QR Code Test</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .container { max-width: 800px; margin: 0 auto; }
+          h1 { color: #333; }
+          .info { margin-bottom: 20px; }
+          .code { font-family: monospace; background: #f5f5f5; padding: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>QR Code Test</h1>
+          <div class="info">
+            <p><strong>Test Code:</strong> <span class="code">${testCode}</span></p>
+            <p><strong>URL:</strong> <span class="code">${testHost}/driver-check-in?code=${testCode}</span></p>
+          </div>
+          ${svgOutput}
+        </div>
+      </body>
+      </html>
+      `;
+      
+      // Save the HTML file in public directory so it can be accessed via the web server
+      fs.writeFileSync('public/test-qr-code.html', htmlOutput);
+      console.log('✅ Generated HTML file with QR code: public/test-qr-code.html');
     } else {
       console.log('❌ Failed to generate QR code SVG or SVG not found in output');
       console.log('Output:', svgOutput);
