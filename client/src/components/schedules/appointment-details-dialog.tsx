@@ -330,6 +330,35 @@ export function AppointmentDetailsDialog({
   const [showCheckOutTimeInput, setShowCheckOutTimeInput] = useState(false);
   const [showCheckOutDialog, setShowCheckOutDialog] = useState(false);
   
+  // State for file upload
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  
+  // Function to handle file uploads
+  const uploadFile = async (file: File): Promise<string> => {
+    try {
+      // Create a FormData object to send the file
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Upload the file to the server
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload file');
+      }
+      
+      // Get the file path from the response
+      const data = await response.json();
+      return data.filePath;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
+  };
+  
   // Mutation for checking out appointment (completing)
   const checkOutAppointmentMutation = useMutation({
     mutationFn: async () => {
@@ -337,6 +366,17 @@ export function AppointmentDetailsDialog({
       
       // Use the selected time or current time
       const actualEndTime = showCheckOutTimeInput ? checkOutTime : new Date();
+      
+      // Upload the file if one was selected
+      let photoPath = checkOutPhotoPath;
+      if (uploadedFile) {
+        try {
+          photoPath = await uploadFile(uploadedFile);
+        } catch (error) {
+          console.error('Error uploading file:', error);
+          // Continue with the checkout process even if file upload fails
+        }
+      }
       
       // Prepare custom form data with checkout notes and photo
       let customFormData = {};
@@ -353,7 +393,7 @@ export function AppointmentDetailsDialog({
         ...customFormData,
         checkoutTime: actualEndTime.toISOString(),
         checkoutNotes: checkOutNotes || null,
-        checkoutPhoto: checkOutPhotoPath || null,
+        checkoutPhoto: photoPath || null,
         checkoutBy: appointment.lastModifiedBy || null
       };
       
@@ -620,17 +660,52 @@ export function AppointmentDetailsDialog({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="check-out-photo">Photo URL (Optional)</Label>
-              <Input
-                id="check-out-photo"
-                type="text"
-                placeholder="Enter a URL to a photo (if applicable)"
-                value={checkOutPhotoPath || ''}
-                onChange={(e) => setCheckOutPhotoPath(e.target.value || null)}
-              />
+              <Label htmlFor="check-out-photo">Photo (Optional)</Label>
+              <div className="flex flex-col gap-2">
+                <Input
+                  id="check-out-photo-file"
+                  type="file"
+                  accept="image/*"
+                  className="w-full"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      // Store the file for later upload in the mutation
+                      setUploadedFile(file);
+                      // Show preview of the filename
+                      setCheckOutPhotoPath(`/uploads/${file.name}`);
+                    }
+                  }}
+                />
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 bg-slate-200"></div>
+                  <span className="text-xs text-slate-500">OR</span>
+                  <div className="h-px flex-1 bg-slate-200"></div>
+                </div>
+                <Input
+                  id="check-out-photo-url"
+                  type="text"
+                  placeholder="Enter a URL to a photo"
+                  value={checkOutPhotoPath || ''}
+                  onChange={(e) => setCheckOutPhotoPath(e.target.value || null)}
+                />
+              </div>
               <p className="text-xs text-slate-500">
-                You can link to a photo from another service or upload system.
+                Upload a photo or enter a URL to an existing image.
               </p>
+              {checkOutPhotoPath && (
+                <div className="mt-2 p-2 border rounded-md bg-slate-50 flex items-center justify-between">
+                  <span className="text-sm truncate">{checkOutPhotoPath.split('/').pop()}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={() => setCheckOutPhotoPath(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
           
