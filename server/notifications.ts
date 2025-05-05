@@ -653,6 +653,10 @@ export async function sendConfirmationEmail(
   // This is more reliable in email clients than base64-encoded images
   const qrCodeUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
   console.log(`[EMAIL] Using QR code URL for confirmation email to ${to}: ${qrCodeUrl}`);
+  
+  // Additional logging to help debug QR code issues
+  console.log(`[EMAIL] Full check-in URL: ${checkInUrl}`);
+  console.log(`[EMAIL] Host URL from env or default: ${host}`);
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -726,14 +730,16 @@ export async function sendConfirmationEmail(
           </table>
         </div>
         
-        <!-- Quick check-in QR code section with inline base64 image -->
+        <!-- Enhanced Quick check-in QR code section -->
         <div style="text-align: center; margin: 15px auto; background-color: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d7ff; max-width: 320px;">
           <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
           <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #b3d7ff;">
+            <!-- Using direct image URL to the QR code endpoint for maximum compatibility -->
             <img src="${qrCodeUrl}" 
                  alt="Check-in QR Code" 
-                 style="width: 150px; height: 150px; display: block; margin: 0 auto;">
-            <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center;">
+                 width="200" height="200"
+                 style="display: block; margin: 0 auto; width: 200px; height: 200px;">
+            <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center; font-size: 16px;">
               ${confirmationCode}
             </p>
           </div>
@@ -743,6 +749,7 @@ export async function sendConfirmationEmail(
               <li>Present this QR code to dock staff upon arrival</li>
               <li>You can also scan it yourself to check in quickly</li>
               <li>If you can't see the QR code above, use your confirmation code: <strong>${confirmationCode}</strong></li>
+              <li>Or open this link directly: <a href="${checkInUrl}" style="color: #0066cc;">${checkInUrl}</a></li>
             </ul>
           </div>
         </div>
@@ -792,14 +799,17 @@ export async function sendConfirmationEmail(
     ${schedule.poNumber ? `PO #: ${schedule.poNumber}` : ''}
     ${schedule.notes ? `Notes: ${schedule.notes}` : ''}
     
+    CHECK-IN INFORMATION
+    ------------------
+    Confirmation Code: ${confirmationCode}
+    Express Check-in URL: ${checkInUrl}
+    
     MANAGE YOUR APPOINTMENT
     ---------------------
     Need to make changes? 
     
     Reschedule: ${rescheduleLink}
     Cancel: ${cancelLink}
-    
-    For express check-in, display the QR code in this email or use your confirmation code: ${confirmationCode}
     
     If you have any questions, please contact the facility directly.
     
