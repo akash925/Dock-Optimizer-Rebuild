@@ -1789,8 +1789,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // If no notification email found in customFormData, try other fields
             if (!contactEmail) {
-              // First try customer email as primary contact
-              if (enhancedSchedule.customerEmail) {
+              // First try creator email if it exists (since that's the person who booked the appointment)
+              if (enhancedSchedule.creatorEmail) {
+                contactEmail = enhancedSchedule.creatorEmail;
+                console.log(`[Check-out] Using creator email for notification: ${contactEmail}`);
+              }
+              // Next try customer email as primary contact
+              else if (enhancedSchedule.customerEmail) {
                 contactEmail = enhancedSchedule.customerEmail;
                 console.log(`[Check-out] Using customer email for notification: ${contactEmail}`);
               } 
