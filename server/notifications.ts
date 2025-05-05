@@ -44,6 +44,8 @@ export interface EnhancedSchedule {
   appointmentTypeName?: string;
   dockName?: string;
   timezone?: string;
+  creatorEmail?: string;  // Email of the person who created the appointment
+  confirmationCode?: string; // Optional confirmation code format
 }
 
 // Initialize SendGrid if API key is available
