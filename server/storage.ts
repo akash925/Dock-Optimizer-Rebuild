@@ -3466,11 +3466,20 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]> {
-    return await db
+    console.log(`[StorageDebug] Fetching all questions for appointment type: ${appointmentTypeId}`);
+    const results = await db
       .select()
       .from(standardQuestions)
       .where(eq(standardQuestions.appointmentTypeId, appointmentTypeId))
       .orderBy(standardQuestions.orderPosition);
+    
+    console.log(`[StorageDebug] Found ${results.length} questions for appointment type ${appointmentTypeId}`);
+    // Display the first few questions for debugging
+    if (results.length > 0) {
+      console.log(`[StorageDebug] First question: ${JSON.stringify(results[0])}`);
+    }
+    
+    return results;
   }
   
   async createStandardQuestion(question: InsertStandardQuestion): Promise<StandardQuestion> {

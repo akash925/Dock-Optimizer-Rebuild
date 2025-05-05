@@ -44,8 +44,13 @@ export function StandardQuestionsFormFields({
     );
   }
   
-  if (!questions.length) {
-    return null;
+  // Show a helpful message if no questions are available
+  if (!questions || !questions.length) {
+    return (
+      <div className="text-center py-4 text-muted-foreground">
+        <p>No standard questions are configured for this appointment type.</p>
+      </div>
+    );
   }
 
   // Sort questions by order position
@@ -57,37 +62,43 @@ export function StandardQuestionsFormFields({
     console.log('[StandardQuestionsFormFields] Included questions:', sortedQuestions.filter(q => q.included));
   }
 
+  // Debug logging before rendering
+  console.log('[StandardQuestionsFormFields] About to render questions. Questions count:', sortedQuestions.length);
+  console.log('[StandardQuestionsFormFields] First few questions:', sortedQuestions.slice(0, 3));
+
   return (
     <div className="space-y-4">
-      {sortedQuestions
-        // Show all questions in appointment master, but in external booking wizard, only use included ones
-        .map((question) => {
-          // Use the field key as the name in the form
-          const fieldName = `customFields.${question.fieldKey}`;
-          
-          return (
-            <FormField
-              key={question.id}
-              control={form.control}
-              name={fieldName}
-              rules={{ required: question.required ? `${question.label} is required` : false }}
-              render={({ field }) => (
-                <FormItem className="space-y-1.5">
-                  <FormLabel>
-                    {question.label}
-                    {question.required && <span className="text-destructive ml-1">*</span>}
-                    {!question.included && <span className="text-muted-foreground text-xs ml-2">(Not included)</span>}
-                  </FormLabel>
-                  
-                  <FormControl>
-                    {renderFormControl(question, field, disabled || !question.included)}
-                  </FormControl>
-                  
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          );
+      {sortedQuestions.map((question) => {
+        // Use the field key as the name in the form
+        const fieldName = `customFields.${question.fieldKey}`;
+        
+        // Debug each question as we process it
+        console.log(`[StandardQuestionsFormFields] Rendering question ID ${question.id} - ${question.label} (included: ${question.included})`);
+        
+        return (
+          <FormField
+            key={question.id}
+            control={form.control}
+            name={fieldName}
+            rules={{ required: question.required ? `${question.label} is required` : false }}
+            render={({ field }) => (
+              <FormItem className="space-y-1.5">
+                <FormLabel>
+                  {question.label}
+                  {question.required && <span className="text-destructive ml-1">*</span>}
+                  {!question.included && <span className="text-muted-foreground text-xs ml-2">(Not included)</span>}
+                </FormLabel>
+                
+                <FormControl>
+                  {/* Show all questions but disable those marked as not included */}
+                  {renderFormControl(question, field, disabled || !question.included)}
+                </FormControl>
+                
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        );
       })}
     </div>
   );
