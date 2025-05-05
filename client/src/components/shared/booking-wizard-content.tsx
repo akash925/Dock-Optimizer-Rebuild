@@ -683,8 +683,8 @@ export function BookingWizardContent({
               />
             </div>
             
-            {/* Standard questions from the appointment type */}
-            {bookingData.appointmentTypeId && (
+            {/* Standard questions from the appointment type - only show if there are included questions */}
+            {bookingData.appointmentTypeId && standardQuestions && standardQuestions.filter(q => q.included).length > 0 && (
               <>
                 <Separator className="my-4" />
                 <h3 className="text-lg font-medium mb-4">Additional Information</h3>

@@ -1761,8 +1761,8 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
             )}
           />
           
-          {/* Standard questions from appointment master */}
-          {standardQuestions && standardQuestions.length > 0 && (
+          {/* Standard questions from appointment master - only show if there are included questions */}
+          {standardQuestions && standardQuestions.filter(q => q.included).length > 0 && (
             <>
               <h2 className="booking-form-section-title mt-8">Additional Information</h2>
               <StandardQuestionsFormFields
@@ -1773,8 +1773,9 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
             </>
           )}
           
-          {/* If no standard questions, show a debugging message */}
-          {(standardQuestions === undefined || standardQuestions.length === 0) && (
+          {/* No need to show a debugging message for users about missing standard questions */}
+          {/* Development debugging message - remove before launch */}
+          {process.env.NODE_ENV === 'development' && (standardQuestions === undefined || standardQuestions.length === 0 || standardQuestions.filter(q => q.included).length === 0) && (
             <div className="p-4 my-4 rounded-md bg-yellow-50 border border-yellow-200">
               <p className="text-sm font-medium">No Standard Questions Available</p>
               <p className="text-xs mt-1">Questions should be configured in the Appointment Master.</p>
