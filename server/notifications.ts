@@ -717,6 +717,9 @@ export async function sendConfirmationEmail(
   console.log(`[EMAIL] Full check-in URL: ${checkInUrl}`);
   console.log(`[EMAIL] Host URL from env or default: ${host}`);
 
+  // Generate QR code SVG directly
+  const qrCodeSvgContent = await generateQRCodeSVG(confirmationCode, host);
+  
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #00A86B; color: white; padding: 20px; text-align: center;">
@@ -789,13 +792,8 @@ export async function sendConfirmationEmail(
           </table>
         </div>
         
-        <!-- Enhanced Quick check-in QR code section with SVG and fallback image -->
-        <div style="text-align: center; margin: 25px 0;">
-          <div style="display: inline-block; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
-            <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">Express Check-in</h3>
-            
-            <!-- SVG QR code for modern email clients -->
-            <img src="${qrCodeSvgUrl}" alt="QR Code" style="width: 200px; height: 200px;" />
+        <!-- Insert the generated QR code SVG content directly -->
+        ${qrCodeSvgContent}
             
             <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
               Confirmation Code: ${confirmationCode}<br>
@@ -999,10 +997,9 @@ export async function sendRescheduleEmail(
 
   // Generate QR code URLs
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  // Generate URLs for QR code image (both SVG and PNG for fallback)
-  const qrCodeSvgUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
-  const qrCodePngUrl = `${host}/api/qr-code-image/${encodeURIComponent(confirmationCode)}`;
-  console.log(`[EMAIL] Using QR code URL for reschedule email to ${to}: ${qrCodeSvgUrl}`);
+  // Generate QR code SVG directly
+  const qrCodeSvgContent = await generateQRCodeSVG(confirmationCode, host);
+  console.log(`[EMAIL] Generated QR code SVG for reschedule email to ${to}`);
   
   // Create cancel link
   const cancelLink = `${host}/cancel?code=${confirmationCode}`;
