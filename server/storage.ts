@@ -3017,7 +3017,10 @@ export class DatabaseStorage implements IStorage {
         // Special handling for boolean values to ensure they are correctly sent as true/false
         if (typeof filteredUpdate[key] === 'boolean') {
           console.log(`[updateFacility] Boolean value ${key}:`, filteredUpdate[key]);
-          values.push(filteredUpdate[key]);
+          
+          // Explicitly cast boolean to boolean to avoid any type conversion issues
+          // This fixes the issue with saturdayOpen and sundayOpen not persisting
+          values.push(filteredUpdate[key] === true);
         } else {
           values.push(filteredUpdate[key]);
         }

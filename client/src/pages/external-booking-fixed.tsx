@@ -1109,10 +1109,12 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                         </div>
                                       )}
                                       
-                                      {/* Display remaining capacity if greater than 1 */}
-                                      {(slot.remainingCapacity > 1 || slot.remaining > 1) && (
+                                      {/* Display remaining capacity */}
+                                      {((slot.remaining !== undefined && slot.remaining > 0) || 
+                                        (slot.remainingCapacity !== undefined && slot.remainingCapacity > 0)) && (
                                         <div className="text-xs font-semibold text-green-600 mt-1">
-                                          {slot.remainingCapacity > 1 ? slot.remainingCapacity : slot.remaining} available
+                                          {slot.remaining !== undefined ? slot.remaining : 
+                                           (slot.remainingCapacity !== undefined ? slot.remainingCapacity : '')} available
                                         </div>
                                       )}
                                     </div>
@@ -1151,10 +1153,12 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                     )}
                                   </div>
                                   
-                                  {/* Always show capacity badge */}
-                                  <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
-                                    {slot.remaining}
-                                  </span>
+                                  {/* Only show capacity badge if slots are available */}
+                                  {slot.remaining !== undefined && slot.remaining > 0 && (
+                                    <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
+                                      {slot.remaining}
+                                    </span>
+                                  )}
                                 </Button>
                               );
                             })}
