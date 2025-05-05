@@ -29,16 +29,28 @@ interface TimeInputProps {
   placeholder: string;
 }
 
-const TimeInput = ({ field, placeholder }: TimeInputProps) => (
-  <Input 
-    onChange={field.onChange}
-    onBlur={field.onBlur}
-    name={field.name}
-    ref={field.ref}
-    value={safeValueAsString(field.value)}
-    placeholder={placeholder}
-  />
-);
+const TimeInput = ({ field, placeholder }: TimeInputProps) => {
+  // Add pattern and title for better browser validation
+  return (
+    <Input 
+      onChange={(e) => {
+        // Ensure proper time format HH:MM
+        const value = e.target.value;
+        field.onChange(value);
+        
+        // Log to help debug
+        console.log(`TimeInput ${field.name} changed to: ${value}`);
+      }}
+      onBlur={field.onBlur}
+      name={field.name}
+      ref={field.ref}
+      value={safeValueAsString(field.value)}
+      placeholder={placeholder}
+      pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+      title="Enter time in 24-hour format (HH:MM)"
+    />
+  );
+};
 
 // Define facility edit schema with operating hours validation
 const facilityEditSchema = z.object({
@@ -397,10 +409,27 @@ export default function FacilitySettingsPage() {
     mutationFn: async (data: FacilityFormValues) => {
       if (!facilityId) throw new Error("Facility ID is required");
       
+      // Log data being submitted for debugging
+      console.log("Submitting facility data:", data);
+      
+      // Ensure empty break times are properly formatted
+      const normalizedData = { ...data };
+      
+      // For each day that's closed, set empty break times
+      if (!normalizedData.saturdayOpen) {
+        normalizedData.saturdayBreakStart = "";
+        normalizedData.saturdayBreakEnd = "";
+      }
+      
+      if (!normalizedData.sundayOpen) {
+        normalizedData.sundayBreakStart = "";
+        normalizedData.sundayBreakEnd = "";
+      }
+      
       const response = await apiRequest(
         "PATCH",
         `/api/facilities/${facilityId}`,
-        data
+        normalizedData
       );
       
       if (!response.ok) {
@@ -410,7 +439,10 @@ export default function FacilitySettingsPage() {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Log success for debugging
+      console.log("Facility updated successfully:", data);
+      
       queryClient.invalidateQueries({ queryKey: ['/api/facilities'] });
       queryClient.invalidateQueries({ queryKey: ['/api/facilities', facilityId] });
       
@@ -420,6 +452,7 @@ export default function FacilitySettingsPage() {
       });
     },
     onError: (error: Error) => {
+      console.error("Facility update error:", error);
       toast({
         title: "Update failed",
         description: error.message,
