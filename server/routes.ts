@@ -2700,6 +2700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bookingPageId: z.number().optional(),
         status: z.string().optional().default("scheduled"),
         createdVia: z.string().optional().default("external"),
+        creatorEmail: z.string().email().optional(), // Add creatorEmail field to store creator's email
         
         // Any other fields
         customFields: z.record(z.string()).optional(),
@@ -2832,6 +2833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         driverName: validatedData.driverName,
         driverPhone: validatedData.driverPhone,
         driverEmail: validatedData.email,
+        creatorEmail: validatedData.creatorEmail || validatedData.email, // Store creator's email, fallback to contact email if not explicitly provided
         truckNumber: validatedData.truckNumber,
         trailerNumber: validatedData.trailerNumber || null,
         startTime,
@@ -3133,6 +3135,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trailerNumber: validatedData.trailerNumber || null,
         driverName: validatedData.driverName || null,
         driverPhone: validatedData.driverPhone || null,
+        driverEmail: validatedData.contactEmail, // Store driver email
+        creatorEmail: validatedData.contactEmail, // Store creator email for future communications
         startTime,
         endTime,
         notes: validatedData.additionalNotes || null,
