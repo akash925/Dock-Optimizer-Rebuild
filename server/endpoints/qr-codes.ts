@@ -53,6 +53,10 @@ export async function registerQrCodeRoutes(app: any) {
       const baseUrl = process.env.HOST_URL || `${req.protocol}://${req.get('host')}`;
       const checkInUrl = `${baseUrl}/driver-check-in?code=${code}`;
       
+      console.log(`[QR-CODE] Generating QR code for confirmation code: ${code}`);
+      console.log(`[QR-CODE] Using base URL: ${baseUrl}`);
+      console.log(`[QR-CODE] Check-in URL: ${checkInUrl}`);
+      
       // Set content type to PNG image
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
@@ -69,6 +73,7 @@ export async function registerQrCodeRoutes(app: any) {
       };
       
       await QRCode.toFileStream(res, checkInUrl, options);
+      console.log(`[QR-CODE] Successfully generated QR code for confirmation code: ${code}`);
     } catch (error) {
       console.error('Error generating QR code for confirmation code:', error);
       res.status(500).json({ error: 'Failed to generate QR code' });
