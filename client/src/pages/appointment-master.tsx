@@ -1394,44 +1394,39 @@ export default function AppointmentMaster() {
                               />
                             </TableCell>
                             <TableCell className="text-center">
-                              {field.id <= 6 || field.id === 9 || field.id === 10 ? (
-                                // System-required fields can't be changed
-                                <Checkbox checked={field.required} disabled />
-                              ) : (
-                                <Checkbox 
-                                  checked={field.required}
-                                  onCheckedChange={(checked) => {
-                                    // Update local state for immediate UI feedback
-                                    const updatedFields = [...standardFields];
-                                    updatedFields[index].required = !!checked;
-                                    setStandardFields(updatedFields);
-                                    
-                                    // Persist to the database via API
-                                    updateStandardQuestionMutation.mutate({
-                                      id: field.id,
-                                      data: { required: !!checked }
-                                    }, {
-                                      onSuccess: () => {
-                                        toast({
-                                          description: `${field.label} required setting updated`,
-                                        });
-                                      },
-                                      onError: (error: Error) => {
-                                        // Revert local state on error
-                                        const revertedFields = [...standardFields];
-                                        revertedFields[index].required = !checked;
-                                        setStandardFields(revertedFields);
-                                        
-                                        toast({
-                                          variant: "destructive",
-                                          title: "Failed to update setting",
-                                          description: error.message || "An error occurred while updating the question",
-                                        });
-                                      }
-                                    });
-                                  }}
-                                />
-                              )}
+                              <Checkbox 
+                                checked={field.required}
+                                onCheckedChange={(checked) => {
+                                  // Update local state for immediate UI feedback
+                                  const updatedFields = [...standardFields];
+                                  updatedFields[index].required = !!checked;
+                                  setStandardFields(updatedFields);
+                                  
+                                  // Persist to the database via API
+                                  updateStandardQuestionMutation.mutate({
+                                    id: field.id,
+                                    data: { required: !!checked }
+                                  }, {
+                                    onSuccess: () => {
+                                      toast({
+                                        description: `${field.label} required setting updated`,
+                                      });
+                                    },
+                                    onError: (error: Error) => {
+                                      // Revert local state on error
+                                      const revertedFields = [...standardFields];
+                                      revertedFields[index].required = !checked;
+                                      setStandardFields(revertedFields);
+                                      
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Failed to update setting",
+                                        description: error.message || "An error occurred while updating the question",
+                                      });
+                                    }
+                                  });
+                                }}
+                              />
                             </TableCell>
                           </TableRow>
                         ))}
