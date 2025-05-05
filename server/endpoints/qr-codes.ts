@@ -73,7 +73,7 @@ export async function generateQRCodeDataURL(confirmationCode: string, baseUrl: s
 }
 
 /**
- * Register QR code endpoints for testing
+ * Register QR code endpoints for testing and production use
  */
 export function registerQrCodeRoutes(app: any) {
   // Test endpoint to display a QR code
@@ -119,6 +119,77 @@ export function registerQrCodeRoutes(app: any) {
     } catch (error) {
       console.error('Error in QR code test endpoint:', error);
       res.status(500).send('Error generating QR code test');
+    }
+  });
+  
+  // Endpoint that generates a QR code SVG for a specific confirmation code
+  // This is used by the email templates and driver check-in page
+  app.get('/api/qr-code/:confirmationCode', async (req, res) => {
+    try {
+      const confirmationCode = req.params.confirmationCode;
+      if (!confirmationCode) {
+        return res.status(400).send('Missing confirmation code');
+      }
+      
+      const baseUrl = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
+      const checkInUrl = `${baseUrl}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
+      
+      // Log the request for debugging
+      console.log(`[QR] Generating QR code for confirmation code: ${confirmationCode}`);
+      console.log(`[QR] Check-in URL: ${checkInUrl}`);
+      
+      // Generate QR code as SVG
+      const qrSvg = await QRCode.toString(checkInUrl, {
+        type: 'svg',
+        errorCorrectionLevel: 'H',
+        margin: 2,
+        width: 200,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      
+      // Set headers
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+      
+      // Send SVG directly
+      res.send(qrSvg);
+    } catch (error) {
+      console.error('Error generating QR code SVG for API:', error);
+      res.status(500).send('Error generating QR code');
+    }
+  });
+  
+  // Endpoint that generates a QR code as a PNG image for email clients that don't support SVG
+  app.get('/api/qr-code-image/:confirmationCode', async (req, res) => {
+    try {
+      const confirmationCode = req.params.confirmationCode;
+      if (!confirmationCode) {
+        return res.status(400).send('Missing confirmation code');
+      }
+      
+      const baseUrl = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
+      const checkInUrl = `${baseUrl}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
+      
+      // Generate QR code as PNG buffer
+      const qrBuffer = await QRCode.toBuffer(checkInUrl, {
+        errorCorrectionLevel: 'H',
+        margin: 2,
+        width: 200,
+        type: 'png'
+      });
+      
+      // Set headers
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+      
+      // Send PNG buffer
+      res.send(qrBuffer);
+    } catch (error) {
+      console.error('Error generating QR code PNG for API:', error);
+      res.status(500).send('Error generating QR code');
     }
   });
 }

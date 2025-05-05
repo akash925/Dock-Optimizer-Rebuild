@@ -708,9 +708,10 @@ export async function sendConfirmationEmail(
   
   // Generate QR code
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  // Now we'll generate both an inline SVG QR code and a fallback URL
-  const qrCodeUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
-  console.log(`[EMAIL] Using QR code URL for confirmation email to ${to}: ${qrCodeUrl}`);
+  // Generate URLs for QR code image (both SVG and PNG for fallback)
+  const qrCodeSvgUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
+  const qrCodePngUrl = `${host}/api/qr-code-image/${encodeURIComponent(confirmationCode)}`;
+  console.log(`[EMAIL] Using QR code URL for confirmation email to ${to}: ${qrCodeSvgUrl}`);
   
   // Additional logging to help debug QR code issues
   console.log(`[EMAIL] Full check-in URL: ${checkInUrl}`);
@@ -788,8 +789,20 @@ export async function sendConfirmationEmail(
           </table>
         </div>
         
-        <!-- Enhanced Quick check-in QR code section (will be replaced by QR code module) -->
-        ${await generateQRCodeSVG(confirmationCode, host)}
+        <!-- Enhanced Quick check-in QR code section with SVG and fallback image -->
+        <div style="text-align: center; margin: 25px 0;">
+          <div style="display: inline-block; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+            <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">Express Check-in</h3>
+            
+            <!-- SVG QR code for modern email clients -->
+            <img src="${qrCodeSvgUrl}" alt="QR Code" style="width: 200px; height: 200px;" />
+            
+            <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
+              Confirmation Code: ${confirmationCode}<br>
+              <span style="font-size: 11px;">Scan with your phone to check in</span>
+            </p>
+          </div>
+        </div>
         
         <div style="margin: 30px 0; text-align: center;">
           <p style="margin-bottom: 15px;">Need to make changes to your appointment?</p>
@@ -984,6 +997,13 @@ export async function sendRescheduleEmail(
   // Host URL with potential fallback
   const host = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
 
+  // Generate QR code URLs
+  const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
+  // Generate URLs for QR code image (both SVG and PNG for fallback)
+  const qrCodeSvgUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
+  const qrCodePngUrl = `${host}/api/qr-code-image/${encodeURIComponent(confirmationCode)}`;
+  console.log(`[EMAIL] Using QR code URL for reschedule email to ${to}: ${qrCodeSvgUrl}`);
+  
   // Create cancel link
   const cancelLink = `${host}/cancel?code=${confirmationCode}`;
 
@@ -1059,8 +1079,20 @@ export async function sendRescheduleEmail(
           </table>
         </div>
         
-        <!-- Quick check-in QR code section -->
-        ${await generateQRCodeSVG(confirmationCode, host)}
+        <!-- Enhanced Quick check-in QR code section with SVG and fallback image -->
+        <div style="text-align: center; margin: 25px 0;">
+          <div style="display: inline-block; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+            <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">Express Check-in</h3>
+            
+            <!-- SVG QR code for modern email clients -->
+            <img src="${qrCodeSvgUrl}" alt="QR Code" style="width: 200px; height: 200px;" />
+            
+            <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
+              Confirmation Code: ${confirmationCode}<br>
+              <span style="font-size: 11px;">Scan with your phone to check in</span>
+            </p>
+          </div>
+        </div>
         
         <div style="margin: 30px 0; text-align: center;">
           <p style="margin-bottom: 15px;">Need to cancel this appointment?</p>
@@ -1373,12 +1405,12 @@ export async function sendReminderEmail(
   const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
   const cancelLink = `${host}/cancel?code=${confirmationCode}`;
   
-  // Generate QR code using URL approach
+  // Generate QR code URLs
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  // Instead of generating the QR code directly, use a URL to our QR code endpoint
-  // This is more reliable in email clients than base64-encoded images
-  const qrCodeUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
-  console.log(`[EMAIL] Using QR code URL for reminder email to ${to}: ${qrCodeUrl}`);
+  // Generate URLs for QR code image (both SVG and PNG for fallback)
+  const qrCodeSvgUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
+  const qrCodePngUrl = `${host}/api/qr-code-image/${encodeURIComponent(confirmationCode)}`;
+  console.log(`[EMAIL] Using QR code URL for reminder email to ${to}: ${qrCodeSvgUrl}`);
 
   // Set reminder text based on hours until appointment
   let reminderText = '';
