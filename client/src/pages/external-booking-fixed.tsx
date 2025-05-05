@@ -19,6 +19,8 @@ import BolUpload from '@/components/shared/bol-upload';
 import { ParsedBolData } from '@/lib/ocr-service';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider, useBookingTheme } from '@/contexts/BookingThemeContext';
+import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
+import { useStandardQuestions } from '@/hooks/use-standard-questions';
 import { Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
