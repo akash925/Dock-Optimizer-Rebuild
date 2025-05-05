@@ -8,6 +8,7 @@ import path from "path";
 import fs from "fs";
 import multer from "multer";
 import { sendConfirmationEmail, sendEmail, generateICalEvent } from "./notifications";
+import { sendCheckoutCompletionEmail } from "./checkout-notification";
 import { testEmailTemplate } from "./email-test";
 import { adminRoutes } from "./modules/admin/routes";
 import { pool } from "./db";
@@ -1574,6 +1575,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get notes if provided
       const notes = req.body?.notes || schedule.notes;
       
+      // Get photo path if uploaded
+      const photoPath = req.body?.photoPath || null;
+      
       // Parse existing custom form data (safely)
       let existingCustomFormData = {};
       if (schedule.customFormData) {
@@ -1590,7 +1594,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...existingCustomFormData,
         checkoutTime: actualEndTime.toISOString(),
         checkoutBy: req.user?.id || null,
-        checkoutNotes: notes
+        checkoutNotes: notes,
+        checkoutPhoto: photoPath
       });
       
       // Store the original dock ID for reference
@@ -1634,6 +1639,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error(`WARNING: Failed to release dock ${originalDockId} for schedule ${id}. DockId still set to ${verifiedSchedule.dockId}`);
       } else if (originalDockId !== null) {
         console.log(`Door successfully released during check-out: schedule ${id}`);
+      }
+      
+      // Get additional schedule data needed for email notification
+      if (verifiedSchedule || statusUpdated) {
+        try {
+          // Get the enhanced schedule with all related data
+          const enhancedSchedule = await storage.getEnhancedSchedule(id);
+          
+          if (enhancedSchedule) {
+            console.log(`[Check-out] Retrieved enhanced schedule data for email notification`);
+            
+            // Try to get the contact email from the schedule data
+            let contactEmail = null;
+            
+            // First try customer email
+            if (enhancedSchedule.customerEmail) {
+              contactEmail = enhancedSchedule.customerEmail;
+              console.log(`[Check-out] Using customer email for notification: ${contactEmail}`);
+            } 
+            // Fall back to carrier email
+            else if (enhancedSchedule.carrierEmail) {
+              contactEmail = enhancedSchedule.carrierEmail;
+              console.log(`[Check-out] Using carrier email for notification: ${contactEmail}`);
+            }
+            // Fall back to driver email if available
+            else if (enhancedSchedule.driverEmail) {
+              contactEmail = enhancedSchedule.driverEmail;
+              console.log(`[Check-out] Using driver email for notification: ${contactEmail}`);
+            }
+            
+            // Find or generate confirmation code
+            const confirmationCode = enhancedSchedule.confirmationCode || 
+              `${enhancedSchedule.id}-${new Date().getTime().toString().substring(9)}`;
+            
+            // If we have an email, send the checkout completion notification
+            if (contactEmail) {
+              try {
+                console.log(`[Check-out] Sending checkout completion email to ${contactEmail}`);
+                
+                // Send the completion email
+                await sendCheckoutCompletionEmail(
+                  contactEmail,
+                  confirmationCode,
+                  enhancedSchedule
+                );
+                
+                console.log(`[Check-out] Successfully sent checkout completion email to ${contactEmail}`);
+              } catch (emailError) {
+                console.error(`[Check-out] Failed to send checkout completion email:`, emailError);
+                // Non-blocking error, continue with the check-out process
+              }
+            } else {
+              console.log(`[Check-out] No contact email found for checkout notification`);
+            }
+          } else {
+            console.warn(`[Check-out] Could not retrieve enhanced schedule data for notification`);
+          }
+        } catch (notificationError) {
+          console.error(`[Check-out] Error preparing checkout notification:`, notificationError);
+          // Non-blocking error, continue with the check-out process
+        }
       }
       
       // Broadcast the checkout status change via WebSockets for real-time updates

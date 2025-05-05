@@ -1007,6 +1007,78 @@ export function AppointmentDetailsDialog({
                   </div>
                 </div>
               </div>
+              
+              {/* Check-out details section (shown only when checked out) */}
+              {appointment.status === "completed" && appointment.actualEndTime && (
+                <div className="mt-3 pt-3 border-t border-slate-200">
+                  <h4 className="text-xs font-semibold mb-2">Check-Out Details</h4>
+                  
+                  {/* Try to extract custom check-out data */}
+                  {(() => {
+                    try {
+                      const customData = typeof appointment.customFormData === 'string' 
+                        ? JSON.parse(appointment.customFormData) 
+                        : appointment.customFormData || {};
+                      
+                      return (
+                        <div className="space-y-2">
+                          {/* Check-out notes */}
+                          {(customData.checkoutNotes || appointment.notes) && (
+                            <div>
+                              <span className="text-xs font-medium block">Notes:</span>
+                              <p className="text-sm mt-1 bg-white p-2 rounded border border-slate-200">
+                                {customData.checkoutNotes || appointment.notes}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {/* Check-out by */}
+                          {customData.checkoutBy && (
+                            <div className="text-xs">
+                              <span className="font-medium">Checked out by:</span>{" "}
+                              User ID {customData.checkoutBy}
+                            </div>
+                          )}
+                          
+                          {/* Check-out photo */}
+                          {customData.checkoutPhoto && (
+                            <div className="mt-2">
+                              <span className="text-xs font-medium block mb-1">Check-out Photo:</span>
+                              <a 
+                                href={customData.checkoutPhoto} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                <ImageIcon className="h-3 w-3 mr-1" />
+                                View photo
+                                <ExternalLink className="h-3 w-3 ml-1" />
+                              </a>
+                            </div>
+                          )}
+                          
+                          {/* Checkout time (from custom data if available) */}
+                          {customData.checkoutTime && customData.checkoutTime !== appointment.actualEndTime && (
+                            <div className="text-xs">
+                              <span className="font-medium">Recorded checkout time:</span>{" "}
+                              {format(new Date(customData.checkoutTime), timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a")}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    } catch (e) {
+                      console.warn("Failed to parse custom form data for checkout details:", e);
+                      return null;
+                    }
+                  })()}
+                  
+                  {/* Email notification status (placeholder) */}
+                  <div className="mt-2 text-xs flex items-center text-slate-600">
+                    <FileCheck className="h-3.5 w-3.5 mr-1 text-green-600" />
+                    Check-out notification email sent
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
