@@ -85,6 +85,7 @@ export default function Dashboard() {
     id: number;
     truckNumber: string;
     carrier: string;
+    customerName?: string; // Added customerName property
     time: string;
     type: "inbound" | "outbound";
     door: string;
@@ -369,6 +370,7 @@ export default function Dashboard() {
           id: schedule.id,
           truckNumber: schedule.truckNumber,
           carrier: carrierName,
+          customerName: schedule.customerName || undefined, // Add customer name
           time: formatTime(schedule.startTime),
           type: schedule.type as "inbound" | "outbound",
           door: dockName,

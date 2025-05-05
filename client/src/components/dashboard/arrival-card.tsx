@@ -7,6 +7,7 @@ interface ArrivalCardProps {
     id: number;
     truckNumber: string;
     carrier: string;
+    customerName?: string; // Added customerName property
     time: string;
     type: "inbound" | "outbound";
     door: string;
@@ -34,7 +35,10 @@ export default function ArrivalCard({ arrival }: ArrivalCardProps) {
       <IconBadge icon={TruckIcon} variant="primary" size="lg" />
       <div className="flex-grow ml-4">
         <div className="flex justify-between">
-          <div className="font-medium">{arrival.carrier} #{arrival.truckNumber}</div>
+          <div className="font-medium">
+            {/* Display customer name instead of carrier */}
+            {arrival.customerName || arrival.carrier} #{arrival.truckNumber}
+          </div>
           <div className="text-xs text-neutral-400">{arrival.time}</div>
         </div>
         <div className="text-sm text-neutral-400 mt-1">
