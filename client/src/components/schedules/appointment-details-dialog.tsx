@@ -235,6 +235,7 @@ export function AppointmentDetailsDialog({
   };
 
   // Mutation for updating appointment
+  // Main mutation for updating appointment details
   const updateAppointmentMutation = useMutation({
     mutationFn: async (data: Partial<Schedule>) => {
       if (!appointment?.id) throw new Error("No appointment ID provided");
@@ -269,6 +270,43 @@ export function AppointmentDetailsDialog({
       console.error("Error updating appointment:", error);
       toast({
         title: "Error updating appointment",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Dedicated mutation just for notes updates - this provides better real-time experience
+  const updateNotesMutation = useMutation({
+    mutationFn: async (notes: string) => {
+      if (!appointment?.id) throw new Error("No appointment ID provided");
+      
+      console.log("Updating appointment notes:", notes);
+      
+      const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}`, { 
+        notes: notes 
+      });
+      const result = await res.json();
+      
+      // Immediately update local state for a responsive feel
+      if (appointment) {
+        appointment.notes = notes;
+      }
+      
+      console.log("Note update response:", result);
+      return result;
+    },
+    onSuccess: (data) => {
+      // Invalidate queries to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      
+      // Don't show a toast for notes updates as they happen frequently
+      // and the user can see the change immediately
+    },
+    onError: (error) => {
+      console.error("Error updating notes:", error);
+      toast({
+        title: "Error updating notes",
         description: error.message,
         variant: "destructive",
       });
@@ -1419,7 +1457,14 @@ export function AppointmentDetailsDialog({
               {isEditing ? (
                 <textarea 
                   value={formData.notes || ''}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  onChange={(e) => {
+                    // Update local form state
+                    handleInputChange('notes', e.target.value);
+                    
+                    // Use the dedicated notes mutation for real-time updates
+                    // This sends updates immediately without requiring a form save
+                    updateNotesMutation.mutate(e.target.value);
+                  }}
                   className="w-full h-24 p-2 text-sm rounded border border-input"
                   placeholder="Add notes about this appointment..."
                 />
