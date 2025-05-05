@@ -827,7 +827,7 @@ export default function UnifiedAppointmentForm({
               </div>
               
               {/* Standard Questions - Step 1 */}
-              {appointmentTypeId && standardQuestions.length > 0 && (
+              {appointmentTypeId && standardQuestions && standardQuestions.filter(q => q.included).length > 0 && (
                 <div className="space-y-4 mt-4 border-t pt-4">
                   <h3 className="text-lg font-medium">Additional Information</h3>
                   <StandardQuestionsFormFields
@@ -1105,7 +1105,7 @@ export default function UnifiedAppointmentForm({
               </div>
               
               {/* Standard Questions - Step 2 */}
-              {appointmentTypeId && standardQuestions.length > 0 && (
+              {appointmentTypeId && standardQuestions && standardQuestions.filter(q => q.included).length > 0 && (
                 <div className="space-y-4 mt-4 border-t pt-4">
                   <h3 className="text-lg font-medium">Additional Information</h3>
                   <StandardQuestionsFormFields
