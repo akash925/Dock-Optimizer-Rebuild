@@ -631,17 +631,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/docks/:id", checkRole(["admin", "manager"]), async (req, res) => {
     try {
       const id = Number(req.params.id);
-      console.log(`Attempting to delete dock ID: ${id}`);
+      const tenantId = req.user?.tenantId;
+      const isSuperAdmin = req.user?.username?.includes('admin@conmitto.io') || false;
       
+      console.log(`[DeleteDock] Attempting to delete dock ID: ${id}, tenant ID: ${tenantId || 'none'}, isSuperAdmin: ${isSuperAdmin}`);
+      
+      // First get the dock to check if it exists
       const dock = await storage.getDock(id);
       if (!dock) {
+        console.log(`[DeleteDock] Dock ID ${id} not found`);
         return res.status(404).json({ message: "Dock not found" });
+      }
+      
+      // Check if user has access to this dock's facility
+      if (dock.facilityId) {
+        const facility = await checkTenantFacilityAccess(
+          dock.facilityId,
+          tenantId,
+          isSuperAdmin,
+          'DeleteDock'
+        );
+        
+        if (!facility && !isSuperAdmin) {
+          console.log(`[DeleteDock] Access denied - dock ID ${id} facility ${dock.facilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ message: "Access denied to this dock" });
+        }
+      } else if (!isSuperAdmin) {
+        console.log(`[DeleteDock] Access denied - dock ID ${id} has no facility ID`);
+        return res.status(403).json({ message: "Access denied to this dock" });
       }
       
       // Check if there are any scheduled appointments using this dock
       const dockSchedules = await storage.getSchedulesByDock(id);
       if (dockSchedules.length > 0) {
-        console.log(`Cannot delete dock ID ${id}: ${dockSchedules.length} existing schedules`);
+        console.log(`[DeleteDock] Cannot delete dock ID ${id}: ${dockSchedules.length} existing schedules`);
         return res.status(409).json({ 
           message: "Cannot delete dock with existing schedules", 
           count: dockSchedules.length
@@ -651,14 +674,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete the dock
       const success = await storage.deleteDock(id);
       if (!success) {
-        console.error(`Failed to delete dock ID ${id} from storage`);
+        console.error(`[DeleteDock] Failed to delete dock ID ${id} from storage`);
         return res.status(500).json({ message: "Failed to delete dock" });
       }
       
-      console.log(`Successfully deleted dock ID: ${id}`);
+      console.log(`[DeleteDock] Successfully deleted dock ID: ${id}`);
       res.status(204).send();
     } catch (err) {
-      console.error("Error deleting dock:", err);
+      console.error("[DeleteDock] Error deleting dock:", err);
       res.status(500).json({ 
         message: "Failed to delete dock",
         error: err instanceof Error ? err.message : "Unknown error"
