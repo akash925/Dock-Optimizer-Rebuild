@@ -6593,7 +6593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Error retrieving booking page details" });
       }
       
-      const tenantId = bookingPage.tenantId;
+      const tenantId = bookingPage.tenant_id; // Use tenant_id directly from database column
       console.log(`[PublicAvailability] Using booking page tenant context: ${tenantId}`);
       
       // Parse parameters
