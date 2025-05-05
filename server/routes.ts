@@ -6630,9 +6630,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get existing appointments for the specified date and facility
       // Direct SQL query since this function isn't in our storage interface yet
       const existingAppointmentsQuery = `
-        SELECT * FROM appointments 
+        SELECT * FROM schedules 
         WHERE DATE(start_time) = $1 
-        AND facility_id = $2
+        AND dock_id IN (
+          SELECT id FROM docks WHERE facility_id = $2
+        )
       `;
       const { rows: existingAppointments } = await pool.query(existingAppointmentsQuery, [parsedDate, parsedFacilityId]);
       
@@ -6645,17 +6647,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const intervalMinutes = facilitySettings?.timeInterval || 30;
       
       // Generate all possible time slots for the day
+      function generateTimeSlots(start, end, intervalMins) {
+        const slots = [];
+        let current = start;
+        
+        while (current <= end) {
+          // Add current time to slots
+          slots.push(current);
+          
+          // Parse hours and minutes
+          let [hours, minutes] = current.split(':').map(Number);
+          
+          // Add interval
+          minutes += intervalMins;
+          
+          // Handle hour rollover
+          if (minutes >= 60) {
+            hours += Math.floor(minutes / 60);
+            minutes %= 60;
+          }
+          
+          // Format the new time
+          current = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+        
+        return slots;
+      }
+      
       const allTimeSlots = generateTimeSlots(startTime, endTime, intervalMinutes);
       
       // Calculate available slots
-      const availableSlots = getAvailableTimeSlots(
-        parsedDate,
-        allTimeSlots, 
-        existingAppointments, 
-        facility, 
-        appointmentType, 
-        facilitySettings
-      );
+      const availableSlots = [];
+      
+      // Process each time slot to determine availability
+      allTimeSlots.forEach(timeStr => {
+        // Convert HH:MM string to a Date object for comparison
+        const slotTime = new Date(`${parsedDate}T${timeStr}:00`);
+        const slotEndTime = new Date(slotTime.getTime() + (appointmentType.duration * 60 * 1000));
+        
+        // Default dock count for this appointment type
+        let maxDockCount;
+        if (appointmentType.type === 'INBOUND') {
+          maxDockCount = facilitySettings?.maxConcurrentInbound || 1;
+        } else if (appointmentType.type === 'OUTBOUND') {
+          maxDockCount = facilitySettings?.maxConcurrentOutbound || 1;
+        } else {
+          maxDockCount = 1; // Default for other types
+        }
+        
+        // Count appointments that overlap with this time slot
+        const overlappingAppointments = existingAppointments.filter(appt => {
+          const apptStartTime = new Date(appt.start_time);
+          const apptEndTime = new Date(appt.end_time);
+          return (
+            (slotTime <= apptEndTime && slotEndTime >= apptStartTime) && 
+            (appt.status !== 'cancelled' && appt.status !== 'rejected')
+          );
+        });
+        
+        // Check if we have capacity left
+        const availableDockCount = Math.max(0, maxDockCount - overlappingAppointments.length);
+        
+        if (availableDockCount > 0) {
+          availableSlots.push({
+            time: timeStr,
+            available: true,
+            remainingCapacity: availableDockCount,
+            remaining: availableDockCount, // For compatibility
+            reason: ""
+          });
+        } else {
+          availableSlots.push({
+            time: timeStr,
+            available: false,
+            remainingCapacity: 0,
+            remaining: 0,
+            reason: "No available docks"
+          });
+        }
+      });
       
       return res.json(availableSlots);
     } catch (error) {
