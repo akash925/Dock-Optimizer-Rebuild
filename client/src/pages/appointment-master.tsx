@@ -726,7 +726,8 @@ export default function AppointmentMaster() {
                                     // Load custom questions for this appointment type
                                     loadCustomQuestionsForAppointmentType(appointmentTypeId);
                                     
-                                    setAppointmentTypeFormStep(1);
+                                    // Changed from step 1 to step 3 to show questions tab by default
+                                    setAppointmentTypeFormStep(3);
                                     setShowNewAppointmentTypeDialog(true);
                                   }}>
                                     <Pencil className="h-4 w-4 mr-2" />
