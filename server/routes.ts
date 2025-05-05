@@ -6225,6 +6225,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Door successfully released: schedule ${id} dockId is now null (was ${originalDockId})`);
       }
       
+      // Get additional schedule data needed for email notification
+      try {
+        // Get the enhanced schedule with all related data
+        const enhancedSchedule = await storage.getEnhancedSchedule(id);
+        
+        if (enhancedSchedule) {
+          console.log(`[Door Release] Retrieved enhanced schedule data for email notification`);
+          
+          // Try to get the contact email from the schedule data
+          let contactEmail = null;
+          
+          // First try customer email
+          if (enhancedSchedule.customerEmail) {
+            contactEmail = enhancedSchedule.customerEmail;
+            console.log(`[Door Release] Using customer email for notification: ${contactEmail}`);
+          } 
+          // Fall back to carrier email
+          else if (enhancedSchedule.carrierEmail) {
+            contactEmail = enhancedSchedule.carrierEmail;
+            console.log(`[Door Release] Using carrier email for notification: ${contactEmail}`);
+          }
+          // Fall back to driver email if available
+          else if (enhancedSchedule.driverEmail) {
+            contactEmail = enhancedSchedule.driverEmail;
+            console.log(`[Door Release] Using driver email for notification: ${contactEmail}`);
+          }
+          
+          // Find or generate confirmation code
+          const confirmationCode = enhancedSchedule.confirmationCode || 
+            `${enhancedSchedule.id}-${new Date().getTime().toString().substring(9)}`;
+          
+          // If we have an email, send the checkout completion notification
+          if (contactEmail) {
+            // Import the sendCheckoutCompletionEmail function
+            const { sendCheckoutCompletionEmail } = await import('./checkout-notification');
+            
+            try {
+              console.log(`[Door Release] Sending checkout completion email to ${contactEmail}`);
+              
+              // Send the completion email
+              await sendCheckoutCompletionEmail(
+                contactEmail,
+                confirmationCode,
+                enhancedSchedule
+              );
+              console.log(`[Door Release] Successfully sent checkout completion email to ${contactEmail}`);
+            } catch (emailError) {
+              console.error(`[Door Release] Failed to send checkout completion email:`, emailError);
+              // Non-blocking error, continue with the door release process
+            }
+          } else {
+            console.log(`[Door Release] No contact email found for checkout notification`);
+          }
+        } else {
+          console.warn(`[Door Release] Could not retrieve enhanced schedule data for notification`);
+        }
+      } catch (notificationError) {
+        console.error(`[Door Release] Error preparing notification:`, notificationError);
+        // Non-blocking error, continue with the door release process
+      }
+      
+      // Broadcast the door release via WebSockets for real-time updates
+      if (app.locals.broadcastScheduleUpdate) {
+        console.log(`[WebSocket] Broadcasting door release: Schedule ${id}`);
+        const finalSchedule = await storage.getSchedule(id);
+        app.locals.broadcastScheduleUpdate({
+          ...(finalSchedule || updatedSchedule),
+          tenantId: req.user?.tenantId
+        });
+      }
+      
       // Return complete updated schedule with photo information and ensure dockId is null
       const finalSchedule = await storage.getSchedule(id);
       res.json({
