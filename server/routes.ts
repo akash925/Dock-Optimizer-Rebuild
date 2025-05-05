@@ -6572,11 +6572,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[PublicAvailability] Request with bookingPageSlug: ${bookingPageSlug}`);
       
-      // Get the booking page to determine its tenant
-      const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
-      if (!bookingPage || !bookingPage.tenantId) {
-        console.log(`[PublicAvailability] No valid booking page found for slug: ${bookingPageSlug}`);
-        return res.status(404).json({ message: "Booking page not found" });
+      // Get the booking page to determine its tenant with direct SQL
+      let bookingPage = null;
+      try {
+        const bookingPageQuery = `
+          SELECT * FROM booking_pages
+          WHERE slug = $1
+          LIMIT 1
+        `;
+        const { rows } = await pool.query(bookingPageQuery, [bookingPageSlug]);
+        bookingPage = rows.length > 0 ? rows[0] : null;
+        console.log("[PublicAvailability] Booking page details:", bookingPage);
+        
+        if (!bookingPage || !bookingPage.tenant_id) {
+          console.log(`[PublicAvailability] No valid booking page found for slug: ${bookingPageSlug}`);
+          return res.status(404).json({ message: "Booking page not found" });
+        }
+      } catch (error) {
+        console.error("[PublicAvailability] Error getting booking page details:", error);
+        return res.status(500).json({ message: "Error retrieving booking page details" });
       }
       
       const tenantId = bookingPage.tenantId;
@@ -6613,18 +6627,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Get the appointment type to determine duration and other settings
-      const appointmentType = await storage.getAppointmentType(parsedAppointmentTypeId, tenantId);
-      if (!appointmentType) {
-        console.log(`[PublicAvailability] Appointment type ${parsedAppointmentTypeId} not found for tenant ${tenantId}`);
-        return res.status(404).json({ message: "Appointment type not found" });
+      // Get the appointment type to determine duration and other settings using direct SQL
+      let appointmentType = null;
+      try {
+        const appointmentTypeQuery = `
+          SELECT * FROM appointment_types
+          WHERE id = $1 AND tenant_id = $2
+          LIMIT 1
+        `;
+        const { rows } = await pool.query(appointmentTypeQuery, [parsedAppointmentTypeId, tenantId]);
+        appointmentType = rows.length > 0 ? rows[0] : null;
+        console.log("[PublicAvailability] Appointment type:", appointmentType);
+        
+        if (!appointmentType) {
+          console.log(`[PublicAvailability] Appointment type ${parsedAppointmentTypeId} not found for tenant ${tenantId}`);
+          return res.status(404).json({ message: "Appointment type not found" });
+        }
+      } catch (error) {
+        console.error("[PublicAvailability] Error getting appointment type:", error);
+        return res.status(500).json({ message: "Error retrieving appointment type" });
       }
       
-      // Get the facility details
-      const facility = await storage.getFacility(parsedFacilityId);
-      if (!facility) {
-        console.log(`[PublicAvailability] Facility ${parsedFacilityId} not found`);
-        return res.status(404).json({ message: "Facility not found" });
+      // Get the facility details using direct SQL
+      let facility = null;
+      try {
+        const facilityQuery = `
+          SELECT * FROM facilities
+          WHERE id = $1
+          LIMIT 1
+        `;
+        const { rows } = await pool.query(facilityQuery, [parsedFacilityId]);
+        facility = rows.length > 0 ? rows[0] : null;
+        console.log("[PublicAvailability] Facility details:", facility);
+        
+        if (!facility) {
+          console.log(`[PublicAvailability] Facility ${parsedFacilityId} not found`);
+          return res.status(404).json({ message: "Facility not found" });
+        }
+      } catch (error) {
+        console.error("[PublicAvailability] Error getting facility details:", error);
+        return res.status(500).json({ message: "Error retrieving facility details" });
       }
       
       // Get existing appointments for the specified date and facility
@@ -6638,8 +6680,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `;
       const { rows: existingAppointments } = await pool.query(existingAppointmentsQuery, [parsedDate, parsedFacilityId]);
       
-      // Get facility settings (or use defaults)
-      const facilitySettings = await storage.getFacilitySettings(parsedFacilityId);
+      // Get facility settings using direct SQL (or use defaults)
+      let facilitySettings = null;
+      try {
+        const facilitySettingsQuery = `
+          SELECT * FROM appointment_settings
+          WHERE facility_id = $1
+          LIMIT 1
+        `;
+        const { rows } = await pool.query(facilitySettingsQuery, [parsedFacilityId]);
+        facilitySettings = rows.length > 0 ? rows[0] : null;
+        console.log("[PublicAvailability] Facility settings:", facilitySettings);
+      } catch (error) {
+        console.warn("[PublicAvailability] Error getting facility settings:", error);
+        // Continue with defaults if needed
+      }
       
       // Calculate availability
       const startTime = "00:00";
