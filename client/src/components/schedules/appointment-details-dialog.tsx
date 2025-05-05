@@ -446,10 +446,24 @@ export function AppointmentDetailsDialog({
       // Immediately update the local state to reflect check-out
       if (appointment) {
         // Update the appointment data with the server response
-        Object.assign(appointment, data);
+        // First make a deep copy to ensure all the properties get updated
+        const updatedAppointment = { ...data };
+        
+        // Ensure the status is explicitly set to "completed"
+        updatedAppointment.status = "completed";
+        
+        // Then assign all properties to the original appointment reference
+        Object.assign(appointment, updatedAppointment);
+        
+        console.log("Appointment status after checkout:", appointment.status);
       }
+      
+      // Explicitly close the check-out dialog
+      setShowCheckOutDialog(false);
+      
       // Then invalidate the queries to fetch fresh data
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      
       toast({
         title: "Appointment completed",
         description: "The appointment has been marked as completed",
@@ -459,6 +473,7 @@ export function AppointmentDetailsDialog({
       setShowCheckOutTimeInput(false);
       setCheckOutNotes("");
       setCheckOutPhotoPath(null);
+      setUploadedFile(null);
     },
     onError: (error) => {
       toast({

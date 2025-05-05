@@ -266,11 +266,11 @@ This is an automated message, please do not reply directly to this email.
       await sgMail.send(msg);
       console.log(`[EMAIL] Successfully sent check-out completion email to ${to}`);
       return true;
-    } catch (sendError) {
+    } catch (sendError: any) {
       console.error('[EMAIL] SendGrid error sending check-out completion email:', sendError);
       
       // Provide more detailed error information for debugging
-      if (sendError.response) {
+      if (sendError && sendError.response) {
         console.error('[EMAIL] SendGrid API error response:', {
           body: sendError.response.body,
           statusCode: sendError.response.statusCode
@@ -325,10 +325,33 @@ export async function sendEmail(params: {
       attachments: params.attachments || []
     };
     
-    await sgMail.send(msg);
-    return true;
-  } catch (error) {
-    console.error('[EMAIL] Error sending email:', error);
+    try {
+      await sgMail.send(msg);
+      console.log(`[EMAIL] Successfully sent email to ${params.to} with subject: ${params.subject}`);
+      return true;
+    } catch (sendError: any) {
+      console.error('[EMAIL] SendGrid error sending email:', sendError);
+      
+      // Provide more detailed error information for debugging
+      if (sendError && sendError.response) {
+        console.error('[EMAIL] SendGrid API error response:', {
+          body: sendError.response.body,
+          statusCode: sendError.response.statusCode
+        });
+      }
+      
+      // Return false but continue the app flow
+      return false;
+    }
+  } catch (error: any) {
+    console.error('[EMAIL] Error preparing email:', error);
+    console.error('[EMAIL] Message details:', {
+      to: params.to,
+      subject: params.subject,
+      hasHtml: !!params.html,
+      hasText: !!params.text,
+      hasAttachments: !!(params.attachments && params.attachments.length > 0)
+    });
     return false;
   }
 }
