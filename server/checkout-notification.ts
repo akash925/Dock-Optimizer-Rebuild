@@ -262,12 +262,30 @@ This is an automated message, please do not reply directly to this email.
     }
     
     // Send the email
-    await sgMail.send(msg);
-    console.log(`[EMAIL] Successfully sent check-out completion email to ${to}`);
-    
-    return true;
+    try {
+      await sgMail.send(msg);
+      console.log(`[EMAIL] Successfully sent check-out completion email to ${to}`);
+      return true;
+    } catch (sendError) {
+      console.error('[EMAIL] SendGrid error sending check-out completion email:', sendError);
+      
+      // Provide more detailed error information for debugging
+      if (sendError.response) {
+        console.error('[EMAIL] SendGrid API error response:', {
+          body: sendError.response.body,
+          statusCode: sendError.response.statusCode
+        });
+      }
+      
+      // Even if sending fails, return the content so the checkout process completes
+      console.log('[EMAIL] Returning email content for checkout process to continue');
+      return {
+        html: htmlContent,
+        text: textContent
+      };
+    }
   } catch (error) {
-    console.error('[EMAIL] Error sending check-out completion email:', error);
+    console.error('[EMAIL] Error preparing check-out completion email:', error);
     return false;
   }
 }
