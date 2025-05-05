@@ -26,9 +26,13 @@ export async function getHeatmapData(req: Request, res: Response) {
     
     console.log(`[Analytics] getHeatmapData: Using tenant ID ${tenantId}`);
     
-    // Build dynamic WHERE clause based on filter params
-    // Use tenant_id directly since facility_id is not available in schedules table
-    let whereClause = sql`WHERE s.tenant_id = ${tenantId}`;
+    // Build the WHERE clause based on tenant isolation through dock -> facility -> organization
+    let whereClause = sql`WHERE EXISTS (
+      SELECT 1 FROM ${docks} d
+      JOIN ${facilities} f ON d.facility_id = f.id
+      JOIN ${organizationFacilities} of ON f.id = of.facility_id
+      WHERE d.id = s.dock_id AND of.organization_id = ${tenantId}
+    )`;
     
     if (appointmentTypeId) {
       whereClause = sql`${whereClause} AND s.appointment_type_id = ${appointmentTypeId}`;
@@ -56,7 +60,7 @@ export async function getHeatmapData(req: Request, res: Response) {
       whereClause = sql`${whereClause} AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
     }
     
-    console.log('[Analytics] getHeatmapData: Using tenant-based filtering for schedules');
+    console.log('[Analytics] getHeatmapData: Using dock-facility-organization relationship for tenant isolation');
     
     // Query to aggregate appointments by day and hour with tenant isolation
     const heatmapData = await db.execute(sql`
@@ -94,59 +98,65 @@ export async function getFacilityStats(req: Request, res: Response) {
       return res.status(400).json({ error: 'No tenant ID associated with user' });
     }
     
-    const effectiveTenantId = tenantId;
-    console.log(`[Analytics] Using tenant ID ${effectiveTenantId} for facility stats`);
+    console.log(`[Analytics] Using tenant ID ${tenantId} for facility stats`);
     
     // First, directly check if there are any facilities for this tenant
     const tenantFacilities = await db.select({ id: facilities.id, name: facilities.name })
       .from(facilities)
       .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
-      .where(eq(organizationFacilities.organizationId, effectiveTenantId));
+      .where(eq(organizationFacilities.organizationId, tenantId));
     
-    console.log(`[Analytics] Initial check found ${tenantFacilities.length} facilities for tenant ${effectiveTenantId}`);
+    console.log(`[Analytics] Initial check found ${tenantFacilities.length} facilities for tenant ${tenantId}`);
     
     if (!tenantFacilities.length) {
-      console.log(`[Analytics] No facilities found for tenant ${effectiveTenantId}, returning empty array`);
+      console.log(`[Analytics] No facilities found for tenant ${tenantId}, returning empty array`);
       return res.json([]);
     }
     
-    // Build WHERE clauses for date filtering with tenant isolation using the junction table
-    let whereClause = sql`WHERE of.organization_id = ${effectiveTenantId}`;
+    // Build date filter SQL fragment
+    let dateFilter = '';
     
-    // Add date range filtering
     if (startDate && endDate) {
-      whereClause = sql`${whereClause} AND (s.start_time >= ${startDate} AND s.start_time <= ${endDate})`;
+      dateFilter = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
     } else if (startDate) {
-      whereClause = sql`${whereClause} AND s.start_time >= ${startDate}`;
+      dateFilter = ` AND s.start_time >= '${startDate}'`;
     } else if (endDate) {
-      whereClause = sql`${whereClause} AND s.start_time <= ${endDate}`;
+      dateFilter = ` AND s.start_time <= '${endDate}'`;
     } else {
       // Default to last 7 days if no date range specified
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      whereClause = sql`${whereClause} AND (s.start_time IS NULL OR s.start_time >= ${sevenDaysAgo.toISOString()})`;
+      dateFilter = ` AND (s.start_time IS NULL OR s.start_time >= '${sevenDaysAgo.toISOString()}')`;
     }
     
-    console.log('[Analytics] Executing facility stats query with tenant isolation');
+    console.log('[Analytics] Executing facility stats query using dock-facility-organization relationship');
     
-    // Query to get appointment counts by facility location with date filtering and tenant isolation
-    // Note: schedules table doesn't have facility_id column - using tenant_id instead
-    console.log('[Analytics] Using tenant-based filtering for schedules in facility stats');
-    const facilityStats = await db.execute(sql`
-      SELECT 
+    // Using a simpler approach with raw SQL to avoid drizzle-orm SQL composition complexity
+    const query = `
+      SELECT
         f.id,
         f.name,
         f.address1 as address,
         COUNT(s.id) as "appointmentCount"
-      FROM ${facilities} f
-      JOIN ${organizationFacilities} of ON f.id = of.facility_id
-      LEFT JOIN ${schedules} s ON s.tenant_id = ${effectiveTenantId}
-      ${whereClause}
-      GROUP BY f.id, f.name, f.address1
-      ORDER BY "appointmentCount" DESC
-    `);
+      FROM
+        facilities f
+      JOIN
+        organization_facilities of ON f.id = of.facility_id
+      LEFT JOIN
+        docks d ON d.facility_id = f.id
+      LEFT JOIN
+        schedules s ON s.dock_id = d.id ${dateFilter}
+      WHERE
+        of.organization_id = ${tenantId}
+      GROUP BY
+        f.id, f.name, f.address1
+      ORDER BY
+        "appointmentCount" DESC
+    `;
+    
+    const facilityStats = await db.execute(query);
 
-    console.log(`[Analytics] Found ${facilityStats.rows.length} facilities for tenant ${effectiveTenantId}`);
+    console.log(`[Analytics] Found ${facilityStats.rows.length} facilities for tenant ${tenantId}`);
     return res.json(facilityStats.rows);
   } catch (error) {
     console.error('Error fetching facility stats:', error);
@@ -185,38 +195,44 @@ export async function getCarrierStats(req: Request, res: Response) {
       return res.json([]);
     }
     
-    // Build date filter SQL fragment with parameterized values for safety
-    let dateFilter;
+    // Build date filter for query
+    let dateFilter = '';
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
     if (startDate && endDate) {
-      dateFilter = sql` AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
+      dateFilter = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
     } else if (startDate) {
-      dateFilter = sql` AND s.start_time >= ${startDate}`;
+      dateFilter = ` AND s.start_time >= '${startDate}'`;
     } else if (endDate) {
-      dateFilter = sql` AND s.start_time <= ${endDate}`;
+      dateFilter = ` AND s.start_time <= '${endDate}'`;
     } else {
       // Default to last 7 days if no date range specified
-      dateFilter = sql` AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
+      dateFilter = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
     }
     
+    // Using raw SQL for better control over the query
+    const query = `
+      SELECT 
+        c.id,
+        c.name,
+        COUNT(s.id) as "appointmentCount"
+      FROM carriers c
+      LEFT JOIN schedules s ON c.id = s.carrier_id
+      LEFT JOIN docks d ON s.dock_id = d.id
+      LEFT JOIN facilities f ON d.facility_id = f.id
+      LEFT JOIN organization_facilities of ON f.id = of.facility_id
+      WHERE 
+        (s.id IS NULL OR of.organization_id = ${tenantId}) ${dateFilter}
+      GROUP BY c.id, c.name
+      ORDER BY "appointmentCount" DESC
+      LIMIT 10
+    `;
+
+    console.log('[Analytics] getCarrierStats: Using dock-facility-organization relationship');
+    
     try {
-      // Use tenant_id for filtering schedules
-      console.log('[Analytics] getCarrierStats: Using tenant-based filtering');
-      
-      // Modified query to handle carriers with no appointments using tenant_id
-      const carrierStats = await db.execute(sql`
-        SELECT 
-          c.id,
-          c.name,
-          COUNT(s.id) as "appointmentCount"
-        FROM ${carriers} c
-        LEFT JOIN ${schedules} s ON c.id = s.carrier_id AND s.tenant_id = ${tenantId} ${dateFilter}
-        GROUP BY c.id, c.name
-        ORDER BY "appointmentCount" DESC
-        LIMIT 10
-      `);
+      const carrierStats = await db.execute(query);
 
       console.log(`[Analytics] getCarrierStats: Successfully retrieved ${carrierStats.rows.length} carriers`);
       return res.json(carrierStats.rows);
@@ -249,38 +265,49 @@ export async function getCustomerStats(req: Request, res: Response) {
     
     console.log(`[Analytics] getCustomerStats: Using tenant ID ${tenantId}`);
     
-    // Build date filter SQL fragment
-    let dateFilter;
+    // Build date filter for query
+    let dateFilter = '';
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
     if (startDate && endDate) {
-      dateFilter = sql` AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
+      dateFilter = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
     } else if (startDate) {
-      dateFilter = sql` AND s.start_time >= ${startDate}`;
+      dateFilter = ` AND s.start_time >= '${startDate}'`;
     } else if (endDate) {
-      dateFilter = sql` AND s.start_time <= ${endDate}`;
+      dateFilter = ` AND s.start_time <= '${endDate}'`;
     } else {
       // Default to last 7 days if no date range specified
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      dateFilter = sql` AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
+      dateFilter = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
     }
     
+    // Using raw SQL for better control over the query
+    const query = `
+      SELECT 
+        COALESCE(s.customer_name, 'Unknown') as id,
+        COALESCE(s.customer_name, 'Unknown') as name,
+        COUNT(s.id) as "appointmentCount"
+      FROM 
+        schedules s
+      JOIN 
+        docks d ON s.dock_id = d.id
+      JOIN 
+        facilities f ON d.facility_id = f.id
+      JOIN 
+        organization_facilities of ON f.id = of.facility_id
+      WHERE 
+        of.organization_id = ${tenantId} ${dateFilter}
+      GROUP BY 
+        s.customer_name
+      ORDER BY 
+        "appointmentCount" DESC
+      LIMIT 10
+    `;
+    
+    console.log('[Analytics] getCustomerStats: Using dock-facility-organization relationship');
+    
     try {
-      // Using tenant_id for filtering schedules
-      console.log('[Analytics] getCustomerStats: Using tenant-based filtering');
-      
-      // Query to get appointment counts by customer name with tenant isolation
-      const customerStats = await db.execute(sql`
-        SELECT 
-          COALESCE(s.customer_name, 'Unknown') as id,
-          COALESCE(s.customer_name, 'Unknown') as name,
-          COUNT(s.id) as "appointmentCount"
-        FROM ${schedules} s
-        WHERE s.tenant_id = ${tenantId}
-        ${dateFilter}
-        GROUP BY s.customer_name
-        ORDER BY "appointmentCount" DESC
-        LIMIT 10
-      `);
+      const customerStats = await db.execute(query);
 
       console.log(`[Analytics] getCustomerStats: Successfully retrieved ${customerStats.rows.length} customers`);
       return res.json(customerStats.rows);
@@ -313,36 +340,47 @@ export async function getAttendanceStats(req: Request, res: Response) {
     
     console.log(`[Analytics] getAttendanceStats: Using tenant ID ${tenantId}`);
     
-    // Build date filter SQL fragment
-    let dateFilter;
+    // Build date filter for query
+    let dateFilter = '';
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
     if (startDate && endDate) {
-      dateFilter = sql` AND s.start_time >= ${startDate} AND s.start_time <= ${endDate}`;
+      dateFilter = ` AND s.start_time >= '${startDate}' AND s.start_time <= '${endDate}'`;
     } else if (startDate) {
-      dateFilter = sql` AND s.start_time >= ${startDate}`;
+      dateFilter = ` AND s.start_time >= '${startDate}'`;
     } else if (endDate) {
-      dateFilter = sql` AND s.start_time <= ${endDate}`;
+      dateFilter = ` AND s.start_time <= '${endDate}'`;
     } else {
       // Default to last 7 days if no date range specified
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      dateFilter = sql` AND s.start_time >= ${sevenDaysAgo.toISOString()}`;
+      dateFilter = ` AND s.start_time >= '${sevenDaysAgo.toISOString()}'`;
     }
     
+    // Using raw SQL for better control over the query
+    const query = `
+      SELECT 
+        COALESCE(s.status, 'Not Reported') as "attendanceStatus",
+        COUNT(*) as count
+      FROM 
+        schedules s
+      JOIN 
+        docks d ON s.dock_id = d.id
+      JOIN 
+        facilities f ON d.facility_id = f.id
+      JOIN 
+        organization_facilities of ON f.id = of.facility_id
+      WHERE 
+        of.organization_id = ${tenantId} ${dateFilter}
+      GROUP BY 
+        s.status
+      ORDER BY 
+        count DESC
+    `;
+    
+    console.log('[Analytics] getAttendanceStats: Using dock-facility-organization relationship');
+    
     try {
-      // Use tenant_id for filtering schedules
-      console.log('[Analytics] getAttendanceStats: Using tenant-based filtering');
-      
-      // Query using a tenant ID filter 
-      const attendanceStats = await db.execute(sql`
-        SELECT 
-          COALESCE(s.status, 'Not Reported') as "attendanceStatus",
-          COUNT(*) as count
-        FROM ${schedules} s
-        WHERE s.tenant_id = ${tenantId}
-        ${dateFilter}
-        GROUP BY s.status
-        ORDER BY count DESC
-      `);
+      const attendanceStats = await db.execute(query);
 
       console.log(`[Analytics] getAttendanceStats: Successfully retrieved ${attendanceStats.rows.length} attendance status records`);
       return res.json(attendanceStats.rows);
