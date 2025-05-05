@@ -60,8 +60,7 @@ export function StandardQuestionsFormFields({
   return (
     <div className="space-y-4">
       {sortedQuestions
-        // Show all questions for now to debug, we'll put the filter back later if needed
-        //.filter(q => q.included) // Only show questions that are included
+        // Show all questions in appointment master, but in external booking wizard, only use included ones
         .map((question) => {
           // Use the field key as the name in the form
           const fieldName = `customFields.${question.fieldKey}`;

@@ -1279,7 +1279,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
   
   // Get the standard questions through the standardized hook
   const { 
-    standardQuestions, 
+    questions: standardQuestions, 
     isLoading: questionsLoading, 
     error: questionsError 
   } = useStandardQuestions({
@@ -1771,6 +1771,14 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
                 isLoading={questionsLoading}
               />
             </>
+          )}
+          
+          {/* If no standard questions, show a debugging message */}
+          {(standardQuestions === undefined || standardQuestions.length === 0) && (
+            <div className="p-4 my-4 rounded-md bg-yellow-50 border border-yellow-200">
+              <p className="text-sm font-medium">No Standard Questions Available</p>
+              <p className="text-xs mt-1">Questions should be configured in the Appointment Master.</p>
+            </div>
           )}
           
           <div className="booking-nav-buttons">

@@ -13,22 +13,29 @@ interface UpdateStandardQuestionParams {
 }
 
 export function useStandardQuestions({ appointmentTypeId, bookingPageSlug }: UseStandardQuestionsProps) {
+  console.log(`[useStandardQuestions] Initializing hook with appointmentTypeId: ${appointmentTypeId}, bookingPageSlug: ${bookingPageSlug}`);
+  
   const { data: questions, isLoading, error } = useQuery({
     queryKey: ['standard-questions', appointmentTypeId, bookingPageSlug],
     queryFn: async () => {
       if (!appointmentTypeId) {
+        console.log(`[useStandardQuestions] No appointmentTypeId, returning empty array`);
         return [];
       }
       
-      let url = `/api/standard-questions/${appointmentTypeId}`;
+      let url = `/api/standard-questions/appointment-type/${appointmentTypeId}`; // <-- Updated to use appointment-type path
       
       // Add booking page slug as a query parameter if provided
       if (bookingPageSlug) {
         url += `?bookingPageSlug=${encodeURIComponent(bookingPageSlug)}`;
       }
       
+      console.log(`[useStandardQuestions] Fetching standard questions from: ${url}`);
+      
       const response = await apiRequest('GET', url);
       const data = await response.json();
+      
+      console.log(`[useStandardQuestions] Received ${data.length} questions for appointmentTypeId ${appointmentTypeId}:`, data);
       
       // Ensure options are correctly handled (convert from JSON string if needed)
       return data.map((question: any) => {
