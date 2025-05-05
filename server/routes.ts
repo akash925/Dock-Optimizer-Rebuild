@@ -1668,8 +1668,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get notes if provided
       const notes = req.body?.notes || schedule.notes;
       
-      // Get photo path if provided
-      const photoPath = req.body?.photoPath || null;
+      // Get photo path from request body
+      console.log("[Checkout] Request body:", req.body);
+      
+      // First check if customFormData was passed directly
+      let checkoutPhoto = null;
+      
+      if (req.body?.customFormData) {
+        try {
+          // Parse customFormData if it's a string
+          const customData = typeof req.body.customFormData === 'string' 
+            ? JSON.parse(req.body.customFormData) 
+            : req.body.customFormData;
+          
+          // Extract checkout photo path if it exists
+          if (customData.checkoutPhoto) {
+            checkoutPhoto = customData.checkoutPhoto;
+            console.log(`[Checkout] Found checkout photo in customFormData: ${checkoutPhoto}`);
+          }
+        } catch (e) {
+          console.warn("[Checkout] Error parsing customFormData from request:", e);
+        }
+      }
+      
+      // If no photo in customFormData, check direct photoPath property
+      if (!checkoutPhoto && req.body?.photoPath) {
+        checkoutPhoto = req.body.photoPath;
+        console.log(`[Checkout] Using photo path from request body: ${checkoutPhoto}`);
+      }
       
       // Parse existing custom form data (safely)
       let existingCustomFormData = {};
@@ -1677,8 +1703,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           existingCustomFormData = typeof schedule.customFormData === 'string' ?
             JSON.parse(schedule.customFormData) : schedule.customFormData;
+          console.log("[Checkout] Successfully parsed existing customFormData");
         } catch (e) {
-          console.warn("Failed to parse existing customFormData:", e);
+          console.warn("[Checkout] Failed to parse existing customFormData:", e);
         }
       }
       
@@ -1688,7 +1715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         checkoutTime: actualEndTime.toISOString(),
         checkoutBy: req.user?.id || null,
         checkoutNotes: notes,
-        checkoutPhoto: photoPath
+        checkoutPhoto: checkoutPhoto
       });
       
       // Store the original dock ID for reference

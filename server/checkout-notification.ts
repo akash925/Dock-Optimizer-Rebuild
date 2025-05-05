@@ -165,6 +165,8 @@ export async function sendCheckoutCompletionEmail(
             ${schedule.carrierName ? `<p><strong>Carrier:</strong> ${schedule.carrierName}</p>` : ''}
             ${schedule.customerName ? `<p><strong>Customer:</strong> ${schedule.customerName}</p>` : ''}
             ${schedule.driverName ? `<p><strong>Driver:</strong> ${schedule.driverName}</p>` : ''}
+            ${schedule.driverEmail ? `<p><strong>Driver Email:</strong> ${schedule.driverEmail}</p>` : ''}
+            ${schedule.creatorEmail ? `<p><strong>Creator Email:</strong> ${schedule.creatorEmail}</p>` : ''}
             ${schedule.truckNumber ? `<p><strong>Truck Number:</strong> ${schedule.truckNumber}</p>` : ''}
             ${schedule.trailerNumber ? `<p><strong>Trailer Number:</strong> ${schedule.trailerNumber}</p>` : ''}
             
@@ -219,6 +221,8 @@ ${schedule.type ? `Direction: ${schedule.type === 'inbound' ? 'Inbound (Delivery
 ${schedule.carrierName ? `Carrier: ${schedule.carrierName}` : ''}
 ${schedule.customerName ? `Customer: ${schedule.customerName}` : ''}
 ${schedule.driverName ? `Driver: ${schedule.driverName}` : ''}
+${schedule.driverEmail ? `Driver Email: ${schedule.driverEmail}` : ''}
+${schedule.creatorEmail ? `Creator Email: ${schedule.creatorEmail}` : ''}
 ${schedule.truckNumber ? `Truck Number: ${schedule.truckNumber}` : ''}
 ${schedule.trailerNumber ? `Trailer Number: ${schedule.trailerNumber}` : ''}
 

@@ -1373,6 +1373,18 @@ export function AppointmentDetailsDialog({
                 )}
               </div>
               <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Driver Email:</Label>
+                {isEditing ? (
+                  <Input 
+                    value={formData.driverEmail || ''} 
+                    onChange={(e) => handleInputChange('driverEmail', e.target.value)}
+                    className="h-8"
+                  />
+                ) : (
+                  <div className="font-medium">{appointment.driverEmail || "N/A"}</div>
+                )}
+              </div>
+              <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Truck Number:</Label>
                 {isEditing ? (
                   <Input 
@@ -1382,6 +1394,18 @@ export function AppointmentDetailsDialog({
                   />
                 ) : (
                   <div className="font-medium">{appointment.truckNumber || "N/A"}</div>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Creator Email:</Label>
+                {isEditing ? (
+                  <Input 
+                    value={formData.creatorEmail || ''} 
+                    onChange={(e) => handleInputChange('creatorEmail', e.target.value)}
+                    className="h-8"
+                  />
+                ) : (
+                  <div className="font-medium">{appointment.creatorEmail || "N/A"}</div>
                 )}
               </div>
             </div>
