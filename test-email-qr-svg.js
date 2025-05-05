@@ -1,4 +1,4 @@
-const { sendConfirmationEmail, sendRescheduleEmail, sendReminderEmail } = require('./server/notifications');
+import { sendConfirmationEmail, sendRescheduleEmail, sendReminderEmail } from './server/notifications.ts';
 
 // Create a test schedule
 const testSchedule = {
@@ -123,4 +123,7 @@ async function runTests() {
 }
 
 // Run the tests
-runTests();
+runTests().catch(error => {
+  console.error('Test execution failed:', error);
+  process.exit(1);
+});
