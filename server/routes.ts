@@ -1345,7 +1345,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log("PATCH /api/schedules/:id - Received data:", req.body);
-      console.log("Notes field in request:", req.body.notes);
+      
+      // Special logging for notes updates to help debug real-time issues
+      if (req.body.notes !== undefined) {
+        console.log(`[Notes Update] Schedule ${id} notes updated:`, req.body.notes);
+      }
       
       // Add the current user to lastModifiedBy field
       const rawData = { ...req.body };
@@ -1381,12 +1385,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updatedSchedule = await storage.updateSchedule(id, scheduleData);
       
+      // Get facility's organization info to determine tenantId
+      let tenantId = req.user?.tenantId;
+      if (!tenantId && schedule.facilityId) {
+        try {
+          const query = `
+            SELECT t.id FROM tenants t
+            JOIN organization_facilities of ON t.id = of.organization_id
+            WHERE of.facility_id = $1
+            LIMIT 1
+          `;
+          const result = await pool.query(query, [schedule.facilityId]);
+          if (result.rows.length > 0) {
+            tenantId = result.rows[0].id;
+            console.log(`[Schedule Update] Found tenant ID ${tenantId} for facility ${schedule.facilityId}`);
+          }
+        } catch (err) {
+          console.error('[Schedule Update] Error looking up tenant ID:', err);
+        }
+      }
+      
       // Broadcast the schedule update via WebSockets for real-time calendar updates
       if (app.locals.broadcastScheduleUpdate) {
-        console.log(`[WebSocket] Broadcasting schedule patch: ${id}`);
+        console.log(`[WebSocket] Broadcasting schedule patch: ${id}, Tenant: ${tenantId || 'unknown'}`);
+        
+        // Add notes change info to help debug via WebSocket logs
+        const extraInfo = req.body.notes !== undefined ? { notesUpdated: true } : {};
+        
         app.locals.broadcastScheduleUpdate({
           ...updatedSchedule,
-          tenantId: req.user?.tenantId
+          tenantId: tenantId,
+          ...extraInfo
         });
       }
       
@@ -1717,20 +1746,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Try to get the contact email from the schedule data
             let contactEmail = null;
             
-            // First try customer email
-            if (enhancedSchedule.customerEmail) {
-              contactEmail = enhancedSchedule.customerEmail;
-              console.log(`[Check-out] Using customer email for notification: ${contactEmail}`);
-            } 
-            // Fall back to carrier email
-            else if (enhancedSchedule.carrierEmail) {
-              contactEmail = enhancedSchedule.carrierEmail;
-              console.log(`[Check-out] Using carrier email for notification: ${contactEmail}`);
+            // First, check if a notification email was stored in customFormData
+            try {
+              const parsedCustomData = typeof enhancedSchedule.customFormData === 'string'
+                ? JSON.parse(enhancedSchedule.customFormData)
+                : enhancedSchedule.customFormData || {};
+                
+              if (parsedCustomData.notificationEmail) {
+                contactEmail = parsedCustomData.notificationEmail;
+                console.log(`[Check-out] Using stored notification email from customFormData: ${contactEmail}`);
+              }
+            } catch (e) {
+              console.warn('[Check-out] Error parsing customFormData to retrieve notification email:', e);
             }
-            // Fall back to driver email if available
-            else if (enhancedSchedule.driverEmail) {
-              contactEmail = enhancedSchedule.driverEmail;
-              console.log(`[Check-out] Using driver email for notification: ${contactEmail}`);
+            
+            // If no notification email found in customFormData, try other fields
+            if (!contactEmail) {
+              // First try customer email as primary contact
+              if (enhancedSchedule.customerEmail) {
+                contactEmail = enhancedSchedule.customerEmail;
+                console.log(`[Check-out] Using customer email for notification: ${contactEmail}`);
+              } 
+              // Fall back to carrier email
+              else if (enhancedSchedule.carrierEmail) {
+                contactEmail = enhancedSchedule.carrierEmail;
+                console.log(`[Check-out] Using carrier email for notification: ${contactEmail}`);
+              }
+              // Fall back to driver email if available
+              else if (enhancedSchedule.driverEmail) {
+                contactEmail = enhancedSchedule.driverEmail;
+                console.log(`[Check-out] Using driver email for notification: ${contactEmail}`);
+              }
             }
             
             // Find or generate confirmation code

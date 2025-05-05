@@ -1069,27 +1069,32 @@ export function AppointmentDetailsDialog({
                   <div className={`w-2 h-2 rounded-full ${appointment.actualStartTime ? "bg-emerald-500" : "bg-slate-300"}`}></div>
                   <div className="flex-1">
                     <h4 className="text-xs font-semibold">Check-In Time</h4>
-                    {appointment.actualStartTime ? (
+                    {(appointment.actualStartTime || appointment.status === "checked-in" || appointment.status === "in-progress" || appointment.status === "completed") ? (
                       <>
                         <div className="text-sm font-medium">
-                          {format(new Date(appointment.actualStartTime), timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a")}
+                          {appointment.actualStartTime 
+                            ? format(new Date(appointment.actualStartTime), timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a")
+                            : "Date/time not recorded"
+                          }
                         </div>
-                        <div className="flex flex-col mt-1">
-                          <div className="text-xs">
-                            <span className="font-medium">Your time:</span>{" "}
-                            {formatInUserTimeZone(new Date(appointment.actualStartTime), timeFormat === "24h" ? 'MM/dd/yyyy HH:mm' : 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                        {appointment.actualStartTime && (
+                          <div className="flex flex-col mt-1">
+                            <div className="text-xs">
+                              <span className="font-medium">Your time:</span>{" "}
+                              {formatInUserTimeZone(new Date(appointment.actualStartTime), timeFormat === "24h" ? 'MM/dd/yyyy HH:mm' : 'MM/dd/yyyy hh:mm a')} {getTimeZoneAbbreviation(getUserTimeZone())}
+                            </div>
+                            <div className="text-xs">
+                              <span className="font-medium">Facility time:</span>{" "}
+                              {formatInFacilityTimeZone(
+                                new Date(appointment.actualStartTime), 
+                                timeFormat === "24h" ? 'MM/dd/yyyy HH:mm' : 'MM/dd/yyyy hh:mm a',
+                                appointment.facilityId && appointment.facilityTimezone 
+                                  ? appointment.facilityTimezone 
+                                  : "America/New_York"
+                              )} {getTimeZoneAbbreviation(appointment.facilityTimezone || "America/New_York")}
+                            </div>
                           </div>
-                          <div className="text-xs">
-                            <span className="font-medium">Facility time:</span>{" "}
-                            {formatInFacilityTimeZone(
-                              new Date(appointment.actualStartTime), 
-                              timeFormat === "24h" ? 'MM/dd/yyyy HH:mm' : 'MM/dd/yyyy hh:mm a',
-                              appointment.facilityId && appointment.facilityTimezone 
-                                ? appointment.facilityTimezone 
-                                : "America/New_York"
-                            )} {getTimeZoneAbbreviation(appointment.facilityTimezone || "America/New_York")}
-                          </div>
-                        </div>
+                        )}
                         {appointment.lastModifiedBy && (
                           <p className="text-xs text-muted-foreground mt-1">
                             By: User ID {appointment.lastModifiedBy}
