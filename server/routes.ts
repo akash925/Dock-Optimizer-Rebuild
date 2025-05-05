@@ -139,8 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register admin routes
   adminRoutes(app);
   
-  // Register QR code routes
-  registerQrCodeRoutes(app);
+  // Register QR code routes (now handled below in try/catch)
   
   // Register organization modules routes
   try {

@@ -1488,8 +1488,20 @@ export async function sendReminderEmail(
           </table>
         </div>
         
-        <!-- Enhanced QR code section using async SVG generation -->
-        ${await generateQRCodeSVG(confirmationCode, host)}
+        <!-- Enhanced Quick check-in QR code section with SVG and fallback image -->
+        <div style="text-align: center; margin: 25px 0;">
+          <div style="display: inline-block; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+            <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">Express Check-in</h3>
+            
+            <!-- SVG QR code for modern email clients -->
+            <img src="${qrCodeSvgUrl}" alt="QR Code" style="width: 200px; height: 200px;" />
+            
+            <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
+              Confirmation Code: ${confirmationCode}<br>
+              <span style="font-size: 11px;">Scan with your phone to check in</span>
+            </p>
+          </div>
+        </div>
         
         <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
           <h3 style="margin-top: 0; color: #856404;">Important Reminders</h3>
