@@ -103,11 +103,25 @@ export async function getFacilityStats(req: Request, res: Response) {
     const tenantId = req.user?.tenantId;
     
     if (!tenantId) {
+      console.error('[Analytics] No tenant ID associated with user');
       return res.status(400).json({ error: 'No tenant ID associated with user' });
     }
     
     const effectiveTenantId = tenantId;
     console.log(`[Analytics] Using tenant ID ${effectiveTenantId} for facility stats`);
+    
+    // First, directly check if there are any facilities for this tenant
+    const tenantFacilities = await db.select({ id: facilities.id, name: facilities.name })
+      .from(facilities)
+      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
+      .where(eq(organizationFacilities.organizationId, effectiveTenantId));
+    
+    console.log(`[Analytics] Initial check found ${tenantFacilities.length} facilities for tenant ${effectiveTenantId}`);
+    
+    if (!tenantFacilities.length) {
+      console.log(`[Analytics] No facilities found for tenant ${effectiveTenantId}, returning empty array`);
+      return res.json([]);
+    }
     
     // Build WHERE clauses for date filtering with tenant isolation using the junction table
     let whereClause = sql`WHERE of.organization_id = ${effectiveTenantId}`;
