@@ -695,6 +695,19 @@ export default function Analytics() {
                   selected={startDate}
                   onSelect={(date) => date && setStartDate(date)}
                   initialFocus
+                  classNames={{
+                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                    month: "space-y-4",
+                    caption: "flex justify-center pt-1 relative items-center",
+                    caption_label: "text-sm font-medium",
+                    nav: "space-x-1 flex items-center",
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex",
+                    head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+                    row: "flex w-full mt-2",
+                    cell: "h-9 w-9 text-center text-sm p-0 relative",
+                    day: "h-9 w-9 p-0 font-normal"
+                  }}
                 />
               </div>
             </div>
@@ -706,6 +719,19 @@ export default function Analytics() {
                   selected={endDate}
                   onSelect={(date) => date && setEndDate(date)}
                   disabled={(date) => date < startDate}
+                  classNames={{
+                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                    month: "space-y-4",
+                    caption: "flex justify-center pt-1 relative items-center",
+                    caption_label: "text-sm font-medium",
+                    nav: "space-x-1 flex items-center",
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex",
+                    head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+                    row: "flex w-full mt-2",
+                    cell: "h-9 w-9 text-center text-sm p-0 relative",
+                    day: "h-9 w-9 p-0 font-normal"
+                  }}
                 />
               </div>
             </div>
