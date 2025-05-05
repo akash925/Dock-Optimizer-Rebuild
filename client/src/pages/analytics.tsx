@@ -537,7 +537,7 @@ export default function Analytics() {
       
       {/* Heatmap */}
       <div className="mb-6">
-        <AnalyticsHeatMap />
+        <AnalyticsHeatMap dateRange={dateParams} />
       </div>
       
       {/* Two-column charts */}

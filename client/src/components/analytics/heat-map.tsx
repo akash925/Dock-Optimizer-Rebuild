@@ -167,7 +167,11 @@ const HeatMapView: React.FC<HeatMapViewProps> = ({ data, mode, filter }) => {
   );
 };
 
-export default function AnalyticsHeatMap() {
+interface AnalyticsHeatMapProps {
+  dateRange?: { startDate?: string; endDate?: string; };
+}
+
+export default function AnalyticsHeatMap({ dateRange }: AnalyticsHeatMapProps) {
   const [filter, setFilter] = useState({
     location: "all",
     appointment: "all",
@@ -275,13 +279,17 @@ export default function AnalyticsHeatMap() {
   
   // Fetch data from API endpoint
   const { data: appointments = [] } = useQuery({
-    queryKey: ['/api/analytics/heatmap', filter],
+    queryKey: ['/api/analytics/heatmap', filter, dateRange],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filter.location !== 'all') params.append('facilityId', filter.location);
       if (filter.appointment !== 'all') params.append('appointmentTypeId', filter.appointment);
       if (filter.customer !== 'all') params.append('customerId', filter.customer);
       if (filter.carrier !== 'all') params.append('carrierId', filter.carrier);
+      
+      // Add date range parameters when available
+      if (dateRange?.startDate) params.append('startDate', dateRange.startDate);
+      if (dateRange?.endDate) params.append('endDate', dateRange.endDate);
       
       try {
         const res = await fetch(`/api/analytics/heatmap?${params.toString()}`);
