@@ -323,8 +323,10 @@ export function AppointmentDetailsDialog({
     }
   });
   
-  // State for check-out time input
+  // State for check-out time input and additional fields
   const [checkOutTime, setCheckOutTime] = useState<Date>(new Date());
+  const [checkOutNotes, setCheckOutNotes] = useState<string>("");
+  const [checkOutPhotoPath, setCheckOutPhotoPath] = useState<string | null>(null);
   const [showCheckOutTimeInput, setShowCheckOutTimeInput] = useState(false);
   const [showCheckOutDialog, setShowCheckOutDialog] = useState(false);
   
@@ -336,8 +338,29 @@ export function AppointmentDetailsDialog({
       // Use the selected time or current time
       const actualEndTime = showCheckOutTimeInput ? checkOutTime : new Date();
       
+      // Prepare custom form data with checkout notes and photo
+      let customFormData = {};
+      try {
+        customFormData = typeof appointment.customFormData === 'string' 
+          ? JSON.parse(appointment.customFormData) 
+          : appointment.customFormData || {};
+      } catch (e) {
+        console.warn("Failed to parse existing custom form data:", e);
+      }
+      
+      // Add checkout information to custom form data
+      customFormData = {
+        ...customFormData,
+        checkoutTime: actualEndTime.toISOString(),
+        checkoutNotes: checkOutNotes || null,
+        checkoutPhoto: checkOutPhotoPath || null,
+        checkoutBy: appointment.lastModifiedBy || null
+      };
+      
       const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-out`, {
-        actualEndTime: actualEndTime.toISOString()
+        actualEndTime: actualEndTime.toISOString(),
+        notes: checkOutNotes || null,
+        customFormData: customFormData
       });
       return res.json();
     },
@@ -354,8 +377,10 @@ export function AppointmentDetailsDialog({
         description: "The appointment has been marked as completed",
       });
       
-      // Reset the time input state
+      // Reset all form state
       setShowCheckOutTimeInput(false);
+      setCheckOutNotes("");
+      setCheckOutPhotoPath(null);
     },
     onError: (error) => {
       toast({
@@ -560,11 +585,11 @@ export function AppointmentDetailsDialog({
           <DialogHeader>
             <DialogTitle>Check Out Appointment</DialogTitle>
             <DialogDescription>
-              Select the time when this appointment checked out.
+              Complete the checkout details below.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="check-out-time" className="text-right">
                 Check-Out Time
@@ -581,6 +606,31 @@ export function AppointmentDetailsDialog({
                   setCheckOutTime(newTime);
                 }}
               />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="check-out-notes">Notes</Label>
+              <textarea
+                id="check-out-notes"
+                className="w-full min-h-[100px] p-2 border border-slate-300 rounded-md"
+                placeholder="Enter any checkout notes or details about the appointment"
+                value={checkOutNotes}
+                onChange={(e) => setCheckOutNotes(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="check-out-photo">Photo URL (Optional)</Label>
+              <Input
+                id="check-out-photo"
+                type="text"
+                placeholder="Enter a URL to a photo (if applicable)"
+                value={checkOutPhotoPath || ''}
+                onChange={(e) => setCheckOutPhotoPath(e.target.value || null)}
+              />
+              <p className="text-xs text-slate-500">
+                You can link to a photo from another service or upload system.
+              </p>
             </div>
           </div>
           
@@ -601,7 +651,7 @@ export function AppointmentDetailsDialog({
               className="bg-green-600 hover:bg-green-700"
             >
               {checkOutAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-              Check Out
+              Check Out & Send Email
             </Button>
           </DialogFooter>
         </DialogContent>
