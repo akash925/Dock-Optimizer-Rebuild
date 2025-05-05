@@ -1,7 +1,7 @@
 // Test script to verify QR code generation and scanning functionality
-require('dotenv').config();
-const QRCode = require('qrcode');
-const fetch = require('node-fetch');
+import 'dotenv/config';
+import QRCode from 'qrcode';
+import fetch from 'node-fetch';
 
 // Configuration
 const BASE_URL = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
@@ -148,11 +148,9 @@ async function runAllTests() {
 }
 
 // Export the tests for the main verification script
-module.exports = {
-  runTests: runAllTests
-};
+export const runTests = runAllTests;
 
 // Run the tests if called directly
-if (require.main === module) {
+if (import.meta.url === new URL(import.meta.url).href) {
   runAllTests().catch(console.error);
 }

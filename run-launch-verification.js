@@ -1,25 +1,32 @@
 // Master test script to run all verification tests before launch
-require('dotenv').config();
+import 'dotenv/config';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+import { promises as fs } from 'fs';
 
-// Import test modules
+// Get current directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Import test modules 
 let runQrTests, runStandardQuestionsTests, runAppointmentFlowTests;
 
 try {
-  const qrVerification = require('./test-qr-verification');
+  const qrVerification = await import('./test-qr-verification.js');
   runQrTests = qrVerification.runTests;
 } catch (error) {
   console.error('Could not import QR verification tests:', error.message);
 }
 
 try {
-  const standardQuestionsTests = require('./test-standard-questions');
+  const standardQuestionsTests = await import('./test-standard-questions.js');
   runStandardQuestionsTests = standardQuestionsTests.runTests;
 } catch (error) {
   console.error('Could not import standard questions tests:', error.message);
 }
 
 try {
-  const appointmentFlowTests = require('./test-appointment-flow');
+  const appointmentFlowTests = await import('./test-appointment-flow.js');
   runAppointmentFlowTests = appointmentFlowTests.runTests;
 } catch (error) {
   console.error('Could not import appointment flow tests:', error.message);
