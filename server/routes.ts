@@ -10,6 +10,46 @@ import multer from "multer";
 import { sendConfirmationEmail, sendEmail, generateICalEvent } from "./notifications";
 import { sendCheckoutCompletionEmail } from "./checkout-notification";
 import { testEmailTemplate } from "./email-test";
+
+// Configure multer for different upload types
+// Main uploads directory
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Setup for checkout photos directory
+const checkoutPhotosDir = path.join(uploadsDir, 'checkout-photos');
+if (!fs.existsSync(checkoutPhotosDir)) {
+  fs.mkdirSync(checkoutPhotosDir, { recursive: true });
+}
+
+// Configure multer storage for checkout photos
+const checkoutPhotoStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, checkoutPhotosDir);
+  },
+  filename: function (req, file, cb) {
+    // Generate a unique filename with timestamp and original extension
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `checkout-${uniqueSuffix}${ext}`);
+  }
+});
+
+const checkoutPhotoUpload = multer({ 
+  storage: checkoutPhotoStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Accept only images
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed!'));
+    }
+    cb(null, true);
+  }
+});
 import { adminRoutes } from "./modules/admin/routes";
 import { pool } from "./db";
 import { WebSocketServer, WebSocket } from "ws";
@@ -1560,6 +1600,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // File upload endpoint for checkout photos
+  app.post("/api/upload/checkout-photo", checkoutPhotoUpload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      // Return the path to the uploaded file
+      const filePath = `/uploads/checkout-photos/${req.file.filename}`;
+      console.log(`[Upload] Checkout photo uploaded: ${filePath}`);
+      
+      return res.status(201).json({ 
+        message: "File uploaded successfully",
+        filePath: filePath 
+      });
+    } catch (err) {
+      console.error("[Upload] Error uploading checkout photo:", err);
+      return res.status(500).json({ 
+        message: "Failed to upload file",
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
+  
   // Check-out endpoint - completes appointment
   app.patch("/api/schedules/:id/check-out", async (req, res) => {
     try {
@@ -1575,7 +1639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get notes if provided
       const notes = req.body?.notes || schedule.notes;
       
-      // Get photo path if uploaded
+      // Get photo path if provided
       const photoPath = req.body?.photoPath || null;
       
       // Parse existing custom form data (safely)

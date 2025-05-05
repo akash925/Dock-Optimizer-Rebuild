@@ -3,6 +3,13 @@ import { format } from 'date-fns';
 import { formatToTimeZone } from 'date-fns-timezone';
 import { EnhancedSchedule } from './notifications';
 
+// Initialize SendGrid with API key
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+} else {
+  console.warn('[EMAIL] SendGrid API key not found. Email functionality will be limited.');
+}
+
 // Helper function to get timezone abbreviation
 function getTimezoneAbbr(timezone: string, date: Date): string {
   try {
@@ -285,10 +292,7 @@ export async function sendEmail(params: {
   }
   
   try {
-    // Setup SendGrid
-    if (!sgMail.getAttachments) {
-      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    }
+    // Setup SendGrid is already initialized at the top of the file
     
     // Get the configured sender email or use fallback
     const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'notifications@dockoptimizer.com';
