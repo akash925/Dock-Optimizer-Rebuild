@@ -484,34 +484,92 @@ async function generateQRCodeBase64(data: string): Promise<string> {
   }
 }
 
-// This is now an async function that generates the QR code HTML
-// It uses a synchronous version for backward compatibility
-function generateQRCodeSVG(confirmationCode: string, baseUrl: string): string {
-  // Create a direct URL to the QR code endpoint that email clients can fetch
+/**
+ * Generate a QR code for appointment check-in that works reliably in email clients
+ * This implementation uses an SVG QR code or an image URL depending on the email client
+ */
+async function generateQRCodeSVG(confirmationCode: string, baseUrl: string): Promise<string> {
+  // Create the check-in URL that will be encoded in the QR code
+  const checkInUrl = `${baseUrl}/driver-check-in?code=${confirmationCode}`;
+  // Create a direct URL to the QR code endpoint for email clients that can't render SVG
   const qrCodeUrl = `${baseUrl}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
-  console.log(`[EMAIL] Using QR code URL in email HTML: ${qrCodeUrl}`);
   
-  return `
-    <div style="text-align: center; margin: 15px auto; background-color: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d7ff; max-width: 320px;">
-      <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
-      <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #b3d7ff;">
-        <img src="${qrCodeUrl}" 
-             alt="Check-in QR Code" 
-             style="width: 150px; height: 150px; display: block; margin: 0 auto;">
-        <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center;">
-          ${confirmationCode}
-        </p>
+  // Create a debug log
+  console.log(`[QR-CODE] Generating QR code for confirmation code ${confirmationCode}`);
+  console.log(`[QR-CODE] Check-in URL: ${checkInUrl}`);
+  console.log(`[QR-CODE] Image URL fallback: ${qrCodeUrl}`);
+  
+  try {
+    // Try to generate an SVG QR code for better email client compatibility
+    const svgString = await QRCode.toString(checkInUrl, {
+      type: 'svg',
+      errorCorrectionLevel: 'H',
+      margin: 1,
+      width: 150
+    });
+    
+    // Log the first part of the SVG for debugging
+    console.log(`[QR-CODE] Generated SVG QR code (first 100 chars): ${svgString.substring(0, 100)}...`);
+    
+    // For maximum compatibility, we'll offer both an SVG and an image URL
+    return `
+      <div style="text-align: center; margin: 15px auto; background-color: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d7ff; max-width: 320px;">
+        <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
+        <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #b3d7ff;">
+          <!-- Embedded SVG QR code for email clients that support it -->
+          ${svgString.replace(/width="[^"]*"/, 'width="150"').replace(/height="[^"]*"/, 'height="150"')}
+          
+          <!-- Fallback to image URL for clients that don't support inline SVG -->
+          <!--[if mso]>
+          <img src="${qrCodeUrl}" 
+               alt="Check-in QR Code" 
+               width="150" height="150"
+               style="display: block; margin: 0 auto;">
+          <![endif]-->
+          
+          <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center; font-size: 16px;">
+            ${confirmationCode}
+          </p>
+        </div>
+        <div style="font-size: 13px; color: #333; text-align: left; margin-top: 10px;">
+          <p style="margin: 0 0 5px; font-weight: bold;">How to use:</p>
+          <ul style="margin: 0; padding-left: 20px;">
+            <li>Present this QR code to dock staff upon arrival</li>
+            <li>You can also scan it yourself to check in quickly</li>
+            <li>If you can't see the QR code above, use your confirmation code: <strong>${confirmationCode}</strong></li>
+            <li>Or open this link directly: <a href="${checkInUrl}" style="color: #0066cc;">${checkInUrl}</a></li>
+          </ul>
+        </div>
       </div>
-      <div style="font-size: 13px; color: #333; text-align: left; margin-top: 10px;">
-        <p style="margin: 0 0 5px; font-weight: bold;">How to use:</p>
-        <ul style="margin: 0; padding-left: 20px;">
-          <li>Present this QR code to dock staff upon arrival</li>
-          <li>You can also scan it yourself to check in quickly</li>
-          <li>If you can't see the QR code above, use your confirmation code: <strong>${confirmationCode}</strong></li>
-        </ul>
+    `;
+  } catch (error) {
+    console.error('[QR-CODE] Error generating SVG QR code:', error);
+    
+    // Fallback to just using an image URL if SVG generation fails
+    return `
+      <div style="text-align: center; margin: 15px auto; background-color: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d7ff; max-width: 320px;">
+        <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
+        <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #b3d7ff;">
+          <img src="${qrCodeUrl}" 
+               alt="Check-in QR Code" 
+               width="150" height="150"
+               style="display: block; margin: 0 auto;">
+          <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center; font-size: 16px;">
+            ${confirmationCode}
+          </p>
+        </div>
+        <div style="font-size: 13px; color: #333; text-align: left; margin-top: 10px;">
+          <p style="margin: 0 0 5px; font-weight: bold;">How to use:</p>
+          <ul style="margin: 0; padding-left: 20px;">
+            <li>Present this QR code to dock staff upon arrival</li>
+            <li>You can also scan it yourself to check in quickly</li>
+            <li>If you can't see the QR code above, use your confirmation code: <strong>${confirmationCode}</strong></li>
+            <li>Or open this link directly: <a href="${checkInUrl}" style="color: #0066cc;">${checkInUrl}</a></li>
+          </ul>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 }
 
 /**
@@ -649,8 +707,7 @@ export async function sendConfirmationEmail(
   
   // Generate QR code
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  // Instead of generating the QR code directly, use a URL to our QR code endpoint
-  // This is more reliable in email clients than base64-encoded images
+  // Now we'll generate both an inline SVG QR code and a fallback URL
   const qrCodeUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
   console.log(`[EMAIL] Using QR code URL for confirmation email to ${to}: ${qrCodeUrl}`);
   
@@ -730,29 +787,8 @@ export async function sendConfirmationEmail(
           </table>
         </div>
         
-        <!-- Enhanced Quick check-in QR code section -->
-        <div style="text-align: center; margin: 15px auto; background-color: #f0f9ff; padding: 15px; border-radius: 8px; border: 1px solid #b3d7ff; max-width: 320px;">
-          <h3 style="color: #0066cc; margin-top: 0; text-align: center;">Express Check-In QR Code</h3>
-          <div style="background-color: white; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 1px solid #b3d7ff;">
-            <!-- Using direct image URL to the QR code endpoint for maximum compatibility -->
-            <img src="${qrCodeUrl}" 
-                 alt="Check-in QR Code" 
-                 width="200" height="200"
-                 style="display: block; margin: 0 auto; width: 200px; height: 200px;">
-            <p style="margin: 5px 0 0; font-family: monospace; font-weight: bold; color: #0066cc; text-align: center; font-size: 16px;">
-              ${confirmationCode}
-            </p>
-          </div>
-          <div style="font-size: 13px; color: #333; text-align: left; margin-top: 10px;">
-            <p style="margin: 0 0 5px; font-weight: bold;">How to use:</p>
-            <ul style="margin: 0; padding-left: 20px;">
-              <li>Present this QR code to dock staff upon arrival</li>
-              <li>You can also scan it yourself to check in quickly</li>
-              <li>If you can't see the QR code above, use your confirmation code: <strong>${confirmationCode}</strong></li>
-              <li>Or open this link directly: <a href="${checkInUrl}" style="color: #0066cc;">${checkInUrl}</a></li>
-            </ul>
-          </div>
-        </div>
+        <!-- Enhanced Quick check-in QR code section (will be replaced by QR code module) -->
+        ${await generateQRCodeSVG(confirmationCode, host)}
         
         <div style="margin: 30px 0; text-align: center;">
           <p style="margin-bottom: 15px;">Need to make changes to your appointment?</p>
@@ -1023,7 +1059,7 @@ export async function sendRescheduleEmail(
         </div>
         
         <!-- Quick check-in QR code section -->
-        ${generateQRCodeSVG(confirmationCode, host)}
+        ${await generateQRCodeSVG(confirmationCode, host)}
         
         <div style="margin: 30px 0; text-align: center;">
           <p style="margin-bottom: 15px;">Need to cancel this appointment?</p>
