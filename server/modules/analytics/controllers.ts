@@ -214,15 +214,17 @@ export async function getCarrierStats(req: Request, res: Response) {
     }
     
     try {
-      // Modified query to handle carriers with no appointments
-      // Uses a left join to include carriers even if they have no schedules
+      // Use tenant_id for filtering schedules
+      console.log('[Analytics] getCarrierStats: Using tenant-based filtering');
+      
+      // Modified query to handle carriers with no appointments using tenant_id
       const carrierStats = await db.execute(sql`
         SELECT 
           c.id,
           c.name,
           COUNT(s.id) as "appointmentCount"
         FROM ${carriers} c
-        LEFT JOIN ${schedules} s ON c.id = s.carrier_id AND s.facility_id IN (${sql.join(facilityIds)}) ${dateFilter}
+        LEFT JOIN ${schedules} s ON c.id = s.carrier_id AND s.tenant_id = ${tenantId} ${dateFilter}
         GROUP BY c.id, c.name
         ORDER BY "appointmentCount" DESC
         LIMIT 10
@@ -259,20 +261,6 @@ export async function getCustomerStats(req: Request, res: Response) {
     
     console.log(`[Analytics] getCustomerStats: Using tenant ID ${tenantId}`);
     
-    // First, get all facilities for this tenant through the organization_facilities junction table
-    const tenantFacilities = await db.select({ id: facilities.id })
-      .from(facilities)
-      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
-      .where(eq(organizationFacilities.organizationId, tenantId));
-    
-    console.log(`[Analytics] getCustomerStats: Found ${tenantFacilities.length} facilities for tenant ${tenantId}`);
-    
-    const facilityIds = tenantFacilities.map(f => f.id);
-    if (!facilityIds.length) {
-      console.log(`[Analytics] getCustomerStats: No facilities found for tenant ${tenantId}, returning empty array`);
-      return res.json([]);
-    }
-    
     // Build date filter SQL fragment
     let dateFilter;
     if (startDate && endDate) {
@@ -289,14 +277,17 @@ export async function getCustomerStats(req: Request, res: Response) {
     }
     
     try {
-      // Query to get appointment counts by customer name with date filtering and tenant isolation
+      // Using tenant_id for filtering schedules
+      console.log('[Analytics] getCustomerStats: Using tenant-based filtering');
+      
+      // Query to get appointment counts by customer name with tenant isolation
       const customerStats = await db.execute(sql`
         SELECT 
           COALESCE(s.customer_name, 'Unknown') as id,
           COALESCE(s.customer_name, 'Unknown') as name,
           COUNT(s.id) as "appointmentCount"
         FROM ${schedules} s
-        WHERE s.facility_id IN (${sql.join(facilityIds)})
+        WHERE s.tenant_id = ${tenantId}
         ${dateFilter}
         GROUP BY s.customer_name
         ORDER BY "appointmentCount" DESC
@@ -334,20 +325,6 @@ export async function getAttendanceStats(req: Request, res: Response) {
     
     console.log(`[Analytics] getAttendanceStats: Using tenant ID ${tenantId}`);
     
-    // First, get all facilities for this tenant through the organization_facilities junction table
-    const tenantFacilities = await db.select({ id: facilities.id })
-      .from(facilities)
-      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
-      .where(eq(organizationFacilities.organizationId, tenantId));
-    
-    console.log(`[Analytics] getAttendanceStats: Found ${tenantFacilities.length} facilities for tenant ${tenantId}`);
-    
-    const facilityIds = tenantFacilities.map(f => f.id);
-    if (!facilityIds.length) {
-      console.log(`[Analytics] getAttendanceStats: No facilities found for tenant ${tenantId}, returning empty array`);
-      return res.json([]);
-    }
-    
     // Build date filter SQL fragment
     let dateFilter;
     if (startDate && endDate) {
@@ -364,13 +341,16 @@ export async function getAttendanceStats(req: Request, res: Response) {
     }
     
     try {
-      // Query to get counts by attendance status with date filtering and tenant isolation
+      // Use tenant_id for filtering schedules
+      console.log('[Analytics] getAttendanceStats: Using tenant-based filtering');
+      
+      // Query using a tenant ID filter 
       const attendanceStats = await db.execute(sql`
         SELECT 
           COALESCE(s.status, 'Not Reported') as "attendanceStatus",
           COUNT(*) as count
         FROM ${schedules} s
-        WHERE s.facility_id IN (${sql.join(facilityIds)})
+        WHERE s.tenant_id = ${tenantId}
         ${dateFilter}
         GROUP BY s.status
         ORDER BY count DESC
