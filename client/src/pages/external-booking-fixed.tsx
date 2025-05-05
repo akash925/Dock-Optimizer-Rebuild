@@ -1287,6 +1287,12 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
     bookingPageSlug: bookingPage?.slug
   });
   
+  // Debugging standard questions
+  useEffect(() => {
+    console.log('[CustomerInfoStep] Standard questions loaded:', standardQuestions);
+    console.log('[CustomerInfoStep] Questions with included=true:', standardQuestions?.filter(q => q.included));
+  }, [standardQuestions]);
+  
   // Handle back button
   const handleBack = () => {
     setCurrentStep(2);
