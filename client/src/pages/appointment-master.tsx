@@ -1335,7 +1335,7 @@ export default function AppointmentMaster() {
                         <li>Check <strong>"Included"</strong> to include a question in booking forms.</li>
                         <li>Check <strong>"Is Required"</strong> to make the field mandatory (will be marked with an asterisk *).</li>
                         <li>Questions will appear in both internal and external booking flows.</li>
-                        <li>Required system fields are automatically included and cannot be disabled.</li>
+                        <li>All fields can now be enabled or disabled based on your needs.</li>
                       </ul>
                     </div>
                   </div>
@@ -1359,44 +1359,39 @@ export default function AppointmentMaster() {
                             <TableCell>{field.label}</TableCell>
                             <TableCell>{field.type.charAt(0).toUpperCase() + field.type.slice(1)}</TableCell>
                             <TableCell className="text-center">
-                              {field.id <= 6 || field.id === 9 || field.id === 10 ? (
-                                // Required system fields that can't be toggled
-                                <Checkbox checked={true} disabled />
-                              ) : (
-                                <Checkbox 
-                                  checked={field.included}
-                                  onCheckedChange={(checked) => {
-                                    // Update local state for immediate UI feedback
-                                    const updatedFields = [...standardFields];
-                                    updatedFields[index].included = !!checked;
-                                    setStandardFields(updatedFields);
-                                    
-                                    // Persist to the database via API
-                                    updateStandardQuestionMutation.mutate({
-                                      id: field.id,
-                                      data: { included: !!checked }
-                                    }, {
-                                      onSuccess: () => {
-                                        toast({
-                                          description: `${field.label} ${checked ? "added to" : "removed from"} booking forms`,
-                                        });
-                                      },
-                                      onError: (error: Error) => {
-                                        // Revert local state on error
-                                        const revertedFields = [...standardFields];
-                                        revertedFields[index].included = !checked;
-                                        setStandardFields(revertedFields);
-                                        
-                                        toast({
-                                          variant: "destructive",
-                                          title: "Failed to update setting",
-                                          description: error.message || "An error occurred while updating the question",
-                                        });
-                                      }
-                                    });
-                                  }}
-                                />
-                              )}
+                              <Checkbox 
+                                checked={field.included}
+                                onCheckedChange={(checked) => {
+                                  // Update local state for immediate UI feedback
+                                  const updatedFields = [...standardFields];
+                                  updatedFields[index].included = !!checked;
+                                  setStandardFields(updatedFields);
+                                  
+                                  // Persist to the database via API
+                                  updateStandardQuestionMutation.mutate({
+                                    id: field.id,
+                                    data: { included: !!checked }
+                                  }, {
+                                    onSuccess: () => {
+                                      toast({
+                                        description: `${field.label} ${checked ? "added to" : "removed from"} booking forms`,
+                                      });
+                                    },
+                                    onError: (error: Error) => {
+                                      // Revert local state on error
+                                      const revertedFields = [...standardFields];
+                                      revertedFields[index].included = !checked;
+                                      setStandardFields(revertedFields);
+                                      
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Failed to update setting",
+                                        description: error.message || "An error occurred while updating the question",
+                                      });
+                                    }
+                                  });
+                                }}
+                              />
                             </TableCell>
                             <TableCell className="text-center">
                               {field.id <= 6 || field.id === 9 || field.id === 10 ? (
