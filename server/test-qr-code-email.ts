@@ -2,6 +2,7 @@
  * Test script to verify email QR code generation
  */
 import { generateQRCodeSVG } from './endpoints/qr-codes';
+import { writeFile } from 'fs/promises';
 
 async function testEmailQRCode() {
   // Generate test code
@@ -33,17 +34,23 @@ async function testEmailQRCode() {
   };
 }
 
-if (require.main === module) {
+// Self-invoking function for when script is run directly
+const runTest = async () => {
   console.log('Running QR code email test...');
-  testEmailQRCode().then(result => {
+  try {
+    const result = await testEmailQRCode();
     console.log('Test complete with code:', result.testCode);
     // Write to a test file for inspection
-    const fs = require('fs');
-    fs.writeFileSync('test-email-qr.html', result.html);
+    await writeFile('test-email-qr.html', result.html);
     console.log('Test email saved to test-email-qr.html');
-  }).catch(err => {
+  } catch (err) {
     console.error('Error running test:', err);
-  });
+  }
+};
+
+// Run the test if this is the main module
+if (import.meta.url.endsWith('/test-qr-code-email.ts')) {
+  runTest();
 }
 
 export default testEmailQRCode;

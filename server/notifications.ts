@@ -706,19 +706,18 @@ export async function sendConfirmationEmail(
   const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
   const cancelLink = `${host}/cancel?code=${confirmationCode}`;
   
-  // Generate QR code
+  // Generate QR code SVG directly instead of using URLs
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  // Generate URLs for QR code image (both SVG and PNG for fallback)
-  const qrCodeSvgUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
-  const qrCodePngUrl = `${host}/api/qr-code-image/${encodeURIComponent(confirmationCode)}`;
-  console.log(`[EMAIL] Using QR code URL for confirmation email to ${to}: ${qrCodeSvgUrl}`);
+  // Generate QR code SVG content with all HTML styling included
+  const qrCodeSvgContent = await generateQRCodeSVG(confirmationCode, host);
+  console.log(`[EMAIL] Generated QR code SVG for confirmation email to ${to}`);
+  
   
   // Additional logging to help debug QR code issues
   console.log(`[EMAIL] Full check-in URL: ${checkInUrl}`);
   console.log(`[EMAIL] Host URL from env or default: ${host}`);
 
   // Generate QR code SVG directly
-  const qrCodeSvgContent = await generateQRCodeSVG(confirmationCode, host);
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -1402,12 +1401,12 @@ export async function sendReminderEmail(
   const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
   const cancelLink = `${host}/cancel?code=${confirmationCode}`;
   
-  // Generate QR code URLs
+  // Generate QR code and check-in URL
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  // Generate URLs for QR code image (both SVG and PNG for fallback)
-  const qrCodeSvgUrl = `${host}/api/qr-code/${encodeURIComponent(confirmationCode)}`;
-  const qrCodePngUrl = `${host}/api/qr-code-image/${encodeURIComponent(confirmationCode)}`;
-  console.log(`[EMAIL] Using QR code URL for reminder email to ${to}: ${qrCodeSvgUrl}`);
+  
+  // Generate QR code SVG directly
+  const qrCodeSvgContent = await generateQRCodeSVG(confirmationCode, host);
+  console.log(`[EMAIL] Generated QR code SVG for reminder email to ${to}`);
 
   // Set reminder text based on hours until appointment
   let reminderText = '';
