@@ -1965,9 +1965,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // For patch, we don't need to validate all fields, just update the ones provided
+      // Remove lastModifiedAt if it exists in the request body to avoid double assignment
+      const { lastModifiedAt, ...cleanReqBody } = req.body;
+      
       const updateData = {
-        ...req.body,
-        lastModifiedAt: new Date()
+        ...cleanReqBody
+        // lastModifiedAt is automatically added in the storage.updateFacility method
       };
       
       const updatedFacility = await storage.updateFacility(id, updateData);
