@@ -28,6 +28,9 @@ interface BookingFormData {
   // Additional
   notes?: string;
   bolFile?: File;
+  bolExtractedData?: any;
+  bolFileUploaded?: boolean;
+  mcNumber?: string;
 }
 
 interface BookingWizardContextType {
@@ -38,6 +41,10 @@ interface BookingWizardContextType {
   resetBookingData: () => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  confirmationCode: string | null;
+  setConfirmationCode: (code: string | null) => void;
+  appointmentCreated: boolean;
+  setAppointmentCreated: (created: boolean) => void;
 }
 
 const BookingWizardContext = createContext<BookingWizardContextType | null>(null);
@@ -46,6 +53,8 @@ export function BookingWizardProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [bookingData, setBookingData] = useState<BookingFormData>({});
+  const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
+  const [appointmentCreated, setAppointmentCreated] = useState(false);
 
   const updateBookingData = (data: Partial<BookingFormData>) => {
     setBookingData(prev => ({ ...prev, ...data }));
@@ -54,6 +63,8 @@ export function BookingWizardProvider({ children }: { children: ReactNode }) {
   const resetBookingData = () => {
     setBookingData({});
     setCurrentStep(1);
+    setConfirmationCode(null);
+    setAppointmentCreated(false);
   };
 
   return (
@@ -65,7 +76,11 @@ export function BookingWizardProvider({ children }: { children: ReactNode }) {
         updateBookingData,
         resetBookingData,
         isLoading,
-        setIsLoading
+        setIsLoading,
+        confirmationCode,
+        setConfirmationCode,
+        appointmentCreated,
+        setAppointmentCreated
       }}
     >
       {children}
