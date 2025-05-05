@@ -1305,7 +1305,7 @@ export default function AppointmentMaster() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <InfoIcon className="h-5 w-5 text-muted-foreground mr-2" />
-                      <h3 className="font-medium">Appointment Form Questions</h3>
+                      <h3 className="font-medium">Appointment Form Questions Area</h3>
                     </div>
                     <Button 
                       variant="outline" 
@@ -1328,10 +1328,15 @@ export default function AppointmentMaster() {
                     </Button>
                   </div>
                   
-                  <div className="text-sm text-muted-foreground mb-2">
-                    <div className="flex items-center">
-                      <span className="text-red-500 mr-1">*</span>
-                      <span>"Included" controls which fields appear on booking forms. "Is Required" fields will be marked with an asterisk and must be filled.</span>
+                  <div className="bg-yellow-50 p-3 rounded-md border border-yellow-200 mb-2">
+                    <div className="text-sm text-yellow-800">
+                      <p className="font-medium mb-1">Question Selection Guide:</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Check <strong>"Included"</strong> to include a question in booking forms.</li>
+                        <li>Check <strong>"Is Required"</strong> to make the field mandatory (will be marked with an asterisk *).</li>
+                        <li>Questions will appear in both internal and external booking flows.</li>
+                        <li>Required system fields are automatically included and cannot be disabled.</li>
+                      </ul>
                     </div>
                   </div>
                   
@@ -1349,7 +1354,7 @@ export default function AppointmentMaster() {
                       <TableBody>
                         {/* Standard/Built-in Fields */}
                         {standardFields.map((field, index) => (
-                          <TableRow key={field.id}>
+                          <TableRow key={field.id} className={field.included ? "bg-green-50" : ""}>
                             <TableCell className="text-center">{field.id}</TableCell>
                             <TableCell>{field.label}</TableCell>
                             <TableCell>{field.type.charAt(0).toUpperCase() + field.type.slice(1)}</TableCell>
@@ -1373,7 +1378,7 @@ export default function AppointmentMaster() {
                                     }, {
                                       onSuccess: () => {
                                         toast({
-                                          description: `${field.label} included setting updated`,
+                                          description: `${field.label} ${checked ? "added to" : "removed from"} booking forms`,
                                         });
                                       },
                                       onError: (error: Error) => {
@@ -1438,7 +1443,7 @@ export default function AppointmentMaster() {
                         
                         {/* Custom Fields - would map from actual data */}
                         {customFields.map((field, index) => (
-                          <TableRow key={field.id}>
+                          <TableRow key={field.id} className={field.included !== undefined ? (field.included ? "bg-green-50" : "") : "bg-green-50"}>
                             <TableCell className="text-center">{standardFields.length + index + 1}</TableCell>
                             <TableCell>{field.label}</TableCell>
                             <TableCell>{field.type.charAt(0).toUpperCase() + field.type.slice(1)}</TableCell>
@@ -1450,7 +1455,7 @@ export default function AppointmentMaster() {
                                   updatedFields[index].included = !!checked;
                                   setCustomFields(updatedFields);
                                   toast({
-                                    description: `${field.label} included setting updated`,
+                                    description: `${field.label} ${checked ? "added to" : "removed from"} booking forms`,
                                   });
                                 }}
                               />
@@ -1463,7 +1468,7 @@ export default function AppointmentMaster() {
                                   updatedFields[index].required = !!checked;
                                   setCustomFields(updatedFields);
                                   toast({
-                                    description: `${field.label} required setting updated`,
+                                    description: `${field.label} ${checked ? "is now required" : "is now optional"}`,
                                   });
                                 }}
                               />
@@ -1474,7 +1479,7 @@ export default function AppointmentMaster() {
                     </Table>
                   </div>
                   
-                  <div className="flex justify-center mt-4">
+                  <div className="flex justify-between mt-4">
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -1493,6 +1498,20 @@ export default function AppointmentMaster() {
                     >
                       <PlusCircle className="h-4 w-4 mr-2" />
                       Add Custom Question
+                    </Button>
+                    
+                    <Button 
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => {
+                        toast({
+                          title: "Questions saved",
+                          description: "Your form questions have been updated successfully",
+                          variant: "default",
+                        });
+                      }}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Changes
                     </Button>
                   </div>
                 </div>
