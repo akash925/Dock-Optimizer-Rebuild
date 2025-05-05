@@ -409,9 +409,12 @@ export function AppointmentDetailsDialog({
       let photoPath = checkOutPhotoPath;
       if (uploadedFile) {
         try {
+          // Log the file upload attempt
+          console.log('[Checkout] Uploading file for checkout...');
           photoPath = await uploadFile(uploadedFile);
+          console.log('[Checkout] File uploaded successfully:', photoPath);
         } catch (error) {
-          console.error('Error uploading file:', error);
+          console.error('[Checkout] Error uploading file:', error);
           // Continue with the checkout process even if file upload fails
         }
       }
@@ -423,7 +426,7 @@ export function AppointmentDetailsDialog({
           ? JSON.parse(appointment.customFormData) 
           : appointment.customFormData || {};
       } catch (e) {
-        console.warn("Failed to parse existing custom form data:", e);
+        console.warn("[Checkout] Failed to parse existing custom form data:", e);
       }
       
       // Add checkout information to custom form data
@@ -435,14 +438,28 @@ export function AppointmentDetailsDialog({
         checkoutBy: appointment.lastModifiedBy || null
       };
       
-      const res = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-out`, {
+      console.log("[Checkout] Sending checkout request...");
+      
+      // Add a timeout for the API call to ensure we don't get stuck indefinitely
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Checkout request timed out")), 20000);
+      });
+      
+      const apiPromise = apiRequest("PATCH", `/api/schedules/${appointment.id}/check-out`, {
         actualEndTime: actualEndTime.toISOString(),
         notes: checkOutNotes || null,
         customFormData: customFormData
       });
+      
+      // Race the API call against a timeout
+      const res = await Promise.race([apiPromise, timeoutPromise]);
+      console.log("[Checkout] Received response from server");
+      
       return res.json();
     },
     onSuccess: (data) => {
+      console.log("[Checkout] Success response from server:", data);
+      
       // Immediately update the local state to reflect check-out
       if (appointment) {
         // Update the appointment data with the server response
@@ -455,7 +472,7 @@ export function AppointmentDetailsDialog({
         // Then assign all properties to the original appointment reference
         Object.assign(appointment, updatedAppointment);
         
-        console.log("Appointment status after checkout:", appointment.status);
+        console.log("[Checkout] Appointment status after checkout:", appointment.status);
       }
       
       // Explicitly close the check-out dialog
@@ -467,6 +484,7 @@ export function AppointmentDetailsDialog({
       toast({
         title: "Appointment completed",
         description: "The appointment has been marked as completed",
+        variant: "success",
       });
       
       // Reset all form state
@@ -476,11 +494,15 @@ export function AppointmentDetailsDialog({
       setUploadedFile(null);
     },
     onError: (error) => {
+      console.error("[Checkout] Error during checkout:", error);
+      
       toast({
         title: "Error completing appointment",
-        description: error.message,
+        description: error.message || "An error occurred during checkout. Please try again.",
         variant: "destructive",
       });
+      
+      // If there's an error, we don't close the dialog so the user can try again
     }
   });
 
@@ -673,8 +695,13 @@ export function AppointmentDetailsDialog({
       </Dialog>
       
       {/* Check-Out Dialog */}
-      <Dialog open={showCheckOutDialog} onOpenChange={setShowCheckOutDialog}>
-        <DialogContent className="max-w-md">
+      <Dialog open={showCheckOutDialog} onOpenChange={(open) => {
+        // Only allow dialog to close if mutation is not in progress
+        if (!checkOutAppointmentMutation.isPending || !open) {
+          setShowCheckOutDialog(open);
+        }
+      }}>
+        <DialogContent className="max-w-md overflow-hidden">
           <DialogHeader>
             <DialogTitle>Check Out Appointment</DialogTitle>
             <DialogDescription>
@@ -682,7 +709,7 @@ export function AppointmentDetailsDialog({
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6 py-4">
+          <div className="space-y-6 py-4 max-h-[60vh] overflow-y-auto pr-2">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="check-out-time" className="text-right">
                 Check-Out Time
@@ -705,7 +732,7 @@ export function AppointmentDetailsDialog({
               <Label htmlFor="check-out-notes">Notes</Label>
               <textarea
                 id="check-out-notes"
-                className="w-full min-h-[100px] p-2 border border-slate-300 rounded-md"
+                className="w-full min-h-[80px] p-2 border border-slate-300 rounded-md"
                 placeholder="Enter any checkout notes or details about the appointment"
                 value={checkOutNotes}
                 onChange={(e) => setCheckOutNotes(e.target.value)}
@@ -739,6 +766,7 @@ export function AppointmentDetailsDialog({
                   id="check-out-photo-url"
                   type="text"
                   placeholder="Enter a URL to a photo"
+                  className="w-full text-sm"
                   value={checkOutPhotoPath || ''}
                   onChange={(e) => setCheckOutPhotoPath(e.target.value || null)}
                 />
@@ -747,8 +775,8 @@ export function AppointmentDetailsDialog({
                 Upload a photo or enter a URL to an existing image.
               </p>
               {checkOutPhotoPath && (
-                <div className="mt-2 p-2 border rounded-md bg-slate-50 flex items-center justify-between">
-                  <span className="text-sm truncate">
+                <div className="mt-2 p-2 border rounded-md bg-slate-50 flex items-center justify-between overflow-hidden">
+                  <span className="text-sm truncate max-w-[220px]">
                     {checkOutPhotoPath.startsWith('Selected file:') 
                       ? checkOutPhotoPath 
                       : checkOutPhotoPath.split('/').pop()}
@@ -756,7 +784,7 @@ export function AppointmentDetailsDialog({
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    className="h-6 w-6 p-0"
+                    className="h-6 w-6 min-w-[24px] p-0 flex-shrink-0"
                     onClick={() => {
                       setCheckOutPhotoPath(null);
                       setUploadedFile(null);
@@ -769,10 +797,12 @@ export function AppointmentDetailsDialog({
             </div>
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="flex justify-between sm:justify-end gap-2">
             <Button 
               variant="outline" 
               onClick={() => setShowCheckOutDialog(false)}
+              disabled={checkOutAppointmentMutation.isPending}
+              className="flex-1 sm:flex-none"
             >
               Cancel
             </Button>
@@ -780,13 +810,19 @@ export function AppointmentDetailsDialog({
               onClick={() => {
                 setShowCheckOutTimeInput(true);
                 checkOutAppointmentMutation.mutate();
-                setShowCheckOutDialog(false);
+                // Don't close the dialog here, let the onSuccess handler do it
               }}
               disabled={checkOutAppointmentMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
             >
-              {checkOutAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-              Check Out & Send Email
+              {checkOutAppointmentMutation.isPending ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Check Out"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
