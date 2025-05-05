@@ -6554,7 +6554,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return slots;
   }
 
-  // Check availability for booking appointments
+  // Public availability endpoint specifically for booking pages
+  app.get("/api/public-availability/:bookingPageSlug", async (req, res) => {
+    try {
+      const { date, facilityId, appointmentTypeId } = req.query;
+      const { bookingPageSlug } = req.params;
+      
+      if (!date || !facilityId || !appointmentTypeId) {
+        console.log("[PublicAvailability] Missing required parameters");
+        return res.status(400).json({ 
+          message: "Missing required parameters: date, facilityId, and appointmentTypeId are required" 
+        });
+      }
+      
+      console.log(`[PublicAvailability] Request with bookingPageSlug: ${bookingPageSlug}`);
+      
+      // Get the booking page to determine its tenant
+      const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+      if (!bookingPage || !bookingPage.tenantId) {
+        console.log(`[PublicAvailability] No valid booking page found for slug: ${bookingPageSlug}`);
+        return res.status(404).json({ message: "Booking page not found" });
+      }
+      
+      const tenantId = bookingPage.tenantId;
+      console.log(`[PublicAvailability] Using booking page tenant context: ${tenantId}`);
+      
+      // Parse parameters
+      const parsedDate = String(date); // YYYY-MM-DD format
+      const parsedFacilityId = Number(facilityId);
+      const parsedAppointmentTypeId = Number(appointmentTypeId);
+      
+      // Verify facility belongs to the booking page's tenant
+      try {
+        const checkAccessQuery = `
+          SELECT 1 
+          FROM organization_facilities 
+          WHERE organization_id = $1 AND facility_id = $2
+          LIMIT 1
+        `;
+        
+        const accessResult = await pool.query(checkAccessQuery, [tenantId, parsedFacilityId]);
+        
+        if (accessResult.rows.length === 0) {
+          console.log(`[PublicAvailability] Access denied - facility ${parsedFacilityId} does not belong to tenant ${tenantId}`);
+          return res.status(403).json({ 
+            message: "Access denied to this facility's availability"
+          });
+        }
+        
+        console.log(`[PublicAvailability] Verified tenant access to facility ${parsedFacilityId} for tenant ${tenantId}`);
+      } catch (error) {
+        console.error(`[PublicAvailability] Error checking facility access:`, error);
+        return res.status(500).json({ 
+          message: "Error checking facility access"
+        });
+      }
+      
+      // Get the appointment type to determine duration and other settings
+      const appointmentType = await storage.getAppointmentType(parsedAppointmentTypeId, tenantId);
+      if (!appointmentType) {
+        console.log(`[PublicAvailability] Appointment type ${parsedAppointmentTypeId} not found for tenant ${tenantId}`);
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Get the facility details
+      const facility = await storage.getFacility(parsedFacilityId);
+      if (!facility) {
+        console.log(`[PublicAvailability] Facility ${parsedFacilityId} not found`);
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      // Get existing appointments for the specified date and facility
+      const existingAppointments = await storage.getAppointmentsByDateAndFacility(parsedDate, parsedFacilityId);
+      
+      // Get facility settings (or use defaults)
+      const facilitySettings = await storage.getFacilitySettings(parsedFacilityId);
+      
+      // Calculate availability
+      const startTime = "00:00";
+      const endTime = "23:59";
+      const intervalMinutes = facilitySettings?.timeInterval || 30;
+      
+      // Generate all possible time slots for the day
+      const allTimeSlots = generateTimeSlots(startTime, endTime, intervalMinutes);
+      
+      // Calculate available slots
+      const availableSlots = getAvailableTimeSlots(
+        parsedDate,
+        allTimeSlots, 
+        existingAppointments, 
+        facility, 
+        appointmentType, 
+        facilitySettings
+      );
+      
+      return res.json(availableSlots);
+    } catch (error) {
+      console.error("[PublicAvailability] Error:", error);
+      return res.status(500).json({ message: "Server error calculating availability" });
+    }
+  });
+
+  // Check availability for booking appointments (main endpoint)
   app.get("/api/availability", async (req, res) => {
     try {
       const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
@@ -6563,6 +6664,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Support both parameter naming conventions for backward compatibility
       const finalTypeId = typeId || appointmentTypeId;
+      
+      // Flag to track if this is a public booking page request
+      const isPublicBookingRequest = !!bookingPageSlug;
       
       // Variable to hold the effective tenant ID to use for this request
       let effectiveTenantId = userTenantId;
@@ -6592,7 +6696,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         finalTypeId,
         bookingPageSlug: bookingPageSlug || 'none',
         userTenantId: userTenantId || 'none',
-        effectiveTenantId: effectiveTenantId || 'none'
+        effectiveTenantId: effectiveTenantId || 'none',
+        isPublicBookingRequest
       });
       
       if (!date || !facilityId || !finalTypeId) {
@@ -6613,8 +6718,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (isSuperAdmin) {
         console.log(`[AvailabilityEndpoint] Super admin access granted for facility ${parsedFacilityId}`);
+      } else if (isPublicBookingRequest) {
+        // For public booking page requests, we still need to verify the facility belongs to the correct tenant
+        // but we're more lenient with authentication
+        console.log(`[AvailabilityEndpoint] Public booking page request detected for slug: ${bookingPageSlug}`);
+        
+        // We need at minimum to know which tenant owns the facility
+        let facilityTenantId = null;
+        
+        try {
+          // Look up which organization owns this facility with direct SQL
+          const facilityOrgQuery = `
+            SELECT t.id, t.name 
+            FROM tenants t
+            JOIN organization_facilities of ON t.id = of.organization_id
+            WHERE of.facility_id = $1
+            LIMIT 1
+          `;
+          
+          const orgResult = await pool.query(facilityOrgQuery, [parsedFacilityId]);
+          
+          if (orgResult.rows.length > 0) {
+            const orgInfo = orgResult.rows[0];
+            console.log(`[AvailabilityEndpoint] Facility ${parsedFacilityId} belongs to organization ${orgInfo.id} (${orgInfo.name})`);
+            facilityTenantId = orgInfo.id;
+          } else {
+            console.log(`[AvailabilityEndpoint] Facility ${parsedFacilityId} not found in any organization`);
+            return res.status(404).json({ message: "Facility not found" });
+          }
+        } catch (error) {
+          console.error(`[AvailabilityEndpoint] Error determining facility organization:`, error);
+          return res.status(500).json({ message: "Error determining facility organization" });
+        }
+        
+        // If we have a booking page slug, get its tenant context
+        if (bookingPageSlug && effectiveTenantId) {
+          // Verify the booking page's tenant matches the facility's tenant
+          if (effectiveTenantId !== facilityTenantId) {
+            console.log(`[AvailabilityEndpoint] Booking page tenant (${effectiveTenantId}) doesn't match facility tenant (${facilityTenantId})`);
+            return res.status(400).json({ message: "Booking page and facility don't belong to the same organization" });
+          }
+          
+          console.log(`[AvailabilityEndpoint] Public access granted for facility ${parsedFacilityId} via booking page ${bookingPageSlug}`);
+        } else {
+          console.log(`[AvailabilityEndpoint] Public access denied - missing valid booking page slug or tenant context`);
+          return res.status(400).json({ message: "Invalid booking page slug" });
+        }
       } else {
-        // If not super admin, enforce tenant isolation
+        // Standard authentication checks for logged-in users
         // Use effectiveTenantId (from booking page or user) for access control
         let facilityTenantId = effectiveTenantId;
         
