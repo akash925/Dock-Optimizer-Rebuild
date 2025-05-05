@@ -6556,6 +6556,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Public availability endpoint specifically for booking pages
   app.get("/api/public-availability/:bookingPageSlug", async (req, res) => {
+    // Set content type explicitly to ensure we return JSON
+    res.setHeader('Content-Type', 'application/json');
+    
     try {
       const { date, facilityId, appointmentTypeId } = req.query;
       const { bookingPageSlug } = req.params;
@@ -6625,7 +6628,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get existing appointments for the specified date and facility
-      const existingAppointments = await storage.getAppointmentsByDateAndFacility(parsedDate, parsedFacilityId);
+      // Direct SQL query since this function isn't in our storage interface yet
+      const existingAppointmentsQuery = `
+        SELECT * FROM appointments 
+        WHERE DATE(start_time) = $1 
+        AND facility_id = $2
+      `;
+      const { rows: existingAppointments } = await pool.query(existingAppointmentsQuery, [parsedDate, parsedFacilityId]);
       
       // Get facility settings (or use defaults)
       const facilitySettings = await storage.getFacilitySettings(parsedFacilityId);
@@ -6657,6 +6666,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Check availability for booking appointments (main endpoint)
   app.get("/api/availability", async (req, res) => {
+    // Set content type explicitly to ensure we return JSON
+    res.setHeader('Content-Type', 'application/json');
     try {
       const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
       // Get the tenant ID from user session
