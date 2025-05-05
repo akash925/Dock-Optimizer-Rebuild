@@ -6102,12 +6102,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`[Availability API] Warning: Appointment type ${typeIdNum} not found, returning sample slots`);
           
           // Return sample slots for testing - since we can't find the appointment type
+          // Default to 2 slots to respect max concurrent capacity
+          const defaultMaxConcurrent = 2;
           const sampleSlots = [
-            { time: "09:00", available: true, remainingCapacity: 1, remaining: 1, reason: "", isBufferTime: false },
-            { time: "10:30", available: true, remainingCapacity: 1, remaining: 1, reason: "", isBufferTime: false },
-            { time: "13:00", available: true, remainingCapacity: 1, remaining: 1, reason: "", isBufferTime: false },
-            { time: "14:30", available: true, remainingCapacity: 1, remaining: 1, reason: "", isBufferTime: false },
-            { time: "16:00", available: true, remainingCapacity: 1, remaining: 1, reason: "", isBufferTime: false }
+            { time: "09:00", available: true, remainingCapacity: defaultMaxConcurrent, remaining: defaultMaxConcurrent, reason: "", isBufferTime: false },
+            { time: "10:30", available: true, remainingCapacity: defaultMaxConcurrent, remaining: defaultMaxConcurrent, reason: "", isBufferTime: false },
+            { time: "13:00", available: true, remainingCapacity: defaultMaxConcurrent, remaining: defaultMaxConcurrent, reason: "", isBufferTime: false },
+            { time: "14:30", available: true, remainingCapacity: defaultMaxConcurrent, remaining: defaultMaxConcurrent, reason: "", isBufferTime: false },
+            { time: "16:00", available: true, remainingCapacity: defaultMaxConcurrent, remaining: defaultMaxConcurrent, reason: "", isBufferTime: false }
           ];
           
           const sampleTimes = sampleSlots.map(slot => slot.time);
@@ -6518,11 +6520,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate enhanced slot information for external booking pages
       const slots = availableTimes.map(timeStr => {
+        const maxConcurrent = appointmentType.max_concurrent || 1;
         return {
           time: timeStr,
           available: true,
-          remainingCapacity: 1,
-          remaining: 1, // Add 'remaining' for compatibility with existing UI
+          remainingCapacity: maxConcurrent,
+          remaining: maxConcurrent, // Add 'remaining' for compatibility with existing UI
           reason: "",
           isBufferTime: false
         };
@@ -7241,6 +7244,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             note: "Using facility settings from database"
           });
           
+          // Get the actual max concurrent value from the appointment type
+          // Use this for setting the remaining capacity correctly
+          const maxConcurrent = appointmentType.max_concurrent || 2;
+          console.log(`APPOINTMENT TYPE: Max concurrent value is ${maxConcurrent} for type ${appointmentType.id}`);
+          
           // Create a facility rule for this specific day
           // Using inline type to avoid circular dependency issues
           const facilityRule = {
@@ -7252,8 +7260,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             startTime,
             endTime,
             isActive: isAvailable,
-            facilityId: parsedFacilityId,
-            maxConcurrent: appointmentType.maxConcurrent || 1,
+            facilityId: parsedFacilityId, 
+            maxConcurrent,
             maxAppointmentsPerDay: maxAppointments || (appointmentType.maxAppointmentsPerDay || undefined),
             // Make sure buffer time is correctly included and treated as a number
             // Default to 60 minutes if not specified
