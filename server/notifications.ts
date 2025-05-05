@@ -1081,7 +1081,7 @@ export async function sendRescheduleEmail(
             <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">Express Check-in</h3>
             
             <!-- SVG QR code for modern email clients -->
-            <img src="${qrCodeSvgUrl}" alt="QR Code" style="width: 200px; height: 200px;" />
+            ${qrCodeSvgContent}
             
             <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
               Confirmation Code: ${confirmationCode}<br>
@@ -1490,7 +1490,7 @@ export async function sendReminderEmail(
             <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">Express Check-in</h3>
             
             <!-- SVG QR code for modern email clients -->
-            <img src="${qrCodeSvgUrl}" alt="QR Code" style="width: 200px; height: 200px;" />
+            ${qrCodeSvgContent}
             
             <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
               Confirmation Code: ${confirmationCode}<br>

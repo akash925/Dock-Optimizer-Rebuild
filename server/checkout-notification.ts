@@ -240,13 +240,14 @@ This is an automated message, please do not reply directly to this email.
 © ${new Date().getFullYear()} Dock Optimizer. All rights reserved.
     `;
     
-    // Create the email message object
+    // Create the email message object with categories for tracking
     const msg = {
       to,
       from: process.env.SENDGRID_FROM_EMAIL || 'notifications@dockoptimizer.com',
       subject: `Dock Appointment Completed - ${confirmationCode}`,
       text: textContent,
-      html: htmlContent
+      html: htmlContent,
+      categories: ['checkout-confirmation', 'appointment-lifecycle']
     };
     
     // Log that we're about to send
