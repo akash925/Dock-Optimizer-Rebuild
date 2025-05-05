@@ -5016,6 +5016,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // API endpoint for creating appointments from the dynamic booking page
+  // Add the slug-based booking endpoint to match what the tests expect
+  app.post("/api/booking-pages/:slug/book", uploadBol.single('bolFile'), async (req, res) => {
+    try {
+      console.log(`[BookAppointment] Received appointment booking request via slug: ${req.params.slug}`);
+      
+      // Get the booking page slug from the URL parameter
+      const bookingPageSlug = req.params.slug;
+      
+      if (!bookingPageSlug) {
+        console.log("[BookAppointment] Error: Missing booking page slug");
+        return res.status(400).json({ message: "Booking page slug is required" });
+      }
+      
+      // Get the booking page to determine its tenant
+      const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+      if (!bookingPage) {
+        console.log(`[BookAppointment] Error: No booking page found with slug: ${bookingPageSlug}`);
+        return res.status(404).json({ message: "Booking page not found" });
+      }
+      
+      const tenantId = bookingPage.tenantId;
+      console.log(`[BookAppointment] Found booking page tenant ID: ${tenantId}`);
+      
+      // Continue with rest of the booking process - same as the other endpoint
+      // Check if the facility belongs to the same tenant as the booking page
+      const facilityId = parseInt(req.body.facilityId, 10);
+      const facility = await storage.getFacility(facilityId);
+      
+      if (!facility) {
+        console.log(`[BookAppointment] Error: Facility not found with ID: ${facilityId}`);
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      if (facility.tenantId !== tenantId) {
+        console.log(`[BookAppointment] Error: Security breach - Facility ${facilityId} belongs to tenant ${facility.tenantId}, but booking page belongs to tenant ${tenantId}`);
+        return res.status(403).json({ message: "Invalid facility for this booking page" });
+      }
+      
+      // The rest of the endpoint logic is the same as the original endpoint
+      const appointmentTypeId = parseInt(req.body.appointmentTypeId, 10);
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      
+      if (!appointmentType) {
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Format the date and time
+      const { date, startTime, endTime } = req.body;
+      const startDate = new Date(`${date}T${startTime}`);
+      const endDate = new Date(`${date}T${endTime}`);
+      
+      // Generate a confirmation code
+      const prefixMap = {
+        'inbound': 'IN',
+        'outbound': 'OUT',
+        'other': 'APT'
+      };
+      
+      // Default to 'other' if not specified or invalid
+      const typeForPrefix = req.body.type && prefixMap[req.body.type.toLowerCase()] 
+        ? req.body.type.toLowerCase() 
+        : 'other';
+      
+      // Use a short code for the facility
+      const facilityPrefix = facility.name.substring(0, 2).toUpperCase();
+      
+      // Generate a random 4-digit number
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      
+      // Combine to create the confirmation code
+      const confirmationCode = `${facilityPrefix}${prefixMap[typeForPrefix]}${randomNum}`;
+      
+      // BOL Processing - if a file was uploaded
+      let bolData = null;
+      if (req.file) {
+        console.log(`[BookAppointment] BOL file received: ${req.file.originalname}`);
+        
+        // Store the file path for BOL processing
+        const bolFilePath = req.file.path;
+        
+        // Schedule OCR processing (will be done asynchronously)
+        try {
+          console.log(`[BookAppointment] Scheduling OCR processing for BOL file: ${bolFilePath}`);
+          
+          // Here you'd typically queue the OCR job, but for now we'll just set a flag
+          bolData = {
+            filePath: bolFilePath,
+            ocrStatus: 'pending',
+            uploadedName: req.file.originalname
+          };
+        } catch (ocrErr) {
+          console.error('[BookAppointment] Error scheduling OCR:', ocrErr);
+          // Continue with the booking even if OCR scheduling fails
+        }
+      }
+      
+      // Collect all the appointment data
+      const appointmentData = {
+        tenantId: tenantId,
+        facilityId: facilityId,
+        appointmentTypeId: appointmentTypeId,
+        type: req.body.type || appointmentType.applicableType || 'other',
+        status: 'scheduled',
+        startTime: startDate,
+        endTime: endDate,
+        truckNumber: req.body.truckNumber,
+        trailerNumber: req.body.trailerNumber || null,
+        driverName: req.body.driverName || null,
+        driverPhone: req.body.driverPhone || null,
+        driverEmail: req.body.driverEmail || null,
+        customerName: req.body.customerName || null,
+        carrierName: req.body.carrierName || null,
+        mcNumber: req.body.mcNumber || null,
+        palletCount: req.body.palletCount || null,
+        bolNumber: req.body.bolNumber || null,
+        poNumber: req.body.poNumber || null,
+        confirmationCode: confirmationCode,
+        customFormData: req.body.customFormData || null,
+        createdBy: 0,  // External booking
+        bolProcessingStatus: bolData ? 'pending' : null,
+        bolFilePath: bolData ? bolData.filePath : null,
+        source: 'booking-page'
+      };
+      
+      // Create the appointment
+      console.log('[BookAppointment] Creating appointment with data:', appointmentData);
+      const newAppointment = await storage.createAppointment(appointmentData);
+      
+      if (!newAppointment) {
+        console.error('[BookAppointment] Failed to create appointment');
+        return res.status(500).json({ message: "Failed to create appointment" });
+      }
+      
+      console.log(`[BookAppointment] Created appointment with ID: ${newAppointment.id}`);
+      
+      // Send confirmation email if driver email is provided
+      if (req.body.driverEmail) {
+        try {
+          console.log(`[BookAppointment] Sending confirmation email to: ${req.body.driverEmail}`);
+          
+          await sendConfirmationEmail({
+            to: req.body.driverEmail,
+            appointment: newAppointment,
+            facility: facility,
+            appointmentType: appointmentType
+          });
+          
+          console.log('[BookAppointment] Confirmation email sent successfully');
+        } catch (emailErr) {
+          console.error('[BookAppointment] Error sending confirmation email:', emailErr);
+          // Continue even if email fails
+        }
+      } else {
+        console.log('[BookAppointment] No driver email provided, skipping confirmation email');
+      }
+      
+      // Return the confirmation code to the client
+      return res.status(201).json({ 
+        message: "Appointment created successfully", 
+        appointmentId: newAppointment.id,
+        confirmationCode: confirmationCode 
+      });
+    } catch (err) {
+      console.error('[BookAppointment] Error in slug endpoint:', err);
+      res.status(500).json({ 
+        message: "An error occurred while booking the appointment",
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
+
+  // Keep the existing endpoint as well for backward compatibility
   app.post("/api/booking-pages/book-appointment", uploadBol.single('bolFile'), async (req, res) => {
     try {
       console.log(`[BookAppointment] Received appointment booking request:`, req.body);
