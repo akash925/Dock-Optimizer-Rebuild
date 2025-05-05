@@ -6754,14 +6754,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const slotTime = new Date(`${parsedDate}T${timeStr}:00`);
         const slotEndTime = new Date(slotTime.getTime() + (appointmentType.duration * 60 * 1000));
         
+        // Get the max concurrent value from the appointment type
+        const appointmentTypeMaxConcurrent = appointmentType.maxConcurrent || 2;
+        console.log(`[PublicAvailability] Using maxConcurrent: ${appointmentTypeMaxConcurrent} from appointment type ${appointmentType.id}`);
+        
         // Default dock count for this appointment type
         let maxDockCount;
         if (appointmentType.type === 'INBOUND') {
-          maxDockCount = facilitySettings?.maxConcurrentInbound || 1;
+          maxDockCount = facilitySettings?.maxConcurrentInbound || appointmentTypeMaxConcurrent;
         } else if (appointmentType.type === 'OUTBOUND') {
-          maxDockCount = facilitySettings?.maxConcurrentOutbound || 1;
+          maxDockCount = facilitySettings?.maxConcurrentOutbound || appointmentTypeMaxConcurrent;
         } else {
-          maxDockCount = 1; // Default for other types
+          maxDockCount = appointmentTypeMaxConcurrent; // Default to the appointment type's max concurrent value
         }
         
         // Count appointments that overlap with this time slot
@@ -7246,7 +7250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Get the actual max concurrent value from the appointment type
           // Use this for setting the remaining capacity correctly
-          const maxConcurrent = appointmentType.max_concurrent || 2;
+          const maxConcurrent = appointmentType.maxConcurrent || 2;
           console.log(`APPOINTMENT TYPE: Max concurrent value is ${maxConcurrent} for type ${appointmentType.id}`);
           
           // Create a facility rule for this specific day
