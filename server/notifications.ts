@@ -2,6 +2,7 @@ import sgMail from '@sendgrid/mail';
 import { Schedule } from '../shared/schema';
 import { format } from 'date-fns';
 import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone';
+import { generateQRCodeSVG } from './endpoints/qr-codes';
 
 // Enhanced schedule with UI-specific fields - extends the base Schedule type
 // This type is used for email templates and notifications that need additional context
