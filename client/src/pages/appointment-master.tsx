@@ -75,7 +75,9 @@ export default function AppointmentMaster() {
           appointmentType: "both" // Default value
         }));
         
+        console.log(`[StandardQuestions] Transformed questions for appointment type ${appointmentTypeId}:`, formattedQuestions);
         setStandardFields(formattedQuestions);
+        console.log(`[StandardQuestions] Updated standardFields state:`, formattedQuestions.length);
       })
       .catch(error => {
         console.error(`[StandardQuestions] Error loading questions:`, error);
@@ -688,10 +690,15 @@ export default function AppointmentMaster() {
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => {
                                     const appointmentTypeId = appointmentType.id;
+                                    console.log(`[AppointmentMaster] Selected appointment type: ${appointmentTypeId}`);
                                     setSelectedAppointmentTypeId(appointmentTypeId);
                                     
-                                    // Load standard questions from the database
+                                    // Load standard questions from the database - this logs the questions correctly
                                     loadStandardQuestionsForAppointmentType(appointmentTypeId);
+                                    console.log(`[AppointmentMaster] Set step to 3 to show questions tab when form opens`);
+                                    // Force the form to open on the questions tab (step 3)
+                                    setAppointmentTypeFormStep(3);
+                                    
                                     // Set the form data from the selected appointment type
                                     // Get the duration and set the buffer time if it was previously 0
                                     const duration = appointmentType.duration || 60;
