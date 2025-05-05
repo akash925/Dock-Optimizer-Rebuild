@@ -3004,13 +3004,23 @@ export class DatabaseStorage implements IStorage {
       const setClause = updateKeys.map((key, index) => {
         // Convert camelCase to snake_case for SQL
         const sqlKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+        // Special handling for the day open fields
+        if (key.endsWith('Open')) {
+          console.log(`Processing ${key} with value:`, filteredUpdate[key]);
+        }
         // Use index+2 because $1 is reserved for the id
         return `"${sqlKey}" = $${index + 2}`;
       }).join(', ');
       
       // Add values in the same order as the setClause
       updateKeys.forEach(key => {
-        values.push(filteredUpdate[key]);
+        // Special handling for boolean values to ensure they are correctly sent as true/false
+        if (typeof filteredUpdate[key] === 'boolean') {
+          console.log(`[updateFacility] Boolean value ${key}:`, filteredUpdate[key]);
+          values.push(filteredUpdate[key]);
+        } else {
+          values.push(filteredUpdate[key]);
+        }
       });
       
       // Add last_modified_at update
