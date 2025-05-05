@@ -23,9 +23,8 @@ export function useStandardQuestions({ appointmentTypeId, bookingPageSlug }: Use
         return [];
       }
       
-      // Support both the new and legacy endpoint formats
-      // The server has a redirect from /api/standard-questions/:id to /api/standard-questions/appointment-type/:id
-      let url = `/api/standard-questions/${appointmentTypeId}`;
+      // Use the direct endpoint format instead of relying on redirects
+      let url = `/api/standard-questions/appointment-type/${appointmentTypeId}`;
       
       // Add booking page slug as a query parameter if provided
       if (bookingPageSlug) {

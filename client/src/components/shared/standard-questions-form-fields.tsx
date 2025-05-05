@@ -56,15 +56,18 @@ export function StandardQuestionsFormFields({
   // Sort questions by order position
   const sortedQuestions = [...questions].sort((a, b) => a.orderPosition - b.orderPosition);
   
-  // Log questions for debugging
+  // Enhanced debug logging
   if (questions.length > 0) {
-    console.log('[StandardQuestionsFormFields] All questions:', sortedQuestions);
-    console.log('[StandardQuestionsFormFields] Included questions:', sortedQuestions.filter(q => q.included));
+    console.log('[StandardQuestionsFormFields] All questions (' + sortedQuestions.length + '):', sortedQuestions);
+    console.log('[StandardQuestionsFormFields] Questions with included=true (' + sortedQuestions.filter(q => q.included).length + '):', 
+      sortedQuestions.filter(q => q.included));
+    console.log('[StandardQuestionsFormFields] Questions with included=false (' + sortedQuestions.filter(q => !q.included).length + '):', 
+      sortedQuestions.filter(q => !q.included));
   }
 
   // Debug logging before rendering
   console.log('[StandardQuestionsFormFields] About to render questions. Questions count:', sortedQuestions.length);
-  console.log('[StandardQuestionsFormFields] First few questions:', sortedQuestions.slice(0, 3));
+  console.log('[StandardQuestionsFormFields] First few questions by order position:', sortedQuestions.slice(0, 5));
 
   return (
     <div className="space-y-4">

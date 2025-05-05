@@ -4119,6 +4119,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let tenantId = req.user?.tenantId;
       const bookingPageSlug = req.query.bookingPageSlug as string;
       
+      console.log(`[StandardQuestions] Received request for appointment type ${appointmentTypeId} with params:`, {
+        appointmentTypeId,
+        bookingPageSlug: bookingPageSlug || 'none',
+        initialTenantId: tenantId || 'none',
+        userAuthenticated: !!req.user,
+        reqPath: req.path
+      });
+      
       if (isNaN(appointmentTypeId)) {
         console.log(`[StandardQuestions] Invalid appointment type ID: ${req.params.appointmentTypeId}`);
         return res.status(400).send("Invalid appointment type ID");
