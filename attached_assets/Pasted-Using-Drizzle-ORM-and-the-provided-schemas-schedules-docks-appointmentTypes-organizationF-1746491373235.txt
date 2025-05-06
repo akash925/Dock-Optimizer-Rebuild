@@ -1,0 +1,22 @@
+Using Drizzle ORM and the provided schemas (`schedules`, `docks`, `appointmentTypes`, `organizationFacilities` from `shared/schema.ts`), write a TypeScript function snippet that defines and executes a Drizzle query.
+
+**Function Signature Hint:**
+async function fetchRelevantAppointmentsForDay(db: DrizzleDBInstance, facilityId: number, date: string, effectiveTenantId: number): Promise<{ id: number; startTime: Date; endTime: Date; }[]>
+
+**Query Requirements:**
+1.  **Input:** `db` instance, `facilityId` (number), `date` (string YYYY-MM-DD), `effectiveTenantId` (number).
+2.  **Date Range:** Calculate `dayStart` (start of the input `date`) and `dayEnd` (start of the *next* day). Use appropriate timezone handling (assume UTC for now, or specify if facility timezone is needed).
+3.  **Select:** Select `id`, `startTime`, and `endTime` from the `schedules` table.
+4.  **Joins:**
+    * Left join `schedules` with `docks` on `schedules.dockId = docks.id`.
+    * Left join `schedules` with `appointmentTypes` on `schedules.appointmentTypeId = appointmentTypes.id`.
+    * Left join `docks` with `organizationFacilities` on `docks.facilityId = organizationFacilities.facilityId`.
+5.  **Filtering (`where` and `and`):**
+    * Filter by `docks.facilityId` matching the input `facilityId`.
+    * Filter schedules that *overlap* the calculated `dayStart` and `dayEnd` (i.e., `schedules.startTime < dayEnd` AND `schedules.endTime > dayStart`).
+    * Filter schedules where `schedules.status` is NOT 'cancelled' AND NOT 'rejected' (use `notInArray` or multiple `ne`).
+    * **Tenant Isolation Filter:** Apply an `or` condition to ensure the schedule belongs to the `effectiveTenantId`:
+        * Either the facility belongs to the tenant (`organizationFacilities.organizationId = effectiveTenantId`).
+        * OR the appointment type belongs to the tenant (`appointmentTypes.tenantId = effectiveTenantId`).
+
+**Return:** Execute the query and return the promise resolving to the array of appointment objects `{ id, startTime, endTime }`.
