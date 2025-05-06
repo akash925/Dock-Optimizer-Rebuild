@@ -82,7 +82,7 @@ function createAppointmentType(overrides?: any) {
     name: '4 Hour Container Appointment',
     duration: 240, // 4 hours in minutes
     bufferTime: 30,
-    maxPerSlot: 2,
+    maxConcurrent: 2, // Use schema-accurate field 'maxConcurrent'
     tenantId: 5,
     allowAppointmentsThroughBreaks: false,
     overrideFacilityHours: false,
@@ -189,7 +189,7 @@ describe('calculateAvailabilitySlots', () => {
       const mockStorage = createMockStorage({
         facility: createFacility(),
         appointmentType: createAppointmentType({
-          maxPerSlot: 3 // Allow up to 3 concurrent appointments
+          maxConcurrent: 3 // Allow up to 3 concurrent appointments
         }),
       });
       
