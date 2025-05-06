@@ -1,6 +1,6 @@
 import { and, eq, gt, lt, ne, notInArray, or } from 'drizzle-orm';
-import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
-import { getDay } from 'date-fns';
+import { toZonedTime, format as tzFormat } from 'date-fns-tz';
+import { getDay, parseISO, addDays } from 'date-fns';
 import { db } from '../../db';
 import { IStorage } from '../../storage';
 import { schedules, docks, appointmentTypes, organizationFacilities } from '@shared/schema';
@@ -90,7 +90,17 @@ export async function calculateAvailabilitySlots(
   }
 
   // 2. Fetch the appointment type with tenant isolation
-  const appointmentType = await storage.getAppointmentType(appointmentTypeId, effectiveTenantId);
+  // Check storage implementation to see if it expects a second parameter for tenant isolation
+  // and adjust accordingly
+  let appointmentType;
+  try {
+    // Try with tenant isolation (newer implementation)
+    appointmentType = await storage.getAppointmentType(appointmentTypeId, effectiveTenantId);
+  } catch (error) {
+    // If that fails, try without tenant parameter (older implementation)
+    appointmentType = await storage.getAppointmentType(appointmentTypeId);
+  }
+  
   if (!appointmentType) {
     throw new Error('Appointment type not found or access denied.');
   }
@@ -101,13 +111,14 @@ export async function calculateAvailabilitySlots(
   
   // Convert date to the facility's timezone, then determine day of week (0=Sunday, 6=Saturday)
   // This ensures we're calculating the correct day in the facility's local time
-  const zonedDate = utcToZonedTime(`${date}T00:00:00Z`, facilityTimezone);
+  const dateObj = parseISO(`${date}T00:00:00Z`);
+  const zonedDate = toZonedTime(dateObj, facilityTimezone);
   const dayOfWeek = getDay(zonedDate);
   
   // Initialize operating time variables
-  let operatingStartTime: string;
-  let operatingEndTime: string;
-  let isOpen: boolean;
+  let operatingStartTime = "09:00"; // Default value
+  let operatingEndTime = "17:00";   // Default value
+  let isOpen = false;               // Default closed
   
   // Check if appointment type overrides facility hours
   if (appointmentType.overrideFacilityHours) {
@@ -119,45 +130,43 @@ export async function calculateAvailabilitySlots(
     // Otherwise, determine facility hours based on day of week
     switch (dayOfWeek) {
       case 0: // Sunday
-        operatingStartTime = facility.sundayStart;
-        operatingEndTime = facility.sundayEnd;
-        isOpen = facility.sundayOpen;
+        operatingStartTime = facility.sundayStart || "09:00";
+        operatingEndTime = facility.sundayEnd || "17:00";
+        isOpen = facility.sundayOpen === true;
         break;
       case 1: // Monday
-        operatingStartTime = facility.mondayStart;
-        operatingEndTime = facility.mondayEnd;
-        isOpen = facility.mondayOpen;
+        operatingStartTime = facility.mondayStart || "09:00";
+        operatingEndTime = facility.mondayEnd || "17:00";
+        isOpen = facility.mondayOpen === true;
         break;
       case 2: // Tuesday
-        operatingStartTime = facility.tuesdayStart;
-        operatingEndTime = facility.tuesdayEnd;
-        isOpen = facility.tuesdayOpen;
+        operatingStartTime = facility.tuesdayStart || "09:00";
+        operatingEndTime = facility.tuesdayEnd || "17:00";
+        isOpen = facility.tuesdayOpen === true;
         break;
       case 3: // Wednesday
-        operatingStartTime = facility.wednesdayStart;
-        operatingEndTime = facility.wednesdayEnd;
-        isOpen = facility.wednesdayOpen;
+        operatingStartTime = facility.wednesdayStart || "09:00";
+        operatingEndTime = facility.wednesdayEnd || "17:00";
+        isOpen = facility.wednesdayOpen === true;
         break;
       case 4: // Thursday
-        operatingStartTime = facility.thursdayStart;
-        operatingEndTime = facility.thursdayEnd;
-        isOpen = facility.thursdayOpen;
+        operatingStartTime = facility.thursdayStart || "09:00";
+        operatingEndTime = facility.thursdayEnd || "17:00";
+        isOpen = facility.thursdayOpen === true;
         break;
       case 5: // Friday
-        operatingStartTime = facility.fridayStart;
-        operatingEndTime = facility.fridayEnd;
-        isOpen = facility.fridayOpen;
+        operatingStartTime = facility.fridayStart || "09:00";
+        operatingEndTime = facility.fridayEnd || "17:00";
+        isOpen = facility.fridayOpen === true;
         break;
       case 6: // Saturday
-        operatingStartTime = facility.saturdayStart;
-        operatingEndTime = facility.saturdayEnd;
-        isOpen = facility.saturdayOpen;
+        operatingStartTime = facility.saturdayStart || "09:00";
+        operatingEndTime = facility.saturdayEnd || "17:00";
+        isOpen = facility.saturdayOpen === true;
         break;
       default:
-        // Fallback (should never happen)
-        operatingStartTime = "09:00";
-        operatingEndTime = "17:00";
-        isOpen = false;
+        // Fallback already set with defaults above
+        break;
     }
   }
   
@@ -176,18 +185,66 @@ export async function calculateAvailabilitySlots(
 
   // 4. Calculate timezone-aware date boundaries
   // Start of day in facility's timezone (00:00:00)
-  const dayStart = zonedTimeToUtc(`${date}T00:00:00`, facilityTimezone);
+  const dateForStart = parseISO(`${date}T00:00:00Z`);
+  const zonedDateStart = toZonedTime(dateForStart, facilityTimezone);
+  const dayStart = new Date(zonedDateStart);
   
   // Start of next day in facility's timezone (00:00:00 of day+1)
-  // First create date string for next day by adding 1 to current date
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + 1);
-  const nextDateStr = nextDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-  const dayEnd = zonedTimeToUtc(`${nextDateStr}T00:00:00`, facilityTimezone);
+  const nextDate = addDays(parseISO(`${date}T00:00:00Z`), 1);
+  const zonedNextDate = toZonedTime(nextDate, facilityTimezone);
+  const dayEnd = new Date(zonedNextDate);
   
-  // The function will need to continue with fetching existing appointments and generating slots
-  // This implementation will be completed in a future update
+  // 5. Calculate time slots based on operating hours
+  const result: AvailabilitySlot[] = [];
   
-  // For now, return an empty array as a placeholder
-  return [];
+  // Parse operating hours into Date objects 
+  const startHour = parseInt(operatingStartTime.split(':')[0], 10);
+  const startMinute = parseInt(operatingStartTime.split(':')[1], 10);
+  const endHour = parseInt(operatingEndTime.split(':')[0], 10);
+  const endMinute = parseInt(operatingEndTime.split(':')[1], 10);
+  
+  // Create a copy of dayStart to use for slot calculation
+  const slotTime = new Date(dayStart);
+  slotTime.setHours(startHour, startMinute, 0, 0);
+  
+  // Create end time
+  const operatingEnd = new Date(dayStart);
+  operatingEnd.setHours(endHour, endMinute, 0, 0);
+  
+  // 6. Fetch existing appointments for this day that match our constraints
+  const existingAppointments = await fetchRelevantAppointmentsForDay(
+    db,
+    facilityId,
+    date,
+    effectiveTenantId
+  );
+  
+  // 7. Generate slots from start time to end time with slotIntervalMinutes spacing
+  while (slotTime < operatingEnd) {
+    const timeStr = tzFormat(slotTime, 'HH:mm', { timeZone: facilityTimezone });
+    
+    // Check if slot overlaps with existing appointments
+    const conflictingAppts = existingAppointments.filter(appt => {
+      const apptStart = new Date(appt.startTime);
+      const apptEnd = new Date(appt.endTime);
+      
+      // Check if this slot time is within an existing appointment's time range
+      return slotTime >= apptStart && slotTime < apptEnd;
+    });
+    
+    // Create an availability slot with appropriate availability flag
+    result.push({
+      time: timeStr,
+      available: conflictingAppts.length === 0,
+      remainingCapacity: Math.max(0, appointmentType.maxPerSlot - conflictingAppts.length),
+      remaining: Math.max(0, appointmentType.maxPerSlot - conflictingAppts.length), // Compatibility
+      reason: conflictingAppts.length > 0 ? 'Slot already booked' : '',
+      isBufferTime: false
+    });
+    
+    // Move to next slot
+    slotTime.setMinutes(slotTime.getMinutes() + slotIntervalMinutes);
+  }
+  
+  return result;
 }

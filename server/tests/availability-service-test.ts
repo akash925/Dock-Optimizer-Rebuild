@@ -1,6 +1,6 @@
 // Test file to verify our availability service is working correctly
 import { db } from '../db';
-import { storage } from '../storage';
+import * as storageModule from '../storage';
 import { 
   fetchRelevantAppointmentsForDay,
   calculateAvailabilitySlots 
@@ -22,6 +22,9 @@ async function testAvailabilityService() {
     // It won't actually execute the full calculation since we're stopping after initial setup steps
     try {
       // Attempt to calculate availability slots
+      // Get the storage instance from the module
+      const storage = storageModule.storage || new storageModule.DatabaseStorage();
+      
       const availabilitySlots = await calculateAvailabilitySlots(
         db,
         storage,
