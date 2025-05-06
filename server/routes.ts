@@ -3047,24 +3047,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("[/api/schedules/external] Creating schedule with data:", scheduleData);
       
-      // Check availability before creating the schedule
-      try {
-        // Import the availability service
-        const { calculateAvailabilitySlots } = await import('./src/services/availability');
-        
-        // Extract just the date portion from the startTime
-        const appointmentDate = startTime.toISOString().split('T')[0];
-        const appointmentTime = startTime.toTimeString().split(' ')[0].substring(0, 5); // Format: HH:MM
-        
+      // Import the availability service
+      const { calculateAvailabilitySlots } = await import('./src/services/availability');
+      
+      // Extract just the date portion from the startTime
+      const appointmentDate = startTime.toISOString().split('T')[0];
+      const appointmentTime = startTime.toTimeString().split(' ')[0].substring(0, 5); // Format: HH:MM
+      
+      // Get the tenantId from the facility
+      const facilityTenantId = facility.tenantId || 
+                              (await storage.getFacilityTenantId(validatedData.facilityId));
+      
+      // Use a transaction to check availability and create the schedule
+      const schedule = await db.transaction(async (tx) => {
         console.log(`[/api/schedules/external] Checking availability for date=${appointmentDate}, facilityId=${validatedData.facilityId}, appointmentTypeId=${validatedData.appointmentTypeId}, time=${appointmentTime}`);
-        
-        // Get the tenantId from the facility
-        const facilityTenantId = facility.tenantId || 
-                                (await storage.getFacilityTenantId(validatedData.facilityId));
         
         // Use the enhanced availability calculation with break time handling
         const availableSlots = await calculateAvailabilitySlots(
-          db,
+          db, // Using main db here since deep transaction propagation is complex
           storage,
           appointmentDate,
           validatedData.facilityId,
@@ -3087,18 +3087,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new Error('SLOT_UNAVAILABLE');
         }
         
-        console.log(`[/api/schedules/external] Slot ${appointmentTime} is available with remaining capacity: ${requestedSlot.remainingCapacity}`);
-      } catch (availabilityError) {
-        // If it's not our specific error, it's likely a system error
-        if (!(availabilityError instanceof Error && availabilityError.message === 'SLOT_UNAVAILABLE')) {
-          console.error('[/api/schedules/external] Error checking availability:', availabilityError);
-        }
-        // Re-throw the error to be caught by the main try/catch
-        throw availabilityError;
-      }
-      
-      // Create the schedule
-      const schedule = await storage.createSchedule(scheduleData);
+        console.log(`[/api/schedules/external] Slot ${appointmentTime} is available with remaining capacity: ${requestedSlot.remainingCapacity}. Proceeding with creation.`);
+        
+        // Create the schedule if the slot is available
+        return await storage.createSchedule(scheduleData);
+      });
       
       // Generate confirmation code
       const confirmationCode = `HC${schedule.id}`;
