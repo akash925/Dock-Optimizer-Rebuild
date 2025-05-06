@@ -83,11 +83,15 @@ export async function calculateAvailabilitySlots(
   appointmentTypeId: number,
   effectiveTenantId: number
 ): Promise<AvailabilitySlot[]> {
+  console.log(`[AvailabilityService] Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}`);
+  
   // 1. Fetch the facility with tenant isolation
   const facility = await storage.getFacility(facilityId, effectiveTenantId);
   if (!facility) {
     throw new Error('Facility not found or access denied.');
   }
+  
+  console.log(`[AvailabilityService] Facility found: ${facility.name}, timezone: ${facility.timezone}`);
 
   // 2. Fetch the appointment type with tenant isolation
   // Check if the storage implementation has a getAppointmentType method
@@ -178,8 +182,11 @@ export async function calculateAvailabilitySlots(
   
   // If facility is closed on this day, return empty array
   if (!isOpen) {
+    console.log(`[AvailabilityService] Facility ${facility.name} is closed on ${date} (day of week: ${dayOfWeek})`);
     return [];
   }
+  
+  console.log(`[AvailabilityService] Facility ${facility.name} is open on ${date} with hours ${operatingStartTime} to ${operatingEndTime}`);
   
   // Calculate slot interval in minutes
   // Use appointment type buffer time if available, otherwise use duration
@@ -299,6 +306,7 @@ export async function calculateAvailabilitySlots(
       breakEndTimeStr.includes(':') && 
       !appointmentType.allowAppointmentsThroughBreaks
     ) {
+      console.log(`[AvailabilityService] Processing break time for slot ${timeStr}, break time: ${breakStartTimeStr}-${breakEndTimeStr}, allowAppointmentsThroughBreaks: ${appointmentType.allowAppointmentsThroughBreaks}`);
       try {
         // Create break time Date objects in the facility's timezone
         // Create start and end time objects for the current day in facility's local time
