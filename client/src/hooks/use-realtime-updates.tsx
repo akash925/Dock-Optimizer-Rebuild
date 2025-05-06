@@ -70,6 +70,11 @@ export function useRealtimeUpdates() {
             // Invalidate schedules query when a schedule is updated
             console.log('[WebSocket] Schedule update received, invalidating queries');
             queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+            
+            // Also invalidate availability data since schedule changes affect availability
+            console.log('[WebSocket] Invalidating availability cache');
+            queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/availability/v2'] });
             break;
 
           default:
@@ -104,6 +109,10 @@ export function useRealtimeUpdates() {
           pollingInterval = setInterval(() => {
             console.log('[Polling] Checking for updates via poll');
             queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+            
+            // Also periodically refresh availability data
+            queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/availability/v2'] });
           }, 30000); // Poll every 30 seconds
         }
       }

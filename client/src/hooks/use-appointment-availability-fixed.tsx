@@ -414,19 +414,44 @@ export function useAppointmentAvailability({
         
         return;
       }
+
+      // Fetch availability directly from the new v2 API endpoint instead of calculating it client-side
+      const queryParams = new URLSearchParams();
+      queryParams.append('date', dateStr);
+      queryParams.append('facilityId', String(facilityId));
       
-      // Fetch both rules and booked appointments in parallel
-      const [rules, booked] = await Promise.all([
-        fetchAvailabilityRules(),
-        fetchBookedAppointments(dateStr)
-      ]);
+      const effectiveTypeId = appointmentTypeId || typeId;
+      if (effectiveTypeId) {
+        queryParams.append('appointmentTypeId', String(effectiveTypeId));
+      }
       
-      // Store in state for reference/debugging
+      // Add bookingPageSlug for tenant context if available
+      if (bookingPageSlug) {
+        queryParams.append('bookingPageSlug', bookingPageSlug);
+      }
+      
+      // Use the new v2 endpoint for enhanced availability data
+      const url = `/api/availability/v2?${queryParams.toString()}`;
+      console.log(`[AvailabilityHook] Fetching from v2 endpoint: ${url}`);
+      
+      const response = await apiRequest('GET', url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch availability: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`[AvailabilityHook] Received ${data.slots?.length || 0} slots from v2 endpoint`);
+      
+      // For backward compatibility, also fetch the rules
+      const rules = await fetchAvailabilityRules();
       setAvailabilityRules(rules);
-      setBookedAppointments(booked);
       
-      // Generate available time slots
-      const slots = generateTimeSlots(dateStr, rules, booked);
+      // We don't need to fetch booked appointments separately as they're accounted for in the API response
+      setBookedAppointments([]);
+      
+      // Use slots directly from the API response
+      const slots = data.slots || [];
       
       // Update state with generated slots
       setAvailableTimeSlots(slots);
@@ -442,7 +467,7 @@ export function useAppointmentAvailability({
     } finally {
       setIsLoading(false);
     }
-  }, [facilityId, fetchAvailabilityRules, fetchBookedAppointments, generateTimeSlots, onTimeSlotGenerated, checkIsHoliday]);
+  }, [facilityId, appointmentTypeId, typeId, fetchAvailabilityRules, bookingPageSlug, onTimeSlotGenerated, checkIsHoliday]);
 
   // Initial fetch on mount if date is provided
   useEffect(() => {
