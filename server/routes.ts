@@ -1322,7 +1322,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const schedule = await storage.createSchedule(validatedData);
+      // Now wrap the appointment creation in a DB transaction and check availability
+      // Import the enhanced availability service
+      const { calculateAvailabilitySlots } = await import('./services/availabilityService');
+      
+      const schedule = await db.transaction(async (tx) => {
+        // 1. Get the necessary parameters for the availability check
+        if (!validatedData.facilityId || !validatedData.appointmentTypeId || !validatedData.startTime) {
+          throw new Error('Missing required fields for availability check');
+        }
+        
+        // Convert startTime to date string (YYYY-MM-DD) and time string (HH:MM)
+        const startDate = new Date(validatedData.startTime);
+        const dateStr = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
+        const timeStr = startDate.getHours().toString().padStart(2, '0') + ':' + 
+                      startDate.getMinutes().toString().padStart(2, '0'); // HH:MM
+        
+        // 2. Determine effective tenant ID (from user or facility)
+        const effectiveTenantId = req.user?.tenantId || 0;
+        
+        console.log(`[Schedule Creation] Checking availability for date=${dateStr}, time=${timeStr}, facilityId=${validatedData.facilityId}, appointmentTypeId=${validatedData.appointmentTypeId}, tenantId=${effectiveTenantId}`);
+        
+        // 3. Call calculateAvailabilitySlots to check if the selected time is available
+        const availabilitySlots = await calculateAvailabilitySlots(
+          db, // Using main db here since deep transaction propagation is complex
+          storage,
+          dateStr,
+          validatedData.facilityId,
+          validatedData.appointmentTypeId,
+          effectiveTenantId
+        );
+        
+        // 4. Find the specific slot that matches our requested time
+        const requestedSlot = availabilitySlots.find(slot => slot.time === timeStr);
+        
+        // 5. Verify slot availability
+        if (!requestedSlot) {
+          console.log(`[Schedule Creation] Requested time slot ${timeStr} not found in availability results`);
+          throw new Error('SLOT_UNAVAILABLE');
+        }
+        
+        if (!requestedSlot.available || requestedSlot.remainingCapacity <= 0) {
+          console.log(`[Schedule Creation] Requested time slot ${timeStr} is not available. Available: ${requestedSlot.available}, Capacity: ${requestedSlot.remainingCapacity}, Reason: ${requestedSlot.reason}`);
+          throw new Error('SLOT_UNAVAILABLE');
+        }
+        
+        console.log(`[Schedule Creation] Slot ${timeStr} is available with capacity ${requestedSlot.remainingCapacity}. Proceeding with creation.`);
+        
+        // 6. Create the schedule if the slot is available
+        return await storage.createSchedule(validatedData);
+      });
       
       // Get dock and facility information for the email and WebSocket broadcast
       try {
@@ -1384,9 +1433,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(schedule);
     } catch (err) {
       console.error("Failed to create schedule:", err);
+      
+      // Handle specific error for unavailable slots
+      if (err instanceof Error && err.message === 'SLOT_UNAVAILABLE') {
+        return res.status(409).json({ 
+          message: "Selected time slot is no longer available or capacity is full. Please try another time." 
+        });
+      }
+      
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid schedule data", errors: err.errors });
       }
+      
       res.status(500).json({ message: "Failed to create schedule" });
     }
   });
