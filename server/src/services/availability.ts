@@ -1,7 +1,8 @@
 import { and, eq, gt, lt, ne, notInArray, or } from 'drizzle-orm';
 import { toZonedTime, format as tzFormat } from 'date-fns-tz';
 import { getDay, parseISO, addDays } from 'date-fns';
-import { db, type DB } from '../../db';
+import { db } from '../../db';
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { IStorage } from '../../storage';
 import { schedules, docks, appointmentTypes, organizationFacilities } from '@shared/schema';
 
@@ -83,7 +84,7 @@ export async function calculateAvailabilitySlots(
   appointmentTypeId: number,
   effectiveTenantId: number
 ): Promise<AvailabilitySlot[]> {
-  console.log(`[AvailabilityService] Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}`);
+  console.log(`[AvailabilityService] Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${effectiveTenantId}`);
   
   // 1. Fetch the facility with tenant isolation
   let facility = await storage.getFacility(facilityId, effectiveTenantId);
@@ -176,7 +177,7 @@ export async function calculateAvailabilitySlots(
   let isOpen = false;               // Default closed
   
   // Check if appointment type overrides facility hours
-  if (appointmentType.overrideFacilityHours) {
+  if (overrideFacilityHours) {
     // If override is enabled, use 24-hour availability
     operatingStartTime = "00:00";
     operatingEndTime = "23:59";
@@ -237,7 +238,7 @@ export async function calculateAvailabilitySlots(
   // Use appointment type buffer time if available, otherwise use duration
   // Ensure a minimum slot interval (15 minutes)
   const slotIntervalMinutes = Math.max(
-    appointmentType.bufferTime > 0 ? appointmentType.bufferTime : appointmentType.duration,
+    appointmentTypeBufferTime > 0 ? appointmentTypeBufferTime : appointmentTypeDuration,
     15
   );
 
@@ -292,11 +293,11 @@ export async function calculateAvailabilitySlots(
     
     // Get max slots per time slot from appointment type
     // Default to 1 if not specified
-    const maxSlotsPerTime = (appointmentType as any).maxPerSlot || 1;
+    const maxSlotsPerTime = getAppointmentTypeField('maxPerSlot', 'max_per_slot', 1);
     
     // Calculate end time for this slot (for break time overlap checks)
     const currentSlotEndTime = new Date(slotTime);
-    currentSlotEndTime.setMinutes(currentSlotEndTime.getMinutes() + appointmentType.duration);
+    currentSlotEndTime.setMinutes(currentSlotEndTime.getMinutes() + appointmentTypeDuration);
     
     // Create an availability slot with appropriate availability flag
     result.push({
@@ -343,15 +344,14 @@ export async function calculateAvailabilitySlots(
         break;
     }
     
-    // If break times are defined AND appointment type doesn't allow appointments through breaks
+    // If break times are defined, check if they affect this slot
     if (
       breakStartTimeStr && 
       breakEndTimeStr && 
       breakStartTimeStr.includes(':') && 
-      breakEndTimeStr.includes(':') && 
-      !appointmentType.allowAppointmentsThroughBreaks
+      breakEndTimeStr.includes(':')
     ) {
-      console.log(`[AvailabilityService] Processing break time for slot ${timeStr}, break time: ${breakStartTimeStr}-${breakEndTimeStr}, allowAppointmentsThroughBreaks: ${appointmentType.allowAppointmentsThroughBreaks}`);
+      console.log(`[AvailabilityService] Processing break time for slot ${timeStr}, break time: ${breakStartTimeStr}-${breakEndTimeStr}, allowAppointmentsThroughBreaks: ${allowAppointmentsThroughBreaks}`);
       try {
         // Create break time Date objects in the facility's timezone
         // Create start and end time objects for the current day in facility's local time
@@ -368,16 +368,31 @@ export async function calculateAvailabilitySlots(
         // Check if current slot overlaps with break time
         // Overlap condition: currentSlotStartTime < breakEndDateTime && currentSlotEndTime > breakStartDateTime
         if (slotTime < breakEndDateTime && currentSlotEndTime > breakStartDateTime) {
-          // Find the last added slot (which should be the one we just added)
-          const lastIndex = result.length - 1;
-          if (lastIndex >= 0) {
-            const slot = result[lastIndex];
-            
-            // Update slot to mark it as unavailable due to break time
-            slot.available = false;
-            slot.remainingCapacity = 0;
-            slot.remaining = 0;
-            slot.reason = slot.reason ? `${slot.reason}, Break Time` : 'Break Time';
+          // Check if this appointment type allows appointments to span through breaks
+          if (!allowAppointmentsThroughBreaks) {
+            // Find the last added slot (which should be the one we just added)
+            const lastIndex = result.length - 1;
+            if (lastIndex >= 0) {
+              const slot = result[lastIndex];
+              
+              // Update slot to mark it as unavailable due to break time
+              slot.available = false;
+              slot.remainingCapacity = 0;
+              slot.remaining = 0;
+              slot.reason = slot.reason ? `${slot.reason}, Break Time` : 'Break Time';
+            }
+          } else {
+            // This appointment type allows spanning through breaks
+            // We'll leave the slot as available, but add a note that it spans through a break
+            console.log(`[AvailabilityService] Slot ${timeStr} spans through break time, but appointment type allows it`);
+            const lastIndex = result.length - 1;
+            if (lastIndex >= 0) {
+              const slot = result[lastIndex];
+              if (slot.available) {
+                // Only add a note if the slot is already available
+                slot.reason = 'Spans through break time';
+              }
+            }
           }
         }
       } catch (error) {
