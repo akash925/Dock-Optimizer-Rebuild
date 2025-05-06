@@ -91,6 +91,7 @@ export interface IStorage {
   getFacilitiesByOrganizationId(organizationId: number): Promise<Facility[]>;
   getOrganizationByFacilityId(facilityId: number): Promise<{ id: number; name: string } | null>;
   getOrganizationByAppointmentTypeId(appointmentTypeId: number): Promise<{ id: number; name: string } | null>;
+  getFacilityTenantId(facilityId: number): Promise<number>;
   createFacility(facility: InsertFacility): Promise<Facility>;
   updateFacility(id: number, facility: Partial<Facility>): Promise<Facility | undefined>;
   deleteFacility(id: number): Promise<boolean>;
@@ -757,6 +758,22 @@ export class MemStorage implements IStorage {
         mapping => mapping.organizationId === organizationId && mapping.facilityId === facility.id
       );
     });
+  }
+  
+  async getFacilityTenantId(facilityId: number): Promise<number> {
+    // Find the organization that owns this facility using the organization_facilities mappings
+    const mapping = Array.from(this.organizationFacilities.values()).find(
+      mapping => mapping.facilityId === facilityId
+    );
+    
+    if (!mapping) {
+      console.warn(`No tenant found for facility ${facilityId}, defaulting to tenant ID 1`);
+      return 1; // Default to tenant ID 1 if not found
+    }
+    
+    const tenantId = mapping.organizationId;
+    console.log(`Facility ${facilityId} belongs to tenant ${tenantId}`);
+    return tenantId;
   }
 
   async createFacility(insertFacility: InsertFacility): Promise<Facility> {
@@ -2974,6 +2991,32 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error getting organization for appointment type ${appointmentTypeId}:`, error);
       return null;
+    }
+  }
+
+  async getFacilityTenantId(facilityId: number): Promise<number> {
+    try {
+      // Get the organization/tenant ID for this facility using the organization_facilities join table
+      const query = `
+        SELECT of.organization_id as tenant_id
+        FROM organization_facilities of
+        WHERE of.facility_id = $1
+        LIMIT 1
+      `;
+      
+      const result = await pool.query(query, [facilityId]);
+      
+      if (result.rows.length === 0) {
+        console.warn(`No tenant found for facility ${facilityId}, defaulting to tenant ID 1`);
+        return 1; // Default to tenant ID 1 if not found
+      }
+      
+      const tenantId = result.rows[0].tenant_id;
+      console.log(`Facility ${facilityId} belongs to tenant ${tenantId}`);
+      return tenantId;
+    } catch (error) {
+      console.error(`Error getting tenant ID for facility ${facilityId}:`, error);
+      return 1; // Default to tenant ID 1 in case of error
     }
   }
 
