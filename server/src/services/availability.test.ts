@@ -282,7 +282,7 @@ describe("calculateAvailabilitySlots", () => {
       // Mock 2 existing appointments at 9am
       const nineAM = new Date(`${wednesday}T09:00:00Z`);
       const oneThirtyPM = new Date(`${wednesday}T13:30:00Z`);
-      (fetchRelevantAppointmentsForDay as any).mockResolvedValue([
+      mockFetchRelevantAppointmentsForDay.mockResolvedValue([
         createAppointment(nineAM, oneThirtyPM),
         createAppointment(nineAM, oneThirtyPM),
       ]);
@@ -585,7 +585,7 @@ describe("calculateAvailabilitySlots", () => {
       );
 
       // Verify fetchRelevantAppointmentsForDay was called with correct parameters including Date objects
-      expect(fetchRelevantAppointmentsForDay).toHaveBeenCalledWith(
+      expect(mockFetchRelevantAppointmentsForDay).toHaveBeenCalledWith(
         mockDb,
         7, // facilityId
         expect.any(Date), // dayStart should be a Date object
@@ -595,7 +595,7 @@ describe("calculateAvailabilitySlots", () => {
 
       // Additional verification to check if the dates are correct (close to expected dates)
       // We can't directly compare Date objects, so we check if the call arguments are close to expected values
-      const mockCalls = (fetchRelevantAppointmentsForDay as any).mock.calls[0];
+      const mockCalls = mockFetchRelevantAppointmentsForDay.mock.calls[0];
       const actualDayStart = mockCalls[2];
       const actualDayEnd = mockCalls[3];
 
@@ -631,7 +631,7 @@ describe("calculateAvailabilitySlots", () => {
       const tenAM = new Date(`${wednesday}T10:00:00Z`);
       const elevenAM = new Date(`${wednesday}T11:00:00Z`);
 
-      (fetchRelevantAppointmentsForDay as any).mockResolvedValue([
+      mockFetchRelevantAppointmentsForDay.mockResolvedValue([
         createAppointment(nineAM, tenAM), // 9am-10am
         createAppointment(tenAM, elevenAM), // 10am-11am
       ]);
@@ -679,7 +679,7 @@ describe("calculateAvailabilitySlots", () => {
       const nineAM = new Date(`${wednesday}T09:00:00Z`);
       const elevenAM = new Date(`${wednesday}T11:00:00Z`);
 
-      (fetchRelevantAppointmentsForDay as any).mockResolvedValue([
+      mockFetchRelevantAppointmentsForDay.mockResolvedValue([
         createAppointment(nineAM, elevenAM), // 9am-11am (spans 4 half-hour slots)
       ]);
 
