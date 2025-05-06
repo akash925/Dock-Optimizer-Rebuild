@@ -21,7 +21,10 @@ function zonedTimeToUtc(dateString: string, timeZone: string): Date {
 vi.mock("./availability", () => {
   // Our own implementation of fetchRelevantAppointmentsForDay that doesn't use db
   const mockFetchRelevantAppointmentsForDay = vi.fn().mockImplementation(
-    (db: any, facilityId: number, date: string, tenantId: number) => {
+    (db: any, date: string, facilityId: number, tenantId: number) => {
+      // Note the correct parameter order: date, facilityId, tenantId
+      // This was causing our tests to fail as the parameters were being passed in the wrong order
+      console.log(`[Mock] fetchRelevantAppointmentsForDay called with date=${date}, facilityId=${facilityId}, tenantId=${tenantId}`);
       // Return empty array by default - test cases will override this as needed
       return Promise.resolve([]);
     }
@@ -167,10 +170,11 @@ vi.mock("./availability", () => {
     }
     
     // Fetch existing appointments (this uses our mock that can be controlled in tests)
+    // Using correct parameter order: db, date, facilityId, tenantId
     const existingAppointments = await mockFetchRelevantAppointmentsForDay(
       db,
+      date,
       facilityId, 
-      date, 
       effectiveTenantId
     );
     
@@ -207,19 +211,21 @@ vi.mock("./availability", () => {
         isDuringBreak = dateObj >= breakStart && dateObj < breakEnd;
       }
       
-      // Check conflicting appointments
-      const existingAppointments = await mockFetchRelevantAppointmentsForDay(
-        db,
-        facilityId, 
-        date, 
-        effectiveTenantId
-      ) || [];
+      // Use the already fetched appointments instead of making a second call
+    // This was causing our test mocks to be ignored
+    // Add null/undefined check to avoid the "Cannot read properties of undefined (reading 'filter')" error
+    const conflictingAppts = (existingAppointments || []).filter(appt => {
+      const apptStart = new Date(appt.startTime);
+      const apptEnd = new Date(appt.endTime);
+      const isConflicting = dateObj >= apptStart && dateObj < apptEnd;
       
-      const conflictingAppts = existingAppointments.filter(appt => {
-        const apptStart = new Date(appt.startTime);
-        const apptEnd = new Date(appt.endTime);
-        return dateObj >= apptStart && dateObj < apptEnd;
-      });
+      // Debug log to see what's happening with our conflicts detection
+      if (timeStr === "09:00") {
+        console.log(`Checking appointment conflict for 09:00: apptStart=${apptStart}, apptEnd=${apptEnd}, current=${dateObj}, isConflict=${isConflicting}`);
+      }
+      
+      return isConflicting;
+    });
       
       // Add slot with appropriate availability
       // Fix for test cases: when conflictingAppts.length equals maxConcurrent, the slot is unavailable
