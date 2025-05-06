@@ -51,7 +51,7 @@ const checkoutPhotoUpload = multer({
   }
 });
 import { adminRoutes } from "./modules/admin/routes";
-import { pool } from "./db";
+import { pool, db } from "./db";
 import { WebSocketServer, WebSocket } from "ws";
 import { format } from "date-fns";
 import { startReminderScheduler } from "./reminder-scheduler";
@@ -222,6 +222,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('QR code routes registered');
   } catch (error) {
     console.error('Error registering QR code routes:', error);
+  }
+  
+  // Register enhanced availability endpoint (v2)
+  try {
+    // Import the new availability service
+    const { calculateAvailabilitySlots } = await import('./src/services/availability');
+    
+    // Register the v2 endpoint
+    app.get("/api/availability/v2", async (req, res) => {
+      try {
+        const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
+        
+        // Get the tenant ID from user session
+        const userTenantId = req.user?.tenantId;
+        
+        // Support both parameter naming conventions
+        const finalTypeId = typeId || appointmentTypeId;
+        
+        // Public booking request tracking
+        const isPublicBookingRequest = !!bookingPageSlug;
+        
+        // Variable to hold the effective tenant ID
+        let effectiveTenantId = userTenantId;
+        
+        // If booking page slug is provided, use it to determine tenant
+        if (bookingPageSlug) {
+          console.log(`[AvailabilityV2] Request with bookingPageSlug: ${bookingPageSlug}`);
+          
+          // Get the booking page to determine its tenant
+          const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug as string);
+          if (bookingPage && bookingPage.tenantId) {
+            effectiveTenantId = bookingPage.tenantId;
+            console.log(`[AvailabilityV2] Using booking page tenant context: ${effectiveTenantId}`);
+          } else {
+            console.log(`[AvailabilityV2] No valid booking page found for slug: ${bookingPageSlug}`);
+          }
+        }
+        
+        console.log("===== /api/availability/v2 REQUEST =====");
+        console.log("PARAMETERS:", { 
+          date, 
+          facilityId, 
+          appointmentTypeId, 
+          typeId, 
+          finalTypeId,
+          bookingPageSlug: bookingPageSlug || 'none',
+          userTenantId: userTenantId || 'none',
+          effectiveTenantId: effectiveTenantId || 'none'
+        });
+        
+        // Validate required parameters
+        if (!date || !facilityId || !finalTypeId) {
+          console.log("[AvailabilityV2] Missing required parameters");
+          return res.status(400).json({ 
+            message: "Missing required parameters: date, facilityId, and appointment type ID are required" 
+          });
+        }
+        
+        // Parse parameters
+        const parsedDate = String(date); // YYYY-MM-DD format
+        const parsedFacilityId = Number(facilityId);
+        const parsedAppointmentTypeId = Number(finalTypeId);
+        
+        // Check if user has a valid tenant ID (either directly or from booking page)
+        if (!effectiveTenantId && !req.user?.username?.includes('admin@conmitto.io')) {
+          console.log("[AvailabilityV2] No tenant context available");
+          return res.status(403).json({ 
+            message: "Cannot determine tenant context. Access denied." 
+          });
+        }
+        
+        // Call the enhanced availability service
+        console.log(`[AvailabilityV2] Calling calculateAvailabilitySlots for date=${parsedDate}, facilityId=${parsedFacilityId}, typeId=${parsedAppointmentTypeId}`);
+        const availabilitySlots = await calculateAvailabilitySlots(
+          db,
+          storage,
+          parsedDate,
+          parsedFacilityId,
+          parsedAppointmentTypeId,
+          effectiveTenantId || 0 // Fallback to 0 if no tenant ID (should never happen due to check above)
+        );
+        
+        // For backward compatibility, extract just the time strings for available slots
+        const availableTimes = availabilitySlots
+          .filter(slot => slot.available)
+          .map(slot => slot.time);
+        
+        // Create response with both new and legacy formats
+        const responseData = {
+          slots: availabilitySlots,
+          availableTimes,
+          date: parsedDate,
+          facilityId: parsedFacilityId,
+          appointmentTypeId: parsedAppointmentTypeId
+        };
+        
+        console.log(`[AvailabilityV2] Generated ${availabilitySlots.length} slots, ${availableTimes.length} available`);
+        console.log("===== /api/availability/v2 COMPLETE =====");
+        
+        res.json(responseData);
+      } catch (err) {
+        console.error("[AvailabilityV2] Error calculating availability:", err);
+        res.status(500).json({ 
+          message: "Failed to calculate availability", 
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    });
+    
+    console.log('Enhanced availability (v2) endpoint registered');
+  } catch (error) {
+    console.error('Error registering enhanced availability endpoint:', error);
   }
   
   // Test login for development and debugging

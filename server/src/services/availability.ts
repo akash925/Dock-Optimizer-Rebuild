@@ -90,15 +90,21 @@ export async function calculateAvailabilitySlots(
   }
 
   // 2. Fetch the appointment type with tenant isolation
-  // Check storage implementation to see if it expects a second parameter for tenant isolation
-  // and adjust accordingly
+  // Check if the storage implementation has a getAppointmentTypeWithTenant method
   let appointmentType;
-  try {
-    // Try with tenant isolation (newer implementation)
-    appointmentType = await storage.getAppointmentType(appointmentTypeId, effectiveTenantId);
-  } catch (error) {
-    // If that fails, try without tenant parameter (older implementation)
+  
+  if (typeof storage.getAppointmentTypeWithTenant === 'function') {
+    // Use tenant-aware method if available
+    appointmentType = await storage.getAppointmentTypeWithTenant(appointmentTypeId, effectiveTenantId);
+  } else {
+    // Fall back to regular method
     appointmentType = await storage.getAppointmentType(appointmentTypeId);
+    
+    // Manual tenant check if needed
+    if (appointmentType && appointmentType.tenantId && appointmentType.tenantId !== effectiveTenantId) {
+      console.log(`[AvailabilityService] Tenant mismatch: appointment type ${appointmentTypeId} belongs to tenant ${appointmentType.tenantId}, but request is for tenant ${effectiveTenantId}`);
+      appointmentType = null;
+    }
   }
   
   if (!appointmentType) {
@@ -232,12 +238,16 @@ export async function calculateAvailabilitySlots(
       return slotTime >= apptStart && slotTime < apptEnd;
     });
     
+    // Get max slots per time slot from appointment type
+    // Default to 1 if not specified
+    const maxSlotsPerTime = (appointmentType as any).maxPerSlot || 1;
+    
     // Create an availability slot with appropriate availability flag
     result.push({
       time: timeStr,
       available: conflictingAppts.length === 0,
-      remainingCapacity: Math.max(0, appointmentType.maxPerSlot - conflictingAppts.length),
-      remaining: Math.max(0, appointmentType.maxPerSlot - conflictingAppts.length), // Compatibility
+      remainingCapacity: Math.max(0, maxSlotsPerTime - conflictingAppts.length),
+      remaining: Math.max(0, maxSlotsPerTime - conflictingAppts.length), // Compatibility
       reason: conflictingAppts.length > 0 ? 'Slot already booked' : '',
       isBufferTime: false
     });

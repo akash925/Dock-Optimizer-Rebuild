@@ -22,8 +22,44 @@ async function testAvailabilityService() {
     // It won't actually execute the full calculation since we're stopping after initial setup steps
     try {
       // Attempt to calculate availability slots
-      // Get the storage instance from the module
-      const storage = storageModule.storage || new storageModule.DatabaseStorage();
+      // Create a test storage instance
+      // This is a mock implementation to test the service
+      const storage = {
+        getFacility: async (id: number) => ({
+          id,
+          name: 'Test Facility',
+          timezone: 'America/New_York',
+          mondayOpen: true,
+          mondayStart: '08:00',
+          mondayEnd: '17:00',
+          tuesdayOpen: true,
+          tuesdayStart: '08:00',
+          tuesdayEnd: '17:00',
+          wednesdayOpen: true,
+          wednesdayStart: '08:00',
+          wednesdayEnd: '17:00',
+          thursdayOpen: true,
+          thursdayStart: '08:00',
+          thursdayEnd: '17:00',
+          fridayOpen: true,
+          fridayStart: '08:00',
+          fridayEnd: '17:00',
+          saturdayOpen: false,
+          saturdayStart: null,
+          saturdayEnd: null,
+          sundayOpen: false,
+          sundayStart: null,
+          sundayEnd: null,
+        }),
+        getAppointmentType: async (id: number) => ({
+          id,
+          name: 'Test Appointment',
+          duration: 30,
+          bufferTime: 15,
+          maxPerSlot: 2,
+          overrideFacilityHours: false,
+        }),
+      };
       
       const availabilitySlots = await calculateAvailabilitySlots(
         db,
