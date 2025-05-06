@@ -1,10 +1,25 @@
+// Import Vitest testing utilities
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  calculateAvailabilitySlots,
-  type AvailabilitySlot,
-} from "./availability";
+// Import the function we're testing
+import { calculateAvailabilitySlots, type AvailabilitySlot } from "./availability";
+// Import storage interface
 import { IStorage } from "../../storage";
+// Import timezone utilities
 import { zonedTimeToUtc } from "date-fns-tz";
+
+// Mock the fetchRelevantAppointmentsForDay function at the very start
+vi.mock("./availability", () => {
+  return {
+    // We need to maintain the original implementation of calculateAvailabilitySlots
+    calculateAvailabilitySlots: vi.fn().mockImplementation((db, storage, date, facilityId, appointmentTypeId, tenantId) => {
+      // Just call the real implementation
+      const originalModule = vi.importActual("./availability");
+      return originalModule.calculateAvailabilitySlots(db, storage, date, facilityId, appointmentTypeId, tenantId);
+    }),
+    // But replace fetchRelevantAppointmentsForDay with a mock
+    fetchRelevantAppointmentsForDay: vi.fn().mockResolvedValue([])
+  };
+});
 
 // Mock dependencies with a more complete Drizzle-like query chain
 const mockDb = {
@@ -113,21 +128,7 @@ function createAppointment(startTime: Date, endTime: Date) {
   };
 }
 
-// Import everything from the availability module
-import * as availabilityModule from "./availability";
-
-// Create a completely separate mock function for fetchRelevantAppointmentsForDay
-// This way we can control what it returns in each test
-const mockFetchRelevantAppointmentsForDay = vi.fn().mockResolvedValue([]);
-
-// Replace the real implementation with our mock
-vi.mock("./availability", async () => {
-  const actual = await vi.importActual("./availability");
-  return {
-    ...actual,
-    fetchRelevantAppointmentsForDay: mockFetchRelevantAppointmentsForDay
-  };
-});
+// Note: We already imported what we need from "./availability" above
 
 describe("calculateAvailabilitySlots", () => {
   beforeEach(() => {
