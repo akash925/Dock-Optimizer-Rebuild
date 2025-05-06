@@ -6,6 +6,8 @@ import { calculateAvailabilitySlots, type AvailabilitySlot } from "./availabilit
 import { IStorage } from "../../storage";
 // Import timezone utilities
 import { zonedTimeToUtc } from "date-fns-tz";
+// Import date-fns utilities
+import { addDays, parseISO } from "date-fns";
 
 // Mock the fetchRelevantAppointmentsForDay function at the very start
 vi.mock("./availability", () => {
@@ -20,6 +22,9 @@ vi.mock("./availability", () => {
     fetchRelevantAppointmentsForDay: vi.fn().mockResolvedValue([])
   };
 });
+
+// Import the mocked function
+import { fetchRelevantAppointmentsForDay } from "./availability";
 
 // Mock dependencies with a more complete Drizzle-like query chain
 const mockDb = {
@@ -213,7 +218,7 @@ describe("calculateAvailabilitySlots", () => {
       });
 
       // Mock fetchRelevantAppointmentsForDay to return no appointments
-      mockFetchRelevantAppointmentsForDay.mockResolvedValue([]);
+      (fetchRelevantAppointmentsForDay as vi.Mock).mockResolvedValue([]);
 
       const slots = await calculateAvailabilitySlots(
         mockDb,
@@ -245,7 +250,7 @@ describe("calculateAvailabilitySlots", () => {
       // Mock existing appointment at 9am
       const nineAM = new Date(`${wednesday}T09:00:00Z`);
       const oneThirtyPM = new Date(`${wednesday}T13:30:00Z`);
-      mockFetchRelevantAppointmentsForDay.mockResolvedValue([
+      (fetchRelevantAppointmentsForDay as vi.Mock).mockResolvedValue([
         createAppointment(nineAM, oneThirtyPM),
       ]);
 

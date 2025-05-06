@@ -1,0 +1,32 @@
+Thank you! The tests ran, and all 16 failed. This is a good starting point for debugging.
+Let's focus on fixing `server/src/services/availability.test.ts`.
+
+Based on the error messages:
+
+1.  **`mockFetchRelevantAppointmentsForDay` is not defined:**
+    * You've correctly mocked `WorkspaceRelevantAppointmentsForDay` using `vi.mock` and then imported it:
+        ```typescript
+        // At the top, after other imports
+        import { fetchRelevantAppointmentsForDay } from './availability';
+        ```
+    * In the test cases, instead of calling `mockFetchRelevantAppointmentsForDay.mockResolvedValue(...)`, you should directly use the imported mock:
+        ```typescript
+        // Example:
+        (fetchRelevantAppointmentsForDay as vi.Mock).mockResolvedValue([]);
+        // or if types are tricky:
+        (fetchRelevantAppointmentsForDay as any).mockResolvedValue([]);
+        ```
+    * Please apply this correction to all places where `WorkspaceRelevantAppointmentsForDay` is being configured for a test (e.g., lines 216, 248, 286, 635, 683).
+
+2.  **`TypeError: zonedTimeToUtc is not a function` in the tenant isolation test:**
+    * The import `import { zonedTimeToUtc } from 'date-fns-tz';` is at the top of the file (line 4).
+    * However, the test `'enforces tenant isolation when fetching relevant appointments'` (around line 579 in the provided file) also tries to calculate `wednesdayStart` and `wednesdayEnd` using `zonedTimeToUtc`.
+    * Please ensure the `zonedTimeToUtc` and other `date-fns-tz` / `date-fns` functions (`addDays`, `parseISO`) needed *within this specific test case* for creating `dayStartForMock` and `dayEndForMock` are correctly imported and used at the top of the test file, or directly within that test case if necessary (though top-level is cleaner). The issue might be how the `await import()` was used in my previous suggestion for this specific part. Let's ensure `zonedTimeToUtc`, `addDays`, `parseISO` are directly imported at the top of the test file like other Vitest functions.
+
+3.  **Functions returning `undefined` instead of `[]`:**
+    * The errors `expected undefined to deeply equal []` and `Cannot read properties of undefined (reading 'length')` suggest that `calculateAvailabilitySlots` is returning `undefined` in some scenarios where it should return an empty array (e.g., when a facility is closed).
+    * Please review the `calculateAvailabilitySlots` function in `server/src/services/availability.ts` one more time. Ensure that all code paths that should result in "no slots available" (like facility closed, or no operating hours found after overrides) explicitly `return [];` and don't just end, which would lead to an async function implicitly returning `undefined`.
+
+**Output:**
+Please provide the **updated content of `server/src/services/availability.test.ts`** with corrections for points 1 and 2.
+Also, if you identify and fix any issues in `server/src/services/availability.ts` related to point 3 (returning `undefined`), please provide the updated `calculateAvailabilitySlots` function as well.
