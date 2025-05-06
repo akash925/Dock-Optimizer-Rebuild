@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { calculateAvailabilitySlots, type AvailabilitySlot } from './availability';
 import { IStorage } from '../../storage';
+import { zonedTimeToUtc } from 'date-fns-tz';
 
 // Mock dependencies
 const mockDb = {
@@ -219,7 +220,7 @@ describe('calculateAvailabilitySlots', () => {
       const mockStorage = createMockStorage({
         facility: createFacility(),
         appointmentType: createAppointmentType({
-          maxPerSlot: 3
+          maxConcurrent: 3
         }),
       });
       
@@ -257,7 +258,7 @@ describe('calculateAvailabilitySlots', () => {
       const mockStorage = createMockStorage({
         facility: createFacility(),
         appointmentType: createAppointmentType({
-          maxPerSlot: 2 // Allow up to 2 concurrent appointments
+          maxConcurrent: 2 // Allow up to 2 concurrent appointments
         }),
       });
       
@@ -453,7 +454,7 @@ describe('calculateAvailabilitySlots', () => {
       expect(breakTimeSlots.length).toBe(2);
       breakTimeSlots.forEach(slot => {
         expect(slot.available).toBe(true);
-        expect(slot.reason).toContain('Spans through break time');
+        expect(slot.reason).toBe(''); // If the slot is available, reason should be empty
       });
     });
   });
@@ -533,7 +534,9 @@ describe('calculateAvailabilitySlots', () => {
     it('enforces tenant isolation when fetching relevant appointments', async () => {
       const wednesday = '2025-05-07';
       const mockStorage = createMockStorage({
-        facility: createFacility(),
+        facility: createFacility({
+          timezone: 'America/New_York'
+        }),
         appointmentType: createAppointmentType(),
       });
       
@@ -546,13 +549,30 @@ describe('calculateAvailabilitySlots', () => {
         5 // Tenant ID
       );
       
-      // Verify fetchRelevantAppointmentsForDay was called with correct tenant ID
+      // Calculate expected date range in facility timezone
+      const wednesdayStart = zonedTimeToUtc(`${wednesday}T00:00:00`, 'America/New_York');
+      const wednesdayEnd = zonedTimeToUtc(`${wednesday}T23:59:59.999`, 'America/New_York');
+      
+      // Verify fetchRelevantAppointmentsForDay was called with correct parameters including Date objects
       expect(fetchRelevantAppointmentsForDay).toHaveBeenCalledWith(
         mockDb,
         7, // facilityId
-        wednesday,
+        expect.any(Date), // dayStart should be a Date object
+        expect.any(Date), // dayEnd should be a Date object
         5  // effectiveTenantId
       );
+      
+      // Additional verification to check if the dates are correct (close to expected dates)
+      // We can't directly compare Date objects, so we check if the call arguments are close to expected values
+      const mockCalls = (fetchRelevantAppointmentsForDay as any).mock.calls[0];
+      const actualDayStart = mockCalls[2];
+      const actualDayEnd = mockCalls[3];
+      
+      // Verify dates are within a small tolerance (1 minute)
+      expect(actualDayStart.getTime()).toBeGreaterThanOrEqual(wednesdayStart.getTime() - 60000);
+      expect(actualDayStart.getTime()).toBeLessThanOrEqual(wednesdayStart.getTime() + 60000);
+      expect(actualDayEnd.getTime()).toBeGreaterThanOrEqual(wednesdayEnd.getTime() - 60000);
+      expect(actualDayEnd.getTime()).toBeLessThanOrEqual(wednesdayEnd.getTime() + 60000);
     });
   });
 
@@ -562,7 +582,7 @@ describe('calculateAvailabilitySlots', () => {
       const mockStorage = createMockStorage({
         facility: createFacility(),
         appointmentType: createAppointmentType({
-          maxPerSlot: 2,
+          maxConcurrent: 2,
           bufferTime: 60 // 1-hour slots
         }),
       });
@@ -611,7 +631,7 @@ describe('calculateAvailabilitySlots', () => {
       const mockStorage = createMockStorage({
         facility: createFacility(),
         appointmentType: createAppointmentType({
-          maxPerSlot: 2,
+          maxConcurrent: 2,
           bufferTime: 30 // 30-minute slots
         }),
       });
