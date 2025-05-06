@@ -3047,6 +3047,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("[/api/schedules/external] Creating schedule with data:", scheduleData);
       
+      // Check availability before creating the schedule
+      try {
+        // Import the availability service
+        const { calculateAvailabilitySlots } = await import('./src/services/availability');
+        
+        // Extract just the date portion from the startTime
+        const appointmentDate = startTime.toISOString().split('T')[0];
+        const appointmentTime = startTime.toTimeString().split(' ')[0].substring(0, 5); // Format: HH:MM
+        
+        console.log(`[/api/schedules/external] Checking availability for date=${appointmentDate}, facilityId=${validatedData.facilityId}, appointmentTypeId=${validatedData.appointmentTypeId}, time=${appointmentTime}`);
+        
+        // Get the tenantId from the facility
+        const facilityTenantId = facility.tenantId || 
+                                (await storage.getFacilityTenantId(validatedData.facilityId));
+        
+        // Use the enhanced availability calculation with break time handling
+        const availableSlots = await calculateAvailabilitySlots(
+          db,
+          storage,
+          appointmentDate,
+          validatedData.facilityId,
+          validatedData.appointmentTypeId,
+          facilityTenantId
+        );
+        
+        console.log(`[/api/schedules/external] Retrieved ${availableSlots.length} available slots`);
+        
+        // Find the specific slot that matches our requested time
+        const requestedSlot = availableSlots.find(slot => slot.time === appointmentTime);
+        
+        if (!requestedSlot) {
+          console.log(`[/api/schedules/external] Requested time slot ${appointmentTime} not found in available slots`);
+          throw new Error('SLOT_UNAVAILABLE');
+        }
+        
+        if (!requestedSlot.available || requestedSlot.remainingCapacity <= 0) {
+          console.log(`[/api/schedules/external] Requested time slot ${appointmentTime} is not available (available=${requestedSlot.available}, remainingCapacity=${requestedSlot.remainingCapacity})`);
+          throw new Error('SLOT_UNAVAILABLE');
+        }
+        
+        console.log(`[/api/schedules/external] Slot ${appointmentTime} is available with remaining capacity: ${requestedSlot.remainingCapacity}`);
+      } catch (availabilityError) {
+        // If it's not our specific error, it's likely a system error
+        if (!(availabilityError instanceof Error && availabilityError.message === 'SLOT_UNAVAILABLE')) {
+          console.error('[/api/schedules/external] Error checking availability:', availabilityError);
+        }
+        // Re-throw the error to be caught by the main try/catch
+        throw availabilityError;
+      }
+      
       // Create the schedule
       const schedule = await storage.createSchedule(scheduleData);
       
@@ -3147,6 +3197,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: error.errors 
         });
       }
+      
+      // Check for specific availability error
+      if (error instanceof Error && error.message === 'SLOT_UNAVAILABLE') {
+        return res.status(400).json({ 
+          message: "The selected time slot is not available. Please choose another time.",
+          errorCode: "SLOT_UNAVAILABLE"
+        });
+      }
+      
       res.status(500).json({ message: "Failed to create appointment" });
     }
   });
