@@ -1,0 +1,39 @@
+This is excellent news that all 16 unit tests for `calculateAvailabilitySlots` are passing! This gives us great confidence in the backend availability logic.
+
+Now, let's integrate this improved availability into the frontend.
+
+**Objective:** Update the client-side code to use the new `/api/availability/v2` endpoint and its detailed slot information.
+
+**Assumed Frontend File Structure (Please adapt if actual files differ):**
+* A React Query hook for fetching availability: `client/src/hooks/useAvailability.ts`
+* A component responsible for displaying time slots: `client/src/components/TimeSlotPicker.tsx` (or similar, like within a `BookingForm.tsx`).
+* WebSocket handling logic that might need to invalidate React Query caches.
+
+**Tasks:**
+
+1.  **Update Availability Hook (`client/src/hooks/useAvailability.ts` - ASSUMED):**
+    a.  Modify the function that fetches availability data.
+    b.  Change the API endpoint URL it calls from any old availability endpoint(s) to the new `/api/availability/v2`.
+    c.  Ensure it passes the required query parameters: `date` (YYYY-MM-DD), `facilityId`, `appointmentTypeId` (or `typeId`), and `bookingPageSlug` (if applicable for public booking contexts).
+    d.  Update the React Query query key to reflect the new endpoint and its parameters to ensure proper caching and invalidation.
+    e.  The hook should now expect and return the enhanced response structure from `/v2`, specifically the `slots: AvailabilitySlot[]` array, where `AvailabilitySlot` includes `time`, `available`, `remainingCapacity`, and `reason`.
+
+2.  **Update Time Slot Display Component (`client/src/components/TimeSlotPicker.tsx` - ASSUMED):**
+    a.  Modify this component (or the component where time slots are rendered) to consume the `slots: AvailabilitySlot[]` data from the updated React Query hook.
+    b.  When rendering each time slot:
+        i.  Use `slot.available` to determine if the slot should be displayed as available/selectable or disabled/greyed out.
+        ii. Optionally, if `appointmentType.showRemainingSlots` is true (this setting might need to be fetched and passed to this component), display `slot.remainingCapacity`.
+        iii. Optionally, display `slot.reason` as a tooltip or alongside the slot if it's unavailable.
+    c.  Remove any client-side filtering of slots that might have been done previously based on just a simple list of times; rely on the `available` flag from the backend.
+
+3.  **WebSocket Cache Invalidation (ASSUMED LOGIC):**
+    a.  Review the existing WebSocket message handling for `schedule_update` messages.
+    b.  Ensure that upon receiving a relevant `schedule_update`, the React Query cache for the `/api/availability/v2` queries (matching the keys used in the updated hook) is invalidated to trigger a refetch and update the UI with the latest availability.
+
+**Output:**
+Please provide the modified code for:
+- `client/src/hooks/useAvailability.ts` (or its actual equivalent)
+- `client/src/components/TimeSlotPicker.tsx` (or its actual equivalent where slots are displayed)
+- Any relevant WebSocket handling snippets if they need adjustment for cache invalidation.
+
+Clearly indicate any assumptions made about file names or existing component structure.
