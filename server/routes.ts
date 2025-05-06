@@ -3564,7 +3564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check for specific availability error
       if (err instanceof Error && err.message === 'SLOT_UNAVAILABLE') {
-        return res.status(400).json({ 
+        return res.status(409).json({ 
           message: "The selected time slot is not available. Please choose another time.",
           errorCode: "SLOT_UNAVAILABLE"
         });
@@ -5923,7 +5923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check for specific availability error
       if (err instanceof Error && err.message === 'SLOT_UNAVAILABLE') {
-        return res.status(400).json({ 
+        return res.status(409).json({ 
           message: "The selected time slot is not available. Please choose another time.",
           errorCode: "SLOT_UNAVAILABLE"
         });
@@ -6226,7 +6226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check for specific availability error
       if (err instanceof Error && err.message === 'SLOT_UNAVAILABLE') {
-        return res.status(400).json({ 
+        return res.status(409).json({ 
           message: "The selected time slot is not available. Please choose another time.",
           errorCode: "SLOT_UNAVAILABLE"
         });
