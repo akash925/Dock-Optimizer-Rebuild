@@ -3404,12 +3404,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } : null
       };
       
-      console.log("[/api/external-booking] Creating schedule with BOL data:", 
-        validatedData.bolData ? "YES" : "NO", 
-        validatedData.bolFileUploaded ? "File uploaded flag: true" : "No file upload flag"
-      );
+      // Import the enhanced availability service
+      const { calculateAvailabilitySlots } = await import('./src/services/availability');
       
-      const schedule = await storage.createSchedule(scheduleData);
+      // Use a transaction to check availability before creating the schedule
+      const schedule = await db.transaction(async (tx) => {
+        // Get the locationId (facilityId) from the valid data
+        const facilityId = parseInt(validatedData.location, 10);
+        
+        if (isNaN(facilityId)) {
+          throw new Error('Invalid facility ID');
+        }
+        
+        // Get the appointment type ID
+        const appointmentTypeId = parseInt(validatedData.appointmentType, 10);
+        
+        if (isNaN(appointmentTypeId)) {
+          throw new Error('Invalid appointment type ID');
+        }
+        
+        // Get facility tenant ID 
+        const facilityTenantId = await storage.getFacilityTenantId(facilityId);
+        
+        if (!facilityTenantId) {
+          throw new Error('Facility not found or no tenant associated');
+        }
+        
+        // Format date string for availability check
+        const dateStr = startTime.toISOString().split('T')[0]; // YYYY-MM-DD
+        const timeStr = startTime.getHours().toString().padStart(2, '0') + ':' + 
+                      startTime.getMinutes().toString().padStart(2, '0'); // HH:MM
+        
+        console.log(`[/api/external-booking] Checking availability for date=${dateStr}, time=${timeStr}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${facilityTenantId}`);
+        
+        // Call calculateAvailabilitySlots to check if the selected time is available
+        const availabilitySlots = await calculateAvailabilitySlots(
+          db, // Using main db here since deep transaction propagation is complex
+          storage,
+          dateStr,
+          facilityId,
+          appointmentTypeId,
+          facilityTenantId
+        );
+        
+        // Find the specific slot that matches our requested time
+        const requestedSlot = availabilitySlots.find(slot => slot.time === timeStr);
+        
+        if (!requestedSlot) {
+          console.log(`[/api/external-booking] Requested time slot ${timeStr} not found in available slots`);
+          throw new Error('SLOT_UNAVAILABLE');
+        }
+        
+        if (!requestedSlot.available || requestedSlot.remainingCapacity <= 0) {
+          console.log(`[/api/external-booking] Requested time slot ${timeStr} is not available (available=${requestedSlot.available}, remainingCapacity=${requestedSlot.remainingCapacity})`);
+          throw new Error('SLOT_UNAVAILABLE');
+        }
+        
+        console.log(`[/api/external-booking] Slot ${timeStr} is available with remaining capacity: ${requestedSlot.remainingCapacity}. Proceeding with creation.`);
+        
+        console.log("[/api/external-booking] Creating schedule with BOL data:", 
+          validatedData.bolData ? "YES" : "NO", 
+          validatedData.bolFileUploaded ? "File uploaded flag: true" : "No file upload flag"
+        );
+        
+        // Create the schedule if the slot is available
+        return await storage.createSchedule(scheduleData);
+      });
       
       // Create a confirmation number
       const confirmationNumber = `HZL-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -3501,6 +3561,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid booking data", errors: err.errors });
       }
+      
+      // Check for specific availability error
+      if (err instanceof Error && err.message === 'SLOT_UNAVAILABLE') {
+        return res.status(400).json({ 
+          message: "The selected time slot is not available. Please choose another time.",
+          errorCode: "SLOT_UNAVAILABLE"
+        });
+      }
+      
       console.error("External booking error:", err);
       res.status(500).json({ message: "Failed to create booking" });
     }
