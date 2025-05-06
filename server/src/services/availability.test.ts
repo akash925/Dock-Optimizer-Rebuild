@@ -17,17 +17,23 @@ function zonedTimeToUtc(dateString: string, timeZone: string): Date {
   return new Date(zonedDate);
 }
 
-// Mock the fetchRelevantAppointmentsForDay function at the very start
-vi.mock("./availability", () => {
+// Mock the fetchRelevantAppointmentsForDay function only, keeping calculateAvailabilitySlots implementation
+vi.mock("./availability", async (importOriginal) => {
+  const actualModule = await importOriginal<typeof import("./availability")>();
+  
+  // Create a complete mock for the function that properly returns an array of appointments
+  const mockFetchRelevantAppointmentsForDay = vi.fn().mockImplementation(
+    (db: any, facilityId: number, date: string, tenantId: number) => {
+      // Return an empty array by default - tests will override this as needed
+      return Promise.resolve([]);
+    }
+  );
+  
   return {
-    // We need to maintain the original implementation of calculateAvailabilitySlots
-    calculateAvailabilitySlots: vi.fn().mockImplementation((db, storage, date, facilityId, appointmentTypeId, tenantId) => {
-      // Just call the real implementation
-      const originalModule = vi.importActual("./availability");
-      return originalModule.calculateAvailabilitySlots(db, storage, date, facilityId, appointmentTypeId, tenantId);
-    }),
-    // But replace fetchRelevantAppointmentsForDay with a mock
-    fetchRelevantAppointmentsForDay: vi.fn().mockResolvedValue([])
+    ...actualModule,
+    fetchRelevantAppointmentsForDay: mockFetchRelevantAppointmentsForDay,
+    // Keep the original calculateAvailabilitySlots
+    calculateAvailabilitySlots: actualModule.calculateAvailabilitySlots,
   };
 });
 
