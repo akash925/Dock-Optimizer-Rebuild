@@ -1,0 +1,40 @@
+Excellent work on standardizing the booking endpoints with transaction-based availability checks and consistent error handling!
+
+Now, let's create a comprehensive test suite for the core availability logic.
+
+Task:
+Create a new test file named `server/src/services/availability.test.ts`.
+Using Vitest (or Jest, if you used that for other backend tests), write unit and integration tests for the `calculateAvailabilitySlots` function.
+
+Test Scenarios to Cover:
+1.  **Basic Functionality:**
+    * Returns empty slots if the facility is marked as closed for the day.
+    * Returns correctly generated slots (e.g., "08:00", "08:30") based on facility operating hours and `slotIntervalMinutes`.
+2.  **Concurrency & Capacity:**
+    * Correctly calculates `remainingCapacity` when no appointments exist (should equal `appointmentType.maxConcurrent`).
+    * Correctly calculates `remainingCapacity` when some appointments exist but don't fill the slot.
+    * Correctly marks a slot as `available: false` and `remainingCapacity: 0` when `appointmentType.maxConcurrent` is reached.
+3.  **Appointment Type Rules:**
+    * `overrideFacilityHours: true` results in slots being generated outside standard facility hours.
+    * Correct `slotIntervalMinutes` calculation based on `appointmentType.bufferTime` vs. `appointmentType.duration`.
+4.  **Break Time Logic:**
+    * Slots overlapping with facility break times are marked `available: false` with `reason: "Break Time"` if `appointmentType.allowAppointmentsThroughBreaks` is `false`.
+    * Slots overlapping with facility break times remain `available` (if capacity allows) if `appointmentType.allowAppointmentsThroughBreaks` is `true`.
+5.  **Timezone Handling:**
+    * (If feasible to mock/test) Demonstrate that calculations are correct for a facility in a different timezone (e.g., 'America/Los_Angeles') compared to UTC or a default. This might involve mocking `facility.timezone`.
+6.  **Tenant Isolation:**
+    * Mock `storage.getFacility` and `storage.getAppointmentType` to simulate access being denied for the `effectiveTenantId`. Ensure `calculateAvailabilitySlots` throws the expected error or returns an empty array.
+    * Mock `WorkspaceRelevantAppointmentsForDay` to ensure it's called with the correct `effectiveTenantId`.
+7.  **Edge Cases:**
+    * Appointments that perfectly align with slot start/end times.
+    * Appointments that span across multiple potential slots.
+    * Date on a DST transition day (if you want to be very thorough, though this is complex to set up).
+
+Structure:
+- Use `describe` blocks for different categories of tests.
+- Use `it` or `test` blocks for individual scenarios.
+- Mock dependencies like `db` and `storage` methods (`storage.getFacility`, `storage.getAppointmentType`) as needed.
+- Mock the `WorkspaceRelevantAppointmentsForDay` function to provide controlled sets of existing appointments for different test scenarios.
+
+Output:
+Please provide the content for `server/src/services/availability.test.ts`.
