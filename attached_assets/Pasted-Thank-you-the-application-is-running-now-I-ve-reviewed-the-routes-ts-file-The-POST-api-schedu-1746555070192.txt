@@ -1,0 +1,31 @@
+Thank you, the application is running now. I've reviewed the `routes.ts` file. The `POST /api/schedules` endpoint is very well implemented with the transaction and availability check.
+
+Please apply the same robust pattern to the remaining booking creation endpoints:
+
+1.  **For `POST /api/schedules/external`:**
+    * Wrap the existing availability check (the call to `calculateAvailabilitySlots`) AND the subsequent `storage.createSchedule(...)` call within an `await db.transaction(async (tx) => { ... });` block.
+    * Change the HTTP status code in its `catch` block for `SLOT_UNAVAILABLE` errors from `400` to `409 Conflict`.
+
+2.  **For `POST /api/booking-pages/:slug/book` (and the similar `POST /api/booking-pages/book-appointment` if its handler is distinct but has similar logic):**
+    * **Remove the old embedded availability check logic entirely.**
+    * Determine the `effectiveTenantId`. This will likely come from `bookingPage.tenantId` after fetching the `bookingPage` using `storage.getBookingPageBySlug(bookingPageSlug)`.
+    * Extract or derive necessary parameters from `req.body` for `calculateAvailabilitySlots`:
+        * `date`: A "YYYY-MM-DD" string (likely from `req.body.appointmentDate` or derived from `req.body.startTime`).
+        * `facilityId`: From `req.body.facilityId`.
+        * `appointmentTypeId`: From `req.body.appointmentTypeId`.
+        * `requestedStartTimeStr`: An "HH:MM" string (from `req.body.appointmentTime` or derived from `req.body.startTime`).
+    * Wrap the new availability check and the schedule creation in `await db.transaction(async (tx) => { ... });`.
+    * **Inside the transaction:**
+        * Call `calculateAvailabilitySlots(...)` using the main `db` instance (unless `storage` and `calculateAvailabilitySlots` are refactored for `tx`), passing the prepared parameters.
+        * Find the specific slot matching `requestedStartTimeStr` in the results.
+        * If the slot is not found, or `!slot.available`, or `slot.remainingCapacity <= 0`, then `throw new Error('SLOT_UNAVAILABLE')`.
+        * If available, proceed with the existing logic to prepare `appointmentData` and call `storage.createAppointment(appointmentData)` (or `storage.createSchedule` if it uses that).
+    * Modify the route's main `catch` block to specifically handle `err.message === 'SLOT_UNAVAILABLE'` by returning a `409 Conflict` status and a user-friendly message.
+
+3.  **For `POST /api/external-booking` (Legacy Endpoint):**
+    * Apply the same pattern as described above for `/api/booking-pages/:slug/book`.
+    * **Tenant ID Note:** For `effectiveTenantId`, if `bookingPageSlug` isn't directly available, it might need to be derived based on `validatedData.location` (which seems to hold a facility name) by first fetching the facility, then its tenant. Handle cases where a tenant cannot be reliably determined for this legacy route if necessary, perhaps by logging a warning but still proceeding if no strict tenant context is enforceable for this very old endpoint.
+    * The parameters for `calculateAvailabilitySlots` will need to be carefully extracted from `validatedData`.
+
+**Output:**
+Please provide the fully updated `server/routes.ts` file with these changes applied consistently across ALL specified booking creation endpoints.
