@@ -5841,9 +5841,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         source: 'booking-page'
       };
       
-      // Create the appointment
-      console.log('[BookAppointment] Creating appointment with data:', appointmentData);
-      const newAppointment = await storage.createAppointment(appointmentData);
+      // Import the enhanced availability service
+      const { calculateAvailabilitySlots } = await import('./src/services/availability');
+      
+      // Use a transaction to check availability before creating the schedule
+      const newAppointment = await db.transaction(async (tx) => {
+        // Format date string for availability check (YYYY-MM-DD)
+        const dateStr = date; 
+        
+        // Format time string for availability check (HH:MM)
+        const timeStr = startTime.split(':').slice(0, 2).join(':');
+        
+        console.log(`[BookAppointment] Checking availability for date=${dateStr}, time=${timeStr}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${tenantId}`);
+        
+        // Call calculateAvailabilitySlots to check if the selected time is available
+        const availabilitySlots = await calculateAvailabilitySlots(
+          db, // Using main db here since deep transaction propagation is complex
+          storage,
+          dateStr,
+          facilityId,
+          appointmentTypeId,
+          tenantId
+        );
+        
+        // Find the specific slot that matches our requested time
+        const requestedSlot = availabilitySlots.find(slot => slot.time === timeStr);
+        
+        if (!requestedSlot) {
+          console.log(`[BookAppointment] Requested time slot ${timeStr} not found in available slots`);
+          throw new Error('SLOT_UNAVAILABLE');
+        }
+        
+        if (!requestedSlot.available || requestedSlot.remainingCapacity <= 0) {
+          console.log(`[BookAppointment] Requested time slot ${timeStr} is not available (available=${requestedSlot.available}, remainingCapacity=${requestedSlot.remainingCapacity})`);
+          throw new Error('SLOT_UNAVAILABLE');
+        }
+        
+        console.log(`[BookAppointment] Slot ${timeStr} is available with remaining capacity: ${requestedSlot.remainingCapacity}. Proceeding with creation.`);
+        
+        // Create the appointment if the slot is available
+        console.log('[BookAppointment] Creating appointment with data:', appointmentData);
+        return await storage.createAppointment(appointmentData);
+      });
       
       if (!newAppointment) {
         console.error('[BookAppointment] Failed to create appointment');
@@ -5881,6 +5920,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (err) {
       console.error('[BookAppointment] Error in slug endpoint:', err);
+      
+      // Check for specific availability error
+      if (err instanceof Error && err.message === 'SLOT_UNAVAILABLE') {
+        return res.status(400).json({ 
+          message: "The selected time slot is not available. Please choose another time.",
+          errorCode: "SLOT_UNAVAILABLE"
+        });
+      }
+      
       res.status(500).json({ 
         message: "An error occurred while booking the appointment",
         error: err instanceof Error ? err.message : String(err)
