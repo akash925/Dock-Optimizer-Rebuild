@@ -86,7 +86,7 @@ export async function calculateAvailabilitySlots(
   console.log(`[AvailabilityService] Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}`);
   
   // 1. Fetch the facility with tenant isolation
-  const facility = await storage.getFacility(facilityId, effectiveTenantId);
+  let facility = await storage.getFacility(facilityId, effectiveTenantId);
   if (!facility) {
     throw new Error('Facility not found or access denied.');
   }
@@ -126,55 +126,28 @@ export async function calculateAvailabilitySlots(
   const dayOfWeek = getDay(zonedDate);
   
   console.log(`[AvailabilityService] Date ${date} in ${facilityTimezone} is day of week: ${dayOfWeek}`);
-  // Convert snake_case field names to camelCase for consistency
-  // This is needed because the API returns snake_case field names (like sunday_open)
-  // but our code expects camelCase field names (like sundayOpen)
-  const normalizedFacility = {
-    ...facility,
-    sundayOpen: facility.sunday_open ?? facility.sundayOpen,
-    mondayOpen: facility.monday_open ?? facility.mondayOpen, 
-    tuesdayOpen: facility.tuesday_open ?? facility.tuesdayOpen,
-    wednesdayOpen: facility.wednesday_open ?? facility.wednesdayOpen,
-    thursdayOpen: facility.thursday_open ?? facility.thursdayOpen,
-    fridayOpen: facility.friday_open ?? facility.fridayOpen,
-    saturdayOpen: facility.saturday_open ?? facility.saturdayOpen,
-    
-    sundayStart: facility.sunday_start ?? facility.sundayStart,
-    mondayStart: facility.monday_start ?? facility.mondayStart,
-    tuesdayStart: facility.tuesday_start ?? facility.tuesdayStart,
-    wednesdayStart: facility.wednesday_start ?? facility.wednesdayStart,
-    thursdayStart: facility.thursday_start ?? facility.thursdayStart,
-    fridayStart: facility.friday_start ?? facility.fridayStart,
-    saturdayStart: facility.saturday_start ?? facility.saturdayStart,
-    
-    sundayEnd: facility.sunday_end ?? facility.sundayEnd,
-    mondayEnd: facility.monday_end ?? facility.mondayEnd,
-    tuesdayEnd: facility.tuesday_end ?? facility.tuesdayEnd,
-    wednesdayEnd: facility.wednesday_end ?? facility.wednesdayEnd,
-    thursdayEnd: facility.thursday_end ?? facility.thursdayEnd,
-    fridayEnd: facility.friday_end ?? facility.fridayEnd,
-    saturdayEnd: facility.saturday_end ?? facility.saturdayEnd,
-    
-    sundayBreakStart: facility.sunday_break_start ?? facility.sundayBreakStart,
-    mondayBreakStart: facility.monday_break_start ?? facility.mondayBreakStart,
-    tuesdayBreakStart: facility.tuesday_break_start ?? facility.tuesdayBreakStart,
-    wednesdayBreakStart: facility.wednesday_break_start ?? facility.wednesdayBreakStart,
-    thursdayBreakStart: facility.thursday_break_start ?? facility.thursdayBreakStart,
-    fridayBreakStart: facility.friday_break_start ?? facility.fridayBreakStart,
-    saturdayBreakStart: facility.saturday_break_start ?? facility.saturdayBreakStart,
-    
-    sundayBreakEnd: facility.sunday_break_end ?? facility.sundayBreakEnd,
-    mondayBreakEnd: facility.monday_break_end ?? facility.mondayBreakEnd,
-    tuesdayBreakEnd: facility.tuesday_break_end ?? facility.tuesdayBreakEnd,
-    wednesdayBreakEnd: facility.wednesday_break_end ?? facility.wednesdayBreakEnd,
-    thursdayBreakEnd: facility.thursday_break_end ?? facility.thursdayBreakEnd,
-    fridayBreakEnd: facility.friday_break_end ?? facility.fridayBreakEnd,
-    saturdayBreakEnd: facility.saturday_break_end ?? facility.saturdayBreakEnd,
+  
+  // Using a direct type assertion to handle both snake_case and camelCase
+  // This is safer than trying to modify the facility object properties directly
+  const facilityObj: any = facility;
+  
+  // Define a helper function to get the field value in either format
+  const getField = (camelCase: string, snakeCase: string): any => {
+    // Try to get the value from either naming style
+    return facilityObj[snakeCase] !== undefined ? facilityObj[snakeCase] : facilityObj[camelCase];
   };
   
-  // Replace the facility object with the normalized one
-  const originalFacility = facility;
-  facility = normalizedFacility;
+  // Now when we need facility values, we'll use the appropriate accessor methods
+  // For open/closed status
+  const sundayIsOpen = getField('sundayOpen', 'sunday_open');
+  const mondayIsOpen = getField('mondayOpen', 'monday_open');
+  const tuesdayIsOpen = getField('tuesdayOpen', 'tuesday_open');
+  const wednesdayIsOpen = getField('wednesdayOpen', 'wednesday_open');
+  const thursdayIsOpen = getField('thursdayOpen', 'thursday_open');
+  const fridayIsOpen = getField('fridayOpen', 'friday_open');
+  const saturdayIsOpen = getField('saturdayOpen', 'saturday_open');
+  
+  console.log(`[AvailabilityService] Day status: Sunday=${sundayIsOpen}, Monday=${mondayIsOpen}, Tuesday=${tuesdayIsOpen}, Wednesday=${wednesdayIsOpen}, Thursday=${thursdayIsOpen}, Friday=${fridayIsOpen}, Saturday=${saturdayIsOpen}`);
   
   console.log(`[AvailabilityService] Day status (using normalized fields): Sunday=${facility.sundayOpen}, Monday=${facility.mondayOpen}, Tuesday=${facility.tuesdayOpen}, Wednesday=${facility.wednesdayOpen}, Thursday=${facility.thursdayOpen}, Friday=${facility.fridayOpen}, Saturday=${facility.saturdayOpen}`);
   
@@ -193,39 +166,39 @@ export async function calculateAvailabilitySlots(
     // Otherwise, determine facility hours based on day of week
     switch (dayOfWeek) {
       case 0: // Sunday
-        operatingStartTime = facility.sundayStart || "09:00";
-        operatingEndTime = facility.sundayEnd || "17:00";
-        isOpen = facility.sundayOpen === true;
+        operatingStartTime = getField('sundayStart', 'sunday_start') || "09:00";
+        operatingEndTime = getField('sundayEnd', 'sunday_end') || "17:00";
+        isOpen = sundayIsOpen === true;
         break;
       case 1: // Monday
-        operatingStartTime = facility.mondayStart || "09:00";
-        operatingEndTime = facility.mondayEnd || "17:00";
-        isOpen = facility.mondayOpen === true;
+        operatingStartTime = getField('mondayStart', 'monday_start') || "09:00";
+        operatingEndTime = getField('mondayEnd', 'monday_end') || "17:00";
+        isOpen = mondayIsOpen === true;
         break;
       case 2: // Tuesday
-        operatingStartTime = facility.tuesdayStart || "09:00";
-        operatingEndTime = facility.tuesdayEnd || "17:00";
-        isOpen = facility.tuesdayOpen === true;
+        operatingStartTime = getField('tuesdayStart', 'tuesday_start') || "09:00";
+        operatingEndTime = getField('tuesdayEnd', 'tuesday_end') || "17:00";
+        isOpen = tuesdayIsOpen === true;
         break;
       case 3: // Wednesday
-        operatingStartTime = facility.wednesdayStart || "09:00";
-        operatingEndTime = facility.wednesdayEnd || "17:00";
-        isOpen = facility.wednesdayOpen === true;
+        operatingStartTime = getField('wednesdayStart', 'wednesday_start') || "09:00";
+        operatingEndTime = getField('wednesdayEnd', 'wednesday_end') || "17:00";
+        isOpen = wednesdayIsOpen === true;
         break;
       case 4: // Thursday
-        operatingStartTime = facility.thursdayStart || "09:00";
-        operatingEndTime = facility.thursdayEnd || "17:00";
-        isOpen = facility.thursdayOpen === true;
+        operatingStartTime = getField('thursdayStart', 'thursday_start') || "09:00";
+        operatingEndTime = getField('thursdayEnd', 'thursday_end') || "17:00";
+        isOpen = thursdayIsOpen === true;
         break;
       case 5: // Friday
-        operatingStartTime = facility.fridayStart || "09:00";
-        operatingEndTime = facility.fridayEnd || "17:00";
-        isOpen = facility.fridayOpen === true;
+        operatingStartTime = getField('fridayStart', 'friday_start') || "09:00";
+        operatingEndTime = getField('fridayEnd', 'friday_end') || "17:00";
+        isOpen = fridayIsOpen === true;
         break;
       case 6: // Saturday
-        operatingStartTime = facility.saturdayStart || "09:00";
-        operatingEndTime = facility.saturdayEnd || "17:00";
-        isOpen = facility.saturdayOpen === true;
+        operatingStartTime = getField('saturdayStart', 'saturday_start') || "09:00";
+        operatingEndTime = getField('saturdayEnd', 'saturday_end') || "17:00";
+        isOpen = saturdayIsOpen === true;
         break;
       default:
         // Fallback already set with defaults above
@@ -322,32 +295,32 @@ export async function calculateAvailabilitySlots(
     
     switch (dayOfWeek) {
       case 0: // Sunday
-        breakStartTimeStr = facility.sundayBreakStart || "";
-        breakEndTimeStr = facility.sundayBreakEnd || "";
+        breakStartTimeStr = getField('sundayBreakStart', 'sunday_break_start') || "";
+        breakEndTimeStr = getField('sundayBreakEnd', 'sunday_break_end') || "";
         break;
       case 1: // Monday
-        breakStartTimeStr = facility.mondayBreakStart || "";
-        breakEndTimeStr = facility.mondayBreakEnd || "";
+        breakStartTimeStr = getField('mondayBreakStart', 'monday_break_start') || "";
+        breakEndTimeStr = getField('mondayBreakEnd', 'monday_break_end') || "";
         break;
       case 2: // Tuesday
-        breakStartTimeStr = facility.tuesdayBreakStart || "";
-        breakEndTimeStr = facility.tuesdayBreakEnd || "";
+        breakStartTimeStr = getField('tuesdayBreakStart', 'tuesday_break_start') || "";
+        breakEndTimeStr = getField('tuesdayBreakEnd', 'tuesday_break_end') || "";
         break;
       case 3: // Wednesday
-        breakStartTimeStr = facility.wednesdayBreakStart || "";
-        breakEndTimeStr = facility.wednesdayBreakEnd || "";
+        breakStartTimeStr = getField('wednesdayBreakStart', 'wednesday_break_start') || "";
+        breakEndTimeStr = getField('wednesdayBreakEnd', 'wednesday_break_end') || "";
         break;
       case 4: // Thursday
-        breakStartTimeStr = facility.thursdayBreakStart || "";
-        breakEndTimeStr = facility.thursdayBreakEnd || "";
+        breakStartTimeStr = getField('thursdayBreakStart', 'thursday_break_start') || "";
+        breakEndTimeStr = getField('thursdayBreakEnd', 'thursday_break_end') || "";
         break;
       case 5: // Friday
-        breakStartTimeStr = facility.fridayBreakStart || "";
-        breakEndTimeStr = facility.fridayBreakEnd || "";
+        breakStartTimeStr = getField('fridayBreakStart', 'friday_break_start') || "";
+        breakEndTimeStr = getField('fridayBreakEnd', 'friday_break_end') || "";
         break;
       case 6: // Saturday
-        breakStartTimeStr = facility.saturdayBreakStart || "";
-        breakEndTimeStr = facility.saturdayBreakEnd || "";
+        breakStartTimeStr = getField('saturdayBreakStart', 'saturday_break_start') || "";
+        breakEndTimeStr = getField('saturdayBreakEnd', 'saturday_break_end') || "";
         break;
     }
     
