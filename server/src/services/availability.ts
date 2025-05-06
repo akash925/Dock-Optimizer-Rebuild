@@ -125,6 +125,59 @@ export async function calculateAvailabilitySlots(
   const zonedDate = toZonedTime(dateObj, facilityTimezone);
   const dayOfWeek = getDay(zonedDate);
   
+  console.log(`[AvailabilityService] Date ${date} in ${facilityTimezone} is day of week: ${dayOfWeek}`);
+  // Convert snake_case field names to camelCase for consistency
+  // This is needed because the API returns snake_case field names (like sunday_open)
+  // but our code expects camelCase field names (like sundayOpen)
+  const normalizedFacility = {
+    ...facility,
+    sundayOpen: facility.sunday_open ?? facility.sundayOpen,
+    mondayOpen: facility.monday_open ?? facility.mondayOpen, 
+    tuesdayOpen: facility.tuesday_open ?? facility.tuesdayOpen,
+    wednesdayOpen: facility.wednesday_open ?? facility.wednesdayOpen,
+    thursdayOpen: facility.thursday_open ?? facility.thursdayOpen,
+    fridayOpen: facility.friday_open ?? facility.fridayOpen,
+    saturdayOpen: facility.saturday_open ?? facility.saturdayOpen,
+    
+    sundayStart: facility.sunday_start ?? facility.sundayStart,
+    mondayStart: facility.monday_start ?? facility.mondayStart,
+    tuesdayStart: facility.tuesday_start ?? facility.tuesdayStart,
+    wednesdayStart: facility.wednesday_start ?? facility.wednesdayStart,
+    thursdayStart: facility.thursday_start ?? facility.thursdayStart,
+    fridayStart: facility.friday_start ?? facility.fridayStart,
+    saturdayStart: facility.saturday_start ?? facility.saturdayStart,
+    
+    sundayEnd: facility.sunday_end ?? facility.sundayEnd,
+    mondayEnd: facility.monday_end ?? facility.mondayEnd,
+    tuesdayEnd: facility.tuesday_end ?? facility.tuesdayEnd,
+    wednesdayEnd: facility.wednesday_end ?? facility.wednesdayEnd,
+    thursdayEnd: facility.thursday_end ?? facility.thursdayEnd,
+    fridayEnd: facility.friday_end ?? facility.fridayEnd,
+    saturdayEnd: facility.saturday_end ?? facility.saturdayEnd,
+    
+    sundayBreakStart: facility.sunday_break_start ?? facility.sundayBreakStart,
+    mondayBreakStart: facility.monday_break_start ?? facility.mondayBreakStart,
+    tuesdayBreakStart: facility.tuesday_break_start ?? facility.tuesdayBreakStart,
+    wednesdayBreakStart: facility.wednesday_break_start ?? facility.wednesdayBreakStart,
+    thursdayBreakStart: facility.thursday_break_start ?? facility.thursdayBreakStart,
+    fridayBreakStart: facility.friday_break_start ?? facility.fridayBreakStart,
+    saturdayBreakStart: facility.saturday_break_start ?? facility.saturdayBreakStart,
+    
+    sundayBreakEnd: facility.sunday_break_end ?? facility.sundayBreakEnd,
+    mondayBreakEnd: facility.monday_break_end ?? facility.mondayBreakEnd,
+    tuesdayBreakEnd: facility.tuesday_break_end ?? facility.tuesdayBreakEnd,
+    wednesdayBreakEnd: facility.wednesday_break_end ?? facility.wednesdayBreakEnd,
+    thursdayBreakEnd: facility.thursday_break_end ?? facility.thursdayBreakEnd,
+    fridayBreakEnd: facility.friday_break_end ?? facility.fridayBreakEnd,
+    saturdayBreakEnd: facility.saturday_break_end ?? facility.saturdayBreakEnd,
+  };
+  
+  // Replace the facility object with the normalized one
+  const originalFacility = facility;
+  facility = normalizedFacility;
+  
+  console.log(`[AvailabilityService] Day status (using normalized fields): Sunday=${facility.sundayOpen}, Monday=${facility.mondayOpen}, Tuesday=${facility.tuesdayOpen}, Wednesday=${facility.wednesdayOpen}, Thursday=${facility.thursdayOpen}, Friday=${facility.fridayOpen}, Saturday=${facility.saturdayOpen}`);
+  
   // Initialize operating time variables
   let operatingStartTime = "09:00"; // Default value
   let operatingEndTime = "17:00";   // Default value
