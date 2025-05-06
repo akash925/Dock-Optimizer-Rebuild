@@ -7,7 +7,7 @@ import { IStorage } from "../../storage";
 // Import timezone utilities
 import { zonedTimeToUtc } from "date-fns-tz";
 // Import date-fns utilities
-import { addDays, parseISO } from "date-fns";
+import { addDays, parseISO, format } from "date-fns";
 
 // Mock the fetchRelevantAppointmentsForDay function at the very start
 vi.mock("./availability", () => {
