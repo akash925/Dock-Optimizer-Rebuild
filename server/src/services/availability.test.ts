@@ -6,12 +6,21 @@ import {
 import { IStorage } from "../../storage";
 import { zonedTimeToUtc } from "date-fns-tz";
 
-// Mock dependencies
+// Mock dependencies with a more complete Drizzle-like query chain
 const mockDb = {
   select: vi.fn().mockReturnThis(),
   from: vi.fn().mockReturnThis(),
   leftJoin: vi.fn().mockReturnThis(),
   where: vi.fn().mockReturnThis(),
+  orderBy: vi.fn().mockReturnThis(),
+  execute: vi.fn().mockResolvedValue([]),
+  prepare: vi.fn().mockReturnThis(),
+  all: vi.fn().mockResolvedValue([]),
+  get: vi.fn().mockResolvedValue(null),
+  values: vi.fn().mockReturnThis(),
+  onConflictDoNothing: vi.fn().mockReturnThis(),
+  onConflictDoUpdate: vi.fn().mockReturnThis(),
+  returning: vi.fn().mockResolvedValue([])
 };
 
 // Helper to create a mock storage with configurable behavior
@@ -104,18 +113,21 @@ function createAppointment(startTime: Date, endTime: Date) {
   };
 }
 
-// Mock the fetchRelevantAppointmentsForDay function
-vi.mock("./availability", async (importOriginal) => {
-  const mod = await importOriginal();
+// Import everything from the availability module
+import * as availabilityModule from "./availability";
+
+// Create a completely separate mock function for fetchRelevantAppointmentsForDay
+// This way we can control what it returns in each test
+const mockFetchRelevantAppointmentsForDay = vi.fn().mockResolvedValue([]);
+
+// Replace the real implementation with our mock
+vi.mock("./availability", async () => {
+  const actual = await vi.importActual("./availability");
   return {
-    ...mod,
-    fetchRelevantAppointmentsForDay: vi.fn().mockResolvedValue([]),
-    // We're not mocking calculateAvailabilitySlots as we want to test that
+    ...actual,
+    fetchRelevantAppointmentsForDay: mockFetchRelevantAppointmentsForDay
   };
 });
-
-// Import the mocked function to control its behavior in tests
-import { fetchRelevantAppointmentsForDay } from "./availability";
 
 describe("calculateAvailabilitySlots", () => {
   beforeEach(() => {
@@ -200,7 +212,7 @@ describe("calculateAvailabilitySlots", () => {
       });
 
       // Mock fetchRelevantAppointmentsForDay to return no appointments
-      (fetchRelevantAppointmentsForDay as any).mockResolvedValue([]);
+      mockFetchRelevantAppointmentsForDay.mockResolvedValue([]);
 
       const slots = await calculateAvailabilitySlots(
         mockDb,
@@ -232,7 +244,7 @@ describe("calculateAvailabilitySlots", () => {
       // Mock existing appointment at 9am
       const nineAM = new Date(`${wednesday}T09:00:00Z`);
       const oneThirtyPM = new Date(`${wednesday}T13:30:00Z`);
-      (fetchRelevantAppointmentsForDay as any).mockResolvedValue([
+      mockFetchRelevantAppointmentsForDay.mockResolvedValue([
         createAppointment(nineAM, oneThirtyPM),
       ]);
 
