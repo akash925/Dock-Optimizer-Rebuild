@@ -1,0 +1,27 @@
+Objective: Modify the `calculateAvailabilitySlots` function to incorporate facility break times.
+
+Context:
+- We are modifying the existing `calculateAvailabilitySlots` function located in `server/src/services/availability.ts`.
+- Assume this function already fetches `facility` and `appointmentType` details, determines `operatingStartTime`, `operatingEndTime`, `isOpen`, `slotIntervalMinutes`, calculates `dayOfWeek` and timezone-aware `dayStart`/`dayEnd`, calls `WorkspaceRelevantAppointmentsForDay`, and has a `while` loop that generates potential slots and calculates initial `isAvailable` and `remainingCapacity` based on `maxConcurrent` and appointment overlaps.
+- The `Facility` schema (imported from `@shared/schema`) contains daily break time string fields like `facility.mondayBreakStart`, `facility.mondayBreakEnd` (format "HH:MM" or potentially null/empty).
+- The `AppointmentType` schema contains the boolean field `allowAppointmentsThroughBreaks`.
+- The `result` array holds `AvailabilitySlot` objects.
+- Functions `zonedTimeToUtc` and necessary `date-fns` functions are available.
+
+Task:
+Inside the main `while (currentSlotStartTime < operatingEndDateTime)` loop within the `calculateAvailabilitySlots` function:
+
+1.  Locate the point **after** the `AvailabilitySlot` object for the current `timeStr` has been created and potentially added to the `result` array based on initial capacity checks.
+2.  Get the relevant `breakStartTimeStr` and `breakEndTimeStr` string values from the `facility` object based on the `dayOfWeek` that was calculated earlier in the function.
+3.  Check if both `breakStartTimeStr` and `breakEndTimeStr` are valid non-empty time strings (e.g., they look like "HH:MM").
+4.  If they are valid time strings AND if `appointmentType.allowAppointmentsThroughBreaks` is `false`:
+    a. Convert `breakStartTimeStr` and `breakEndTimeStr` into full JavaScript `Date` objects (`breakStartDateTime`, `breakEndDateTime`) for the current `date` in the correct `facilityTimezone`. Use `zonedTimeToUtc(\`${date}T\${breakStartTimeStr}:00\`, facilityTimezone)` and similarly for the end time.
+    b. Check if the current slot (`currentSlotStartTime` to `currentSlotEndTime`) overlaps with the calculated break period (`breakStartDateTime` to `breakEndDateTime`). The overlap condition is: `currentSlotStartTime < breakEndDateTime && currentSlotEndTime > breakStartDateTime`.
+    c. If an overlap exists, find the `AvailabilitySlot` object in the `result` array that corresponds to the current `timeStr` (it should be the last one added) and **update its properties**:
+        - Set `available = false`
+        - Set `remainingCapacity = 0`
+        - Set `remaining = 0`
+        - Set `reason = "Break Time"` (or append to an existing reason if applicable).
+
+Output:
+Provide the **complete, updated code for the `calculateAvailabilitySlots` function** from `availability.ts`, including this new break time logic integrated into the loop. Ensure helper functions like `WorkspaceRelevantAppointmentsForDay` are still present or correctly referenced.

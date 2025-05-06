@@ -90,14 +90,11 @@ export async function calculateAvailabilitySlots(
   }
 
   // 2. Fetch the appointment type with tenant isolation
-  // Check if the storage implementation has a getAppointmentTypeWithTenant method
+  // Check if the storage implementation has a getAppointmentType method
   let appointmentType;
   
-  if (typeof storage.getAppointmentTypeWithTenant === 'function') {
-    // Use tenant-aware method if available
-    appointmentType = await storage.getAppointmentTypeWithTenant(appointmentTypeId, effectiveTenantId);
-  } else {
-    // Fall back to regular method
+  try {
+    // Always use the regular method which should exist on all storage implementations
     appointmentType = await storage.getAppointmentType(appointmentTypeId);
     
     // Manual tenant check if needed
@@ -105,6 +102,9 @@ export async function calculateAvailabilitySlots(
       console.log(`[AvailabilityService] Tenant mismatch: appointment type ${appointmentTypeId} belongs to tenant ${appointmentType.tenantId}, but request is for tenant ${effectiveTenantId}`);
       appointmentType = null;
     }
+  } catch (error) {
+    console.error('[AvailabilityService] Error fetching appointment type:', error);
+    appointmentType = null;
   }
   
   if (!appointmentType) {
@@ -242,6 +242,10 @@ export async function calculateAvailabilitySlots(
     // Default to 1 if not specified
     const maxSlotsPerTime = (appointmentType as any).maxPerSlot || 1;
     
+    // Calculate end time for this slot (for break time overlap checks)
+    const currentSlotEndTime = new Date(slotTime);
+    currentSlotEndTime.setMinutes(currentSlotEndTime.getMinutes() + appointmentType.duration);
+    
     // Create an availability slot with appropriate availability flag
     result.push({
       time: timeStr,
@@ -251,6 +255,83 @@ export async function calculateAvailabilitySlots(
       reason: conflictingAppts.length > 0 ? 'Slot already booked' : '',
       isBufferTime: false
     });
+    
+    // Determine break times for this day of the week
+    let breakStartTimeStr = "";
+    let breakEndTimeStr = "";
+    
+    switch (dayOfWeek) {
+      case 0: // Sunday
+        breakStartTimeStr = facility.sundayBreakStart || "";
+        breakEndTimeStr = facility.sundayBreakEnd || "";
+        break;
+      case 1: // Monday
+        breakStartTimeStr = facility.mondayBreakStart || "";
+        breakEndTimeStr = facility.mondayBreakEnd || "";
+        break;
+      case 2: // Tuesday
+        breakStartTimeStr = facility.tuesdayBreakStart || "";
+        breakEndTimeStr = facility.tuesdayBreakEnd || "";
+        break;
+      case 3: // Wednesday
+        breakStartTimeStr = facility.wednesdayBreakStart || "";
+        breakEndTimeStr = facility.wednesdayBreakEnd || "";
+        break;
+      case 4: // Thursday
+        breakStartTimeStr = facility.thursdayBreakStart || "";
+        breakEndTimeStr = facility.thursdayBreakEnd || "";
+        break;
+      case 5: // Friday
+        breakStartTimeStr = facility.fridayBreakStart || "";
+        breakEndTimeStr = facility.fridayBreakEnd || "";
+        break;
+      case 6: // Saturday
+        breakStartTimeStr = facility.saturdayBreakStart || "";
+        breakEndTimeStr = facility.saturdayBreakEnd || "";
+        break;
+    }
+    
+    // If break times are defined AND appointment type doesn't allow appointments through breaks
+    if (
+      breakStartTimeStr && 
+      breakEndTimeStr && 
+      breakStartTimeStr.includes(':') && 
+      breakEndTimeStr.includes(':') && 
+      !appointmentType.allowAppointmentsThroughBreaks
+    ) {
+      try {
+        // Create break time Date objects in the facility's timezone
+        // Create start and end time objects for the current day in facility's local time
+        const breakStartHour = parseInt(breakStartTimeStr.split(':')[0], 10);
+        const breakStartMinute = parseInt(breakStartTimeStr.split(':')[1], 10);
+        const breakStartDateTime = new Date(dayStart);
+        breakStartDateTime.setHours(breakStartHour, breakStartMinute, 0, 0);
+        
+        const breakEndHour = parseInt(breakEndTimeStr.split(':')[0], 10);
+        const breakEndMinute = parseInt(breakEndTimeStr.split(':')[1], 10);
+        const breakEndDateTime = new Date(dayStart);
+        breakEndDateTime.setHours(breakEndHour, breakEndMinute, 0, 0);
+        
+        // Check if current slot overlaps with break time
+        // Overlap condition: currentSlotStartTime < breakEndDateTime && currentSlotEndTime > breakStartDateTime
+        if (slotTime < breakEndDateTime && currentSlotEndTime > breakStartDateTime) {
+          // Find the last added slot (which should be the one we just added)
+          const lastIndex = result.length - 1;
+          if (lastIndex >= 0) {
+            const slot = result[lastIndex];
+            
+            // Update slot to mark it as unavailable due to break time
+            slot.available = false;
+            slot.remainingCapacity = 0;
+            slot.remaining = 0;
+            slot.reason = slot.reason ? `${slot.reason}, Break Time` : 'Break Time';
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing break times for ${date}:`, error);
+        // Continue execution even if break time processing fails
+      }
+    }
     
     // Move to next slot
     slotTime.setMinutes(slotTime.getMinutes() + slotIntervalMinutes);
