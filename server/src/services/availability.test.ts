@@ -5,9 +5,17 @@ import { calculateAvailabilitySlots, type AvailabilitySlot } from "./availabilit
 // Import storage interface
 import { IStorage } from "../../storage";
 // Import timezone utilities
-import { zonedTimeToUtc } from "date-fns-tz";
+import { toZonedTime, format as tzFormat } from "date-fns-tz";
 // Import date-fns utilities
 import { addDays, parseISO, format } from "date-fns";
+
+// Define a replacement for the zonedTimeToUtc function that's not in date-fns-tz v3.2.0
+function zonedTimeToUtc(dateString: string, timeZone: string): Date {
+  // Parse the string to a date object using the specified timezone
+  const zonedDate = toZonedTime(parseISO(dateString), timeZone);
+  // Return as UTC date
+  return new Date(zonedDate);
+}
 
 // Mock the fetchRelevantAppointmentsForDay function at the very start
 vi.mock("./availability", () => {
