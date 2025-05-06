@@ -1,7 +1,7 @@
 import { and, eq, gt, lt, ne, notInArray, or } from 'drizzle-orm';
 import { toZonedTime, format as tzFormat } from 'date-fns-tz';
 import { getDay, parseISO, addDays } from 'date-fns';
-import { db } from '../../db';
+import { db, type DB } from '../../db';
 import { IStorage } from '../../storage';
 import { schedules, docks, appointmentTypes, organizationFacilities } from '@shared/schema';
 
@@ -127,15 +127,34 @@ export async function calculateAvailabilitySlots(
   
   console.log(`[AvailabilityService] Date ${date} in ${facilityTimezone} is day of week: ${dayOfWeek}`);
   
-  // Using a direct type assertion to handle both snake_case and camelCase
-  // This is safer than trying to modify the facility object properties directly
+  // Using a direct type assertion to handle both snake_case and camelCase for facility and appointment type
   const facilityObj: any = facility;
+  const appointmentTypeObj: any = appointmentType;
   
-  // Define a helper function to get the field value in either format
-  const getField = (camelCase: string, snakeCase: string): any => {
-    // Try to get the value from either naming style
-    return facilityObj[snakeCase] !== undefined ? facilityObj[snakeCase] : facilityObj[camelCase];
+  // General helper function to get field value in either camelCase or snake_case format
+  const getObjectField = (obj: any, camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
+    // If snake_case version exists, use it, otherwise use camelCase version, or fallback to default
+    return obj[snakeCase] !== undefined 
+      ? obj[snakeCase] 
+      : (obj[camelCase] !== undefined ? obj[camelCase] : defaultValue);
   };
+  
+  // Specific helper functions for facility and appointment type fields
+  const getField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
+    return getObjectField(facilityObj, camelCase, snakeCase, defaultValue);
+  };
+  
+  const getAppointmentTypeField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
+    return getObjectField(appointmentTypeObj, camelCase, snakeCase, defaultValue);
+  };
+  
+  // Normalize appointment type fields that we'll use in the calculation
+  const overrideFacilityHours = getAppointmentTypeField('overrideFacilityHours', 'override_facility_hours', false);
+  const allowAppointmentsThroughBreaks = getAppointmentTypeField('allowAppointmentsThroughBreaks', 'allow_appointments_through_breaks', false);
+  const appointmentTypeDuration = getAppointmentTypeField('duration', 'duration', 60); // Default to 60 minutes
+  const appointmentTypeBufferTime = getAppointmentTypeField('bufferTime', 'buffer_time', 0); // Default to 0 minutes
+  
+  console.log(`[AvailabilityService] Appointment type settings: overrideFacilityHours=${overrideFacilityHours}, allowAppointmentsThroughBreaks=${allowAppointmentsThroughBreaks}, duration=${appointmentTypeDuration}, bufferTime=${appointmentTypeBufferTime}`);
   
   // Now when we need facility values, we'll use the appropriate accessor methods
   // For open/closed status
