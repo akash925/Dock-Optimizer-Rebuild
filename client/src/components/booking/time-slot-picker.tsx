@@ -3,21 +3,25 @@ import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTimeZoneUtils } from "@/hooks/use-timezone-utils";
 import { formatInTimeZone } from "date-fns-tz";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AvailabilitySlot } from "@/hooks/use-appointment-availability-fixed";
 
 interface TimeSlotPickerProps {
-  availableTimes: string[]; // array of times in "HH:MM" format
+  slots: AvailabilitySlot[]; // Enhanced slot data from v2 API
   selectedTime: string | null;
   onSelectTime: (time: string) => void;
   timezone?: string;
   className?: string;
+  showRemainingSlots?: boolean; // Whether to display remaining slots count
 }
 
 export function TimeSlotPicker({ 
-  availableTimes, 
+  slots, 
   selectedTime, 
   onSelectTime, 
   timezone = "America/New_York",
-  className 
+  className,
+  showRemainingSlots = true
 }: TimeSlotPickerProps) {
   const { getTzAbbreviation, formatTimeInUserTimezone, getUserTimeZone } = useTimeZoneUtils();
   const userTimezone = getUserTimeZone();
@@ -25,18 +29,18 @@ export function TimeSlotPicker({
   // Debug timezone info
   console.log(`TimeSlotPicker - Facility timezone: ${timezone}, User timezone: ${userTimezone}`);
   
-  // Sort times chronologically
-  const sortedTimes = [...availableTimes].sort((a, b) => {
-    const timeA = parse(a, "HH:mm", new Date());
-    const timeB = parse(b, "HH:mm", new Date());
+  // Sort slots chronologically by time
+  const sortedSlots = [...slots].sort((a, b) => {
+    const timeA = parse(a.time, "HH:mm", new Date());
+    const timeB = parse(b.time, "HH:mm", new Date());
     return timeA.getTime() - timeB.getTime();
   });
   
   // Format time to show both time zones if necessary
-  const formatTimeSlot = (timeStr: string) => {
+  const formatTimeSlot = (slot: AvailabilitySlot) => {
     // Create a date object for today with this time
     const today = new Date();
-    const [hours, minutes] = timeStr.split(":").map(Number);
+    const [hours, minutes] = slot.time.split(":").map(Number);
     
     // Create a Date with current date but with the time slot time
     const slotTime = new Date(
@@ -50,10 +54,12 @@ export function TimeSlotPicker({
     // Calculate end time (1 hour later by default)
     const endTime = new Date(slotTime.getTime() + 60 * 60 * 1000);
     
-    console.log(`TimeSlotPicker - Processing time slot: ${timeStr}`, {
+    console.log(`TimeSlotPicker - Processing time slot: ${slot.time}`, {
       slotTime: slotTime.toISOString(),
       endTime: endTime.toISOString(),
-      facilityTz: timezone
+      facilityTz: timezone,
+      available: slot.available,
+      remaining: slot.remaining
     });
     
     // Format facility time (in facility timezone)
@@ -77,26 +83,40 @@ export function TimeSlotPicker({
             <span className="text-xs opacity-70">
               {userTime} {userTzAbbr}
             </span>
+            {showRemainingSlots && slot.available && slot.remaining !== undefined && (
+              <span className="text-xs text-green-600 mt-1 font-medium">
+                {slot.remaining} {slot.remaining === 1 ? 'slot' : 'slots'} left
+              </span>
+            )}
           </div>
         );
       }
     }
     
-    // Otherwise just show facility time
-    return facilityTime;
+    // Just facility time with optional remaining count
+    return (
+      <div className="flex flex-col">
+        <span>{facilityTime}</span>
+        {showRemainingSlots && slot.available && slot.remaining !== undefined && (
+          <span className="text-xs text-green-600 mt-1 font-medium">
+            {slot.remaining} {slot.remaining === 1 ? 'slot' : 'slots'} left
+          </span>
+        )}
+      </div>
+    );
   };
   
-  // Group times into morning, afternoon, evening
-  const groupedTimes = sortedTimes.reduce<Record<string, string[]>>(
-    (groups, time) => {
-      const hour = parseInt(time.split(":")[0], 10);
+  // Group slots into morning, afternoon, evening
+  const groupedSlots = sortedSlots.reduce<Record<string, AvailabilitySlot[]>>(
+    (groups, slot) => {
+      const hour = parseInt(slot.time.split(":")[0], 10);
       
       if (hour < 12) {
-        groups.morning = [...(groups.morning || []), time];
+        groups.morning = [...(groups.morning || []), slot];
       } else if (hour < 17) {
-        groups.afternoon = [...(groups.afternoon || []), time];
+        groups.afternoon = [...(groups.afternoon || []), slot];
       } else {
-        groups.evening = [...(groups.evening || []), time];
+        groups.evening = [...(groups.evening || []), slot];
       }
       
       return groups;
@@ -104,29 +124,41 @@ export function TimeSlotPicker({
     {}
   );
   
-  const renderTimeGroup = (title: string, times: string[] | undefined) => {
-    if (!times || times.length === 0) return null;
+  const renderTimeGroup = (title: string, slotGroup: AvailabilitySlot[] | undefined) => {
+    if (!slotGroup || slotGroup.length === 0) return null;
     
     return (
       <div className="mb-4">
         <h3 className="text-sm font-medium mb-2">{title}</h3>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-          {times.map((time) => (
-            <button
-              key={time}
-              type="button"
-              onClick={() => onSelectTime(time)}
-              className={cn(
-                "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                "border border-border hover:bg-secondary hover:text-secondary-foreground",
-                "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
-                selectedTime === time
-                  ? "border-primary bg-primary/10 text-primary-foreground"
-                  : "bg-background"
-              )}
-            >
-              {formatTimeSlot(time)}
-            </button>
+          {slotGroup.map((slot) => (
+            <TooltipProvider key={slot.time}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => slot.available && onSelectTime(slot.time)}
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "border border-border focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
+                      selectedTime === slot.time
+                        ? "border-primary bg-primary/10 text-primary-foreground"
+                        : slot.available
+                          ? "bg-background hover:bg-secondary hover:text-secondary-foreground"
+                          : "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
+                    )}
+                    disabled={!slot.available}
+                  >
+                    {formatTimeSlot(slot)}
+                  </button>
+                </TooltipTrigger>
+                {!slot.available && slot.reason && (
+                  <TooltipContent>
+                    <p>{slot.reason}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           ))}
         </div>
       </div>
@@ -135,15 +167,15 @@ export function TimeSlotPicker({
   
   return (
     <div className={cn("space-y-2", className)}>
-      {sortedTimes.length === 0 ? (
+      {sortedSlots.length === 0 ? (
         <p className="text-center text-muted-foreground py-4">
           No available time slots for this date
         </p>
       ) : (
         <>
-          {renderTimeGroup("Morning", groupedTimes.morning)}
-          {renderTimeGroup("Afternoon", groupedTimes.afternoon)}
-          {renderTimeGroup("Evening", groupedTimes.evening)}
+          {renderTimeGroup("Morning", groupedSlots.morning)}
+          {renderTimeGroup("Afternoon", groupedSlots.afternoon)}
+          {renderTimeGroup("Evening", groupedSlots.evening)}
         </>
       )}
     </div>
