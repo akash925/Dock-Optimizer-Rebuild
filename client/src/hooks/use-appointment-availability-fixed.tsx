@@ -2,18 +2,6 @@ import { useCallback, useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 
 // Types
-export interface AvailabilityRule {
-  id: number;
-  facilityId: number;
-  appointmentTypeId?: number;
-  dayOfWeek?: number;
-  startTime?: string;
-  endTime?: string;
-  maxConcurrent?: number;
-  maxAppointmentsPerDay?: number;
-  bufferTime?: number;
-}
-
 export interface AvailabilitySlot {
   time: string;
   available: boolean;
@@ -36,8 +24,8 @@ export interface UseAppointmentAvailabilityProps {
 }
 
 /**
- * Simplified version of useAppointmentAvailability hook that uses the v2 API endpoint
- * for availability calculations instead of doing them client-side
+ * Final version of useAppointmentAvailability hook that uses the v2 API endpoint
+ * for availability calculations, with redundant client-side state removed
  */
 export function useAppointmentAvailability({
   facilityId,
@@ -52,8 +40,6 @@ export function useAppointmentAvailability({
   bookingPageSlug
 }: UseAppointmentAvailabilityProps) {
   // State
-  const [availabilityRules, setAvailabilityRules] = useState<AvailabilityRule[]>([]);
-  const [bookedAppointments, setBookedAppointments] = useState<any[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -121,8 +107,6 @@ export function useAppointmentAvailability({
       
       if (isHoliday) {
         // If it's a holiday, return empty slots
-        setAvailabilityRules([]);
-        setBookedAppointments([]);
         setAvailableTimeSlots([{
           time: '00:00',
           available: false,
@@ -141,7 +125,7 @@ export function useAppointmentAvailability({
         return;
       }
 
-      // Fetch availability directly from the new v2 API endpoint instead of calculating it client-side
+      // Fetch availability directly from the new v2 API endpoint
       const queryParams = new URLSearchParams();
       queryParams.append('date', dateStr);
       queryParams.append('facilityId', String(facilityId));
@@ -201,9 +185,6 @@ export function useAppointmentAvailability({
     isLoading,
     error,
     selectedDate,
-    fetchAvailabilityForDate,
-    // For debugging and reference
-    availabilityRules,
-    bookedAppointments,
+    fetchAvailabilityForDate
   };
 }

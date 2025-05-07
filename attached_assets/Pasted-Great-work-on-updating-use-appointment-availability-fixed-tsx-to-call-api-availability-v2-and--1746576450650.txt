@@ -1,0 +1,42 @@
+Great work on updating `use-appointment-availability-fixed.tsx` to call `/api/availability/v2` and `use-realtime-updates.tsx` to invalidate its cache!
+
+Let's refine `use-appointment-availability-fixed.tsx` further and then update the UI component.
+
+**Part 1: Final Cleanup of `use-appointment-availability-fixed.tsx`**
+
+1.  **Remove Redundant `availabilityRules`:**
+    * Since `/api/availability/v2` now provides the definitive slots calculated based on all rules (including facility hours, breaks, appointment type overrides), the client no longer needs to fetch or process `availabilityRules` separately for slot generation.
+    * Delete the `WorkspaceAvailabilityRules` useCallback hook.
+    * Delete the `availabilityRules` state variable and its `setAvailabilityRules` setter.
+    * Remove `availabilityRules` from the hook's return object.
+    * Remove `WorkspaceAvailabilityRules` from any `useCallback` dependency arrays.
+2.  **Remove Redundant `bookedAppointments` State:**
+    * The `/v2` endpoint already accounts for booked appointments.
+    * Delete the `bookedAppointments` state variable and its `setBookedAppointments` setter.
+    * Remove `bookedAppointments` from the hook's return object.
+3.  **Holiday Check (`checkIsHoliday`):**
+    * For now, let's assume the `checkIsHoliday` logic (calling `/api/facilities/:facilityId/organization` and `/api/organizations/:organizationId/holidays`) is still needed client-side *before* calling `/v2` if a holiday means no slots should be shown at all. So, keep this function and its usage. (Later, we could integrate this into the backend service).
+
+**Part 2: Update `TimeSlotPicker.tsx` (or equivalent UI component)**
+
+Context: The `TimeSlotPicker.tsx` (Source: file-Screenshot 2025-05-05 at 4.52.23 PM.jpg-cca72271-6cd3-48b3-9e28-dab8ecf81604) currently receives `availableTimes: string[]`. It needs to be updated to use the richer `AvailabilitySlot[]` array from the modified `use-appointment-availability-fixed.tsx` hook.
+
+1.  **Update Props:**
+    * Change the `availableTimes` prop in `TimeSlotPickerProps` from `string[]` to `slots: AvailabilitySlot[]` (import `AvailabilitySlot` from the hook or a shared types file if it's also defined there).
+2.  **Adapt Logic:**
+    * Instead of iterating over `availableTimes` (which were just strings), iterate over the new `slots` prop.
+    * **Button Disabling & Styling:** When rendering each time slot button:
+        * Use `slot.available` (boolean) to determine if the button should be enabled or disabled. Disabled buttons should have distinct styling (e.g., greyed out, not clickable).
+        * The `selectedTime === time` logic for styling the selected button should now compare with `slot.time`.
+    * **Displaying Capacity (Optional):**
+        * If an appointment type has a setting like `showRemainingSlots: true` (this property would need to be fetched and passed down to the `TimeSlotPicker`), display `slot.remainingCapacity` next to the time (e.g., "9:00 AM (2 left)").
+    * **Displaying Reason (Optional):**
+        * If `!slot.available` and `slot.reason` has a value, consider displaying this reason as a tooltip when the user hovers over the disabled slot.
+    * **Sorting:** The `sortedTimes` logic should now sort the `slots` array based on the `slot.time` string.
+    * **Grouping:** The `groupedTimes` logic should also operate on the `slots` array, grouping `slot.time`.
+    * The `formatTimeSlot` function should now take `slot: AvailabilitySlot` as an argument if it needs more than just the `timeStr` (though it currently only uses `timeStr`). For now, passing `slot.time` to it might be sufficient.
+
+**Output:**
+Please provide the full updated content for:
+1.  `client/src/hooks/use-appointment-availability-fixed.tsx` (after cleanup)
+2.  `client/src/components/TimeSlotPicker.tsx` (or its actual equivalent, with changes to use the new `slots` prop and its properties).
