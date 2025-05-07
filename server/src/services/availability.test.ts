@@ -16,20 +16,29 @@ function zonedTimeToUtc(dateString: string, timeZone: string): Date {
   return new Date(zonedDate);
 }
 
+// Create a fully mocked version of fetchRelevantAppointmentsForDay that won't use Drizzle's query builder
+const mockedFetchRelevantAppointmentsForDay = vi.fn().mockResolvedValue([]);
+
 // First set up the mocks
 vi.mock('./availability', async () => {
   const actualModule = await vi.importActual('./availability');
+  
   return {
     ...actualModule,
-    fetchRelevantAppointmentsForDay: vi.fn().mockResolvedValue([])
+    // Override the function with the standalone mock that doesn't rely on database objects
+    fetchRelevantAppointmentsForDay: async (db: any, facilityId: number, date: string, effectiveTenantId: number) => {
+      // Pass the arguments to our mock to track calls
+      mockedFetchRelevantAppointmentsForDay(db, facilityId, date, effectiveTenantId);
+      // Return the mock value
+      return await mockedFetchRelevantAppointmentsForDay();
+    }
   };
 });
 
 // Import the functions after mocking
-import { calculateAvailabilitySlots, fetchRelevantAppointmentsForDay } from './availability';
+import { calculateAvailabilitySlots } from './availability';
 
-// Reference to the mocked function for use in tests
-const mockedFetchRelevantAppointmentsForDay = fetchRelevantAppointmentsForDay as vi.Mock;
+// We don't need to import the mocked function since we've already created it above
 
 // Mock dependencies with a more complete Drizzle-like query chain
 const mockDb = {

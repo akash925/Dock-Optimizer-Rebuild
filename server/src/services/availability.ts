@@ -271,12 +271,22 @@ export async function calculateAvailabilitySlots(
   operatingEnd.setHours(endHour, endMinute, 0, 0);
   
   // 6. Fetch existing appointments for this day that match our constraints
-  const existingAppointments = await fetchRelevantAppointmentsForDay(
-    db,
-    facilityId,
-    date,
-    effectiveTenantId
-  );
+  // For easier testing, allow an optional parameter to override the appointments fetching
+  let existingAppointments = [];
+  
+  // Normal DB fetching path
+  if (!options?.testAppointments) {
+    existingAppointments = await fetchRelevantAppointmentsForDay(
+      db,
+      facilityId,
+      date,
+      effectiveTenantId
+    );
+  } else {
+    // Test path - use provided appointments list
+    existingAppointments = options.testAppointments;
+    console.log(`[AvailabilityService] Using ${existingAppointments.length} test appointments`);
+  }
   
   // 7. Generate slots from start time to end time with slotIntervalMinutes spacing
   while (slotTime < operatingEnd) {
