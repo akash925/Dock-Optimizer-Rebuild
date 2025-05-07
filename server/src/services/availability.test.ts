@@ -46,7 +46,8 @@ const mockDb = {
   values: vi.fn().mockReturnThis(),
   onConflictDoNothing: vi.fn().mockReturnThis(),
   onConflictDoUpdate: vi.fn().mockReturnThis(),
-  returning: vi.fn().mockResolvedValue([])
+  returning: vi.fn().mockResolvedValue([]),
+  $transaction: vi.fn().mockImplementation((cb) => cb(mockDb))
 };
 
 // Create a reusable test fixture with a mock storage
@@ -172,16 +173,12 @@ describe("calculateAvailabilitySlots", () => {
     // Clear mocks after each test
     vi.clearAllMocks();
   });
+  
+  // Use the actual implementation for all tests to ensure we test the real function
+  const calculateAvailabilitySlots = actualCalculateAvailabilitySlots;
 
   describe("Basic Functionality", () => {
     it("returns empty slots if the facility is marked as closed for the day", async () => {
-      // Sunday is closed at our test facility
-      const sunday = "2025-05-11"; // A Sunday
-      const mockStorage = createMockStorage({
-        facility: createFacility(),
-        appointmentType: createAppointmentType(),
-      });
-
       // Arrange
       const mockStorage = createMockStorage();
       
@@ -209,28 +206,43 @@ describe("calculateAvailabilitySlots", () => {
         tenantId
       );
 
+      // Assert
       expect(slots).toEqual([]);
       expect(mockStorage.getFacility).toHaveBeenCalledWith(7, 5);
       expect(mockStorage.getAppointmentType).toHaveBeenCalledWith(17);
     });
 
     it("returns correctly generated slots based on facility operating hours and slotIntervalMinutes", async () => {
-      // Wednesday is open 8am-5pm at our test facility
-      const wednesday = "2025-05-07"; // A Wednesday
-      const mockStorage = createMockStorage({
-        facility: createFacility(),
-        appointmentType: createAppointmentType({
-          bufferTime: 30, // 30-minute slots
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up an open facility
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility();
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type with 30-min buffer
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType({
+        bufferTime: 30, // 30-minute slots
       });
-
-      const slots = await calculateAvailabilitySlots(
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
+      // Mock no existing appointments
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([]);
+      
+      // Act - call the real function
+      const slots = await actualCalculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // Check that we have the expected number of slots (18 slots for 8am-5pm with 30-min intervals)
@@ -254,24 +266,36 @@ describe("calculateAvailabilitySlots", () => {
 
   describe("Concurrency & Capacity", () => {
     it("correctly calculates remainingCapacity when no appointments exist", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility(),
-        appointmentType: createAppointmentType({
-          maxConcurrent: 3, // Allow up to 3 concurrent appointments
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up an open facility
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility();
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type with maxConcurrent: 3
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType({
+        maxConcurrent: 3, // Allow up to 3 concurrent appointments
       });
-
-      // Mock fetchRelevantAppointmentsForDay to return no appointments
-      (fetchRelevantAppointmentsForDay as vi.Mock).mockResolvedValue([]);
-
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
+      // Mock no existing appointments
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([]);
+      
+      // Act - call the actual function
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // Check that all slots have the full capacity available
@@ -284,28 +308,40 @@ describe("calculateAvailabilitySlots", () => {
     });
 
     it("correctly calculates remainingCapacity when some appointments exist but don't fill the slot", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility(),
-        appointmentType: createAppointmentType({
-          maxConcurrent: 3,
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up an open facility
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility();
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type with maxConcurrent: 3
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType({
+        maxConcurrent: 3
       });
-
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
       // Mock existing appointment at 9am
       const nineAM = new Date(`${wednesday}T09:00:00Z`);
       const oneThirtyPM = new Date(`${wednesday}T13:30:00Z`);
-      (fetchRelevantAppointmentsForDay as vi.Mock).mockResolvedValue([
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([
         createAppointment(nineAM, oneThirtyPM),
       ]);
-
+      
+      // Act - call the actual function
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // Slots at 9:00 should have capacity 2 (3 max - 1 existing)
@@ -322,29 +358,41 @@ describe("calculateAvailabilitySlots", () => {
     });
 
     it("correctly marks a slot as unavailable and remainingCapacity 0 when maxConcurrent is reached", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility(),
-        appointmentType: createAppointmentType({
-          maxConcurrent: 2, // Allow up to 2 concurrent appointments
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up an open facility
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility();
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type with maxConcurrent: 2
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType({
+        maxConcurrent: 2 // Allow up to 2 concurrent appointments
       });
-
-      // Mock 2 existing appointments at 9am
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
+      // Mock 2 existing appointments at 9am - fully booking that slot
       const nineAM = new Date(`${wednesday}T09:00:00Z`);
       const oneThirtyPM = new Date(`${wednesday}T13:30:00Z`);
-      (fetchRelevantAppointmentsForDay as vi.Mock).mockResolvedValue([
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([
         createAppointment(nineAM, oneThirtyPM),
         createAppointment(nineAM, oneThirtyPM),
       ]);
-
+      
+      // Act - call the actual function
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // Slots at 9:00 should be fully booked
