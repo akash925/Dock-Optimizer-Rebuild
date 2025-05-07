@@ -1,9 +1,6 @@
 // Import Vitest testing utilities
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// Import the functions from the actual module FIRST
-import { calculateAvailabilitySlots as actualCalculateAvailabilitySlots, fetchRelevantAppointmentsForDay as originalFetchRelevantAppointmentsForDay } from './availability';
-
 // Import storage interface
 import { IStorage } from "../../storage";
 // Import timezone utilities
@@ -19,18 +16,25 @@ function zonedTimeToUtc(dateString: string, timeZone: string): Date {
   return new Date(zonedDate);
 }
 
-// Now, mock the module to replace only fetchRelevantAppointmentsForDay
-vi.mock('./availability', async (importOriginal) => {
-  const actualModule = await importOriginal(); // Gets the original module
+// Create a mock for fetchRelevantAppointmentsForDay
+const mockedFetchRelevantAppointmentsForDay = vi.fn();
+
+// Mock the entire module, but keep the real calculateAvailabilitySlots
+vi.mock('./availability', async () => {
+  // Get the original module implementation
+  const originalModule = await vi.importActual('./availability');
+  
   return {
-    ...(actualModule as any), // Spread all exports from the original module
-    fetchRelevantAppointmentsForDay: vi.fn(), // This is the function we want to mock
+    // Keep the original calculateAvailabilitySlots implementation
+    calculateAvailabilitySlots: originalModule.calculateAvailabilitySlots,
+    
+    // Replace fetchRelevantAppointmentsForDay with our mock
+    fetchRelevantAppointmentsForDay: mockedFetchRelevantAppointmentsForDay,
   };
 });
 
-// Import the mocked version of fetchRelevantAppointmentsForDay for use in tests
-import { fetchRelevantAppointmentsForDay } from './availability';
-const mockedFetchRelevantAppointmentsForDay = fetchRelevantAppointmentsForDay as vi.Mock;
+// Now import the functions after mocking
+import { calculateAvailabilitySlots } from './availability';
 
 // Mock dependencies with a more complete Drizzle-like query chain
 const mockDb = {
@@ -174,8 +178,7 @@ describe("calculateAvailabilitySlots", () => {
     vi.clearAllMocks();
   });
   
-  // Use the actual implementation for all tests to ensure we test the real function
-  const calculateAvailabilitySlots = actualCalculateAvailabilitySlots;
+  // We're already using the actual implementation for tests
 
   describe("Basic Functionality", () => {
     it("returns empty slots if the facility is marked as closed for the day", async () => {
