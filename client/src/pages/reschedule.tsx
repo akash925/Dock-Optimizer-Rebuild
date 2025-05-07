@@ -79,7 +79,7 @@ export default function ReschedulePage() {
     enabled: !!schedule,
   });
   
-  // Use the enhanced appointment availability hook
+  // Use the enhanced appointment availability hook for improved slot data
   const {
     availabilitySlots,
     isLoading: isLoadingAvailability,
