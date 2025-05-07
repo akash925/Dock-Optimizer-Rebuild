@@ -334,21 +334,22 @@ describe("calculateAvailabilitySlots", () => {
       // Set up a Wednesday date
       const wednesday = "2025-05-07"; // A Wednesday
       
-      // Mock existing appointment at 9am
+      // Use the test appointments option instead of mocking the fetch function
       const nineAM = new Date(`${wednesday}T09:00:00Z`);
       const oneThirtyPM = new Date(`${wednesday}T13:30:00Z`);
-      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([
+      const testAppointments = [
         createAppointment(nineAM, oneThirtyPM),
-      ]);
+      ];
       
-      // Act - call the actual function
+      // Act - call the actual function with test appointments
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
         facilityId,
         appointmentTypeId,
-        tenantId
+        tenantId,
+        { testAppointments } // Pass the test appointments instead of mocking fetch
       );
 
       // Slots at 9:00 should have capacity 2 (3 max - 1 existing)
@@ -384,22 +385,23 @@ describe("calculateAvailabilitySlots", () => {
       // Set up a Wednesday date
       const wednesday = "2025-05-07"; // A Wednesday
       
-      // Mock 2 existing appointments at 9am - fully booking that slot
+      // Use the test appointments option instead of mocking the fetch function
       const nineAM = new Date(`${wednesday}T09:00:00Z`);
       const oneThirtyPM = new Date(`${wednesday}T13:30:00Z`);
-      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([
+      const testAppointments = [
         createAppointment(nineAM, oneThirtyPM),
         createAppointment(nineAM, oneThirtyPM),
-      ]);
+      ];
       
-      // Act - call the actual function
+      // Act - call the actual function with test appointments
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
         facilityId,
         appointmentTypeId,
-        tenantId
+        tenantId,
+        { testAppointments } // Pass the test appointments instead of mocking fetch
       );
 
       // Slots at 9:00 should be fully booked

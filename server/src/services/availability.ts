@@ -19,6 +19,14 @@ export interface AvailabilitySlot {
 }
 
 /**
+ * Testing options for calculateAvailabilitySlots
+ */
+export interface AvailabilityOptions {
+  // Used for testing - bypasses database query and uses these appointments instead
+  testAppointments?: { id: number; startTime: Date; endTime: Date; }[];
+}
+
+/**
  * Fetches appointments for a specific facility and date with proper tenant isolation
  * @param db The Drizzle database instance
  * @param facilityId The facility ID to fetch appointments for
@@ -82,7 +90,8 @@ export async function calculateAvailabilitySlots(
   date: string,
   facilityId: number,
   appointmentTypeId: number,
-  effectiveTenantId: number
+  effectiveTenantId: number,
+  options?: AvailabilityOptions
 ): Promise<AvailabilitySlot[]> {
   console.log(`[AvailabilityService] Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${effectiveTenantId}`);
   
@@ -293,7 +302,7 @@ export async function calculateAvailabilitySlots(
     const timeStr = tzFormat(slotTime, 'HH:mm', { timeZone: facilityTimezone });
     
     // Check if slot overlaps with existing appointments
-    const conflictingAppts = existingAppointments.filter(appt => {
+    const conflictingAppts = existingAppointments.filter((appt: { startTime: Date; endTime: Date }) => {
       const apptStart = new Date(appt.startTime);
       const apptEnd = new Date(appt.endTime);
       
