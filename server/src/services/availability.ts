@@ -27,23 +27,22 @@ export interface AvailabilityOptions {
 }
 
 /**
- * Fetches appointments for a specific facility and date with proper tenant isolation
+ * Fetches appointments for a specific facility and date range with proper tenant isolation
  * @param db The Drizzle database instance
  * @param facilityId The facility ID to fetch appointments for
- * @param date The date in YYYY-MM-DD format
+ * @param dayStart The start date and time for the appointment period
+ * @param dayEnd The end date and time for the appointment period
  * @param effectiveTenantId The tenant ID for isolation
  * @returns Promise resolving to an array of appointments with id, startTime, and endTime
  */
 export async function fetchRelevantAppointmentsForDay(
   db: any, 
   facilityId: number, 
-  date: string, 
+  dayStart: Date, 
+  dayEnd: Date, 
   effectiveTenantId: number
 ): Promise<{ id: number; startTime: Date; endTime: Date; }[]> {
-  // Calculate start and end of the requested day (in UTC)
-  const dayStart = new Date(`${date}T00:00:00Z`);
-  const dayEnd = new Date(`${date}T00:00:00Z`);
-  dayEnd.setDate(dayEnd.getDate() + 1); // Move to start of next day
+  // Start and end of day are now passed in as parameters
 
   // Build and execute query with proper joins and filters
   return await db
@@ -288,7 +287,8 @@ export async function calculateAvailabilitySlots(
     existingAppointments = await fetchRelevantAppointmentsForDay(
       db,
       facilityId,
-      date,
+      dayStart,
+      dayEnd,
       effectiveTenantId
     );
   } else {
