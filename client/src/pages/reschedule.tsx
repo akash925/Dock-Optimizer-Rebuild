@@ -8,6 +8,10 @@ import { format } from "date-fns";
 import { useTimeZoneUtils } from "@/hooks/use-timezone-utils";
 import { Schedule } from "@shared/schema";
 import { EnhancedSchedule, canReschedule } from "@/lib/schedule-helpers";
+import { 
+  useAppointmentAvailability, 
+  AvailabilitySlot 
+} from "@/hooks/use-appointment-availability-fixed";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +47,6 @@ export default function ReschedulePage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [facilityTimezone, setFacilityTimezone] = useState<string>("America/New_York");
-  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [appointmentTypeId, setAppointmentTypeId] = useState<number | null>(null);
   
   // Query to look up the schedule by confirmation code
@@ -76,27 +79,17 @@ export default function ReschedulePage() {
     enabled: !!schedule,
   });
   
-  // Query to fetch available time slots
-  const availabilityQuery = useQuery({
-    queryKey: ["/api/availability", schedule?.facilityId, appointmentTypeId, selectedDate],
-    queryFn: async () => {
-      if (!schedule?.facilityId || !appointmentTypeId || !selectedDate) {
-        return [];
-      }
-      
-      const dateStr = format(selectedDate, "yyyy-MM-dd");
-      const response = await apiRequest(
-        "GET", 
-        `/api/availability?facilityId=${schedule.facilityId}&appointmentTypeId=${appointmentTypeId}&date=${dateStr}`
-      );
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch available times");
-      }
-      
-      return response.json() as Promise<string[]>;
-    },
-    enabled: !!schedule?.facilityId && !!appointmentTypeId && !!selectedDate,
+  // Use the enhanced appointment availability hook
+  const {
+    availabilitySlots,
+    isLoading: isLoadingAvailability,
+    error: availabilityError
+  } = useAppointmentAvailability({
+    facilityId: schedule?.facilityId || null,
+    appointmentTypeId: appointmentTypeId,
+    timezone: facilityTimezone,
+    facilityTimezone: facilityTimezone,
+    date: selectedDate,
   });
   
   // Mutation to reschedule the appointment
@@ -178,12 +171,7 @@ export default function ReschedulePage() {
     }
   }, [scheduleQuery.status, scheduleQuery.data, facilitiesQuery.data]);
   
-  // Effect to update available times when the query resolves
-  useEffect(() => {
-    if (availabilityQuery.data) {
-      setAvailableTimes(availabilityQuery.data);
-    }
-  }, [availabilityQuery.data]);
+  // No longer need the effect to update available times since we use the hook directly
   
   // Helper to format dates/times
   const formatScheduleTime = (schedule: Schedule) => {
@@ -362,11 +350,11 @@ export default function ReschedulePage() {
                 
                 <p className="text-sm font-medium mb-2">Available Times:</p>
                 
-                {availabilityQuery.isPending ? (
+                {isLoadingAvailability ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : availableTimes.length === 0 ? (
+                ) : availabilitySlots.length === 0 ? (
                   <div className="text-center py-8 border border-dashed rounded-md">
                     <CalendarClock className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                     <p className="text-muted-foreground">
@@ -375,10 +363,11 @@ export default function ReschedulePage() {
                   </div>
                 ) : (
                   <TimeSlotPicker
-                    availableTimes={availableTimes}
+                    slots={availabilitySlots}
                     selectedTime={selectedTimeSlot}
                     onSelectTime={setSelectedTimeSlot}
                     timezone={facilityTimezone}
+                    showRemainingSlots={true}
                   />
                 )}
               </div>
