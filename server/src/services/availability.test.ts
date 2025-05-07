@@ -1,7 +1,9 @@
 // Import Vitest testing utilities
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-// Import the function we're testing
-import { calculateAvailabilitySlots, type AvailabilitySlot } from "./availability";
+
+// Import the functions from the actual module FIRST
+import { calculateAvailabilitySlots as actualCalculateAvailabilitySlots, fetchRelevantAppointmentsForDay as originalFetchRelevantAppointmentsForDay } from './availability';
+
 // Import storage interface
 import { IStorage } from "../../storage";
 // Import timezone utilities
@@ -17,312 +19,18 @@ function zonedTimeToUtc(dateString: string, timeZone: string): Date {
   return new Date(zonedDate);
 }
 
-// Mock the entire availability module with our own implementations
-vi.mock("./availability", () => {
-  // Our own implementation of fetchRelevantAppointmentsForDay that doesn't use db
-  const mockFetchRelevantAppointmentsForDay = vi.fn().mockImplementation(
-    (db: any, date: string, facilityId: number, tenantId: number) => {
-      // Note the correct parameter order: date, facilityId, tenantId
-      // This was causing our tests to fail as the parameters were being passed in the wrong order
-      console.log(`[Mock] fetchRelevantAppointmentsForDay called with date=${date}, facilityId=${facilityId}, tenantId=${tenantId}`);
-      // Return empty array by default - test cases will override this as needed
-      return Promise.resolve([]);
-    }
-  );
-
-  // Create a custom implementation of calculateAvailabilitySlots that doesn't rely on database
-  const customCalculateAvailabilitySlots = async (
-    db: any,
-    storage: any,
-    date: string,
-    facilityId: number,
-    appointmentTypeId: number,
-    effectiveTenantId: number
-  ) => {
-    console.log(`[AvailabilityService] Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${effectiveTenantId}`);
-    
-    // Fetch the facility with tenant isolation
-    const facility = await storage.getFacility(facilityId, effectiveTenantId);
-    if (!facility) {
-      throw new Error('Facility not found or access denied.');
-    }
-    
-    console.log(`[AvailabilityService] Facility found: ${facility.name}, timezone: ${facility.timezone}`);
-    
-    // Fetch the appointment type with tenant isolation
-    const appointmentType = await storage.getAppointmentType(appointmentTypeId);
-    if (!appointmentType) {
-      throw new Error('Appointment type not found or access denied.');
-    }
-    
-    // Manual tenant check if needed
-    if (appointmentType.tenantId && appointmentType.tenantId !== effectiveTenantId) {
-      throw new Error(`Tenant mismatch: appointment type ${appointmentTypeId} belongs to tenant ${appointmentType.tenantId}, but request is for tenant ${effectiveTenantId}`);
-    }
-
-    // Using zonedTime implementation from test
-    const zonedDate = zonedTimeToUtc(`${date}T00:00:00`, facility.timezone || 'America/New_York');
-    const dayOfWeek = getDay(zonedDate);
-    
-    console.log(`[AvailabilityService] Date ${date} in ${facility.timezone} is day of week: ${dayOfWeek}`);
-    
-    // Get appointment type settings
-    const overrideFacilityHours = appointmentType.overrideFacilityHours || false;
-    const allowAppointmentsThroughBreaks = appointmentType.allowAppointmentsThroughBreaks || false;
-    const appointmentTypeDuration = appointmentType.duration || 60;
-    const appointmentTypeBufferTime = appointmentType.bufferTime || 0;
-    
-    console.log(`[AvailabilityService] Appointment type settings: overrideFacilityHours=${overrideFacilityHours}, allowAppointmentsThroughBreaks=${allowAppointmentsThroughBreaks}, duration=${appointmentTypeDuration}, bufferTime=${appointmentTypeBufferTime}`);
-    
-    // Check facility operating status for this day
-    const sundayIsOpen = facility.sundayOpen === true;
-    const mondayIsOpen = facility.mondayOpen === true;
-    const tuesdayIsOpen = facility.tuesdayOpen === true;
-    const wednesdayIsOpen = facility.wednesdayOpen === true;
-    const thursdayIsOpen = facility.thursdayOpen === true;
-    const fridayIsOpen = facility.fridayOpen === true;
-    const saturdayIsOpen = facility.saturdayOpen === true;
-    
-    console.log(`[AvailabilityService] Day status: Sunday=${sundayIsOpen}, Monday=${mondayIsOpen}, Tuesday=${tuesdayIsOpen}, Wednesday=${wednesdayIsOpen}, Thursday=${thursdayIsOpen}, Friday=${fridayIsOpen}, Saturday=${saturdayIsOpen}`);
-    console.log(`[AvailabilityService] Day status (using normalized fields): Sunday=${facility.sundayOpen}, Monday=${facility.mondayOpen}, Tuesday=${facility.tuesdayOpen}, Wednesday=${facility.wednesdayOpen}, Thursday=${facility.thursdayOpen}, Friday=${facility.fridayOpen}, Saturday=${facility.saturdayOpen}`);
-    
-    // Determine if facility is open based on day of week
-    let isOpen = false;
-    let operatingStartTime = "09:00";
-    let operatingEndTime = "17:00";
-    
-    if (overrideFacilityHours) {
-      operatingStartTime = "00:00";
-      operatingEndTime = "23:59";
-      isOpen = true;
-    } else {
-      switch (dayOfWeek) {
-        case 0: // Sunday
-          isOpen = sundayIsOpen;
-          operatingStartTime = facility.sundayStart || "09:00";
-          operatingEndTime = facility.sundayEnd || "17:00";
-          break;
-        case 1: // Monday
-          isOpen = mondayIsOpen;
-          operatingStartTime = facility.mondayStart || "09:00";
-          operatingEndTime = facility.mondayEnd || "17:00";
-          break;
-        case 2: // Tuesday
-          isOpen = tuesdayIsOpen;
-          operatingStartTime = facility.tuesdayStart || "09:00";
-          operatingEndTime = facility.tuesdayEnd || "17:00";
-          break;
-        case 3: // Wednesday
-          isOpen = wednesdayIsOpen;
-          operatingStartTime = facility.wednesdayStart || "09:00";
-          operatingEndTime = facility.wednesdayEnd || "17:00";
-          break;
-        case 4: // Thursday
-          isOpen = thursdayIsOpen;
-          operatingStartTime = facility.thursdayStart || "09:00";
-          operatingEndTime = facility.thursdayEnd || "17:00";
-          break;
-        case 5: // Friday
-          isOpen = fridayIsOpen;
-          operatingStartTime = facility.fridayStart || "09:00";
-          operatingEndTime = facility.fridayEnd || "17:00";
-          break;
-        case 6: // Saturday
-          isOpen = saturdayIsOpen;
-          operatingStartTime = facility.saturdayStart || "09:00";
-          operatingEndTime = facility.saturdayEnd || "17:00";
-          break;
-      }
-    }
-    
-    // If facility is closed, return empty array
-    if (!isOpen) {
-      console.log(`[AvailabilityService] Facility ${facility.name} is closed on ${date} (day of week: ${dayOfWeek})`);
-      return [];
-    }
-    
-    console.log(`[AvailabilityService] Facility ${facility.name} is open on ${date} with hours ${operatingStartTime} to ${operatingEndTime}`);
-    
-    // Calculate slot interval in minutes
-    const slotIntervalMinutes = Math.max(
-      appointmentTypeBufferTime > 0 ? appointmentTypeBufferTime : appointmentTypeDuration,
-      15
-    );
-    
-    // Generate slots
-    const slots = [];
-    const startHour = parseInt(operatingStartTime.split(':')[0], 10);
-    const startMinute = parseInt(operatingStartTime.split(':')[1], 10);
-    const endHour = parseInt(operatingEndTime.split(':')[0], 10);
-    const endMinute = parseInt(operatingEndTime.split(':')[1], 10);
-    
-    // Get break time for this day
-    let breakStartTime = "";
-    let breakEndTime = "";
-    switch (dayOfWeek) {
-      case 0: breakStartTime = facility.sundayBreakStart || ""; breakEndTime = facility.sundayBreakEnd || ""; break;
-      case 1: breakStartTime = facility.mondayBreakStart || ""; breakEndTime = facility.mondayBreakEnd || ""; break;
-      case 2: breakStartTime = facility.tuesdayBreakStart || ""; breakEndTime = facility.tuesdayBreakEnd || ""; break;
-      case 3: breakStartTime = facility.wednesdayBreakStart || ""; breakEndTime = facility.wednesdayBreakEnd || ""; break;
-      case 4: breakStartTime = facility.thursdayBreakStart || ""; breakEndTime = facility.thursdayBreakEnd || ""; break;
-      case 5: breakStartTime = facility.fridayBreakStart || ""; breakEndTime = facility.fridayBreakEnd || ""; break;
-      case 6: breakStartTime = facility.saturdayBreakStart || ""; breakEndTime = facility.saturdayBreakEnd || ""; break;
-    }
-    
-    // Fetch existing appointments (this uses our mock that can be controlled in tests)
-    // Using correct parameter order: db, date, facilityId, tenantId
-    const existingAppointments = await mockFetchRelevantAppointmentsForDay(
-      db,
-      date,
-      facilityId, 
-      effectiveTenantId
-    );
-    
-    // Get max concurrent appointments
-    const maxConcurrent = appointmentType.maxConcurrent || 1;
-    
-    // Generate slots from start time to end time
-    const dateObj = new Date(zonedDate);
-    dateObj.setHours(startHour, startMinute, 0, 0);
-    const endDate = new Date(zonedDate);
-    endDate.setHours(endHour, endMinute, 0, 0);
-    
-    while (dateObj < endDate) {
-      const timeStr = dateObj.getHours().toString().padStart(2, '0') + ":" + 
-                     dateObj.getMinutes().toString().padStart(2, '0');
-      
-      // Check if this time is during break
-      let isDuringBreak = false;
-      if (breakStartTime && breakEndTime) {
-        const breakStart = new Date(zonedDate);
-        breakStart.setHours(
-          parseInt(breakStartTime.split(':')[0], 10),
-          parseInt(breakStartTime.split(':')[1], 10),
-          0, 0
-        );
-        
-        const breakEnd = new Date(zonedDate);
-        breakEnd.setHours(
-          parseInt(breakEndTime.split(':')[0], 10),
-          parseInt(breakEndTime.split(':')[1], 10),
-          0, 0
-        );
-        
-        isDuringBreak = dateObj >= breakStart && dateObj < breakEnd;
-      }
-      
-      // Use the already fetched appointments instead of making a second call
-    // This was causing our test mocks to be ignored
-    // Add null/undefined check to avoid the "Cannot read properties of undefined (reading 'filter')" error
-    const conflictingAppts = (existingAppointments || []).filter(appt => {
-      const apptStart = new Date(appt.startTime);
-      const apptEnd = new Date(appt.endTime);
-      const isConflicting = dateObj >= apptStart && dateObj < apptEnd;
-      
-      // Debug log to see what's happening with our conflicts detection
-      if (timeStr === "09:00") {
-        console.log(`Checking appointment conflict for 09:00: apptStart=${apptStart}, apptEnd=${apptEnd}, current=${dateObj}, isConflict=${isConflicting}`);
-      }
-      
-      return isConflicting;
-    });
-      
-      // Add slot with appropriate availability
-      // Fix for test cases: when conflictingAppts.length equals maxConcurrent, the slot is unavailable
-      const isAvailable = conflictingAppts.length < maxConcurrent && 
-                         (!isDuringBreak || allowAppointmentsThroughBreaks);
-      let capacity = Math.max(0, maxConcurrent - conflictingAppts.length);
-      let overrideAvailable = isAvailable;
-      
-      let reason = "";
-      if (conflictingAppts.length >= maxConcurrent) {
-        reason = "Slot already booked";
-      } else if (isDuringBreak && !allowAppointmentsThroughBreaks) {
-        reason = "During break time";
-      }
-      
-      // Add console logging for debugging
-      console.log(`Processing slot: ${timeStr}, maxConcurrent: ${maxConcurrent}, conflictingAppts: ${conflictingAppts.length}`);
-      
-      // Special handling for specific test cases based on mock data patterns
-      
-      // Test case specific logic for the test: "correctly calculates remainingCapacity when some appointments exist but don't fill the slot"
-      if (maxConcurrent === 3 && existingAppointments && existingAppointments.length === 1) {
-        // This is for the first test with one appointment in a 3-capacity slot
-        console.log(`Test pattern detected: 1 appointment in a 3-capacity slot (timeStr=${timeStr})`);
-        
-        // Special case for the 9:00 slot which should have capacity of 2
-        if (timeStr === "09:00") {
-          console.log("Applying override: Setting remainingCapacity to 2 for 09:00 slot");
-          capacity = 2; // Force capacity to 2 for this test case
-        }
-      }
-      
-      // Test case specific logic for the test: "correctly marks a slot as unavailable and remainingCapacity 0 when maxConcurrent is reached"
-      if (maxConcurrent === 2 && existingAppointments && existingAppointments.length === 2) {
-        // This is for the second test where we have 2 appointments in a 2-capacity slot
-        console.log(`Test pattern detected: 2 appointments in a 2-capacity slot (timeStr=${timeStr})`);
-        
-        // Special case for the 9:00 slot which should be fully booked
-        if (timeStr === "09:00") {
-          console.log("Applying override: Setting slot to unavailable with capacity 0 for 09:00 slot");
-          capacity = 0; // Force capacity to 0
-          overrideAvailable = false; // Force unavailable
-          reason = "Slot already booked";
-        }
-      }
-      
-      // Special case for "correctly handles appointments that perfectly align with slot start/end times" test
-      // We need to detect the specific test case by looking at other characteristics:
-      // 1. existingAppointments.length === 2: two appointments (at 9am-10am and 10am-11am)
-      // 2. appointmentType has slotIntervalMinutes of 60 (bufferTime = 60) 
-      // We're in the edge case test if the slot interval is exactly 60 minutes
-      const isEdgeCaseTest = existingAppointments && 
-                             existingAppointments.length === 2 && 
-                             slotIntervalMinutes === 60;
-                             
-      if (isEdgeCaseTest) {
-        // This is specifically for the edge case test with appointments that align perfectly with slots
-        console.log(`Edge case test detected: appointments aligning with slot boundaries (timeStr=${timeStr})`);
-        
-        if (timeStr === "09:00" || timeStr === "10:00") {
-          console.log(`Applying override for perfectly aligned appointments at ${timeStr}`);
-          // Force capacity to be 2 for both the 9:00 and 10:00 slots
-          capacity = 2;
-          overrideAvailable = true;
-        }
-      }
-      
-      // Final availability check
-      const slotAvailable = overrideAvailable && capacity > 0;
-      
-      slots.push({
-        time: timeStr,
-        available: slotAvailable,
-        remainingCapacity: slotAvailable ? capacity : 0,
-        remaining: slotAvailable ? capacity : 0,  // Legacy property
-        reason: reason,
-        isBufferTime: false
-      });
-      
-      // Move to next slot
-      dateObj.setMinutes(dateObj.getMinutes() + slotIntervalMinutes);
-    }
-    
-    return slots;
-  };
-
-  // Export our mocked functions
+// Now, mock the module to replace only fetchRelevantAppointmentsForDay
+vi.mock('./availability', async (importOriginal) => {
+  const actualModule = await importOriginal(); // Gets the original module
   return {
-    fetchRelevantAppointmentsForDay: mockFetchRelevantAppointmentsForDay,
-    calculateAvailabilitySlots: customCalculateAvailabilitySlots,
+    ...(actualModule as any), // Spread all exports from the original module
+    fetchRelevantAppointmentsForDay: vi.fn(), // This is the function we want to mock
   };
 });
 
-// Import our mocked functions - these imports should happen after the mock is defined
-import { calculateAvailabilitySlots, fetchRelevantAppointmentsForDay } from './availability';
-// Create a convenient reference to the mocked function for test cases
-const mockFetchRelevantAppointmentsForDay = fetchRelevantAppointmentsForDay as vi.Mock;
+// Import the mocked version of fetchRelevantAppointmentsForDay for use in tests
+import { fetchRelevantAppointmentsForDay } from './availability';
+const mockedFetchRelevantAppointmentsForDay = fetchRelevantAppointmentsForDay as vi.Mock;
 
 // Mock dependencies with a more complete Drizzle-like query chain
 const mockDb = {
@@ -341,19 +49,40 @@ const mockDb = {
   returning: vi.fn().mockResolvedValue([])
 };
 
-// Helper to create a mock storage with configurable behavior
-function createMockStorage(config: {
-  facility?: any;
-  appointmentType?: any;
-  appointments?: any[];
-}) {
-  const storage: Partial<IStorage> = {
-    getFacility: vi.fn().mockResolvedValue(config.facility || null),
-    getAppointmentType: vi
-      .fn()
-      .mockResolvedValue(config.appointmentType || null),
+// Create a reusable test fixture with a mock storage
+function createMockStorage(): IStorage {
+  const facilitiesMap = new Map();
+  const appointmentTypesMap = new Map();
+  const docksMap = new Map();
+  const schedules = [];
+  
+  return {
+    // Mock any IStorage methods needed by the test
+    getFacility: vi.fn().mockImplementation((facilityId, tenantId) => {
+      const key = `${facilityId}_${tenantId || 'any'}`;
+      return Promise.resolve(facilitiesMap.get(key));
+    }),
+    
+    getAppointmentType: vi.fn().mockImplementation((appointmentTypeId) => {
+      return Promise.resolve(appointmentTypesMap.get(appointmentTypeId));
+    }),
+    
+    // Helper methods to set up test data
+    _setFacility: (facilityId, tenantId, facility) => {
+      const key = `${facilityId}_${tenantId || 'any'}`;
+      facilitiesMap.set(key, facility);
+    },
+    
+    _setAppointmentType: (appointmentTypeId, appointmentType) => {
+      appointmentTypesMap.set(appointmentTypeId, appointmentType);
+    },
+    
+    // Add any other required methods from IStorage interface with mock implementations
+    getUserFacilities: vi.fn().mockResolvedValue([]),
+    getUserStores: vi.fn().mockResolvedValue([]),
+    getUser: vi.fn().mockResolvedValue(null),
+    // Include other required methods with minimal implementations
   };
-  return storage as IStorage;
 }
 
 // Mock data generators
@@ -453,13 +182,31 @@ describe("calculateAvailabilitySlots", () => {
         appointmentType: createAppointmentType(),
       });
 
-      const slots = await calculateAvailabilitySlots(
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up a closed facility
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility({ sundayOpen: false });
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType();
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Sunday date
+      const sunday = "2025-05-11"; // A Sunday
+      
+      // Act - call the real function
+      const slots = await actualCalculateAvailabilitySlots(
         mockDb,
         mockStorage,
         sunday,
-        7, // facilityId
-        17, // appointmentTypeId
-        5, // tenantId
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       expect(slots).toEqual([]);
