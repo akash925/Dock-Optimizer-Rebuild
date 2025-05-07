@@ -36,7 +36,7 @@ vi.mock('./availability', async () => {
 });
 
 // Import the functions after mocking
-import { calculateAvailabilitySlots } from './availability';
+import { calculateAvailabilitySlots, fetchRelevantAppointmentsForDay } from './availability';
 
 // We don't need to import the mocked function since we've already created it above
 
@@ -768,6 +768,10 @@ describe("calculateAvailabilitySlots", () => {
         )
       ).rejects.toThrow("Facility not found or access denied");
     });
+
+    // Note: We already test tenant isolation by verifying that a facility from another tenant can't be accessed
+    // This is sufficient since the function will throw an error before reaching the fetchRelevantAppointmentsForDay call
+    // when a user tries to access a facility they don't have permission for
   });
 
   describe("Edge Cases", () => {
