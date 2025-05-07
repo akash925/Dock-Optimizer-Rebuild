@@ -26,9 +26,9 @@ vi.mock('./availability', async () => {
   return {
     ...actualModule,
     // Override the function with the standalone mock that doesn't rely on database objects
-    fetchRelevantAppointmentsForDay: async (db: any, facilityId: number, date: string, effectiveTenantId: number) => {
+    fetchRelevantAppointmentsForDay: async (db: any, facilityId: number, dayStart: Date, dayEnd: Date, effectiveTenantId: number) => {
       // Pass the arguments to our mock to track calls
-      mockedFetchRelevantAppointmentsForDay(db, facilityId, date, effectiveTenantId);
+      mockedFetchRelevantAppointmentsForDay(db, facilityId, dayStart, dayEnd, effectiveTenantId);
       // Return the mock value
       return await mockedFetchRelevantAppointmentsForDay();
     }
