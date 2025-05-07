@@ -16,25 +16,20 @@ function zonedTimeToUtc(dateString: string, timeZone: string): Date {
   return new Date(zonedDate);
 }
 
-// Create a mock for fetchRelevantAppointmentsForDay
-const mockedFetchRelevantAppointmentsForDay = vi.fn();
-
-// Mock the entire module, but keep the real calculateAvailabilitySlots
+// First set up the mocks
 vi.mock('./availability', async () => {
-  // Get the original module implementation
-  const originalModule = await vi.importActual('./availability');
-  
+  const actualModule = await vi.importActual('./availability');
   return {
-    // Keep the original calculateAvailabilitySlots implementation
-    calculateAvailabilitySlots: originalModule.calculateAvailabilitySlots,
-    
-    // Replace fetchRelevantAppointmentsForDay with our mock
-    fetchRelevantAppointmentsForDay: mockedFetchRelevantAppointmentsForDay,
+    ...actualModule,
+    fetchRelevantAppointmentsForDay: vi.fn().mockResolvedValue([])
   };
 });
 
-// Now import the functions after mocking
-import { calculateAvailabilitySlots } from './availability';
+// Import the functions after mocking
+import { calculateAvailabilitySlots, fetchRelevantAppointmentsForDay } from './availability';
+
+// Reference to the mocked function for use in tests
+const mockedFetchRelevantAppointmentsForDay = fetchRelevantAppointmentsForDay as vi.Mock;
 
 // Mock dependencies with a more complete Drizzle-like query chain
 const mockDb = {
@@ -199,8 +194,8 @@ describe("calculateAvailabilitySlots", () => {
       // Set up a Sunday date
       const sunday = "2025-05-11"; // A Sunday
       
-      // Act - call the real function
-      const slots = await actualCalculateAvailabilitySlots(
+      // Act - call the function
+      const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         sunday,
@@ -238,8 +233,8 @@ describe("calculateAvailabilitySlots", () => {
       // Mock no existing appointments
       mockedFetchRelevantAppointmentsForDay.mockResolvedValue([]);
       
-      // Act - call the real function
-      const slots = await actualCalculateAvailabilitySlots(
+      // Act
+      const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
