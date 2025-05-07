@@ -412,22 +412,37 @@ describe("calculateAvailabilitySlots", () => {
 
   describe("Appointment Type Rules", () => {
     it("overrideFacilityHours: true results in slots being generated outside standard facility hours", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility(),
-        appointmentType: createAppointmentType({
-          overrideFacilityHours: true, // Override facility hours
-          bufferTime: 60, // 1-hour slots
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up an open facility
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility();
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type with override facility hours
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType({
+        overrideFacilityHours: true, // Override facility hours
+        bufferTime: 60 // 1-hour slots
       });
-
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
+      // Mock no existing appointments
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([]);
+      
+      // Act - call the actual function
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // Check for slots outside regular hours (facility normally opens at 8:00)
@@ -446,21 +461,36 @@ describe("calculateAvailabilitySlots", () => {
     });
 
     it("uses correct slotIntervalMinutes calculation based on appointmentType.bufferTime", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility(),
-        appointmentType: createAppointmentType({
-          bufferTime: 45, // 45-minute slots
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up an open facility
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility();
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type with 45-minute buffer time
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType({
+        bufferTime: 45, // 45-minute slots
       });
-
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
+      // Mock no existing appointments
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([]);
+      
+      // Act - call the actual function
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // Check that slots are spaced 45 minutes apart
@@ -474,22 +504,37 @@ describe("calculateAvailabilitySlots", () => {
     });
 
     it("uses appointmentType.duration when no bufferTime is specified", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility(),
-        appointmentType: createAppointmentType({
-          bufferTime: 0, // No buffer time
-          duration: 60, // 1-hour duration
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up an open facility
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility();
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type with no buffer time, using duration instead
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType({
+        bufferTime: 0, // No buffer time
+        duration: 60, // 1-hour duration
       });
-
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
+      // Mock no existing appointments
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([]);
+      
+      // Act - call the actual function
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // Check that slots are spaced 60 minutes apart
@@ -505,25 +550,40 @@ describe("calculateAvailabilitySlots", () => {
 
   describe("Break Time Logic", () => {
     it("slots overlapping with facility break times are marked unavailable if allowAppointmentsThroughBreaks is false", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility({
-          wednesdayBreakStart: "12:00",
-          wednesdayBreakEnd: "13:00",
-        }),
-        appointmentType: createAppointmentType({
-          allowAppointmentsThroughBreaks: false,
-          bufferTime: 30, // 30-minute slots
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up a facility with a break time from 12-1pm on Wednesdays
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility({
+        wednesdayBreakStart: "12:00",
+        wednesdayBreakEnd: "13:00",
       });
-
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type that does NOT allow booking through breaks
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType({
+        allowAppointmentsThroughBreaks: false,
+        bufferTime: 30, // 30-minute slots
+      });
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
+      // Mock no existing appointments
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([]);
+      
+      // Act - call the actual function
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // Check that slots during break time are marked as unavailable
@@ -546,25 +606,40 @@ describe("calculateAvailabilitySlots", () => {
     });
 
     it("slots overlapping with facility break times remain available if allowAppointmentsThroughBreaks is true", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility({
-          wednesdayBreakStart: "12:00",
-          wednesdayBreakEnd: "13:00",
-        }),
-        appointmentType: createAppointmentType({
-          allowAppointmentsThroughBreaks: true, // Allow appointments through breaks
-          bufferTime: 30, // 30-minute slots
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up a facility with a break time from 12-1pm on Wednesdays
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility({
+        wednesdayBreakStart: "12:00",
+        wednesdayBreakEnd: "13:00",
       });
-
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type that ALLOWS booking through breaks
+      const appointmentTypeId = 17; 
+      const appointmentType = createAppointmentType({
+        allowAppointmentsThroughBreaks: true, // Allow appointments through breaks
+        bufferTime: 30, // 30-minute slots
+      });
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
+      // Mock no existing appointments
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([]);
+      
+      // Act - call the actual function
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // Check that slots during break time are still available
@@ -656,21 +731,36 @@ describe("calculateAvailabilitySlots", () => {
     });
 
     it("enforces tenant isolation when fetching relevant appointments", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility({
-          timezone: "America/New_York",
-        }),
-        appointmentType: createAppointmentType(),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up a facility with a specific timezone
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility({
+        timezone: "America/New_York",
       });
-
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType();
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
+      // Mock no existing appointments
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([]);
+      
+      // Act - call the actual function
       await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5, // Tenant ID
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // Calculate expected date range in facility timezone
@@ -708,38 +798,45 @@ describe("calculateAvailabilitySlots", () => {
 
   describe("Edge Cases", () => {
     it("correctly handles appointments that perfectly align with slot start/end times", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility(),
-        appointmentType: createAppointmentType({
-          maxConcurrent: 2,
-          bufferTime: 60, // 1-hour slots
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up a facility
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility();
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type with max concurrent of 2 and 1-hour slots
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType({
+        maxConcurrent: 2,
+        bufferTime: 60, // 1-hour slots
       });
-
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
       // Create appointments that align perfectly with slot boundaries
       const nineAM = new Date(`${wednesday}T09:00:00Z`);
       const tenAM = new Date(`${wednesday}T10:00:00Z`);
       const elevenAM = new Date(`${wednesday}T11:00:00Z`);
-
-      // In our mock implementation, the conflicting appointments logic doesn't account for 
-      // time boundaries exactly the same way as the production code. For the tests to pass,
-      // we need to create the right expected conditions.
-      (fetchRelevantAppointmentsForDay as vi.Mock).mockImplementation((...args) => {
-        // Return appointments that will be correctly detected by our mock implementation
-        return Promise.resolve([
-          createAppointment(nineAM, tenAM), // 9am-10am
-          createAppointment(tenAM, elevenAM), // 10am-11am
-        ]);
-      });
-
+      
+      // Mock appointments that align with slot boundaries
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([
+        createAppointment(nineAM, tenAM), // 9am-10am
+        createAppointment(tenAM, elevenAM), // 10am-11am
+      ]);
+      
+      // Act - call the actual function
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // The 9am slot should have 1 appointment
@@ -763,34 +860,43 @@ describe("calculateAvailabilitySlots", () => {
     });
 
     it("correctly handles appointments that span across multiple potential slots", async () => {
-      const wednesday = "2025-05-07";
-      const mockStorage = createMockStorage({
-        facility: createFacility(),
-        appointmentType: createAppointmentType({
-          maxConcurrent: 2,
-          bufferTime: 30, // 30-minute slots
-        }),
+      // Arrange
+      const mockStorage = createMockStorage();
+      
+      // Set up a facility
+      const facilityId = 7;
+      const tenantId = 5;
+      const facility = createFacility();
+      mockStorage._setFacility(facilityId, tenantId, facility);
+      
+      // Set up appointment type with max concurrent of 2 and 30-minute slots
+      const appointmentTypeId = 17;
+      const appointmentType = createAppointmentType({
+        maxConcurrent: 2,
+        bufferTime: 30, // 30-minute slots
       });
-
-      // Create a long appointment that spans multiple slots
+      mockStorage._setAppointmentType(appointmentTypeId, appointmentType);
+      
+      // Set up a Wednesday date
+      const wednesday = "2025-05-07"; // A Wednesday
+      
+      // Create a long appointment that spans multiple slots (9am-11am)
       const nineAM = new Date(`${wednesday}T09:00:00Z`);
       const elevenAM = new Date(`${wednesday}T11:00:00Z`);
-
-      // In our mock implementation, the conflicting appointments logic works differently
-      // than production code. To make tests pass, we need to modify our expected values.
-      (fetchRelevantAppointmentsForDay as vi.Mock).mockImplementation(() => {
-        return Promise.resolve([
-          createAppointment(nineAM, elevenAM), // 9am-11am (spans 4 half-hour slots)
-        ]);
-      });
-
+      
+      // Mock an appointment that spans multiple slots
+      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([
+        createAppointment(nineAM, elevenAM), // 9am-11am (spans 4 half-hour slots)
+      ]);
+      
+      // Act - call the actual function
       const slots = await calculateAvailabilitySlots(
         mockDb,
         mockStorage,
         wednesday,
-        7,
-        17,
-        5,
+        facilityId,
+        appointmentTypeId,
+        tenantId
       );
 
       // All slots between 9am and 11am should have capacity reduced by 1
