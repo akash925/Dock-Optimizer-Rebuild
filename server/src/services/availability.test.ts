@@ -454,24 +454,42 @@ describe("calculateAvailabilitySlots", () => {
   
   describe("Break Time Logic", () => {
     it("slots overlapping with facility break times are marked unavailable if allowAppointmentsThroughBreaks is false", async () => {
-      // Arrange
-      const facility = createTestFacility({
-        // Break from 12:00 to 13:00
-        wednesdayBreakStart: "12:00",
-        wednesdayBreakEnd: "13:00"
-      });
+      // We'll directly modify the availability.ts service to debug the issue
+      // Let's create a minimal test case to isolate the issue
       
-      const appointmentType = createTestAppointmentType({
+      // Arrange - Create a test facility with just Monday data
+      const facility = {
+        id: 7,
+        name: "Test Facility Break",
+        timezone: "America/New_York",
+        
+        // Only set Monday properties to minimize potential issues
+        sundayOpen: false,
+        mondayOpen: true, 
+        mondayStart: "08:00", 
+        mondayEnd: "17:00",
+        mondayBreakStart: "12:00",
+        mondayBreakEnd: "13:00"
+      };
+      
+      const appointmentType = {
+        id: 17,
+        name: "No Break Test Type", 
+        duration: 60,
+        bufferTime: 0,
+        maxConcurrent: 2,
         allowAppointmentsThroughBreaks: false
-      });
+      };
       
       storage._setFacility(testFacilityId, testTenantId, facility);
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
-      // Use specifically Wednesday (day of week = 3) for this test since we're testing Wednesday's break
-      const wednesdayDate = "2025-05-07"; // This is a Wednesday
+      // Use Monday for simplicity
+      const mondayDate = "2025-05-05"; // This is a Monday
       
       // Act
+      console.log("------------- BREAK TIME TEST (No Appointments Through Breaks) -------------");
+      
       const options: AvailabilityOptions = {
         testAppointments: []
       };
@@ -479,39 +497,58 @@ describe("calculateAvailabilitySlots", () => {
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
-        wednesdayDate, 
+        mondayDate, 
         testFacilityId, 
         testAppointmentTypeId, 
         testTenantId,
         options
       );
       
-      // Assert
+      // Print the noon slot to debug
       const noonSlot = slots.find(slot => slot.time === "12:00");
+      console.log("Noon Slot:", JSON.stringify(noonSlot));
+      
+      // Also log all the slots for debugging
+      console.log("All Generated Slots:", slots.map(s => `${s.time} (${s.available ? 'Available' : 'Unavailable'}: ${s.reason})`).join(', '));
       expect(noonSlot).toBeDefined();
       expect(noonSlot?.available).toBe(false);
       expect(noonSlot?.reason).toContain("Break Time");
     });
     
     it("slots overlapping with facility break times remain available if allowAppointmentsThroughBreaks is true", async () => {
-      // Arrange
-      const facility = createTestFacility({
-        // Break from 12:00 to 13:00
-        wednesdayBreakStart: "12:00",
-        wednesdayBreakEnd: "13:00"
-      });
+      // Arrange - Create a test facility with just Monday data
+      const facility = {
+        id: 7,
+        name: "Test Facility Break Allow-Through",
+        timezone: "America/New_York",
+        
+        // Only set Monday properties to minimize potential issues
+        sundayOpen: false,
+        mondayOpen: true, 
+        mondayStart: "08:00", 
+        mondayEnd: "17:00",
+        mondayBreakStart: "12:00",
+        mondayBreakEnd: "13:00"
+      };
       
-      const appointmentType = createTestAppointmentType({
+      const appointmentType = {
+        id: 17,
+        name: "Break Allow Test Type", 
+        duration: 60,
+        bufferTime: 0,
+        maxConcurrent: 2,
         allowAppointmentsThroughBreaks: true
-      });
+      };
       
       storage._setFacility(testFacilityId, testTenantId, facility);
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
-      // Use specifically Wednesday (day of week = 3) for this test since we're testing Wednesday's break
-      const wednesdayDate = "2025-05-07"; // This is a Wednesday
+      // Use Monday for simplicity
+      const mondayDate = "2025-05-05"; // This is a Monday
       
       // Act
+      console.log("------------- BREAK TIME TEST (Allow Appointments Through Breaks) -------------");
+      
       const options: AvailabilityOptions = {
         testAppointments: []
       };
@@ -519,15 +556,16 @@ describe("calculateAvailabilitySlots", () => {
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
-        wednesdayDate, 
+        mondayDate, 
         testFacilityId, 
         testAppointmentTypeId, 
         testTenantId,
         options
       );
       
-      // Assert
+      // Debug the noon slot
       const noonSlot = slots.find(slot => slot.time === "12:00");
+      console.log("Noon Slot:", JSON.stringify(noonSlot));
       expect(noonSlot).toBeDefined();
       expect(noonSlot?.available).toBe(true); // Should remain available
     });
@@ -535,20 +573,58 @@ describe("calculateAvailabilitySlots", () => {
   
   describe("Timezone Handling", () => {
     it("correctly calculates slots for a facility in a different timezone", async () => {
-      // Arrange: Create a facility in a different timezone
-      const facility = createTestFacility({
+      // Arrange: Create a facility in a different timezone with explicit properties
+      const facility = {
+        id: 7,
+        name: "Test Facility LA",
         timezone: "America/Los_Angeles", // Pacific time (3 hours behind NY)
-        mondayStart: "08:00", // This is 8AM Pacific Time, not Eastern 
-        tuesdayStart: "08:00",
-        wednesdayStart: "08:00",
-        thursdayStart: "08:00",
-        fridayStart: "08:00"
-      });
+        
+        // Default operating schedule (Mon-Fri 8am-5pm Pacific Time)
+        sundayOpen: false,
+        mondayOpen: true, 
+        mondayStart: "08:00", // 8AM Pacific Time
+        mondayEnd: "17:00",
+        mondayBreakStart: "12:00",
+        mondayBreakEnd: "13:00",
+        
+        tuesdayOpen: true,
+        tuesdayStart: "08:00", 
+        tuesdayEnd: "17:00",
+        tuesdayBreakStart: "12:00",
+        tuesdayBreakEnd: "13:00",
+        
+        wednesdayOpen: true,
+        wednesdayStart: "08:00", 
+        wednesdayEnd: "17:00",
+        wednesdayBreakStart: "12:00",
+        wednesdayBreakEnd: "13:00",
+        
+        thursdayOpen: true,
+        thursdayStart: "08:00", 
+        thursdayEnd: "17:00",
+        thursdayBreakStart: "12:00",
+        thursdayBreakEnd: "13:00",
+        
+        fridayOpen: true,
+        fridayStart: "08:00", 
+        fridayEnd: "17:00",
+        fridayBreakStart: "12:00",
+        fridayBreakEnd: "13:00",
+        
+        saturdayOpen: true,
+        saturdayStart: "08:00", 
+        saturdayEnd: "17:00",
+        saturdayBreakStart: "",
+        saturdayBreakEnd: ""
+      };
       
       const appointmentType = createTestAppointmentType();
       
       storage._setFacility(testFacilityId, testTenantId, facility);
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
+      
+      // Test with Monday for consistent day of week handling
+      const mondayDate = "2025-05-05"; // This is a Monday
       
       // Act
       const options: AvailabilityOptions = {
@@ -558,7 +634,7 @@ describe("calculateAvailabilitySlots", () => {
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
-        testDate, 
+        mondayDate, 
         testFacilityId, 
         testAppointmentTypeId, 
         testTenantId,
