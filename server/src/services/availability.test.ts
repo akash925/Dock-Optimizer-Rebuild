@@ -389,13 +389,18 @@ describe("calculateAvailabilitySlots", () => {
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
       // Act
+      const options: AvailabilityOptions = {
+        testAppointments: []
+      };
+      
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
@@ -418,13 +423,18 @@ describe("calculateAvailabilitySlots", () => {
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
       // Act
+      const options: AvailabilityOptions = {
+        testAppointments: []
+      };
+      
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
@@ -460,13 +470,18 @@ describe("calculateAvailabilitySlots", () => {
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
       // Act
+      const options: AvailabilityOptions = {
+        testAppointments: []
+      };
+      
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
@@ -492,13 +507,18 @@ describe("calculateAvailabilitySlots", () => {
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
       // Act
+      const options: AvailabilityOptions = {
+        testAppointments: []
+      };
+      
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
@@ -521,13 +541,18 @@ describe("calculateAvailabilitySlots", () => {
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
       // Act
+      const options: AvailabilityOptions = {
+        testAppointments: []
+      };
+      
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
@@ -548,13 +573,18 @@ describe("calculateAvailabilitySlots", () => {
       
       // Act & Assert
       // Try to access with tenant ID 6 (wrong tenant)
+      const options: AvailabilityOptions = {
+        testAppointments: []
+      };
+      
       await expect(calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        6
+        6,
+        options
       )).rejects.toThrow('Facility not found or access denied');
     });
   });
