@@ -4,9 +4,9 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Handle OCR document processing request
- * This function processes an uploaded image file using PaddleOCR
- * and returns the extracted text.
+ * Handle document processing request
+ * This function processes an uploaded document file (PDF or image)
+ * and returns metadata and information about the document.
  */
 export async function handleProcessDocument(req: Request, res: Response) {
   try {
@@ -26,7 +26,7 @@ export async function handleProcessDocument(req: Request, res: Response) {
     const tenantId = req.user?.tenantId || 'unknown';
     console.log(`[OCR] Request from user ID: ${userId}, tenant ID: ${tenantId}`);
 
-    // Spawn Python process to handle OCR
+    // Spawn Python process to handle document processing
     const pythonProcess = spawn('python3', [
       path.join(process.cwd(), 'server', 'src', 'services', 'ocr_processor.py'),
       req.file.path,
@@ -58,7 +58,7 @@ export async function handleProcessDocument(req: Request, res: Response) {
       
       return res.status(500).json({
         success: false,
-        message: 'OCR processing failed',
+        message: 'Document processing failed',
         error: errorString || `Process exited with code ${exitCode}`,
       });
     }
@@ -69,7 +69,10 @@ export async function handleProcessDocument(req: Request, res: Response) {
       
       // Log success
       console.log(`[OCR] Successfully processed document`);
-      console.log(`[OCR] Extracted ${result.text?.length || 0} text elements`);
+      
+      // Add document path for reference (temporary - this file will be deleted)
+      result.filePath = req.file.path;
+      result.originalName = req.file.originalname;
       
       // Clean up the uploaded file
       cleanupFile(req.file.path);
@@ -81,12 +84,12 @@ export async function handleProcessDocument(req: Request, res: Response) {
         result,
       });
     } catch (parseError) {
-      console.error(`[OCR] Error parsing OCR output: ${parseError}`);
+      console.error(`[OCR] Error parsing document processing output: ${parseError}`);
       console.error(`[OCR] Raw output: ${dataString}`);
       
       return res.status(500).json({
         success: false,
-        message: 'Error parsing OCR output',
+        message: 'Error parsing document processing output',
         error: String(parseError),
       });
     }
@@ -114,3 +117,31 @@ function cleanupFile(filePath: string): void {
     console.error(`[OCR] Error cleaning up file ${filePath}: ${error}`);
   }
 }
+
+/**
+ * Ensures the OCR uploads directory exists
+ * This function is automatically called when the module is imported
+ */
+function ensureOcrUploadsDir(): void {
+  try {
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const ocrDir = path.join(uploadsDir, 'ocr-docs');
+    
+    // Create uploads directory if it doesn't exist
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log(`[OCR] Created uploads directory: ${uploadsDir}`);
+    }
+    
+    // Create OCR docs directory if it doesn't exist
+    if (!fs.existsSync(ocrDir)) {
+      fs.mkdirSync(ocrDir, { recursive: true });
+      console.log(`[OCR] Created OCR documents directory: ${ocrDir}`);
+    }
+  } catch (error) {
+    console.error(`[OCR] Error ensuring OCR directories: ${error}`);
+  }
+}
+
+// Ensure OCR uploads directory exists when this module is loaded
+ensureOcrUploadsDir();

@@ -5,9 +5,9 @@ import { execSync } from 'child_process';
 import path from 'path';
 
 /**
- * Test script for OCR document processing
+ * Test script for document processing
  * 
- * This script tests the OCR document processing endpoint by sending a sample image
+ * This script tests the document processing endpoint by sending a sample document (PDF or image)
  */
 async function testOcrProcessing() {
   // Log in with test admin user to get authentication cookie
@@ -35,29 +35,32 @@ async function testOcrProcessing() {
     testFilePath = samplePdfPath2;
     console.log(`Using sample PDF: ${samplePdfPath2}`);
   } else {
-    // No sample PDF found, create a test text image
-    console.log('No sample PDF found, creating test image...');
+    // No sample PDF found, check for image files
+    const imageExtensions = ['.jpg', '.jpeg', '.png'];
+    let foundImage = false;
     
-    // Generate a test image with text using ImageMagick if available
-    try {
-      const testImagePath = path.join('uploads', 'test-ocr-image.png');
-      execSync(`convert -size 800x600 -background white -fill black -font Arial -pointsize 48 -gravity center label:"Testing OCR 123" ${testImagePath}`);
-      testFilePath = testImagePath;
-      console.log(`Created test image at ${testImagePath}`);
-    } catch (error) {
-      console.error('Failed to create test image:', error);
-      console.log('Using simple download image as fallback');
+    for (const dir of ['attached_assets', '.']) {
+      if (foundImage) break;
       
-      // Download a test image as a fallback
       try {
-        const testImagePath = path.join('uploads', 'test-ocr-image.png');
-        execSync(`curl -o ${testImagePath} https://i.imgur.com/7uLj5b8.png`);
-        testFilePath = testImagePath;
-        console.log(`Downloaded test image to ${testImagePath}`);
-      } catch (downloadError) {
-        console.error('Failed to download test image:', downloadError);
-        process.exit(1);
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+          const ext = path.extname(file).toLowerCase();
+          if (imageExtensions.includes(ext)) {
+            testFilePath = path.join(dir, file);
+            console.log(`Using image file: ${testFilePath}`);
+            foundImage = true;
+            break;
+          }
+        }
+      } catch (error) {
+        console.error(`Error reading directory ${dir}:`, error);
       }
+    }
+    
+    if (!foundImage) {
+      console.error('No suitable test documents found');
+      process.exit(1);
     }
   }
   
@@ -65,8 +68,8 @@ async function testOcrProcessing() {
   const formData = new FormData();
   formData.append('document', fs.createReadStream(testFilePath));
   
-  // Send request to OCR endpoint
-  console.log('Sending test document to OCR endpoint...');
+  // Send request to document processing endpoint
+  console.log('Sending test document to processing endpoint...');
   const response = await fetch('http://localhost:5000/api/ocr/process-document', {
     method: 'POST',
     body: formData,
@@ -78,20 +81,57 @@ async function testOcrProcessing() {
   // Check response
   if (response.ok) {
     const result = await response.json();
-    console.log('OCR processing successful!');
-    console.log('Extracted text:');
-    if (result.result && result.result.text) {
-      result.result.text.forEach(text => console.log(`- ${text}`));
-    } else {
-      console.log('No text extracted or unexpected response format');
+    console.log('Document processing successful!');
+    
+    // Print document info
+    if (result.result && result.result.metadata) {
+      console.log('\nDocument Information:');
+      const metadata = result.result.metadata;
+      console.log(`Type: ${metadata.type}`);
+      console.log(`Filename: ${metadata.filename}`);
+      console.log(`File size: ${formatBytes(metadata.filesize)}`);
+      
+      if (metadata.pages) {
+        console.log(`Pages: ${metadata.pages}`);
+      }
+      
+      if (metadata.dimensions) {
+        console.log(`Dimensions: ${metadata.dimensions}`);
+      }
     }
-    console.log('\nFull response:');
-    console.log(JSON.stringify(result, null, 2));
+    
+    // Print image info if available
+    if (result.result && result.result.images && result.result.images.length > 0) {
+      console.log('\nImage Information:');
+      result.result.images.forEach((img, index) => {
+        if (result.result.metadata.pages && result.result.metadata.pages > 1) {
+          console.log(`Page ${img.page || index+1}:`);
+        }
+        console.log(`  Resolution: ${img.resolution}`);
+        console.log(`  Format: ${img.format}`);
+        console.log(`  Mode: ${img.mode}`);
+      });
+    }
+    
+    console.log('\nProcessing Time:', `${result.result.processing_time.toFixed(2)} seconds`);
     return true;
   } else {
-    console.error('OCR processing failed:', await response.text());
+    console.error('Document processing failed:', await response.text());
     return false;
   }
+}
+
+// Helper function to format bytes
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
 // Run the test

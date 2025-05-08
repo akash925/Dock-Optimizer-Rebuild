@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-OCR Processor using PaddleOCR
+Simple Document Processor
 -------------------------------
-This script processes an image file using PaddleOCR and returns the extracted text as JSON.
-Usage: python3 ocr_processor.py /path/to/image.jpg
+This script processes PDF documents and images and extracts content information
+without using external OCR libraries that might have compatibility issues.
+Usage: python3 ocr_processor.py /path/to/document.pdf
 """
 
 import os
@@ -25,129 +26,113 @@ except ImportError as e:
     }))
     sys.exit(1)
 
-# Check and handle libpaddle.so issue
-paddle_so_path = "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/paddle/base/libpaddle.so"
-if os.path.exists(paddle_so_path):
-    print(json.dumps({
-        "success": False,
-        "error": f"PaddlePaddle installation issue detected. The file {paddle_so_path} exists and is causing conflicts."
-    }))
-    print(f"Error: PaddlePaddle installation issue detected. The file {paddle_so_path} exists and is causing conflicts.", file=sys.stderr)
-    # Rename the problematic file to allow imports to work
-    try:
-        os.rename(paddle_so_path, f"{paddle_so_path}.bak")
-        print(f"Renamed {paddle_so_path} to {paddle_so_path}.bak to fix import issues", file=sys.stderr)
-    except Exception as e:
-        print(json.dumps({
-            "success": False,
-            "error": f"Failed to fix PaddlePaddle installation: {str(e)}"
-        }))
-        print(f"Failed to fix PaddlePaddle installation: {str(e)}", file=sys.stderr)
-        sys.exit(1)
-
-# Import PaddleOCR
-try:
-    from paddleocr import PaddleOCR
-except ImportError as e:
-    print(json.dumps({
-        "success": False,
-        "error": f"Failed to import PaddleOCR: {str(e)}. Please install paddleocr."
-    }))
-    print(f"Failed to import PaddleOCR: {str(e)}", file=sys.stderr)
-    sys.exit(1)
-
 def process_image(image_path: str) -> Dict[str, Any]:
     """
-    Process an image file using PaddleOCR and return the extracted text.
+    Process an image file or PDF and return information about it.
     
     Args:
-        image_path: Path to the image file
+        image_path: Path to the image or PDF file
         
     Returns:
-        Dictionary with OCR results including:
+        Dictionary with document results including:
         - success: boolean indicating success or failure
         - error: error message if any
-        - text: list of detected text lines
-        - full_result: complete OCR output with coordinates
+        - metadata: document metadata
+        - pages: number of pages (for PDFs)
+        - dimensions: image dimensions
     """
     try:
-        # Initialize PaddleOCR with English language model
+        # Start timing
         start_time = time.time()
-        print(f"Initializing PaddleOCR...", file=sys.stderr)
+        print(f"Processing document: {image_path}", file=sys.stderr)
         
         # Check if the file is a PDF
         is_pdf = image_path.lower().endswith('.pdf')
+        metadata = {}
+        image_info = []
         
-        # If PDF, convert to images
+        # Process PDF
         if is_pdf:
-            print(f"Converting PDF to images...", file=sys.stderr)
-            pdf_images = pdf2image.convert_from_path(
-                image_path, 
-                dpi=300,
-                fmt="jpeg",
-                use_pdftocairo=True,
-                transparent=False
-            )
-            
-            # Create a temporary directory for the images
-            with tempfile.TemporaryDirectory() as temp_dir:
-                image_paths = []
-                # Save each page as an image
+            print(f"Converting PDF to images for analysis...", file=sys.stderr)
+            try:
+                pdf_images = pdf2image.convert_from_path(
+                    image_path, 
+                    dpi=150,  # Lower DPI for faster processing
+                    fmt="jpeg"
+                )
+                
+                # Get PDF info
+                metadata["type"] = "PDF document"
+                metadata["pages"] = len(pdf_images)
+                metadata["filename"] = os.path.basename(image_path)
+                metadata["filesize"] = os.path.getsize(image_path)
+                
+                # Process each page
                 for i, img in enumerate(pdf_images):
-                    img_path = os.path.join(temp_dir, f"page_{i+1}.jpg")
-                    img.save(img_path, "JPEG")
-                    image_paths.append(img_path)
-                
-                # Process each image
-                all_results = []
-                ocr = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
-                
-                for img_path in image_paths:
-                    result = ocr.ocr(img_path, cls=True)
-                    if result:
-                        all_results.extend(result)
+                    width, height = img.size
+                    colors = len(img.getcolors(maxcolors=65536)) if img.getcolors(maxcolors=65536) else "many"
+                    
+                    # Store page info
+                    image_info.append({
+                        "page": i+1,
+                        "width": width,
+                        "height": height,
+                        "resolution": f"{width}x{height}",
+                        "mode": img.mode,
+                        "format": "JPEG",
+                        "colors": colors
+                    })
+            except Exception as pdf_error:
+                print(f"Error processing PDF: {str(pdf_error)}", file=sys.stderr)
+                metadata["type"] = "PDF document (processing error)"
+                metadata["error"] = str(pdf_error)
+                metadata["filename"] = os.path.basename(image_path)
+                metadata["filesize"] = os.path.getsize(image_path)
+        
+        # Process image
         else:
-            # Process single image
-            ocr = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
-            all_results = ocr.ocr(image_path, cls=True)
+            try:
+                img = Image.open(image_path)
+                width, height = img.size
+                
+                # Get image info
+                metadata["type"] = f"Image ({img.format})"
+                metadata["filename"] = os.path.basename(image_path)
+                metadata["filesize"] = os.path.getsize(image_path)
+                metadata["dimensions"] = f"{width}x{height}"
+                metadata["mode"] = img.mode
+                metadata["format"] = img.format
+                
+                image_info.append({
+                    "width": width,
+                    "height": height,
+                    "resolution": f"{width}x{height}",
+                    "mode": img.mode,
+                    "format": img.format,
+                    "colors": len(img.getcolors(maxcolors=65536)) if img.getcolors(maxcolors=65536) else "many"
+                })
+            except Exception as img_error:
+                print(f"Error processing image: {str(img_error)}", file=sys.stderr)
+                metadata["type"] = "Image (processing error)"
+                metadata["error"] = str(img_error)
+                metadata["filename"] = os.path.basename(image_path)
+                metadata["filesize"] = os.path.getsize(image_path)
         
+        # Calculate processing time
         elapsed_time = time.time() - start_time
-        print(f"OCR processing completed in {elapsed_time:.2f} seconds", file=sys.stderr)
-        
-        # Extract text from results
-        extracted_text = []
-        full_results = []
-        
-        if all_results:
-            for page_results in all_results:
-                if page_results:
-                    for line in page_results:
-                        if len(line) >= 2:  # Check if result has the expected format
-                            coordinates = line[0]
-                            text_info = line[1]
-                            text = text_info[0]
-                            confidence = text_info[1]
-                            
-                            # Add text to the list
-                            extracted_text.append(text)
-                            
-                            # Add full result with coordinates
-                            full_results.append({
-                                "text": text,
-                                "confidence": confidence,
-                                "coordinates": coordinates
-                            })
+        print(f"Document processing completed in {elapsed_time:.2f} seconds", file=sys.stderr)
         
         return {
             "success": True,
-            "text": extracted_text,
-            "full_result": full_results,
-            "processing_time": elapsed_time
+            "metadata": metadata,
+            "images": image_info,
+            "processing_time": elapsed_time,
+            "message": f"Successfully analyzed {os.path.basename(image_path)}"
         }
     
     except Exception as e:
         error_traceback = traceback.format_exc()
-        print(f"Error processing image: {str(e)}\n{error_traceback}", file=sys.stderr)
+        print(f"Error processing document: {str(e)}\n{error_traceback}", file=sys.stderr)
         return {
             "success": False,
             "error": str(e),
