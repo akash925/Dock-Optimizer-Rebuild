@@ -56,6 +56,35 @@ const checkoutPhotoUpload = multer({
     cb(null, true);
   }
 });
+
+// Configure multer storage for OCR document uploads
+const ocrDocStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, ocrDocsDir);
+  },
+  filename: function (req, file, cb) {
+    // Generate a unique filename with timestamp and original extension
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `ocr-doc-${uniqueSuffix}${ext}`);
+  }
+});
+
+// Setup multer for OCR document uploads
+const ocrDocUpload = multer({
+  storage: ocrDocStorage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    // Accept images and PDFs
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (!validTypes.includes(file.mimetype)) {
+      return cb(new Error('Only JPG, PNG images and PDF files are allowed!'));
+    }
+    cb(null, true);
+  }
+});
 import { adminRoutes } from "./modules/admin/routes";
 import { pool, db } from "./db";
 import { WebSocketServer, WebSocket } from "ws";
@@ -75,6 +104,12 @@ import analyticsRoutes from "./modules/analytics/routes";
 
 // Import QR code endpoints
 import { registerQrCodeRoutes } from "./endpoints/qr-codes";
+
+// Import OCR controller
+import { handleProcessDocument } from "./src/controllers/ocr-controller";
+
+// Import authentication middleware
+import { isAuthenticated } from "./middleware/auth-middleware";
 
 /**
  * Helper function to check tenant isolation security for facility-related resources.
@@ -228,6 +263,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('QR code routes registered');
   } catch (error) {
     console.error('Error registering QR code routes:', error);
+  }
+  
+  // Register PaddleOCR document processing route
+  try {
+    app.post('/api/ocr/process-document', isAuthenticated, ocrDocUpload.single('document'), handleProcessDocument);
+    console.log('PaddleOCR document processing route registered');
+  } catch (error) {
+    console.error('Error registering PaddleOCR document processing route:', error);
   }
   
   // Register enhanced availability endpoint (v2)

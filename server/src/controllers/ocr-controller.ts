@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { spawn } from 'child_process';
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
 
 /**
  * Handle OCR document processing request
@@ -10,92 +10,93 @@ import path from 'path';
  */
 export async function handleProcessDocument(req: Request, res: Response) {
   try {
-    // Check if file was uploaded
+    // Check if file exists in the request
     if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'No document file uploaded' 
+      return res.status(400).json({
+        success: false,
+        message: 'No document file uploaded',
       });
     }
 
-    const filePath = req.file.path;
-    console.log(`[OCR Controller] Processing document: ${filePath}`);
+    console.log(`[OCR] Processing document: ${req.file.originalname}`);
+    console.log(`[OCR] File saved as: ${req.file.path}`);
 
-    // Spawn Python process to run OCR
+    // Get the user information for logging
+    const userId = req.user?.id || 'anonymous';
+    const tenantId = req.user?.tenantId || 'unknown';
+    console.log(`[OCR] Request from user ID: ${userId}, tenant ID: ${tenantId}`);
+
+    // Spawn Python process to handle OCR
     const pythonProcess = spawn('python3', [
-      path.join(process.cwd(), 'server/src/services/ocr_processor.py'),
-      filePath
+      path.join(process.cwd(), 'server', 'src', 'services', 'ocr_processor.py'),
+      req.file.path,
     ]);
 
-    let stdoutData = '';
-    let stderrData = '';
+    let dataString = '';
+    let errorString = '';
 
-    // Collect stdout data
+    // Collect data from the Python process
     pythonProcess.stdout.on('data', (data) => {
-      stdoutData += data.toString();
+      dataString += data.toString();
     });
 
-    // Collect stderr data
+    // Collect errors from the Python process
     pythonProcess.stderr.on('data', (data) => {
-      stderrData += data.toString();
-      console.error(`[OCR Controller] Python stderr: ${data}`);
+      errorString += data.toString();
+      console.error(`[OCR] Python error: ${data.toString()}`);
     });
 
-    // Handle process completion
-    pythonProcess.on('close', (code) => {
-      console.log(`[OCR Controller] Python process exited with code: ${code}`);
+    // Wait for the Python process to exit
+    const exitCode = await new Promise((resolve) => {
+      pythonProcess.on('close', resolve);
+    });
+
+    // If exit code is non-zero, return error
+    if (exitCode !== 0) {
+      console.error(`[OCR] Process exited with code ${exitCode}`);
+      console.error(`[OCR] Error: ${errorString}`);
       
-      // Clean up the temporary file
-      cleanupFile(filePath);
-
-      if (code !== 0) {
-        console.error(`[OCR Controller] OCR process failed with code ${code}`);
-        console.error(`[OCR Controller] Error output: ${stderrData}`);
-        return res.status(500).json({ 
-          success: false, 
-          error: 'OCR processing failed', 
-          details: stderrData 
-        });
-      }
-
-      // If we have stdout data, parse it as JSON
-      if (stdoutData) {
-        try {
-          const ocrResult = JSON.parse(stdoutData);
-          return res.json(ocrResult);
-        } catch (parseError) {
-          console.error('[OCR Controller] Failed to parse OCR result JSON:', parseError);
-          return res.status(500).json({ 
-            success: false, 
-            error: 'Invalid OCR result format', 
-            rawOutput: stdoutData 
-          });
-        }
-      } else {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'No OCR result data received' 
-        });
-      }
-    });
-
-    // Handle process errors
-    pythonProcess.on('error', (error) => {
-      console.error('[OCR Controller] Failed to start OCR process:', error);
-      cleanupFile(filePath);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to start OCR process', 
-        details: error.message 
+      return res.status(500).json({
+        success: false,
+        message: 'OCR processing failed',
+        error: errorString || `Process exited with code ${exitCode}`,
       });
-    });
+    }
 
+    try {
+      // Parse the JSON output from the Python script
+      const result = JSON.parse(dataString);
+      
+      // Log success
+      console.log(`[OCR] Successfully processed document`);
+      console.log(`[OCR] Extracted ${result.text?.length || 0} text elements`);
+      
+      // Clean up the uploaded file
+      cleanupFile(req.file.path);
+      
+      // Send the response
+      return res.status(200).json({
+        success: true,
+        message: 'Document processed successfully',
+        result,
+      });
+    } catch (parseError) {
+      console.error(`[OCR] Error parsing OCR output: ${parseError}`);
+      console.error(`[OCR] Raw output: ${dataString}`);
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Error parsing OCR output',
+        error: String(parseError),
+      });
+    }
   } catch (error) {
-    console.error('[OCR Controller] Unexpected error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Unexpected error during OCR processing',
-      details: error instanceof Error ? error.message : String(error)
+    console.error(`[OCR] Unexpected error: ${error}`);
+    
+    return res.status(500).json({
+      success: false,
+      message: 'An unexpected error occurred',
+      error: error instanceof Error ? error.message : String(error),
     });
   }
 }
@@ -104,11 +105,12 @@ export async function handleProcessDocument(req: Request, res: Response) {
  * Clean up an uploaded file
  */
 function cleanupFile(filePath: string): void {
-  fs.unlink(filePath, (err) => {
-    if (err) {
-      console.error(`[OCR Controller] Failed to delete temporary file ${filePath}:`, err);
-    } else {
-      console.log(`[OCR Controller] Temporary file deleted: ${filePath}`);
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`[OCR] Cleaned up temporary file: ${filePath}`);
     }
-  });
+  } catch (error) {
+    console.error(`[OCR] Error cleaning up file ${filePath}: ${error}`);
+  }
 }
