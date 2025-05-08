@@ -108,3 +108,6 @@ testOcrProcessing()
     console.error('Error during OCR test:', error);
     process.exit(1);
   });
+
+// Export functions for importing in other modules if needed
+export { testOcrProcessing };
