@@ -168,13 +168,18 @@ describe("calculateAvailabilitySlots", () => {
       const sundayDate = "2025-05-11";
       
       // Act
+      const options: AvailabilityOptions = {
+        testAppointments: []
+      };
+      
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
         sundayDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
@@ -190,13 +195,18 @@ describe("calculateAvailabilitySlots", () => {
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
       // Act
+      const options: AvailabilityOptions = {
+        testAppointments: []
+      };
+      
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
@@ -224,13 +234,18 @@ describe("calculateAvailabilitySlots", () => {
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
       // Act
+      const options: AvailabilityOptions = {
+        testAppointments: []
+      };
+      
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
@@ -337,13 +352,18 @@ describe("calculateAvailabilitySlots", () => {
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
       // Act
+      const options: AvailabilityOptions = {
+        testAppointments: []
+      };
+      
       const slots = await calculateAvailabilitySlots(
         mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
