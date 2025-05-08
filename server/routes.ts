@@ -24,6 +24,12 @@ if (!fs.existsSync(checkoutPhotosDir)) {
   fs.mkdirSync(checkoutPhotosDir, { recursive: true });
 }
 
+// Setup for OCR documents directory
+const ocrDocsDir = path.join(uploadsDir, 'ocr-docs');
+if (!fs.existsSync(ocrDocsDir)) {
+  fs.mkdirSync(ocrDocsDir, { recursive: true });
+}
+
 // Configure multer storage for checkout photos
 const checkoutPhotoStorage = multer.diskStorage({
   destination: function (req, file, cb) {
