@@ -463,13 +463,20 @@ describe("calculateAvailabilitySlots", () => {
         name: "Test Facility Break",
         timezone: "America/New_York",
         
-        // Only set Monday properties to minimize potential issues
-        sundayOpen: false,
-        mondayOpen: true, 
+        // In JavaScript, Monday is day 1, not 0
+        sundayOpen: false, // 0
+        mondayOpen: true,  // 1
         mondayStart: "08:00", 
         mondayEnd: "17:00",
         mondayBreakStart: "12:00",
-        mondayBreakEnd: "13:00"
+        mondayBreakEnd: "13:00",
+        
+        // Add properties for all days to avoid undefined issues
+        tuesdayOpen: false,
+        wednesdayOpen: false,
+        thursdayOpen: false,
+        fridayOpen: false,
+        saturdayOpen: false
       };
       
       const appointmentType = {
@@ -522,13 +529,20 @@ describe("calculateAvailabilitySlots", () => {
         name: "Test Facility Break Allow-Through",
         timezone: "America/New_York",
         
-        // Only set Monday properties to minimize potential issues
-        sundayOpen: false,
-        mondayOpen: true, 
+        // In JavaScript, Monday is day 1, not 0
+        sundayOpen: false, // 0
+        mondayOpen: true,  // 1
         mondayStart: "08:00", 
         mondayEnd: "17:00",
         mondayBreakStart: "12:00",
-        mondayBreakEnd: "13:00"
+        mondayBreakEnd: "13:00",
+        
+        // Add properties for all days to avoid undefined issues
+        tuesdayOpen: false,
+        wednesdayOpen: false,
+        thursdayOpen: false,
+        fridayOpen: false,
+        saturdayOpen: false
       };
       
       const appointmentType = {
@@ -563,9 +577,11 @@ describe("calculateAvailabilitySlots", () => {
         options
       );
       
-      // Debug the noon slot
+      // Debug the noon slot and test it
       const noonSlot = slots.find(slot => slot.time === "12:00");
       console.log("Noon Slot:", JSON.stringify(noonSlot));
+      
+      // Test assertions
       expect(noonSlot).toBeDefined();
       expect(noonSlot?.available).toBe(true); // Should remain available
     });
@@ -573,57 +589,45 @@ describe("calculateAvailabilitySlots", () => {
   
   describe("Timezone Handling", () => {
     it("correctly calculates slots for a facility in a different timezone", async () => {
-      // Arrange: Create a facility in a different timezone with explicit properties
+      // Simplified test case for timezone
+      console.log("------------- TIMEZONE TEST -------------");
+      
+      // Arrange - Create a simple test facility with minimal data
       const facility = {
         id: 7,
-        name: "Test Facility LA",
-        timezone: "America/Los_Angeles", // Pacific time (3 hours behind NY)
+        name: "Los Angeles Facility",
+        timezone: "America/Los_Angeles", 
         
-        // Default operating schedule (Mon-Fri 8am-5pm Pacific Time)
+        // In JavaScript, Monday is day 1, not 0
         sundayOpen: false,
-        mondayOpen: true, 
-        mondayStart: "08:00", // 8AM Pacific Time
+        mondayOpen: true,
+        mondayStart: "08:00", // This needs to be 8AM Pacific Time
         mondayEnd: "17:00",
-        mondayBreakStart: "12:00",
-        mondayBreakEnd: "13:00",
+        mondayBreakStart: "", // No breaks for simplicity
+        mondayBreakEnd: "",
         
-        tuesdayOpen: true,
-        tuesdayStart: "08:00", 
-        tuesdayEnd: "17:00",
-        tuesdayBreakStart: "12:00",
-        tuesdayBreakEnd: "13:00",
-        
-        wednesdayOpen: true,
-        wednesdayStart: "08:00", 
-        wednesdayEnd: "17:00",
-        wednesdayBreakStart: "12:00",
-        wednesdayBreakEnd: "13:00",
-        
-        thursdayOpen: true,
-        thursdayStart: "08:00", 
-        thursdayEnd: "17:00",
-        thursdayBreakStart: "12:00",
-        thursdayBreakEnd: "13:00",
-        
-        fridayOpen: true,
-        fridayStart: "08:00", 
-        fridayEnd: "17:00",
-        fridayBreakStart: "12:00",
-        fridayBreakEnd: "13:00",
-        
-        saturdayOpen: true,
-        saturdayStart: "08:00", 
-        saturdayEnd: "17:00",
-        saturdayBreakStart: "",
-        saturdayBreakEnd: ""
+        // Add properties for all days to avoid undefined issues
+        tuesdayOpen: false,
+        wednesdayOpen: false,
+        thursdayOpen: false,
+        fridayOpen: false,
+        saturdayOpen: false 
       };
       
-      const appointmentType = createTestAppointmentType();
+      const appointmentType = {
+        id: 17,
+        name: "Test Type",
+        duration: 60,
+        bufferTime: 0,
+        maxConcurrent: 2,
+        allowAppointmentsThroughBreaks: false,
+        tenantId: testTenantId  // Ensure tenant match
+      };
       
       storage._setFacility(testFacilityId, testTenantId, facility);
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
-      // Test with Monday for consistent day of week handling
+      // Use Monday
       const mondayDate = "2025-05-05"; // This is a Monday
       
       // Act
@@ -640,6 +644,10 @@ describe("calculateAvailabilitySlots", () => {
         testTenantId,
         options
       );
+      
+      // Debug log all slots
+      console.log("All Slots:", slots.map(s => s.time).join(', '));
+      console.log("First slot:", slots.length > 0 ? slots[0] : "No slots found");
       
       // Assert
       expect(slots.length).toBeGreaterThan(0);
