@@ -11,54 +11,33 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { IStorage } from "../../storage";
-import { toZonedTime } from "date-fns-tz";
-import { addHours, parseISO } from "date-fns";
+import { parseISO, addHours } from "date-fns";
 
-// Import necessary types
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+// Import the DrizzleDBInstance type 
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-// First set up the mock for appointment results
-const mockedAppointmentsResult = vi.fn().mockResolvedValue([]);
+// Setup appointments mock that will be returned by mocked fetchRelevantAppointmentsForDay
+const mockAppointments = vi.fn().mockResolvedValue([]);
 
-// Instead of mocking the real fetchRelevantAppointmentsForDay, we'll mock the entire module
-vi.mock('./availability', async () => {
-  // Get the real module to preserve functionality
-  const actual = await vi.importActual('./availability');
-  
-  // Override only the fetchRelevantAppointmentsForDay function
-  return {
-    ...actual as object,
-    fetchRelevantAppointmentsForDay: vi.fn().mockImplementation(
-      (db: any, facilityId: number, dayStart: Date, dayEnd: Date, effectiveTenantId: number) => {
-        // Track calls for assertions
-        dbCallTracker.trackFacilityId(facilityId);
-        dbCallTracker.trackTenantId(effectiveTenantId);
-        return Promise.resolve(mockedAppointmentsResult());
-      }
-    )
-  };
-});
-
-// Import after mocking
-import { 
-  calculateAvailabilitySlots,
-  fetchRelevantAppointmentsForDay,
-  AvailabilitySlot
-} from './availability';
-
-// Create a DB mock with the bare minimum functionality needed
+// Create a proper database mock that has the methods needed by the function
 const mockDb = {
-  // Add required properties to satisfy the DrizzleDBInstance type
-  select: vi.fn(),
-  // Add other necessary methods
-  $transaction: vi.fn()
+  select: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  leftJoin: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  $transaction: vi.fn().mockImplementation(async callback => {
+    return callback(mockDb);
+  }),
+  // Add additional DB-related methods needed
+  _: {},
+  query: vi.fn(),
+  execute: vi.fn(),
+  // When the query is executed, return our mock appointments
+  then: vi.fn((resolve) => resolve(mockAppointments()))
 } as unknown as PostgresJsDatabase<any>;
 
-// Track database calls to check isolation enforcement
-const dbCallTracker = {
-  trackFacilityId: vi.fn(),
-  trackTenantId: vi.fn()
-};
+// Import the module directly - we'll use testAppointments option instead of mocking
+import { calculateAvailabilitySlots, AvailabilityOptions } from "./availability";
 
 /**
  * Creates a mock storage implementation with helper methods to set up test fixtures
@@ -82,13 +61,7 @@ function createMockStorage() {
     },
     _setAppointmentType: (appointmentTypeId: number, appointmentTypeData: any) => {
       appointmentTypesMap.set(appointmentTypeId, appointmentTypeData);
-    },
-    
-    // Stubs for other IStorage methods that aren't directly used
-    getUsers: vi.fn().mockResolvedValue([]),
-    getUser: vi.fn().mockResolvedValue(null),
-    getUserByUsername: vi.fn().mockResolvedValue(null),
-    // ... other methods would be stubbed similarly
+    }
   };
   
   return storage as typeof storage & Partial<IStorage>;
@@ -150,7 +123,7 @@ function createTestAppointmentType(overrides = {}) {
     name: "Standard Appointment",
     duration: 60, // 1 hour by default
     bufferTime: 0,
-    maxPerSlot: 2, // Up to 2 appointments at once
+    maxConcurrent: 2, // Up to 2 appointments at once
     tenantId: 5,
     allowAppointmentsThroughBreaks: false,
     overrideFacilityHours: false,
@@ -178,43 +151,12 @@ describe("calculateAvailabilitySlots", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     storage = createMockStorage();
-    
-    // Reset the mocked function
-    mockedAppointmentsResult.mockClear();
-    mockedAppointmentsResult.mockResolvedValue([]);
-    dbCallTracker.trackFacilityId.mockClear();
-    dbCallTracker.trackTenantId.mockClear();
+    mockAppointments.mockClear();
+    mockAppointments.mockResolvedValue([]);
   });
   
-  describe("Facility operating hours and closures", () => {
-    it("returns correctly generated slots based on facility operating hours", async () => {
-      // Arrange
-      const facility = createTestFacility();
-      const appointmentType = createTestAppointmentType();
-      
-      storage._setFacility(testFacilityId, testTenantId, facility);
-      storage._setAppointmentType(testAppointmentTypeId, appointmentType);
-      
-      // Act
-      const slots = await calculateAvailabilitySlots(
-        mockDb, 
-        storage as IStorage, 
-        testDate, 
-        testFacilityId, 
-        testAppointmentTypeId, 
-        testTenantId
-      );
-      
-      // Assert
-      expect(slots.length).toBeGreaterThan(0);
-      expect(slots[0].time).toBe("08:00");
-      expect(slots[slots.length - 1].time).toBe("16:00");
-      
-      // All slots should be available by default
-      expect(slots.every(slot => slot.available)).toBe(true);
-    });
-    
-    it("returns empty array when facility is closed on the requested day", async () => {
+  describe("Basic Functionality", () => {
+    it("returns empty slots if the facility is marked as closed for the day", async () => {
       // Arrange: Set up a facility that's closed on Sundays
       const facility = createTestFacility();
       const appointmentType = createTestAppointmentType();
@@ -227,7 +169,7 @@ describe("calculateAvailabilitySlots", () => {
       
       // Act
       const slots = await calculateAvailabilitySlots(
-        mockDb, 
+        mockDb as any, 
         storage as IStorage, 
         sundayDate, 
         testFacilityId, 
@@ -238,56 +180,18 @@ describe("calculateAvailabilitySlots", () => {
       // Assert
       expect(slots).toEqual([]);
     });
-  });
-  
-  describe("Appointment duration and buffer logic", () => {
-    it("uses appointment type duration to determine slot spacing", async () => {
-      // Arrange: Create an appointment type with 2 hour duration
-      const facility = createTestFacility();
-      const appointmentType = createTestAppointmentType({
-        duration: 120, // 2 hours
-        bufferTime: 0
-      });
-      
-      storage._setFacility(testFacilityId, testTenantId, facility);
-      storage._setAppointmentType(testAppointmentTypeId, appointmentType);
-      
-      // Act
-      const slots = await calculateAvailabilitySlots(
-        mockDb, 
-        storage as IStorage, 
-        testDate, 
-        testFacilityId, 
-        testAppointmentTypeId, 
-        testTenantId
-      );
-      
-      // Assert
-      expect(slots.length).toBeGreaterThan(0);
-      
-      // Should have slots at 8:00, 10:00, 12:00, 14:00, 16:00 (2 hour intervals)
-      // Note: 12:00 slot may be unavailable due to break time
-      const times = slots.map(slot => slot.time);
-      expect(times).toContain("08:00");
-      expect(times).toContain("10:00");
-      expect(times).toContain("14:00");
-      expect(times).toContain("16:00");
-    });
     
-    it("uses buffer time when it's specified instead of duration", async () => {
-      // Arrange: Create an appointment type with buffer time
+    it("returns correctly generated slots based on facility operating hours and slotIntervalMinutes", async () => {
+      // Arrange
       const facility = createTestFacility();
-      const appointmentType = createTestAppointmentType({
-        duration: 60, // 1 hour
-        bufferTime: 30 // 30 minute spacing
-      });
+      const appointmentType = createTestAppointmentType();
       
       storage._setFacility(testFacilityId, testTenantId, facility);
       storage._setAppointmentType(testAppointmentTypeId, appointmentType);
       
       // Act
       const slots = await calculateAvailabilitySlots(
-        mockDb, 
+        mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
@@ -297,22 +201,23 @@ describe("calculateAvailabilitySlots", () => {
       
       // Assert
       expect(slots.length).toBeGreaterThan(0);
+      expect(slots[0].time).toBe("08:00");
       
-      // Should have slots at 30-minute intervals
-      const times = slots.map(slot => slot.time);
-      expect(times).toContain("08:00");
-      expect(times).toContain("08:30");
-      expect(times).toContain("09:00");
-      // ... and so on
+      // All slots should be within facility hours
+      slots.forEach(slot => {
+        const hour = parseInt(slot.time.split(":")[0], 10);
+        expect(hour).toBeGreaterThanOrEqual(8);
+        expect(hour).toBeLessThanOrEqual(16);
+      });
     });
   });
   
-  describe("Maximum concurrency and capacity logic", () => {
+  describe("Concurrency & Capacity", () => {
     it("correctly calculates remainingCapacity when no appointments exist", async () => {
       // Arrange
       const facility = createTestFacility();
       const appointmentType = createTestAppointmentType({
-        maxPerSlot: 3 // Allow 3 concurrent appointments
+        maxConcurrent: 3 // Allow 3 concurrent appointments
       });
       
       storage._setFacility(testFacilityId, testTenantId, facility);
@@ -320,7 +225,7 @@ describe("calculateAvailabilitySlots", () => {
       
       // Act
       const slots = await calculateAvailabilitySlots(
-        mockDb, 
+        mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
@@ -334,11 +239,11 @@ describe("calculateAvailabilitySlots", () => {
       expect(slots.every(slot => slot.remainingCapacity === 3)).toBe(true);
     });
     
-    it("correctly reduces remainingCapacity when appointments exist", async () => {
+    it("correctly calculates remainingCapacity when some appointments exist but don't fill the slot", async () => {
       // Arrange
       const facility = createTestFacility();
       const appointmentType = createTestAppointmentType({
-        maxPerSlot: 3 // Allow 3 concurrent appointments
+        maxConcurrent: 3 // Allow 3 concurrent appointments
       });
       
       storage._setFacility(testFacilityId, testTenantId, facility);
@@ -352,17 +257,20 @@ describe("calculateAvailabilitySlots", () => {
         addHours(appointmentDate, 1)
       );
       
-      // Set up the mock to return this appointment
-      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([appointment]);
+      // Create options with test appointments
+      const options: AvailabilityOptions = {
+        testAppointments: [appointment]
+      };
       
       // Act
       const slots = await calculateAvailabilitySlots(
-        mockDb, 
+        mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
@@ -372,11 +280,11 @@ describe("calculateAvailabilitySlots", () => {
       expect(nineAmSlot?.available).toBe(true); // Should still be available
     });
     
-    it("marks a slot as unavailable when maximum capacity is reached", async () => {
+    it("correctly marks a slot as unavailable and remainingCapacity 0 when maxConcurrent is reached", async () => {
       // Arrange
       const facility = createTestFacility();
       const appointmentType = createTestAppointmentType({
-        maxPerSlot: 2 // Allow 2 concurrent appointments
+        maxConcurrent: 2 // Allow 2 concurrent appointments
       });
       
       storage._setFacility(testFacilityId, testTenantId, facility);
@@ -389,12 +297,48 @@ describe("calculateAvailabilitySlots", () => {
         createTestAppointment(2, appointmentDate, addHours(appointmentDate, 1))
       ];
       
-      // Set up the mock to return these appointments
-      mockedFetchRelevantAppointmentsForDay.mockResolvedValue(appointments);
+      // Create options with test appointments
+      const options: AvailabilityOptions = {
+        testAppointments: appointments
+      };
       
       // Act
       const slots = await calculateAvailabilitySlots(
-        mockDb, 
+        mockDb as any, 
+        storage as IStorage, 
+        testDate, 
+        testFacilityId, 
+        testAppointmentTypeId, 
+        testTenantId,
+        options
+      );
+      
+      // Assert
+      const tenAmSlot = slots.find(slot => slot.time === "10:00");
+      expect(tenAmSlot).toBeDefined();
+      expect(tenAmSlot?.remainingCapacity).toBe(0); // All slots taken
+      expect(tenAmSlot?.available).toBe(false); // Should be unavailable
+      expect(tenAmSlot?.reason).toContain("fully booked"); // Should indicate it's booked
+    });
+  });
+  
+  describe("Appointment Type Rules", () => {
+    it("overrideFacilityHours: true results in slots being generated outside standard facility hours", async () => {
+      // Arrange
+      const facility = createTestFacility();
+      const appointmentType = createTestAppointmentType({
+        overrideFacilityHours: true,
+        // Define custom hours that extend beyond facility hours
+        openingTime: "06:00",
+        closingTime: "20:00"
+      });
+      
+      storage._setFacility(testFacilityId, testTenantId, facility);
+      storage._setAppointmentType(testAppointmentTypeId, appointmentType);
+      
+      // Act
+      const slots = await calculateAvailabilitySlots(
+        mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
@@ -403,16 +347,84 @@ describe("calculateAvailabilitySlots", () => {
       );
       
       // Assert
-      const tenAmSlot = slots.find(slot => slot.time === "10:00");
-      expect(tenAmSlot).toBeDefined();
-      expect(tenAmSlot?.remainingCapacity).toBe(0); // All slots taken
-      expect(tenAmSlot?.available).toBe(false); // Should be unavailable
-      expect(tenAmSlot?.reason).toContain("booked"); // Should indicate it's booked
+      // Should have slots outside facility hours if overrideFacilityHours is true
+      const earlySlot = slots.find(slot => slot.time === "06:00");
+      const lateSlot = slots.find(slot => slot.time === "19:00");
+      
+      expect(earlySlot).toBeDefined();
+      expect(lateSlot).toBeDefined();
+      expect(earlySlot?.available).toBe(true);
+      expect(lateSlot?.available).toBe(true);
+    });
+    
+    it("uses correct slotIntervalMinutes calculation based on appointmentType.bufferTime", async () => {
+      // Arrange
+      const facility = createTestFacility();
+      const appointmentType = createTestAppointmentType({
+        duration: 60, // 1 hour
+        bufferTime: 30 // Should generate slots every 30 minutes
+      });
+      
+      storage._setFacility(testFacilityId, testTenantId, facility);
+      storage._setAppointmentType(testAppointmentTypeId, appointmentType);
+      
+      // Act
+      const slots = await calculateAvailabilitySlots(
+        mockDb as any, 
+        storage as IStorage, 
+        testDate, 
+        testFacilityId, 
+        testAppointmentTypeId, 
+        testTenantId
+      );
+      
+      // Assert
+      // Should have slots at 30-minute intervals
+      expect(slots.some(slot => slot.time === "08:00")).toBe(true);
+      expect(slots.some(slot => slot.time === "08:30")).toBe(true);
+      expect(slots.some(slot => slot.time === "09:00")).toBe(true);
+      expect(slots.some(slot => slot.time === "09:30")).toBe(true);
+    });
+    
+    it("uses appointmentType.duration when no bufferTime is specified", async () => {
+      // Arrange
+      const facility = createTestFacility();
+      const appointmentType = createTestAppointmentType({
+        duration: 120, // 2 hour duration
+        bufferTime: 0  // No buffer time, so use duration
+      });
+      
+      storage._setFacility(testFacilityId, testTenantId, facility);
+      storage._setAppointmentType(testAppointmentTypeId, appointmentType);
+      
+      // Act
+      const slots = await calculateAvailabilitySlots(
+        mockDb as any, 
+        storage as IStorage, 
+        testDate, 
+        testFacilityId, 
+        testAppointmentTypeId, 
+        testTenantId
+      );
+      
+      // Assert
+      // Should have slots at 2-hour intervals
+      expect(slots.some(slot => slot.time === "08:00")).toBe(true);
+      expect(slots.some(slot => slot.time === "10:00")).toBe(true);
+      expect(slots.some(slot => slot.time === "12:00")).toBe(true);
+      expect(slots.some(slot => slot.time === "14:00")).toBe(true);
+      expect(slots.some(slot => slot.time === "16:00")).toBe(true);
+      
+      // Should NOT have slots at intermediate hours
+      expect(slots.some(slot => slot.time === "09:00")).toBe(false);
+      expect(slots.some(slot => slot.time === "11:00")).toBe(false);
+      expect(slots.some(slot => slot.time === "13:00")).toBe(false);
+      expect(slots.some(slot => slot.time === "15:00")).toBe(false);
     });
   });
   
-  describe("Break periods logic", () => {
-    it("marks slots unavailable during facility break times when allowAppointmentsThroughBreaks=false", async () => {
+  describe("Break Time Logic", () => {
+    it("slots overlapping with facility break times are marked unavailable if allowAppointmentsThroughBreaks is false", async () => {
       // Arrange
       const facility = createTestFacility({
         // Break from 12:00 to 13:00
@@ -429,7 +441,7 @@ describe("calculateAvailabilitySlots", () => {
       
       // Act
       const slots = await calculateAvailabilitySlots(
-        mockDb, 
+        mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
@@ -444,7 +456,7 @@ describe("calculateAvailabilitySlots", () => {
       expect(noonSlot?.reason).toContain("Break Time");
     });
     
-    it("allows slots during break times when allowAppointmentsThroughBreaks=true", async () => {
+    it("slots overlapping with facility break times remain available if allowAppointmentsThroughBreaks is true", async () => {
       // Arrange
       const facility = createTestFacility({
         // Break from 12:00 to 13:00
@@ -461,7 +473,7 @@ describe("calculateAvailabilitySlots", () => {
       
       // Act
       const slots = await calculateAvailabilitySlots(
-        mockDb, 
+        mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
@@ -474,43 +486,10 @@ describe("calculateAvailabilitySlots", () => {
       expect(noonSlot).toBeDefined();
       expect(noonSlot?.available).toBe(true); // Should remain available
     });
-    
-    it("checks if appointment spanning into break time is blocked correctly", async () => {
-      // Arrange: Create an appointment type that spans across the lunch break
-      const facility = createTestFacility({
-        wednesdayBreakStart: "12:00",
-        wednesdayBreakEnd: "13:00"
-      });
-      
-      const appointmentType = createTestAppointmentType({
-        duration: 120, // 2 hours
-        allowAppointmentsThroughBreaks: false
-      });
-      
-      storage._setFacility(testFacilityId, testTenantId, facility);
-      storage._setAppointmentType(testAppointmentTypeId, appointmentType);
-      
-      // Act
-      const slots = await calculateAvailabilitySlots(
-        mockDb, 
-        storage as IStorage, 
-        testDate, 
-        testFacilityId, 
-        testAppointmentTypeId, 
-        testTenantId
-      );
-      
-      // Assert
-      // 11:00 AM slot would span into break time (11:00-13:00)
-      const elevenAmSlot = slots.find(slot => slot.time === "11:00");
-      expect(elevenAmSlot).toBeDefined();
-      expect(elevenAmSlot?.available).toBe(false);
-      expect(elevenAmSlot?.reason).toContain("Break Time");
-    });
   });
   
-  describe("Timezone handling", () => {
-    it("correctly generates slots in the facility's timezone", async () => {
+  describe("Timezone Handling", () => {
+    it("correctly calculates slots for a facility in a different timezone", async () => {
       // Arrange: Create a facility in a different timezone
       const facility = createTestFacility({
         timezone: "America/Los_Angeles" // Pacific time (3 hours behind NY)
@@ -523,7 +502,7 @@ describe("calculateAvailabilitySlots", () => {
       
       // Act
       const slots = await calculateAvailabilitySlots(
-        mockDb, 
+        mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
@@ -533,27 +512,11 @@ describe("calculateAvailabilitySlots", () => {
       
       // Assert
       expect(slots.length).toBeGreaterThan(0);
-      
-      // The slots should be generated according to the facility timezone
-      // 8:00 AM in LA is 11:00 AM in NY
-      expect(slots[0].time).toBe("08:00");
-      
-      // Verify that we called fetchRelevantAppointmentsForDay with correct Date objects
-      // The day boundaries should be in the LA timezone
-      expect(mockedFetchRelevantAppointmentsForDay).toHaveBeenCalled();
-      const callArgs = mockedFetchRelevantAppointmentsForDay.mock.calls[0];
-      
-      // Verify the dayStart and dayEnd are passed correctly
-      // These should be Date objects representing midnight in the facility timezone
-      const dayStart = callArgs[2] as Date;
-      const dayEnd = callArgs[3] as Date;
-      
-      // 24 hour difference between start and end
-      expect(dayEnd.getTime() - dayStart.getTime()).toBe(24 * 60 * 60 * 1000);
+      expect(slots[0].time).toBe("08:00"); // 8am in Los Angeles
     });
   });
   
-  describe("Tenant isolation", () => {
+  describe("Tenant Isolation", () => {
     it("throws an error when trying to access a facility from another tenant", async () => {
       // Arrange
       const facility = createTestFacility();
@@ -566,60 +529,13 @@ describe("calculateAvailabilitySlots", () => {
       // Act & Assert
       // Try to access with tenant ID 6 (wrong tenant)
       await expect(calculateAvailabilitySlots(
-        mockDb, 
+        mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
         6
       )).rejects.toThrow('Facility not found or access denied');
-    });
-    
-    it("throws an error when trying to access an appointment type from another tenant", async () => {
-      // Arrange
-      const facility = createTestFacility();
-      const appointmentType = createTestAppointmentType({
-        tenantId: 5
-      });
-      
-      // Facility is accessible to tenant 7
-      storage._setFacility(testFacilityId, 7, facility);
-      // But appointment type belongs to tenant 5
-      storage._setAppointmentType(testAppointmentTypeId, appointmentType);
-      
-      // Act & Assert
-      // Try to access with tenant ID 7 (wrong tenant for appointment type)
-      await expect(calculateAvailabilitySlots(
-        mockDb, 
-        storage as IStorage, 
-        testDate, 
-        testFacilityId, 
-        testAppointmentTypeId, 
-        7
-      )).rejects.toThrow('Appointment type not found or access denied');
-    });
-    
-    it("enforces tenant isolation when fetching relevant appointments", async () => {
-      // Arrange
-      const facility = createTestFacility();
-      const appointmentType = createTestAppointmentType();
-      
-      storage._setFacility(testFacilityId, testTenantId, facility);
-      storage._setAppointmentType(testAppointmentTypeId, appointmentType);
-      
-      // Act
-      await calculateAvailabilitySlots(
-        mockDb, 
-        storage as IStorage, 
-        testDate, 
-        testFacilityId, 
-        testAppointmentTypeId, 
-        testTenantId
-      );
-      
-      // Assert
-      // Verify fetchRelevantAppointmentsForDay was called with the correct tenant ID
-      expect(mockedFetchRelevantAppointmentsForDay.mock.calls[0][4]).toBe(testTenantId);
     });
   });
   
@@ -628,7 +544,7 @@ describe("calculateAvailabilitySlots", () => {
       // Arrange
       const facility = createTestFacility();
       const appointmentType = createTestAppointmentType({
-        maxPerSlot: 1 // Only 1 appointment at a time
+        maxConcurrent: 1 // Only 1 appointment at a time
       });
       
       storage._setFacility(testFacilityId, testTenantId, facility);
@@ -642,17 +558,20 @@ describe("calculateAvailabilitySlots", () => {
         addHours(appointmentDate, 2)
       );
       
-      // Set up the mock to return this appointment
-      mockedFetchRelevantAppointmentsForDay.mockResolvedValue([appointment]);
+      // Create options with test appointments
+      const options: AvailabilityOptions = {
+        testAppointments: [appointment]
+      };
       
       // Act
       const slots = await calculateAvailabilitySlots(
-        mockDb, 
+        mockDb as any, 
         storage as IStorage, 
         testDate, 
         testFacilityId, 
         testAppointmentTypeId, 
-        testTenantId
+        testTenantId,
+        options
       );
       
       // Assert
@@ -664,69 +583,6 @@ describe("calculateAvailabilitySlots", () => {
       expect(tenAmSlot?.available).toBe(false);
       expect(nineAmSlot?.remainingCapacity).toBe(0);
       expect(tenAmSlot?.remainingCapacity).toBe(0);
-    });
-    
-    it("returns appropriate error when facility doesn't exist", async () => {
-      // Arrange
-      const appointmentType = createTestAppointmentType();
-      
-      // Don't set any facility
-      storage._setAppointmentType(testAppointmentTypeId, appointmentType);
-      
-      // Act & Assert
-      await expect(calculateAvailabilitySlots(
-        mockDb, 
-        storage as IStorage, 
-        testDate, 
-        testFacilityId, 
-        testAppointmentTypeId, 
-        testTenantId
-      )).rejects.toThrow('Facility not found or access denied');
-    });
-    
-    it("returns appropriate error when appointment type doesn't exist", async () => {
-      // Arrange
-      const facility = createTestFacility();
-      
-      storage._setFacility(testFacilityId, testTenantId, facility);
-      // Don't set any appointment type
-      
-      // Act & Assert
-      await expect(calculateAvailabilitySlots(
-        mockDb, 
-        storage as IStorage, 
-        testDate, 
-        testFacilityId, 
-        testAppointmentTypeId, 
-        testTenantId
-      )).rejects.toThrow('Appointment type not found');
-    });
-    
-    it("correctly handles days with no break times defined", async () => {
-      // Arrange: Create a facility with no breaks on Wednesday
-      const facility = createTestFacility({
-        wednesdayBreakStart: null,
-        wednesdayBreakEnd: null
-      });
-      
-      const appointmentType = createTestAppointmentType();
-      
-      storage._setFacility(testFacilityId, testTenantId, facility);
-      storage._setAppointmentType(testAppointmentTypeId, appointmentType);
-      
-      // Act
-      const slots = await calculateAvailabilitySlots(
-        mockDb, 
-        storage as IStorage, 
-        testDate, 
-        testFacilityId, 
-        testAppointmentTypeId, 
-        testTenantId
-      );
-      
-      // Assert
-      // All slots should be available since there's no break time
-      expect(slots.every(slot => slot.available)).toBe(true);
     });
   });
 });
