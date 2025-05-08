@@ -1,428 +1,275 @@
-import { and, eq, gt, lt, ne, notInArray, or } from 'drizzle-orm';
+import { and, eq, gt, gte, lt, lte, ne, notInArray, or } from 'drizzle-orm';
 import { toZonedTime, format as tzFormat } from 'date-fns-tz';
-import { getDay, parseISO, addDays } from 'date-fns';
-import { db } from '../../db';
+import { getDay, parseISO, addDays, format, addMinutes, isEqual } from 'date-fns';
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { IStorage } from '../../storage';
+import type { IStorage } from '../../storage';
 import { schedules, docks, appointmentTypes, organizationFacilities } from '@shared/schema';
 
-/**
- * Interface for availability time slots returned to clients
- */
+// Use your actual Drizzle instance type if available
+type DrizzleDBInstance = PostgresJsDatabase<typeof import("@shared/schema")>;
+
 export interface AvailabilitySlot {
   time: string;
   available: boolean;
   remainingCapacity: number;
-  remaining: number; // For compatibility with older code
+  remaining: number;
   reason: string;
-  isBufferTime?: boolean;
 }
 
-/**
- * Testing options for calculateAvailabilitySlots
- */
 export interface AvailabilityOptions {
-  // Used for testing - bypasses database query and uses these appointments instead
   testAppointments?: { id: number; startTime: Date; endTime: Date; }[];
 }
 
-/**
- * Fetches appointments for a specific facility and date range with proper tenant isolation
- * @param db The Drizzle database instance
- * @param facilityId The facility ID to fetch appointments for
- * @param dayStart The start date and time for the appointment period
- * @param dayEnd The end date and time for the appointment period
- * @param effectiveTenantId The tenant ID for isolation
- * @returns Promise resolving to an array of appointments with id, startTime, and endTime
- */
 export async function fetchRelevantAppointmentsForDay(
-  db: any, 
-  facilityId: number, 
-  dayStart: Date, 
-  dayEnd: Date, 
+  db: DrizzleDBInstance,
+  facilityId: number,
+  dayStart: Date, // Start of day in facility TZ (represented as UTC Date obj)
+  dayEnd: Date,   // Start of NEXT day in facility TZ (represented as UTC Date obj)
   effectiveTenantId: number
 ): Promise<{ id: number; startTime: Date; endTime: Date; }[]> {
-  // Start and end of day are now passed in as parameters
 
-  // Build and execute query with proper joins and filters
-  return await db
-    .select({
-      id: schedules.id,
-      startTime: schedules.startTime,
-      endTime: schedules.endTime,
-    })
-    .from(schedules)
-    .leftJoin(docks, eq(schedules.dockId, docks.id))
-    .leftJoin(appointmentTypes, eq(schedules.appointmentTypeId, appointmentTypes.id))
-    .leftJoin(organizationFacilities, eq(docks.facilityId, organizationFacilities.facilityId))
-    .where(
-      and(
-        // Filter by facility
-        eq(docks.facilityId, facilityId),
-        
-        // Filter schedules that overlap with the day
-        lt(schedules.startTime, dayEnd),
-        gt(schedules.endTime, dayStart),
-        
-        // Exclude cancelled and rejected appointments
-        notInArray(schedules.status, ['cancelled', 'rejected']),
-        
-        // Apply tenant isolation - appointment must belong to this tenant via either:
-        or(
-          // The facility belongs to this tenant
-          eq(organizationFacilities.organizationId, effectiveTenantId),
-          
-          // The appointment type belongs to this tenant
-          eq(appointmentTypes.tenantId, effectiveTenantId)
+  console.log(`[fetchRelevantAppointmentsForDay] Fetching for facility ${facilityId}, tenant ${effectiveTenantId}, between ${dayStart.toISOString()} and ${dayEnd.toISOString()}`);
+  try {
+    // Ensure db object has the expected methods before chaining
+    if (!db || typeof db.select !== 'function') {
+        console.error('[fetchRelevantAppointmentsForDay] Invalid or incomplete DB object passed:', db);
+        // Throw error so calculateAvailabilitySlots can handle it
+        throw new Error('Invalid database connection object provided.');
+    }
+
+    const query = db
+      .select({
+        id: schedules.id,
+        startTime: schedules.startTime,
+        endTime: schedules.endTime,
+      })
+      .from(schedules)
+      .leftJoin(docks, eq(schedules.dockId, docks.id))
+      .leftJoin(appointmentTypes, eq(schedules.appointmentTypeId, appointmentTypes.id))
+      .leftJoin(organizationFacilities, eq(docks.facilityId, organizationFacilities.facilityId))
+      .where(
+        and(
+          ne(schedules.dockId, null),
+          eq(docks.facilityId, facilityId),
+          // Corrected Overlap Check: (StartA < EndB) and (EndA > StartB)
+          lt(schedules.startTime, dayEnd),  // Appointment starts BEFORE the day ends
+          gt(schedules.endTime, dayStart), // Appointment ends AFTER day starts
+          notInArray(schedules.status, ['cancelled', 'rejected']), // Exclude inactive
+          // Tenant Isolation
+          or(
+            eq(organizationFacilities.organizationId, effectiveTenantId),
+            eq(appointmentTypes.tenantId, effectiveTenantId)
+          )
         )
-      )
-    );
+      );
+
+    // Execute the query (assuming the chain is awaitable or has .execute())
+     const relevantSchedules = await query; // Or await query.execute(); depending on Drizzle version/driver
+
+    console.log(`[fetchRelevantAppointmentsForDay] Found ${relevantSchedules.length} relevant appointments.`);
+    // Ensure the return is always an array, even if the query somehow returns non-array
+    return Array.isArray(relevantSchedules) ? relevantSchedules : [];
+  } catch (error) {
+    console.error(`[fetchRelevantAppointmentsForDay] Error fetching appointments:`, error);
+    // Re-throw a specific error for the caller to handle
+    throw new Error("Failed to fetch existing appointments.");
+  }
 }
 
-/**
- * Calculates available time slots for a specific date, facility, and appointment type
- * with proper timezone handling and tenant isolation
- */
+
 export async function calculateAvailabilitySlots(
-  db: any,
+  db: DrizzleDBInstance,
   storage: IStorage,
-  date: string,
+  date: string, // YYYY-MM-DD
   facilityId: number,
   appointmentTypeId: number,
   effectiveTenantId: number,
-  options?: AvailabilityOptions
+  options?: AvailabilityOptions // Optional parameter for testing
 ): Promise<AvailabilitySlot[]> {
+
   console.log(`[AvailabilityService] Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${effectiveTenantId}`);
-  
-  // 1. Fetch the facility with tenant isolation
-  let facility = await storage.getFacility(facilityId, effectiveTenantId);
-  if (!facility) {
-    throw new Error('Facility not found or access denied.');
-  }
-  
+
+  const facility = await storage.getFacility(facilityId, effectiveTenantId);
+  // ** FIXED: Throw immediately if facility check fails **
+  if (!facility) { throw new Error('Facility not found or access denied.'); }
   console.log(`[AvailabilityService] Facility found: ${facility.name}, timezone: ${facility.timezone}`);
 
-  // 2. Fetch the appointment type with tenant isolation
-  // Check if the storage implementation has a getAppointmentType method
-  let appointmentType;
-  
-  try {
-    // Always use the regular method which should exist on all storage implementations
-    appointmentType = await storage.getAppointmentType(appointmentTypeId);
-    
-    // Manual tenant check if needed
-    if (appointmentType && appointmentType.tenantId && appointmentType.tenantId !== effectiveTenantId) {
-      console.log(`[AvailabilityService] Tenant mismatch: appointment type ${appointmentTypeId} belongs to tenant ${appointmentType.tenantId}, but request is for tenant ${effectiveTenantId}`);
-      appointmentType = null;
-    }
-  } catch (error) {
-    console.error('[AvailabilityService] Error fetching appointment type:', error);
-    appointmentType = null;
-  }
-  
-  if (!appointmentType) {
-    throw new Error('Appointment type not found or access denied.');
+  const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+  // ** FIXED: Throw immediately if type check fails **
+  if (!appointmentType) { throw new Error('Appointment type not found or access denied.'); }
+  // ** FIXED: Explicit tenant check after confirming type exists **
+  if (appointmentType.tenantId && appointmentType.tenantId !== effectiveTenantId) {
+       console.log(`[AvailabilityService] Tenant mismatch: appointment type ${appointmentTypeId} belongs to tenant ${appointmentType.tenantId}, but request is for tenant ${effectiveTenantId}`);
+       throw new Error('Appointment type not found or access denied.');
   }
 
-  // 3. Determine operating rules
-  // Use facility timezone for all date/time calculations or fall back to Eastern Time
   const facilityTimezone = facility.timezone || 'America/New_York';
-  
-  // Convert date to the facility's timezone, then determine day of week (0=Sunday, 6=Saturday)
-  // This ensures we're calculating the correct day in the facility's local time
-  const dateObj = parseISO(`${date}T00:00:00Z`);
-  const zonedDate = toZonedTime(dateObj, facilityTimezone);
-  const dayOfWeek = getDay(zonedDate);
-  
+  const zonedDate = toZonedTime(parseISO(`${date}T00:00:00`), facilityTimezone);
+  const dayOfWeek = getDay(zonedDate); // 0=Sun
   console.log(`[AvailabilityService] Date ${date} in ${facilityTimezone} is day of week: ${dayOfWeek}`);
-  
-  // Using a direct type assertion to handle both snake_case and camelCase for facility and appointment type
-  const facilityObj: any = facility;
-  const appointmentTypeObj: any = appointmentType;
-  
-  // General helper function to get field value in either camelCase or snake_case format
-  const getObjectField = (obj: any, camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
-    // If snake_case version exists, use it, otherwise use camelCase version, or fallback to default
-    return obj[snakeCase] !== undefined 
-      ? obj[snakeCase] 
-      : (obj[camelCase] !== undefined ? obj[camelCase] : defaultValue);
-  };
-  
-  // Specific helper functions for facility and appointment type fields
-  const getField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
-    return getObjectField(facilityObj, camelCase, snakeCase, defaultValue);
-  };
-  
-  const getAppointmentTypeField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
-    return getObjectField(appointmentTypeObj, camelCase, snakeCase, defaultValue);
-  };
-  
-  // Normalize appointment type fields that we'll use in the calculation
-  const overrideFacilityHours = getAppointmentTypeField('overrideFacilityHours', 'override_facility_hours', false);
-  const allowAppointmentsThroughBreaks = getAppointmentTypeField('allowAppointmentsThroughBreaks', 'allow_appointments_through_breaks', false);
-  const appointmentTypeDuration = getAppointmentTypeField('duration', 'duration', 60); // Default to 60 minutes
-  const appointmentTypeBufferTime = getAppointmentTypeField('bufferTime', 'buffer_time', 0); // Default to 0 minutes
-  
-  console.log(`[AvailabilityService] Appointment type settings: overrideFacilityHours=${overrideFacilityHours}, allowAppointmentsThroughBreaks=${allowAppointmentsThroughBreaks}, duration=${appointmentTypeDuration}, bufferTime=${appointmentTypeBufferTime}`);
-  
-  // Now when we need facility values, we'll use the appropriate accessor methods
-  // For open/closed status
-  const sundayIsOpen = getField('sundayOpen', 'sunday_open');
-  const mondayIsOpen = getField('mondayOpen', 'monday_open');
-  const tuesdayIsOpen = getField('tuesdayOpen', 'tuesday_open');
-  const wednesdayIsOpen = getField('wednesdayOpen', 'wednesday_open');
-  const thursdayIsOpen = getField('thursdayOpen', 'thursday_open');
-  const fridayIsOpen = getField('fridayOpen', 'friday_open');
-  const saturdayIsOpen = getField('saturdayOpen', 'saturday_open');
-  
-  console.log(`[AvailabilityService] Day status: Sunday=${sundayIsOpen}, Monday=${mondayIsOpen}, Tuesday=${tuesdayIsOpen}, Wednesday=${wednesdayIsOpen}, Thursday=${thursdayIsOpen}, Friday=${fridayIsOpen}, Saturday=${saturdayIsOpen}`);
-  
-  console.log(`[AvailabilityService] Day status (using normalized fields): Sunday=${facility.sundayOpen}, Monday=${facility.mondayOpen}, Tuesday=${facility.tuesdayOpen}, Wednesday=${facility.wednesdayOpen}, Thursday=${facility.thursdayOpen}, Friday=${facility.fridayOpen}, Saturday=${facility.saturdayOpen}`);
-  
-  // Initialize operating time variables
-  let operatingStartTime = "09:00"; // Default value
-  let operatingEndTime = "17:00";   // Default value
-  let isOpen = false;               // Default closed
-  
-  // Check if appointment type overrides facility hours
+
+  const getObjectField = (obj: any, camelCase: string, snakeCase: string, defaultValue: any = undefined): any => obj?.[snakeCase] ?? obj?.[camelCase] ?? defaultValue;
+  const getFacilityField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => getObjectField(facility, camelCase, snakeCase, defaultValue);
+  const getAppTypeField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => getObjectField(appointmentType, camelCase, snakeCase, defaultValue);
+
+  const overrideFacilityHours = getAppTypeField('overrideFacilityHours', 'override_facility_hours', false);
+  const allowAppointmentsThroughBreaks = getAppTypeField('allowAppointmentsThroughBreaks', 'allow_appointments_through_breaks', false);
+  const appointmentTypeDuration = getAppTypeField('duration', 'duration', 60);
+  const appointmentTypeBufferTime = getAppTypeField('bufferTime', 'buffer_time', 0);
+  const maxConcurrent = getAppTypeField('maxConcurrent', 'max_concurrent', 1);
+
+  console.log(`[AvailabilityService] Settings: overrideHours=${overrideFacilityHours}, allowThroughBreaks=${allowAppointmentsThroughBreaks}, duration=${appointmentTypeDuration}, bufferTime=${appointmentTypeBufferTime}, maxConcurrent=${maxConcurrent}`);
+
+  let operatingStartTimeStr = "09:00";
+  let operatingEndTimeStr = "17:00";
+  let isOpen = false;
+  let breakStartTimeStr = "";
+  let breakEndTimeStr = "";
+
   if (overrideFacilityHours) {
-    // If override is enabled, use 24-hour availability
-    operatingStartTime = "00:00";
-    operatingEndTime = "23:59";
+    operatingStartTimeStr = "00:00";
+    operatingEndTimeStr = "23:59"; // Use 23:59 to loop correctly up to the end of the day
     isOpen = true;
   } else {
-    // Otherwise, determine facility hours based on day of week
-    switch (dayOfWeek) {
-      case 0: // Sunday
-        operatingStartTime = getField('sundayStart', 'sunday_start') || "09:00";
-        operatingEndTime = getField('sundayEnd', 'sunday_end') || "17:00";
-        isOpen = sundayIsOpen === true;
-        break;
-      case 1: // Monday
-        operatingStartTime = getField('mondayStart', 'monday_start') || "09:00";
-        operatingEndTime = getField('mondayEnd', 'monday_end') || "17:00";
-        isOpen = mondayIsOpen === true;
-        break;
-      case 2: // Tuesday
-        operatingStartTime = getField('tuesdayStart', 'tuesday_start') || "09:00";
-        operatingEndTime = getField('tuesdayEnd', 'tuesday_end') || "17:00";
-        isOpen = tuesdayIsOpen === true;
-        break;
-      case 3: // Wednesday
-        operatingStartTime = getField('wednesdayStart', 'wednesday_start') || "09:00";
-        operatingEndTime = getField('wednesdayEnd', 'wednesday_end') || "17:00";
-        isOpen = wednesdayIsOpen === true;
-        break;
-      case 4: // Thursday
-        operatingStartTime = getField('thursdayStart', 'thursday_start') || "09:00";
-        operatingEndTime = getField('thursdayEnd', 'thursday_end') || "17:00";
-        isOpen = thursdayIsOpen === true;
-        break;
-      case 5: // Friday
-        operatingStartTime = getField('fridayStart', 'friday_start') || "09:00";
-        operatingEndTime = getField('fridayEnd', 'friday_end') || "17:00";
-        isOpen = fridayIsOpen === true;
-        break;
-      case 6: // Saturday
-        operatingStartTime = getField('saturdayStart', 'saturday_start') || "09:00";
-        operatingEndTime = getField('saturdayEnd', 'saturday_end') || "17:00";
-        isOpen = saturdayIsOpen === true;
-        break;
-      default:
-        // Fallback already set with defaults above
-        break;
-    }
+     const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+     const dayKey = dayKeys[dayOfWeek];
+     isOpen = getFacilityField(`${dayKey}Open`, `${dayKey}_open`) === true;
+     if (isOpen) {
+       operatingStartTimeStr = getFacilityField(`${dayKey}Start`, `${dayKey}_start`) || "09:00";
+       operatingEndTimeStr = getFacilityField(`${dayKey}End`, `${dayKey}_end`) || "17:00";
+       breakStartTimeStr = getFacilityField(`${dayKey}BreakStart`, `${dayKey}_break_start`, "");
+       breakEndTimeStr = getFacilityField(`${dayKey}BreakEnd`, `${dayKey}_break_end`, "");
+     }
   }
-  
-  // If facility is closed on this day, return empty array
+
   if (!isOpen) {
-    console.log(`[AvailabilityService] Facility ${facility.name} is closed on ${date} (day of week: ${dayOfWeek})`);
+    console.log(`[AvailabilityService] Facility ${facility.name} closed on ${date} (DoW: ${dayOfWeek})`);
     return [];
   }
-  
-  console.log(`[AvailabilityService] Facility ${facility.name} is open on ${date} with hours ${operatingStartTime} to ${operatingEndTime}`);
-  
-  // Calculate slot interval in minutes
-  // Use appointment type buffer time if available, otherwise use duration
-  // Ensure a minimum slot interval (15 minutes)
-  const slotIntervalMinutes = Math.max(
-    appointmentTypeBufferTime > 0 ? appointmentTypeBufferTime : appointmentTypeDuration,
-    15
-  );
+   console.log(`[AvailabilityService] Facility ${facility.name} open on ${date} (${dayOfWeek}) ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
 
-  // 4. Calculate timezone-aware date boundaries
-  // Start of day in facility's timezone (00:00:00)
-  const dateForStart = parseISO(`${date}T00:00:00Z`);
-  const zonedDateStart = toZonedTime(dateForStart, facilityTimezone);
-  const dayStart = new Date(zonedDateStart);
-  
-  // Start of next day in facility's timezone (00:00:00 of day+1)
-  const nextDate = addDays(parseISO(`${date}T00:00:00Z`), 1);
-  const zonedNextDate = toZonedTime(nextDate, facilityTimezone);
-  const dayEnd = new Date(zonedNextDate);
-  
-  // 5. Calculate time slots based on operating hours
-  const result: AvailabilitySlot[] = [];
-  
-  // Parse operating hours into Date objects 
-  const startHour = parseInt(operatingStartTime.split(':')[0], 10);
-  const startMinute = parseInt(operatingStartTime.split(':')[1], 10);
-  const endHour = parseInt(operatingEndTime.split(':')[0], 10);
-  const endMinute = parseInt(operatingEndTime.split(':')[1], 10);
-  
-  // Create a copy of dayStart to use for slot calculation
-  const slotTime = new Date(dayStart);
-  slotTime.setHours(startHour, startMinute, 0, 0);
-  
-  // Create end time
-  const operatingEnd = new Date(dayStart);
-  operatingEnd.setHours(endHour, endMinute, 0, 0);
-  
-  // 6. Fetch existing appointments for this day that match our constraints
-  // For easier testing, allow an optional parameter to override the appointments fetching
-  let existingAppointments = [];
-  
-  // Normal DB fetching path
-  if (!options?.testAppointments) {
-    existingAppointments = await fetchRelevantAppointmentsForDay(
-      db,
-      facilityId,
-      dayStart,
-      dayEnd,
-      effectiveTenantId
-    );
-  } else {
-    // Test path - use provided appointments list
-    existingAppointments = options.testAppointments;
-    console.log(`[AvailabilityService] Using ${existingAppointments.length} test appointments`);
-  }
-  
-  // 7. Generate slots from start time to end time with slotIntervalMinutes spacing
-  while (slotTime < operatingEnd) {
-    const timeStr = tzFormat(slotTime, 'HH:mm', { timeZone: facilityTimezone });
-    
-    // Check if slot overlaps with existing appointments
-    const conflictingAppts = existingAppointments.filter((appt: { startTime: Date; endTime: Date }) => {
-      const apptStart = new Date(appt.startTime);
-      const apptEnd = new Date(appt.endTime);
-      
-      // Check if this slot time is within an existing appointment's time range
-      return slotTime >= apptStart && slotTime < apptEnd;
-    });
-    
-    // Get max slots per time slot from appointment type
-    // Default to 1 if not specified
-    const maxSlotsPerTime = getAppointmentTypeField('maxPerSlot', 'max_per_slot', 1);
-    
-    // Calculate end time for this slot (for break time overlap checks)
-    const currentSlotEndTime = new Date(slotTime);
-    currentSlotEndTime.setMinutes(currentSlotEndTime.getMinutes() + appointmentTypeDuration);
-    
-    // Create an availability slot with appropriate availability flag
-    result.push({
-      time: timeStr,
-      available: conflictingAppts.length === 0,
-      remainingCapacity: Math.max(0, maxSlotsPerTime - conflictingAppts.length),
-      remaining: Math.max(0, maxSlotsPerTime - conflictingAppts.length), // Compatibility
-      reason: conflictingAppts.length > 0 ? 'Slot already booked' : '',
-      isBufferTime: false
-    });
-    
-    // Determine break times for this day of the week
-    let breakStartTimeStr = "";
-    let breakEndTimeStr = "";
-    
-    switch (dayOfWeek) {
-      case 0: // Sunday
-        breakStartTimeStr = getField('sundayBreakStart', 'sunday_break_start') || "";
-        breakEndTimeStr = getField('sundayBreakEnd', 'sunday_break_end') || "";
-        break;
-      case 1: // Monday
-        breakStartTimeStr = getField('mondayBreakStart', 'monday_break_start') || "";
-        breakEndTimeStr = getField('mondayBreakEnd', 'monday_break_end') || "";
-        break;
-      case 2: // Tuesday
-        breakStartTimeStr = getField('tuesdayBreakStart', 'tuesday_break_start') || "";
-        breakEndTimeStr = getField('tuesdayBreakEnd', 'tuesday_break_end') || "";
-        break;
-      case 3: // Wednesday
-        breakStartTimeStr = getField('wednesdayBreakStart', 'wednesday_break_start') || "";
-        breakEndTimeStr = getField('wednesdayBreakEnd', 'wednesday_break_end') || "";
-        break;
-      case 4: // Thursday
-        breakStartTimeStr = getField('thursdayBreakStart', 'thursday_break_start') || "";
-        breakEndTimeStr = getField('thursdayBreakEnd', 'thursday_break_end') || "";
-        break;
-      case 5: // Friday
-        breakStartTimeStr = getField('fridayBreakStart', 'friday_break_start') || "";
-        breakEndTimeStr = getField('fridayBreakEnd', 'friday_break_end') || "";
-        break;
-      case 6: // Saturday
-        breakStartTimeStr = getField('saturdayBreakStart', 'saturday_break_start') || "";
-        breakEndTimeStr = getField('saturdayBreakEnd', 'saturday_break_end') || "";
-        break;
-    }
-    
-    // If break times are defined, check if they affect this slot
-    if (
-      breakStartTimeStr && 
-      breakEndTimeStr && 
-      breakStartTimeStr.includes(':') && 
-      breakEndTimeStr.includes(':')
-    ) {
-      console.log(`[AvailabilityService] Processing break time for slot ${timeStr}, break time: ${breakStartTimeStr}-${breakEndTimeStr}, allowAppointmentsThroughBreaks: ${allowAppointmentsThroughBreaks}`);
-      try {
-        // Create break time Date objects in the facility's timezone
-        // Create start and end time objects for the current day in facility's local time
-        const breakStartHour = parseInt(breakStartTimeStr.split(':')[0], 10);
-        const breakStartMinute = parseInt(breakStartTimeStr.split(':')[1], 10);
-        const breakStartDateTime = new Date(dayStart);
-        breakStartDateTime.setHours(breakStartHour, breakStartMinute, 0, 0);
-        
-        const breakEndHour = parseInt(breakEndTimeStr.split(':')[0], 10);
-        const breakEndMinute = parseInt(breakEndTimeStr.split(':')[1], 10);
-        const breakEndDateTime = new Date(dayStart);
-        breakEndDateTime.setHours(breakEndHour, breakEndMinute, 0, 0);
-        
-        // Check if current slot overlaps with break time
-        // Overlap condition: currentSlotStartTime < breakEndDateTime && currentSlotEndTime > breakStartDateTime
-        if (slotTime < breakEndDateTime && currentSlotEndTime > breakStartDateTime) {
-          // Check if this appointment type allows appointments to span through breaks
-          if (!allowAppointmentsThroughBreaks) {
-            // Find the last added slot (which should be the one we just added)
-            const lastIndex = result.length - 1;
-            if (lastIndex >= 0) {
-              const slot = result[lastIndex];
-              
-              // Update slot to mark it as unavailable due to break time
-              slot.available = false;
-              slot.remainingCapacity = 0;
-              slot.remaining = 0;
-              slot.reason = slot.reason ? `${slot.reason}, Break Time` : 'Break Time';
-            }
-          } else {
-            // This appointment type allows spanning through breaks
-            // We'll leave the slot as available, but add a note that it spans through a break
-            console.log(`[AvailabilityService] Slot ${timeStr} spans through break time, but appointment type allows it`);
-            const lastIndex = result.length - 1;
-            if (lastIndex >= 0) {
-              const slot = result[lastIndex];
-              if (slot.available) {
-                // Only add a note if the slot is already available
-                slot.reason = 'Spans through break time';
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error(`Error processing break times for ${date}:`, error);
-        // Continue execution even if break time processing fails
+  // Calculate date boundaries for fetching appointments
+  const dayStart = toZonedTime(parseISO(`${date}T00:00:00`), facilityTimezone);
+  const nextDateStr = format(addDays(parseISO(date), 1), 'yyyy-MM-dd');
+  const dayEnd = toZonedTime(parseISO(`${nextDateStr}T00:00:00`), facilityTimezone);
+
+  // ** FIXED: Ensure fetch is only called when options.testAppointments is null or undefined **
+  let existingAppointments: { id: number; startTime: Date; endTime: Date; }[] = [];
+  try {
+      if (options?.testAppointments == null) { // Use == null to check for undefined AND null
+          existingAppointments = await fetchRelevantAppointmentsForDay(db, facilityId, dayStart, dayEnd, effectiveTenantId);
+      } else {
+          existingAppointments = options.testAppointments;
+          console.log(`[AvailabilityService] Using ${existingAppointments.length} test appointments`);
       }
-    }
-    
-    // Move to next slot
-    slotTime.setMinutes(slotTime.getMinutes() + slotIntervalMinutes);
+  } catch (fetchError) {
+      console.error("[AvailabilityService] Error during fetchRelevantAppointmentsForDay:", fetchError);
+      // Propagate the specific error from fetchRelevantAppointmentsForDay
+      throw fetchError;
   }
-  
+
+  const result: AvailabilitySlot[] = [];
+  const slotIntervalMinutes = Math.max(appointmentTypeBufferTime > 0 ? appointmentTypeBufferTime : appointmentTypeDuration, 15);
+
+  // Create Date objects for operating start/end IN THE FACILITY'S TIMEZONE
+  const operatingStartDateTime = toZonedTime(parseISO(`${date}T${operatingStartTimeStr}`), facilityTimezone);
+  let operatingEndDateTime = toZonedTime(parseISO(`${date}T${operatingEndTimeStr}`), facilityTimezone);
+
+  // Adjust end time for loop comparison
+  // If 23:59, treat as END of the day (start of next day)
+  if (operatingEndTimeStr === "23:59") {
+      operatingEndDateTime = dayEnd;
+  } else if (operatingEndDateTime <= operatingStartDateTime) {
+      operatingEndDateTime = addDays(operatingEndDateTime, 1);
+  }
+
+  let breakStartDateTime: Date | null = null;
+  let breakEndDateTime: Date | null = null;
+  if (breakStartTimeStr && breakEndTimeStr && breakStartTimeStr.includes(':') && breakEndTimeStr.includes(':')) {
+      try {
+          // ** FIXED: Use dayStart (which is zoned) as base for break times **
+          breakStartDateTime = new Date(dayStart);
+          breakStartDateTime.setHours(parseInt(breakStartTimeStr.split(':')[0], 10), parseInt(breakStartTimeStr.split(':')[1], 10), 0, 0);
+          breakEndDateTime = new Date(dayStart);
+          breakEndDateTime.setHours(parseInt(breakEndTimeStr.split(':')[0], 10), parseInt(breakEndTimeStr.split(':')[1], 10), 0, 0);
+          if (breakEndDateTime <= breakStartDateTime) { breakEndDateTime = addDays(breakEndDateTime, 1); }
+          console.log(`[AvailabilityService] Break time for ${date} (Local): ${tzFormat(breakStartDateTime, 'yyyy-MM-dd HH:mm:ss zzzz', { timeZone: facilityTimezone })} to ${tzFormat(breakEndDateTime, 'yyyy-MM-dd HH:mm:ss zzzz', { timeZone: facilityTimezone })}`);
+      } catch (e) { console.error("Error parsing break times", e); breakStartDateTime = null; breakEndDateTime = null; }
+  }
+
+  let currentSlotStartTime = new Date(operatingStartDateTime);
+
+  while (currentSlotStartTime < operatingEndDateTime) {
+    const currentSlotEndTime = addMinutes(currentSlotStartTime, appointmentTypeDuration);
+
+    // ** FIXED: Loop Termination Check - Allow slots ENDING AT end time **
+    if (currentSlotEndTime > operatingEndDateTime) {
+         console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: facilityTimezone })} duration ${appointmentTypeDuration}m ends after operating end ${operatingEndTimeStr}. Stopping.`);
+         break;
+    }
+
+    let isSlotAvailable = true;
+    let reason = "";
+    let conflictingApptsCount = 0;
+
+    // Check for conflicts
+    if (existingAppointments && existingAppointments.length > 0) {
+        conflictingApptsCount = existingAppointments.filter((appt) => {
+            const apptStart = appt.startTime.getTime(); // Compare epoch ms (UTC)
+            const apptEnd = appt.endTime.getTime();
+            const slotStart = currentSlotStartTime.getTime();
+            const slotEnd = currentSlotEndTime.getTime();
+            // ** FIXED: Correct Overlap Logic: (StartA < EndB) && (EndA > StartB) **
+            return apptStart < slotEnd && apptEnd > slotStart;
+        }).length;
+    }
+
+    // ** FIXED: Check Capacity FIRST **
+    const currentCapacity = maxConcurrent - conflictingApptsCount;
+    if (currentCapacity <= 0) {
+        isSlotAvailable = false;
+        reason = "Capacity full";
+    }
+
+    // Check break time ONLY IF slot is still potentially available based on capacity
+    if (isSlotAvailable && breakStartDateTime && breakEndDateTime) {
+        // ** FIXED: Compare slot interval with break interval **
+        if (currentSlotStartTime.getTime() < breakEndDateTime.getTime() && currentSlotEndTime.getTime() > breakStartDateTime.getTime()) {
+            if (!allowAppointmentsThroughBreaks) {
+                isSlotAvailable = false;
+                reason = "Break Time"; // Override reason
+            } else {
+                // Only add note if not already marked unavailable by capacity
+                if (isSlotAvailable) {
+                    reason = "Spans through break time";
+                }
+                console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: facilityTimezone })} spans break time, but allowed.`);
+            }
+        }
+    }
+
+    const remainingCapacity = isSlotAvailable ? Math.max(0, currentCapacity) : 0;
+
+    // Final status check: If capacity is zero, ensure unavailable
+    if (remainingCapacity <= 0) {
+        isSlotAvailable = false;
+         // Set reason to Capacity Full only if it wasn't already set to Break Time
+        if (reason !== "Break Time") {
+             reason = "Capacity full";
+        }
+    }
+
+    result.push({
+      time: tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: facilityTimezone }),
+      available: isSlotAvailable,
+      remainingCapacity: remainingCapacity,
+      remaining: remainingCapacity,
+      // ** FIXED: Corrected reason logic **
+      reason: isSlotAvailable ? (reason === "Spans through break time" ? reason : "") : reason,
+    });
+
+    currentSlotStartTime = addMinutes(currentSlotStartTime, slotIntervalMinutes);
+  }
+
   return result;
 }
