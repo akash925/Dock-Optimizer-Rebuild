@@ -23,6 +23,43 @@ const safeValueAsString = (value: string | null | undefined): string => {
   return value;
 };
 
+// Helper function to reset a day's hours to organization defaults
+const resetDayToDefault = (
+  form: any, 
+  day: string, 
+  defaultHours: any
+) => {
+  if (!defaultHours || !defaultHours[day.toLowerCase()]) return;
+  
+  const defaultDay = defaultHours[day.toLowerCase()];
+  form.setValue(`${day}Open`, defaultDay.open);
+  form.setValue(`${day}Start`, defaultDay.start || "");
+  form.setValue(`${day}End`, defaultDay.end || "");
+  form.setValue(`${day}BreakStart`, defaultDay.breakStart || "");
+  form.setValue(`${day}BreakEnd`, defaultDay.breakEnd || "");
+};
+
+// Helper function to copy hours from one day to other days
+const copyDayToOthers = (
+  form: any, 
+  sourceDay: string, 
+  targetDays: string[]
+) => {
+  const sourceDayOpen = form.getValues(`${sourceDay}Open`);
+  const sourceDayStart = form.getValues(`${sourceDay}Start`);
+  const sourceDayEnd = form.getValues(`${sourceDay}End`);
+  const sourceDayBreakStart = form.getValues(`${sourceDay}BreakStart`);
+  const sourceDayBreakEnd = form.getValues(`${sourceDay}BreakEnd`);
+  
+  targetDays.forEach(day => {
+    form.setValue(`${day}Open`, sourceDayOpen);
+    form.setValue(`${day}Start`, sourceDayStart);
+    form.setValue(`${day}End`, sourceDayEnd);
+    form.setValue(`${day}BreakStart`, sourceDayBreakStart);
+    form.setValue(`${day}BreakEnd`, sourceDayBreakEnd);
+  });
+};
+
 // Reusable component for time inputs that handles null values and formats input
 interface TimeInputProps {
   field: ControllerRenderProps<any, any>;
@@ -331,6 +368,19 @@ export default function FacilitySettingsPage() {
       return response.json();
     },
     enabled: !!facilityId,
+  });
+  
+  // Fetch organization default hours (to support "Reset to Default" functionality)
+  const { data: orgDefaultHours, isLoading: isLoadingDefaults } = useQuery({
+    queryKey: ['/api/organizations/default-hours'],
+    queryFn: async () => {
+      const response = await fetch('/api/organizations/default-hours');
+      if (!response.ok) {
+        console.error("Failed to fetch organization default hours");
+        return null;
+      }
+      return response.json();
+    },
   });
   
   // Form setup
@@ -726,26 +776,92 @@ export default function FacilitySettingsPage() {
                 <CardContent className="space-y-6">
                   {/* Monday */}
                   <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center">
-                        <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
-                        <h3 className="text-lg font-medium">Monday</h3>
+                    <div className="flex flex-col space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
+                          <h3 className="text-lg font-medium">Monday</h3>
+                        </div>
+                        <FormField
+                          control={form.control}
+                          name="mondayOpen"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center space-x-2 space-y-0">
+                              <FormLabel>Open</FormLabel>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
                       </div>
-                      <FormField
-                        control={form.control}
-                        name="mondayOpen"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center space-x-2 space-y-0">
-                            <FormLabel>Open</FormLabel>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+                      
+                      <div className="flex items-center justify-end space-x-2">
+                        <Button 
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (orgDefaultHours) {
+                              resetDayToDefault(form, "monday", orgDefaultHours);
+                              toast({
+                                title: "Hours Reset",
+                                description: "Monday hours have been reset to organization defaults.",
+                              });
+                            } else {
+                              toast({
+                                title: "Cannot Reset",
+                                description: "Organization default hours not available.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          disabled={!orgDefaultHours || isLoadingDefaults}
+                        >
+                          Reset to Default
+                        </Button>
+                        
+                        <Select
+                          onValueChange={(value) => {
+                            if (value === "all-weekdays") {
+                              copyDayToOthers(form, "monday", ["tuesday", "wednesday", "thursday", "friday"]);
+                              toast({
+                                title: "Hours Copied",
+                                description: "Monday hours copied to all weekdays.",
+                              });
+                            } else if (value === "all-days") {
+                              copyDayToOthers(form, "monday", ["tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]);
+                              toast({
+                                title: "Hours Copied",
+                                description: "Monday hours copied to all days.",
+                              });
+                            } else if (value !== "") {
+                              copyDayToOthers(form, "monday", [value]);
+                              toast({
+                                title: "Hours Copied",
+                                description: `Monday hours copied to ${value.charAt(0).toUpperCase() + value.slice(1)}.`,
+                              });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-[180px] h-8">
+                            <SelectValue placeholder="Copy to..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="tuesday">Tuesday</SelectItem>
+                            <SelectItem value="wednesday">Wednesday</SelectItem>
+                            <SelectItem value="thursday">Thursday</SelectItem>
+                            <SelectItem value="friday">Friday</SelectItem>
+                            <SelectItem value="saturday">Saturday</SelectItem>
+                            <SelectItem value="sunday">Sunday</SelectItem>
+                            <SelectItem value="all-weekdays">All Weekdays</SelectItem>
+                            <SelectItem value="all-days">All Days</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     
                     {form.watch("mondayOpen") && (
