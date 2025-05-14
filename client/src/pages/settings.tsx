@@ -1054,6 +1054,21 @@ export default function Settings() {
                 </div>
               </div>
               
+              <div className="space-y-4 border rounded-lg p-4">
+                <h3 className="text-lg font-medium">Organization Default Hours</h3>
+                <p className="text-sm text-neutral-500">
+                  Configure default operating hours that apply to all facilities in your organization. Individual facilities can override these settings.
+                </p>
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.location.href = "/organization-hours"} 
+                  className="flex items-center mt-2"
+                >
+                  <Clock className="mr-2 h-4 w-4" />
+                  Manage Default Hours
+                </Button>
+              </div>
+              
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Organization-wide Holidays</h3>
                 <p className="text-sm text-neutral-500">
