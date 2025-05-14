@@ -285,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register enhanced availability endpoint (v2)
   try {
     // Import the new availability service
-    const { calculateAvailabilitySlots, SchedulingConfig } = await import('./src/services/availability');
+    const { calculateAvailabilitySlots, defaultConfig } = await import('./src/services/availability');
     
     // Register the v2 endpoint
     app.get("/api/availability/v2", async (req, res) => {
@@ -352,15 +352,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Extract configuration parameters from request if provided
-        const intervalMinutes = Number(req.query.intervalMinutes) || undefined;
-        const bookingBufferMinutes = Number(req.query.bookingBufferMinutes) || undefined;
-        const maxAdvanceDays = Number(req.query.maxAdvanceDays) || undefined;
+        const intervalMinutes = req.query.intervalMinutes ? Number(req.query.intervalMinutes) : undefined;
+        const bookingBufferMinutes = req.query.bookingBufferMinutes ? Number(req.query.bookingBufferMinutes) : undefined;
+        const maxAdvanceDays = req.query.maxAdvanceDays ? Number(req.query.maxAdvanceDays) : undefined;
         
         // Build configuration object
-        const config: Partial<SchedulingConfig> = {};
-        if (!isNaN(intervalMinutes)) config.intervalMinutes = intervalMinutes;
-        if (!isNaN(bookingBufferMinutes)) config.bookingBufferMinutes = bookingBufferMinutes;
-        if (!isNaN(maxAdvanceDays)) config.maxAdvanceDays = maxAdvanceDays;
+        const config = { ...defaultConfig };
+        if (intervalMinutes !== undefined && !isNaN(intervalMinutes)) config.intervalMinutes = intervalMinutes;
+        if (bookingBufferMinutes !== undefined && !isNaN(bookingBufferMinutes)) config.bookingBufferMinutes = bookingBufferMinutes;
+        if (maxAdvanceDays !== undefined && !isNaN(maxAdvanceDays)) config.maxAdvanceDays = maxAdvanceDays;
         
         // Log configuration
         console.log(`[AvailabilityV2] Using config:`, {
