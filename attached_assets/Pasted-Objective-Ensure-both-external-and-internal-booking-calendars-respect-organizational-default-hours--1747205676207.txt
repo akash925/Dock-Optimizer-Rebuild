@@ -1,0 +1,127 @@
+Objective:
+Ensure both external and internal booking calendars respect organizational default hours by dynamically disabling or enabling days based on the open flag returned by /api/org/hours. This prompt must unify the logic across both booking systems and ensure Saturday is available when configured.
+
+📚 Context
+Frontend Stack: React + Tailwind + ShadCn UI + Wouter + React Query
+
+Backend: Express + Drizzle ORM + Zod
+
+Calendar Components:
+
+External: /external/test-booking-page (Step 2)
+
+Internal: Likely under components/bookings, AppointmentForm.tsx, or similar
+
+API Endpoint: /api/org/hours?organizationId=<id>
+Returns a dictionary keyed by weekday names (monday, tuesday, etc.) with:
+
+ts
+Copy
+Edit
+type DayHours = {
+  open: boolean;
+  start: string;  // "08:00"
+  end: string;    // "17:00"
+  breakStart?: string;
+  breakEnd?: string;
+};
+📌 Tasks
+1. Unify Day Availability Logic
+Create a shared React hook useEnabledBookingDays() to centralize calendar logic:
+
+ts
+Copy
+Edit
+export function useEnabledBookingDays(organizationId: string) {
+  const { data: hours, isLoading } = useQuery(
+    ['orgHours', organizationId],
+    () => fetch(`/api/org/hours?organizationId=${organizationId}`).then(res => res.json())
+  );
+
+  const enabledDays = useMemo(() => {
+    if (!hours) return [];
+    return Object.entries(hours)
+      .filter(([day, values]) => values.open)
+      .map(([day]) => day); // returns ['monday', 'tuesday', ..., 'saturday']
+  }, [hours]);
+
+  return { enabledDays, isLoading };
+}
+Use this hook in both external and internal booking flows.
+
+2. Calendar Component Update
+In both booking UIs:
+
+Update the calendar component (likely using react-day-picker, shadcn/calendar, or similar) to:
+
+Disable days that are not in enabledDays
+
+Ensure enabledDays maps to correct numeric indices (0 = Sunday)
+
+ts
+Copy
+Edit
+const dayToIndex = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+const disabledDays = useMemo(() => {
+  const disabled = Object.keys(dayToIndex).filter(
+    (day) => !enabledDays.includes(day)
+  );
+  return disabled.map(day => ({ dayOfWeek: dayToIndex[day] }));
+}, [enabledDays]);
+3. Slot Generation Consistency
+In the slot selection logic (useAvailableTimeSlots, or wherever available times are generated):
+
+Fetch hours from the same /api/org/hours endpoint
+
+For the selected date, only show slots between start and end, skipping break periods
+
+Example:
+
+ts
+Copy
+Edit
+function generateTimeSlots(date, orgHours) {
+  const day = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  const config = orgHours[day];
+  if (!config?.open) return [];
+
+  const start = parseTime(config.start); // "08:00"
+  const end = parseTime(config.end);     // "17:00"
+  const breakStart = parseTime(config.breakStart);
+  const breakEnd = parseTime(config.breakEnd);
+
+  // Generate 30-min intervals, excluding break
+  return generateIntervals(start, end).filter(t =>
+    !isBetween(t, breakStart, breakEnd)
+  );
+}
+✅ Acceptance Criteria
+Both internal and external booking flows:
+
+Reflect all "open": true days from org hours (e.g. Saturday is selectable).
+
+Disable all "open": false days (e.g. Sunday).
+
+Time slot generation strictly respects org hour ranges and skips break periods.
+
+Day availability logic is centralized in useEnabledBookingDays() and reused.
+
+🧪 Suggested Tests
+Unit tests for useEnabledBookingDays() → validate mapping from API response to day indices.
+
+Integration tests (e.g. Playwright) for:
+
+Selecting Saturday and confirming slot availability
+
+Ensuring Sunday is disabled
+
+Confirm multi-org compatibility by testing with tenants that have different open days.
