@@ -306,6 +306,8 @@ export default function FacilitySettingsPage() {
   const form = useForm<FacilityFormValues>({
     resolver: zodResolver(facilityEditSchema),
     defaultValues: {
+      // Initialize with empty form fields that will be populated from API data
+      // This prevents any hardcoded defaults from affecting the form state
       name: "",
       address1: "",
       address2: "",
@@ -313,47 +315,48 @@ export default function FacilitySettingsPage() {
       state: "",
       pincode: "",
       country: "",
-      timezone: "America/New_York",
+      timezone: "",
       
-      mondayOpen: true,
-      mondayStart: "08:00",
-      mondayEnd: "17:00",
-      mondayBreakStart: "12:00",
-      mondayBreakEnd: "13:00",
+      // Initialize all days with null/empty values - will be set from API data
+      mondayOpen: null as unknown as boolean,
+      mondayStart: "",
+      mondayEnd: "",
+      mondayBreakStart: "",
+      mondayBreakEnd: "",
       
-      tuesdayOpen: true,
-      tuesdayStart: "08:00",
-      tuesdayEnd: "17:00",
-      tuesdayBreakStart: "12:00",
-      tuesdayBreakEnd: "13:00",
+      tuesdayOpen: null as unknown as boolean,
+      tuesdayStart: "",
+      tuesdayEnd: "",
+      tuesdayBreakStart: "",
+      tuesdayBreakEnd: "",
       
-      wednesdayOpen: true,
-      wednesdayStart: "08:00",
-      wednesdayEnd: "17:00",
-      wednesdayBreakStart: "12:00",
-      wednesdayBreakEnd: "13:00",
+      wednesdayOpen: null as unknown as boolean,
+      wednesdayStart: "",
+      wednesdayEnd: "",
+      wednesdayBreakStart: "",
+      wednesdayBreakEnd: "",
       
-      thursdayOpen: true,
-      thursdayStart: "08:00",
-      thursdayEnd: "17:00",
-      thursdayBreakStart: "12:00",
-      thursdayBreakEnd: "13:00",
+      thursdayOpen: null as unknown as boolean,
+      thursdayStart: "",
+      thursdayEnd: "",
+      thursdayBreakStart: "",
+      thursdayBreakEnd: "",
       
-      fridayOpen: true,
-      fridayStart: "08:00",
-      fridayEnd: "17:00",
-      fridayBreakStart: "12:00",
-      fridayBreakEnd: "13:00",
+      fridayOpen: null as unknown as boolean,
+      fridayStart: "",
+      fridayEnd: "",
+      fridayBreakStart: "",
+      fridayBreakEnd: "",
       
-      saturdayOpen: false,
-      saturdayStart: "08:00",
-      saturdayEnd: "13:00",
+      saturdayOpen: null as unknown as boolean,
+      saturdayStart: "",
+      saturdayEnd: "",
       saturdayBreakStart: "",
       saturdayBreakEnd: "",
       
-      sundayOpen: false,
-      sundayStart: "08:00",
-      sundayEnd: "17:00",
+      sundayOpen: null as unknown as boolean,
+      sundayStart: "",
+      sundayEnd: "",
       sundayBreakStart: "",
       sundayBreakEnd: "",
     },
@@ -362,7 +365,11 @@ export default function FacilitySettingsPage() {
   // Update form when facility data is loaded
   useEffect(() => {
     if (facility) {
-      form.reset({
+      console.log("Setting form from API data:", facility);
+      
+      // Create a complete data object based only on what the API returns
+      const formData = {
+        // Basic facility information
         name: facility.name || "",
         address1: facility.address1 || "",
         address2: facility.address2 || "",
@@ -370,50 +377,60 @@ export default function FacilitySettingsPage() {
         state: facility.state || "",
         pincode: facility.pincode || "",
         country: facility.country || "",
-        timezone: facility.timezone || "America/New_York",
+        timezone: facility.timezone || "",
         
-        mondayOpen: facility.mondayOpen ?? true,
-        mondayStart: facility.mondayStart || "08:00",
-        mondayEnd: facility.mondayEnd || "17:00",
-        mondayBreakStart: facility.mondayBreakStart || "12:00",
-        mondayBreakEnd: facility.mondayBreakEnd || "13:00",
+        // Monday - preserve actual server state without defaults
+        mondayOpen: facility.mondayOpen !== null ? facility.mondayOpen : false,
+        mondayStart: facility.mondayStart || "",
+        mondayEnd: facility.mondayEnd || "",
+        mondayBreakStart: facility.mondayBreakStart || "",
+        mondayBreakEnd: facility.mondayBreakEnd || "",
         
-        tuesdayOpen: facility.tuesdayOpen ?? true,
-        tuesdayStart: facility.tuesdayStart || "08:00",
-        tuesdayEnd: facility.tuesdayEnd || "17:00",
-        tuesdayBreakStart: facility.tuesdayBreakStart || "12:00",
-        tuesdayBreakEnd: facility.tuesdayBreakEnd || "13:00",
+        // Tuesday - preserve actual server state without defaults
+        tuesdayOpen: facility.tuesdayOpen !== null ? facility.tuesdayOpen : false,
+        tuesdayStart: facility.tuesdayStart || "",
+        tuesdayEnd: facility.tuesdayEnd || "",
+        tuesdayBreakStart: facility.tuesdayBreakStart || "",
+        tuesdayBreakEnd: facility.tuesdayBreakEnd || "",
         
-        wednesdayOpen: facility.wednesdayOpen ?? true,
-        wednesdayStart: facility.wednesdayStart || "08:00",
-        wednesdayEnd: facility.wednesdayEnd || "17:00",
-        wednesdayBreakStart: facility.wednesdayBreakStart || "12:00",
-        wednesdayBreakEnd: facility.wednesdayBreakEnd || "13:00",
+        // Wednesday - preserve actual server state without defaults
+        wednesdayOpen: facility.wednesdayOpen !== null ? facility.wednesdayOpen : false,
+        wednesdayStart: facility.wednesdayStart || "",
+        wednesdayEnd: facility.wednesdayEnd || "",
+        wednesdayBreakStart: facility.wednesdayBreakStart || "",
+        wednesdayBreakEnd: facility.wednesdayBreakEnd || "",
         
-        thursdayOpen: facility.thursdayOpen ?? true,
-        thursdayStart: facility.thursdayStart || "08:00",
-        thursdayEnd: facility.thursdayEnd || "17:00",
-        thursdayBreakStart: facility.thursdayBreakStart || "12:00",
-        thursdayBreakEnd: facility.thursdayBreakEnd || "13:00",
+        // Thursday - preserve actual server state without defaults
+        thursdayOpen: facility.thursdayOpen !== null ? facility.thursdayOpen : false,
+        thursdayStart: facility.thursdayStart || "",
+        thursdayEnd: facility.thursdayEnd || "",
+        thursdayBreakStart: facility.thursdayBreakStart || "",
+        thursdayBreakEnd: facility.thursdayBreakEnd || "",
         
-        fridayOpen: facility.fridayOpen ?? true,
-        fridayStart: facility.fridayStart || "08:00",
-        fridayEnd: facility.fridayEnd || "17:00",
-        fridayBreakStart: facility.fridayBreakStart || "12:00",
-        fridayBreakEnd: facility.fridayBreakEnd || "13:00",
+        // Friday - preserve actual server state without defaults
+        fridayOpen: facility.fridayOpen !== null ? facility.fridayOpen : false,
+        fridayStart: facility.fridayStart || "",
+        fridayEnd: facility.fridayEnd || "",
+        fridayBreakStart: facility.fridayBreakStart || "",
+        fridayBreakEnd: facility.fridayBreakEnd || "",
         
-        saturdayOpen: facility.saturdayOpen ?? false,
-        saturdayStart: facility.saturdayStart || "08:00",
-        saturdayEnd: facility.saturdayEnd || "13:00",
+        // Saturday - preserve actual server state without defaults
+        saturdayOpen: facility.saturdayOpen !== null ? facility.saturdayOpen : false,
+        saturdayStart: facility.saturdayStart || "",
+        saturdayEnd: facility.saturdayEnd || "",
         saturdayBreakStart: facility.saturdayBreakStart || "",
         saturdayBreakEnd: facility.saturdayBreakEnd || "",
         
-        sundayOpen: facility.sundayOpen ?? false,
-        sundayStart: facility.sundayStart || "08:00",
-        sundayEnd: facility.sundayEnd || "17:00",
+        // Sunday - preserve actual server state without defaults
+        sundayOpen: facility.sundayOpen !== null ? facility.sundayOpen : false,
+        sundayStart: facility.sundayStart || "",
+        sundayEnd: facility.sundayEnd || "",
         sundayBreakStart: facility.sundayBreakStart || "",
         sundayBreakEnd: facility.sundayBreakEnd || "",
-      });
+      };
+      
+      console.log("Setting form values:", formData);
+      form.reset(formData);
     }
   }, [facility, form]);
   
@@ -1135,67 +1152,82 @@ export default function FacilitySettingsPage() {
                       />
                     </div>
                     
-                    {form.watch("saturdayOpen") && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex items-center gap-4">
-                          <FormField
-                            control={form.control}
-                            name="saturdayStart"
-                            render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormLabel>Opening Time</FormLabel>
-                                <FormControl>
-                                  <Input {...field} placeholder="08:00" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="saturdayEnd"
-                            render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormLabel>Closing Time</FormLabel>
-                                <FormControl>
-                                  <Input {...field} placeholder="13:00" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center gap-4">
-                          <FormField
-                            control={form.control}
-                            name="saturdayBreakStart"
-                            render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormLabel>Break Start</FormLabel>
-                                <FormControl>
-                                  <TimeInput field={field} placeholder="12:00" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="saturdayBreakEnd"
-                            render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormLabel>Break End</FormLabel>
-                                <FormControl>
-                                  <TimeInput field={field} placeholder="13:00" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                    {/* Always render the fields regardless of "open" status, but disable them if closed */}
+                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${!form.watch("saturdayOpen") ? "opacity-50" : ""}`}>
+                      <div className="flex items-center gap-4">
+                        <FormField
+                          control={form.control}
+                          name="saturdayStart"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Opening Time</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  placeholder="08:00" 
+                                  disabled={!form.watch("saturdayOpen")}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="saturdayEnd"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Closing Time</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  placeholder="13:00" 
+                                  disabled={!form.watch("saturdayOpen")}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
-                    )}
+                      
+                      <div className="flex items-center gap-4">
+                        <FormField
+                          control={form.control}
+                          name="saturdayBreakStart"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Break Start</FormLabel>
+                              <FormControl>
+                                <TimeInput 
+                                  field={field} 
+                                  placeholder="12:00" 
+                                  disabled={!form.watch("saturdayOpen")}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="saturdayBreakEnd"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Break End</FormLabel>
+                              <FormControl>
+                                <TimeInput 
+                                  field={field} 
+                                  placeholder="13:00" 
+                                  disabled={!form.watch("saturdayOpen")}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
                   </div>
                   
                   {/* Sunday */}
