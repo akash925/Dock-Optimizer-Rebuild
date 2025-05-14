@@ -8,6 +8,36 @@ import { users, tenants, organizationUsers, organizationModules, roles } from '@
 
 // API routes for organization modules
 export const registerOrganizationModulesRoutes = (app: Express) => {
+  // Public API endpoint to get tenant default hours by ID
+  app.get('/api/tenants/:id/default-hours', async (req: Request, res: Response) => {
+    try {
+      const tenantId = parseInt(req.params.id);
+      
+      if (isNaN(tenantId)) {
+        return res.status(400).json({ message: "Invalid tenant ID" });
+      }
+      
+      const storage = await getStorage();
+      
+      // Get tenant default hours
+      const defaultHours = await storage.getOrganizationDefaultHours(tenantId);
+      
+      if (!defaultHours) {
+        return res.status(404).json({ 
+          message: "Default hours not found for tenant" 
+        });
+      }
+      
+      res.json(defaultHours);
+    } catch (error) {
+      console.error('Error fetching tenant default hours:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch tenant default hours", 
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Get organization default hours
   app.get('/api/organizations/default-hours', async (req: Request, res: Response) => {
     // Check if user is authenticated

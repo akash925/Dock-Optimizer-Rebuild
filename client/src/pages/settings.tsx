@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ const formatDisplayDate = (dateStr: string): string => {
 export default function Settings() {
   const { toast } = useToast();
   const { user, logoutMutation } = useAuth();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("account");
   
   // User notification preference states
