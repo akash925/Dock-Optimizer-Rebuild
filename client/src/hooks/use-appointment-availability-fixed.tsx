@@ -5,8 +5,9 @@ import { apiRequest } from '@/lib/queryClient';
 export interface AvailabilitySlot {
   time: string;
   available: boolean;
-  reason?: string;
-  remaining?: number;
+  reason: string;
+  remaining: number;
+  remainingCapacity: number;
   isBufferTime?: boolean;
 }
 
@@ -107,19 +108,19 @@ export function useAppointmentAvailability({
       
       if (isHoliday) {
         // If it's a holiday, return empty slots
-        setAvailableTimeSlots([{
+        const holidaySlot: AvailabilitySlot = {
           time: '00:00',
           available: false,
           reason: 'Organization Holiday',
-        }]);
+          remaining: 0,
+          remainingCapacity: 0
+        };
+        
+        setAvailableTimeSlots([holidaySlot]);
         
         // Call callback if provided
         if (onTimeSlotGenerated) {
-          onTimeSlotGenerated([{
-            time: '00:00',
-            available: false,
-            reason: 'Organization Holiday',
-          }], null);
+          onTimeSlotGenerated([holidaySlot], null);
         }
         
         return;
@@ -161,7 +162,7 @@ export function useAppointmentAvailability({
       
       // Call callback if provided
       if (onTimeSlotGenerated) {
-        const firstAvailableSlot = slots.find(slot => slot.available)?.time || null;
+        const firstAvailableSlot = slots.find((slot: AvailabilitySlot) => slot.available)?.time || null;
         onTimeSlotGenerated(slots, firstAvailableSlot);
       }
     } catch (error) {
