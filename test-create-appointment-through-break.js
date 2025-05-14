@@ -75,34 +75,23 @@ async function createAppointmentThroughBreak() {
     const endTime = new Date(startTime);
     endTime.setHours(endTime.getHours() + 4);
     
-    // Appointment data
+    // Appointment data - use the booking endpoint format
     const appointmentData = {
-      type: "inbound",
-      status: "scheduled",
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      dockId: 11, // Dock at Fresh Connect HQ
       facilityId: FRESH_CONNECT_HQ_ID, // Fresh Connect HQ
       appointmentTypeId: APPOINTMENT_TYPE_CONTAINER, // 4 Hour Container Appointment
-      driver: {
-        name: "Test Driver",
-        phone: "555-123-4567",
-        email: "test@example.com"
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      type: "INBOUND",
+      companyName: "Test Company",
+      driverName: "Test Driver",
+      driverPhone: "555-123-4567",
+      driverEmail: "test@example.com",
+      notes: "Test appointment spanning through break time",
+      vehicleInfo: {
+        type: "STRAIGHT_TRUCK",
+        licensePlate: "TEST123"
       },
-      carrier: {
-        name: "Test Carrier",
-        mcNumber: "MC123456"
-      },
-      trailer: {
-        number: "TEST-1234"
-      },
-      hasTrailer: true,
-      referenceNumber: `TEST-BREAK-${Date.now()}`,
-      creator: {
-        email: "test@example.com",
-        name: "Test Creator"
-      },
-      notes: "Test appointment spanning through break time"
+      questionsData: {}
     };
     
     console.log(`Creating 4-hour appointment on ${appointmentDate} at 07:00 AM`);
