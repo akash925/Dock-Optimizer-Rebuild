@@ -1,6 +1,6 @@
 import { and, eq, gt, gte, lt, lte, ne, notInArray, or } from 'drizzle-orm';
 import { toZonedTime, format as tzFormat } from 'date-fns-tz';
-import { getDay, parseISO, addDays, format, addMinutes, isEqual } from 'date-fns';
+import { getDay, parseISO, addDays, format, addMinutes, isEqual, isAfter, parse, differenceInCalendarDays } from 'date-fns';
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { IStorage } from '../../storage';
 import { schedules, docks, appointmentTypes, organizationFacilities } from '@shared/schema';
@@ -18,6 +18,32 @@ export interface AvailabilitySlot {
 
 export interface AvailabilityOptions {
   testAppointments?: { id: number; startTime: Date; endTime: Date; }[];
+}
+
+export interface SchedulingConfig {
+  intervalMinutes: number;        // e.g. 30
+  bookingBufferMinutes: number;  // e.g. 60 (no same-hour bookings)
+  maxAdvanceDays: number;        // e.g. 30
+}
+
+export const defaultConfig: SchedulingConfig = {
+  intervalMinutes: 30,
+  bookingBufferMinutes: 60,
+  maxAdvanceDays: 30,
+};
+
+export interface DayHours {
+  open: boolean;
+  start: string;
+  end: string;
+  breakStart?: string;
+  breakEnd?: string;
+}
+
+export interface AvailabilityContext {
+  orgHours: Record<string, DayHours>;
+  facilityHours?: Record<string, DayHours>;
+  facilityOverrides: boolean;
 }
 
 export async function fetchRelevantAppointmentsForDay(
@@ -74,6 +100,59 @@ export async function fetchRelevantAppointmentsForDay(
 }
 
 
+export function getEffectiveHours(day: string, ctx: AvailabilityContext): DayHours | null {
+  if (ctx.facilityOverrides && ctx.facilityHours?.[day]?.open) {
+    return ctx.facilityHours[day];
+  }
+  if (ctx.orgHours?.[day]?.open) {
+    return ctx.orgHours[day];
+  }
+  return null;
+}
+
+export function generateTimeSlots(
+  hours: DayHours,
+  baseDate: Date,
+  config: SchedulingConfig
+): string[] {
+  const slots: string[] = [];
+  const start = parse(hours.start, 'HH:mm', baseDate);
+  const end = parse(hours.end, 'HH:mm', baseDate);
+  const breakStart = hours.breakStart ? parse(hours.breakStart, 'HH:mm', baseDate) : null;
+  const breakEnd = hours.breakEnd ? parse(hours.breakEnd, 'HH:mm', baseDate) : null;
+
+  const bufferCutoff = addMinutes(new Date(), config.bookingBufferMinutes);
+
+  let current = start;
+  while (!isAfter(current, end)) {
+    const inBreak = breakStart && breakEnd && current >= breakStart && current < breakEnd;
+    const afterBuffer = isAfter(current, bufferCutoff);
+    if (!inBreak && afterBuffer) {
+      slots.push(format(current, 'HH:mm'));
+    }
+    current = addMinutes(current, config.intervalMinutes);
+  }
+
+  return slots;
+}
+
+export function getAvailableTimeSlotsForDay(
+  date: Date,
+  ctx: AvailabilityContext,
+  config?: Partial<SchedulingConfig>
+): string[] {
+  const day = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  const mergedConfig = { ...defaultConfig, ...config };
+
+  const today = new Date();
+  if (differenceInCalendarDays(date, today) > mergedConfig.maxAdvanceDays) return [];
+
+  const hours = getEffectiveHours(day, ctx);
+  if (!hours) return [];
+
+  return generateTimeSlots(hours, date, mergedConfig);
+}
+
 export async function calculateAvailabilitySlots(
   db: DrizzleDBInstance,
   storage: IStorage,
@@ -81,10 +160,15 @@ export async function calculateAvailabilitySlots(
   facilityId: number,
   appointmentTypeId: number,
   effectiveTenantId: number,
-  options?: AvailabilityOptions
+  options?: AvailabilityOptions,
+  config?: Partial<SchedulingConfig>
 ): Promise<AvailabilitySlot[]> {
 
   console.log(`[AvailabilityService] Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${effectiveTenantId}`);
+
+  // Apply configuration settings with defaults
+  const mergedConfig = { ...defaultConfig, ...config };
+  console.log(`[AvailabilityService] Using config: interval=${mergedConfig.intervalMinutes}min, buffer=${mergedConfig.bookingBufferMinutes}min, maxAdvance=${mergedConfig.maxAdvanceDays} days`);
 
   const facility = await storage.getFacility(facilityId, effectiveTenantId);
   if (!facility) { throw new Error('Facility not found or access denied.'); }
@@ -114,33 +198,49 @@ export async function calculateAvailabilitySlots(
 
   console.log(`[AvailabilityService] Settings: overrideHours=${overrideFacilityHours}, allowThroughBreaks=${allowAppointmentsThroughBreaks}, duration=${appointmentTypeDuration}, bufferTime=${appointmentTypeBufferTime}, maxConcurrent=${maxConcurrent}`);
 
-  let operatingStartTimeStr = "09:00";
-  let operatingEndTimeStr = "17:00";
-  let isOpen = false;
-  let breakStartTimeStr = "";
-  let breakEndTimeStr = "";
-
-  if (overrideFacilityHours) {
-    operatingStartTimeStr = "00:00";
-    operatingEndTimeStr = "23:59";
-    isOpen = true;
-  } else {
-     const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-     const dayKey = dayKeys[dayOfWeek];
-     isOpen = getFacilityField(`${dayKey}Open`, `${dayKey}_open`) === true;
-     if (isOpen) {
-       operatingStartTimeStr = getFacilityField(`${dayKey}Start`, `${dayKey}_start`) || "09:00";
-       operatingEndTimeStr = getFacilityField(`${dayKey}End`, `${dayKey}_end`) || "17:00";
-       breakStartTimeStr = getFacilityField(`${dayKey}BreakStart`, `${dayKey}_break_start`, "");
-       breakEndTimeStr = getFacilityField(`${dayKey}BreakEnd`, `${dayKey}_break_end`, "");
-     }
+  // Build hours context
+  const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayKey = dayKeys[dayOfWeek];
+  
+  // Get organization hours
+  const organization = await storage.getOrganizationByFacilityId(facilityId);
+  if (!organization) {
+    throw new Error('Organization not found for this facility');
   }
-
-  if (!isOpen) {
+  
+  // Build the organization hours record from DB
+  const orgHours: Record<string, DayHours> = {};
+  
+  for (const day of dayKeys) {
+    const isOpen = getFacilityField(`${day}Open`, `${day}_open`) === true;
+    orgHours[day] = {
+      open: isOpen,
+      start: getFacilityField(`${day}Start`, `${day}_start`) || "09:00",
+      end: getFacilityField(`${day}End`, `${day}_end`) || "17:00",
+      breakStart: getFacilityField(`${day}BreakStart`, `${day}_break_start`, ""),
+      breakEnd: getFacilityField(`${day}BreakEnd`, `${day}_break_end`, ""),
+    };
+  }
+  
+  // Create availability context
+  const availabilityContext: AvailabilityContext = {
+    orgHours,
+    facilityOverrides: overrideFacilityHours
+  };
+  
+  // Check if facility is open on this day
+  const effectiveHours = getEffectiveHours(dayKey, availabilityContext);
+  if (!effectiveHours || !effectiveHours.open) {
     console.log(`[AvailabilityService] Facility ${facility.name} closed on ${date} (DoW: ${dayOfWeek})`);
     return [];
   }
-   console.log(`[AvailabilityService] Facility ${facility.name} open on ${date} (${dayOfWeek}) ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
+  
+  const operatingStartTimeStr = effectiveHours.start;
+  const operatingEndTimeStr = effectiveHours.end;
+  const breakStartTimeStr = effectiveHours.breakStart || "";
+  const breakEndTimeStr = effectiveHours.breakEnd || "";
+  
+  console.log(`[AvailabilityService] Facility ${facility.name} open on ${date} (${dayOfWeek}) ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
 
   const dayStart = toZonedTime(parseISO(`${date}T00:00:00`), facilityTimezone);
   const nextDateStr = format(addDays(parseISO(date), 1), 'yyyy-MM-dd');
@@ -162,7 +262,9 @@ export async function calculateAvailabilitySlots(
 
 
   const result: AvailabilitySlot[] = [];
-  const slotIntervalMinutes = Math.max(
+  
+  // Use interval from config with fallback to appointment type settings
+  const slotIntervalMinutes = mergedConfig.intervalMinutes || Math.max(
     appointmentTypeBufferTime > 0 ? appointmentTypeBufferTime : appointmentTypeDuration, 15
   );
 
@@ -187,12 +289,16 @@ export async function calculateAvailabilitySlots(
       } catch (e) { console.error("Error parsing break times", e); }
   }
 
+  // Apply booking buffer time (don't show slots too close to current time)
+  const bufferCutoff = addMinutes(new Date(), mergedConfig.bookingBufferMinutes);
+  console.log(`[AvailabilityService] Buffer cutoff: ${bufferCutoff.toISOString()}`);
+
   let currentSlotStartTime = new Date(operatingStartDateTime);
 
   while (currentSlotStartTime < operatingEndDateTime) {
     const currentSlotEndTime = addMinutes(currentSlotStartTime, appointmentTypeDuration);
 
-    // ** FIXED: Allow slots that END exactly at the operating end time **
+    // Early slot end check
     if (currentSlotEndTime > operatingEndDateTime) {
          console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: facilityTimezone })} ends after operating end ${operatingEndTimeStr}. Stopping.`);
          break;
@@ -202,9 +308,14 @@ export async function calculateAvailabilitySlots(
     let reason = "";
     let conflictingApptsCount = 0;
 
-    // Check for conflicts
-    if (existingAppointments && existingAppointments.length > 0) {
-        // ** FIXED: Correct Overlap Logic **
+    // Apply booking buffer - don't allow slots that start too soon
+    if (currentSlotStartTime < bufferCutoff) {
+        isSlotAvailable = false;
+        reason = "Too soon to book";
+    }
+
+    // Check for conflicts with existing appointments
+    if (isSlotAvailable && existingAppointments && existingAppointments.length > 0) {
         conflictingApptsCount = existingAppointments.filter((appt) => {
             const apptStart = appt.startTime.getTime();
             const apptEnd = appt.endTime.getTime();
@@ -214,22 +325,20 @@ export async function calculateAvailabilitySlots(
         }).length;
     }
 
-    // Check Capacity FIRST
+    // Check capacity
     const currentCapacity = maxConcurrent - conflictingApptsCount;
-    if (currentCapacity <= 0) {
+    if (isSlotAvailable && currentCapacity <= 0) {
         isSlotAvailable = false;
         reason = "Capacity full";
     }
 
-    // Check break time ONLY IF slot is still potentially available
+    // Check break time
     if (isSlotAvailable && breakStartDateTime && breakEndDateTime) {
-         // ** FIXED: Correct break overlap check **
         if (currentSlotStartTime.getTime() < breakEndDateTime.getTime() && currentSlotEndTime.getTime() > breakStartDateTime.getTime()) {
             if (!allowAppointmentsThroughBreaks) {
                 isSlotAvailable = false;
-                reason = "Break Time"; // Break reason takes precedence if it makes slot unavailable
+                reason = "Break Time";
             } else {
-                 // Only add reason if slot is truly available otherwise
                 if (isSlotAvailable) {
                     reason = "Spans through break time";
                 }
@@ -239,10 +348,10 @@ export async function calculateAvailabilitySlots(
 
     const remainingCapacity = isSlotAvailable ? Math.max(0, currentCapacity) : 0;
 
-    // Final status/reason check
-    if (remainingCapacity <= 0) {
+    // Final status check
+    if (remainingCapacity <= 0 && isSlotAvailable) {
         isSlotAvailable = false;
-        if (reason !== "Break Time") { // Don't overwrite Break Time reason
+        if (reason !== "Break Time") { 
              reason = "Capacity full";
         }
     }
