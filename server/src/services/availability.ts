@@ -112,24 +112,51 @@ export function getEffectiveHours(day: string, ctx: AvailabilityContext): DayHou
 
 export function generateTimeSlots(
   hours: DayHours,
-  baseDate: Date,
+  date: Date,
+  timezone: string,
   config: SchedulingConfig
 ): string[] {
   const slots: string[] = [];
-  const start = parse(hours.start, 'HH:mm', baseDate);
-  const end = parse(hours.end, 'HH:mm', baseDate);
-  const breakStart = hours.breakStart ? parse(hours.breakStart, 'HH:mm', baseDate) : null;
-  const breakEnd = hours.breakEnd ? parse(hours.breakEnd, 'HH:mm', baseDate) : null;
+  
+  // Format date to YYYY-MM-DD string for combining with time
+  const dateStr = format(date, 'yyyy-MM-dd');
+  
+  // Parse facility hours with timezone awareness
+  const start = toZonedTime(parse(`${dateStr} ${hours.start}`, 'yyyy-MM-dd HH:mm', new Date()), timezone);
+  const end = toZonedTime(parse(`${dateStr} ${hours.end}`, 'yyyy-MM-dd HH:mm', new Date()), timezone);
+  
+  // Parse break times with timezone awareness
+  const breakStart = hours.breakStart 
+    ? toZonedTime(parse(`${dateStr} ${hours.breakStart}`, 'yyyy-MM-dd HH:mm', new Date()), timezone) 
+    : null;
+  const breakEnd = hours.breakEnd 
+    ? toZonedTime(parse(`${dateStr} ${hours.breakEnd}`, 'yyyy-MM-dd HH:mm', new Date()), timezone)
+    : null;
 
-  const bufferCutoff = addMinutes(new Date(), config.bookingBufferMinutes);
+  // Current time and buffer cutoff in the facility timezone
+  const now = toZonedTime(new Date(), timezone);
+  const bufferCutoff = addMinutes(now, config.bookingBufferMinutes);
+
+  console.log(`[generateTimeSlots] Facility hours: ${tzFormat(start, 'HH:mm', { timeZone: timezone })} - ${tzFormat(end, 'HH:mm', { timeZone: timezone })}`);
+  if (breakStart && breakEnd) {
+    console.log(`[generateTimeSlots] Facility break: ${tzFormat(breakStart, 'HH:mm', { timeZone: timezone })} - ${tzFormat(breakEnd, 'HH:mm', { timeZone: timezone })}`);
+  }
+  console.log(`[generateTimeSlots] Current time: ${tzFormat(now, 'HH:mm', { timeZone: timezone })}, Buffer cutoff: ${tzFormat(bufferCutoff, 'HH:mm', { timeZone: timezone })}`);
 
   let current = start;
   while (!isAfter(current, end)) {
-    const inBreak = breakStart && breakEnd && current >= breakStart && current < breakEnd;
-    const afterBuffer = isAfter(current, bufferCutoff);
-    if (!inBreak && afterBuffer) {
-      slots.push(format(current, 'HH:mm'));
+    // Check if current time is in break
+    const inBreak = breakStart && breakEnd && 
+                   !isAfter(breakStart, current) && 
+                   isAfter(breakEnd, current);
+    
+    // Check if current time is after buffer cutoff
+    const pastBuffer = !isAfter(bufferCutoff, current);
+
+    if (!inBreak && pastBuffer) {
+      slots.push(tzFormat(current, 'HH:mm', { timeZone: timezone }));
     }
+
     current = addMinutes(current, config.intervalMinutes);
   }
 
@@ -139,6 +166,7 @@ export function generateTimeSlots(
 export function getAvailableTimeSlotsForDay(
   date: Date,
   ctx: AvailabilityContext,
+  timezone: string,
   config?: Partial<SchedulingConfig>
 ): string[] {
   const day = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
@@ -150,7 +178,7 @@ export function getAvailableTimeSlotsForDay(
   const hours = getEffectiveHours(day, ctx);
   if (!hours) return [];
 
-  return generateTimeSlots(hours, date, mergedConfig);
+  return generateTimeSlots(hours, date, timezone, mergedConfig);
 }
 
 export async function calculateAvailabilitySlots(

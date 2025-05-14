@@ -1,0 +1,125 @@
+GOAL
+Fix appointment availability logic by properly aligning timezone-aware slot generation, buffer cutoff filtering, and break enforcement. Also ensure the frontend external booking page is connected to /api/availability/v2 and displays correct time slots, including break-labeled disabled slots.
+
+✅ BACKEND FIXES
+📁 File: server/services/availability.ts
+🔹 1. Install date-fns-tz if not already:
+bash
+Copy
+Edit
+npm install date-fns-tz
+🔹 2. Update Slot Generation to Use Timezone-Aware Parsing
+Replace:
+
+ts
+Copy
+Edit
+import { parse, isAfter, addMinutes, format } from 'date-fns';
+With:
+
+ts
+Copy
+Edit
+import { parse, isAfter, addMinutes, format } from 'date-fns';
+import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+🔹 3. Fix generateTimeSlots Implementation
+ts
+Copy
+Edit
+function generateTimeSlots(
+  hours: DayHours,
+  date: Date,
+  timezone: string,
+  config: SchedulingConfig
+): string[] {
+  const slots: string[] = [];
+
+  const dateStr = format(date, 'yyyy-MM-dd');
+  const startUtc = zonedTimeToUtc(`${dateStr} ${hours.start}`, timezone);
+  const endUtc = zonedTimeToUtc(`${dateStr} ${hours.end}`, timezone);
+  const breakStartUtc = hours.breakStart ? zonedTimeToUtc(`${dateStr} ${hours.breakStart}`, timezone) : null;
+  const breakEndUtc = hours.breakEnd ? zonedTimeToUtc(`${dateStr} ${hours.breakEnd}`, timezone) : null;
+
+  const nowUtc = new Date();
+  const bufferCutoff = addMinutes(nowUtc, config.bookingBufferMinutes);
+
+  let current = startUtc;
+  while (!isAfter(current, endUtc)) {
+    const inBreak = breakStartUtc && breakEndUtc && current >= breakStartUtc && current < breakEndUtc;
+    const pastBuffer = isAfter(current, bufferCutoff);
+
+    if (!inBreak && pastBuffer) {
+      const localTime = utcToZonedTime(current, timezone);
+      slots.push(format(localTime, 'HH:mm'));
+    }
+
+    current = addMinutes(current, config.intervalMinutes);
+  }
+
+  return slots;
+}
+🔹 4. Update Usage
+In getAvailableTimeSlotsForDay(...):
+
+Add timezone as a required param:
+
+ts
+Copy
+Edit
+export function getAvailableTimeSlotsForDay(
+  date: Date,
+  ctx: AvailabilityContext,
+  timezone: string,
+  config?: Partial<SchedulingConfig>
+): string[] {
+  ...
+  return generateTimeSlots(hours, date, timezone, mergedConfig);
+}
+✅ FRONTEND FIXES
+📁 File: client/src/pages/external-booking-fixed.tsx
+🔹 1. Ensure You Use the Correct Hook
+If not already, import the fixed hook:
+
+ts
+Copy
+Edit
+import { useAppointmentAvailabilityFixed } from '@/hooks/use-appointment-availability-fixed';
+Replace any legacy slot-fetching with:
+
+ts
+Copy
+Edit
+const { slots, isLoading } = useAppointmentAvailabilityFixed({
+  facilityId,
+  appointmentTypeId,
+  date,
+});
+📁 File: client/src/components/booking/time-slot-picker.tsx
+🔹 2. Update Rendering to Use Slot Shape
+Ensure each slot uses the new API shape:
+
+tsx
+Copy
+Edit
+{slots.map(slot => (
+  <Button
+    key={slot.time}
+    disabled={!slot.available}
+    title={slot.reason || ''}
+  >
+    {format(parse(slot.time, 'HH:mm', new Date()), 'h:mm a')}
+  </Button>
+))}
+Optional: Add tooltip or inline label for slot.reason === "Break Time".
+
+✅ VALIDATION STEPS
+ Visit /external/test-booking-page
+
+ Pick Saturday, May 24
+
+ Confirm slots start at 05:00, not 04:00
+
+ Confirm slots during break (12:00–13:00) are disabled with “Break Time” label
+
+ Confirm buffer logic hides too-soon slots if current time + buffer exceeds window
+
