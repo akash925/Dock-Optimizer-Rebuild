@@ -899,6 +899,25 @@ export type CompanyAsset = typeof companyAssets.$inferSelect;
 export type InsertCompanyAsset = z.infer<typeof insertCompanyAssetSchema>;
 export type UpdateCompanyAsset = z.infer<typeof updateCompanyAssetSchema>;
 
+// Default hours type for organization settings
+export type DayHours = {
+  open: boolean;
+  start: string;
+  end: string;
+  breakStart?: string;
+  breakEnd?: string;
+}
+
+export type DefaultHours = {
+  monday: DayHours;
+  tuesday: DayHours;
+  wednesday: DayHours;
+  thursday: DayHours;
+  friday: DayHours;
+  saturday: DayHours;
+  sunday: DayHours;
+}
+
 // Multi-tenant support - Tenants table
 export const tenants = pgTable("tenants", {
   id: serial("id").primaryKey(),
@@ -915,7 +934,7 @@ export const tenants = pgTable("tenants", {
   planEndDate: date("plan_end_date"),
   timezone: text("timezone").default("America/New_York"),
   logo: text("logo_url"),
-  settings: jsonb("settings").default({}),
+  settings: jsonb("settings").default({}), // Contains defaultHours for facilities
   metadata: jsonb("metadata").default({}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

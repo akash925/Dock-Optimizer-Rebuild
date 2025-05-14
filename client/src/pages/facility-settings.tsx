@@ -23,31 +23,62 @@ const safeValueAsString = (value: string | null | undefined): string => {
   return value;
 };
 
-// Reusable component for time inputs that handles null values
+// Reusable component for time inputs that handles null values and formats input
 interface TimeInputProps {
   field: ControllerRenderProps<any, any>;
   placeholder: string;
+  disabled?: boolean;
 }
 
-const TimeInput = ({ field, placeholder }: TimeInputProps) => {
-  // Add pattern and title for better browser validation
+const TimeInput = ({ field, placeholder, disabled = false }: TimeInputProps) => {
+  // Add formatting on blur to properly format time values
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    field.onBlur();
+    const value = e.target.value.trim();
+    
+    if (!value) return;
+    
+    // If it's already in HH:MM format, no change needed
+    if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(value)) return;
+    
+    // Handle numeric inputs without colons (e.g. 800, 1700)
+    if (/^\d{3,4}$/.test(value)) {
+      const hours = value.length === 3 ? value.substring(0, 1) : value.substring(0, 2);
+      const minutes = value.length === 3 ? value.substring(1) : value.substring(2);
+      
+      const parsedHours = parseInt(hours);
+      const parsedMinutes = parseInt(minutes);
+      
+      if (parsedHours >= 0 && parsedHours <= 23 && parsedMinutes >= 0 && parsedMinutes <= 59) {
+        const formattedTime = `${parsedHours.toString().padStart(2, '0')}:${parsedMinutes.toString().padStart(2, '0')}`;
+        field.onChange(formattedTime);
+      }
+    }
+    // Handle numeric inputs with just the hour (e.g. 8, 17)
+    else if (/^\d{1,2}$/.test(value)) {
+      const parsedHours = parseInt(value);
+      
+      if (parsedHours >= 0 && parsedHours <= 23) {
+        const formattedTime = `${parsedHours.toString().padStart(2, '0')}:00`;
+        field.onChange(formattedTime);
+      }
+    }
+  };
+  
   return (
     <Input 
       onChange={(e) => {
-        // Ensure proper time format HH:MM
         const value = e.target.value;
         field.onChange(value);
-        
-        // Log to help debug
-        console.log(`TimeInput ${field.name} changed to: ${value}`);
       }}
-      onBlur={field.onBlur}
+      onBlur={handleBlur}
       name={field.name}
       ref={field.ref}
       value={safeValueAsString(field.value)}
       placeholder={placeholder}
       pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
-      title="Enter time in 24-hour format (HH:MM)"
+      title="Enter time in 24-hour format (HH:MM) or numbers like 800 for 08:00, 17 for 17:00"
+      disabled={disabled}
     />
   );
 };
