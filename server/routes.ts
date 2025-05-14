@@ -285,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register enhanced availability endpoint (v2)
   try {
     // Import the new availability service
-    const { calculateAvailabilitySlots } = await import('./src/services/availability');
+    const { calculateAvailabilitySlots, SchedulingConfig } = await import('./src/services/availability');
     
     // Register the v2 endpoint
     app.get("/api/availability/v2", async (req, res) => {
@@ -351,6 +351,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
+        // Extract configuration parameters from request if provided
+        const intervalMinutes = Number(req.query.intervalMinutes) || undefined;
+        const bookingBufferMinutes = Number(req.query.bookingBufferMinutes) || undefined;
+        const maxAdvanceDays = Number(req.query.maxAdvanceDays) || undefined;
+        
+        // Build configuration object
+        const config: Partial<SchedulingConfig> = {};
+        if (!isNaN(intervalMinutes)) config.intervalMinutes = intervalMinutes;
+        if (!isNaN(bookingBufferMinutes)) config.bookingBufferMinutes = bookingBufferMinutes;
+        if (!isNaN(maxAdvanceDays)) config.maxAdvanceDays = maxAdvanceDays;
+        
+        // Log configuration
+        console.log(`[AvailabilityV2] Using config:`, {
+          intervalMinutes: config.intervalMinutes || 'default',
+          bookingBufferMinutes: config.bookingBufferMinutes || 'default',
+          maxAdvanceDays: config.maxAdvanceDays || 'default'
+        });
+        
         // Call the enhanced availability service
         console.log(`[AvailabilityV2] Calling calculateAvailabilitySlots for date=${parsedDate}, facilityId=${parsedFacilityId}, typeId=${parsedAppointmentTypeId}`);
         const availabilitySlots = await calculateAvailabilitySlots(
@@ -359,7 +377,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedDate,
           parsedFacilityId,
           parsedAppointmentTypeId,
-          effectiveTenantId || 0 // Fallback to 0 if no tenant ID (should never happen due to check above)
+          effectiveTenantId || 0, // Fallback to 0 if no tenant ID (should never happen due to check above)
+          undefined, // No test appointments
+          config // Pass our configuration parameters
         );
         
         // For backward compatibility, extract just the time strings for available slots
