@@ -20,6 +20,7 @@ import {
   OrganizationModule, InsertOrganizationModule, AvailableModule,
   UserPreferences, InsertUserPreferences,
   ScheduleStatus, DockStatus, HolidayScope, TimeInterval, AssetCategory,
+  DefaultHours,
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
   appointmentTypes, dailyAvailability, customQuestions, standardQuestions, bookingPages, assets, companyAssets,
   tenants, roles, organizationUsers, organizationModules, organizationFacilities, userPreferences
@@ -1288,6 +1289,32 @@ export class MemStorage implements IStorage {
     return this.tenants.delete(id);
   }
   
+  // Organization default hours operations
+  async getOrganizationDefaultHours(orgId: number): Promise<DefaultHours | null> {
+    const tenant = await this.getTenantById(orgId);
+    if (!tenant || !tenant.settings || !tenant.settings.defaultHours) {
+      return null;
+    }
+    return tenant.settings.defaultHours as DefaultHours;
+  }
+  
+  async updateOrganizationDefaultHours(orgId: number, defaultHours: DefaultHours): Promise<boolean> {
+    const tenant = await this.getTenantById(orgId);
+    if (!tenant) return false;
+    
+    const settings = tenant.settings || {};
+    const updatedSettings = {
+      ...settings,
+      defaultHours
+    };
+    
+    const updateResult = await this.updateTenant(orgId, {
+      settings: updatedSettings
+    });
+    
+    return !!updateResult;
+  }
+  
   // Role operations
   async getRole(id: number): Promise<RoleRecord | undefined> {
     return this.roles.get(id);
@@ -1901,6 +1928,76 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tenants.id, id))
       .returning();
     return result;
+  }
+  
+  async deleteTenant(id: number): Promise<boolean> {
+    // First delete org modules and org users, then delete the tenant
+    try {
+      // Delete organization modules
+      await db.delete(organizationModules)
+        .where(eq(organizationModules.organizationId, id));
+      
+      // Delete organization user links (not the actual users)
+      await db.delete(organizationUsers)
+        .where(eq(organizationUsers.organizationId, id));
+      
+      // Delete the tenant
+      const result = await db.delete(tenants)
+        .where(eq(tenants.id, id))
+        .returning();
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Error deleting tenant ${id}:`, error);
+      return false;
+    }
+  }
+  
+  // Organization default hours operations
+  async getOrganizationDefaultHours(orgId: number): Promise<DefaultHours | null> {
+    try {
+      const [tenant] = await db.select()
+        .from(tenants)
+        .where(eq(tenants.id, orgId));
+      
+      if (!tenant || !tenant.settings || !tenant.settings.defaultHours) {
+        return null;
+      }
+      
+      return tenant.settings.defaultHours as DefaultHours;
+    } catch (error) {
+      console.error(`Error getting default hours for organization ${orgId}:`, error);
+      return null;
+    }
+  }
+  
+  async updateOrganizationDefaultHours(orgId: number, defaultHours: DefaultHours): Promise<boolean> {
+    try {
+      const [tenant] = await db.select()
+        .from(tenants)
+        .where(eq(tenants.id, orgId));
+      
+      if (!tenant) return false;
+      
+      const settings = tenant.settings || {};
+      const updatedSettings = {
+        ...settings,
+        defaultHours
+      };
+      
+      const [updatedTenant] = await db.update(tenants)
+        .set({
+          settings: updatedSettings,
+          updatedAt: new Date()
+        })
+        .where(eq(tenants.id, orgId))
+        .returning();
+      
+      return !!updatedTenant;
+    } catch (error) {
+      console.error(`Error updating default hours for organization ${orgId}:`, error);
+      return false;
+    }
   }
   
   // Asset Manager operations
