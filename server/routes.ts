@@ -249,6 +249,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Error registering BOL OCR routes:', error);
   }
   
+  // Register hours routes
+  try {
+    const { registerHoursRoutes } = await import('./modules/hours/routes');
+    registerHoursRoutes(app);
+    console.log('Hours routes registered');
+  } catch (error) {
+    console.error('Error registering hours routes:', error);
+  }
+  
   // Register Analytics routes
   try {
     app.use('/api/analytics', analyticsRoutes);

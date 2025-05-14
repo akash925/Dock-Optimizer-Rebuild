@@ -54,9 +54,25 @@ export function StandardQuestionsFormFields({
   }
 
   // Sort questions by order position and ONLY include questions marked as included=true
+  // First, categorize questions by type to prioritize shipment/appointment fields
   const sortedQuestions = [...questions]
     .filter(q => q.included) // Only include questions that have included=true
-    .sort((a, b) => a.orderPosition - b.orderPosition);
+    .sort((a, b) => {
+      // Priority order:
+      // 1. Appointment/shipment related fields first (use fieldKey pattern matching)
+      // 2. Then sort by orderPosition for same category
+      
+      // Check if fields are appointment/shipment related
+      const isAppointmentFieldA = /^(appointment|shipment|schedule|bol|truck|trailer|container|cargo|driver)/i.test(a.fieldKey);
+      const isAppointmentFieldB = /^(appointment|shipment|schedule|bol|truck|trailer|container|cargo|driver)/i.test(b.fieldKey);
+      
+      // Different categories - prioritize appointment fields
+      if (isAppointmentFieldA && !isAppointmentFieldB) return -1;
+      if (!isAppointmentFieldA && isAppointmentFieldB) return 1;
+      
+      // Same category - sort by orderPosition
+      return a.orderPosition - b.orderPosition;
+    });
   
   // Enhanced debug logging
   if (questions.length > 0) {
@@ -65,6 +81,17 @@ export function StandardQuestionsFormFields({
       sortedQuestions);
     console.log('[StandardQuestionsFormFields] Excluded questions with included=false (' + questions.filter(q => !q.included).length + '):', 
       questions.filter(q => !q.included));
+    
+    // Log which questions were identified as appointment/shipment related
+    const appointmentRelatedQuestions = sortedQuestions.filter(q => 
+      /^(appointment|shipment|schedule|bol|truck|trailer|container|cargo|driver)/i.test(q.fieldKey)
+    );
+    console.log('[StandardQuestionsFormFields] Appointment-related questions (' + appointmentRelatedQuestions.length + '):', 
+      appointmentRelatedQuestions.map(q => `${q.id} - ${q.fieldKey} - ${q.label}`));
+    
+    // Log the first few questions to verify ordering
+    console.log('[StandardQuestionsFormFields] Questions order after prioritizing appointment fields:',
+      sortedQuestions.slice(0, 5).map(q => `${q.id} - ${q.fieldKey} - ${q.label}`));
   }
 
   // Debug logging before rendering
