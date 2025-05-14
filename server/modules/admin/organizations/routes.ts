@@ -8,6 +8,96 @@ import { users, tenants, organizationUsers, organizationModules, roles } from '@
 
 // API routes for organization modules
 export const registerOrganizationModulesRoutes = (app: Express) => {
+  // Get organization default hours
+  app.get('/api/organizations/default-hours', async (req: Request, res: Response) => {
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+    try {
+      // Get user's tenant ID
+      const tenantId = req.user?.tenantId;
+      
+      if (!tenantId) {
+        return res.status(403).json({ 
+          message: "User must belong to an organization" 
+        });
+      }
+      
+      const storage = await getStorage();
+      
+      // Get organization default hours
+      const defaultHours = await storage.getOrganizationDefaultHours(tenantId);
+      
+      if (!defaultHours) {
+        return res.status(404).json({ 
+          message: "Organization default hours not found" 
+        });
+      }
+      
+      res.json(defaultHours);
+    } catch (error) {
+      console.error('Error fetching organization default hours:', error);
+      res.status(500).json({ 
+        message: "Failed to fetch organization default hours", 
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Update organization default hours
+  app.put('/api/organizations/default-hours', async (req: Request, res: Response) => {
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+    
+    try {
+      // Get user's tenant ID
+      const tenantId = req.user?.tenantId;
+      
+      if (!tenantId) {
+        return res.status(403).json({ 
+          message: "User must belong to an organization" 
+        });
+      }
+      
+      // Check if user has admin role
+      if (req.user.role !== 'admin' && req.user.role !== 'super-admin') {
+        return res.status(403).json({ 
+          message: "Only administrators can update organization default hours" 
+        });
+      }
+      
+      const { defaultHours } = req.body;
+      
+      if (!defaultHours) {
+        return res.status(400).json({ 
+          message: "Default hours are required" 
+        });
+      }
+      
+      const storage = await getStorage();
+      
+      // Update organization default hours
+      const updatedHours = await storage.updateOrganizationDefaultHours(tenantId, defaultHours);
+      
+      if (!updatedHours) {
+        return res.status(404).json({ 
+          message: "Failed to update organization default hours" 
+        });
+      }
+      
+      res.json(updatedHours);
+    } catch (error) {
+      console.error('Error updating organization default hours:', error);
+      res.status(500).json({ 
+        message: "Failed to update organization default hours", 
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Toggle a single module for an organization
   app.patch('/api/admin/orgs/:orgId/modules/:moduleName', async (req: Request, res: Response) => {
     try {
