@@ -405,7 +405,7 @@ export async function calculateAvailabilitySlots(
     }
 
     // Check break time - only apply if valid break times are configured
-    if (isSlotAvailable && breakStartDateTime && breakEndDateTime) {
+    if (breakStartDateTime && breakEndDateTime) {
         // Calculate if the appointment would overlap with a break
         const slotOverlapsBreak = currentSlotStartTime.getTime() < breakEndDateTime.getTime() && 
                                  currentSlotEndTime.getTime() > breakStartDateTime.getTime();
@@ -428,18 +428,19 @@ export async function calculateAvailabilitySlots(
                 reason = "Break Time";
                 console.log(`[AvailabilityService] Slot ${timeStr} overlaps break time and is NOT allowed through breaks.`);
             } else {
-                // Spans break but is allowed - mark with special reason for UI
-                if (isSlotAvailable) {
-                    if (slotStartsDuringBreak) {
-                        // This is specifically starting within a break time
-                        console.log(`[AvailabilityService] Slot ${timeStr} starts during break time but IS allowed through breaks.`);
-                    } else if (slotEndsDuringBreak) {
-                        // This ends within a break time
-                        console.log(`[AvailabilityService] Slot ${timeStr} ends during break time but IS allowed through breaks.`);
-                    } else {
-                        // This spans completely over a break time
-                        console.log(`[AvailabilityService] Slot ${timeStr} spans completely over break time but IS allowed through breaks.`);
-                    }
+                // Spans break but is allowed - add helpful reason for UI while keeping availability true
+                if (slotStartsDuringBreak) {
+                    // This is specifically starting within a break time
+                    reason = "Spans through break";
+                    console.log(`[AvailabilityService] Slot ${timeStr} starts during break time but IS allowed through breaks.`);
+                } else if (slotEndsDuringBreak) {
+                    // This ends within a break time
+                    reason = "Spans through break";
+                    console.log(`[AvailabilityService] Slot ${timeStr} ends during break time but IS allowed through breaks.`);
+                } else {
+                    // This spans completely over a break time
+                    reason = "Spans through break";
+                    console.log(`[AvailabilityService] Slot ${timeStr} spans completely over break time but IS allowed through breaks.`);
                 }
             }
         }
