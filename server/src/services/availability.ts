@@ -280,13 +280,23 @@ export async function calculateAvailabilitySlots(
 
   let breakStartDateTime: Date | null = null;
   let breakEndDateTime: Date | null = null;
-  if (breakStartTimeStr && breakEndTimeStr && breakStartTimeStr.includes(':') && breakEndTimeStr.includes(':')) {
+  // Only process break times when both are properly defined with non-empty strings
+  if (breakStartTimeStr && breakEndTimeStr && 
+      breakStartTimeStr.trim() !== "" && breakEndTimeStr.trim() !== "" && 
+      breakStartTimeStr.includes(':') && breakEndTimeStr.includes(':')) {
       try {
           breakStartDateTime = toZonedTime(parseISO(`${date}T${breakStartTimeStr}`), facilityTimezone);
           breakEndDateTime = toZonedTime(parseISO(`${date}T${breakEndTimeStr}`), facilityTimezone);
           if (breakEndDateTime <= breakStartDateTime) { breakEndDateTime = addDays(breakEndDateTime, 1); }
           console.log(`[AvailabilityService] Break time for ${date}: ${breakStartDateTime.toISOString()} to ${breakEndDateTime.toISOString()}`);
-      } catch (e) { console.error("Error parsing break times", e); }
+      } catch (e) { 
+          console.error(`[AvailabilityService] Error parsing break times: ${breakStartTimeStr} - ${breakEndTimeStr}`, e); 
+          // Reset to null if parsing failed
+          breakStartDateTime = null;
+          breakEndDateTime = null;
+      }
+  } else {
+      console.log(`[AvailabilityService] No valid break times configured for ${date}: "${breakStartTimeStr}" - "${breakEndTimeStr}"`);
   }
 
   // Apply booking buffer time (don't show slots too close to current time)
@@ -332,15 +342,22 @@ export async function calculateAvailabilitySlots(
         reason = "Capacity full";
     }
 
-    // Check break time
+    // Check break time - only apply if valid break times are configured
     if (isSlotAvailable && breakStartDateTime && breakEndDateTime) {
-        if (currentSlotStartTime.getTime() < breakEndDateTime.getTime() && currentSlotEndTime.getTime() > breakStartDateTime.getTime()) {
+        const slotOverlapsBreak = currentSlotStartTime.getTime() < breakEndDateTime.getTime() && 
+                                 currentSlotEndTime.getTime() > breakStartDateTime.getTime();
+        
+        if (slotOverlapsBreak) {
+            // If slot spans break time and appointments through breaks not allowed
             if (!allowAppointmentsThroughBreaks) {
                 isSlotAvailable = false;
                 reason = "Break Time";
+                console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: facilityTimezone })} overlaps break time and is NOT allowed through breaks.`);
             } else {
+                // Spans break but is allowed
                 if (isSlotAvailable) {
                     reason = "Spans through break time";
+                    console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: facilityTimezone })} spans break time but IS allowed through breaks.`);
                 }
             }
         }
