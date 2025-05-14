@@ -339,8 +339,7 @@ export async function calculateAvailabilitySlots(
   // DEBUG: Log time values for debugging
   console.log(`[AvailabilityService] DEBUG TIME VALUES:`);
   console.log(`  Original hours from DB: ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
-  console.log(`  Parsed without TZ: ${operatingStartTime.toISOString()} - ${operatingEndTime.toISOString()}`);
-  console.log(`  Converted with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
+  console.log(`  Direct parse with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
   console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
   
 
@@ -354,8 +353,7 @@ export async function calculateAvailabilitySlots(
   // DEBUG: Log time details to diagnose the timezone issue
   console.log(`[AvailabilityService] DEBUG TIME VALUES:`);
   console.log(`  Original hours from DB: ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
-  console.log(`  Parsed without TZ: ${operatingStartTime.toISOString()} - ${operatingEndTime.toISOString()}`);
-  console.log(`  Converted with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
+  console.log(`  Direct parse with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
   console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
   
 
@@ -394,9 +392,8 @@ export async function calculateAvailabilitySlots(
           // DEBUG: Log break time details for debugging
           console.log(`[AvailabilityService] DEBUG BREAK TIME VALUES:`);
           console.log(`  Original break time from DB: ${breakStartTimeStr} - ${breakEndTimeStr}`);
-          console.log(`  Parsed without TZ: ${breakStartTime.toISOString()} - ${breakEndTime.toISOString()}`);
-          console.log(`  Converted with TZ: ${breakStartDateTime.toISOString()} - ${breakEndDateTime.toISOString()}`);
-          console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(breakStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(breakEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
+          console.log(`  Direct parse with TZ: ${breakStartDateTime ? breakStartDateTime.toISOString() : 'null'} - ${breakEndDateTime ? breakEndDateTime.toISOString() : 'null'}`);
+          console.log(`  Formatted in ${effectiveTimezone}: ${breakStartDateTime ? tzFormat(breakStartDateTime, 'HH:mm', { timeZone: effectiveTimezone }) : 'null'} - ${breakEndDateTime ? tzFormat(breakEndDateTime, 'HH:mm', { timeZone: effectiveTimezone }) : 'null'}`);
           
           
           if (breakStartDateTime && breakEndDateTime) {
