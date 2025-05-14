@@ -1040,7 +1040,13 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                     key={slot.time}
                                     type="button"
                                     variant={field.value === slot.time ? "default" : "outline"}
-                                    className={`relative min-w-[120px] h-auto min-h-[85px] py-2 px-1 ${field.value === slot.time ? "booking-button" : "booking-button-secondary"}`}
+                                    className={`relative min-w-[120px] h-auto min-h-[85px] py-2 px-1 ${
+                                      field.value === slot.time 
+                                        ? "booking-button ring-2 ring-primary ring-offset-1" 
+                                        : slot.isBufferTime 
+                                          ? "booking-button-secondary border-amber-300 hover:border-amber-400 hover:bg-amber-50"
+                                          : "booking-button-secondary hover:border-primary/30 hover:bg-primary/5"
+                                    }`}
                                     onClick={() => {
                                       field.onChange(slot.time);
                                       handleTimeChange(slot.time);
@@ -1059,9 +1065,10 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                         {/* Display remaining capacity */}
                                         {((slot.remaining !== undefined && slot.remaining > 0) || 
                                           (slot.remainingCapacity !== undefined && slot.remainingCapacity > 0)) && (
-                                          <div className="text-xs font-semibold text-green-600 mt-1">
+                                          <div className="text-xs font-medium px-2 py-0.5 mt-1 bg-green-50 text-green-600 border border-green-100 rounded-full inline-flex items-center">
+                                            <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1"></div>
                                             {slot.remaining !== undefined ? slot.remaining : 
-                                            (slot.remainingCapacity !== undefined ? slot.remainingCapacity : '')} available
+                                            (slot.remainingCapacity !== undefined ? slot.remainingCapacity : '')} {(slot.remaining === 1 || slot.remainingCapacity === 1) ? 'spot' : 'spots'} available
                                           </div>
                                         )}
                                       </div>
@@ -1102,9 +1109,9 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                     
                                     {/* Show buffer time indicator if applicable */}
                                     {slot.isBufferTime && (
-                                      <span className="absolute bottom-0 right-0 m-1 flex h-2 w-2 items-center justify-center rounded-full bg-amber-400" 
-                                        title="Buffer time zone">
-                                      </span>
+                                      <div className="absolute bottom-0 left-0 right-0 py-1 text-center text-xs font-medium bg-amber-100 text-amber-700 rounded-b-md">
+                                        Buffer Time
+                                      </div>
                                     )}
                                   </Button>
                                 );
@@ -1115,7 +1122,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                     key={slot.time}
                                     className={`relative min-w-[120px] h-auto min-h-[85px] py-2 px-1 border 
                                       ${slot.isBufferTime 
-                                        ? 'border-amber-200 bg-amber-50' 
+                                        ? 'border-amber-300 bg-amber-50 shadow-sm shadow-amber-100' 
                                         : 'border-gray-200 bg-gray-50'} 
                                       rounded-md flex flex-col items-center justify-center`}
                                     title={slot.reason || "Unavailable"}
@@ -1139,7 +1146,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                       
                                       {/* Display reason for unavailability */}
                                       {slot.reason && (
-                                        <div className="text-xs font-medium text-red-500 mt-1 max-w-[100px] truncate" title={slot.reason}>
+                                        <div className="text-xs font-medium text-red-500 mt-2 max-w-[100px] px-1 py-0.5 bg-red-50 border border-red-100 rounded-md truncate" title={slot.reason}>
                                           {slot.reason}
                                         </div>
                                       )}
@@ -1147,9 +1154,9 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                     
                                     {/* Show buffer time indicator if applicable */}
                                     {slot.isBufferTime && (
-                                      <span className="absolute bottom-0 right-0 m-1 flex h-2 w-2 items-center justify-center rounded-full bg-amber-400" 
-                                        title="Buffer time zone">
-                                      </span>
+                                      <div className="absolute bottom-0 left-0 right-0 py-1 text-center text-xs font-medium bg-amber-100 text-amber-700 rounded-b-md">
+                                        Buffer Time
+                                      </div>
                                     )}
                                   </div>
                                 );
