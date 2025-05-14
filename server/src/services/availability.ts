@@ -1,6 +1,15 @@
 import { and, eq, gt, gte, lt, lte, ne, notInArray, or } from 'drizzle-orm';
 import { toZonedTime, format as tzFormat } from 'date-fns-tz';
 import { getDay, parseISO, addDays, format, addMinutes, isEqual, isAfter, parse, differenceInCalendarDays } from 'date-fns';
+
+// Helper function to parse ISO dates with timezone options
+function tzParseISO(dateStr: string, options?: { timeZone?: string }): Date {
+  const parsedDate = parseISO(dateStr);
+  if (options?.timeZone) {
+    return toZonedTime(parsedDate, options.timeZone);
+  }
+  return parsedDate;
+}
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { IStorage } from '../../storage';
 import { schedules, docks, appointmentTypes, organizationFacilities } from '@shared/schema';
@@ -308,14 +317,32 @@ export async function calculateAvailabilitySlots(
     appointmentTypeBufferTime > 0 ? appointmentTypeBufferTime : appointmentTypeDuration, 15
   );
 
-  // Step 1: Parse the operating hours from string format to facility local time Date objects
-  // FIX: Parse the time without applying timezone first
-  const operatingStartTime = parseISO(`${date}T${operatingStartTimeStr}`);
-  const operatingEndTime = parseISO(`${date}T${operatingEndTimeStr}`);
+  // Step 1: Create facility-local date objects that represent the actual intended times
+  // NEW FIX: Create date objects that properly represent the intended times in facility timezone
+  // This approach avoids the timezone conversion issues by working with local time directly
   
-  // FIX: Then explicitly convert to the effective timezone
-  const operatingStartDateTime = toZonedTime(operatingStartTime, effectiveTimezone);
-  let operatingEndDateTime = toZonedTime(operatingEndTime, effectiveTimezone);
+  // Start by creating a date-less base time in facility timezone
+  const facilityTZDate = tzParseISO(date, { timeZone: effectiveTimezone });
+  const facilityTZDateStr = tzFormat(facilityTZDate, 'yyyy-MM-dd', { timeZone: effectiveTimezone });
+  
+  // Create proper time objects in facility timezone 
+  const operatingStartDateTime = tzParseISO(
+    `${facilityTZDateStr}T${operatingStartTimeStr}`, 
+    { timeZone: effectiveTimezone }
+  );
+  
+  let operatingEndDateTime = tzParseISO(
+    `${facilityTZDateStr}T${operatingEndTimeStr}`, 
+    { timeZone: effectiveTimezone }
+  );
+  
+  // DEBUG: Log time values for debugging
+  console.log(`[AvailabilityService] DEBUG TIME VALUES:`);
+  console.log(`  Original hours from DB: ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
+  console.log(`  Parsed without TZ: ${operatingStartTime.toISOString()} - ${operatingEndTime.toISOString()}`);
+  console.log(`  Converted with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
+  console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
+  
 
   // Adjust end time for loop comparison
   if (operatingEndTimeStr === "23:59") {
@@ -345,14 +372,19 @@ export async function calculateAvailabilitySlots(
       breakStartTimeStr.trim() !== "" && breakEndTimeStr.trim() !== "" && 
       breakStartTimeStr.includes(':') && breakEndTimeStr.includes(':')) {
       try {
-          // FIX: Parse break time in two steps to avoid double timezone shift
-          // Step 1: Create Date objects from strings (without timezone)
-          const breakStartTime = parseISO(`${date}T${breakStartTimeStr}`);
-          const breakEndTime = parseISO(`${date}T${breakEndTimeStr}`);
+          // NEW FIX: Use the same approach as operating hours for break times
+          // This creates date objects that properly represent the times in the facility timezone
           
-          // Step 2: Apply timezone explicitly
-          breakStartDateTime = toZonedTime(breakStartTime, effectiveTimezone);
-          breakEndDateTime = toZonedTime(breakEndTime, effectiveTimezone);
+          // Create proper time objects in facility timezone
+          breakStartDateTime = tzParseISO(
+            `${facilityTZDateStr}T${breakStartTimeStr}`,
+            { timeZone: effectiveTimezone }
+          );
+          
+          breakEndDateTime = tzParseISO(
+            `${facilityTZDateStr}T${breakEndTimeStr}`,
+            { timeZone: effectiveTimezone }
+          );
           
           // Adjust if break spans midnight
           if (breakEndDateTime && breakStartDateTime && breakEndDateTime <= breakStartDateTime) { 
