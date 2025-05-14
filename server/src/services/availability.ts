@@ -366,6 +366,10 @@ export async function calculateAvailabilitySlots(
 
     // Apply booking buffer - don't allow slots that start too soon
     if (currentSlotStartTime < bufferCutoff) {
+        // Format times to display in logs using the effective timezone
+        const slotTimeStr = tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone });
+        const bufferTimeStr = tzFormat(bufferCutoff, 'HH:mm', { timeZone: effectiveTimezone });
+        console.log(`[AvailabilityService] Slot at ${slotTimeStr} is too soon (before buffer cutoff ${bufferTimeStr})`);
         isSlotAvailable = false;
         reason = "Too soon to book";
     }
@@ -398,12 +402,12 @@ export async function calculateAvailabilitySlots(
             if (!allowAppointmentsThroughBreaks) {
                 isSlotAvailable = false;
                 reason = "Break Time";
-                console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: facilityTimezone })} overlaps break time and is NOT allowed through breaks.`);
+                console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} overlaps break time and is NOT allowed through breaks.`);
             } else {
                 // Spans break but is allowed
                 if (isSlotAvailable) {
                     reason = "Spans through break time";
-                    console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: facilityTimezone })} spans break time but IS allowed through breaks.`);
+                    console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} spans break time but IS allowed through breaks.`);
                 }
             }
         }
@@ -420,7 +424,7 @@ export async function calculateAvailabilitySlots(
     }
 
     result.push({
-      time: tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: facilityTimezone }),
+      time: tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone }),
       available: isSlotAvailable,
       remainingCapacity: remainingCapacity,
       remaining: remainingCapacity,
