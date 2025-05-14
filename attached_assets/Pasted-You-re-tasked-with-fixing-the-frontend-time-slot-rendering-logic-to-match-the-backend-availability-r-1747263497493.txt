@@ -1,0 +1,38 @@
+You're tasked with fixing the frontend time slot rendering logic to match the backend availability response exactly.
+
+Here’s the current issue:
+- The backend now correctly calculates and returns available time slots in the facility's local timezone.
+- However, the frontend (`time-slot-picker.tsx` and related hooks) is displaying time blocks that do not reflect backend results. It seems to be using a hardcoded set of hours or an outdated assumption of open hours.
+- Example: The UI shows time blocks from 4:00 AM EDT onward, even when the facility is configured to open at 8:00 AM.
+
+Your goal is to ensure the frontend only displays time slots returned by the `availability/v2` API.
+
+🔧 Tasks:
+1. Open `client/src/hooks/use-appointment-availability-fixed.tsx` and verify that it fetches from `/api/availability/v2`.
+   - Confirm it does **not** generate any time slots locally.
+   - If local fallback logic exists (e.g., a hardcoded time grid), remove or gate it behind an explicit fallback flag.
+
+2. Open `client/src/components/booking/time-slot-picker.tsx` and:
+   - Map directly over the `data.slots` array from the hook.
+   - Render only the slots returned by the API.
+   - Each slot should display:
+     - `slot.time` → formatted time in facility timezone
+     - `slot.reason` if unavailable
+     - `slot.remainingCapacity` if available
+
+3. Add logging or a temporary `<pre>{JSON.stringify(data.slots, null, 2)}</pre>` to verify it’s rendering **only API-provided times**.
+
+4. Remove any assumptions or constants like:
+   ```ts
+   const HOURS = ['04:00', '04:30', ..., '22:00']
+These must be deleted or ignored when using v2.
+
+✅ Success criteria:
+
+If the backend sends 8:00 AM to 5:00 PM, only those show.
+
+If a slot is blocked due to a break or buffer, it is labeled as such via slot.reason.
+
+No additional or early-morning phantom slots appear.
+
+Test by selecting a facility with known configured hours (e.g., 08:00–17:00) and observing that the frontend slots line up exactly with the returned backend times.
