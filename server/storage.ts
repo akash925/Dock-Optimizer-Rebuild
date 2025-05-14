@@ -3032,8 +3032,15 @@ export class DatabaseStorage implements IStorage {
       delete filteredUpdate.id;
       delete filteredUpdate.createdAt;
       
-      // Get the keys to update
+      // Dynamically compute update keys
       const updateKeys = Object.keys(filteredUpdate);
+      
+      // Normalize empty strings to null
+      for (const key of updateKeys) {
+        if (filteredUpdate[key] === "") {
+          filteredUpdate[key] = null;
+        }
+      }
       
       // If there are no valid keys to update, return the existing facility
       if (updateKeys.length === 0) {
