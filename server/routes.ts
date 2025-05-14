@@ -290,7 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Register the v2 endpoint
     app.get("/api/availability/v2", async (req, res) => {
       try {
-        const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
+        const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug, timezone } = req.query;
         
         // Get the tenant ID from user session
         const userTenantId = req.user?.tenantId;
@@ -325,6 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           appointmentTypeId, 
           typeId, 
           finalTypeId,
+          timezone: timezone || 'not provided',
           bookingPageSlug: bookingPageSlug || 'none',
           userTenantId: userTenantId || 'none',
           effectiveTenantId: effectiveTenantId || 'none'
@@ -342,6 +343,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const parsedDate = String(date); // YYYY-MM-DD format
         const parsedFacilityId = Number(facilityId);
         const parsedAppointmentTypeId = Number(finalTypeId);
+        // Default to America/New_York if timezone is not provided or invalid
+        const parsedTimezone = typeof timezone === 'string' ? timezone : undefined;
         
         // Check if user has a valid tenant ID (either directly or from booking page)
         if (!effectiveTenantId && !req.user?.username?.includes('admin@conmitto.io')) {
@@ -370,7 +373,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         // Call the enhanced availability service
-        console.log(`[AvailabilityV2] Calling calculateAvailabilitySlots for date=${parsedDate}, facilityId=${parsedFacilityId}, typeId=${parsedAppointmentTypeId}`);
+        console.log(`[AvailabilityV2] Calling calculateAvailabilitySlots for date=${parsedDate}, facilityId=${parsedFacilityId}, typeId=${parsedAppointmentTypeId}, timezone=${parsedTimezone || 'facility default'}`);
+        
+        // First attempt to fetch the facility to get its timezone
+        const facility = await storage.getFacility(parsedFacilityId, effectiveTenantId || 0);
+        if (!facility) {
+          console.log(`[AvailabilityV2] Facility ${parsedFacilityId} not found`);
+          return res.status(404).json({ message: "Facility not found" });
+        }
+        
+        // Use the provided timezone or fall back to facility timezone
+        const facilityTimezone = facility.timezone || 'America/New_York';
+        const effectiveTimezone = parsedTimezone || facilityTimezone;
+        console.log(`[AvailabilityV2] Using timezone: ${effectiveTimezone} (facility: ${facilityTimezone})`);
+        
         const availabilitySlots = await calculateAvailabilitySlots(
           db,
           storage,

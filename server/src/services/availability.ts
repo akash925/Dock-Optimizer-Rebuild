@@ -189,7 +189,8 @@ export async function calculateAvailabilitySlots(
   appointmentTypeId: number,
   effectiveTenantId: number,
   options?: AvailabilityOptions,
-  config?: Partial<SchedulingConfig>
+  config?: Partial<SchedulingConfig>,
+  customTimezone?: string // Allow passing a custom timezone
 ): Promise<AvailabilitySlot[]> {
 
   console.log(`[AvailabilityService] Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${effectiveTenantId}`);
@@ -209,10 +210,14 @@ export async function calculateAvailabilitySlots(
        throw new Error('Appointment type not found or access denied.');
   }
 
+  // Use provided timezone or fall back to facility timezone
   const facilityTimezone = facility.timezone || 'America/New_York';
-  const zonedDate = toZonedTime(parseISO(`${date}T00:00:00`), facilityTimezone);
+  const effectiveTimezone = customTimezone || facilityTimezone;
+  console.log(`[AvailabilityService] Using timezone: ${effectiveTimezone} (facility default: ${facilityTimezone})`);
+  
+  const zonedDate = toZonedTime(parseISO(`${date}T00:00:00`), effectiveTimezone);
   const dayOfWeek = getDay(zonedDate);
-  console.log(`[AvailabilityService] Date ${date} in ${facilityTimezone} is day of week: ${dayOfWeek}`);
+  console.log(`[AvailabilityService] Date ${date} in ${effectiveTimezone} is day of week: ${dayOfWeek}`);
 
   const getObjectField = (obj: any, camelCase: string, snakeCase: string, defaultValue: any = undefined): any => obj?.[snakeCase] ?? obj?.[camelCase] ?? defaultValue;
   const getFacilityField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => getObjectField(facility, camelCase, snakeCase, defaultValue);
@@ -287,7 +292,11 @@ export async function calculateAvailabilitySlots(
        console.error("[AvailabilityService] Error calling fetchRelevantAppointmentsForDay:", fetchError);
        throw new Error(`Failed to fetch existing appointments.`); // Throw consistent error message
   }
-
+  
+  // For testing purposes, uncomment to log detailed appointment info
+  // existingAppointments.forEach((appt, idx) => {
+  //   console.log(`[AvailabilityService] Appointment ${idx + 1}: ID=${appt.id}, Start=${tzFormat(appt.startTime, 'yyyy-MM-dd HH:mm', { timeZone: facilityTimezone })}, End=${tzFormat(appt.endTime, 'yyyy-MM-dd HH:mm', { timeZone: facilityTimezone })}`);
+  // });
 
   const result: AvailabilitySlot[] = [];
   
