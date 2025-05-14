@@ -767,11 +767,43 @@ export default function FacilitySettingsPage() {
             
             <TabsContent value="hours">
               <Card>
-                <CardHeader>
-                  <CardTitle>Facility Operating Hours</CardTitle>
-                  <CardDescription>
-                    Configure when this facility is open for appointments. All times are in 24-hour format (HH:MM).
-                  </CardDescription>
+                <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <CardTitle>Facility Operating Hours</CardTitle>
+                    <CardDescription>
+                      Configure when this facility is open for appointments. All times are in 24-hour format (HH:MM).
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (orgDefaultHours) {
+                        // Reset all days to organization defaults
+                        resetDayToDefault(form, "monday", orgDefaultHours);
+                        resetDayToDefault(form, "tuesday", orgDefaultHours);
+                        resetDayToDefault(form, "wednesday", orgDefaultHours);
+                        resetDayToDefault(form, "thursday", orgDefaultHours);
+                        resetDayToDefault(form, "friday", orgDefaultHours);
+                        resetDayToDefault(form, "saturday", orgDefaultHours);
+                        resetDayToDefault(form, "sunday", orgDefaultHours);
+                        
+                        toast({
+                          title: "All Hours Reset",
+                          description: "All days have been reset to organization defaults.",
+                        });
+                      } else {
+                        toast({
+                          title: "Cannot Reset",
+                          description: "Organization default hours not available.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    disabled={!orgDefaultHours || isLoadingDefaults}
+                  >
+                    Reset All Days to Default
+                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Monday */}
