@@ -154,10 +154,19 @@ export function useAppointmentAvailability({
       const data = await response.json();
       console.log(`[AvailabilityHook] Received ${data.slots?.length || 0} slots from v2 endpoint`);
       
-      // Use slots directly from the API response
-      const slots = data.slots || [];
+      // Use slots directly from the API response but ensure they meet the interface requirements
+      const slots = (data.slots || []).map((slot: any): AvailabilitySlot => ({
+        time: slot.time,
+        available: Boolean(slot.available),
+        reason: slot.reason || '',
+        remaining: typeof slot.remaining === 'number' ? slot.remaining : 0,
+        remainingCapacity: typeof slot.remainingCapacity === 'number' ? slot.remainingCapacity : 0,
+        isBufferTime: Boolean(slot.isBufferTime)
+      }));
       
-      // Update state with received slots
+      console.log(`[AvailabilityHook] Processed ${slots.length} slots for UI rendering`);
+      
+      // Update state with the processed slots
       setAvailableTimeSlots(slots);
       
       // Call callback if provided
