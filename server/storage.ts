@@ -51,9 +51,6 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 // Storage Interface
-// Define the default hours type for organization settings
-import { DefaultHours } from "@shared/schema";
-
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -171,6 +168,10 @@ export interface IStorage {
   createTenant(tenant: InsertTenant): Promise<Tenant>;
   updateTenant(id: number, tenant: Partial<Tenant>): Promise<Tenant | undefined>;
   deleteTenant(id: number): Promise<boolean>;
+  
+  // Organization default hours operations
+  getOrganizationDefaultHours(orgId: number): Promise<DefaultHours | null>;
+  updateOrganizationDefaultHours(orgId: number, defaultHours: DefaultHours): Promise<boolean>;
   
   // Role operations
   getRole(id: number): Promise<RoleRecord | undefined>;
