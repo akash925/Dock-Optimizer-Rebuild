@@ -164,6 +164,11 @@ export function useAppointmentAvailability({
         isBufferTime: Boolean(slot.isBufferTime)
       }));
       
+      // Debug information about slots
+      console.log(`[AvailabilityHook] Received slots:`, data.slots);
+      console.log(`[AvailabilityHook] User TZ:`, Intl.DateTimeFormat().resolvedOptions().timeZone);
+      console.log(`[AvailabilityHook] Facility TZ:`, facilityTimezone || timezone || 'not provided');
+      
       console.log(`[AvailabilityHook] Processed ${slots.length} slots for UI rendering`);
       
       // Update state with the processed slots
