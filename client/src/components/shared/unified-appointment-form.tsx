@@ -207,6 +207,7 @@ export default function UnifiedAppointmentForm({
   const [availableTimeSlots, setAvailableTimeSlots] = useState<{ time: string; available: boolean; reason?: string }[]>([]);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<number | null>(null);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -259,11 +260,28 @@ export default function UnifiedAppointmentForm({
   const docks = selectedFacilityId 
     ? allDocks.filter(dock => dock.facilityId === selectedFacilityId)
     : allDocks;
+    
+  // Fetch organization ID for the selected facility
+  useEffect(() => {
+    if (selectedFacilityId) {
+      // For bookingPage mode, use the organization ID from the booking page
+      if (mode === "external" && bookingPage?.organizationId) {
+        setOrganizationId(bookingPage.organizationId);
+      } else {
+        // For internal mode, get the organization ID from the user's context or from the facility
+        // Use the tenant ID as the organization ID (they are the same in our system)
+        setOrganizationId(user?.tenantId || null);
+      }
+    }
+  }, [selectedFacilityId, bookingPage, user, mode]);
   
   // Fetch carriers
   const { data: carriers = [] } = useQuery<Carrier[]>({
     queryKey: ["/api/carriers"],
   });
+  
+  // Use the enabled booking days hook if organization ID is available
+  const { isDayEnabled, getHoursForDay } = useEnabledBookingDays(organizationId || undefined);
   
   // Set up forms for each step
   // Step 1 Form: Truck Information
