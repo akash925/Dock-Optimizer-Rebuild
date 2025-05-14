@@ -1017,6 +1017,16 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                               )}
                             </div>
                           </div>
+                          
+                          {/* Temporary debug display of raw slots data from API */}
+                          <details className="mb-4 text-xs border p-2 rounded bg-gray-50">
+                            <summary className="font-mono cursor-pointer text-gray-700 font-medium">
+                              API Slots Data (Debug)
+                            </summary>
+                            <pre className="mt-2 overflow-auto max-h-[300px] p-2 bg-gray-100 rounded">
+                              {JSON.stringify(availabilitySlots, null, 2)}
+                            </pre>
+                          </details>
 
                           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                             {availabilitySlots.map((slot) => {

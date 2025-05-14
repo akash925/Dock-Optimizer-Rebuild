@@ -28,8 +28,12 @@ export function TimeSlotPicker({
   
   // Debug timezone info
   console.log(`TimeSlotPicker - Facility timezone: ${timezone}, User timezone: ${userTimezone}`);
+  console.log(`TimeSlotPicker - Received ${slots.length} slots from API`);
   
-  // Sort slots chronologically by time
+  // Debug: Log the actual slots received from the backend
+  console.log(`TimeSlotPicker - Slot data from API:`, JSON.stringify(slots, null, 2));
+  
+  // Sort slots chronologically by time - using only what the API provides
   const sortedSlots = [...slots].sort((a, b) => {
     const timeA = parse(a.time, "HH:mm", new Date());
     const timeB = parse(b.time, "HH:mm", new Date());
