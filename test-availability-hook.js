@@ -121,22 +121,22 @@ function validateResults(trailerData, containerData) {
   
   // Trailer slots through break time should be unavailable
   const trailerBreakBlocked = trailerBreakSlots.some(slot => 
-    !slot.available && slot.reason && slot.reason.toLowerCase().includes('break')
+    !slot.available && slot.reason === 'Break Time'
   );
   
   console.log(`- Trailer slots through break time blocked: ${trailerBreakBlocked ? '✅ Yes' : '❌ No'}`);
   
   // Container slots through break time should be available
   const containerBreakAllowed = containerBreakSlots.some(slot => 
-    slot.available && slot.reason && slot.reason.toLowerCase().includes('break')
+    slot.available && slot.reason === 'Spans through break time'
   );
   
   console.log(`- Container slots allowed through break time: ${containerBreakAllowed ? '✅ Yes' : '❌ No'}`);
   
-  // Both should have identical total number of slots
-  console.log(`- Slot count matches: ${trailerData.slots.length === containerData.slots.length ? '✅ Yes' : '❌ No'}`);
+  // Container has fewer slots because it spans 4 hours versus 1 hour
+  console.log(`- Trailer slots (1 hour): ${trailerData.slots.length}, Container slots (4 hours): ${containerData.slots.length}`);
   
-  // Final validation 
+  // Final validation - only check break time handling, not total slot count
   if (trailerBreakBlocked && containerBreakAllowed) {
     console.log('\n✅ Validation passed! Break time handling is working correctly for both appointment types.');
   } else {

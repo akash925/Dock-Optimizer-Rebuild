@@ -10,8 +10,28 @@ import fetch from 'node-fetch';
 
 async function createAppointmentThroughBreak() {
   try {
+    // Login as Fresh Connect Central admin
+    console.log("\n1. Logging in as Fresh Connect admin...");
+    const loginResponse = await fetch('http://localhost:5000/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        username: 'akash@agarwalhome.com', 
+        password: 'fccentral'
+      })
+    });
+
+    if (!loginResponse.ok) {
+      throw new Error(`Login failed: ${loginResponse.statusText}`);
+    }
+
+    const cookies = loginResponse.headers.get('set-cookie');
+    console.log("Login successful!\n");
+
     // First verify the appointment type settings
-    const typeResponse = await fetch('http://localhost:5000/api/appointment-types/17');
+    const typeResponse = await fetch('http://localhost:5000/api/appointment-types/17', {
+      headers: { Cookie: cookies }
+    });
     if (!typeResponse.ok) {
       throw new Error(`Failed to fetch appointment type: ${typeResponse.statusText}`);
     }
