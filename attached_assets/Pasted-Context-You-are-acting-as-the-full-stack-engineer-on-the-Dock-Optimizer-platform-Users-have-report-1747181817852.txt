@@ -1,0 +1,68 @@
+Context:
+You are acting as the full-stack engineer on the Dock Optimizer platform. Users have reported that toggling Saturday/Sunday availability and saving operating hours intermittently fails — either not persisting data or throwing validation errors even for valid input.
+
+This task involves fixing both the frontend form submission logic and the Zod schema validation.
+
+🎯 Goal
+Ensure that Saturday and Sunday operating hours can be reliably saved and updated in the facility settings form — including correct handling of break times, toggling open/closed, and validation.
+
+🔧 Tasks
+✅ 1. Frontend: Normalize Submission Data
+📍 File: client/src/pages/facility-settings.tsx
+
+Update the updateMutation submission logic to:
+
+Always include Saturday and Sunday fields (start, end, breakStart, breakEnd, open).
+
+When a day is toggled closed (saturdayOpen === false), send its break times as empty strings (or null if preferred by backend).
+
+Ensure data includes these fields explicitly:
+
+ts
+Copy
+Edit
+if (!data.saturdayOpen) {
+  data.saturdayBreakStart = "";
+  data.saturdayBreakEnd = "";
+}
+if (!data.sundayOpen) {
+  data.sundayBreakStart = "";
+  data.sundayBreakEnd = "";
+}
+Validate that updateMutation sends the correct, normalized payload even when Saturday/Sunday is closed.
+
+✅ 2. Zod Schema: Fix Validation Logic
+📍 File: wherever the facility form schema is defined (likely near client/src/lib/validation/facility-schema.ts or inline in facility-settings.tsx)
+
+Update your Zod schema to:
+
+Validate break times only if the day is open and break fields are present.
+
+Allow submission when break times are missing or outside hours if day is closed.
+
+🔁 Example:
+
+ts
+Copy
+Edit
+z.object({
+  saturdayOpen: z.boolean(),
+  saturdayStart: z.string(),
+  saturdayEnd: z.string(),
+  saturdayBreakStart: z.string().optional(),
+  saturdayBreakEnd: z.string().optional(),
+}).refine((data) => {
+  if (!data.saturdayOpen) return true; // Don't validate break logic if day is closed
+  if (!data.saturdayBreakStart || !data.saturdayBreakEnd) return true;
+
+  return (
+    data.saturdayStart <= data.saturdayBreakStart &&
+    data.saturdayBreakStart < data.saturdayBreakEnd &&
+    data.saturdayBreakEnd <= data.saturdayEnd
+  );
+}, {
+  message: "Break times must be within operating hours",
+  path: ["saturdayBreakStart"],
+});
+Repeat this refinement logic for Sunday if needed.
+

@@ -180,6 +180,7 @@ const facilityEditSchema = z.object({
     if (data.fridayOpen && data.fridayStart >= data.fridayEnd) {
       return false;
     }
+    // Only validate start/end times for Saturday/Sunday if the day is open
     if (data.saturdayOpen && data.saturdayStart >= data.saturdayEnd) {
       return false;
     }
@@ -241,21 +242,33 @@ const facilityEditSchema = z.object({
       }
     }
     
-    if (data.saturdayOpen && data.saturdayBreakStart && data.saturdayBreakEnd && data.saturdayBreakStart.trim() !== "" && data.saturdayBreakEnd.trim() !== "") {
-      if (data.saturdayBreakStart <= data.saturdayStart || data.saturdayBreakStart >= data.saturdayEnd) {
-        return false;
-      }
-      if (data.saturdayBreakEnd <= data.saturdayBreakStart || data.saturdayBreakEnd >= data.saturdayEnd) {
-        return false;
+    // For Saturday: Only validate break times if the day is open and break fields are present and non-empty
+    // If Saturday is closed, bypass validation completely
+    if (data.saturdayOpen) {
+      if (data.saturdayBreakStart && data.saturdayBreakEnd && 
+          data.saturdayBreakStart.trim() !== "" && data.saturdayBreakEnd.trim() !== "") {
+        // Only validate when there are actual break times provided
+        if (data.saturdayBreakStart <= data.saturdayStart || data.saturdayBreakStart >= data.saturdayEnd) {
+          return false;
+        }
+        if (data.saturdayBreakEnd <= data.saturdayBreakStart || data.saturdayBreakEnd >= data.saturdayEnd) {
+          return false;
+        }
       }
     }
     
-    if (data.sundayOpen && data.sundayBreakStart && data.sundayBreakEnd && data.sundayBreakStart.trim() !== "" && data.sundayBreakEnd.trim() !== "") {
-      if (data.sundayBreakStart <= data.sundayStart || data.sundayBreakStart >= data.sundayEnd) {
-        return false;
-      }
-      if (data.sundayBreakEnd <= data.sundayBreakStart || data.sundayBreakEnd >= data.sundayEnd) {
-        return false;
+    // For Sunday: Only validate break times if the day is open and break fields are present and non-empty
+    // If Sunday is closed, bypass validation completely
+    if (data.sundayOpen) {
+      if (data.sundayBreakStart && data.sundayBreakEnd && 
+          data.sundayBreakStart.trim() !== "" && data.sundayBreakEnd.trim() !== "") {
+        // Only validate when there are actual break times provided
+        if (data.sundayBreakStart <= data.sundayStart || data.sundayBreakStart >= data.sundayEnd) {
+          return false;
+        }
+        if (data.sundayBreakEnd <= data.sundayBreakStart || data.sundayBreakEnd >= data.sundayEnd) {
+          return false;
+        }
       }
     }
     
@@ -412,19 +425,30 @@ export default function FacilitySettingsPage() {
       // Log data being submitted for debugging
       console.log("Submitting facility data:", data);
       
-      // Ensure empty break times are properly formatted
+      // Ensure all data is properly normalized before submission
       const normalizedData = { ...data };
       
-      // For each day that's closed, set empty break times
+      // Always include Saturday and Sunday fields explicitly
+      // When a day is closed, ensure break times are empty strings
+      // This ensures the backend receives consistent data format
+      
+      // For Saturday
+      normalizedData.saturdayStart = normalizedData.saturdayStart || "08:00";
+      normalizedData.saturdayEnd = normalizedData.saturdayEnd || "17:00";
       if (!normalizedData.saturdayOpen) {
         normalizedData.saturdayBreakStart = "";
         normalizedData.saturdayBreakEnd = "";
       }
       
+      // For Sunday
+      normalizedData.sundayStart = normalizedData.sundayStart || "08:00";
+      normalizedData.sundayEnd = normalizedData.sundayEnd || "17:00";
       if (!normalizedData.sundayOpen) {
         normalizedData.sundayBreakStart = "";
         normalizedData.sundayBreakEnd = "";
       }
+      
+      console.log("Normalized data being sent:", normalizedData);
       
       const response = await apiRequest(
         "PATCH",
