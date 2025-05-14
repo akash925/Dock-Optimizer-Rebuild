@@ -1030,8 +1030,6 @@ export const userPreferencesRelations = relations(userPreferences, ({ one }) => 
   }),
 }));
 
-export type UserPreferences = typeof userPreferences.$inferSelect;
-export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
 
 // Tenant relations
 export const tenantsRelations = relations(tenants, ({ many }) => ({

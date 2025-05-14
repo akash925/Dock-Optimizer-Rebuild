@@ -51,6 +51,9 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 // Storage Interface
+// Define the default hours type for organization settings
+import { DefaultHours } from "@shared/schema";
+
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
