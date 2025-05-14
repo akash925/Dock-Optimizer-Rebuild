@@ -1211,28 +1211,76 @@ export default function UnifiedAppointmentForm({
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Appointment Date*</FormLabel>
-                        <div className="flex flex-col space-y-2">
-                          {/* Use Input instead of Popover for more reliable date selection */}
-                          <FormControl>
-                            <Input 
-                              type="date" 
-                              value={field.value || ''} 
-                              onChange={(e) => {
-                                console.log("Date changed to:", e.target.value);
-                                scheduleDetailsForm.setValue("appointmentDate", e.target.value, { 
-                                  shouldValidate: true,
-                                  shouldDirty: true,
-                                  shouldTouch: true
-                                });
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(new Date(field.value), "PPP")
+                                ) : (
+                                  <span>Pick a date</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value ? new Date(field.value) : undefined}
+                              onSelect={(date) => {
+                                if (date) {
+                                  const formattedDate = format(date, "yyyy-MM-dd");
+                                  console.log("Date changed to:", formattedDate);
+                                  scheduleDetailsForm.setValue("appointmentDate", formattedDate, { 
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                    shouldTouch: true
+                                  });
+                                }
                               }}
-                              min={format(new Date(), "yyyy-MM-dd")}
-                              className="w-full"
-                              placeholder="mm/dd/yyyy"
+                              disabled={(date) => {
+                                // Disable dates in the past
+                                const isPastDate = isBefore(date, startOfDay(new Date()));
+                                // Disable dates when the organization is closed based on hours
+                                const isClosedDay = organizationId && !isDayEnabled(date);
+                                return isPastDate || !!isClosedDay;
+                              }}
                             />
-                          </FormControl>
-                        </div>
+                          </PopoverContent>
+                        </Popover>
                         <FormDescription>
-                          Select a date for your appointment (must be in the future)
+                          {organizationId && (
+                            <>
+                              {scheduleDetailsForm.getValues('appointmentDate') && (
+                                <>
+                                  {isDayEnabled(new Date(scheduleDetailsForm.getValues('appointmentDate'))) ? (
+                                    <>
+                                      {/* Show hours for selected day */}
+                                      {getHoursForDay(new Date(scheduleDetailsForm.getValues('appointmentDate'))) && (
+                                        <span className="text-sm text-muted-foreground">
+                                          Organization Hours: {getHoursForDay(new Date(scheduleDetailsForm.getValues('appointmentDate')))?.start} - {getHoursForDay(new Date(scheduleDetailsForm.getValues('appointmentDate')))?.end}
+                                        </span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <span className="text-sm text-destructive">
+                                      Organization is closed on this day
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </>
+                          )}
+                          <div className="mt-1">
+                            Select a date for your appointment (must be in the future)
+                          </div>
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -1323,28 +1371,103 @@ export default function UnifiedAppointmentForm({
                                     );
                                   })
                               ) : (
-                                // Fallback to all time slots if no rules or slots available
-                                Array.from({ length: 24 }).flatMap((_, hour) => 
-                                  Array.from({ length: 4 }).map((_, quarterHour) => {
-                                    const h = hour;
-                                    const m = quarterHour * 15;
-                                    const timeValue = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                                    // Create a proper date object instead of using timestamp
-                                    const timeDate = new Date();
-                                    // Ensure h and m are valid numbers
-                                    if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) {
-                                      return null; // Skip invalid values
+                                // Fallback to time slots based on organization hours for the selected date
+                                (() => {
+                                  // Get selected date
+                                  const selectedDate = scheduleDetailsForm.getValues('appointmentDate');
+                                  if (!selectedDate || !organizationId) {
+                                    return <div className="p-2 text-center text-sm text-gray-500">
+                                      Please select a date first
+                                    </div>;
+                                  }
+                                  
+                                  // Get hours for the selected day
+                                  const dayHours = getHoursForDay(new Date(selectedDate));
+                                  if (!dayHours || !dayHours.open) {
+                                    return <div className="p-2 text-center text-sm text-gray-500">
+                                      Organization is closed on this day
+                                    </div>;
+                                  }
+                                  
+                                  // Parse start and end hours
+                                  const [startHour, startMinute] = dayHours.start.split(':').map(Number);
+                                  const [endHour, endMinute] = dayHours.end.split(':').map(Number);
+                                  
+                                  // Generate time slots
+                                  const slots = [];
+                                  
+                                  // Start from organization's opening hour and iterate in 15 minute increments
+                                  let currentHour = startHour;
+                                  let currentMinute = Math.ceil(startMinute / 15) * 15; // Round to next 15 min
+                                  
+                                  // Adjust if we rounded up to the next hour
+                                  if (currentMinute === 60) {
+                                    currentHour += 1;
+                                    currentMinute = 0;
+                                  }
+                                  
+                                  while (
+                                    currentHour < endHour || 
+                                    (currentHour === endHour && currentMinute <= endMinute)
+                                  ) {
+                                    const h = currentHour;
+                                    const m = currentMinute;
+                                    
+                                    // Skip break times if defined
+                                    if (dayHours.breakStart && dayHours.breakEnd) {
+                                      const [breakStartHour, breakStartMinute] = dayHours.breakStart.split(':').map(Number);
+                                      const [breakEndHour, breakEndMinute] = dayHours.breakEnd.split(':').map(Number);
+                                      
+                                      const isInBreak = 
+                                        (h > breakStartHour || (h === breakStartHour && m >= breakStartMinute)) &&
+                                        (h < breakEndHour || (h === breakEndHour && m < breakEndMinute));
+                                        
+                                      if (isInBreak) {
+                                        // Skip to after break
+                                        if (h === breakEndHour && m < breakEndMinute) {
+                                          currentMinute = breakEndMinute;
+                                        } else {
+                                          currentHour = breakEndHour;
+                                          currentMinute = breakEndMinute;
+                                        }
+                                        continue;
+                                      }
                                     }
+                                    
+                                    const timeValue = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                                    const timeDate = new Date();
                                     timeDate.setHours(h, m, 0, 0);
                                     const timeDisplay = format(timeDate, 'h:mm a');
-                                    // Use timeValue as key which is guaranteed to be unique
-                                    return (
-                                      <SelectItem key={timeValue} value={timeValue}>
+                                    
+                                    slots.push(
+                                      <SelectItem key={timeValue} value={timeValue} className={
+                                        // If we have availability data but this slot isn't in the available times,
+                                        // show it as unavailable
+                                        availableTimeSlots.length > 0 && 
+                                        !availableTimeSlots.some(slot => 
+                                          slot.time === timeValue && slot.available
+                                        )
+                                          ? "text-gray-400"
+                                          : ""
+                                      }>
                                         {timeDisplay}
                                       </SelectItem>
                                     );
-                                  })
-                                )
+                                    
+                                    // Increment time by 15 minutes
+                                    currentMinute += 15;
+                                    if (currentMinute >= 60) {
+                                      currentHour += 1;
+                                      currentMinute = 0;
+                                    }
+                                  }
+                                  
+                                  return slots.length > 0 
+                                    ? slots 
+                                    : <div className="p-2 text-center text-sm text-gray-500">
+                                        No time slots available
+                                      </div>;
+                                })())
                               )}
                               {availabilityRules && availabilityRules.length > 0 && 
                                availableTimeSlots.filter((slot: any) => slot.available).length === 0 && (
