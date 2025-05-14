@@ -87,7 +87,8 @@ const protectedRoutes: RouteConfig[] = [
   { path: "/asset-manager", component: AssetManagerPage, roles: ["admin", "manager"], module: "assetManager" },
   { path: "/asset-manager/assets/:id/edit", component: AssetEditPage, roles: ["admin", "manager"], module: "assetManager" },
   { path: "/websocket-test", component: WebSocketTestPage, roles: ["admin", "manager"], module: null },
-  { path: "/settings", component: Settings, roles: ["admin", "manager"], module: null }
+  { path: "/settings", component: Settings, roles: ["admin", "manager"], module: null },
+  { path: "/organization-hours", component: lazy(() => import("@/pages/organization-hours")), roles: ["admin", "manager"], module: null }
 ];
 
 // Define admin routes

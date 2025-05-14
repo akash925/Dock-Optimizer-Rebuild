@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, ControllerRenderProps } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -175,10 +175,16 @@ const formatTimeInput = (input: string): string => {
 };
 
 // Helper component for time inputs with auto-formatting
-const TimeInput = ({ field, placeholder, disabled = false }) => {
+interface TimeInputProps {
+  field: ControllerRenderProps<any, any>;
+  placeholder: string;
+  disabled?: boolean;
+}
+
+const TimeInput = ({ field, placeholder, disabled = false }: TimeInputProps) => {
   const [value, setValue] = useState(field.value || "");
   
-  const handleBlur = (e) => {
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const formattedValue = formatTimeInput(e.target.value);
     setValue(formattedValue);
     field.onChange(formattedValue);

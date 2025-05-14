@@ -1061,7 +1061,7 @@ export default function Settings() {
                 </p>
                 <Button 
                   variant="outline" 
-                  onClick={() => window.location.href = "/organization-hours"} 
+                  onClick={() => setLocation("/organization-hours")}
                   className="flex items-center mt-2"
                 >
                   <Clock className="mr-2 h-4 w-4" />
