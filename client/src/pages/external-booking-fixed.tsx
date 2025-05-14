@@ -21,6 +21,7 @@ import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizar
 import { BookingThemeProvider, useBookingTheme } from '@/contexts/BookingThemeContext';
 import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
 import { useStandardQuestions } from '@/hooks/use-standard-questions';
+import { useEnabledBookingDays } from '@/hooks/use-enabled-booking-days';
 import { Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -552,6 +553,9 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   // Get the slug from the booking page for API calls
   const slug = bookingPage?.slug;
   
+  // Get the organization ID (tenant ID) from the booking page
+  const organizationId = bookingPage?.tenantId || bookingPage?.organizationId;
+  
   // Try to parse BOL date if available
   const getBolDate = () => {
     if (bookingData.bolExtractedData?.scheduledDate || bookingData.bolExtractedData?.shipDate) {
@@ -616,6 +620,13 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   const [loading, setLoading] = useState(false);
   const [organizationHolidays, setOrganizationHolidays] = useState<string[]>([]);
   const [isLoadingHolidays, setIsLoadingHolidays] = useState(false);
+  
+  // Use the organization default hours hook to determine enabled booking days
+  const { 
+    isDayEnabled, 
+    disabledDays,
+    getHoursForDay 
+  } = useEnabledBookingDays(organizationId);
   
   // Get the appointment type to determine duration
   const { data: appointmentTypes } = useQuery({
