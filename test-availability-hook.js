@@ -53,13 +53,13 @@ async function testAvailabilityV2Endpoint() {
     const trailerData = await trailerResponse.json();
     console.log(`Retrieved ${trailerData.slots.length} slots for trailer appointment type`);
     
-    // Find slots around break time (12:00-13:00)
+    // Find slots around break time (08:00-09:00)
     const breakSlots = trailerData.slots.filter(slot => {
       const hour = parseInt(slot.time.split(':')[0], 10);
-      return hour >= 11 && hour <= 13;
+      return hour >= 7 && hour <= 9;
     });
     
-    console.log('\nExamining slots around break time (11:00-14:00):');
+    console.log('\nExamining slots around break time (07:00-09:30):');
     breakSlots.forEach(slot => {
       console.log(`${slot.time} - Available: ${slot.available}, Reason: ${slot.reason || 'N/A'}`);
     });
@@ -80,13 +80,13 @@ async function testAvailabilityV2Endpoint() {
     const containerData = await containerResponse.json();
     console.log(`Retrieved ${containerData.slots.length} slots for container appointment type`);
     
-    // Find slots around break time (12:00-13:00)
+    // Find slots around break time (08:00-09:00)
     const containerBreakSlots = containerData.slots.filter(slot => {
       const hour = parseInt(slot.time.split(':')[0], 10);
-      return hour >= 11 && hour <= 13;
+      return hour >= 7 && hour <= 9;
     });
     
-    console.log('\nExamining slots around break time (11:00-14:00):');
+    console.log('\nExamining slots around break time (07:00-09:30):');
     containerBreakSlots.forEach(slot => {
       console.log(`${slot.time} - Available: ${slot.available}, Reason: ${slot.reason || 'N/A'}, Remaining: ${slot.remaining}`);
     });
@@ -106,29 +106,29 @@ async function testAvailabilityV2Endpoint() {
 }
 
 function validateResults(trailerData, containerData) {
-  // Check specific behavior around break times
+  // Check specific behavior around break times (8:00-9:00)
   const trailerBreakSlots = trailerData.slots.filter(slot => {
     const hour = parseInt(slot.time.split(':')[0], 10);
-    return hour === 11 && slot.time.includes(':30') || hour === 12;
+    return hour === 7 && slot.time.includes(':30') || hour === 8;
   });
   
   const containerBreakSlots = containerData.slots.filter(slot => {
     const hour = parseInt(slot.time.split(':')[0], 10);
-    return hour === 11 && slot.time.includes(':30') || hour === 12;
+    return hour === 7 && slot.time.includes(':30') || hour === 8;
   });
   
   console.log('\nValidation results:');
   
   // Trailer slots through break time should be unavailable
   const trailerBreakBlocked = trailerBreakSlots.some(slot => 
-    !slot.available && slot.reason && slot.reason.includes('break')
+    !slot.available && slot.reason && slot.reason.toLowerCase().includes('break')
   );
   
   console.log(`- Trailer slots through break time blocked: ${trailerBreakBlocked ? '✅ Yes' : '❌ No'}`);
   
   // Container slots through break time should be available
   const containerBreakAllowed = containerBreakSlots.some(slot => 
-    slot.available && slot.reason && slot.reason.includes('break')
+    slot.available && slot.reason && slot.reason.toLowerCase().includes('break')
   );
   
   console.log(`- Container slots allowed through break time: ${containerBreakAllowed ? '✅ Yes' : '❌ No'}`);
