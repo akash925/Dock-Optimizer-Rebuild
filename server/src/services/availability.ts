@@ -275,9 +275,12 @@ export async function calculateAvailabilitySlots(
   
   console.log(`[AvailabilityService] Facility ${facility.name} open on ${date} (${dayOfWeek}) ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
 
-  const dayStart = toZonedTime(parseISO(`${date}T00:00:00`), facilityTimezone);
+  // Use effectiveTimezone instead of facilityTimezone for timezone-aware calculations
+  const dayStart = toZonedTime(parseISO(`${date}T00:00:00`), effectiveTimezone);
   const nextDateStr = format(addDays(parseISO(date), 1), 'yyyy-MM-dd');
-  const dayEnd = toZonedTime(parseISO(`${nextDateStr}T00:00:00`), facilityTimezone);
+  const dayEnd = toZonedTime(parseISO(`${nextDateStr}T00:00:00`), effectiveTimezone);
+  
+  console.log(`[AvailabilityService] Day boundaries in ${effectiveTimezone}: start=${dayStart.toISOString()}, end=${dayEnd.toISOString()}`);
 
   let existingAppointments: { id: number; startTime: Date; endTime: Date; }[] = [];
   try {
@@ -305,8 +308,8 @@ export async function calculateAvailabilitySlots(
     appointmentTypeBufferTime > 0 ? appointmentTypeBufferTime : appointmentTypeDuration, 15
   );
 
-  const operatingStartDateTime = toZonedTime(parseISO(`${date}T${operatingStartTimeStr}`), facilityTimezone);
-  let operatingEndDateTime = toZonedTime(parseISO(`${date}T${operatingEndTimeStr}`), facilityTimezone);
+  const operatingStartDateTime = toZonedTime(parseISO(`${date}T${operatingStartTimeStr}`), effectiveTimezone);
+  let operatingEndDateTime = toZonedTime(parseISO(`${date}T${operatingEndTimeStr}`), effectiveTimezone);
 
   // Adjust end time for loop comparison
   if (operatingEndTimeStr === "23:59") {
@@ -315,6 +318,8 @@ export async function calculateAvailabilitySlots(
       operatingEndDateTime = addDays(operatingEndDateTime, 1);
   }
 
+  console.log(`[AvailabilityService] Operating hours in ${effectiveTimezone}: ${operatingStartDateTime.toISOString()} to ${operatingEndDateTime.toISOString()}`);
+
   let breakStartDateTime: Date | null = null;
   let breakEndDateTime: Date | null = null;
   // Only process break times when both are properly defined with non-empty strings
@@ -322,10 +327,10 @@ export async function calculateAvailabilitySlots(
       breakStartTimeStr.trim() !== "" && breakEndTimeStr.trim() !== "" && 
       breakStartTimeStr.includes(':') && breakEndTimeStr.includes(':')) {
       try {
-          breakStartDateTime = toZonedTime(parseISO(`${date}T${breakStartTimeStr}`), facilityTimezone);
-          breakEndDateTime = toZonedTime(parseISO(`${date}T${breakEndTimeStr}`), facilityTimezone);
+          breakStartDateTime = toZonedTime(parseISO(`${date}T${breakStartTimeStr}`), effectiveTimezone);
+          breakEndDateTime = toZonedTime(parseISO(`${date}T${breakEndTimeStr}`), effectiveTimezone);
           if (breakEndDateTime <= breakStartDateTime) { breakEndDateTime = addDays(breakEndDateTime, 1); }
-          console.log(`[AvailabilityService] Break time for ${date}: ${breakStartDateTime.toISOString()} to ${breakEndDateTime.toISOString()}`);
+          console.log(`[AvailabilityService] Break time for ${date} in ${effectiveTimezone}: ${breakStartDateTime.toISOString()} to ${breakEndDateTime.toISOString()}`);
       } catch (e) { 
           console.error(`[AvailabilityService] Error parsing break times: ${breakStartTimeStr} - ${breakEndTimeStr}`, e); 
           // Reset to null if parsing failed
@@ -337,8 +342,12 @@ export async function calculateAvailabilitySlots(
   }
 
   // Apply booking buffer time (don't show slots too close to current time)
-  const bufferCutoff = addMinutes(new Date(), mergedConfig.bookingBufferMinutes);
-  console.log(`[AvailabilityService] Buffer cutoff: ${bufferCutoff.toISOString()}`);
+  // Use the effective timezone to ensure consistency in time calculations
+  const now = toZonedTime(new Date(), effectiveTimezone);
+  const bufferCutoff = addMinutes(now, mergedConfig.bookingBufferMinutes);
+  console.log(`[AvailabilityService] Current time in ${effectiveTimezone}: ${now.toISOString()}`);
+  console.log(`[AvailabilityService] Buffer cutoff in ${effectiveTimezone}: ${bufferCutoff.toISOString()}`);
+  console.log(`[AvailabilityService] Buffer minutes: ${mergedConfig.bookingBufferMinutes}`);
 
   let currentSlotStartTime = new Date(operatingStartDateTime);
 
@@ -347,7 +356,7 @@ export async function calculateAvailabilitySlots(
 
     // Early slot end check
     if (currentSlotEndTime > operatingEndDateTime) {
-         console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: facilityTimezone })} ends after operating end ${operatingEndTimeStr}. Stopping.`);
+         console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} ends after operating end ${operatingEndTimeStr}. Stopping.`);
          break;
     }
 
