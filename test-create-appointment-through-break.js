@@ -2,16 +2,20 @@
  * Test script to create an appointment that spans through a break time
  * 
  * This script tests creating a 4-hour container appointment (type 17) 
- * starting at 11:00 AM which would span through the 12:00-13:00 break time
+ * starting at 07:00 AM which would span through the facility break time (07:30-09:00)
  * at Fresh Connect HQ facility.
+ * 
+ * Note: Fresh Connect HQ facility has ID 7 and the 4-hour container appointment
+ * type (ID 17) has 'allowAppointmentsThroughBreaks' set to true, which means
+ * it allows appointments to span through break times.
  */
 
 import fetch from 'node-fetch';
 const BASE_URL = 'http://localhost:5000';
 
 // Test parameters
-const FRESH_CONNECT_HQ_ID = 7;  // Has break times from 07:30-09:00
-const APPOINTMENT_TYPE_CONTAINER = 17; // 4-hour containers, allows through breaks
+const FRESH_CONNECT_HQ_ID = 7;  // ID of Fresh Connect HQ facility
+const APPOINTMENT_TYPE_CONTAINER = 17; // ID of 4-hour container appointment that allows through breaks
 
 async function createAppointmentThroughBreak() {
   try {
@@ -159,7 +163,7 @@ async function createAppointmentThroughBreak() {
     const localEndTime = fetchedEndTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
     // Check that the appointment spans through the break time (07:30-09:00)
-    if (startTime.getHours() <= 7 && endTime.getHours() >= 9) {
+    if (fetchedStartTime.getHours() <= 7 && fetchedEndTime.getHours() >= 9) {
       console.log('✅ Success! Appointment correctly spans through the facility break time:');
       console.log(`- Appointment time: ${localStartTime} to ${localEndTime}`);
       console.log('- Break time: 07:30 to 09:00');
