@@ -7,11 +7,11 @@
 import fetch from 'node-fetch';
 
 // Test configuration
-const BASE_URL = process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.replit.dev` : 'http://localhost:3000';
+const BASE_URL = 'http://localhost:5000';
 const TEST_FACILITY_ID = 7; // Fresh Connect HQ
 const TEST_APPOINTMENT_TYPE_ID = 16; // 1 Hour Trailer Appointment (doesn't allow through breaks)
 const TEST_APPOINTMENT_TYPE_ALLOW_THROUGH_BREAKS = 17; // 4 Hour Container Appointment (allows through breaks)
-const TEST_DATE = new Date().toISOString().split('T')[0]; // Today's date in YYYY-MM-DD format
+const TEST_DATE = '2025-05-15'; // Using a future date for testing
 const BOOKING_PAGE_SLUG = 'fresh-connect-booking'; // Slug for Fresh Connect booking page
 
 async function runTest() {
