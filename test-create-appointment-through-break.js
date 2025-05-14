@@ -45,7 +45,7 @@ async function createAppointmentThroughBreak() {
 
     // First verify the appointment type settings
     console.log('\n2. Verifying appointment type settings...');
-    const typeResponse = await fetch(`${BASE_URL}/api/appointment-types/${APPOINTMENT_TYPE_CONTAINER}`, {
+    const typeResponse = await fetch(`${BASE_URL}/api/appointment-types/get-by-id?id=${APPOINTMENT_TYPE_CONTAINER}`, {
       headers: { Cookie: cookies }
     });
     
@@ -91,7 +91,8 @@ async function createAppointmentThroughBreak() {
         type: "STRAIGHT_TRUCK",
         licensePlate: "TEST123"
       },
-      questionsData: {}
+      questionsData: {},
+      carrierId: 1 // Add carrier ID to pass validation
     };
     
     console.log(`Creating 4-hour appointment on ${appointmentDate} at 07:00 AM`);
