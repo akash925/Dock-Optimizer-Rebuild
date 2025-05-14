@@ -1418,7 +1418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Now wrap the appointment creation in a DB transaction and check availability
       // Import the enhanced availability service
-      const { calculateAvailabilitySlots } = await import('./services/availabilityService');
+      const { calculateAvailabilitySlots } = await import('./src/services/availability');
       
       const schedule = await db.transaction(async (tx) => {
         // 1. Get the necessary parameters for the availability check

@@ -82,6 +82,7 @@ async function createAppointmentThroughBreak() {
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
       type: "INBOUND",
+      status: "CONFIRMED", // Required field to avoid null constraint error
       companyName: "Test Company",
       driverName: "Test Driver",
       driverPhone: "555-123-4567",

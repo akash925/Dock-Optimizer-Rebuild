@@ -4,7 +4,7 @@ import * as storageModule from '../storage';
 import { 
   fetchRelevantAppointmentsForDay,
   calculateAvailabilitySlots 
-} from '../services/availabilityService';
+} from '../src/services/availability';
 
 async function testAvailabilityService() {
   console.log('===== Testing Availability Service =====');
