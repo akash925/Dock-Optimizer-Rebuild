@@ -309,8 +309,13 @@ export async function calculateAvailabilitySlots(
   );
 
   // Step 1: Parse the operating hours from string format to facility local time Date objects
-  const operatingStartDateTime = toZonedTime(parseISO(`${date}T${operatingStartTimeStr}`), effectiveTimezone);
-  let operatingEndDateTime = toZonedTime(parseISO(`${date}T${operatingEndTimeStr}`), effectiveTimezone);
+  // FIX: Parse the time without applying timezone first
+  const operatingStartTime = parseISO(`${date}T${operatingStartTimeStr}`);
+  const operatingEndTime = parseISO(`${date}T${operatingEndTimeStr}`);
+  
+  // FIX: Then explicitly convert to the effective timezone
+  const operatingStartDateTime = toZonedTime(operatingStartTime, effectiveTimezone);
+  let operatingEndDateTime = toZonedTime(operatingEndTime, effectiveTimezone);
 
   // Adjust end time for loop comparison
   if (operatingEndTimeStr === "23:59") {
@@ -318,6 +323,14 @@ export async function calculateAvailabilitySlots(
   } else if (operatingEndDateTime <= operatingStartDateTime) {
       operatingEndDateTime = addDays(operatingEndDateTime, 1);
   }
+  
+  // DEBUG: Log time details to diagnose the timezone issue
+  console.log(`[AvailabilityService] DEBUG TIME VALUES:`);
+  console.log(`  Original hours from DB: ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
+  console.log(`  Parsed without TZ: ${operatingStartTime.toISOString()} - ${operatingEndTime.toISOString()}`);
+  console.log(`  Converted with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
+  console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
+  
 
   // Log the operating hours in facility timezone for debugging
   console.log(`[AvailabilityService] Operating hours in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} to ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
@@ -332,14 +345,27 @@ export async function calculateAvailabilitySlots(
       breakStartTimeStr.trim() !== "" && breakEndTimeStr.trim() !== "" && 
       breakStartTimeStr.includes(':') && breakEndTimeStr.includes(':')) {
       try {
-          // Create break time Date objects in facility timezone
-          breakStartDateTime = toZonedTime(parseISO(`${date}T${breakStartTimeStr}`), effectiveTimezone);
-          breakEndDateTime = toZonedTime(parseISO(`${date}T${breakEndTimeStr}`), effectiveTimezone);
+          // FIX: Parse break time in two steps to avoid double timezone shift
+          // Step 1: Create Date objects from strings (without timezone)
+          const breakStartTime = parseISO(`${date}T${breakStartTimeStr}`);
+          const breakEndTime = parseISO(`${date}T${breakEndTimeStr}`);
+          
+          // Step 2: Apply timezone explicitly
+          breakStartDateTime = toZonedTime(breakStartTime, effectiveTimezone);
+          breakEndDateTime = toZonedTime(breakEndTime, effectiveTimezone);
           
           // Adjust if break spans midnight
           if (breakEndDateTime && breakStartDateTime && breakEndDateTime <= breakStartDateTime) { 
               breakEndDateTime = addDays(breakEndDateTime, 1); 
           }
+          
+          // DEBUG: Log break time details for debugging
+          console.log(`[AvailabilityService] DEBUG BREAK TIME VALUES:`);
+          console.log(`  Original break time from DB: ${breakStartTimeStr} - ${breakEndTimeStr}`);
+          console.log(`  Parsed without TZ: ${breakStartTime.toISOString()} - ${breakEndTime.toISOString()}`);
+          console.log(`  Converted with TZ: ${breakStartDateTime.toISOString()} - ${breakEndDateTime.toISOString()}`);
+          console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(breakStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(breakEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
+          
           
           if (breakStartDateTime && breakEndDateTime) {
             console.log(`[AvailabilityService] Break time in ${effectiveTimezone}: ${tzFormat(breakStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} to ${tzFormat(breakEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
