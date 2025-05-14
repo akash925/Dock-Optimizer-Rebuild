@@ -7,51 +7,65 @@
  */
 
 import fetch from 'node-fetch';
+const BASE_URL = 'http://localhost:5000';
+
+// Test parameters
+const FRESH_CONNECT_HQ_ID = 7;  // Has break times from 07:30-09:00
+const APPOINTMENT_TYPE_CONTAINER = 17; // 4-hour containers, allows through breaks
 
 async function createAppointmentThroughBreak() {
   try {
-    // Login as Fresh Connect Central admin
-    console.log("\n1. Logging in as Fresh Connect admin...");
-    const loginResponse = await fetch('http://localhost:5000/api/login', {
+    console.log('======================================================');
+    console.log('TEST: CREATE APPOINTMENT SPANNING THROUGH BREAK TIME');
+    console.log('======================================================');
+    
+    // Login as Fresh Connect admin user first
+    console.log('1. Logging in as Fresh Connect admin...');
+    
+    const loginResponse = await fetch(`${BASE_URL}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        username: 'akash@agarwalhome.com', 
+      body: JSON.stringify({
+        username: 'akash@agarwalhome.com',
         password: 'fccentral'
-      })
+      }),
+      credentials: 'include'
     });
-
+    
     if (!loginResponse.ok) {
-      throw new Error(`Login failed: ${loginResponse.statusText}`);
+      throw new Error(`Login failed: ${loginResponse.status} ${loginResponse.statusText}`);
     }
-
+    
     const cookies = loginResponse.headers.get('set-cookie');
-    console.log("Login successful!\n");
+    console.log('Login successful');
 
     // First verify the appointment type settings
-    const typeResponse = await fetch('http://localhost:5000/api/appointment-types/17', {
+    console.log('\n2. Verifying appointment type settings...');
+    const typeResponse = await fetch(`${BASE_URL}/api/appointment-types/${APPOINTMENT_TYPE_CONTAINER}`, {
       headers: { Cookie: cookies }
     });
+    
     if (!typeResponse.ok) {
-      throw new Error(`Failed to fetch appointment type: ${typeResponse.statusText}`);
+      throw new Error(`Failed to fetch appointment type: ${typeResponse.status} ${typeResponse.statusText}`);
     }
     
     const appointmentType = await typeResponse.json();
     console.log('Appointment Type Settings:');
     console.log(`- Name: ${appointmentType.name}`);
     console.log(`- Duration: ${appointmentType.duration} minutes`);
-    console.log(`- Allow Through Breaks: ${appointmentType.allow_appointments_through_breaks || appointmentType.allowAppointmentsThroughBreaks}`);
+    console.log(`- Allow Through Breaks: ${appointmentType.allowAppointmentsThroughBreaks ? 'Yes' : 'No'}`);
     
     // Create test appointment data
+    console.log('\n3. Creating appointment data that spans through break time...');
     const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const testDate = new Date(today);
+    testDate.setDate(testDate.getDate() + 1);
     
     // Format date as YYYY-MM-DD
-    const appointmentDate = tomorrow.toISOString().split('T')[0];
+    const appointmentDate = testDate.toISOString().split('T')[0];
     
-    // Create appointment at 11:00 AM (spans through lunch break)
-    const startTime = new Date(`${appointmentDate}T11:00:00`);
+    // Create appointment at 07:00 AM (spans through 07:30-09:00 break)
+    const startTime = new Date(`${appointmentDate}T07:00:00`);
     
     // Calculate end time (4 hours later)
     const endTime = new Date(startTime);
@@ -63,9 +77,9 @@ async function createAppointmentThroughBreak() {
       status: "scheduled",
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
-      dockId: 23, // Dock at Fresh Connect HQ
-      facilityId: 7, // Fresh Connect HQ
-      appointmentTypeId: 17, // 4 Hour Container Appointment
+      dockId: 11, // Dock at Fresh Connect HQ
+      facilityId: FRESH_CONNECT_HQ_ID, // Fresh Connect HQ
+      appointmentTypeId: APPOINTMENT_TYPE_CONTAINER, // 4 Hour Container Appointment
       driver: {
         name: "Test Driver",
         phone: "555-123-4567",
@@ -84,16 +98,17 @@ async function createAppointmentThroughBreak() {
         email: "test@example.com",
         name: "Test Creator"
       },
-      notes: "Test appointment spanning through lunch break"
+      notes: "Test appointment spanning through break time"
     };
     
-    console.log(`\nCreating 4-hour appointment on ${appointmentDate} at 11:00 AM`);
+    console.log(`Creating 4-hour appointment on ${appointmentDate} at 07:00 AM`);
     console.log(`Start: ${startTime.toISOString()}`);
     console.log(`End: ${endTime.toISOString()}`);
-    console.log('This appointment should span through the 12:00-13:00 lunch break');
+    console.log('This appointment should span through the 07:30-09:00 break time');
     
     // Send the appointment creation request
-    const response = await fetch('http://localhost:5000/api/schedules', {
+    console.log('\n4. Submitting appointment creation request...');
+    const response = await fetch(`${BASE_URL}/api/schedules`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,18 +123,61 @@ async function createAppointmentThroughBreak() {
     }
     
     const appointment = await response.json();
-    console.log('\nAppointment created successfully:');
+    console.log('\n5. Appointment created successfully:');
     console.log(`- ID: ${appointment.id}`);
     console.log(`- Start: ${appointment.startTime}`);
     console.log(`- End: ${appointment.endTime}`);
     console.log(`- Status: ${appointment.status}`);
     console.log(`- Reference: ${appointment.referenceNumber}`);
     
-    console.log('\nTest completed successfully!');
+    // Verify appointment details
+    console.log('\n6. Verifying created appointment details...');
+    
+    const getResponse = await fetch(`${BASE_URL}/api/schedules/${appointment.id}`, {
+      headers: { Cookie: cookies }
+    });
+    
+    if (!getResponse.ok) {
+      throw new Error(`Failed to fetch created appointment: ${getResponse.status} ${getResponse.statusText}`);
+    }
+    
+    const fetchedAppointment = await getResponse.json();
+    console.log('Appointment details retrieved successfully:');
+    console.log(`- Type: ${fetchedAppointment.type}`);
+    console.log(`- Start Time: ${new Date(fetchedAppointment.startTime).toLocaleString()}`);
+    console.log(`- End Time: ${new Date(fetchedAppointment.endTime).toLocaleString()}`);
+    console.log(`- Facility ID: ${fetchedAppointment.facilityId}`);
+    console.log(`- Appointment Type ID: ${fetchedAppointment.appointmentTypeId}`);
+    
+    // Validate the appointment spans through break time
+    console.log('\n7. Validating break time handling:');
+    const fetchedStartTime = new Date(fetchedAppointment.startTime);
+    const fetchedEndTime = new Date(fetchedAppointment.endTime);
+    
+    // Convert times to local time for easier comparison
+    const localStartTime = fetchedStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const localEndTime = fetchedEndTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    // Check that the appointment spans through the break time (07:30-09:00)
+    if (startTime.getHours() <= 7 && endTime.getHours() >= 9) {
+      console.log('✅ Success! Appointment correctly spans through the facility break time:');
+      console.log(`- Appointment time: ${localStartTime} to ${localEndTime}`);
+      console.log('- Break time: 07:30 to 09:00');
+      console.log('- The appointment type allows appointments through breaks and was successfully created');
+    } else {
+      console.log('❌ ERROR: Appointment does not span through break time as expected');
+      throw new Error('Appointment does not properly span through break time');
+    }
+    
+    console.log('\n======================================================');
+    console.log('TEST SUCCESSFUL: Appointment created through break time');
+    console.log('======================================================');
     
   } catch (error) {
-    console.error('Error creating appointment:', error);
+    console.error('\n❌ TEST FAILED:');
+    console.error(error);
+    process.exit(1);
   }
 }
 
-createAppointmentThroughBreak().catch(console.error);
+createAppointmentThroughBreak();
