@@ -752,7 +752,8 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   // Format selectedDate as string for the hook
   const selectedDateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
   
-  // Use the fixed hook to fetch availability
+  // Use the fixed hook to fetch availability - providing selectedDate as a dependency
+  // to ensure it always refreshes when the date changes
   const { 
     availableTimeSlots: slots, 
     isLoading: slotsLoading,
@@ -761,7 +762,9 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
     facilityId: bookingData.facilityId,
     appointmentTypeId: bookingData.appointmentTypeId,
     date: selectedDateStr,
-    bookingPageSlug: slug
+    bookingPageSlug: slug,
+    // Pass facility timezone if available
+    facilityTimezone: selectedFacility?.timezone
   });
   
   // Update state based on the hook results
