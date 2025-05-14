@@ -995,7 +995,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                         <Loader2 className="h-6 w-6 animate-spin" />
                       </div>
                     ) : selectedDate ? (
-                      availableTimes.length > 0 ? (
+                      availabilitySlots.length > 0 ? (
                         <>
                           {/* Show timezone information above time selection grid */}
                           <div className="flex items-center mb-3 p-2 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
