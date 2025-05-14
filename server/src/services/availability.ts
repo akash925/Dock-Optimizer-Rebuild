@@ -431,15 +431,15 @@ export async function calculateAvailabilitySlots(
                 // Spans break but is allowed - add helpful reason for UI while keeping availability true
                 if (slotStartsDuringBreak) {
                     // This is specifically starting within a break time
-                    reason = "Spans through break";
+                    reason = "Spans through break time";
                     console.log(`[AvailabilityService] Slot ${timeStr} starts during break time but IS allowed through breaks.`);
                 } else if (slotEndsDuringBreak) {
                     // This ends within a break time
-                    reason = "Spans through break";
+                    reason = "Spans through break time";
                     console.log(`[AvailabilityService] Slot ${timeStr} ends during break time but IS allowed through breaks.`);
                 } else {
                     // This spans completely over a break time
-                    reason = "Spans through break";
+                    reason = "Spans through break time";
                     console.log(`[AvailabilityService] Slot ${timeStr} spans completely over break time but IS allowed through breaks.`);
                 }
             }
@@ -456,13 +456,21 @@ export async function calculateAvailabilitySlots(
         }
     }
 
-    result.push({
+    // For debugging our break time reason
+    if (reason === "Spans through break time") {
+      console.log(`[AvailabilityService] DEBUG: Adding slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} with reason=${reason}`);
+    }
+    
+    // Create the slot result with the reason field
+    const slotResult = {
       time: tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone }),
       available: isSlotAvailable,
       remainingCapacity: remainingCapacity,
       remaining: remainingCapacity,
-      reason: isSlotAvailable ? (reason === "Spans through break time" ? reason : "") : reason,
-    });
+      reason: isSlotAvailable && reason === "Spans through break time" ? reason : (isSlotAvailable ? "" : reason),
+    };
+    
+    result.push(slotResult);
 
     currentSlotStartTime = addMinutes(currentSlotStartTime, slotIntervalMinutes);
   }
