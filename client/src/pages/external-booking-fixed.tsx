@@ -994,45 +994,30 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                           return true; // Disable this date since it's a holiday
                         }
                         
-                        // Get the day of the week (0 = Sunday, 6 = Saturday)
-                        const dayOfWeek = date.getDay();
-                        
-                        // Log facility open status for debugging
-                        if (dayOfWeek === 0 || dayOfWeek === 6) {
-                          // First check if we have any data about facility opening days
-                          const hasSundayOpenInfo = selectedFacility.sundayOpen !== undefined && selectedFacility.sundayOpen !== null;
-                          const hasSaturdayOpenInfo = selectedFacility.saturdayOpen !== undefined && selectedFacility.saturdayOpen !== null;
-                          
-                          console.log(`Facility ${selectedFacility.name} (ID: ${selectedFacility.id}):`, {
-                            day: dayOfWeek === 0 ? 'Sunday' : 'Saturday',
-                            sundayOpen: selectedFacility.sundayOpen,
-                            saturdayOpen: selectedFacility.saturdayOpen,
-                            hasSundayOpenInfo,
-                            hasSaturdayOpenInfo
-                          });
-                          
-                          // If we don't have specific info, default to standard behavior (closed on weekends)
-                          if (dayOfWeek === 0 && !hasSundayOpenInfo) {
-                            console.log('No explicit sundayOpen setting for facility - defaulting to closed on Sunday');
-                            return true; // Disable Sunday by default
-                          }
-                          
-                          if (dayOfWeek === 6 && !hasSaturdayOpenInfo) {
-                            console.log('No explicit saturdayOpen setting for facility - defaulting to closed on Saturday');
-                            return true; // Disable Saturday by default
-                          }
+                        // Use the organization default hours hook to check if day is enabled
+                        if (!isDayEnabled(date)) {
+                          console.log(`[EXTERNAL BOOKING] Disabling date ${formattedDate} because it's closed based on organization default hours`);
+                          return true;
                         }
                         
-                        // Check if the facility is closed on this day
-                        if (dayOfWeek === 0) {
-                          // Sunday - check if facility is open on Sunday
+                        // Facility-specific rules override organization default hours
+                        
+                        // Get the day of the week (0 = Sunday, 6 = Saturday)
+                        const dayOfWeek = date.getDay();
+                                                
+                        // Check if the facility has explicit settings for this day
+                        const hasSundayOpenInfo = selectedFacility.sundayOpen !== undefined && selectedFacility.sundayOpen !== null;
+                        const hasSaturdayOpenInfo = selectedFacility.saturdayOpen !== undefined && selectedFacility.saturdayOpen !== null;
+                        
+                        if (dayOfWeek === 0 && hasSundayOpenInfo) {
+                          // Sunday - check if facility is explicitly set to closed
                           return selectedFacility.sundayOpen === false;
-                        } else if (dayOfWeek === 6) {
-                          // Saturday - check if facility is open on Saturday
+                        } else if (dayOfWeek === 6 && hasSaturdayOpenInfo) {
+                          // Saturday - check if facility is explicitly set to closed
                           return selectedFacility.saturdayOpen === false;
                         }
                         
-                        // Weekdays are usually open
+                        // If no explicit facility setting is provided, org default hours are honored (already checked above)
                         return false;
                       }}
                     />
