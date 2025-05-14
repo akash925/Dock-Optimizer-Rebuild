@@ -1338,8 +1338,8 @@ export default function UnifiedAppointmentForm({
                             </FormControl>
                             <SelectContent>
                               {/* Show either available slots or all slots */}
-                              {availabilityRules && availabilityRules.length > 0 && availableTimeSlots.length > 0 ? (
-                                // Show only available time slots based on rules
+                              {availableTimeSlots.length > 0 ? (
+                                // Show only available time slots
                                 availableTimeSlots
                                   .filter((slot: any) => slot.available)
                                   .map((slot: any) => {
@@ -1469,7 +1469,7 @@ export default function UnifiedAppointmentForm({
                                       </div>;
                                 })())
                               )}
-                              {availabilityRules && availabilityRules.length > 0 && 
+                              {availableTimeSlots.length > 0 && 
                                availableTimeSlots.filter((slot: any) => slot.available).length === 0 && (
                                 <div className="p-2 text-center text-sm text-gray-500">
                                   No available time slots for this date.
