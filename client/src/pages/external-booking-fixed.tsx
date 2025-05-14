@@ -1113,9 +1113,18 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                 return (
                                   <div 
                                     key={slot.time}
-                                    className="relative min-w-[120px] h-auto min-h-[85px] py-2 px-1 border border-gray-200 bg-gray-50 rounded-md opacity-60 flex flex-col items-center justify-center"
+                                    className={`relative min-w-[120px] h-auto min-h-[85px] py-2 px-1 border 
+                                      ${slot.isBufferTime 
+                                        ? 'border-amber-200 bg-amber-50' 
+                                        : 'border-gray-200 bg-gray-50'} 
+                                      rounded-md flex flex-col items-center justify-center`}
                                     title={slot.reason || "Unavailable"}
                                   >
+                                    {/* Unavailability icon */}
+                                    <div className="absolute top-1 right-1">
+                                      <XCircle className="h-4 w-4 text-red-400" />
+                                    </div>
+                                    
                                     <div className="text-sm text-center text-gray-500">
                                       <span>{displayTime}</span>
                                       {selectedFacility?.timezone && (
@@ -1126,7 +1135,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                       
                                       {/* Display reason for unavailability */}
                                       {slot.reason && (
-                                        <div className="text-xs text-red-500 mt-1 max-w-[100px] truncate" title={slot.reason}>
+                                        <div className="text-xs font-medium text-red-500 mt-1 max-w-[100px] truncate" title={slot.reason}>
                                           {slot.reason}
                                         </div>
                                       )}
