@@ -1254,67 +1254,82 @@ export default function FacilitySettingsPage() {
                       />
                     </div>
                     
-                    {form.watch("sundayOpen") && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex items-center gap-4">
-                          <FormField
-                            control={form.control}
-                            name="sundayStart"
-                            render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormLabel>Opening Time</FormLabel>
-                                <FormControl>
-                                  <Input {...field} placeholder="08:00" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="sundayEnd"
-                            render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormLabel>Closing Time</FormLabel>
-                                <FormControl>
-                                  <Input {...field} placeholder="17:00" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center gap-4">
-                          <FormField
-                            control={form.control}
-                            name="sundayBreakStart"
-                            render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormLabel>Break Start</FormLabel>
-                                <FormControl>
-                                  <TimeInput field={field} placeholder="12:00" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="sundayBreakEnd"
-                            render={({ field }) => (
-                              <FormItem className="flex-1">
-                                <FormLabel>Break End</FormLabel>
-                                <FormControl>
-                                  <TimeInput field={field} placeholder="13:00" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                    {/* Always render the fields regardless of "open" status, but disable them if closed */}
+                    <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${!form.watch("sundayOpen") ? "opacity-50" : ""}`}>
+                      <div className="flex items-center gap-4">
+                        <FormField
+                          control={form.control}
+                          name="sundayStart"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Opening Time</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  placeholder="08:00" 
+                                  disabled={!form.watch("sundayOpen")}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="sundayEnd"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Closing Time</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  placeholder="17:00" 
+                                  disabled={!form.watch("sundayOpen")}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
-                    )}
+                      
+                      <div className="flex items-center gap-4">
+                        <FormField
+                          control={form.control}
+                          name="sundayBreakStart"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Break Start</FormLabel>
+                              <FormControl>
+                                <TimeInput 
+                                  field={field} 
+                                  placeholder="12:00" 
+                                  disabled={!form.watch("sundayOpen")}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="sundayBreakEnd"
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Break End</FormLabel>
+                              <FormControl>
+                                <TimeInput 
+                                  field={field} 
+                                  placeholder="13:00" 
+                                  disabled={!form.watch("sundayOpen")}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
