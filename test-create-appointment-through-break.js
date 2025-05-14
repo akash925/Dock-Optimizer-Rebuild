@@ -96,7 +96,8 @@ async function createAppointmentThroughBreak() {
     const response = await fetch('http://localhost:5000/api/schedules', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Cookie': cookies
       },
       body: JSON.stringify(appointmentData)
     });
