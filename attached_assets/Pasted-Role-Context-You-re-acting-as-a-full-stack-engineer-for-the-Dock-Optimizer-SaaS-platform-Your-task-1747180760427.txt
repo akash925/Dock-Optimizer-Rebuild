@@ -1,0 +1,85 @@
+Role Context:
+You're acting as a full-stack engineer for the Dock Optimizer SaaS platform. Your task is to fix a backend issue preventing facility operating hour updates (e.g., Saturday/Sunday toggles) from saving correctly.
+
+🧩 Problem:
+In the server/storage.ts file, the updateFacility() method is intended to dynamically update any fields passed in a PATCH request. However, it currently does not construct the SQL SET clause correctly because the updateKeys array is undefined or missing, which leads to silent failure (no-op update).
+
+✅ Objective:
+Modify the updateFacility() function to properly compute the list of keys to update (updateKeys) and use it to generate a correct dynamic SQL statement. Ensure all updates (including booleans and empty string handling) are respected.
+
+🧠 Requirements
+Define updateKeys Dynamically
+
+Use Object.keys(filteredUpdate) to determine which fields are being updated.
+
+Normalize Empty Strings
+
+Convert any empty string values (e.g., for break times) into null, which is more appropriate for optional DB fields:
+
+ts
+Copy
+Edit
+if (filteredUpdate[key] === "") filteredUpdate[key] = null;
+Preserve Existing Boolean Logic
+
+For boolean fields like saturdayOpen, ensure true/false values are passed through properly.
+
+Ensure SQL Query Is Fully Formed
+
+The SET clause should be correctly indexed for all fields being updated.
+
+Append last_modified_at = NOW() in the query.
+
+📍 Code Context (File: server/storage.ts)
+Locate the updateFacility method and apply the following detailed changes:
+
+ts
+Copy
+Edit
+async updateFacility(id: number, facilityUpdate: Partial<Facility>): Promise<Facility | undefined> {
+  try {
+    // Remove non-updatable fields
+    const filteredUpdate = { ...facilityUpdate };
+    delete filteredUpdate.id;
+    delete filteredUpdate.createdAt;
+
+    // Dynamically compute update keys
+    const updateKeys = Object.keys(filteredUpdate);
+
+    // Normalize empty strings to null
+    for (const key of updateKeys) {
+      if (filteredUpdate[key] === "") filteredUpdate[key] = null;
+    }
+
+    const values = [id];
+
+    // Build SQL SET clause
+    const setClause = updateKeys.map((key, index) => {
+      const sqlKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+      return `"${sqlKey}" = $${index + 2}`;
+    }).join(', ');
+
+    updateKeys.forEach(key => {
+      if (typeof filteredUpdate[key] === 'boolean') {
+        values.push(filteredUpdate[key] === true);
+      } else {
+        values.push(filteredUpdate[key]);
+      }
+    });
+
+    const fullSetClause = `${setClause}, "last_modified_at" = NOW()`;
+
+    const query = `
+      UPDATE facilities
+      SET ${fullSetClause}
+      WHERE id = $1
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  } catch (error) {
+    console.error(\`Error updating facility \${id}:\`, error);
+    throw error;
+  }
+}
