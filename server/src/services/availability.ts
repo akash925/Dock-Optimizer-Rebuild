@@ -354,10 +354,16 @@ export async function calculateAvailabilitySlots(
   while (currentSlotStartTime < operatingEndDateTime) {
     const currentSlotEndTime = addMinutes(currentSlotStartTime, appointmentTypeDuration);
 
-    // Early slot end check
+    // Early slot end check - if the appointment would extend beyond operating hours
     if (currentSlotEndTime > operatingEndDateTime) {
-         console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} ends after operating end ${operatingEndTimeStr}. Stopping.`);
-         break;
+        // If this appointment type can override facility hours, allow it
+        if (overrideFacilityHours) {
+            console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} ends after hours (${operatingEndTimeStr}) but override is ENABLED.`);
+            // Continue with generation since override is allowed
+        } else {
+            console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} ends after operating end ${operatingEndTimeStr}. Stopping.`);
+            break; // Stop generating slots
+        }
     }
 
     let isSlotAvailable = true;
@@ -365,13 +371,19 @@ export async function calculateAvailabilitySlots(
     let conflictingApptsCount = 0;
 
     // Apply booking buffer - don't allow slots that start too soon
-    if (currentSlotStartTime < bufferCutoff) {
+    // Consider both the global booking buffer and appointment type buffer time
+    const effectiveBufferMinutes = Math.max(mergedConfig.bookingBufferMinutes, appointmentTypeBufferTime);
+    const appointmentTypeBufferCutoff = addMinutes(now, appointmentTypeBufferTime);
+    const effectiveBufferCutoff = appointmentTypeBufferTime > mergedConfig.bookingBufferMinutes 
+        ? appointmentTypeBufferCutoff : bufferCutoff;
+    
+    if (currentSlotStartTime < effectiveBufferCutoff) {
         // Format times to display in logs using the effective timezone
         const slotTimeStr = tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone });
-        const bufferTimeStr = tzFormat(bufferCutoff, 'HH:mm', { timeZone: effectiveTimezone });
-        console.log(`[AvailabilityService] Slot at ${slotTimeStr} is too soon (before buffer cutoff ${bufferTimeStr})`);
+        const bufferTimeStr = tzFormat(effectiveBufferCutoff, 'HH:mm', { timeZone: effectiveTimezone });
+        console.log(`[AvailabilityService] Slot at ${slotTimeStr} is too soon (before buffer cutoff ${bufferTimeStr}, using ${effectiveBufferMinutes}min buffer)`);
         isSlotAvailable = false;
-        reason = "Too soon to book";
+        reason = "Too soon (buffer)";
     }
 
     // Check for conflicts with existing appointments
@@ -394,20 +406,40 @@ export async function calculateAvailabilitySlots(
 
     // Check break time - only apply if valid break times are configured
     if (isSlotAvailable && breakStartDateTime && breakEndDateTime) {
+        // Calculate if the appointment would overlap with a break
         const slotOverlapsBreak = currentSlotStartTime.getTime() < breakEndDateTime.getTime() && 
                                  currentSlotEndTime.getTime() > breakStartDateTime.getTime();
+        
+        // Check if appointment starts within a break
+        const slotStartsDuringBreak = currentSlotStartTime.getTime() >= breakStartDateTime.getTime() && 
+                                      currentSlotStartTime.getTime() < breakEndDateTime.getTime();
+        
+        // Check if appointment ends during a break
+        const slotEndsDuringBreak = currentSlotEndTime.getTime() > breakStartDateTime.getTime() && 
+                                    currentSlotEndTime.getTime() <= breakEndDateTime.getTime();
+        
+        // For improved logging
+        const timeStr = tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone });
         
         if (slotOverlapsBreak) {
             // If slot spans break time and appointments through breaks not allowed
             if (!allowAppointmentsThroughBreaks) {
                 isSlotAvailable = false;
                 reason = "Break Time";
-                console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} overlaps break time and is NOT allowed through breaks.`);
+                console.log(`[AvailabilityService] Slot ${timeStr} overlaps break time and is NOT allowed through breaks.`);
             } else {
-                // Spans break but is allowed
+                // Spans break but is allowed - mark with special reason for UI
                 if (isSlotAvailable) {
-                    reason = "Spans through break time";
-                    console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} spans break time but IS allowed through breaks.`);
+                    if (slotStartsDuringBreak) {
+                        // This is specifically starting within a break time
+                        console.log(`[AvailabilityService] Slot ${timeStr} starts during break time but IS allowed through breaks.`);
+                    } else if (slotEndsDuringBreak) {
+                        // This ends within a break time
+                        console.log(`[AvailabilityService] Slot ${timeStr} ends during break time but IS allowed through breaks.`);
+                    } else {
+                        // This spans completely over a break time
+                        console.log(`[AvailabilityService] Slot ${timeStr} spans completely over break time but IS allowed through breaks.`);
+                    }
                 }
             }
         }
