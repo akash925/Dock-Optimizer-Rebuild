@@ -198,3 +198,6 @@ export function useAppointmentAvailability({
     fetchAvailabilityForDate
   };
 }
+
+// Export an alias with the "Fixed" suffix for clarity
+export const useAppointmentAvailabilityFixed = useAppointmentAvailability;

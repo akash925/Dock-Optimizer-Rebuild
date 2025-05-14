@@ -22,6 +22,7 @@ import { BookingThemeProvider, useBookingTheme } from '@/contexts/BookingThemeCo
 import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
 import { useStandardQuestions } from '@/hooks/use-standard-questions';
 import { useEnabledBookingDays } from '@/hooks/use-enabled-booking-days';
+import { useAppointmentAvailabilityFixed } from '@/hooks/use-appointment-availability-fixed';
 import { Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -748,112 +749,58 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
     fetchOrganizationHolidays();
   }, [selectedFacility]);
   
-  // When date changes, fetch available times
+  // Format selectedDate as string for the hook
+  const selectedDateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
+  
+  // Use the fixed hook to fetch availability
+  const { 
+    availableTimeSlots: slots, 
+    isLoading: slotsLoading,
+    error: slotsError
+  } = useAppointmentAvailabilityFixed({
+    facilityId: bookingData.facilityId,
+    appointmentTypeId: bookingData.appointmentTypeId,
+    date: selectedDateStr,
+    bookingPageSlug: slug
+  });
+  
+  // Update state based on the hook results
   useEffect(() => {
-    if (!selectedDate || !bookingData.facilityId || !bookingData.appointmentTypeId || !slug) return;
+    setLoading(slotsLoading);
     
-    const fetchAvailableTimes = async () => {
-      try {
-        setLoading(true);
-        setAvailableTimes([]); // Clear previous times while loading
-        
-        // Format the date for the API
-        const dateStr = format(selectedDate, 'yyyy-MM-dd');
-        
-        console.log(`Fetching available times for date=${dateStr}, facilityId=${bookingData.facilityId}, typeId=${bookingData.appointmentTypeId}, slug=${slug}`);
-        
-        // Call the API to get available times using the standardized parameter name (typeId)
-        // Include bookingPageSlug to ensure proper tenant context
-        // Use full URL with origin to avoid relative path issues
-        const apiUrl = `${window.location.origin}/api/availability?date=${dateStr}&facilityId=${bookingData.facilityId}&typeId=${bookingData.appointmentTypeId}&bookingPageSlug=${slug}`;
-        console.log(`[DateTimeSelectionStep] Fetching availability with URL: ${apiUrl}`);
-        
-        let data;
-        try {
-          const response = await fetch(apiUrl);
-          console.log(`[DateTimeSelectionStep] Availability API response status:`, response.status);
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`[DateTimeSelectionStep] Error fetching availability: ${errorText}`);
-            throw new Error(`Failed to fetch availability: ${response.status} ${errorText}`);
-          }
-          
-          data = await response.json();
-          console.log("[DateTimeSelectionStep] Available times response:", data);
-        } catch (err) {
-          console.error(`[DateTimeSelectionStep] Exception fetching availability:`, err);
-          throw err;
-        }
-        
-        // Log the response data structure in detail
-        console.log('[DateTimeSelectionStep] API response data structure:', JSON.stringify(data, null, 2));
-        console.log('[DateTimeSelectionStep] Checking for remaining slots in response:', 
-          data.slots ? 'has slots array with details' : 'only has simple availableTimes array');
-          
-        // Store all availability slot data if available
-        if (data.slots && Array.isArray(data.slots)) {
-          console.log('[DateTimeSelectionStep] Using enhanced slot data with capacity information');
-          // Filter for available slots and sort by time
-          const availableSlots = data.slots
-            .filter((slot: any) => slot.available)
-            .sort((a: any, b: any) => a.time.localeCompare(b.time));
-          setAvailabilitySlots(availableSlots);
-          
-          // Set the available times for backward compatibility
-          const times = availableSlots.map((slot: any) => slot.time);
-          setAvailableTimes(times);
-          console.log(`[DateTimeSelectionStep] Found ${times.length} available times:`, times);
-        } else if (data.availableTimes && Array.isArray(data.availableTimes)) {
-          // Fallback to old format if slots aren't available
-          console.log('[DateTimeSelectionStep] Using backward compatible simple time array');
-          const sortedTimes = [...data.availableTimes].sort();
-          setAvailableTimes(sortedTimes);
-          console.log(`[DateTimeSelectionStep] Found ${sortedTimes.length} available times:`, sortedTimes);
-          
-          // Create basic slots with default remaining = 1
-          const basicSlots = sortedTimes.map(time => ({
-            time,
-            available: true,
-            remaining: 1
-          }));
-          setAvailabilitySlots(basicSlots);
-        } else {
-          console.warn('[DateTimeSelectionStep] No availableTimes or slots array found in response');
-          setAvailableTimes([]);
-          setAvailabilitySlots([]);
-        }
-        
-        // If we previously had a selected time on this date, check if it's still available
-        if (bookingData.startTime) {
-          const existingTimeString = format(new Date(bookingData.startTime), 'HH:mm');
-          const times = availabilitySlots.map(slot => slot.time);
-          if (!times.includes(existingTimeString)) {
-            // Previous time is no longer available
-            setSelectedTime('');
-          } else {
-            setSelectedTime(existingTimeString);
-          }
-        } else {
-          // No time was previously selected
+    if (slots && slots.length > 0) {
+      // Store all slots for display
+      setAvailabilitySlots(slots);
+      
+      // Set the available times for backward compatibility
+      const times = slots
+        .filter(slot => slot.available)
+        .map(slot => slot.time);
+      setAvailableTimes(times);
+      
+      console.log(`[DateTimeSelectionStep] Found ${times.length} available times out of ${slots.length} total slots`);
+      
+      // If we previously had a selected time on this date, check if it's still available
+      if (bookingData.startTime) {
+        const existingTimeString = format(new Date(bookingData.startTime), 'HH:mm');
+        if (!times.includes(existingTimeString)) {
+          // Previous time is no longer available
           setSelectedTime('');
+        } else {
+          setSelectedTime(existingTimeString);
         }
-        
-        if (availabilitySlots.length === 0) {
-          console.log("[DateTimeSelectionStep] No available times for selected date");
-        }
-      } catch (error) {
-        console.error('[DateTimeSelectionStep] Error fetching available times:', error);
-        setAvailableTimes([]);
-        setAvailabilitySlots([]);
+      } else {
+        // No time was previously selected
         setSelectedTime('');
-      } finally {
-        setLoading(false);
       }
-    };
-    
-    fetchAvailableTimes();
-  }, [selectedDate, bookingData.facilityId, bookingData.appointmentTypeId, slug]);
+    } else {
+      // No slots available
+      setAvailabilitySlots([]);
+      setAvailableTimes([]);
+      setSelectedTime('');
+      console.log("[DateTimeSelectionStep] No available times for selected date");
+    }
+  }, [slots, slotsLoading, bookingData.startTime]);
   
   // When time changes, update the bookingData
   useEffect(() => {
@@ -1078,26 +1025,95 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                               // Format for display (e.g., "9:30 AM")
                               const displayTime = format(timeObj, 'h:mm a');
                               
-                              // Get the selected appointment type to check if we should show remaining slots
+                              // Get the selected appointment type
                               const selectedType = Array.isArray(appointmentTypes)
                                 ? appointmentTypes.find((type: any) => type.id === bookingData.appointmentTypeId)
                                 : undefined;
                               
-                              // Always show remaining slots, regardless of the showRemainingSlots setting
-                              return (
-                                <Button
-                                  key={slot.time}
-                                  type="button"
-                                  variant={field.value === slot.time ? "default" : "outline"}
-                                  className={`relative min-w-[120px] h-auto min-h-[85px] py-2 px-1 ${field.value === slot.time ? "booking-button" : "booking-button-secondary"}`}
-                                  onClick={() => {
-                                    field.onChange(slot.time);
-                                    handleTimeChange(slot.time);
-                                  }}
-                                >
-                                  <div className="flex flex-col w-full justify-center">
-                                    {/* Primary display: Facility Time with facility timezone identifier */}
-                                    <div className="font-medium text-sm text-center">
+                              // Only render available slots as buttons
+                              if (slot.available) {
+                                return (
+                                  <Button
+                                    key={slot.time}
+                                    type="button"
+                                    variant={field.value === slot.time ? "default" : "outline"}
+                                    className={`relative min-w-[120px] h-auto min-h-[85px] py-2 px-1 ${field.value === slot.time ? "booking-button" : "booking-button-secondary"}`}
+                                    onClick={() => {
+                                      field.onChange(slot.time);
+                                      handleTimeChange(slot.time);
+                                    }}
+                                  >
+                                    <div className="flex flex-col w-full justify-center">
+                                      {/* Primary display: Facility Time with facility timezone identifier */}
+                                      <div className="font-medium text-sm text-center">
+                                        <span>{displayTime}</span>
+                                        {selectedFacility?.timezone && (
+                                          <div className="text-xs">
+                                            ({getTimeZoneAbbreviation(selectedFacility.timezone)})
+                                          </div>
+                                        )}
+                                        
+                                        {/* Display remaining capacity */}
+                                        {((slot.remaining !== undefined && slot.remaining > 0) || 
+                                          (slot.remainingCapacity !== undefined && slot.remainingCapacity > 0)) && (
+                                          <div className="text-xs font-semibold text-green-600 mt-1">
+                                            {slot.remaining !== undefined ? slot.remaining : 
+                                            (slot.remainingCapacity !== undefined ? slot.remainingCapacity : '')} available
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Secondary display: User's local time if different */}
+                                      {Intl.DateTimeFormat().resolvedOptions().timeZone !== selectedFacility?.timezone && (
+                                        <div className="text-xs text-gray-500 mt-1 text-center">
+                                          {/* Convert to user's timezone */}
+                                          {(() => {
+                                            try {
+                                              const [hours, minutes] = slot.time.split(':').map(Number);
+                                              const date = new Date(selectedDate);
+                                              date.setHours(hours, minutes, 0, 0);
+                                              
+                                              // Format this date according to user's timezone
+                                              const userTime = new Date(date.toLocaleString('en-US', {
+                                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                                              }));
+                                              
+                                              const userTzAbbr = getTimeZoneAbbreviation(
+                                                Intl.DateTimeFormat().resolvedOptions().timeZone
+                                              );
+                                              
+                                              return (
+                                                <>
+                                                  <div>{format(userTime, 'h:mm a')}</div>
+                                                  <div>({userTzAbbr})</div>
+                                                </>
+                                              );
+                                            } catch (e) {
+                                              console.error("Error converting timezone:", e);
+                                              return "";
+                                            }
+                                          })()}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Show buffer time indicator if applicable */}
+                                    {slot.isBufferTime && (
+                                      <span className="absolute bottom-0 right-0 m-1 flex h-2 w-2 items-center justify-center rounded-full bg-amber-400" 
+                                        title="Buffer time zone">
+                                      </span>
+                                    )}
+                                  </Button>
+                                );
+                              } else {
+                                // Render unavailable slots as disabled cards with reason
+                                return (
+                                  <div 
+                                    key={slot.time}
+                                    className="relative min-w-[120px] h-auto min-h-[85px] py-2 px-1 border border-gray-200 bg-gray-50 rounded-md opacity-60 flex flex-col items-center justify-center"
+                                    title={slot.reason || "Unavailable"}
+                                  >
+                                    <div className="text-sm text-center text-gray-500">
                                       <span>{displayTime}</span>
                                       {selectedFacility?.timezone && (
                                         <div className="text-xs">
@@ -1105,58 +1121,23 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                         </div>
                                       )}
                                       
-                                      {/* Display remaining capacity */}
-                                      {((slot.remaining !== undefined && slot.remaining > 0) || 
-                                        (slot.remainingCapacity !== undefined && slot.remainingCapacity > 0)) && (
-                                        <div className="text-xs font-semibold text-green-600 mt-1">
-                                          {slot.remaining !== undefined ? slot.remaining : 
-                                           (slot.remainingCapacity !== undefined ? slot.remainingCapacity : '')} available
+                                      {/* Display reason for unavailability */}
+                                      {slot.reason && (
+                                        <div className="text-xs text-red-500 mt-1 max-w-[100px] truncate" title={slot.reason}>
+                                          {slot.reason}
                                         </div>
                                       )}
                                     </div>
                                     
-                                    {/* Secondary display: User's local time if different */}
-                                    {Intl.DateTimeFormat().resolvedOptions().timeZone !== selectedFacility?.timezone && (
-                                      <div className="text-xs text-gray-500 mt-1 text-center">
-                                        {/* Convert to user's timezone */}
-                                        {(() => {
-                                          try {
-                                            const [hours, minutes] = slot.time.split(':').map(Number);
-                                            const date = new Date(selectedDate);
-                                            date.setHours(hours, minutes, 0, 0);
-                                            
-                                            // Format this date according to user's timezone
-                                            const userTime = new Date(date.toLocaleString('en-US', {
-                                              timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                                            }));
-                                            
-                                            const userTzAbbr = getTimeZoneAbbreviation(
-                                              Intl.DateTimeFormat().resolvedOptions().timeZone
-                                            );
-                                            
-                                            return (
-                                              <>
-                                                <div>{format(userTime, 'h:mm a')}</div>
-                                                <div>({userTzAbbr})</div>
-                                              </>
-                                            );
-                                          } catch (e) {
-                                            console.error("Error converting timezone:", e);
-                                            return "";
-                                          }
-                                        })()}
-                                      </div>
+                                    {/* Show buffer time indicator if applicable */}
+                                    {slot.isBufferTime && (
+                                      <span className="absolute bottom-0 right-0 m-1 flex h-2 w-2 items-center justify-center rounded-full bg-amber-400" 
+                                        title="Buffer time zone">
+                                      </span>
                                     )}
                                   </div>
-                                  
-                                  {/* Only show capacity badge if slots are available */}
-                                  {slot.remaining !== undefined && slot.remaining > 0 && (
-                                    <span className="absolute top-0 right-0 -mt-2 -mr-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
-                                      {slot.remaining}
-                                    </span>
-                                  )}
-                                </Button>
-                              );
+                                );
+                              }
                             })}
                           </div>
                         </>
