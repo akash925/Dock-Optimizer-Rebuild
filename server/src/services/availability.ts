@@ -1,5 +1,5 @@
 import { and, eq, gt, gte, lt, lte, ne, notInArray, or } from 'drizzle-orm';
-import { toZonedTime, format as tzFormat, utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { toZonedTime, format as tzFormat } from 'date-fns-tz';
 import { getDay, parseISO, addDays, format, addMinutes, isEqual, isAfter, parse, differenceInCalendarDays } from 'date-fns';
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { IStorage } from '../../storage';
@@ -308,6 +308,7 @@ export async function calculateAvailabilitySlots(
     appointmentTypeBufferTime > 0 ? appointmentTypeBufferTime : appointmentTypeDuration, 15
   );
 
+  // Step 1: Parse the operating hours from string format to facility local time Date objects
   const operatingStartDateTime = toZonedTime(parseISO(`${date}T${operatingStartTimeStr}`), effectiveTimezone);
   let operatingEndDateTime = toZonedTime(parseISO(`${date}T${operatingEndTimeStr}`), effectiveTimezone);
 
@@ -318,19 +319,32 @@ export async function calculateAvailabilitySlots(
       operatingEndDateTime = addDays(operatingEndDateTime, 1);
   }
 
-  console.log(`[AvailabilityService] Operating hours in ${effectiveTimezone}: ${operatingStartDateTime.toISOString()} to ${operatingEndDateTime.toISOString()}`);
+  // Log the operating hours in facility timezone for debugging
+  console.log(`[AvailabilityService] Operating hours in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} to ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
+  console.log(`[AvailabilityService] Operating hours in UTC: ${operatingStartDateTime.toISOString()} to ${operatingEndDateTime.toISOString()}`);
 
+  // Step 2: Parse break times if they exist
   let breakStartDateTime: Date | null = null;
   let breakEndDateTime: Date | null = null;
+  
   // Only process break times when both are properly defined with non-empty strings
   if (breakStartTimeStr && breakEndTimeStr && 
       breakStartTimeStr.trim() !== "" && breakEndTimeStr.trim() !== "" && 
       breakStartTimeStr.includes(':') && breakEndTimeStr.includes(':')) {
       try {
+          // Create break time Date objects in facility timezone
           breakStartDateTime = toZonedTime(parseISO(`${date}T${breakStartTimeStr}`), effectiveTimezone);
           breakEndDateTime = toZonedTime(parseISO(`${date}T${breakEndTimeStr}`), effectiveTimezone);
-          if (breakEndDateTime <= breakStartDateTime) { breakEndDateTime = addDays(breakEndDateTime, 1); }
-          console.log(`[AvailabilityService] Break time for ${date} in ${effectiveTimezone}: ${breakStartDateTime.toISOString()} to ${breakEndDateTime.toISOString()}`);
+          
+          // Adjust if break spans midnight
+          if (breakEndDateTime && breakStartDateTime && breakEndDateTime <= breakStartDateTime) { 
+              breakEndDateTime = addDays(breakEndDateTime, 1); 
+          }
+          
+          if (breakStartDateTime && breakEndDateTime) {
+            console.log(`[AvailabilityService] Break time in ${effectiveTimezone}: ${tzFormat(breakStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} to ${tzFormat(breakEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
+            console.log(`[AvailabilityService] Break time in UTC: ${breakStartDateTime.toISOString()} to ${breakEndDateTime.toISOString()}`);
+          }
       } catch (e) { 
           console.error(`[AvailabilityService] Error parsing break times: ${breakStartTimeStr} - ${breakEndTimeStr}`, e); 
           // Reset to null if parsing failed
@@ -341,12 +355,14 @@ export async function calculateAvailabilitySlots(
       console.log(`[AvailabilityService] No valid break times configured for ${date}: "${breakStartTimeStr}" - "${breakEndTimeStr}"`);
   }
 
-  // Apply booking buffer time (don't show slots too close to current time)
-  // Use the effective timezone to ensure consistency in time calculations
+  // Step 3: Set up current time and buffer time for availability checks
+  // Convert current time to facility timezone to ensure proper buffer calculation
   const now = toZonedTime(new Date(), effectiveTimezone);
   const bufferCutoff = addMinutes(now, mergedConfig.bookingBufferMinutes);
-  console.log(`[AvailabilityService] Current time in ${effectiveTimezone}: ${now.toISOString()}`);
-  console.log(`[AvailabilityService] Buffer cutoff in ${effectiveTimezone}: ${bufferCutoff.toISOString()}`);
+  
+  // Log the buffer cutoff times for debugging
+  console.log(`[AvailabilityService] Current time in ${effectiveTimezone}: ${tzFormat(now, 'HH:mm', { timeZone: effectiveTimezone })}`);
+  console.log(`[AvailabilityService] Buffer cutoff in ${effectiveTimezone}: ${tzFormat(bufferCutoff, 'HH:mm', { timeZone: effectiveTimezone })}`);
   console.log(`[AvailabilityService] Buffer minutes: ${mergedConfig.bookingBufferMinutes}`);
 
   let currentSlotStartTime = new Date(operatingStartDateTime);
@@ -461,7 +477,8 @@ export async function calculateAvailabilitySlots(
       console.log(`[AvailabilityService] DEBUG: Adding slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} with reason=${reason}`);
     }
     
-    // Create the slot result with the reason field
+    // Create the slot result object with facility-local time in HH:mm format
+    // This ensures times are always shown in the facility's timezone regardless of user's timezone
     const slotResult = {
       time: tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone }),
       available: isSlotAvailable,
@@ -469,6 +486,9 @@ export async function calculateAvailabilitySlots(
       remaining: remainingCapacity,
       reason: isSlotAvailable && reason === "Spans through break time" ? reason : (isSlotAvailable ? "" : reason),
     };
+    
+    // For debugging time conversions and slot generation
+    console.log(`[AvailabilityService] Generated slot: ${slotResult.time} (${slotResult.available ? 'Available' : 'Unavailable'}) with reason: ${slotResult.reason || 'None'}`);
     
     result.push(slotResult);
 
