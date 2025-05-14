@@ -4,11 +4,14 @@
 import fetch from 'node-fetch';
 
 // Test configuration
-const BASE_URL = process.env.BASE_URL || 'https://' + process.env.REPL_SLUG + '.replit.dev';
+const BASE_URL = 'http://localhost:3000'; // Local development environment
 const TEST_FACILITY_ID = 7; // Fresh Connect HQ
-const TEST_APPOINTMENT_TYPE_ID = 4; // Any appointment type for the facility
+const TEST_APPOINTMENT_TYPE_ID = 16; // 1 Hour Trailer Appointment (doesn't allow through breaks)
 const TEST_DATE = new Date().toISOString().split('T')[0]; // Today's date in YYYY-MM-DD format
 const BOOKING_PAGE_SLUG = 'fresh-connect-booking'; // Slug for Fresh Connect booking page
+
+// Additional test appointment type that allows appointments through breaks
+const TEST_APPOINTMENT_TYPE_ALLOW_THROUGH_BREAKS = 17; // 4 Hour Container Appointment (allows through breaks)
 
 async function runTest() {
   console.log('======================================================');
@@ -16,7 +19,8 @@ async function runTest() {
   console.log('======================================================');
   console.log(`Date: ${TEST_DATE}`);
   console.log(`Facility ID: ${TEST_FACILITY_ID}`);
-  console.log(`Appointment Type ID: ${TEST_APPOINTMENT_TYPE_ID}`);
+  console.log(`Regular Appointment Type ID: ${TEST_APPOINTMENT_TYPE_ID} (disallows through breaks)`);
+  console.log(`Allow-Through-Breaks Appointment Type ID: ${TEST_APPOINTMENT_TYPE_ALLOW_THROUGH_BREAKS}`);
   console.log(`Booking Page Slug: ${BOOKING_PAGE_SLUG}`);
   console.log('------------------------------------------------------');
   
