@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
-import { Loader2, Clock as ClockIcon, CheckCircle, Scan } from 'lucide-react';
+import { Loader2, Clock as ClockIcon, CheckCircle, Scan, XCircle } from 'lucide-react';
 import { format, addHours, isValid, parseISO, parse } from 'date-fns';
 import { toZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { getUserTimeZone, formatTimeRangeForDualZones, formatDateRangeInTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
@@ -1120,9 +1120,13 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                       rounded-md flex flex-col items-center justify-center`}
                                     title={slot.reason || "Unavailable"}
                                   >
-                                    {/* Unavailability icon */}
+                                    {/* Unavailability icon with fallback */}
                                     <div className="absolute top-1 right-1">
-                                      <XCircle className="h-4 w-4 text-red-400" />
+                                      {typeof XCircle !== 'undefined' ? (
+                                        <XCircle className="h-4 w-4 text-red-400" />
+                                      ) : (
+                                        <span className="h-4 w-4 bg-red-400 rounded-full" title="Unavailable"></span>
+                                      )}
                                     </div>
                                     
                                     <div className="text-sm text-center text-gray-500">
