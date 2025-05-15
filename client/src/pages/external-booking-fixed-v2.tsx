@@ -639,12 +639,16 @@ const customerInfoSchema = z.object({
   truckNumber: z.string().optional(),
   trailerNumber: z.string().optional(),
   notes: z.string().optional(),
+  standardQuestions: z.array(z.any()).optional(),
 });
 
 // Customer Info Step
 function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmit: () => Promise<void> }) {
   const { bookingData, updateBookingData, setCurrentStep, isLoading, setIsLoading } = useBookingWizard();
   const { questions: standardQuestions, isLoading: questionsLoading } = useStandardQuestions({ appointmentTypeId: bookingData.appointmentTypeId });
+  
+  // Initialize parsedBolData as an empty object for debugging panel
+  const parsedBolData: ParsedBolData = bookingData.parsedBolData || {};
   
   // Setup form with Zod validation
   const form = useForm<z.infer<typeof customerInfoSchema>>({

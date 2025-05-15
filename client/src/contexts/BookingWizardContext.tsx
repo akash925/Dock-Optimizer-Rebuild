@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
+import { ParsedBolData } from '@/lib/ocr-service';
+
 interface BookingFormData {
   // Step 1: General Info
   facilityId?: number;
@@ -39,6 +41,7 @@ interface BookingFormData {
   appointmentTypeName?: string;
   timezone?: string;
   standardQuestions?: any[];
+  parsedBolData?: ParsedBolData;
 }
 
 interface BookingWizardContextType {
