@@ -23,17 +23,21 @@ export interface StandardQuestion {
 }
 
 interface StandardQuestionsFormFieldsProps {
-  form: UseFormReturn<any>;
+  form?: UseFormReturn<any>;
   questions: StandardQuestion[];
   isLoading?: boolean;
   disabled?: boolean;
+  onAnswersChange?: (answers: Record<string, any>) => void;
+  existingAnswers?: Record<string, any>;
 }
 
 export function StandardQuestionsFormFields({ 
   form, 
   questions,
   isLoading = false,
-  disabled = false
+  disabled = false,
+  onAnswersChange,
+  existingAnswers = {}
 }: StandardQuestionsFormFieldsProps) {
   if (isLoading) {
     return (
@@ -98,6 +102,55 @@ export function StandardQuestionsFormFields({
   console.log('[StandardQuestionsFormFields] About to render questions. Questions count after filtering:', sortedQuestions.length);
   console.log('[StandardQuestionsFormFields] First few questions after filtering:', sortedQuestions.slice(0, 5));
 
+  // Use standalone mode if form is not provided
+  const [answers, setAnswers] = React.useState<Record<string, any>>(existingAnswers || {});
+  
+  React.useEffect(() => {
+    // If onAnswersChange callback is provided, send updated answers
+    if (onAnswersChange) {
+      onAnswersChange(answers);
+    }
+  }, [answers, onAnswersChange]);
+  
+  const handleStandaloneChange = (key: string, value: any) => {
+    setAnswers(prev => {
+      const newAnswers = { ...prev, [key]: value };
+      return newAnswers;
+    });
+  };
+
+  if (!form) {
+    // Standalone mode
+    return (
+      <div className="space-y-4">
+        {sortedQuestions.map((question) => {
+          const fieldKey = question.fieldKey;
+          const value = answers[fieldKey] || '';
+          
+          return (
+            <div key={question.id} className="space-y-2">
+              <Label htmlFor={fieldKey}>
+                {question.label}
+                {question.required && <span className="text-destructive ml-1">*</span>}
+              </Label>
+              {renderFormControl(question, {
+                value: value,
+                onChange: (e: any) => handleStandaloneChange(fieldKey, 
+                  e?.target ? e.target.value : e),
+                id: fieldKey,
+                disabled: disabled
+              }, disabled)}
+              {question.required && (
+                <p className="text-xs text-muted-foreground">This field is required</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  
+  // Form-controlled mode
   return (
     <div className="space-y-4">
       {sortedQuestions.map((question) => {

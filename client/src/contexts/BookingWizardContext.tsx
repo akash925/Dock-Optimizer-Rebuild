@@ -28,6 +28,7 @@ interface BookingFormData {
   endTime?: Date;
   date?: Date | null;
   time?: string;
+  dateTime?: Date;
   
   // Additional
   notes?: string;
