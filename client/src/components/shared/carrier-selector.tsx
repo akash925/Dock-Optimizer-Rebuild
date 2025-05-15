@@ -10,15 +10,16 @@ import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/f
 import { Input } from "@/components/ui/input";
 
 interface CarrierSelectorProps {
-  form: UseFormReturn<any>;
-  nameFieldName: string;
-  idFieldName: string;
+  form?: UseFormReturn<any>;
+  nameFieldName?: string;
+  idFieldName?: string;
   mcNumberFieldName?: string;
   label?: string;
   required?: boolean;
   placeholder?: string;
   className?: string;
   onChange?: (carrier: { id?: number; name: string; mcNumber?: string }) => void;
+  onCarrierSelect?: (carrierId: number, carrier: any) => void;
 }
 
 export function CarrierSelector({
@@ -30,7 +31,8 @@ export function CarrierSelector({
   required = false,
   placeholder = "Select carrier...",
   className,
-  onChange
+  onChange,
+  onCarrierSelect
 }: CarrierSelectorProps) {
   const [open, setOpen] = useState(false);
   const [carriers, setCarriers] = useState<Carrier[]>([]);
@@ -38,8 +40,8 @@ export function CarrierSelector({
   const [isSearching, setIsSearching] = useState(false);
   const [addingNewCarrier, setAddingNewCarrier] = useState(false);
   
-  // Get current value from form
-  const carrierNameValue = form.watch(nameFieldName);
+  // Get current value from form or use empty string if form is not available
+  const carrierNameValue = form && nameFieldName ? form.watch(nameFieldName) : "";
   
   // Load initial carriers when the component mounts
   useEffect(() => {
@@ -81,72 +83,20 @@ export function CarrierSelector({
   const handleSelectCarrier = useCallback((carrier: Carrier) => {
     console.log("Selecting carrier:", carrier);
     
-    // Set carrier ID and name
-    form.setValue(idFieldName, carrier.id);
-    form.setValue(nameFieldName, carrier.name);
+    // Ensure mcNumber is a string (handle potential null values)
+    const mcNumber = carrier.mcNumber || "";
     
-    // Set MC Number if field name provided and carrier has mcNumber
-    if (mcNumberFieldName) {
-      console.log("Setting MC Number to:", carrier.mcNumber || "");
+    if (form && nameFieldName && idFieldName) {
+      // Set carrier ID and name
+      form.setValue(idFieldName, carrier.id);
+      form.setValue(nameFieldName, carrier.name);
       
-      // Ensure we trigger change events by using form.setValue
-      form.setValue(mcNumberFieldName, carrier.mcNumber || "", {
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true
-      });
-      
-      // Also update the DOM input value to ensure it's displayed
-      const mcNumberField = document.querySelector(`input[name="${mcNumberFieldName}"]`) as HTMLInputElement;
-      if (mcNumberField) {
-        mcNumberField.value = carrier.mcNumber || "";
-      }
-    }
-    
-    // Call onChange callback if provided
-    if (onChange) {
-      onChange({
-        id: carrier.id,
-        name: carrier.name,
-        mcNumber: carrier.mcNumber
-      });
-    }
-    
-    setOpen(false);
-  }, [form, idFieldName, nameFieldName, mcNumberFieldName, onChange]);
-  
-  const handleAddCarrier = useCallback(() => {
-    if (searchQuery.trim()) {
-      console.log("Adding new carrier:", searchQuery);
-      
-      // Set the carrier name - Force validation to pass
-      const trimmedName = searchQuery.trim();
-      form.setValue(nameFieldName, trimmedName, {
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true
-      });
-      
-      // Ensure no validation errors for carrier name
-      form.clearErrors(nameFieldName);
-      
-      // Also directly update the DOM value to ensure it displays properly
-      const carrierNameField = document.querySelector(`input[name="${nameFieldName}"]`) as HTMLInputElement;
-      if (carrierNameField) {
-        carrierNameField.value = trimmedName;
-      }
-      
-      // Clear carrier ID for new carriers that don't exist in the system yet
-      form.setValue(idFieldName, undefined, { shouldValidate: true });
-      
-      // Don't reset MC Number if mcNumberFieldName is provided
-      let currentMcNumber = "";
+      // Set MC Number if field name provided and carrier has mcNumber
       if (mcNumberFieldName) {
-        currentMcNumber = form.getValues(mcNumberFieldName) || "";
-        console.log("Current MC Number:", currentMcNumber);
+        console.log("Setting MC Number to:", mcNumber);
         
-        // Always ensure the MC Number field is properly set with validation
-        form.setValue(mcNumberFieldName, currentMcNumber, {
+        // Ensure we trigger change events by using form.setValue
+        form.setValue(mcNumberFieldName, mcNumber, {
           shouldValidate: true,
           shouldDirty: true,
           shouldTouch: true
@@ -155,8 +105,81 @@ export function CarrierSelector({
         // Also update the DOM input value to ensure it's displayed
         const mcNumberField = document.querySelector(`input[name="${mcNumberFieldName}"]`) as HTMLInputElement;
         if (mcNumberField) {
-          mcNumberField.value = currentMcNumber;
+          mcNumberField.value = mcNumber;
         }
+      }
+    }
+    
+    // Call onChange callback if provided
+    if (onChange) {
+      onChange({
+        id: carrier.id,
+        name: carrier.name,
+        mcNumber: mcNumber
+      });
+    }
+    
+    // Call onCarrierSelect callback if provided (for BookingWizard compatibility)
+    if (onCarrierSelect) {
+      onCarrierSelect(carrier.id, carrier);
+    }
+    
+    setOpen(false);
+  }, [form, idFieldName, nameFieldName, mcNumberFieldName, onChange, onCarrierSelect]);
+  
+  const handleAddCarrier = useCallback(() => {
+    if (searchQuery.trim()) {
+      console.log("Adding new carrier:", searchQuery);
+      
+      const trimmedName = searchQuery.trim();
+      let currentMcNumber = "";
+      
+      // Handle form updates if form is available
+      if (form && nameFieldName && idFieldName) {
+        // Set the carrier name - Force validation to pass
+        form.setValue(nameFieldName, trimmedName, {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
+        
+        // Ensure no validation errors for carrier name
+        form.clearErrors(nameFieldName);
+        
+        // Also directly update the DOM value to ensure it displays properly
+        const carrierNameField = document.querySelector(`input[name="${nameFieldName}"]`) as HTMLInputElement;
+        if (carrierNameField) {
+          carrierNameField.value = trimmedName;
+        }
+        
+        // Clear carrier ID for new carriers that don't exist in the system yet
+        form.setValue(idFieldName, undefined, { shouldValidate: true });
+        
+        // Don't reset MC Number if mcNumberFieldName is provided
+        if (mcNumberFieldName) {
+          currentMcNumber = form.getValues(mcNumberFieldName) || "";
+          console.log("Current MC Number:", currentMcNumber);
+          
+          // Always ensure the MC Number field is properly set with validation
+          form.setValue(mcNumberFieldName, currentMcNumber, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+          });
+          
+          // Also update the DOM input value to ensure it's displayed
+          const mcNumberField = document.querySelector(`input[name="${mcNumberFieldName}"]`) as HTMLInputElement;
+          if (mcNumberField) {
+            mcNumberField.value = currentMcNumber;
+          }
+        }
+        
+        // Log final form state for debugging
+        console.log("Form values after adding carrier:", {
+          carrierName: nameFieldName ? form.getValues(nameFieldName) : undefined,
+          carrierId: idFieldName ? form.getValues(idFieldName) : undefined,
+          mcNumber: mcNumberFieldName ? form.getValues(mcNumberFieldName) : undefined
+        });
       }
       
       // Call onChange callback if provided
@@ -167,17 +190,21 @@ export function CarrierSelector({
         });
       }
       
-      // Log final form state for debugging
-      console.log("Form values after adding carrier:", {
-        carrierName: form.getValues(nameFieldName),
-        carrierId: form.getValues(idFieldName),
-        mcNumber: mcNumberFieldName ? form.getValues(mcNumberFieldName) : undefined
-      });
+      // Call onCarrierSelect callback with a temporary ID for new carriers
+      if (onCarrierSelect) {
+        // Use a negative ID to indicate this is a new carrier not yet saved
+        const tempCarrierId = -1;
+        onCarrierSelect(tempCarrierId, {
+          id: tempCarrierId,
+          name: trimmedName,
+          mcNumber: currentMcNumber
+        });
+      }
       
       setOpen(false);
       setAddingNewCarrier(false);
     }
-  }, [searchQuery, form, idFieldName, nameFieldName, mcNumberFieldName, onChange]);
+  }, [searchQuery, form, idFieldName, nameFieldName, mcNumberFieldName, onChange, onCarrierSelect]);
   
   return (
     <FormItem className={cn("flex flex-col", className)}>
@@ -284,7 +311,7 @@ export function CarrierSelector({
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            carrierNameValue === carrier.name ? "opacity-100" : "opacity-0"
+                            String(carrierNameValue) === carrier.name ? "opacity-100" : "opacity-0"
                           )}
                         />
                         <span>{carrier.name}</span>
