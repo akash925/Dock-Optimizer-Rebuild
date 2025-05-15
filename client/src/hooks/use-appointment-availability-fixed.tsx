@@ -2,6 +2,9 @@ import { useCallback, useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 import { TimeSlot } from '@/components/booking/time-slot-picker';
 
+// For backward compatibility during migration
+type AvailabilitySlot = TimeSlot;
+
 export interface UseAppointmentAvailabilityProps {
   facilityId?: number | null;
   typeId?: number | null;

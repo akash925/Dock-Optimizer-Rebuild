@@ -146,100 +146,93 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
   
   // Check which step we're on and render the appropriate component
   return (
-    <div className="booking-page-container">
-      <div className="booking-header">
-        <div className="booking-logo">
-          <img 
-            src={logo || dockOptimizerLogo} 
-            alt={bookingPage.name || "Dock Optimizer"} 
-            className="h-12" 
-          />
-        </div>
-        <div className="booking-title">
-          <h1 className="booking-title-text">{bookingPage.name || "Dock Appointment Booking"}</h1>
-          {bookingPage.description && (
-            <p className="booking-description">{bookingPage.description}</p>
-          )}
-        </div>
-      </div>
-      
-      <div className="booking-wizard">
-        <div className="booking-progress">
-          <div className={`progress-step ${currentStep >= 1 ? 'active': ''} ${currentStep > 1 ? 'completed': ''}`}>
-            <div className="step-number">1</div>
-            <div className="step-label">Services</div>
+    <BookingWizardProvider>
+      <div className="booking-page-container">
+        <div className="booking-header">
+          <div className="booking-logo">
+            <img 
+              src={logo || dockOptimizerLogo} 
+              alt={bookingPage.name || "Dock Optimizer"} 
+              className="h-12" 
+            />
           </div>
-          <div className="progress-line"></div>
-          <div className={`progress-step ${currentStep >= 2 ? 'active': ''} ${currentStep > 2 ? 'completed': ''}`}>
-            <div className="step-number">2</div>
-            <div className="step-label">Date & Time</div>
-          </div>
-          <div className="progress-line"></div>
-          <div className={`progress-step ${currentStep >= 3 ? 'active': ''} ${currentStep > 3 ? 'completed': ''}`}>
-            <div className="step-number">3</div>
-            <div className="step-label">Details</div>
+          <div className="booking-title">
+            <h1 className="booking-title-text">{bookingPage.name || "Dock Appointment Booking"}</h1>
+            {bookingPage.description && (
+              <p className="booking-description">{bookingPage.description}</p>
+            )}
           </div>
         </div>
         
-        <div className="booking-form-container">
-          {currentStep === 1 && (
-            <ServiceSelectionStepOld 
-              bookingPage={bookingPage} 
-            />
-          )}
-          {currentStep === 2 && (
-            <DateTimeSelectionStep 
-              bookingPage={bookingPage} 
-            />
-          )}
-          {currentStep === 3 && (
-            <CustomerInfoStep 
-              bookingPage={bookingPage}
-              onSubmit={async () => {
-                try {
-                  // Create the appointment
-                  const response = await fetch('/api/schedules', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      ...bookingData,
-                      bookingPageId: bookingPage.id
-                    })
-                  });
-                  
-                  if (!response.ok) {
-                    const errorData = await response.text();
-                    throw new Error(`Failed to create appointment: ${response.status} ${errorData}`);
+        <div className="booking-wizard">
+          <div className="booking-progress">
+            <div className={`progress-step ${currentStep >= 1 ? 'active': ''} ${currentStep > 1 ? 'completed': ''}`}>
+              <div className="step-number">1</div>
+              <div className="step-label">Services</div>
+            </div>
+            <div className="progress-line"></div>
+            <div className={`progress-step ${currentStep >= 2 ? 'active': ''} ${currentStep > 2 ? 'completed': ''}`}>
+              <div className="step-number">2</div>
+              <div className="step-label">Date & Time</div>
+            </div>
+            <div className="progress-line"></div>
+            <div className={`progress-step ${currentStep >= 3 ? 'active': ''} ${currentStep > 3 ? 'completed': ''}`}>
+              <div className="step-number">3</div>
+              <div className="step-label">Details</div>
+            </div>
+          </div>
+          
+          <div className="booking-form-container">
+            {currentStep === 1 && (
+              <ServiceSelectionStepOld 
+                bookingPage={bookingPage} 
+              />
+            )}
+            {currentStep === 2 && (
+              <DateTimeSelectionStep 
+                bookingPage={bookingPage} 
+              />
+            )}
+            {currentStep === 3 && (
+              <CustomerInfoStep 
+                bookingPage={bookingPage}
+                onSubmit={async () => {
+                  try {
+                    // Create the appointment
+                    const response = await fetch('/api/schedules', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        ...bookingData,
+                        bookingPageId: bookingPage.id
+                      })
+                    });
+                    
+                    if (!response.ok) {
+                      const errorData = await response.text();
+                      throw new Error(`Failed to create appointment: ${response.status} ${errorData}`);
+                    }
+                    
+                    const data = await response.json();
+                    setConfirmationCode(data.confirmationCode);
+                    setCurrentStep(4);
+                  } catch (err: any) {
+                    console.error('Error creating appointment:', err);
+                    alert(`Error creating appointment: ${err.message}`);
                   }
-                  
-                  const data = await response.json();
-                  setConfirmationCode(data.confirmationCode);
-                  setCurrentStep(4);
-                } catch (err: any) {
-                  console.error('Error creating appointment:', err);
-                  alert(`Error creating appointment: ${err.message}`);
-                }
-              }}
-            />
-          )}
-          {currentStep === 4 && (
-            <ConfirmationStep 
-              bookingPage={bookingPage}
-              confirmationCode={confirmationCode}
-            />
-          )}
+                }}
+              />
+            )}
+            {currentStep === 4 && (
+              <ConfirmationStep 
+                bookingPage={bookingPage}
+                confirmationCode={confirmationCode}
+              />
+            )}
+          </div>
         </div>
       </div>
-      
-      <BookingWizardProvider
-        currentStep={currentStep}
-        setCurrentStep={setCurrentStep}
-        bookingData={bookingData}
-        updateBookingData={updateBookingData}
-      >
-        {/* Children content provided by the individual steps */}
-      </BookingWizardProvider>
-    </div>
+    </BookingWizardProvider>
   );
 }
 
