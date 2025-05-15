@@ -1,15 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/queryClient';
-
-// Types
-export interface AvailabilitySlot {
-  time: string;
-  available: boolean;
-  reason: string;
-  remaining: number;
-  remainingCapacity: number;
-  isBufferTime?: boolean;
-}
+import { TimeSlot } from '@/components/booking/time-slot-picker';
 
 export interface UseAppointmentAvailabilityProps {
   facilityId?: number | null;
@@ -20,7 +11,7 @@ export interface UseAppointmentAvailabilityProps {
   facilityTimezone?: string;
   date?: string | Date | null;
   duration?: number;
-  onTimeSlotGenerated?: (slots: AvailabilitySlot[], firstAvailableSlot: string | null) => void;
+  onTimeSlotGenerated?: (slots: TimeSlot[], firstAvailableSlot: string | null) => void;
   bookingPageSlug?: string; // Optional booking page slug for tenant context
 }
 
@@ -41,7 +32,7 @@ export function useAppointmentAvailability({
   bookingPageSlug
 }: UseAppointmentAvailabilityProps) {
   // State
-  const [availableTimeSlots, setAvailableTimeSlots] = useState<AvailabilitySlot[]>([]);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(
