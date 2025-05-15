@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "@/lib/db";
+import { db } from "../../lib/db";
 import { eq } from "drizzle-orm";
 import { bookingPages } from "@/db/schema";
 import { safeToString } from "@/lib/utils"; 
