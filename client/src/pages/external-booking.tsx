@@ -116,15 +116,11 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
       // Use the enhanced v2 endpoint which properly handles all scheduling rules
       const url = new URL('/api/availability/v2', window.location.origin);
       
-      // Make sure we're using the exact date string for the API call
-      let dateParam = '';
-      if (typeof bookingData.date === 'string') {
-        dateParam = bookingData.date;
-      } else if (bookingData.date instanceof Date) {
-        dateParam = format(bookingData.date, 'yyyy-MM-dd');
-      }
+      // Directly use the date string from booking data without any transformation
+      // This ensures we're using the exact date the user selected
+      const dateParam = typeof bookingData.date === 'string' ? bookingData.date : '';
       
-      console.log("Using date param for availability:", dateParam);
+      console.log("Using date param for availability call:", dateParam);
       
       // Add all required parameters to the URL
       url.searchParams.append('date', dateParam);
@@ -251,22 +247,33 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
         <div className="space-y-4">
           <Label>Select Date</Label>
           <DatePicker 
-            date={bookingData?.date ? new Date(bookingData.date) : undefined}
+            date={bookingData?.date ? 
+              // Make sure we properly parse the date string that could be in yyyy-MM-dd format
+              typeof bookingData.date === 'string' 
+                ? new Date(
+                    parseInt(bookingData.date.substring(0, 4)), // year
+                    parseInt(bookingData.date.substring(5, 7)) - 1, // month (0-indexed)
+                    parseInt(bookingData.date.substring(8, 10)) // day
+                  ) 
+                : new Date(bookingData.date) 
+              : undefined}
             onDateChange={(date) => {
               if (date) {
-                // Create a clean date object without time information to avoid timezone issues
-                // This creates a date at 00:00:00 local time
-                const selectedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                // Important: Keep exactly the date that was clicked without any timezone conversion
+                // Get the year, month, and day directly from the date object
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1; // JavaScript months are 0-indexed
+                const day = date.getDate();
                 
-                // For debugging
-                console.log("Selected date:", selectedDate);
-                console.log("Selected date ISO string:", selectedDate.toISOString());
-                console.log("Selected date in format yyyy-MM-dd:", format(selectedDate, 'yyyy-MM-dd'));
+                // Create a formatted date string manually without using date-fns to avoid any timezone issues
+                // This ensures the exact date selected in the UI is passed to the API
+                const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
                 
-                // Get just the date part as a string in YYYY-MM-DD format
-                const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+                console.log("Date selected from calendar:", date);
+                console.log("Year:", year, "Month:", month, "Day:", day);
+                console.log("Manual formatted date:", formattedDate);
                 
-                // Update the context
+                // Update the context with the exact date string
                 updateBookingData({ date: formattedDate });
                 
                 // For external API calls, we'll use this format
@@ -310,12 +317,23 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                         'Not available')}
                     >
                       {slot.time}
-                      {!slot.available && (slot.reason === 'facility break' || slot.reason === 'Break Time') && (
+                      {/* Break time indicator - looking for various possible break reason texts */}
+                      {(!slot.available || slot.reason?.toLowerCase().includes('break')) && 
+                        (slot.reason?.toLowerCase().includes('break') || 
+                         slot.reason?.toLowerCase().includes('lunch')) && (
                         <span className="ml-1 text-xs">🍽️</span>
                       )}
-                      {!slot.available && (slot.reason === 'outside hours' || slot.reason === 'Outside Hours') && (
+                      
+                      {/* Outside hours indicator */}
+                      {(!slot.available || slot.reason?.toLowerCase().includes('outside') || 
+                         slot.reason?.toLowerCase().includes('closed')) && 
+                        (slot.reason?.toLowerCase().includes('outside') || 
+                         slot.reason?.toLowerCase().includes('hours') ||
+                         slot.reason?.toLowerCase().includes('closed')) && (
                         <span className="ml-1 text-xs">🔒</span>
                       )}
+                      
+                      {/* Limited availability indicator */}
                       {slot.available && slot.remainingCapacity === 1 && (
                         <span className="ml-1 text-xs">⚠️</span>
                       )}
