@@ -1077,7 +1077,17 @@ export default function UnifiedAppointmentForm({
                                     className={`${!slot.available ? "opacity-50" : ""} ${slot.isBufferTime ? "bg-yellow-50" : ""}`}
                                   >
                                     <div className="flex items-center justify-between w-full">
-                                      <span className="font-medium">{slot.time}</span>
+                                      <span className="font-medium">
+                                        {/* Format the time properly instead of just showing raw string */}
+                                        {(() => {
+                                          // Parse the time string which is in facility timezone (e.g. "08:00")
+                                          const [hours, minutes] = slot.time.split(':').map(Number);
+                                          // Convert to 12-hour format
+                                          const hour12 = hours % 12 || 12;
+                                          const period = hours >= 12 ? 'PM' : 'AM';
+                                          return `${hour12}:${minutes.toString().padStart(2, '0')} ${period}`;
+                                        })()}
+                                      </span>
                                       <span className="text-sm ml-2">
                                         {/* Remove buffer time display in slot UI since it's now used as interval */}
                                         {!slot.available && !slot.isBufferTime && (

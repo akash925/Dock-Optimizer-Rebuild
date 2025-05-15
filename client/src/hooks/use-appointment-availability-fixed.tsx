@@ -169,6 +169,23 @@ export function useAppointmentAvailability({
       console.log(`[AvailabilityHook] User TZ:`, Intl.DateTimeFormat().resolvedOptions().timeZone);
       console.log(`[AvailabilityHook] Facility TZ:`, facilityTimezone || timezone || 'not provided');
       
+      // Add debug information about the time strings
+      if (slots.length > 0) {
+        const firstSlot = slots[0];
+        const lastSlot = slots[slots.length - 1];
+        console.log(`[AvailabilityHook] First slot time: ${firstSlot.time}, available: ${firstSlot.available}`);
+        console.log(`[AvailabilityHook] Last slot time: ${lastSlot.time}, available: ${lastSlot.available}`);
+        
+        // Show example of parsing a time
+        const [hours, minutes] = firstSlot.time.split(':').map(Number);
+        console.log(`[AvailabilityHook] First slot parsed: Hours=${hours}, Minutes=${minutes}`);
+        
+        // Show sample conversion to 12-hour format
+        const hour12 = hours % 12 || 12;
+        const period = hours >= 12 ? 'PM' : 'AM';
+        console.log(`[AvailabilityHook] First slot 12-hour format: ${hour12}:${minutes.toString().padStart(2, '0')} ${period}`);
+      }
+      
       console.log(`[AvailabilityHook] Processed ${slots.length} slots for UI rendering`);
       
       // Update state with the processed slots
