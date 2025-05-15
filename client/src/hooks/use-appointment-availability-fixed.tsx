@@ -99,7 +99,7 @@ export function useAppointmentAvailability({
       
       if (isHoliday) {
         // If it's a holiday, return empty slots
-        const holidaySlot: AvailabilitySlot = {
+        const holidaySlot: TimeSlot = {
           time: '00:00',
           available: false,
           reason: 'Organization Holiday',
@@ -146,7 +146,7 @@ export function useAppointmentAvailability({
       console.log(`[AvailabilityHook] Received ${data.slots?.length || 0} slots from v2 endpoint`);
       
       // Use slots directly from the API response but ensure they meet the interface requirements
-      const slots = (data.slots || []).map((slot: any): AvailabilitySlot => ({
+      const slots = (data.slots || []).map((slot: any): TimeSlot => ({
         time: slot.time,
         available: Boolean(slot.available),
         reason: slot.reason || '',
@@ -184,7 +184,7 @@ export function useAppointmentAvailability({
       
       // Call callback if provided
       if (onTimeSlotGenerated) {
-        const firstAvailableSlot = slots.find((slot: AvailabilitySlot) => slot.available)?.time || null;
+        const firstAvailableSlot = slots.find((slot: TimeSlot) => slot.available)?.time || null;
         onTimeSlotGenerated(slots, firstAvailableSlot);
       }
     } catch (error) {
