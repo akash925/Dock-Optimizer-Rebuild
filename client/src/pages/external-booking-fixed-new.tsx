@@ -743,11 +743,10 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
       // Get any standard question responses
       const standardQuestions = (questionsData?.questions || []).map((q: any) => {
         const fieldName = `question_${q.id}`;
-        const values = form.getValues();
         return {
           questionId: q.id,
           questionText: q.text,
-          answer: (fieldName in values) ? (values as any)[fieldName] || '' : ''
+          answer: form.getValues()[fieldName as keyof typeof form.getValues()] || ''
         };
       });
       
