@@ -3,7 +3,7 @@ import { useRoute } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import ExternalBooking from './external-booking';
+import ExternalBooking from './external-booking-fixed';
 
 // Define BookingPage type to resolve type issues
 interface BookingPage {
