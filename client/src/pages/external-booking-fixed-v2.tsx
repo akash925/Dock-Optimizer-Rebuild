@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRoute } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+
+// Safe toString helper to prevent crashes when calling toString on undefined values
+function safeToString(val: unknown): string {
+  return typeof val === 'number' || typeof val === 'string' ? val.toString() : '';
+}
 import { queryClient } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -320,7 +325,7 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
                 <FormLabel className="booking-label">Facility</FormLabel>
                 <Select 
                   onValueChange={(value) => field.onChange(Number(value))}
-                  value={field.value != null ? field.value.toString() : ""}
+                  value={safeToString(field.value)}
                 >
                   <FormControl>
                     <SelectTrigger className="booking-select">
@@ -351,7 +356,7 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
                 <FormLabel className="booking-label">Service Type</FormLabel>
                 <Select 
                   onValueChange={(value) => field.onChange(Number(value))}
-                  value={field.value != null ? field.value.toString() : ""}
+                  value={safeToString(field.value)}
                   disabled={!form.watch('facilityId')}
                 >
                   <FormControl>
@@ -555,7 +560,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                 <FormLabel className="booking-label">Time Slot</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  value={field.value}
+                  value={safeToString(field.value)}
                   disabled={!form.watch('date') || isLoadingTimeSlots}
                 >
                   <FormControl>
