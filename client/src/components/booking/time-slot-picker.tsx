@@ -4,10 +4,19 @@ import { cn } from "@/lib/utils";
 import { useTimeZoneUtils } from "@/hooks/use-timezone-utils";
 import { formatInTimeZone } from "date-fns-tz";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { AvailabilitySlot } from "@/hooks/use-appointment-availability-fixed";
+
+// Define a generic slot interface that works for both consumers
+export interface TimeSlot {
+  time: string;
+  available: boolean;
+  reason?: string;
+  remaining: number;
+  remainingCapacity?: number;
+  isBufferTime?: boolean;
+}
 
 interface TimeSlotPickerProps {
-  slots: AvailabilitySlot[]; // Enhanced slot data from v2 API
+  slots: TimeSlot[]; // Enhanced slot data from v2 API
   selectedTime: string | null;
   onSelectTime: (time: string) => void;
   timezone?: string;
