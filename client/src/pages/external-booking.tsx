@@ -63,8 +63,14 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
 
   const appointmentTypes = useMemo(() => {
     const selectedFacility = form.watch('facilityId');
-    return bookingPage.appointmentTypes?.filter((t: any) => t.facilityId === selectedFacility) || [];
-  }, [form.watch('facilityId')]);
+    // If we have appointment types in the booking page data, filter by facilityId
+    if (bookingPage.appointmentTypes && Array.isArray(bookingPage.appointmentTypes)) {
+      return bookingPage.appointmentTypes.filter((t: any) => 
+        selectedFacility && t.facilityId === selectedFacility
+      );
+    }
+    return [];
+  }, [bookingPage.appointmentTypes, form.watch('facilityId')]);
 
   const handleSubmit = (values: any) => {
     const selectedFacility = facilities.find((f: any) => f.id === values.facilityId);
