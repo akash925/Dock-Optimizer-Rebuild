@@ -100,22 +100,28 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
   };
 
   const { data: availability, isLoading: loadingAvailability } = useQuery({
-    queryKey: ["availability", bookingData],
+    queryKey: ["availability/v2", bookingData?.facilityId, bookingData?.appointmentTypeId, bookingData?.date],
     queryFn: async () => {
-      const res = await fetch("/api/availability", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          facilityId: bookingData?.facilityId,
-          appointmentTypeId: bookingData?.appointmentTypeId,
-          date: bookingData?.date,
-          timezone: bookingData?.timezone,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to load availability");
-      return res.json();
+      // Use the enhanced v2 endpoint which properly handles all scheduling rules
+      const url = new URL('/api/availability/v2', window.location.origin);
+      url.searchParams.append('date', typeof bookingData?.date === 'string' ? bookingData.date : '');
+      url.searchParams.append('facilityId', String(bookingData?.facilityId || ''));
+      url.searchParams.append('appointmentTypeId', String(bookingData?.appointmentTypeId || ''));
+      url.searchParams.append('bookingPageSlug', window.location.pathname.split('/').pop() || '');
+      
+      console.log(`Fetching availability from: ${url.toString()}`);
+      
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Availability fetch error:", errorData);
+        throw new Error(errorData.message || "Failed to load availability");
+      }
+      const data = await res.json();
+      console.log("Availability data:", data);
+      return data.slots || []; // Use the enhanced slots format that includes availability details
     },
-    enabled: !!bookingData?.date && step === 2,
+    enabled: !!bookingData?.date && !!bookingData?.facilityId && !!bookingData?.appointmentTypeId && step === 2,
   });
 
   const bookingMutation = useMutation({
@@ -211,22 +217,63 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
           />
 
           {loadingAvailability ? (
-            <Loader2 className="animate-spin" />
+            <div className="flex justify-center py-8">
+              <Loader2 className="animate-spin h-8 w-8 text-primary" />
+            </div>
           ) : availability && availability.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2">
-              {availability.map((slot: any) => (
-                <Button
-                  key={slot.time}
-                  variant={bookingData?.time === slot.time ? 'default' : 'outline'}
-                  onClick={() => updateBookingData({ time: slot.time })}
-                  disabled={!slot.available}
-                >
-                  {slot.time}
-                </Button>
-              ))}
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Available Times</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {availability.map((slot: any) => {
+                  // Determine the button styling based on availability
+                  let variant = 'outline';
+                  let className = '';
+                  
+                  if (bookingData?.time === slot.time) {
+                    variant = 'default';
+                  } else if (!slot.available) {
+                    className = 'opacity-50';
+                  } else if (slot.remainingCapacity && slot.remainingCapacity < 2) {
+                    // Limited availability styling
+                    className = 'border-yellow-400';
+                  }
+                  
+                  return (
+                    <Button
+                      key={slot.time}
+                      variant={variant}
+                      className={className}
+                      onClick={() => updateBookingData({ time: slot.time })}
+                      disabled={!slot.available}
+                      title={slot.reason || (slot.available ? 
+                        `${slot.remainingCapacity || 1} slot(s) available` : 
+                        'Not available')}
+                    >
+                      {slot.time}
+                      {!slot.available && slot.reason === 'facility break' && (
+                        <span className="ml-1 text-xs">🍽️</span>
+                      )}
+                      {!slot.available && slot.reason === 'outside hours' && (
+                        <span className="ml-1 text-xs">🔒</span>
+                      )}
+                      {slot.available && slot.remainingCapacity === 1 && (
+                        <span className="ml-1 text-xs">⚠️</span>
+                      )}
+                    </Button>
+                  );
+                })}
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                <p>🔒 - Outside facility hours</p>
+                <p>🍽️ - Facility break time</p>
+                <p>⚠️ - Limited availability</p>
+              </div>
             </div>
           ) : (
-            <p>No availability found for selected date.</p>
+            <div className="py-4 text-center">
+              <p className="text-muted-foreground">No availability found for selected date.</p>
+              <p className="text-sm mt-2">Try selecting a different date or service type.</p>
+            </div>
           )}
 
           <Button
