@@ -1,9 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useRoute } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import ExternalBooking from './external-booking-fixed-v2';
+import ExternalBooking from './external-booking';
+
+// Define BookingPage type to resolve type issues
+interface BookingPage {
+  id: number;
+  name: string;
+  slug: string;
+  tenantId: number;
+  description?: string;
+  facilities: number[] | any[];
+  excludedAppointmentTypes?: number[];
+  appointmentTypes?: any[];
+  enableBolUpload?: boolean;
+}
 
 export default function BookingRouter() {
   // A reference to dynamic-booking-page was removed to consolidate on a single booking page implementation
@@ -25,7 +38,7 @@ export default function BookingRouter() {
     data: bookingPage, 
     isLoading, 
     error 
-  } = useQuery({
+  } = useQuery<BookingPage>({
     queryKey: [`/api/booking-pages/slug/${slug}`],
     enabled: !!slug,
   });
@@ -54,7 +67,9 @@ export default function BookingRouter() {
   }
   
   // Store the tenant ID associated with this booking page for context
-  console.log(`BookingRouter - Booking page '${bookingPage?.name || 'Unknown'}' belongs to tenant ID: ${bookingPage?.tenantId || 'None'}`);
+  const bookingPageName = bookingPage?.name || 'Unknown';
+  const tenantId = bookingPage?.tenantId || 'None';
+  console.log(`BookingRouter - Booking page '${bookingPageName}' belongs to tenant ID: ${tenantId}`);
   
   // Important: Set a consistent tenant ID in the component state to ensure proper isolation
   // This ensures both booking page routes use the same booking page data

@@ -41,6 +41,7 @@ interface BookingFormData {
   appointmentTypeName?: string;
   timezone?: string;
   standardQuestions?: any[];
+  standardQuestionAnswers?: Record<string, any>;
   parsedBolData?: ParsedBolData;
 }
 
