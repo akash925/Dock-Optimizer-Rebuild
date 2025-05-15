@@ -608,6 +608,17 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
               Next <span className="ml-2">→</span>
             </Button>
           </div>
+          
+          {process.env.NODE_ENV === 'development' && (
+            <pre className="text-xs bg-muted p-2 mt-4 rounded">
+              {JSON.stringify({
+                formValues: form.watch(),
+                bookingData: bookingData,
+                availableSlots: availableTimeSlots,
+                isLoading: isLoadingTimeSlots
+              }, null, 2)}
+            </pre>
+          )}
         </form>
       </Form>
     </div>
@@ -967,6 +978,17 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
               )}
             </Button>
           </div>
+          
+          {process.env.NODE_ENV === 'development' && (
+            <pre className="text-xs bg-muted p-2 mt-4 rounded">
+              {JSON.stringify({
+                formValues: form.watch(),
+                bookingData: bookingData,
+                standardQuestions: standardQuestions,
+                parsedBolData: parsedBolData
+              }, null, 2)}
+            </pre>
+          )}
         </form>
       </Form>
     </div>

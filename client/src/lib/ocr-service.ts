@@ -28,6 +28,13 @@ export interface ParsedBolData {
   fileType?: string; // MIME type
   extractionMethod?: string; // Method used for extraction (OCR, PDF parsing, etc.)
   processingTimestamp?: string; // When the processing occurred
+  
+  // Additional properties needed for compatibility with forms
+  driverName?: string;
+  driverPhone?: string; 
+  customerRef?: string;
+  truckNumber?: string;
+  appointmentDate?: string;
 }
 
 /**
