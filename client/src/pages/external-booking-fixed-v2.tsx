@@ -320,7 +320,7 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
                 <FormLabel className="booking-label">Facility</FormLabel>
                 <Select 
                   onValueChange={(value) => field.onChange(Number(value))}
-                  value={field.value?.toString()}
+                  value={field.value != null ? field.value.toString() : ""}
                 >
                   <FormControl>
                     <SelectTrigger className="booking-select">
@@ -351,7 +351,7 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
                 <FormLabel className="booking-label">Service Type</FormLabel>
                 <Select 
                   onValueChange={(value) => field.onChange(Number(value))}
-                  value={field.value?.toString()}
+                  value={field.value != null ? field.value.toString() : ""}
                   disabled={!form.watch('facilityId')}
                 >
                   <FormControl>
@@ -396,6 +396,12 @@ function ServiceSelectionStep({ bookingPage }: { bookingPage: any }) {
               Next <span className="ml-2">→</span>
             </Button>
           </div>
+          
+          {process.env.NODE_ENV === 'development' && (
+            <pre className="text-xs bg-muted p-2 mt-4 rounded">
+              {JSON.stringify(form.watch(), null, 2)}
+            </pre>
+          )}
         </form>
       </Form>
     </div>
@@ -449,6 +455,7 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
       }
       
       const data = await response.json();
+      console.log("[DEBUG] Received time slots:", data);
       
       // Set available time slots
       setAvailableTimeSlots(data || []);
