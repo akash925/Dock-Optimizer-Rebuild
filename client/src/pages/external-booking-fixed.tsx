@@ -109,40 +109,113 @@ export default function ExternalBooking({ slug }: ExternalBookingProps) {
   );
 }
 
+// Progress Bar Component
+function BookingProgress() {
+  const { currentStep } = useBookingWizard();
+  
+  return (
+    <div className="booking-progress">
+      <div className={`progress-step ${currentStep >= 1 ? 'active': ''} ${currentStep > 1 ? 'completed': ''}`}>
+        <div className="step-number">1</div>
+        <div className="step-label">Services</div>
+      </div>
+      <div className="progress-line"></div>
+      <div className={`progress-step ${currentStep >= 2 ? 'active': ''} ${currentStep > 2 ? 'completed': ''}`}>
+        <div className="step-number">2</div>
+        <div className="step-label">Date & Time</div>
+      </div>
+      <div className="progress-line"></div>
+      <div className={`progress-step ${currentStep >= 3 ? 'active': ''} ${currentStep > 3 ? 'completed': ''}`}>
+        <div className="step-number">3</div>
+        <div className="step-label">Details</div>
+      </div>
+    </div>
+  );
+}
+
+// Step Content Manager Component
+function BookingStepContent({ 
+  bookingPage, 
+  confirmationCode,
+  setConfirmationCode
+}: { 
+  bookingPage: any; 
+  confirmationCode: string | null;
+  setConfirmationCode: (code: string | null) => void;
+}) {
+  const { currentStep, setCurrentStep, bookingData, updateBookingData } = useBookingWizard();
+  
+  if (confirmationCode) {
+    return (
+      <ConfirmationStep 
+        bookingPage={bookingPage}
+        confirmationCode={confirmationCode}
+      />
+    );
+  }
+  
+  switch (currentStep) {
+    case 1:
+      return (
+        <ServiceSelectionStepOld 
+          bookingPage={bookingPage} 
+        />
+      );
+    case 2:
+      return (
+        <DateTimeSelectionStep 
+          bookingPage={bookingPage} 
+        />
+      );
+    case 3:
+      return (
+        <CustomerInfoStep 
+          bookingPage={bookingPage}
+          onSubmit={async () => {
+            try {
+              // Create the appointment
+              const response = await fetch('/api/schedules', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  ...bookingData,
+                  bookingPageId: bookingPage.id
+                })
+              });
+              
+              if (!response.ok) {
+                const errorData = await response.text();
+                throw new Error(`Failed to create appointment: ${response.status} ${errorData}`);
+              }
+              
+              const data = await response.json();
+              setConfirmationCode(data.confirmationCode);
+              setCurrentStep(4);
+            } catch (err: any) {
+              console.error('Error creating appointment:', err);
+              alert(`Error creating appointment: ${err.message}`);
+            }
+          }}
+        />
+      );
+    case 4:
+      return (
+        <ConfirmationStep 
+          bookingPage={bookingPage}
+          confirmationCode={confirmationCode}
+        />
+      );
+    default:
+      return <div>Invalid step</div>;
+  }
+}
+
 // Booking Wizard Content
 function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
-  const [currentStep, setCurrentStep] = useState(1);
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
-  const [bookingData, setBookingData] = useState({
-    facilityId: null as number | null,
-    appointmentTypeId: null as number | null,
-    date: null as Date | null,
-    time: '' as string,
-    timezone: bookingPage?.facility?.timezone || 'America/New_York', // Default to NY timezone if not provided
-    email: '',
-    companyName: '',
-    contactName: '',
-    phone: '',
-    customerRef: '',
-    carrierName: '',
-    driverName: '',
-    driverPhone: '',
-    mcNumber: '',
-    truckNumber: '',
-    trailerNumber: '',
-    carrierId: null as number | null,
-    notes: '',
-    bolData: null as any,
-    standardQuestions: [] as any[],
-  });
   
   // Get the current theme
   const { theme, logo } = useBookingTheme();
-  
-  // Update booking data with new values
-  const updateBookingData = (newData: Partial<typeof bookingData>) => {
-    setBookingData(prev => ({ ...prev, ...newData }));
-  };
   
   // Check which step we're on and render the appropriate component
   return (
@@ -165,70 +238,13 @@ function BookingWizardContent({ bookingPage }: { bookingPage: any }) {
         </div>
         
         <div className="booking-wizard">
-          <div className="booking-progress">
-            <div className={`progress-step ${currentStep >= 1 ? 'active': ''} ${currentStep > 1 ? 'completed': ''}`}>
-              <div className="step-number">1</div>
-              <div className="step-label">Services</div>
-            </div>
-            <div className="progress-line"></div>
-            <div className={`progress-step ${currentStep >= 2 ? 'active': ''} ${currentStep > 2 ? 'completed': ''}`}>
-              <div className="step-number">2</div>
-              <div className="step-label">Date & Time</div>
-            </div>
-            <div className="progress-line"></div>
-            <div className={`progress-step ${currentStep >= 3 ? 'active': ''} ${currentStep > 3 ? 'completed': ''}`}>
-              <div className="step-number">3</div>
-              <div className="step-label">Details</div>
-            </div>
-          </div>
-          
+          <BookingProgress />
           <div className="booking-form-container">
-            {currentStep === 1 && (
-              <ServiceSelectionStepOld 
-                bookingPage={bookingPage} 
-              />
-            )}
-            {currentStep === 2 && (
-              <DateTimeSelectionStep 
-                bookingPage={bookingPage} 
-              />
-            )}
-            {currentStep === 3 && (
-              <CustomerInfoStep 
-                bookingPage={bookingPage}
-                onSubmit={async () => {
-                  try {
-                    // Create the appointment
-                    const response = await fetch('/api/schedules', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        ...bookingData,
-                        bookingPageId: bookingPage.id
-                      })
-                    });
-                    
-                    if (!response.ok) {
-                      const errorData = await response.text();
-                      throw new Error(`Failed to create appointment: ${response.status} ${errorData}`);
-                    }
-                    
-                    const data = await response.json();
-                    setConfirmationCode(data.confirmationCode);
-                    setCurrentStep(4);
-                  } catch (err: any) {
-                    console.error('Error creating appointment:', err);
-                    alert(`Error creating appointment: ${err.message}`);
-                  }
-                }}
-              />
-            )}
-            {currentStep === 4 && (
-              <ConfirmationStep 
-                bookingPage={bookingPage}
-                confirmationCode={confirmationCode}
-              />
-            )}
+            <BookingStepContent 
+              bookingPage={bookingPage} 
+              confirmationCode={confirmationCode}
+              setConfirmationCode={setConfirmationCode}
+            />
           </div>
         </div>
       </div>

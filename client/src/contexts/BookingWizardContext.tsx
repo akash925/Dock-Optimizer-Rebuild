@@ -24,13 +24,21 @@ interface BookingFormData {
   // Schedule Info
   startTime?: Date;
   endTime?: Date;
+  date?: Date | null;
+  time?: string;
   
   // Additional
   notes?: string;
   bolFile?: File;
   bolExtractedData?: any;
+  bolData?: any;
   bolFileUploaded?: boolean;
   mcNumber?: string;
+  customerRef?: string;
+  facilityName?: string;
+  appointmentTypeName?: string;
+  timezone?: string;
+  standardQuestions?: any[];
 }
 
 interface BookingWizardContextType {
