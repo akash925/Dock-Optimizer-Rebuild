@@ -396,7 +396,8 @@ function ServiceSelectionStepOld({ bookingPage }: { bookingPage: any }) {
             <div className="booking-form-field">
               <Label className="booking-label">Bill of Lading (Optional)</Label>
               <BolUpload 
-                onProcessed={handleBolProcessed}
+                onBolProcessed={handleBolProcessed}
+                onProcessingStateChange={(isProcessing) => { /* Handle processing state */ }}
                 className="booking-bol-upload"
               />
               <p className="text-sm text-gray-500 mt-1">
