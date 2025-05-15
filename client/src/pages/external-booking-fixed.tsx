@@ -547,6 +547,8 @@ interface AvailabilitySlot {
   available: boolean;
   reason?: string;
   remaining: number;
+  remainingCapacity?: number;
+  isBufferTime?: boolean;
 }
 
 function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {

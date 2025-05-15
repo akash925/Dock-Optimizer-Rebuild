@@ -42,35 +42,55 @@ export function TimeSlotPicker({
   
   // Format time to show both time zones if necessary
   const formatTimeSlot = (slot: AvailabilitySlot) => {
-    // Create a date object for today with this time
+    // IMPORTANT FIX: The slot.time from API is ALREADY a string in facility timezone like "08:00"
+    // We need to properly construct a date object in facility timezone without any automatic conversion
+    
+    // Create a date object for today (to have a base date to work with)
     const today = new Date();
     const [hours, minutes] = slot.time.split(":").map(Number);
     
-    // Create a proper dateTime string for the current slot time with today's date
-    const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-    const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    const slotDateTime = `${dateStr}T${timeStr}:00`;
+    // We need to construct a timestamp that represents a specific wall-clock time in facility timezone
+    // First, create a date string that includes the date in YYYY-MM-DD format
+    const year = today.getFullYear();
+    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    const day = today.getDate().toString().padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
     
-    // Parse the time using the facility timezone to ensure proper conversion
-    const slotTimeInFacilityTz = new Date(
-      formatInTimeZone(new Date(slotDateTime), timezone, "yyyy-MM-dd'T'HH:mm:ss")
-    );
+    // Now create a time string in HH:MM:SS format from the slot.time
+    const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+    
+    // Combine them into an ISO-8601 format datetime string
+    const slotDateTime = `${dateStr}T${timeStr}`;
+    
+    // Explicitly create a date that represents this wall-clock time in the facility timezone
+    // Without applying any automatic browser timezone conversions
+    const slotTimeInFacilityTz = new Date(`${slotDateTime}Z`);
     
     // For logging/debugging
     console.log(`TimeSlotPicker - Processing time slot: ${slot.time}`, {
-      slotTimeInFacilityTz: slotTimeInFacilityTz.toISOString(),
+      originalTime: slot.time,
+      constructedDateTime: slotDateTime,
+      slotTimeObj: slotTimeInFacilityTz.toISOString(),
       facilityTz: timezone,
       userTz: userTimezone,
       available: slot.available,
       remaining: slot.remaining
     });
     
-    // Format facility time (in facility timezone)
-    const facilityTime = formatInTimeZone(slotTimeInFacilityTz, timezone, "h:mm a");
+    // Format facility time (in facility timezone) - this should simply show the original time
+    // rather than trying to convert again
+    const facilityHour = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const facilityTime = `${facilityHour}:${minutes.toString().padStart(2, '0')} ${ampm}`;
     const facilityTzAbbr = getTzAbbreviation(timezone);
     
-    // Format user time (in user timezone) - properly convert from facility time
-    const userTime = formatInTimeZone(slotTimeInFacilityTz, userTimezone, "h:mm a");
+    // Format user time (in user timezone) - convert from facility time to user time
+    // To do this correctly, we need to account for the timezone difference
+    const facilityDate = new Date(dateStr);
+    facilityDate.setHours(hours, minutes, 0, 0);
+    
+    // Convert to user timezone display
+    const userTime = formatInTimeZone(facilityDate, userTimezone, "h:mm a");
     const userTzAbbr = getTzAbbreviation(userTimezone);
     
     // Show both timezones if they differ
