@@ -688,10 +688,9 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
   const { currentStep, setCurrentStep, bookingData, updateBookingData } = useBookingWizard();
   const [submitting, setSubmitting] = useState(false);
   
-  // Get standard questions for this appointment type, if any
-  const { data: questionsData, isLoading: questionsLoading } = useQuery({
-    queryKey: [`/api/standard-questions/${bookingData.appointmentTypeId}`],
-    enabled: !!bookingData.appointmentTypeId,
+  // Get standard questions for this appointment type using the hook
+  const { questions: standardQuestions, isLoading: questionsLoading } = useStandardQuestions({
+    appointmentTypeId: bookingData.appointmentTypeId
   });
   
   // Create a form with default values
@@ -744,7 +743,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
   const handleFormSubmit = async (values: CustomerInfoFormValues) => {
     try {
       // Get any standard question responses
-      const standardQuestions = (questionsData?.questions || []).map((q: any) => {
+      const questionResponses = (standardQuestions || []).map((q: any) => {
         const fieldName = `question_${q.id}`;
         const values = form.getValues();
         return {
@@ -982,12 +981,12 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
           </div>
           
           {/* Standard Questions Section */}
-          {questionsData?.questions && questionsData.questions.length > 0 && (
+          {standardQuestions && standardQuestions.length > 0 && (
             <div className="booking-form-subsection">
               <h3 className="booking-form-subsection-title">Additional Questions</h3>
               <StandardQuestionsFormFields
                 form={form}
-                standardQuestions={questionsData.questions}
+                questions={standardQuestions}
                 isLoading={questionsLoading}
               />
             </div>
@@ -1016,7 +1015,8 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
             <div className="booking-form-subsection">
               <h3 className="booking-form-subsection-title">Bill of Lading</h3>
               <BolUpload 
-                onProcessed={handleBolProcessed}
+                onBolProcessed={handleBolProcessed}
+                onProcessingStateChange={(isProcessing) => { /* Handle processing state */ }}
                 className="booking-bol-upload"
               />
               <p className="text-sm text-gray-500 mt-1">
