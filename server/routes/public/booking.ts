@@ -67,7 +67,9 @@ router.get("/booking-pages/slug/:slug", async (req, res) => {
       if (facilityIds.length > 0) {
         // Get appointment types for the facilities included in this booking page
         const query = `
-          SELECT at.*
+          SELECT 
+            at.*,
+            at.facility_id as "facilityId"
           FROM appointment_types at
           JOIN facilities f ON at.facility_id = f.id
           WHERE f.id IN (${facilityIds.join(',')})

@@ -53,8 +53,8 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
   const form = useForm({
     resolver: zodResolver(serviceSelectionSchema),
     defaultValues: {
-      facilityId: undefined,
-      appointmentTypeId: undefined,
+      facilityId: 0,
+      appointmentTypeId: 0,
     },
   });
 
@@ -62,13 +62,30 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
   console.log("Facilities loaded from bookingPage:", facilities);
 
   const appointmentTypes = useMemo(() => {
-    const selectedFacility = form.watch('facilityId');
-    // If we have appointment types in the booking page data, filter by facilityId
-    if (bookingPage.appointmentTypes && Array.isArray(bookingPage.appointmentTypes)) {
-      return bookingPage.appointmentTypes.filter((t: any) => 
-        selectedFacility && t.facilityId === selectedFacility
-      );
+    const selectedFacilityId = form.watch('facilityId');
+    
+    // If we have appointment types in the booking page data and a facility is selected, filter by facilityId
+    if (selectedFacilityId && bookingPage.appointmentTypes && Array.isArray(bookingPage.appointmentTypes)) {
+      console.log(`Filtering appointment types for facility ID: ${selectedFacilityId}`);
+      
+      // Make sure we're comparing numbers to numbers
+      const typesForFacility = bookingPage.appointmentTypes.filter((type: any) => {
+        const typeId = Number(type.id);
+        const typeFacilityId = Number(type.facilityId);
+        const selectedId = Number(selectedFacilityId);
+        
+        // Debug data
+        if (typeFacilityId === selectedId) {
+          console.log(`Matched appointment type: ${type.name} (ID: ${typeId}) for facility ${selectedId}`);
+        }
+        
+        return typeFacilityId === selectedId;
+      });
+      
+      console.log(`Found ${typesForFacility.length} appointment types for facility ID ${selectedFacilityId}`);
+      return typesForFacility;
     }
+    
     return [];
   }, [bookingPage.appointmentTypes, form.watch('facilityId')]);
 
@@ -152,11 +169,20 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
               >
                 <SelectTrigger><SelectValue placeholder="Select Service" /></SelectTrigger>
                 <SelectContent>
-                  {appointmentTypes.map((t: any) => (
-                    <SelectItem key={`apptType-${t.id}`} value={safeToString(t.id)}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
+                  {appointmentTypes.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-neutral-500">
+                      No services available for this facility
+                    </div>
+                  ) : (
+                    appointmentTypes.map((t: any) => {
+                      console.log(`Rendering appointment type: ${t.name} (ID: ${t.id}, Facility: ${t.facilityId})`);
+                      return (
+                        <SelectItem key={`apptType-${t.id}`} value={safeToString(t.id)}>
+                          {t.name}
+                        </SelectItem>
+                      );
+                    })
+                  )}
                 </SelectContent>
               </Select>
             </div>
