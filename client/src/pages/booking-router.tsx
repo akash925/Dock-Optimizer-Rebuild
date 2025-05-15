@@ -3,10 +3,10 @@ import { useRoute } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import DynamicBookingPage from './dynamic-booking-page';
 import ExternalBooking from './external-booking-fixed-v2';
 
 export default function BookingRouter() {
+  // A reference to dynamic-booking-page was removed to consolidate on a single booking page implementation
   // Match both URL patterns - this is critical for tenant isolation
   const [matchExternal, paramsExternal] = useRoute('/external/:slug');
   const [matchBooking, paramsBooking] = useRoute('/booking/:slug');
@@ -59,11 +59,7 @@ export default function BookingRouter() {
   // Important: Set a consistent tenant ID in the component state to ensure proper isolation
   // This ensures both booking page routes use the same booking page data
   
-  // Route to the appropriate booking page component based on URL pattern
-  // Pass the slug to both components for consistent handling
-  if (matchExternal) {
-    return <ExternalBooking slug={slug} />;
-  } else {
-    return <DynamicBookingPage slug={slug} />;
-  }
+  // Use a single booking page component for both routes
+  // This ensures consistent handling and UI
+  return <ExternalBooking slug={slug} />;
 }

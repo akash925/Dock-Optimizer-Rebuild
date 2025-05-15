@@ -501,10 +501,12 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   // Reset form with initial values when bookingData changes
   useEffect(() => {
     if (bookingData.date) {
+      console.log("[DEBUG] Setting date from bookingData:", bookingData.date);
       form.setValue('date', bookingData.date);
       handleDateChange(bookingData.date);
     }
     if (bookingData.time) {
+      console.log("[DEBUG] Setting time from bookingData:", bookingData.time);
       form.setValue('time', bookingData.time);
     }
   }, [bookingData.date, bookingData.time]);
