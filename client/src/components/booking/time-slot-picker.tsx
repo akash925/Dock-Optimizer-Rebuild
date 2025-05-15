@@ -50,7 +50,7 @@ export function TimeSlotPicker({
   });
   
   // Format time to show both time zones if necessary
-  const formatTimeSlot = (slot: AvailabilitySlot) => {
+  const formatTimeSlot = (slot: TimeSlot) => {
     // IMPORTANT FIX: The slot.time from API is ALREADY a string in facility timezone like "08:00"
     // We need to properly construct a date object in facility timezone without any automatic conversion
     
@@ -143,7 +143,7 @@ export function TimeSlotPicker({
   };
   
   // Group slots into morning, afternoon, evening
-  const groupedSlots = sortedSlots.reduce<Record<string, AvailabilitySlot[]>>(
+  const groupedSlots = sortedSlots.reduce<Record<string, TimeSlot[]>>(
     (groups, slot) => {
       const hour = parseInt(slot.time.split(":")[0], 10);
       
@@ -160,7 +160,7 @@ export function TimeSlotPicker({
     {}
   );
   
-  const renderTimeGroup = (title: string, slotGroup: AvailabilitySlot[] | undefined) => {
+  const renderTimeGroup = (title: string, slotGroup: TimeSlot[] | undefined) => {
     if (!slotGroup || slotGroup.length === 0) return null;
     
     return (

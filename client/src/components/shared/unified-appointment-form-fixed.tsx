@@ -7,7 +7,8 @@ import { apiRequest } from '@/lib/queryClient';
 import { format, addMinutes } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { useAppointmentAvailability, type AvailabilitySlot } from '@/hooks/use-appointment-availability-fixed';
+import { useAppointmentAvailability } from '@/hooks/use-appointment-availability-fixed';
+import { TimeSlot } from '@/components/booking/time-slot-picker';
 import { useStandardQuestions } from '@/hooks/use-standard-questions';
 import { Facility, AppointmentType } from '@shared/schema';
 

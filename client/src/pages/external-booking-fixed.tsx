@@ -416,21 +416,14 @@ const dateTimeSelectionSchema = z.object({
 
 type DateTimeFormValues = z.infer<typeof dateTimeSelectionSchema>;
 
-// Define the AvailabilitySlot interface
-interface AvailabilitySlot {
-  time: string;
-  available: boolean;
-  reason?: string;
-  remaining: number;
-  remainingCapacity?: number;
-  isBufferTime?: boolean;
-}
+// Import TimeSlot interface from the TimeSlotPicker component
+import { TimeSlot } from '@/components/booking/time-slot-picker';
 
 // Date Time Selection Step
 function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
   const { currentStep, setCurrentStep, bookingData, updateBookingData } = useBookingWizard();
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
-  const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+  const [availabilitySlots, setAvailabilitySlots] = useState<TimeSlot[]>([]);
   
   // Get the selected facility
   const selectedFacility = useMemo(() => {
