@@ -99,37 +99,75 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
     setStep(2);
   };
 
+  // Get the real availability using the enhanced v2 endpoint
   const { data: availability, isLoading: loadingAvailability } = useQuery({
     queryKey: ["availability/v2", bookingData?.facilityId, bookingData?.appointmentTypeId, bookingData?.date],
     queryFn: async () => {
+      // Make sure we have all required data
+      if (!bookingData?.date || !bookingData?.facilityId || !bookingData?.appointmentTypeId) {
+        console.error("Missing required data for availability:", { 
+          date: bookingData?.date,
+          facilityId: bookingData?.facilityId,
+          appointmentTypeId: bookingData?.appointmentTypeId
+        });
+        return [];
+      }
+      
       // Use the enhanced v2 endpoint which properly handles all scheduling rules
       const url = new URL('/api/availability/v2', window.location.origin);
       
-      // Format date to string if it's a Date object, or use the string directly
-      const dateString = bookingData?.date 
-        ? (typeof bookingData.date === 'string' 
-            ? bookingData.date 
-            : format(bookingData.date, 'yyyy-MM-dd'))
-        : '';
-        
-      url.searchParams.append('date', dateString);
-      url.searchParams.append('facilityId', String(bookingData?.facilityId || ''));
-      url.searchParams.append('appointmentTypeId', String(bookingData?.appointmentTypeId || ''));
+      // Make sure we're using the exact date string for the API call
+      let dateParam = '';
+      if (typeof bookingData.date === 'string') {
+        dateParam = bookingData.date;
+      } else if (bookingData.date instanceof Date) {
+        dateParam = format(bookingData.date, 'yyyy-MM-dd');
+      }
+      
+      console.log("Using date param for availability:", dateParam);
+      
+      // Add all required parameters to the URL
+      url.searchParams.append('date', dateParam);
+      url.searchParams.append('facilityId', String(bookingData.facilityId));
+      url.searchParams.append('appointmentTypeId', String(bookingData.appointmentTypeId));
       url.searchParams.append('bookingPageSlug', window.location.pathname.split('/').pop() || '');
       
       console.log(`Fetching availability from: ${url.toString()}`);
       
-      const res = await fetch(url.toString());
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Availability fetch error:", errorData);
-        throw new Error(errorData.message || "Failed to load availability");
+      try {
+        const res = await fetch(url.toString());
+        
+        if (!res.ok) {
+          let errorMsg = "Failed to load availability";
+          try {
+            const errorData = await res.json();
+            console.error("Availability fetch error:", errorData);
+            errorMsg = errorData.message || errorMsg;
+          } catch (e) {
+            console.error("Could not parse error response", e);
+          }
+          throw new Error(errorMsg);
+        }
+        
+        const data = await res.json();
+        console.log("Availability data:", data);
+        
+        // Process the slot data to ensure we have all the expected properties
+        return (data.slots || []).map((slot: any) => ({
+          time: slot.time,
+          available: !!slot.available,
+          remainingCapacity: slot.remainingCapacity || 0,
+          reason: slot.reason || '',
+          // Add any other needed properties
+        }));
+      } catch (error) {
+        console.error("Error fetching availability:", error);
+        throw error;
       }
-      const data = await res.json();
-      console.log("Availability data:", data);
-      return data.slots || []; // Use the enhanced slots format that includes availability details
     },
     enabled: !!bookingData?.date && !!bookingData?.facilityId && !!bookingData?.appointmentTypeId && step === 2,
+    // Re-fetch when the date or other booking data changes
+    refetchOnWindowFocus: false,
   });
 
   const bookingMutation = useMutation({
@@ -216,9 +254,23 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
             date={bookingData?.date ? new Date(bookingData.date) : undefined}
             onDateChange={(date) => {
               if (date) {
-                // Store the date as formatted string
-                const formattedDate = format(date, 'yyyy-MM-dd');
+                // Create a clean date object without time information to avoid timezone issues
+                // This creates a date at 00:00:00 local time
+                const selectedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                
+                // For debugging
+                console.log("Selected date:", selectedDate);
+                console.log("Selected date ISO string:", selectedDate.toISOString());
+                console.log("Selected date in format yyyy-MM-dd:", format(selectedDate, 'yyyy-MM-dd'));
+                
+                // Get just the date part as a string in YYYY-MM-DD format
+                const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+                
+                // Update the context
                 updateBookingData({ date: formattedDate });
+                
+                // For external API calls, we'll use this format
+                console.log(`Date will be sent to API as: ${formattedDate}`);
               }
             }}
             disablePastDates={true}
@@ -258,10 +310,10 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                         'Not available')}
                     >
                       {slot.time}
-                      {!slot.available && slot.reason === 'facility break' && (
+                      {!slot.available && (slot.reason === 'facility break' || slot.reason === 'Break Time') && (
                         <span className="ml-1 text-xs">🍽️</span>
                       )}
-                      {!slot.available && slot.reason === 'outside hours' && (
+                      {!slot.available && (slot.reason === 'outside hours' || slot.reason === 'Outside Hours') && (
                         <span className="ml-1 text-xs">🔒</span>
                       )}
                       {slot.available && slot.remainingCapacity === 1 && (
