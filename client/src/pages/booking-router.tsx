@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import DynamicBookingPage from './dynamic-booking-page';
-import ExternalBooking from './external-booking-fixed';
+import ExternalBooking from './external-booking-fixed-v2';
 
 export default function BookingRouter() {
   // Match both URL patterns - this is critical for tenant isolation

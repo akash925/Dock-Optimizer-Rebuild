@@ -34,7 +34,7 @@ import { CarrierSelector } from '@/components/shared/carrier-selector';
 import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
 import { useStandardQuestions } from '@/hooks/use-standard-questions';
 import { useBookingTheme, BookingThemeProvider } from '@/hooks/use-booking-theme';
-import dockOptimizerLogo from '@/assets/logo-text-horizontal.svg';
+import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
 import { z } from 'zod';
 import {
   Accordion,
@@ -523,15 +523,14 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
               <FormItem className="booking-form-field">
                 <FormLabel className="booking-label">Date</FormLabel>
                 <DatePicker
-                  selected={field.value}
-                  onSelect={(date) => {
+                  date={field.value}
+                  onDateChange={(date) => {
                     if (date) handleDateChange(date);
                   }}
-                  disabled={(date) => {
-                    // Disable dates in the past
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    return date < today;
+                  disablePastDates={true}
+                  disabledDays={(date) => {
+                    // Custom disabled days logic could go here
+                    return false;
                   }}
                 />
                 <FormMessage />
@@ -625,7 +624,7 @@ const customerInfoSchema = z.object({
 // Customer Info Step
 function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmit: () => Promise<void> }) {
   const { bookingData, updateBookingData, setCurrentStep, isLoading, setIsLoading } = useBookingWizard();
-  const { data: standardQuestionsData } = useStandardQuestions(bookingData.appointmentTypeId);
+  const { questions: standardQuestions, isLoading: questionsLoading } = useStandardQuestions({ appointmentTypeId: bookingData.appointmentTypeId });
   
   // Setup form with Zod validation
   const form = useForm<z.infer<typeof customerInfoSchema>>({
@@ -667,8 +666,7 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
     }
   };
   
-  // Get standard questions for this appointment type
-  const standardQuestions = standardQuestionsData?.questions || [];
+  // We've already destructured the standardQuestions above
   
   // Handle form submission
   const handleFormSubmit = async (values: z.infer<typeof customerInfoSchema>) => {
