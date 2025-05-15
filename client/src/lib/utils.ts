@@ -113,6 +113,13 @@ export function formatDuration(durationMs: number): string {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+
+export function safeToString(value: any): string | undefined {
+  if (value === null || value === undefined || Number.isNaN(value)) return undefined;
+  return String(value);
+}
+
+
 export function calculateDuration(startTime: Date | string, endTime: Date | string): number {
   const start = typeof startTime === 'string' ? new Date(startTime) : startTime;
   const end = typeof endTime === 'string' ? new Date(endTime) : endTime;
