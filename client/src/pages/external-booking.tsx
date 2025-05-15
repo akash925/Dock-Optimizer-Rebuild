@@ -988,46 +988,7 @@ function CustomerInfoStep({
             </Button>
           </div>
           
-          {process.env.NODE_ENV === 'development' && (
-            <Accordion type="single" collapsible className="w-full mt-8">
-              <AccordionItem value="debug">
-                <AccordionTrigger className="text-xs text-muted-foreground">
-                  Debug Information
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="text-xs">
-                    <h4 className="font-semibold mb-2">Form Values:</h4>
-                    <pre className="bg-muted p-2 rounded overflow-auto max-h-40">
-                      {JSON.stringify(form.watch(), null, 2)}
-                    </pre>
-                    
-                    <h4 className="font-semibold mt-4 mb-2">Booking Data:</h4>
-                    <pre className="bg-muted p-2 rounded overflow-auto max-h-40">
-                      {JSON.stringify(bookingData, null, 2)}
-                    </pre>
-                    
-                    {parsedBolData && (
-                      <>
-                        <h4 className="font-semibold mt-4 mb-2">Parsed BOL Data:</h4>
-                        <pre className="bg-muted p-2 rounded overflow-auto max-h-40">
-                          {JSON.stringify(parsedBolData, null, 2)}
-                        </pre>
-                      </>
-                    )}
-                    
-                    {apiResponse && (
-                      <>
-                        <h4 className="font-semibold mt-4 mb-2">API Response:</h4>
-                        <pre className="bg-muted p-2 rounded overflow-auto max-h-40">
-                          {JSON.stringify(apiResponse, null, 2)}
-                        </pre>
-                      </>
-                    )}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
+          {/* Debug information accordion removed for stability */}
         </form>
       </Form>
     </div>
