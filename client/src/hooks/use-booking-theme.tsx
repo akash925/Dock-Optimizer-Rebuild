@@ -9,6 +9,7 @@ interface BookingThemeContextType {
     backgroundColor: string;
   };
   logo: string | null;
+  isLoading: boolean;
 }
 
 const defaultTheme = {

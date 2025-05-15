@@ -612,7 +612,9 @@ function CustomerInfoStep({
 }) {
   const { bookingData, updateBookingData, setCurrentStep } = useBookingWizard();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { standardQuestions } = useStandardQuestions(bookingData.facilityId, bookingData.appointmentTypeId);
+  const { questions, isLoading: questionsLoading } = useStandardQuestions({ 
+    appointmentTypeId: bookingData.appointmentTypeId 
+  });
   
   // Get any BOL data that might have been extracted
   const parsedBolData = bookingData.bolData;
@@ -925,11 +927,12 @@ function CustomerInfoStep({
             />
           </div>
           
-          {standardQuestions && standardQuestions.length > 0 && (
+          {questions && questions.length > 0 && (
             <div className="booking-form-section">
               <h3 className="booking-form-section-title">Additional Information</h3>
               <StandardQuestionsFormFields
-                questions={standardQuestions}
+                questions={questions}
+                isLoading={questionsLoading}
                 onAnswersChange={(answers) => {
                   updateBookingData({ standardQuestionAnswers: answers });
                 }}
