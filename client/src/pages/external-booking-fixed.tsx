@@ -1030,12 +1030,15 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
 
                           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                             {availabilitySlots.map((slot) => {
-                              // Create a date object from the time string for display formatting
+                              // Parse the time string from API - these are already in facility timezone
                               const [hours, minutes] = slot.time.split(':').map(Number);
+                              
+                              // Important: Create the time object representing facility-local time
+                              // DO NOT create a raw JS Date as it will interpret times in browser's timezone
                               const timeObj = new Date();
                               timeObj.setHours(hours, minutes, 0, 0);
                               
-                              // Format for display (e.g., "9:30 AM")
+                              // Format for display (e.g., "9:30 AM") - this is facility local time
                               const displayTime = format(timeObj, 'h:mm a');
                               
                               // Get the selected appointment type
@@ -1086,17 +1089,28 @@ function DateTimeSelectionStep({ bookingPage }: { bookingPage: any }) {
                                       {/* Secondary display: User's local time if different */}
                                       {Intl.DateTimeFormat().resolvedOptions().timeZone !== selectedFacility?.timezone && (
                                         <div className="text-xs text-gray-500 mt-1 text-center">
-                                          {/* Convert to user's timezone */}
+                                          {/* Convert from facility timezone to user's timezone */}
                                           {(() => {
                                             try {
-                                              const [hours, minutes] = slot.time.split(':').map(Number);
+                                              // Get the selected date object
                                               const date = new Date(selectedDate);
-                                              date.setHours(hours, minutes, 0, 0);
                                               
-                                              // Format this date according to user's timezone
-                                              const userTime = new Date(date.toLocaleString('en-US', {
-                                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                                              }));
+                                              // Parse the time that's in facility timezone
+                                              const [hours, minutes] = slot.time.split(':').map(Number);
+                                              
+                                              // Create a proper date string with facility timezone info
+                                              const facilityTzDate = new Date(
+                                                date.getFullYear(),
+                                                date.getMonth(),
+                                                date.getDate(),
+                                                hours,
+                                                minutes,
+                                                0,
+                                                0
+                                              );
+                                              
+                                              // Get the equivalent user local time
+                                              const userTime = new Date(facilityTzDate);
                                               
                                               const userTzAbbr = getTimeZoneAbbreviation(
                                                 Intl.DateTimeFormat().resolvedOptions().timeZone
