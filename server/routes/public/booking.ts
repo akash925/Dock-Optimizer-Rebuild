@@ -29,14 +29,19 @@ router.get("/booking-pages/slug/:slug", async (req, res) => {
       }
     }
     
-    // Fetch the complete facility data for the facility IDs
+    // Fetch the complete facility data for the facility IDs through organization_facilities mapping
     let facilityList: any[] = [];
     if (facilityIds.length > 0) {
       try {
-        const facilityResults = await db.query.facilities.findMany({
-          where: (facilities, { inArray }) => inArray(facilities.id, facilityIds),
-        });
-        facilityList = facilityResults || [];
+        const query = `
+          SELECT f.*
+          FROM facilities f
+          JOIN organization_facilities of ON f.id = of.facility_id
+          WHERE f.id IN (${facilityIds.join(',')})
+        `;
+        
+        const { rows } = await db.execute(query);
+        facilityList = rows || [];
         console.log(`Loaded ${facilityList.length} facilities for booking page ${slug}`);
       } catch (err) {
         console.error("Error fetching facility data:", err);
@@ -59,16 +64,23 @@ router.get("/booking-pages/slug/:slug", async (req, res) => {
     // Fetch appointment types for the tenant and filter out excluded ones
     let appointmentTypesList: any[] = [];
     try {
-      if (page.tenantId) {
-        appointmentTypesList = await db.query.appointmentTypes.findMany({
-          where: eq(appointmentTypes.tenantId, page.tenantId)
-        });
+      if (facilityIds.length > 0) {
+        // Get appointment types for the facilities included in this booking page
+        const query = `
+          SELECT at.*
+          FROM appointment_types at
+          JOIN facilities f ON at.facility_id = f.id
+          WHERE f.id IN (${facilityIds.join(',')})
+        `;
         
-        console.log(`Found ${appointmentTypesList.length} appointment types for tenant ${page.tenantId}`);
+        const { rows } = await db.execute(query);
+        appointmentTypesList = rows || [];
+        
+        console.log(`Found ${appointmentTypesList.length} appointment types for facilities ${facilityIds.join(', ')}`);
         
         // Filter out excluded appointment types if any
         if (excludedAppointmentTypeIds.length > 0) {
-          appointmentTypesList = appointmentTypesList.filter(type => 
+          appointmentTypesList = appointmentTypesList.filter((type: any) => 
             !excludedAppointmentTypeIds.includes(type.id)
           );
           console.log(`After filtering excluded types, ${appointmentTypesList.length} appointment types remain`);
