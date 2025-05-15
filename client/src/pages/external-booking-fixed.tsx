@@ -771,9 +771,11 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
   };
   
   // Handle carrier selection if using carrier selector
-  const handleCarrierSelect = (carrierId: number, carrier: any) => {
+  const handleCarrierSelect = (carrier: { id?: number; name: string; mcNumber?: string }) => {
     if (carrier) {
-      form.setValue('carrierId', carrierId);
+      if (carrier.id) {
+        form.setValue('carrierId', carrier.id);
+      }
       form.setValue('carrierName', carrier.name);
       
       // Also set MC number if available
@@ -878,8 +880,11 @@ function CustomerInfoStep({ bookingPage, onSubmit }: { bookingPage: any; onSubmi
                       <FormLabel>Carrier</FormLabel>
                       <FormControl>
                         <CarrierSelector 
-                          carrierId={bookingData.carrierId || undefined}
-                          onCarrierSelect={handleCarrierSelect}
+                          form={form}
+                          nameFieldName="carrierName"
+                          idFieldName="carrierId"
+                          mcNumberFieldName="mcNumber"
+                          onChange={handleCarrierSelect}
                         />
                       </FormControl>
                       <FormMessage />
