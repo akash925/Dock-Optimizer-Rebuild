@@ -68,7 +68,7 @@ export default function ExternalBooking({ slug }: { slug: string }) {
   });
   
   // Get the theme for the booking page
-  const { isLoading: isThemeLoading } = useBookingTheme(slug);
+  const { isLoading: isThemeLoading } = useBookingTheme();
   
   // Loading state
   if (isLoading || isThemeLoading) {

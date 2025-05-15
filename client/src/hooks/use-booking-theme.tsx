@@ -21,6 +21,7 @@ const defaultTheme = {
 const BookingThemeContext = createContext<BookingThemeContextType>({
   theme: defaultTheme,
   logo: null,
+  isLoading: false,
 });
 
 interface BookingThemeProviderProps {
@@ -32,8 +33,17 @@ export function BookingThemeProvider({ children, slug }: BookingThemeProviderPro
   const [theme, setTheme] = useState(defaultTheme);
   const [logo, setLogo] = useState<string | null>(null);
   
+  // Define BookingPage interface
+  interface BookingPage {
+    id: number;
+    tenantId: number;
+    themeColor?: string;
+    textColor?: string;
+    backgroundColor?: string;
+  }
+  
   // Fetch booking page data to get tenant ID
-  const { data: bookingPage } = useQuery({
+  const { data: bookingPage, isLoading: isBookingPageLoading } = useQuery<BookingPage>({
     queryKey: [`/api/booking-pages/slug/${slug}`],
     enabled: !!slug,
   });
@@ -72,7 +82,7 @@ export function BookingThemeProvider({ children, slug }: BookingThemeProviderPro
   }, [bookingPage]);
 
   return (
-    <BookingThemeContext.Provider value={{ theme, logo }}>
+    <BookingThemeContext.Provider value={{ theme, logo, isLoading: isBookingPageLoading }}>
       {children}
     </BookingThemeContext.Provider>
   );
