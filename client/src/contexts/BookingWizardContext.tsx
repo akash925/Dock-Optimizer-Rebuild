@@ -26,7 +26,7 @@ interface BookingFormData {
   // Schedule Info
   startTime?: Date;
   endTime?: Date;
-  date?: Date | null;
+  date?: Date | string | null;
   time?: string;
   dateTime?: Date;
   

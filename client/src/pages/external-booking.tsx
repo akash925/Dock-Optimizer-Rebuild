@@ -19,8 +19,8 @@ import { getUserTimeZone } from '@/lib/timezone-utils';
 import { safeToString } from '@/lib/utils';
 
 const serviceSelectionSchema = z.object({
-  facilityId: z.number(),
-  appointmentTypeId: z.number(),
+  facilityId: z.number().min(1, "Please select a facility"),
+  appointmentTypeId: z.number().min(1, "Please select a service type"),
 });
 
 export default function ExternalBooking({ slug }: { slug: string }) {
@@ -151,11 +151,14 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                 <SelectContent>
                   {facilities
                     .filter((f: any) => f?.id && f?.name)
-                    .map((f: any) => (
-                      <SelectItem key={`facility-${f.id}`} value={safeToString(f.id)}>
-                        {f.name}
-                      </SelectItem>
-                  ))}
+                    .map((f: any) => {
+                      const facilityId = String(f.id);
+                      return (
+                        <SelectItem key={`facility-${facilityId}`} value={facilityId}>
+                          {f.name}
+                        </SelectItem>
+                      );
+                    })}
 
                 </SelectContent>
               </Select>
@@ -176,8 +179,9 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                   ) : (
                     appointmentTypes.map((t: any) => {
                       console.log(`Rendering appointment type: ${t.name} (ID: ${t.id}, Facility: ${t.facilityId})`);
+                      const typeId = String(t.id);
                       return (
-                        <SelectItem key={`apptType-${t.id}`} value={safeToString(t.id)}>
+                        <SelectItem key={`apptType-${typeId}`} value={typeId}>
                           {t.name}
                         </SelectItem>
                       );
@@ -194,7 +198,17 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
       {step === 2 && (
         <div className="space-y-4">
           <Label>Select Date</Label>
-          <DatePicker onChange={(d) => updateBookingData({ date: format(d, 'yyyy-MM-dd') })} />
+          <DatePicker 
+            date={bookingData?.date ? new Date(bookingData.date) : undefined}
+            onDateChange={(date) => {
+              if (date) {
+                // Store the date as formatted string
+                const formattedDate = format(date, 'yyyy-MM-dd');
+                updateBookingData({ date: formattedDate });
+              }
+            }}
+            disablePastDates={true}
+          />
 
           {loadingAvailability ? (
             <Loader2 className="animate-spin" />
