@@ -104,7 +104,15 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
     queryFn: async () => {
       // Use the enhanced v2 endpoint which properly handles all scheduling rules
       const url = new URL('/api/availability/v2', window.location.origin);
-      url.searchParams.append('date', typeof bookingData?.date === 'string' ? bookingData.date : '');
+      
+      // Format date to string if it's a Date object, or use the string directly
+      const dateString = bookingData?.date 
+        ? (typeof bookingData.date === 'string' 
+            ? bookingData.date 
+            : format(bookingData.date, 'yyyy-MM-dd'))
+        : '';
+        
+      url.searchParams.append('date', dateString);
       url.searchParams.append('facilityId', String(bookingData?.facilityId || ''));
       url.searchParams.append('appointmentTypeId', String(bookingData?.appointmentTypeId || ''));
       url.searchParams.append('bookingPageSlug', window.location.pathname.split('/').pop() || '');
@@ -226,7 +234,7 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {availability.map((slot: any) => {
                   // Determine the button styling based on availability
-                  let variant = 'outline';
+                  let variant: 'default' | 'outline' = 'outline';
                   let className = '';
                   
                   if (bookingData?.time === slot.time) {
