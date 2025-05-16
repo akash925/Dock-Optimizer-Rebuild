@@ -230,6 +230,9 @@ export async function calculateAvailabilitySlots(
   // Using 12:00:00 noon to avoid any DST or timezone edge cases
   const dayOfWeek = getDay(zonedDate);
   console.log(`[AvailabilityService] Date ${date} in ${effectiveTimezone} is day of week: ${dayOfWeek} (${dayOfWeek === 1 ? 'Monday' : dayOfWeek === 0 ? 'Sunday' : 'Other Day'})`);
+  
+  // Force log the full date details for debugging the Monday issue
+  console.log(`[AvailabilityService] Full date details: Original=${date}, ISO=${zonedDate.toISOString()}, Local=${zonedDate.toString()}, UTC Day=${zonedDate.getUTCDay()}, Local Day=${zonedDate.getDay()}`);
 
   const getObjectField = (obj: any, camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
     // Check both camelCase and snake_case field names

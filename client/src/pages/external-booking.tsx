@@ -676,14 +676,17 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                     };
                     
                     // Create the booking with the complete details
-                    bookingMutation.mutate({
+                    const payload = {
                       facilityId: Number(bookingData.facilityId),
                       appointmentTypeId: Number(bookingData.appointmentTypeId),
                       date: bookingData.date,
                       time: bookingData.time, 
                       pickupOrDropoff: "pickup", // Default
                       bookingDetails: completeBookingDetails
-                    });
+                    };
+                    
+                    console.log("Submitting final payload:", payload);
+                    bookingMutation.mutate(payload);
                   }}
                   disabled={bookingMutation.isPending}
                 >
