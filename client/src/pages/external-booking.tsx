@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
+import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -149,7 +150,57 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
       
       return null;
     },
-    enabled: !!bookingData?.appointmentTypeId && step === 2,
+    enabled: !!bookingData?.appointmentTypeId && (step === 2 || step === 3),
+  });
+  
+  // Fetch the standard questions for the selected appointment type
+  const { data: standardQuestions, isLoading: loadingQuestions } = useQuery({
+    queryKey: ["standard-questions", bookingData?.appointmentTypeId],
+    queryFn: async () => {
+      if (!bookingData?.appointmentTypeId) {
+        return [];
+      }
+      
+      try {
+        const res = await fetch(`/api/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
+        if (!res.ok) {
+          throw new Error("Failed to load appointment questions");
+        }
+        
+        const questions = await res.json();
+        console.log("Loaded standard questions:", questions);
+        return questions || [];
+      } catch (error) {
+        console.error("Error loading standard questions:", error);
+        return [];
+      }
+    },
+    enabled: !!bookingData?.appointmentTypeId && step === 3,
+  });
+  
+  // Also fetch any custom questions
+  const { data: customQuestions, isLoading: loadingCustomQuestions } = useQuery({
+    queryKey: ["custom-questions", bookingData?.appointmentTypeId],
+    queryFn: async () => {
+      if (!bookingData?.appointmentTypeId) {
+        return [];
+      }
+      
+      try {
+        const res = await fetch(`/api/custom-questions/${bookingData.appointmentTypeId}`);
+        if (!res.ok) {
+          throw new Error("Failed to load custom questions");
+        }
+        
+        const questions = await res.json();
+        console.log("Loaded custom questions:", questions);
+        return questions || [];
+      } catch (error) {
+        console.error("Error loading custom questions:", error);
+        return [];
+      }
+    },
+    enabled: !!bookingData?.appointmentTypeId && step === 3,
   });
 
   // Get the real availability using the enhanced v2 endpoint
@@ -510,142 +561,72 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
         <div className="space-y-4">
           <h2 className="text-lg font-bold">Enter Booking Details</h2>
           
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name*</Label>
-              <Input 
-                id="companyName" 
-                value={bookingDetails.companyName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, companyName: e.target.value})}
-                required
-              />
+          {(loadingQuestions || loadingCustomQuestions) ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="animate-spin h-8 w-8 text-primary" />
+              <span className="ml-2">Loading booking questions...</span>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="contactName">Contact Name*</Label>
-              <Input 
-                id="contactName" 
-                value={bookingDetails.contactName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, contactName: e.target.value})}
-                required
+          ) : (
+            <>
+              {/* Combine standard and custom questions if any */}
+              <StandardQuestionsFormFields
+                questions={[...(standardQuestions || []), ...(customQuestions || [])]}
+                onAnswersChange={(answers) => {
+                  // This will be called whenever answers change
+                  setBookingDetails({
+                    ...bookingDetails,
+                    ...answers,
+                    // Map specific field keys from questions to our expected API fields
+                    companyName: answers.companyName || answers.customerName || '',
+                    contactName: answers.contactName || answers.customerName || '',
+                    email: answers.email || answers.contactEmail || '',
+                    phone: answers.phone || answers.contactPhone || '',
+                    carrierName: answers.carrierName || '',
+                    driverName: answers.driverName || '',
+                    driverPhone: answers.driverPhone || '',
+                    truckNumber: answers.truckNumber || '',
+                    trailerNumber: answers.trailerNumber || '',
+                    customerRef: answers.customerRef || answers.referenceNumber || ''
+                  });
+                }}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email*</Label>
-              <Input 
-                id="email" 
-                type="email"
-                value={bookingDetails.email}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, email: e.target.value})}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone*</Label>
-              <Input 
-                id="phone" 
-                type="tel"
-                value={bookingDetails.phone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, phone: e.target.value})}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="carrierName">Carrier Name*</Label>
-              <Input 
-                id="carrierName" 
-                value={bookingDetails.carrierName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, carrierName: e.target.value})}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="driverName">Driver Name*</Label>
-              <Input 
-                id="driverName" 
-                value={bookingDetails.driverName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, driverName: e.target.value})}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="driverPhone">Driver Phone*</Label>
-              <Input 
-                id="driverPhone" 
-                type="tel"
-                value={bookingDetails.driverPhone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, driverPhone: e.target.value})}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="truckNumber">Truck Number*</Label>
-              <Input 
-                id="truckNumber" 
-                value={bookingDetails.truckNumber}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, truckNumber: e.target.value})}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="trailerNumber">Trailer Number</Label>
-              <Input 
-                id="trailerNumber" 
-                value={bookingDetails.trailerNumber}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, trailerNumber: e.target.value})}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="customerRef">Reference Number</Label>
-              <Input 
-                id="customerRef" 
-                value={bookingDetails.customerRef}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, customerRef: e.target.value})}
-              />
-            </div>
-          </div>
-          
-          <div className="flex justify-between pt-4">
-            <Button onClick={() => setStep(2)} variant="outline">Back</Button>
-            <Button 
-              onClick={() => {
-                if (!bookingDetails.companyName || !bookingDetails.contactName || 
-                    !bookingDetails.email || !bookingDetails.phone || 
-                    !bookingDetails.driverName || !bookingDetails.driverPhone || 
-                    !bookingDetails.truckNumber) {
-                  alert("Please fill in all required fields");
-                  return;
-                }
-                
-                console.log("Submitting booking with data:", bookingData);
-                
-                bookingMutation.mutate({
-                  facilityId: Number(bookingData.facilityId),
-                  appointmentTypeId: Number(bookingData.appointmentTypeId),
-                  date: bookingData.date,
-                  time: bookingData.time, 
-                  pickupOrDropoff: "pickup", // Default
-                  bookingDetails: bookingDetails
-                });
-              }}
-              disabled={bookingMutation.isPending}
-            >
-              {bookingMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : "Confirm Booking"}
-            </Button>
-          </div>
+              
+              <div className="flex justify-between pt-4">
+                <Button onClick={() => setStep(2)} variant="outline">Back</Button>
+                <Button 
+                  onClick={() => {
+                    // The API needs certain fields, ensure we have them
+                    const requiredFields = ['companyName', 'contactName', 'email', 'phone', 'driverName'];
+                    const missingFields = requiredFields.filter(field => !bookingDetails[field]);
+                    
+                    if (missingFields.length > 0) {
+                      alert("Please fill in all required fields marked with *");
+                      return;
+                    }
+                    
+                    console.log("Submitting booking with data:", bookingData);
+                    
+                    bookingMutation.mutate({
+                      facilityId: Number(bookingData.facilityId),
+                      appointmentTypeId: Number(bookingData.appointmentTypeId),
+                      date: bookingData.date,
+                      time: bookingData.time, 
+                      pickupOrDropoff: "pickup", // Default
+                      bookingDetails: bookingDetails
+                    });
+                  }}
+                  disabled={bookingMutation.isPending}
+                >
+                  {bookingMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : "Confirm Booking"}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       )}
       
