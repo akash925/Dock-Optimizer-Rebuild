@@ -270,6 +270,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   
   // Check if a date is closed based on facility schedule
   const isDateClosed = (date: Date) => {
+    // Don't allow past dates
+    if (isBefore(date, startOfDay(new Date()))) {
+      return true;
+    }
+    
     if (!bookingData.facilityId || !facilities.length) return true;
     
     const facility = facilities.find((f: any) => f.id === bookingData.facilityId);
@@ -286,6 +291,41 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     if (isThursday(date) && !facility.thursday_open) return true;
     if (isFriday(date) && !facility.friday_open) return true;
     if (isSaturday(date) && !facility.saturday_open) return true;
+    
+    // If it's today, check if there's enough buffer time for scheduling
+    const now = new Date();
+    const isToday = isSameDay(date, now);
+    
+    if (isToday) {
+      // Get current time in hours since midnight
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      const currentTimeInMinutes = currentHour * 60 + currentMinute;
+      
+      // Get the facility's closing time for today
+      let closingTime = '';
+      if (isSunday(date)) closingTime = facility.sunday_end;
+      else if (isMonday(date)) closingTime = facility.monday_end;
+      else if (isTuesday(date)) closingTime = facility.tuesday_end;
+      else if (isWednesday(date)) closingTime = facility.wednesday_end;
+      else if (isThursday(date)) closingTime = facility.thursday_end;
+      else if (isFriday(date)) closingTime = facility.friday_end;
+      else if (isSaturday(date)) closingTime = facility.saturday_end;
+      
+      // Parse closing time (expected format "HH:MM")
+      if (closingTime) {
+        const [closingHour, closingMinute] = closingTime.split(':').map(Number);
+        const closingTimeInMinutes = closingHour * 60 + closingMinute;
+        
+        // Default buffer of 60 minutes (adjust if needed)
+        const bufferMinutes = 60;
+        
+        // Check if there's enough time left in the day for booking
+        if (currentTimeInMinutes + bufferMinutes >= closingTimeInMinutes) {
+          return true; // Not enough time left today
+        }
+      }
+    }
     
     return false;
   };
@@ -465,8 +505,14 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 date={bookingData.date ? new Date(bookingData.date) : findNextAvailableDate()}
                 onDateChange={(date) => {
                   if (date) {
-                    // Use the actual date object (not adjusted) to ensure correct date selection
-                    const correctDate = new Date(date);
+                    // Make sure we're using the correct date (without timezone adjustment)
+                    // This fixes the issue where the selected date is one day behind
+                    const correctDate = new Date(
+                      date.getFullYear(),
+                      date.getMonth(),
+                      date.getDate(),
+                      12, 0, 0 // Use noon to avoid any timezone issues
+                    );
                     console.log("Selected date:", correctDate.toISOString());
                     setBookingData({
                       ...bookingData,
