@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format, addDays, isSunday, isSaturday, isMonday, isTuesday, isWednesday, isThursday, isFriday } from 'date-fns';
+import { format, addDays, isSunday, isSaturday, isMonday, isTuesday, isWednesday, isThursday, isFriday, getDay, isBefore, startOfDay, isSameDay } from 'date-fns';
 import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
 import { getUserTimeZone } from '@/lib/timezone-utils';
 import { safeToString } from '@/lib/utils';
@@ -118,25 +118,50 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   
   // Fetch standards questions based on appointment type
   const { data: standardQuestions, isLoading: loadingQuestions } = useQuery({
-    queryKey: [`/api/appointment-master-questions/${bookingData.appointmentTypeId}`],
+    queryKey: [`/api/standard-questions/appointment-type/${bookingData.appointmentTypeId || 'unknown'}`],
     queryFn: async () => {
-      if (!bookingData.appointmentTypeId) return [];
-      const res = await fetch(`/api/appointment-master-questions/${bookingData.appointmentTypeId}`);
-      if (!res.ok) return [];
-      return res.json();
+      if (!bookingData.appointmentTypeId) {
+        console.log("Cannot fetch standard questions: appointment type ID is missing");
+        return [];
+      }
+      try {
+        const res = await fetch(`/api/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
+        if (!res.ok) {
+          console.warn(`Failed to load standard questions: ${res.status}`);
+          return [];
+        }
+        const data = await res.json();
+        console.log("[StandardQuestions] Loaded", data.length, "questions for appointment type", bookingData.appointmentTypeId);
+        return data;
+      } catch (error) {
+        console.error("Error fetching standard questions:", error);
+        return [];
+      }
     },
     enabled: !!bookingData.appointmentTypeId && step === 3,
   });
   
   // Fetch custom questions based on booking page
   const { data: customQuestions, isLoading: loadingCustomQuestions } = useQuery({
-    queryKey: [`/api/booking-pages/${bookingPage.id}/questions`],
+    queryKey: [`/api/booking-pages/${bookingPage?.id || 'unknown'}/questions`],
     queryFn: async () => {
-      const res = await fetch(`/api/booking-pages/${bookingPage.id}/questions`);
-      if (!res.ok) return [];
-      return res.json();
+      if (!bookingPage?.id) {
+        console.log("Cannot fetch custom questions: booking page ID is missing");
+        return [];
+      }
+      try {
+        const res = await fetch(`/api/booking-pages/${bookingPage.id}/questions`);
+        if (!res.ok) {
+          console.warn(`Failed to load custom questions: ${res.status}`);
+          return [];
+        }
+        return res.json();
+      } catch (error) {
+        console.error("Error fetching custom questions:", error);
+        return [];
+      }
     },
-    enabled: step === 3,
+    enabled: step === 3 && !!bookingPage?.id,
   });
 
   // Create booking mutation
@@ -271,7 +296,8 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   // Check if a date is closed based on facility schedule
   const isDateClosed = (date: Date) => {
     // Don't allow past dates
-    if (isBefore(date, startOfDay(new Date()))) {
+    const today = startOfDay(new Date());
+    if (date < today) {
       return true;
     }
     
@@ -294,7 +320,13 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     
     // If it's today, check if there's enough buffer time for scheduling
     const now = new Date();
-    const isToday = isSameDay(date, now);
+    const dateYear = date.getFullYear();
+    const dateMonth = date.getMonth();
+    const dateDay = date.getDate();
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth();
+    const todayDay = now.getDate();
+    const isToday = dateYear === todayYear && dateMonth === todayMonth && dateDay === todayDay;
     
     if (isToday) {
       // Get current time in hours since midnight

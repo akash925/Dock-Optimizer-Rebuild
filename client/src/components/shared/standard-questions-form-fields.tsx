@@ -57,14 +57,49 @@ export function StandardQuestionsFormFields({
     );
   }
 
+  // Add defensive coding to handle potentially malformed questions
+  // First make sure each question has the required properties
+  const validQuestions = questions.filter(q => {
+    // Basic error checking
+    if (!q) return false;
+    
+    // Check if required properties exist
+    const hasRequiredProps = typeof q.id === 'number' && 
+                            typeof q.fieldKey === 'string' && 
+                            typeof q.label === 'string';
+    
+    // Handle missing included property
+    if (hasRequiredProps && typeof q.included === 'undefined') {
+      console.log(`[StandardQuestionsFormFields] Question ${q.id} (${q.label}) missing included property, assuming true`);
+      q.included = true;
+    }
+    
+    // Handle missing orderPosition property
+    if (hasRequiredProps && typeof q.orderPosition === 'undefined' && typeof q.order !== 'undefined') {
+      console.log(`[StandardQuestionsFormFields] Question ${q.id} (${q.label}) using order property instead of orderPosition`);
+      q.orderPosition = (q as any).order;
+    }
+    
+    return hasRequiredProps;
+  });
+  
+  // Log if any questions were filtered out
+  if (questions.length !== validQuestions.length) {
+    console.warn(`[StandardQuestionsFormFields] Filtered out ${questions.length - validQuestions.length} invalid questions`);
+  }
+  
   // Sort questions by order position and ONLY include questions marked as included=true
   // First, categorize questions by type to prioritize shipment/appointment fields
-  const sortedQuestions = [...questions]
+  const sortedQuestions = [...validQuestions]
     .filter(q => q.included) // Only include questions that have included=true
     .sort((a, b) => {
       // Priority order:
       // 1. Appointment/shipment related fields first (use fieldKey pattern matching)
       // 2. Then sort by orderPosition for same category
+      
+      // Make sure orderPosition exists and is numeric
+      const orderA = typeof a.orderPosition === 'number' ? a.orderPosition : 999;
+      const orderB = typeof b.orderPosition === 'number' ? b.orderPosition : 999;
       
       // Check if fields are appointment/shipment related
       const isAppointmentFieldA = /^(appointment|shipment|schedule|bol|truck|trailer|container|cargo|driver)/i.test(a.fieldKey);
@@ -75,7 +110,7 @@ export function StandardQuestionsFormFields({
       if (!isAppointmentFieldA && isAppointmentFieldB) return 1;
       
       // Same category - sort by orderPosition
-      return a.orderPosition - b.orderPosition;
+      return orderA - orderB;
     });
   
   // Enhanced debug logging
