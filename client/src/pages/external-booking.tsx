@@ -430,8 +430,8 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
               <DatePicker
-                selected={bookingData.date ? new Date(bookingData.date) : findNextAvailableDate()}
-                onSelect={(date) => {
+                date={bookingData.date ? new Date(bookingData.date) : findNextAvailableDate()}
+                onDateChange={(date) => {
                   if (date) {
                     setBookingData({
                       ...bookingData,
@@ -440,13 +440,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     });
                   }
                 }}
-                disabled={(date) => {
-                  // Disable past dates
-                  if (date < new Date()) return true;
-                  
+                disabledDays={(date) => {
                   // Check facility schedule
                   return isDateClosed(date);
                 }}
+                disablePastDates={true}
               />
             </div>
             
