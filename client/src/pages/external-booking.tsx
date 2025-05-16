@@ -7,6 +7,7 @@ import { BookingThemeProvider } from '@/hooks/use-booking-theme';
 import { Loader2, XCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -282,7 +283,7 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
       // Extract confirmation code and set it
       const confirmationCode = data.confirmationNumber || data.confirmationCode || `CONF-${Date.now()}`;
       setConfirmationCode(confirmationCode);
-      setStep(3);
+      setStep(4);
     },
     onError: (error) => {
       console.error("Booking error:", error);
@@ -505,7 +506,150 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
         </div>
       )}
 
-      {step === 3 && confirmationCode && (
+      {step === 3 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold">Enter Booking Details</h2>
+          
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Company Name*</Label>
+              <Input 
+                id="companyName" 
+                value={bookingDetails.companyName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, companyName: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="contactName">Contact Name*</Label>
+              <Input 
+                id="contactName" 
+                value={bookingDetails.contactName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, contactName: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email">Email*</Label>
+              <Input 
+                id="email" 
+                type="email"
+                value={bookingDetails.email}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, email: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone*</Label>
+              <Input 
+                id="phone" 
+                type="tel"
+                value={bookingDetails.phone}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, phone: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="carrierName">Carrier Name*</Label>
+              <Input 
+                id="carrierName" 
+                value={bookingDetails.carrierName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, carrierName: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="driverName">Driver Name*</Label>
+              <Input 
+                id="driverName" 
+                value={bookingDetails.driverName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, driverName: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="driverPhone">Driver Phone*</Label>
+              <Input 
+                id="driverPhone" 
+                type="tel"
+                value={bookingDetails.driverPhone}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, driverPhone: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="truckNumber">Truck Number*</Label>
+              <Input 
+                id="truckNumber" 
+                value={bookingDetails.truckNumber}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, truckNumber: e.target.value})}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="trailerNumber">Trailer Number</Label>
+              <Input 
+                id="trailerNumber" 
+                value={bookingDetails.trailerNumber}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, trailerNumber: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="customerRef">Reference Number</Label>
+              <Input 
+                id="customerRef" 
+                value={bookingDetails.customerRef}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBookingDetails({...bookingDetails, customerRef: e.target.value})}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-between pt-4">
+            <Button onClick={() => setStep(2)} variant="outline">Back</Button>
+            <Button 
+              onClick={() => {
+                if (!bookingDetails.companyName || !bookingDetails.contactName || 
+                    !bookingDetails.email || !bookingDetails.phone || 
+                    !bookingDetails.driverName || !bookingDetails.driverPhone || 
+                    !bookingDetails.truckNumber) {
+                  alert("Please fill in all required fields");
+                  return;
+                }
+                
+                console.log("Submitting booking with data:", bookingData);
+                
+                bookingMutation.mutate({
+                  facilityId: Number(bookingData.facilityId),
+                  appointmentTypeId: Number(bookingData.appointmentTypeId),
+                  date: bookingData.date,
+                  time: bookingData.time, 
+                  pickupOrDropoff: "pickup", // Default
+                  bookingDetails: bookingDetails
+                });
+              }}
+              disabled={bookingMutation.isPending}
+            >
+              {bookingMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : "Confirm Booking"}
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {step === 4 && confirmationCode && (
         <div className="text-center space-y-4">
           <CheckCircle className="text-green-500 w-10 h-10 mx-auto" />
           <h2 className="text-lg font-bold">Booking Confirmed</h2>
