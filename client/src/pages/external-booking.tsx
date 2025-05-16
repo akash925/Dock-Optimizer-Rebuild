@@ -477,7 +477,7 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
                     <Button
                       key={slot.time}
                       variant={variant}
-                      className={`${className} relative`}
+                      className={`${className} relative h-16 flex flex-col items-center justify-center p-1`}
                       onClick={() => updateBookingData({ time: slot.time })}
                       disabled={!slot.available}
                       title={slot.reason || (slot.available ? 
