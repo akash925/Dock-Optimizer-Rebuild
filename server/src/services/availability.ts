@@ -229,17 +229,51 @@ export async function calculateAvailabilitySlots(
   const dayOfWeek = getDay(zonedDate);
   console.log(`[AvailabilityService] Date ${date} in ${effectiveTimezone} is day of week: ${dayOfWeek}`);
 
-  const getObjectField = (obj: any, camelCase: string, snakeCase: string, defaultValue: any = undefined): any => obj?.[snakeCase] ?? obj?.[camelCase] ?? defaultValue;
-  const getFacilityField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => getObjectField(facility, camelCase, snakeCase, defaultValue);
-  const getAppTypeField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => getObjectField(appointmentType, camelCase, snakeCase, defaultValue);
+  const getObjectField = (obj: any, camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
+    // Check both camelCase and snake_case field names
+    let value;
+    let source = "";
+    
+    if (obj?.[camelCase] !== undefined) {
+      value = obj[camelCase];
+      source = "camelCase";
+    } else if (obj?.[snakeCase] !== undefined) {
+      value = obj[snakeCase];
+      source = "snakeCase";
+    } else {
+      value = defaultValue;
+      source = "default";
+    }
+    
+    return { value, source };
+  };
+  
+  const getFacilityField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
+    const result = getObjectField(facility, camelCase, snakeCase, defaultValue);
+    return result.value;
+  };
+  
+  const getAppTypeField = (camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
+    const result = getObjectField(appointmentType, camelCase, snakeCase, defaultValue);
+    console.log(`[AvailabilityService] Using ${camelCase} = ${result.value} (source: ${result.source})`);
+    return result.value;
+  };
 
+  // Extract appointment type settings with detailed logging
   const overrideFacilityHours = getAppTypeField('overrideFacilityHours', 'override_facility_hours', false);
   const allowAppointmentsThroughBreaks = getAppTypeField('allowAppointmentsThroughBreaks', 'allow_appointments_through_breaks', false);
   const appointmentTypeDuration = getAppTypeField('duration', 'duration', 60);
   const appointmentTypeBufferTime = getAppTypeField('bufferTime', 'buffer_time', 0);
   const maxConcurrent = getAppTypeField('maxConcurrent', 'max_concurrent', 1);
 
-  console.log(`[AvailabilityService] Settings: overrideHours=${overrideFacilityHours}, allowThroughBreaks=${allowAppointmentsThroughBreaks}, duration=${appointmentTypeDuration}, bufferTime=${appointmentTypeBufferTime}, maxConcurrent=${maxConcurrent}`);
+  console.log(`[AvailabilityService] APPOINTMENT TYPE SETTINGS SUMMARY:`);
+  console.log(`[AvailabilityService] - Type ID: ${appointmentTypeId}`);
+  console.log(`[AvailabilityService] - Name: ${appointmentType.name}`);
+  console.log(`[AvailabilityService] - Duration: ${appointmentTypeDuration} minutes`);
+  console.log(`[AvailabilityService] - Buffer Time: ${appointmentTypeBufferTime} minutes`);
+  console.log(`[AvailabilityService] - Max Concurrent: ${maxConcurrent}`);
+  console.log(`[AvailabilityService] - Override Facility Hours: ${overrideFacilityHours}`);
+  console.log(`[AvailabilityService] - Allow Through Breaks: ${allowAppointmentsThroughBreaks}`);
 
   // Build hours context
   const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -451,12 +485,16 @@ export async function calculateAvailabilitySlots(
     let conflictingApptsCount = 0;
 
     // Apply booking buffer - don't allow slots that start too soon
-    // Use the appointment type's buffer time if it's specified and non-zero,
-    // otherwise use the global booking buffer from the config
-    // IMPORTANT: This ensures each appointment type uses its own buffer settings
+    // IMPORTANT: Always use the appointment type's buffer time if it's defined
+    // This ensures each appointment type uses its own specific buffer settings
     const effectiveBufferMinutes = appointmentTypeBufferTime > 0 
-      ? appointmentTypeBufferTime
-      : mergedConfig.bookingBufferMinutes;
+      ? appointmentTypeBufferTime  // Use appointment type's buffer if set
+      : mergedConfig.bookingBufferMinutes;  // Otherwise fall back to system default
+    
+    // Log the buffer setting source for debugging
+    console.log(`[AvailabilityService] Using buffer time of ${effectiveBufferMinutes} minutes from ${
+      appointmentTypeBufferTime > 0 ? 'appointment type settings' : 'system default config'
+    }`);
       
     // Calculate buffer cutoff based on the effective buffer minutes
     const effectiveBufferCutoff = addMinutes(now, effectiveBufferMinutes);
