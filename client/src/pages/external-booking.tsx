@@ -302,6 +302,28 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                       <p>Buffer Time: {selectedAppointmentType.bufferTime} minutes</p>
                     )}
                     <p>Concurrent Appointments: {selectedAppointmentType.maxConcurrent || 1}</p>
+                    
+                    {/* Toggle to show exact number of slots */}
+                    <div className="mt-2 flex items-center">
+                      <label className="flex items-center cursor-pointer">
+                        <div className="relative">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only" 
+                            checked={selectedAppointmentType.showRemainingSlots}
+                            onChange={(e) => {
+                              setSelectedAppointmentType({
+                                ...selectedAppointmentType,
+                                showRemainingSlots: e.target.checked
+                              });
+                            }}
+                          />
+                          <div className="block bg-gray-300 w-10 h-5 rounded-full"></div>
+                          <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition ${selectedAppointmentType.showRemainingSlots ? 'transform translate-x-5' : ''}`}></div>
+                        </div>
+                        <span className="ml-2 text-xs">Show exact available slots</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}
@@ -336,18 +358,27 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                         `${slot.remainingCapacity || 1} slot(s) available` : 
                         'Not available')}
                     >
-                      {slot.time}
+                      <div className="flex flex-col items-center justify-center">
+                        <span>{slot.time}</span>
+                        
+                        {/* Show exact remaining slots count when enabled */}
+                        {slot.available && selectedAppointmentType?.showRemainingSlots && slot.remainingCapacity > 0 && (
+                          <span className="text-xs font-medium mt-1 bg-green-100 text-green-800 px-1.5 py-0.5 rounded-full">
+                            {slot.remainingCapacity} {slot.remainingCapacity === 1 ? 'slot' : 'slots'}
+                          </span>
+                        )}
+                      </div>
                       
                       {/* Buffer time indicator - specific indicator for buffer time slots */}
                       {isBufferTimeSlot && (
-                        <span className="ml-1 text-xs">⏱️</span>
+                        <span className="ml-1 text-xs absolute top-1 right-1">⏱️</span>
                       )}
                       
                       {/* Break time indicator - looking for various possible break reason texts */}
                       {(!slot.available || slot.reason?.toLowerCase().includes('break')) && 
                         (slot.reason?.toLowerCase().includes('break') || 
                          slot.reason?.toLowerCase().includes('lunch')) && (
-                        <span className="ml-1 text-xs">🍽️</span>
+                        <span className="ml-1 text-xs absolute top-1 right-1">🍽️</span>
                       )}
                       
                       {/* Outside hours indicator */}
@@ -356,12 +387,12 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                         (slot.reason?.toLowerCase().includes('outside') || 
                          slot.reason?.toLowerCase().includes('hours') ||
                          slot.reason?.toLowerCase().includes('closed')) && (
-                        <span className="ml-1 text-xs">🔒</span>
+                        <span className="ml-1 text-xs absolute top-1 right-1">🔒</span>
                       )}
                       
-                      {/* Limited availability indicator */}
-                      {slot.available && slot.remainingCapacity === 1 && (
-                        <span className="ml-1 text-xs">⚠️</span>
+                      {/* Limited availability indicator - only show when not showing exact numbers */}
+                      {slot.available && slot.remainingCapacity === 1 && !selectedAppointmentType?.showRemainingSlots && (
+                        <span className="ml-1 text-xs absolute top-1 right-1">⚠️</span>
                       )}
                       
                       {/* Tooltip for extra information (will show on hover) */}
