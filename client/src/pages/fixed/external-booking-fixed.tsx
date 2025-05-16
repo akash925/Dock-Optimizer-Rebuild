@@ -154,26 +154,6 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
     );
   };
   
-  // Get facility hours for a specific day of the week
-  const getFacilityOpenStatus = (facility: any, dayOfWeek: number) => {
-    if (!facility) return false;
-    
-    // Map day of week (0 = Sunday, 1 = Monday, etc.) to facility property names
-    const dayMapping = [
-      'sunday_open',    // 0 - Sunday
-      'monday_open',    // 1 - Monday
-      'tuesday_open',   // 2 - Tuesday
-      'wednesday_open', // 3 - Wednesday
-      'thursday_open',  // 4 - Thursday
-      'friday_open',    // 5 - Friday
-      'saturday_open'   // 6 - Saturday
-    ];
-    
-    // Get the facility's open status for this day
-    const propertyName = dayMapping[dayOfWeek];
-    return facility[propertyName] || false; // Default to closed if property not found
-  };
-  
   // Helper to determine if a date is closed based on facility settings
   const isDateClosed = (date: Date) => {
     if (!selectedFacility) return true;
@@ -181,9 +161,16 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
     // Check if it's a holiday
     if (isHoliday(date)) return true;
     
-    // Check if facility is open on this day of week
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    return !getFacilityOpenStatus(selectedFacility, dayOfWeek);
+    // Check day of week and facility open/closed status
+    if (isSunday(date) && !selectedFacility.sunday_open) return true;
+    if (isMonday(date) && !selectedFacility.monday_open) return true;
+    if (isTuesday(date) && !selectedFacility.tuesday_open) return true;
+    if (isWednesday(date) && !selectedFacility.wednesday_open) return true;
+    if (isThursday(date) && !selectedFacility.thursday_open) return true;
+    if (isFriday(date) && !selectedFacility.friday_open) return true;
+    if (isSaturday(date) && !selectedFacility.saturday_open) return true;
+    
+    return false;
   };
   
   // Find the next available date based on facility hours
@@ -208,32 +195,10 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
     // Store the selected facility for use in date validation
     setSelectedFacility(facility);
     
-    // Find next available date for default selection
-    let nextDate = new Date();
-    let daysToCheck = 30; // Look ahead up to 30 days
-    
-    for (let i = 1; i <= daysToCheck; i++) {
-      const checkDate = addDays(new Date(), i);
-      const dayOfWeek = checkDate.getDay();
-      
-      // Check if facility is open on this day
-      if (facility && getFacilityOpenStatus(facility, dayOfWeek)) {
-        nextDate = checkDate;
-        break;
-      }
-    }
-    
-    // Format date for API
-    const year = nextDate.getFullYear();
-    const month = (nextDate.getMonth() + 1).toString().padStart(2, '0');
-    const day = nextDate.getDate().toString().padStart(2, '0');
-    const defaultDate = `${year}-${month}-${day}`;
-    
     updateBookingData({
       facilityId: values.facilityId,
       appointmentTypeId: values.appointmentTypeId,
       timezone: facility?.timezone || getUserTimeZone(),
-      date: defaultDate // Set default date to next available
     });
     
     setStep(2);
