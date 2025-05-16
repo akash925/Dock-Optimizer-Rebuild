@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider } from '@/hooks/use-booking-theme';
-import { Loader2, XCircle, CheckCircle } from 'lucide-react';
+import { Loader2, XCircle, CheckCircle, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
@@ -12,11 +12,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format, addDays, isSunday, isSaturday, isMonday, isTuesday, isWednesday, isThursday, isFriday, parseISO } from 'date-fns';
+import { format, addDays, isSunday, isSaturday, isMonday, isTuesday, isWednesday, isThursday, isFriday } from 'date-fns';
 import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
 import { getUserTimeZone } from '@/lib/timezone-utils';
 import { safeToString } from '@/lib/utils';
 import { Form } from '@/components/ui/form';
+import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
 
 const serviceSelectionSchema = z.object({
   facilityId: z.coerce.number().min(1, "Please select a facility"),
@@ -49,141 +50,212 @@ export default function ExternalBooking({ slug }: { slug: string }) {
   if (error || !bookingPage) return <div className="text-red-500">Invalid booking link. Please check your URL.</div>;
 
   return (
-    <BookingThemeProvider slug={slug}>
-      <BookingWizardProvider>
-        <BookingPage bookingPage={bookingPage} />
-      </BookingWizardProvider>
+    <BookingThemeProvider
+      primaryColor={bookingPage.primaryColor}
+      logoUrl={bookingPage.logoUrl}
+      companyName={bookingPage.name}
+    >
+      <div className="min-h-screen bg-gradient-to-b from-primary/20 to-background">
+        <div className="container mx-auto py-8 px-4">
+          <div className="bg-white rounded-lg shadow-lg p-6 mx-auto max-w-4xl">
+            {/* Header with logo */}
+            <div className="flex items-center mb-6">
+              {bookingPage.logoUrl ? (
+                <img 
+                  src={`/api/booking-pages/logo/${bookingPage.id}`} 
+                  alt={`${bookingPage.name} logo`} 
+                  className="h-16 mr-4" 
+                />
+              ) : (
+                <img 
+                  src={dockOptimizerLogo} 
+                  alt="Dock Optimizer" 
+                  className="h-16 mr-4" 
+                />
+              )}
+              <div>
+                <h1 className="text-2xl font-bold">{bookingPage.name} Dock Appointment Scheduler</h1>
+                <p className="text-muted-foreground">
+                  Please use this form to pick the type of Dock Appointment that
+                  you need at {bookingPage.name}.
+                </p>
+              </div>
+            </div>
+            
+            {/* Main booking wizard */}
+            <BookingWizardContent 
+              bookingPage={bookingPage}
+              slug={slug}
+            />
+          </div>
+        </div>
+      </div>
     </BookingThemeProvider>
   );
 }
 
-function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
+function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: string }) {
   const [step, setStep] = useState(1);
+  const [bookingData, setBookingData] = useState<{
+    facilityId?: number;
+    appointmentTypeId?: number;
+    date?: string;
+    time?: string;
+    timezone?: string;
+  }>({
+    timezone: getUserTimeZone()
+  });
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
-  const [selectedAppointmentType, setSelectedAppointmentType] = useState<any>(null);
-  const [selectedFacility, setSelectedFacility] = useState<any>(null);
-  const [organizationHolidays, setOrganizationHolidays] = useState<any[]>([]);
-  
-  // Form data for booking details
-  // Dynamically populated from standard questions 
   const [bookingDetails, setBookingDetails] = useState<Record<string, any>>({});
-  const { bookingData, updateBookingData } = useBookingWizard();
+  const [bolFile, setBolFile] = useState<File | null>(null);
+  const [isProcessingBol, setIsProcessingBol] = useState(false);
+  const [bolData, setBolData] = useState<any | null>(null);
   
-  // Load holidays for the organization associated with the booking page
-  useQuery({
-    queryKey: ["holidays", bookingPage.organizationId],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`/api/organizations/${bookingPage.organizationId}/holidays`);
-        if (!response.ok) return [];
-        const data = await response.json();
-        setOrganizationHolidays(data || []);
-        return data || [];
-      } catch (error) {
-        console.error("Error fetching holidays:", error);
-        return [];
-      }
-    },
-    enabled: !!bookingPage.organizationId,
-  });
-
+  // Setup form for standard questions
   const form = useForm({
-    resolver: zodResolver(serviceSelectionSchema),
     defaultValues: {
-      facilityId: 0,
-      appointmentTypeId: 0,
+      customFields: {}
+    }
+  });
+  
+  // Fetch standards questions based on appointment type
+  const { data: standardQuestions, isLoading: loadingQuestions } = useQuery({
+    queryKey: [`/api/appointment-master-questions/${bookingData.appointmentTypeId}`],
+    queryFn: async () => {
+      if (!bookingData.appointmentTypeId) return [];
+      const res = await fetch(`/api/appointment-master-questions/${bookingData.appointmentTypeId}`);
+      if (!res.ok) return [];
+      return res.json();
     },
+    enabled: !!bookingData.appointmentTypeId && step === 3,
+  });
+  
+  // Fetch custom questions based on booking page
+  const { data: customQuestions, isLoading: loadingCustomQuestions } = useQuery({
+    queryKey: [`/api/booking-pages/${bookingPage.id}/questions`],
+    queryFn: async () => {
+      const res = await fetch(`/api/booking-pages/${bookingPage.id}/questions`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: step === 3,
   });
 
-  const facilities = bookingPage.facilities || [];
-  console.log("Facilities loaded from bookingPage:", facilities);
-
-  const appointmentTypes = useMemo(() => {
-    const selectedFacilityId = form.watch('facilityId');
-    
-    // If we have appointment types in the booking page data and a facility is selected, filter by facilityId
-    if (selectedFacilityId && bookingPage.appointmentTypes && Array.isArray(bookingPage.appointmentTypes)) {
-      console.log(`Filtering appointment types for facility ID: ${selectedFacilityId}`);
-      
-      // Make sure we're comparing numbers to numbers
-      const typesForFacility = bookingPage.appointmentTypes.filter((type: any) => {
-        const typeId = Number(type.id);
-        const typeFacilityId = Number(type.facilityId);
-        const selectedId = Number(selectedFacilityId);
-        
-        // Debug data
-        if (typeFacilityId === selectedId) {
-          console.log(`Matched appointment type: ${type.name} (ID: ${typeId}) for facility ${selectedId}`);
-        }
-        
-        return typeFacilityId === selectedId;
+  // Create booking mutation
+  const bookingMutation = useMutation({
+    mutationFn: async (data: any) => {
+      console.log("Starting booking creation with payload:", data);
+      const res = await fetch(`/api/booking-pages/book/${slug}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
       
-      console.log(`Found ${typesForFacility.length} appointment types for facility ID ${selectedFacilityId}`);
-      return typesForFacility;
-    }
-    
-    return [];
-  }, [bookingPage.appointmentTypes, form.watch('facilityId')]);
-
-  // Load holidays for the organization associated with the booking page
-  const { data: holidays } = useQuery({
-    queryKey: ["holidays", bookingPage.organizationId],
-    queryFn: async () => {
-      try {
-        const response = await fetch(`/api/organizations/${bookingPage.organizationId}/holidays`);
-        if (!response.ok) return [];
-        const data = await response.json();
-        setOrganizationHolidays(data || []);
-        return data || [];
-      } catch (error) {
-        console.error("Error fetching holidays:", error);
-        return [];
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Booking error:", errorText);
+        throw new Error(errorText || 'Failed to create booking');
       }
+      
+      return res.json();
     },
-    enabled: !!bookingPage.organizationId,
+    onSuccess: (data) => {
+      // Store confirmation code and go to success step
+      setConfirmationCode(data.confirmationCode);
+      setStep(4);
+    },
+    onError: (error) => {
+      console.error("Booking error:", error);
+      // Stay on the same step and show error
+    }
   });
   
-  // Helper to check if a date falls on a holiday
+  // Function to handle BOL file upload and processing
+  const handleBolUpload = async (file: File) => {
+    if (!file) return;
+    
+    setIsProcessingBol(true);
+    setBolFile(file);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('/api/document-processing', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to process BOL document');
+      }
+      
+      const data = await response.json();
+      console.log('Extracted BOL data:', data);
+      setBolData(data);
+      
+      // Pre-fill form with extracted BOL data if available
+      if (data && data.extractedFields) {
+        const { extractedFields } = data;
+        setBookingDetails(prev => ({
+          ...prev,
+          ...extractedFields
+        }));
+      }
+    } catch (error) {
+      console.error('Error processing BOL:', error);
+    } finally {
+      setIsProcessingBol(false);
+    }
+  };
+
+  // Get facilities from the booking page
+  const facilities = useMemo(() => {
+    if (!bookingPage?.facilities) return [];
+    
+    console.log("Facilities loaded from bookingPage:", bookingPage.facilities);
+    return bookingPage.facilities;
+  }, [bookingPage]);
+  
+  // Get appointment types from the booking page, filtered by the selected facility
+  const appointmentTypes = useMemo(() => {
+    if (!bookingPage?.appointmentTypes || !bookingData.facilityId) return [];
+    
+    return bookingPage.appointmentTypes.filter((type: any) => 
+      type.facilityId === bookingData.facilityId
+    );
+  }, [bookingPage, bookingData.facilityId]);
+  
+  // Check if a date is a holiday
   const isHoliday = (date: Date) => {
-    if (!organizationHolidays || !organizationHolidays.length) return false;
+    if (!bookingPage?.holidays || !Array.isArray(bookingPage.holidays)) return false;
     
     const dateStr = format(date, 'yyyy-MM-dd');
-    return organizationHolidays.some(holiday => 
-      format(new Date(holiday.date), 'yyyy-MM-dd') === dateStr
-    );
+    return bookingPage.holidays.some((holiday: any) => holiday.date === dateStr);
   };
   
-  // Get facility hours for a specific day of the week
-  const getFacilityOpenStatus = (facility: any, dayOfWeek: number) => {
-    if (!facility) return false;
-    
-    // Map day of week (0 = Sunday, 1 = Monday, etc.) to facility property names
-    const dayMapping = [
-      'sunday_open',    // 0 - Sunday
-      'monday_open',    // 1 - Monday
-      'tuesday_open',   // 2 - Tuesday
-      'wednesday_open', // 3 - Wednesday
-      'thursday_open',  // 4 - Thursday
-      'friday_open',    // 5 - Friday
-      'saturday_open'   // 6 - Saturday
-    ];
-    
-    // Get the facility's open status for this day
-    const propertyName = dayMapping[dayOfWeek];
-    return facility[propertyName] || false; // Default to closed if property not found
-  };
-  
-  // Helper to determine if a date is closed based on facility settings
+  // Check if a date is closed based on facility schedule
   const isDateClosed = (date: Date) => {
-    if (!selectedFacility) return true;
+    if (!bookingData.facilityId || !facilities.length) return true;
     
-    // Check if it's a holiday
+    const facility = facilities.find((f: any) => f.id === bookingData.facilityId);
+    if (!facility) return true;
+    
+    // Check if the date is a holiday
     if (isHoliday(date)) return true;
     
-    // Check if facility is open on this day of week
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    return !getFacilityOpenStatus(selectedFacility, dayOfWeek);
+    // Check day of week and see if facility is open
+    if (isSunday(date) && !facility.sunday_open) return true;
+    if (isMonday(date) && !facility.monday_open) return true;
+    if (isTuesday(date) && !facility.tuesday_open) return true;
+    if (isWednesday(date) && !facility.wednesday_open) return true;
+    if (isThursday(date) && !facility.thursday_open) return true;
+    if (isFriday(date) && !facility.friday_open) return true;
+    if (isSaturday(date) && !facility.saturday_open) return true;
+    
+    return false;
   };
   
   // Find the next available date based on facility hours
@@ -204,495 +276,214 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
     // If no available date found, return tomorrow
     return addDays(new Date(), 1);
   };
-  
-  // Effect to set the default date when entering step 2
-  useEffect(() => {
-    if (step === 2 && selectedFacility && !bookingData?.date) {
-      // Find next available date
-      const nextDate = findNextAvailableDate();
-      
-      // Format date for API
-      const year = nextDate.getFullYear();
-      const month = (nextDate.getMonth() + 1).toString().padStart(2, '0');
-      const day = nextDate.getDate().toString().padStart(2, '0');
-      const defaultDate = `${year}-${month}-${day}`;
-      
-      console.log(`Auto-selecting next available date: ${defaultDate}`);
-      
-      // Update booking data with default date
-      updateBookingData({ date: defaultDate });
-    }
-  }, [step, selectedFacility, bookingData?.date, updateBookingData]);
-
-  const handleSubmit = (values: any) => {
-    const facility = facilities.find((f: any) => f.id === values.facilityId);
-    
-    // Store the selected facility for use in date validation
-    setSelectedFacility(facility);
-    
-    // Find next available date for default selection
-    let nextDate = new Date();
-    let daysToCheck = 30; // Look ahead up to 30 days
-    
-    for (let i = 1; i <= daysToCheck; i++) {
-      const checkDate = addDays(new Date(), i);
-      const dayOfWeek = checkDate.getDay();
-      
-      // Check if facility is open on this day
-      if (facility && getFacilityOpenStatus(facility, dayOfWeek)) {
-        nextDate = checkDate;
-        break;
-      }
-    }
-    
-    // Format date for API
-    const year = nextDate.getFullYear();
-    const month = (nextDate.getMonth() + 1).toString().padStart(2, '0');
-    const day = nextDate.getDate().toString().padStart(2, '0');
-    const defaultDate = `${year}-${month}-${day}`;
-    
-    updateBookingData({
-      facilityId: values.facilityId,
-      appointmentTypeId: values.appointmentTypeId,
-      timezone: facility?.timezone || getUserTimeZone(),
-      date: defaultDate // Set default date to next available
-    });
-    
-    setStep(2);
-  };
-
-  // Get appointment type details - we need to know if showRemainingSlots is enabled
-  const { data: appointmentTypeDetails, isLoading: loadingAppointmentType } = useQuery({
-    queryKey: ["appointmentType", bookingData?.appointmentTypeId],
-    queryFn: async () => {
-      // Only fetch if we have an appointment type ID
-      if (!bookingData?.appointmentTypeId) {
-        return null;
-      }
-      
-      // Find the appointment type in the booking page data first
-      const appointmentType = bookingPage.appointmentTypes.find(
-        (t: any) => t.id === Number(bookingData.appointmentTypeId)
-      );
-      
-      if (appointmentType) {
-        // Update the selectedAppointmentType state
-        setSelectedAppointmentType(appointmentType);
-        return appointmentType;
-      }
-      
-      return null;
-    },
-    enabled: !!bookingData?.appointmentTypeId && (step === 2 || step === 3),
-  });
-  
-  // Fetch the standard questions for the selected appointment type
-  const { data: standardQuestions, isLoading: loadingQuestions } = useQuery({
-    queryKey: ["standard-questions", bookingData?.appointmentTypeId],
-    queryFn: async () => {
-      if (!bookingData?.appointmentTypeId) {
-        return [];
-      }
-      
-      try {
-        const res = await fetch(`/api/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
-        if (!res.ok) {
-          throw new Error("Failed to load appointment questions");
-        }
-        
-        const questions = await res.json();
-        console.log("Loaded standard questions:", questions);
-        return questions || [];
-      } catch (error) {
-        console.error("Error loading standard questions:", error);
-        return [];
-      }
-    },
-    enabled: !!bookingData?.appointmentTypeId && step === 3,
-  });
-  
-  // Also fetch any custom questions
-  const { data: customQuestions, isLoading: loadingCustomQuestions } = useQuery({
-    queryKey: ["custom-questions", bookingData?.appointmentTypeId],
-    queryFn: async () => {
-      if (!bookingData?.appointmentTypeId) {
-        return [];
-      }
-      
-      try {
-        const res = await fetch(`/api/custom-questions/${bookingData.appointmentTypeId}`);
-        if (!res.ok) {
-          throw new Error("Failed to load custom questions");
-        }
-        
-        const questions = await res.json();
-        console.log("Loaded custom questions:", questions);
-        return questions || [];
-      } catch (error) {
-        console.error("Error loading custom questions:", error);
-        return [];
-      }
-    },
-    enabled: !!bookingData?.appointmentTypeId && step === 3,
-  });
-
-  // Get the real availability using the enhanced v2 endpoint
-  const { data: availability, isLoading: loadingAvailability } = useQuery({
-    queryKey: ["availability/v2", bookingData?.facilityId, bookingData?.appointmentTypeId, bookingData?.date],
-    queryFn: async () => {
-      // Make sure we have all required data
-      if (!bookingData?.date || !bookingData?.facilityId || !bookingData?.appointmentTypeId) {
-        console.error("Missing required data for availability:", { 
-          date: bookingData?.date,
-          facilityId: bookingData?.facilityId,
-          appointmentTypeId: bookingData?.appointmentTypeId
-        });
-        return [];
-      }
-      
-      // Use the enhanced v2 endpoint which properly handles all scheduling rules
-      const url = new URL('/api/availability/v2', window.location.origin);
-      
-      // Directly use the date string from booking data without any transformation
-      // This ensures we're using the exact date the user selected
-      const dateParam = typeof bookingData.date === 'string' ? bookingData.date : '';
-      
-      console.log("Using date param for availability call:", dateParam);
-      
-      // Add all required parameters to the URL
-      url.searchParams.append('date', dateParam);
-      url.searchParams.append('facilityId', String(bookingData.facilityId));
-      url.searchParams.append('appointmentTypeId', String(bookingData.appointmentTypeId));
-      url.searchParams.append('bookingPageSlug', window.location.pathname.split('/').pop() || '');
-      
-      console.log(`Fetching availability from: ${url.toString()}`);
-      
-      try {
-        const res = await fetch(url.toString());
-        
-        if (!res.ok) {
-          let errorMsg = "Failed to load availability";
-          try {
-            const errorData = await res.json();
-            console.error("Availability fetch error:", errorData);
-            errorMsg = errorData.message || errorMsg;
-          } catch (e) {
-            console.error("Could not parse error response", e);
-          }
-          throw new Error(errorMsg);
-        }
-        
-        const data = await res.json();
-        console.log("Availability data:", data);
-        
-        // Process the slot data to ensure we have all the expected properties
-        return (data.slots || []).map((slot: any) => ({
-          time: slot.time,
-          available: !!slot.available,
-          remainingCapacity: slot.remainingCapacity || 0,
-          reason: slot.reason || '',
-          // Add any other needed properties
-        }));
-      } catch (error) {
-        console.error("Error fetching availability:", error);
-        throw error;
-      }
-    },
-    enabled: !!bookingData?.date && !!bookingData?.facilityId && !!bookingData?.appointmentTypeId && step === 2,
-    // Re-fetch when the date or other booking data changes
-    refetchOnWindowFocus: false,
-  });
-
-  const bookingMutation = useMutation({
-    mutationFn: async (payload: any) => {
-      console.log("Starting booking creation with payload:", payload);
-      
-      // Format the data for the API
-      const startDate = new Date(`${payload.date}T${payload.time}`);
-      
-      // Calculate endDate based on appointment type duration
-      const appointmentType = appointmentTypes.find((t: any) => t.id === Number(payload.appointmentTypeId));
-      const durationMinutes = appointmentType?.duration || 60;
-      const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
-      
-      // Prepare a properly formatted booking payload
-      const apiPayload = {
-        facilityId: Number(payload.facilityId),
-        appointmentTypeId: Number(payload.appointmentTypeId),
-        startTime: startDate.toISOString(),
-        endTime: endDate.toISOString(),
-        pickupOrDropoff: payload.pickupOrDropoff || "pickup",
-        status: "confirmed",
-        customerName: payload.bookingDetails.companyName || payload.bookingDetails.customerName,
-        contactName: payload.bookingDetails.contactName,
-        email: payload.bookingDetails.email,
-        phone: payload.bookingDetails.phone,
-        carrierName: payload.bookingDetails.carrierName,
-        driverName: payload.bookingDetails.driverName,
-        driverPhone: payload.bookingDetails.driverPhone,
-        truckNumber: payload.bookingDetails.truckNumber || "N/A",
-        trailerNumber: payload.bookingDetails.trailerNumber || "N/A",
-        customerRef: payload.bookingDetails.customerRef || "",
-        customFormData: payload.bookingDetails // Store full details in customFormData
-      };
-      
-      console.log("Submitting appointment with payload:", apiPayload);
-      
-      // Make API call with properly formatted payload
-      const response = await fetch('/api/schedules', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(apiPayload),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Booking API error:", errorData);
-        throw new Error(errorData.message || 'Failed to create booking');
-      }
-      
-      const data = await response.json();
-      console.log("Booking created successfully:", data);
-      return data;
-    },
-    onSuccess: (data) => {
-      // Extract confirmation code and set it
-      const confirmationCode = data.confirmationNumber || data.confirmationCode || `CONF-${Date.now()}`;
-      setConfirmationCode(confirmationCode);
-      setStep(4);
-    },
-    onError: (error) => {
-      console.error("Booking error:", error);
-    }
-  });
 
   return (
-    <div className="max-w-xl mx-auto p-4 space-y-4">
-      <img src={dockOptimizerLogo} alt="Dock Optimizer Logo" className="h-12" />
-
+    <div className="space-y-6">
+      {/* Progress steps */}
+      <div className="relative mb-8">
+        <div className="flex justify-between">
+          <div className={`text-center ${step >= 1 ? 'text-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center border-2 ${step >= 1 ? 'border-primary bg-primary text-white' : 'border-gray-300'}`}>
+              1
+            </div>
+            <div className="text-xs mt-1">Select Service</div>
+          </div>
+          
+          <div className={`text-center ${step >= 2 ? 'text-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center border-2 ${step >= 2 ? 'border-primary bg-primary text-white' : 'border-gray-300'}`}>
+              2
+            </div>
+            <div className="text-xs mt-1">Select Date & Time</div>
+          </div>
+          
+          <div className={`text-center ${step >= 3 ? 'text-primary' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center border-2 ${step >= 3 ? 'border-primary bg-primary text-white' : 'border-gray-300'}`}>
+              3
+            </div>
+            <div className="text-xs mt-1">Enter Details</div>
+          </div>
+        </div>
+        
+        <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200 -z-10">
+          <div 
+            className="h-full bg-primary transition-all duration-300" 
+            style={{ width: `${(step - 1) * 50}%` }}
+          ></div>
+        </div>
+      </div>
+      
+      {/* Step 1: Select Service Type */}
       {step === 1 && (
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <div>
-              <Label>Facility</Label>
-              <Select
-                onValueChange={(value) => form.setValue('facilityId', Number(value))}
-                value={safeToString(form.watch('facilityId'))}
-              >
-                <SelectTrigger><SelectValue placeholder="Select Facility" /></SelectTrigger>
-                <SelectContent>
-                  {facilities
-                    .filter((f: any) => f?.id && f?.name)
-                    .map((f: any) => {
-                      const facilityId = String(f.id);
-                      return (
-                        <SelectItem key={`facility-${facilityId}`} value={facilityId}>
-                          {f.name}
-                        </SelectItem>
-                      );
-                    })}
-
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Service Type</Label>
-              <Select
-                onValueChange={(value) => form.setValue('appointmentTypeId', Number(value))}
-                value={safeToString(form.watch('appointmentTypeId'))}
-                disabled={!form.watch('facilityId')}
-              >
-                <SelectTrigger><SelectValue placeholder="Select Service" /></SelectTrigger>
-                <SelectContent>
-                  {appointmentTypes.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-neutral-500">
-                      No services available for this facility
-                    </div>
-                  ) : (
-                    appointmentTypes.map((t: any) => {
-                      console.log(`Rendering appointment type: ${t.name} (ID: ${t.id}, Facility: ${t.facilityId})`);
-                      const typeId = String(t.id);
-                      return (
-                        <SelectItem key={`apptType-${typeId}`} value={typeId}>
-                          {t.name}
-                        </SelectItem>
-                      );
-                    })
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit">Next</Button>
-          </form>
-        </Form>
-      )}
-
-      {step === 2 && (
         <div className="space-y-4">
-          <Label>Select Date</Label>
+          <h2 className="text-lg font-bold">Select Service Type</h2>
           
-          {/* Auto-select next available date if no date is currently selected */}
-          {!bookingData?.date && selectedFacility && (
-            <div className="text-sm text-muted-foreground mb-2">
-              Finding next available date...
+          {/* BOL Upload Section */}
+          <div className="bg-blue-50 p-4 rounded-md border border-blue-200 mb-4">
+            <h3 className="text-md font-semibold mb-2 flex items-center">
+              <Upload className="h-4 w-4 mr-2" />
+              Upload BOL Document (Optional)
+            </h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              Upload your Bill of Lading to automatically fill in appointment details.
+            </p>
+            <div className="flex items-center space-x-2">
+              <Input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleBolUpload(file);
+                }}
+                disabled={isProcessingBol}
+              />
+              {isProcessingBol && <Loader2 className="animate-spin h-4 w-4" />}
             </div>
-          )}
-          
-          <DatePicker 
-            date={bookingData?.date ? 
-              // Make sure we properly parse the date string that could be in yyyy-MM-dd format
-              typeof bookingData.date === 'string' 
-                ? new Date(
-                    parseInt(bookingData.date.substring(0, 4)), // year
-                    parseInt(bookingData.date.substring(5, 7)) - 1, // month (0-indexed)
-                    parseInt(bookingData.date.substring(8, 10)) // day
-                  ) 
-                : new Date(bookingData.date) 
-              : undefined}
-            onDateChange={(date) => {
-              if (date) {
-                // Important: Keep exactly the date that was clicked without any timezone conversion
-                const year = date.getFullYear();
-                const month = date.getMonth() + 1; // JavaScript months are 0-indexed
-                const day = date.getDate();
-                
-                // Format date as YYYY-MM-DD for API
-                const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                
-                // Update the context with the exact date string
-                updateBookingData({ date: formattedDate });
-                
-                console.log(`Date selected: ${formattedDate}`);
-              }
-            }}
-            disablePastDates={true}
-            disabledDays={isDateClosed}
-          />
-
-          {loadingAvailability ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="animate-spin h-8 w-8 text-primary" />
-            </div>
-          ) : availability && availability.length > 0 ? (
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Available Times</h3>
-              
-              {/* Display appointment type details if available */}
-              {selectedAppointmentType && (
-                <div className="bg-blue-50 text-blue-800 p-3 rounded-md mb-4">
-                  <h3 className="text-lg font-medium">{selectedAppointmentType.name}</h3>
-                  <div className="mt-1 text-sm">
-                    <p>Duration: {selectedAppointmentType.duration || 60} minutes</p>
-                    <p>Concurrent Appointments: {selectedAppointmentType.maxConcurrent || 1}</p>
-                  </div>
-                  
-                  {/* Back button */}
-                  <button 
-                    onClick={() => setStep(1)} 
-                    className="mt-2 text-sm text-blue-700 flex items-center"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Change appointment type
-                  </button>
-                </div>
-              )}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {availability.map((slot: any) => {
-                  // Determine the button styling based on availability
-                  let variant: 'default' | 'outline' = 'outline';
-                  let className = '';
-                  
-                  if (bookingData?.time === slot.time) {
-                    variant = 'default';
-                  } else if (!slot.available) {
-                    className = 'opacity-50';
-                  } else if (slot.remainingCapacity && slot.remainingCapacity < 2) {
-                    // Limited availability styling
-                    className = 'border-yellow-400';
-                  }
-                  
-                  // Check for buffer time reasons
-                  const isBufferTimeSlot = !slot.available && 
-                    (slot.reason?.toLowerCase().includes('buffer') || 
-                     slot.reason?.toLowerCase().includes('too soon'));
-                  
-                  return (
-                    <Button
-                      key={slot.time}
-                      variant={variant}
-                      className={`${className} relative h-16 flex flex-col items-center justify-center p-1`}
-                      onClick={() => updateBookingData({ time: slot.time })}
-                      disabled={!slot.available}
-                      title={slot.reason || (slot.available ? 
-                        `${slot.remainingCapacity || 1} slot(s) available` : 
-                        'Not available')}
-                    >
-                      <div className="flex flex-col items-center justify-center">
-                        <span className="font-medium">{slot.time}</span>
-                        
-                        {/* Always show remaining slots count with visual indicators */}
-                        {slot.available && slot.remainingCapacity > 0 && (
-                          <div className="flex items-center gap-1 mt-1">
-                            <span className={`inline-block w-2 h-2 rounded-full ${
-                              slot.remainingCapacity > 3 ? 'bg-green-500' : 
-                              slot.remainingCapacity > 1 ? 'bg-yellow-500' : 
-                              'bg-orange-500'
-                            }`}></span>
-                            <span className="text-xs font-medium">
-                              {slot.remainingCapacity} {slot.remainingCapacity === 1 ? 'slot' : 'slots'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Only show reason label if not available */}
-                      {!slot.available && slot.reason && (
-                        <span className="text-xs mt-1 text-red-600 font-medium truncate max-w-[90px] block">
-                          {slot.reason.length > 12 ? `${slot.reason.substring(0, 12)}...` : slot.reason}
-                        </span>
-                      )}
-                    </Button>
-                  );
-                })}
+            {bolFile && (
+              <div className="mt-2 text-sm text-green-600">
+                <CheckCircle className="inline-block h-4 w-4 mr-1" />
+                {bolFile.name} uploaded successfully
               </div>
-              {/* Simplified UI - no legend needed */}
+            )}
+            {bolData && (
+              <div className="mt-2 text-sm p-2 bg-blue-100 rounded">
+                <p className="font-medium">Extracted information:</p>
+                <ul className="list-disc pl-5 mt-1">
+                  {Object.entries(bolData.extractedFields || {}).map(([key, value]) => (
+                    <li key={key}>
+                      {key}: {String(value)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="facility">Facility</Label>
+              <Select
+                value={bookingData.facilityId?.toString() || ''}
+                onValueChange={(value) => {
+                  setBookingData({
+                    ...bookingData,
+                    facilityId: Number(value),
+                    appointmentTypeId: undefined // Reset appointment type when facility changes
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a facility" />
+                </SelectTrigger>
+                <SelectContent>
+                  {facilities.map((facility: any) => (
+                    <SelectItem key={facility.id} value={facility.id.toString()}>
+                      {facility.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <div className="py-4 text-center">
-              <p className="text-muted-foreground">No availability found for selected date.</p>
-              <p className="text-sm mt-2">Try selecting a different date or service type.</p>
+            
+            <div className="space-y-2">
+              <Label htmlFor="appointmentType">Service Type</Label>
+              <Select
+                value={bookingData.appointmentTypeId?.toString() || ''}
+                onValueChange={(value) => {
+                  setBookingData({
+                    ...bookingData,
+                    appointmentTypeId: Number(value)
+                  });
+                }}
+                disabled={!bookingData.facilityId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={bookingData.facilityId ? "Select a service type" : "Select a facility first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {appointmentTypes.map((type: any) => (
+                    <SelectItem key={type.id} value={type.id.toString()}>
+                      {type.name} ({type.duration} min)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
-
-          <Button
-            onClick={() => {
-              // Make sure we have all the required data
-              if (!bookingData?.facilityId || !bookingData?.appointmentTypeId || !bookingData?.date || !bookingData?.time) {
-                console.error("Missing required booking data:", bookingData);
-                return;
-              }
-              
-              console.log("Submitting booking with data:", bookingData);
-              
-              bookingMutation.mutate({
-                facilityId: Number(bookingData.facilityId),
-                appointmentTypeId: Number(bookingData.appointmentTypeId),
-                date: bookingData.date,
-                time: bookingData.time,
-                pickupOrDropoff: "pickup" // Default
-              });
-            }}
-            disabled={!bookingData?.time || bookingMutation.isPending}
-          >
-            {bookingMutation.isPending ? 'Booking...' : 'Confirm Booking'}
-          </Button>
+          </div>
+          
+          <div className="pt-4">
+            <Button 
+              onClick={() => setStep(2)}
+              disabled={!bookingData.facilityId || !bookingData.appointmentTypeId}
+            >
+              Next: Select Date & Time
+            </Button>
+          </div>
         </div>
       )}
-
+      
+      {/* Step 2: Select Date and Time */}
+      {step === 2 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold">Select Date and Time</h2>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="date">Date</Label>
+              <DatePicker
+                selected={bookingData.date ? new Date(bookingData.date) : findNextAvailableDate()}
+                onSelect={(date) => {
+                  if (date) {
+                    setBookingData({
+                      ...bookingData,
+                      date: format(date, 'yyyy-MM-dd'),
+                      time: undefined // Reset time when date changes
+                    });
+                  }
+                }}
+                disabled={(date) => {
+                  // Disable past dates
+                  if (date < new Date()) return true;
+                  
+                  // Check facility schedule
+                  return isDateClosed(date);
+                }}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="time">Available Times</Label>
+              {bookingData.date ? (
+                <TimeSlotsSelector
+                  date={bookingData.date}
+                  facilityId={bookingData.facilityId}
+                  appointmentTypeId={bookingData.appointmentTypeId}
+                  onSelectTime={(time) => {
+                    setBookingData({
+                      ...bookingData,
+                      time
+                    });
+                  }}
+                  selectedTime={bookingData.time}
+                />
+              ) : (
+                <div className="text-muted-foreground">Please select a date first</div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex justify-between pt-4">
+            <Button onClick={() => setStep(1)} variant="outline">Back</Button>
+            <Button 
+              onClick={() => setStep(3)}
+              disabled={!bookingData.date || !bookingData.time}
+            >
+              Next: Enter Details
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Step 3: Enter Booking Details */}
       {step === 3 && (
         <div className="space-y-4">
           <h2 className="text-lg font-bold">Enter Booking Details</h2>
@@ -703,211 +494,244 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
               <span className="ml-2">Loading booking questions...</span>
             </div>
           ) : (
-            <div className="space-y-4">
-              {/* Create a custom form to collect the answers from standard questions */}
-              <div className="grid gap-6 md:grid-cols-2">
-                {(standardQuestions || []).concat(customQuestions || [])
-                  .filter((q: any) => q.included)
-                  .sort((a: any, b: any) => a.orderPosition - b.orderPosition)
-                  .map((question: any) => (
-                    <div key={question.id} className="space-y-2">
-                      <Label htmlFor={question.fieldKey}>
-                        {question.label}
-                        {question.required && <span className="text-red-500 ml-1">*</span>}
-                      </Label>
-                      
-                      {question.fieldType === 'TEXT' || question.fieldType === 'EMAIL' ? (
-                        <Input
-                          id={question.fieldKey}
-                          name={question.fieldKey}
-                          type={question.fieldType === 'EMAIL' ? 'email' : 'text'}
-                          value={bookingDetails[question.fieldKey] || ''}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setBookingDetails(prev => ({
-                              ...prev,
-                              [question.fieldKey]: value
-                            }));
-                          }}
-                          required={question.required}
-                        />
-                      ) : question.fieldType === 'TEXTAREA' ? (
-                        <textarea
-                          id={question.fieldKey}
-                          name={question.fieldKey}
-                          className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
-                          value={bookingDetails[question.fieldKey] || ''}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setBookingDetails(prev => ({
-                              ...prev,
-                              [question.fieldKey]: value
-                            }));
-                          }}
-                          required={question.required}
-                        />
-                      ) : (
-                        <Input
-                          id={question.fieldKey}
-                          name={question.fieldKey}
-                          value={bookingDetails[question.fieldKey] || ''}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setBookingDetails(prev => ({
-                              ...prev,
-                              [question.fieldKey]: value
-                            }));
-                          }}
-                          required={question.required}
-                        />
-                      )}
-                    </div>
-                  ))
-                }
-              </div>
-              
-              <div className="flex justify-between pt-4">
-                <Button onClick={() => setStep(2)} variant="outline">Back</Button>
-                <Button 
-                  onClick={() => {
-                    // Find all required questions based on the questions loaded from API
-                    const requiredQuestions = [
-                      ...(standardQuestions || []), 
-                      ...(customQuestions || [])
-                    ].filter((q: any) => q.required && q.included);
-                    
-                    // Check if all required questions have been answered
-                    const missingRequired = requiredQuestions.filter((q: any) => 
-                      !bookingDetails[q.fieldKey] || bookingDetails[q.fieldKey].trim() === ''
-                    );
-                    
-                    if (missingRequired.length > 0) {
-                      alert(`Please fill in all required fields: ${missingRequired.map((q: any) => q.label).join(', ')}`);
-                      return;
-                    }
-                    
-                    // Create the booking
-                    console.log("Submitting booking with details:", bookingDetails);
-                    
-                    bookingMutation.mutate({
-                      facilityId: Number(bookingData.facilityId),
-                      appointmentTypeId: Number(bookingData.appointmentTypeId),
-                      date: bookingData.date,
-                      time: bookingData.time,
-                      pickupOrDropoff: "pickup", // Default
-                      ...bookingDetails  // Include all the answers to questions
-                    });
-                  }}
-                  disabled={bookingMutation.isPending}
-                >
-                  {bookingMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Booking...
-                    </>
-                  ) : "Confirm Booking"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-                  onClick={() => {
-                    // Find all required questions based on the questions loaded from API
-                    const requiredQuestions = [
-                      ...(standardQuestions || []), 
-                      ...(customQuestions || [])
-                    ].filter(q => q.required);
-                    
-                    // Check if any required fields are missing
-                    const missingFields = requiredQuestions
-                      .filter(q => !bookingDetails[q.fieldKey] && q.included)
-                      .map(q => q.label);
-                    
-                    if (missingFields.length > 0) {
-                      alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
-                      return;
-                    }
-                    
-                    // Log data for debugging
-                    console.log("Submitting booking with data:", bookingData);
-                    console.log("Booking details:", bookingDetails);
-                    
-                    // Add default values for required fields
-                    const completeBookingDetails = {
-                      ...bookingDetails,
-                      companyName: bookingDetails.companyName || bookingDetails.customerName || "Guest Company",
-                      contactName: bookingDetails.contactName || bookingDetails.customerName || "Guest User",
-                      email: bookingDetails.email || "guest@example.com",
-                      phone: bookingDetails.phone || "555-555-5555",
-                      carrierName: bookingDetails.carrierName || "External Carrier",
-                      driverName: bookingDetails.driverName || "Guest Driver",
-                      driverPhone: bookingDetails.driverPhone || "555-555-5555",
-                      truckNumber: bookingDetails.truckNumber || "N/A",
-                      trailerNumber: bookingDetails.trailerNumber || "N/A",
-                      customerRef: bookingDetails.customerRef || ""
-                    };
-                    
-                    // Create a payload that matches the API's expected format
-                    const startDate = new Date(`${bookingData.date}T${bookingData.time}`);
-                    
-                    // Find appointment type to get duration
-                    const appointmentType = appointmentTypes.find((t: any) => 
-                      t.id === Number(bookingData.appointmentTypeId)
-                    );
-                    const durationMinutes = appointmentType?.duration || 60;
-                    
-                    // Calculate end time based on duration
-                    const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
-                    
-                    // Create API-compatible payload
-                    const payload = {
-                      facilityId: Number(bookingData.facilityId),
-                      appointmentTypeId: Number(bookingData.appointmentTypeId),
-                      startTime: startDate.toISOString(),
-                      endTime: endDate.toISOString(),
-                      pickupOrDropoff: "pickup",
-                      status: "confirmed",
-                      customerName: completeBookingDetails.companyName,
-                      contactName: completeBookingDetails.contactName,
-                      email: completeBookingDetails.email,
-                      phone: completeBookingDetails.phone,
-                      carrierName: completeBookingDetails.carrierName,
-                      driverName: completeBookingDetails.driverName,
-                      driverPhone: completeBookingDetails.driverPhone,
-                      truckNumber: completeBookingDetails.truckNumber,
-                      trailerNumber: completeBookingDetails.trailerNumber,
-                      customFormData: completeBookingDetails // Store complete details here
-                    };
-                    
-                    console.log("Submitting appointment with payload:", payload);
-                    bookingMutation.mutate(payload);
-                  }}
-                  disabled={bookingMutation.isPending}
-                >
-                  {bookingMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : "Confirm Booking"}
-                </Button>
-              </div>
-            </>
+            <Form {...form}>
+              <form 
+                className="space-y-6" 
+                onSubmit={form.handleSubmit((data) => {
+                  console.log("Form submitted with data:", data);
+                  // Store the answers
+                  setBookingDetails(data.customFields || {});
+                  
+                  // Create the booking
+                  const bookingPayload = {
+                    facilityId: Number(bookingData.facilityId),
+                    appointmentTypeId: Number(bookingData.appointmentTypeId),
+                    date: bookingData.date,
+                    time: bookingData.time,
+                    timezone: bookingData.timezone,
+                    pickupOrDropoff: "pickup", // Default
+                    ...data.customFields // Include all custom field answers
+                  };
+                  
+                  console.log("Submitting booking with data:", bookingPayload);
+                  bookingMutation.mutate(bookingPayload);
+                })}
+              >
+                <StandardQuestionsFormFields
+                  form={form}
+                  questions={[...(standardQuestions || []), ...(customQuestions || [])]}
+                  isLoading={loadingQuestions || loadingCustomQuestions}
+                  existingAnswers={bolData?.extractedFields}
+                />
+                
+                <div className="flex justify-between pt-4">
+                  <Button 
+                    type="button" 
+                    onClick={() => setStep(2)} 
+                    variant="outline"
+                  >
+                    Back
+                  </Button>
+                  <Button 
+                    type="submit"
+                    disabled={bookingMutation.isPending}
+                  >
+                    {bookingMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating Booking...
+                      </>
+                    ) : "Confirm Booking"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
           )}
         </div>
       )}
       
+      {/* Step 4: Booking Confirmation */}
       {step === 4 && confirmationCode && (
         <div className="text-center space-y-4">
           <CheckCircle className="text-green-500 w-10 h-10 mx-auto" />
-          <h2 className="text-lg font-bold">Booking Confirmed</h2>
-          <p>Your confirmation code is: <code>{confirmationCode}</code></p>
+          <h2 className="text-lg font-bold">Booking Confirmed!</h2>
+          <p>Your appointment has been successfully scheduled.</p>
+          <div className="bg-primary/10 rounded-md p-4 my-4">
+            <p className="text-sm">Confirmation Code:</p>
+            <p className="text-lg font-bold">{confirmationCode}</p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            A confirmation email has been sent with your appointment details.
+            Please keep your confirmation code for check-in.
+          </p>
+          <Button 
+            onClick={() => {
+              // Reset the form and go back to step 1
+              setStep(1);
+              setBookingData({
+                timezone: getUserTimeZone()
+              });
+              setConfirmationCode(null);
+              setBookingDetails({});
+              setBolFile(null);
+              setBolData(null);
+            }}
+            className="mt-4"
+          >
+            Book Another Appointment
+          </Button>
         </div>
       )}
+    </div>
+  );
+}
 
-      {bookingMutation.error && (
-        <div className="text-red-500 text-sm">{(bookingMutation.error as Error).message}</div>
+function TimeSlotsSelector({ 
+  date, 
+  facilityId, 
+  appointmentTypeId, 
+  onSelectTime, 
+  selectedTime 
+}: { 
+  date: string, 
+  facilityId?: number, 
+  appointmentTypeId?: number,
+  onSelectTime: (time: string) => void,
+  selectedTime?: string
+}) {
+  const [slots, setSlots] = useState<Array<{
+    time: string;
+    available: boolean;
+    reason?: string;
+    remaining?: number;
+  }>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    async function fetchAvailability() {
+      if (!date || !facilityId || !appointmentTypeId) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const res = await fetch(`/api/availability?date=${date}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}`);
+        
+        if (!res.ok) {
+          throw new Error('Failed to fetch availability');
+        }
+        
+        const data = await res.json();
+        setSlots(data);
+      } catch (err) {
+        console.error('Error fetching availability:', err);
+        setError('Failed to load available time slots');
+        setSlots([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchAvailability();
+  }, [date, facilityId, appointmentTypeId]);
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-4">
+        <Loader2 className="animate-spin h-6 w-6 text-primary mr-2" />
+        <span>Loading available time slots...</span>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="text-red-500 py-4">
+        <XCircle className="inline-block h-4 w-4 mr-1" />
+        {error}
+      </div>
+    );
+  }
+  
+  if (slots.length === 0) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+        <p className="text-amber-700 font-medium">No Available Times</p>
+        <p className="text-sm text-amber-600">
+          There are no available times for the selected date. Please choose another date.
+        </p>
+      </div>
+    );
+  }
+  
+  // Group slots by morning/afternoon for better organization
+  const morningSlots = slots.filter(slot => {
+    const hour = parseInt(slot.time.split(':')[0], 10);
+    return hour < 12;
+  });
+  
+  const afternoonSlots = slots.filter(slot => {
+    const hour = parseInt(slot.time.split(':')[0], 10);
+    return hour >= 12;
+  });
+  
+  return (
+    <div className="space-y-4">
+      {morningSlots.length > 0 && (
+        <div>
+          <h3 className="text-sm font-medium mb-2">Morning</h3>
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+            {morningSlots.map((slot) => (
+              <Button
+                key={slot.time}
+                variant={selectedTime === slot.time ? "default" : "outline"}
+                size="sm"
+                className={`w-full ${!slot.available ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => {
+                  if (slot.available) {
+                    onSelectTime(slot.time);
+                  }
+                }}
+                disabled={!slot.available}
+                title={!slot.available ? (slot.reason || 'Unavailable') : undefined}
+              >
+                {safeToString(slot.time)}
+                {slot.remaining !== undefined && slot.available && (
+                  <span className="ml-1 text-xs">({slot.remaining})</span>
+                )}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {afternoonSlots.length > 0 && (
+        <div>
+          <h3 className="text-sm font-medium mb-2">Afternoon</h3>
+          <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+            {afternoonSlots.map((slot) => (
+              <Button
+                key={slot.time}
+                variant={selectedTime === slot.time ? "default" : "outline"}
+                size="sm"
+                className={`w-full ${!slot.available ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => {
+                  if (slot.available) {
+                    onSelectTime(slot.time);
+                  }
+                }}
+                disabled={!slot.available}
+                title={!slot.available ? (slot.reason || 'Unavailable') : undefined}
+              >
+                {safeToString(slot.time)}
+                {slot.remaining !== undefined && slot.available && (
+                  <span className="ml-1 text-xs">({slot.remaining})</span>
+                )}
+              </Button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
