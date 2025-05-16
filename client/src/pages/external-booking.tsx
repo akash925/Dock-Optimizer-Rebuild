@@ -214,7 +214,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
           const addressText = extractedData.toAddress || extractedData.shipToAddress || '';
           
           // Try to match address to a facility
-          const matchingFacility = facilities.find(facility => 
+          const matchingFacility = facilities.find((facility: any) => 
             addressText.toLowerCase().includes(facility.name.toLowerCase()) ||
             (facility.address && addressText.toLowerCase().includes(facility.address.toLowerCase()))
           );
@@ -550,6 +550,40 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   bookingMutation.mutate(bookingPayload);
                 })}
               >
+                {/* BOL Data Summary - show if available */}
+                {bolData && (
+                  <div className="mb-6 border rounded-md p-4 bg-blue-50 border-blue-200">
+                    <div className="flex items-center mb-2">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                      <h3 className="font-medium text-blue-800">BOL Processed Successfully</h3>
+                    </div>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      {bolData.summary && (
+                        <p className="font-medium">{bolData.summary}</p>
+                      )}
+                      {bolData.extractedFields && (
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          {Object.entries(bolData.extractedFields as Record<string, any>).map(([key, value]) => {
+                            if (!value) return null;
+                            return (
+                              <div key={key} className="flex flex-col">
+                                <span className="text-xs text-blue-500 uppercase">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                <span className="font-medium truncate">{String(value)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {bolFile && (
+                        <p className="text-xs text-blue-500 mt-2">
+                          File: {bolFile.name} ({(bolFile.size / 1024).toFixed(1)} KB)
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-blue-600 mt-2">These values have been pre-filled in the form below.</p>
+                  </div>
+                )}
+                
                 <StandardQuestionsFormFields
                   form={form}
                   questions={[...(standardQuestions || []), ...(customQuestions || [])]}
