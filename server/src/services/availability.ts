@@ -347,10 +347,13 @@ export async function calculateAvailabilitySlots(
 
   const result: AvailabilitySlot[] = [];
   
-  // Use interval from config with fallback to appointment type settings
-  const slotIntervalMinutes = mergedConfig.intervalMinutes || Math.max(
-    appointmentTypeBufferTime > 0 ? appointmentTypeBufferTime : appointmentTypeDuration, 15
-  );
+  // IMPORTANT: Use appointment type buffer time as the primary factor that determines slot interval
+  // This ensures consistency between availability calculation and UI display
+  const slotIntervalMinutes = appointmentTypeBufferTime > 0 
+    ? appointmentTypeBufferTime  // Use appointment type's buffer time as the interval
+    : (mergedConfig.intervalMinutes || Math.max(appointmentTypeDuration, 15));
+    
+  console.log(`[AvailabilityService] Using slot interval of ${slotIntervalMinutes} minutes based on appointment type buffer time`);
 
   // Step 1: Create facility-local date objects that represent the actual intended times
   // NEW FIX: Create date objects that properly represent the intended times in facility timezone
@@ -485,8 +488,9 @@ export async function calculateAvailabilitySlots(
     let conflictingApptsCount = 0;
 
     // Apply booking buffer - don't allow slots that start too soon
-    // IMPORTANT: Always use the appointment type's buffer time if it's defined
-    // This ensures each appointment type uses its own specific buffer settings
+    // IMPORTANT: Always use the appointment type's buffer time for both 
+    // slot interval and minimum advance booking time
+    // This creates consistency between the UI display and buffer rules
     const effectiveBufferMinutes = appointmentTypeBufferTime > 0 
       ? appointmentTypeBufferTime  // Use appointment type's buffer if set
       : mergedConfig.bookingBufferMinutes;  // Otherwise fall back to system default
@@ -595,6 +599,10 @@ export async function calculateAvailabilitySlots(
     
     // For debugging time conversions and slot generation
     console.log(`[AvailabilityService] Generated slot: ${slotResult.time} (${slotResult.available ? 'Available' : 'Unavailable'}) with reason: ${slotResult.reason || 'None'}`);
+    
+    // Add debug info about interval for traceability
+    const nextSlotTime = tzFormat(addMinutes(currentSlotStartTime, slotIntervalMinutes), 'HH:mm', { timeZone: effectiveTimezone });
+    console.log(`[AvailabilityService] Next slot will be at ${nextSlotTime} (using ${slotIntervalMinutes}min interval)`);
     
     result.push(slotResult);
 
