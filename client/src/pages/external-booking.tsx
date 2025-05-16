@@ -116,7 +116,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     }
   });
   
-  // Fetch standards questions based on appointment type
+  // Fetch standards questions based on appointment type with comprehensive error handling
   const { data: standardQuestions, isLoading: loadingQuestions } = useQuery({
     queryKey: [`/api/standard-questions/appointment-type/${bookingData.appointmentTypeId || 'unknown'}`],
     queryFn: async () => {
@@ -125,20 +125,44 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         return [];
       }
       try {
+        console.log(`Fetching standard questions for appointment type ${bookingData.appointmentTypeId}`);
         const res = await fetch(`/api/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
+        
         if (!res.ok) {
           console.warn(`Failed to load standard questions: ${res.status}`);
           return [];
         }
+        
         const data = await res.json();
+        
+        // Validate data to ensure it's what we expect
+        if (!Array.isArray(data)) {
+          console.warn("Standard questions API did not return an array:", typeof data);
+          return [];
+        }
+        
         console.log("[StandardQuestions] Loaded", data.length, "questions for appointment type", bookingData.appointmentTypeId);
-        return data;
+        
+        // Transform data if needed to match expected format
+        return data.map((q) => ({
+          id: q.id,
+          label: q.label || '',
+          fieldKey: q.fieldKey || `field_${q.id}`,
+          fieldType: q.fieldType || 'TEXT',
+          required: q.required || false,
+          included: q.included || false,
+          orderPosition: q.orderPosition || q.order || 0,
+          appointmentTypeId: q.appointmentTypeId || bookingData.appointmentTypeId,
+          options: q.options || []
+        }));
       } catch (error) {
         console.error("Error fetching standard questions:", error);
         return [];
       }
     },
     enabled: !!bookingData.appointmentTypeId && step === 3,
+    staleTime: 60000, // Cache results for 1 minute
+    retry: 1 // Only retry once to avoid excessive requests
   });
   
   // Fetch custom questions based on booking page
@@ -150,18 +174,44 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         return [];
       }
       try {
+        console.log(`Fetching custom questions for booking page ${bookingPage.id}`);
         const res = await fetch(`/api/booking-pages/${bookingPage.id}/questions`);
+        
         if (!res.ok) {
           console.warn(`Failed to load custom questions: ${res.status}`);
           return [];
         }
-        return res.json();
+        
+        const data = await res.json();
+        
+        // Validate data to ensure it's what we expect
+        if (!Array.isArray(data)) {
+          console.warn("Custom questions API did not return an array:", typeof data);
+          return [];
+        }
+        
+        console.log("[CustomQuestions] Loaded", data.length, "questions for booking page", bookingPage.id);
+        
+        // Transform data to match expected format for StandardQuestionsFormFields
+        return data.map((q) => ({
+          id: q.id,
+          label: q.label || '',
+          fieldKey: q.fieldKey || `custom_${q.id}`,
+          fieldType: q.fieldType || 'TEXT',
+          required: q.required || false,
+          included: q.included !== false, // Default to true if not specified
+          orderPosition: q.orderPosition || q.order || 100, // Custom questions come after standard ones
+          appointmentTypeId: q.appointmentTypeId || 0,
+          options: q.options || []
+        }));
       } catch (error) {
         console.error("Error fetching custom questions:", error);
         return [];
       }
     },
     enabled: step === 3 && !!bookingPage?.id,
+    staleTime: 60000, // Cache results for 1 minute
+    retry: 1 // Only retry once to avoid excessive requests
   });
 
   // Create booking mutation

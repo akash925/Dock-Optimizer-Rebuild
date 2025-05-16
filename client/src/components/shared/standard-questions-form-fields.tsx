@@ -20,6 +20,8 @@ export interface StandardQuestion {
   included: boolean;
   orderPosition: number;
   options?: string[];
+  // Additional optional properties that might be in the API response
+  order?: number; // Some APIs use order instead of orderPosition
 }
 
 interface StandardQuestionsFormFieldsProps {
@@ -98,8 +100,10 @@ export function StandardQuestionsFormFields({
       // 2. Then sort by orderPosition for same category
       
       // Make sure orderPosition exists and is numeric
-      const orderA = typeof a.orderPosition === 'number' ? a.orderPosition : 999;
-      const orderB = typeof b.orderPosition === 'number' ? b.orderPosition : 999;
+      const orderPositionA = typeof a.orderPosition === 'number' ? a.orderPosition : 
+                           typeof a.order === 'number' ? a.order : 999;
+      const orderPositionB = typeof b.orderPosition === 'number' ? b.orderPosition : 
+                           typeof b.order === 'number' ? b.order : 999;
       
       // Check if fields are appointment/shipment related
       const isAppointmentFieldA = /^(appointment|shipment|schedule|bol|truck|trailer|container|cargo|driver)/i.test(a.fieldKey);
@@ -110,7 +114,7 @@ export function StandardQuestionsFormFields({
       if (!isAppointmentFieldA && isAppointmentFieldB) return 1;
       
       // Same category - sort by orderPosition
-      return orderA - orderB;
+      return orderPositionA - orderPositionB;
     });
   
   // Enhanced debug logging
