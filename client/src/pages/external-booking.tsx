@@ -51,9 +51,7 @@ export default function ExternalBooking({ slug }: { slug: string }) {
 
   return (
     <BookingThemeProvider
-      primaryColor={bookingPage.primaryColor}
-      logoUrl={bookingPage.logoUrl}
-      companyName={bookingPage.name}
+      slug={slug}
     >
       <div className="min-h-screen bg-gradient-to-b from-primary/20 to-background">
         <div className="container mx-auto py-8 px-4">
@@ -614,19 +612,41 @@ function TimeSlotsSelector({
       setError(null);
       
       try {
-        // Use the booking page slug - this allows proper tenant access validation
-        const bookingPageSlug = window.location.pathname.split('/').pop() || '';
+        // Use the special endpoint for external booking
+        // Get the booking page slug from the URL path
+        const pathSegments = window.location.pathname.split('/');
+        const pageSlug = pathSegments[pathSegments.length - 1]; 
         
-        const res = await fetch(`/api/availability/v2?date=${date}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${bookingPageSlug}`);
+        const res = await fetch(`/api/availability?date=${date}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${pageSlug}`);
         
         if (!res.ok) {
-          const errorData = await res.json();
-          console.error('Availability API error:', errorData);
-          throw new Error(errorData.message || 'Failed to fetch availability');
+          console.error('Availability API error:', res.status, res.statusText);
+          try {
+            const errorData = await res.json();
+            console.error('Error details:', errorData);
+            throw new Error(errorData.message || 'Failed to fetch availability');
+          } catch (e) {
+            throw new Error(`Failed to fetch availability (${res.status})`);
+          }
         }
         
         const data = await res.json();
-        setSlots(data.availableTimeSlots || []);
+        console.log('Availability data received:', data);
+        
+        // Handle different response formats for compatibility
+        if (data.slots && Array.isArray(data.slots)) {
+          setSlots(data.slots);
+        } else if (data.availableTimes && Array.isArray(data.availableTimes)) {
+          // Convert simple time array to slot format
+          setSlots(data.availableTimes.map((time: string) => ({
+            time: time,
+            available: true,
+            reason: '',
+            remaining: 1
+          })));
+        } else {
+          setSlots([]);
+        }
       } catch (err) {
         console.error('Error fetching availability:', err);
         setError('Failed to load available time slots');
