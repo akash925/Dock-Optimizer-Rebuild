@@ -225,9 +225,11 @@ export async function calculateAvailabilitySlots(
   const effectiveTimezone = customTimezone || facilityTimezone;
   console.log(`[AvailabilityService] Using timezone: ${effectiveTimezone} (facility default: ${facilityTimezone})`);
   
-  const zonedDate = toZonedTime(parseISO(`${date}T00:00:00`), effectiveTimezone);
+  // Create date object and get the day of week, ensuring timezone is properly handled
+  const zonedDate = toZonedTime(parseISO(`${date}T12:00:00`), effectiveTimezone);
+  // Using 12:00:00 noon to avoid any DST or timezone edge cases
   const dayOfWeek = getDay(zonedDate);
-  console.log(`[AvailabilityService] Date ${date} in ${effectiveTimezone} is day of week: ${dayOfWeek}`);
+  console.log(`[AvailabilityService] Date ${date} in ${effectiveTimezone} is day of week: ${dayOfWeek} (${dayOfWeek === 1 ? 'Monday' : dayOfWeek === 0 ? 'Sunday' : 'Other Day'})`);
 
   const getObjectField = (obj: any, camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
     // Check both camelCase and snake_case field names
