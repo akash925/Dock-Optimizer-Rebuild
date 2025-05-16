@@ -525,24 +525,21 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
             onDateChange={(date) => {
               if (date) {
                 // Important: Keep exactly the date that was clicked without any timezone conversion
-                // Get the year, month, and day directly from the date object
                 const year = date.getFullYear();
                 const month = date.getMonth() + 1; // JavaScript months are 0-indexed
                 const day = date.getDate();
                 
-                // Create a formatted date string manually without using date-fns to avoid any timezone issues
-                // This ensures the exact date selected in the UI is passed to the API
+                // Format date as YYYY-MM-DD for API
                 const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                
-                console.log("Date selected from calendar:", date);
-                console.log("Year:", year, "Month:", month, "Day:", day);
-                console.log("Manual formatted date:", formattedDate);
                 
                 // Update the context with the exact date string
                 updateBookingData({ date: formattedDate });
                 
-                // For external API calls, we'll use this format
-                console.log(`Date will be sent to API as: ${formattedDate}`);
+                // Clear time slots when date changes
+                setSelectedTimeSlot(null);
+                setAvailableTimeSlots([]);
+                
+                console.log(`Date selected: ${formattedDate}`);
               }
             }}
             disablePastDates={true}
