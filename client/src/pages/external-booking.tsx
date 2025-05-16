@@ -180,26 +180,60 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     const formData = new FormData();
     formData.append('file', file);
     
+    // Add compression flag to request
+    formData.append('compress', 'true');
+    
     try {
-      const response = await fetch('/api/document-processing', {
+      // Try to use the dedicated BOL processing endpoint first
+      const response = await fetch('/api/bol-ocr/upload', {
         method: 'POST',
         body: formData,
+      }).catch(() => {
+        // Fallback to standard document processing if BOL endpoint fails
+        return fetch('/api/document-processing', {
+          method: 'POST',
+          body: formData,
+        });
       });
       
       if (!response.ok) {
-        throw new Error('Failed to process BOL document');
+        throw new Error(`Failed to process BOL document: ${response.status}`);
       }
       
       const data = await response.json();
       console.log('Extracted BOL data:', data);
       setBolData(data);
       
-      // Pre-fill form with extracted BOL data if available
-      if (data && data.extractedFields) {
-        const { extractedFields } = data;
+      // More intelligent pre-filling of form fields with extracted BOL data
+      if (data && (data.extractedFields || data.data)) {
+        // Normalize the data structure (handle both formats)
+        const extractedData = data.extractedFields || data.data || {};
+        
+        // Try to extract facility/location information
+        if (extractedData.toAddress || extractedData.shipToAddress) {
+          const addressText = extractedData.toAddress || extractedData.shipToAddress || '';
+          
+          // Try to match address to a facility
+          const matchingFacility = facilities.find(facility => 
+            addressText.toLowerCase().includes(facility.name.toLowerCase()) ||
+            (facility.address && addressText.toLowerCase().includes(facility.address.toLowerCase()))
+          );
+          
+          if (matchingFacility) {
+            // Auto-select the facility
+            setBookingData(prev => ({
+              ...prev,
+              facilityId: matchingFacility.id
+            }));
+          }
+        }
+        
+        // Store all extracted data for the booking
         setBookingDetails(prev => ({
           ...prev,
-          ...extractedFields
+          ...extractedData,
+          bolProcessed: true,
+          bolUploadTimestamp: new Date().toISOString()
         }));
       }
     } catch (error) {
@@ -431,9 +465,12 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 date={bookingData.date ? new Date(bookingData.date) : findNextAvailableDate()}
                 onDateChange={(date) => {
                   if (date) {
+                    // Use the actual date object (not adjusted) to ensure correct date selection
+                    const correctDate = new Date(date);
+                    console.log("Selected date:", correctDate.toISOString());
                     setBookingData({
                       ...bookingData,
-                      date: format(date, 'yyyy-MM-dd'),
+                      date: format(correctDate, 'yyyy-MM-dd'), 
                       time: undefined // Reset time when date changes
                     });
                   }
