@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider } from '@/hooks/use-booking-theme';
@@ -13,7 +13,7 @@ import { StandardQuestionsFormFields } from '@/components/shared/standard-questi
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format } from 'date-fns';
+import { format, addDays, isSunday, isSaturday, isMonday, isTuesday, isWednesday, isThursday, isFriday } from 'date-fns';
 import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
 import { getUserTimeZone } from '@/lib/timezone-utils';
 import { safeToString } from '@/lib/utils';
