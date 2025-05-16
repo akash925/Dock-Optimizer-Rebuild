@@ -654,17 +654,32 @@ function TimeSlotsSelector({
         const pathSegments = window.location.pathname.split('/');
         const pageSlug = pathSegments[pathSegments.length - 1]; 
         
-        const res = await fetch(`/api/availability?date=${date}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${pageSlug}`);
+        console.log(`Fetching availability for date=${date}, facility=${facilityId}, type=${appointmentTypeId}, page=${pageSlug}`);
+        
+        // First try the v2 endpoint which has better concurrency handling
+        let res;
+        try {
+          res = await fetch(`/api/availability/v2?date=${date}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${pageSlug}`);
+          console.log("Using enhanced v2 availability endpoint");
+        } catch (e) {
+          // Fallback to original endpoint if v2 fails
+          console.log("Falling back to classic availability endpoint");
+          res = await fetch(`/api/availability?date=${date}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${pageSlug}`);
+        }
         
         if (!res.ok) {
           console.error('Availability API error:', res.status, res.statusText);
+          let errorMessage = `Failed to fetch availability (${res.status})`;
+          
           try {
             const errorData = await res.json();
             console.error('Error details:', errorData);
-            throw new Error(errorData.message || 'Failed to fetch availability');
+            errorMessage = errorData.message || errorMessage;
           } catch (e) {
-            throw new Error(`Failed to fetch availability (${res.status})`);
+            // If we can't parse the error as JSON, use default message
           }
+          
+          throw new Error(errorMessage);
         }
         
         const data = await res.json();
@@ -672,7 +687,15 @@ function TimeSlotsSelector({
         
         // Handle different response formats for compatibility
         if (data.slots && Array.isArray(data.slots)) {
-          setSlots(data.slots);
+          // Process slots to properly show remaining capacity
+          const processedSlots = data.slots.map((slot: any) => ({
+            ...slot,
+            // Ensure proper display of remaining slots
+            remaining: slot.remaining || slot.remainingCapacity || 0,
+            // Make sure available flag is a boolean
+            available: Boolean(slot.available)
+          }));
+          setSlots(processedSlots);
         } else if (data.availableTimes && Array.isArray(data.availableTimes)) {
           // Convert simple time array to slot format
           setSlots(data.availableTimes.map((time: string) => ({
