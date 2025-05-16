@@ -375,6 +375,18 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                             className="sr-only" 
                             checked={selectedAppointmentType.showRemainingSlots}
                             onChange={(e) => {
+                              // Update both the booking page data and the selected type
+                              const updatedAppointmentTypes = bookingPage.appointmentTypes.map((type: any) => {
+                                if (type.id === selectedAppointmentType.id) {
+                                  return { ...type, showRemainingSlots: e.target.checked };
+                                }
+                                return type;
+                              });
+                              
+                              // Update booking page appointment types
+                              bookingPage.appointmentTypes = updatedAppointmentTypes;
+                              
+                              // Update the selected appointment type state
                               setSelectedAppointmentType({
                                 ...selectedAppointmentType,
                                 showRemainingSlots: e.target.checked
