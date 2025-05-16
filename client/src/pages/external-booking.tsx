@@ -273,17 +273,17 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
         startTime: payload.date + "T" + payload.time, // Format as ISO string
         endTime: payload.date + "T" + payload.time, // Required by schema
         
-        // Step 3: Customer details from form
-        companyName: payload.bookingDetails.companyName || "External Booking",
-        contactName: payload.bookingDetails.contactName || "External User",
-        email: payload.bookingDetails.email || "external@example.com",
-        phone: payload.bookingDetails.phone || "555-555-5555",
-        carrierName: payload.bookingDetails.carrierName || "External Carrier",
-        driverName: payload.bookingDetails.driverName || "External Driver",
-        driverPhone: payload.bookingDetails.driverPhone || "555-555-5555",
-        truckNumber: payload.bookingDetails.truckNumber || "EXT-1",
-        trailerNumber: payload.bookingDetails.trailerNumber || null,
-        customerRef: payload.bookingDetails.customerRef || "", // Adding required field
+        // Step 3: Customer details from form with safeguards for undefined values
+        companyName: (payload.bookingDetails && payload.bookingDetails.companyName) || "External Booking",
+        contactName: (payload.bookingDetails && payload.bookingDetails.contactName) || "External User",
+        email: (payload.bookingDetails && payload.bookingDetails.email) || "external@example.com",
+        phone: (payload.bookingDetails && payload.bookingDetails.phone) || "555-555-5555",
+        carrierName: (payload.bookingDetails && payload.bookingDetails.carrierName) || "External Carrier",
+        driverName: (payload.bookingDetails && payload.bookingDetails.driverName) || "External Driver",
+        driverPhone: (payload.bookingDetails && payload.bookingDetails.driverPhone) || "555-555-5555",
+        truckNumber: (payload.bookingDetails && payload.bookingDetails.truckNumber) || "EXT-1",
+        trailerNumber: (payload.bookingDetails && payload.bookingDetails.trailerNumber) || null,
+        customerRef: (payload.bookingDetails && payload.bookingDetails.customerRef) || "", // Adding required field
         
         // Metadata
         createdVia: "external-booking",
