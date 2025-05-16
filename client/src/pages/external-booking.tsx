@@ -48,6 +48,7 @@ export default function ExternalBooking({ slug }: { slug: string }) {
 function BookingPage({ bookingPage }: { bookingPage: any }) {
   const [step, setStep] = useState(1);
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState<any>(null);
   const { bookingData, updateBookingData } = useBookingWizard();
 
   const form = useForm({
@@ -290,6 +291,20 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
           ) : availability && availability.length > 0 ? (
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground">Available Times</h3>
+              
+              {/* Display appointment type details if available */}
+              {selectedAppointmentType && (
+                <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm">
+                  <p className="font-medium">{selectedAppointmentType.name}</p>
+                  <div className="mt-1 text-xs">
+                    <p>Duration: {selectedAppointmentType.duration || 60} minutes</p>
+                    {selectedAppointmentType.bufferTime > 0 && (
+                      <p>Buffer Time: {selectedAppointmentType.bufferTime} minutes</p>
+                    )}
+                    <p>Concurrent Appointments: {selectedAppointmentType.maxConcurrent || 1}</p>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {availability.map((slot: any) => {
                   // Determine the button styling based on availability
@@ -305,11 +320,16 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                     className = 'border-yellow-400';
                   }
                   
+                  // Check for buffer time reasons
+                  const isBufferTimeSlot = !slot.available && 
+                    (slot.reason?.toLowerCase().includes('buffer') || 
+                     slot.reason?.toLowerCase().includes('too soon'));
+                  
                   return (
                     <Button
                       key={slot.time}
                       variant={variant}
-                      className={className}
+                      className={`${className} relative`}
                       onClick={() => updateBookingData({ time: slot.time })}
                       disabled={!slot.available}
                       title={slot.reason || (slot.available ? 
@@ -317,6 +337,12 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                         'Not available')}
                     >
                       {slot.time}
+                      
+                      {/* Buffer time indicator - specific indicator for buffer time slots */}
+                      {isBufferTimeSlot && (
+                        <span className="ml-1 text-xs">⏱️</span>
+                      )}
+                      
                       {/* Break time indicator - looking for various possible break reason texts */}
                       {(!slot.available || slot.reason?.toLowerCase().includes('break')) && 
                         (slot.reason?.toLowerCase().includes('break') || 
@@ -337,6 +363,11 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                       {slot.available && slot.remainingCapacity === 1 && (
                         <span className="ml-1 text-xs">⚠️</span>
                       )}
+                      
+                      {/* Tooltip for extra information (will show on hover) */}
+                      {slot.reason && (
+                        <span className="absolute bottom-0 right-0 w-2 h-2 bg-blue-500 rounded-full" />
+                      )}
                     </Button>
                   );
                 })}
@@ -344,7 +375,12 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
               <div className="text-xs text-muted-foreground mt-2">
                 <p>🔒 - Outside facility hours</p>
                 <p>🍽️ - Facility break time</p>
+                <p>⏱️ - Buffer time (defined by appointment type)</p>
                 <p>⚠️ - Limited availability</p>
+                <p className="flex items-center mt-1">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                  <span>Hover for additional information</span>
+                </p>
               </div>
             </div>
           ) : (
