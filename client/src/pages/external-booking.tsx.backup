@@ -4,19 +4,19 @@ import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizar
 import { BookingThemeProvider } from '@/hooks/use-booking-theme';
 import { Loader2, XCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Textarea } from '@/components/ui/textarea';
+import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format, addDays, isSunday, isSaturday, isMonday, isTuesday, isWednesday, isThursday, isFriday, parseISO } from 'date-fns';
+import { format, addDays, isSunday, isSaturday, isMonday, isTuesday, isWednesday, isThursday, isFriday } from 'date-fns';
 import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
 import { getUserTimeZone } from '@/lib/timezone-utils';
 import { safeToString } from '@/lib/utils';
-import { Form } from '@/components/ui/form';
 
 const serviceSelectionSchema = z.object({
   facilityId: z.coerce.number().min(1, "Please select a facility"),
@@ -154,26 +154,6 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
     );
   };
   
-  // Get facility hours for a specific day of the week
-  const getFacilityOpenStatus = (facility: any, dayOfWeek: number) => {
-    if (!facility) return false;
-    
-    // Map day of week (0 = Sunday, 1 = Monday, etc.) to facility property names
-    const dayMapping = [
-      'sunday_open',    // 0 - Sunday
-      'monday_open',    // 1 - Monday
-      'tuesday_open',   // 2 - Tuesday
-      'wednesday_open', // 3 - Wednesday
-      'thursday_open',  // 4 - Thursday
-      'friday_open',    // 5 - Friday
-      'saturday_open'   // 6 - Saturday
-    ];
-    
-    // Get the facility's open status for this day
-    const propertyName = dayMapping[dayOfWeek];
-    return facility[propertyName] || false; // Default to closed if property not found
-  };
-  
   // Helper to determine if a date is closed based on facility settings
   const isDateClosed = (date: Date) => {
     if (!selectedFacility) return true;
@@ -181,9 +161,16 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
     // Check if it's a holiday
     if (isHoliday(date)) return true;
     
-    // Check if facility is open on this day of week
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    return !getFacilityOpenStatus(selectedFacility, dayOfWeek);
+    // Check day of week and facility open/closed status
+    if (isSunday(date) && !selectedFacility.sunday_open) return true;
+    if (isMonday(date) && !selectedFacility.monday_open) return true;
+    if (isTuesday(date) && !selectedFacility.tuesday_open) return true;
+    if (isWednesday(date) && !selectedFacility.wednesday_open) return true;
+    if (isThursday(date) && !selectedFacility.thursday_open) return true;
+    if (isFriday(date) && !selectedFacility.friday_open) return true;
+    if (isSaturday(date) && !selectedFacility.saturday_open) return true;
+    
+    return false;
   };
   
   // Find the next available date based on facility hours
@@ -191,38 +178,16 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
     let date = new Date();
     let daysChecked = 0;
     
-    // Always start with tomorrow to avoid buffer time "Too soon" issues
-    date = addDays(date, 1);
-    
     // Check up to 30 days in the future to avoid infinite loop
     while (daysChecked < 30) {
+      date = addDays(date, 1); // Start with tomorrow
       if (!isDateClosed(date)) return date;
-      date = addDays(date, 1);
       daysChecked++;
     }
     
     // If no available date found, return tomorrow
     return addDays(new Date(), 1);
   };
-  
-  // Effect to set the default date when entering step 2
-  useEffect(() => {
-    if (step === 2 && selectedFacility && !bookingData?.date) {
-      // Find next available date
-      const nextDate = findNextAvailableDate();
-      
-      // Format date for API
-      const year = nextDate.getFullYear();
-      const month = (nextDate.getMonth() + 1).toString().padStart(2, '0');
-      const day = nextDate.getDate().toString().padStart(2, '0');
-      const defaultDate = `${year}-${month}-${day}`;
-      
-      console.log(`Auto-selecting next available date: ${defaultDate}`);
-      
-      // Update booking data with default date
-      updateBookingData({ date: defaultDate });
-    }
-  }, [step, selectedFacility, bookingData?.date, updateBookingData]);
 
   const handleSubmit = (values: any) => {
     const facility = facilities.find((f: any) => f.id === values.facilityId);
@@ -230,32 +195,10 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
     // Store the selected facility for use in date validation
     setSelectedFacility(facility);
     
-    // Find next available date for default selection
-    let nextDate = new Date();
-    let daysToCheck = 30; // Look ahead up to 30 days
-    
-    for (let i = 1; i <= daysToCheck; i++) {
-      const checkDate = addDays(new Date(), i);
-      const dayOfWeek = checkDate.getDay();
-      
-      // Check if facility is open on this day
-      if (facility && getFacilityOpenStatus(facility, dayOfWeek)) {
-        nextDate = checkDate;
-        break;
-      }
-    }
-    
-    // Format date for API
-    const year = nextDate.getFullYear();
-    const month = (nextDate.getMonth() + 1).toString().padStart(2, '0');
-    const day = nextDate.getDate().toString().padStart(2, '0');
-    const defaultDate = `${year}-${month}-${day}`;
-    
     updateBookingData({
       facilityId: values.facilityId,
       appointmentTypeId: values.appointmentTypeId,
       timezone: facility?.timezone || getUserTimeZone(),
-      date: defaultDate // Set default date to next available
     });
     
     setStep(2);
@@ -533,13 +476,6 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
         <div className="space-y-4">
           <Label>Select Date</Label>
           
-          {/* Auto-select next available date if no date is currently selected */}
-          {!bookingData?.date && selectedFacility && (
-            <div className="text-sm text-muted-foreground mb-2">
-              Finding next available date...
-            </div>
-          )}
-          
           <DatePicker 
             date={bookingData?.date ? 
               // Make sure we properly parse the date string that could be in yyyy-MM-dd format
@@ -554,17 +490,24 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
             onDateChange={(date) => {
               if (date) {
                 // Important: Keep exactly the date that was clicked without any timezone conversion
+                // Get the year, month, and day directly from the date object
                 const year = date.getFullYear();
                 const month = date.getMonth() + 1; // JavaScript months are 0-indexed
                 const day = date.getDate();
                 
-                // Format date as YYYY-MM-DD for API
+                // Create a formatted date string manually without using date-fns to avoid any timezone issues
+                // This ensures the exact date selected in the UI is passed to the API
                 const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                
+                console.log("Date selected from calendar:", date);
+                console.log("Year:", year, "Month:", month, "Day:", day);
+                console.log("Manual formatted date:", formattedDate);
                 
                 // Update the context with the exact date string
                 updateBookingData({ date: formattedDate });
                 
-                console.log(`Date selected: ${formattedDate}`);
+                // For external API calls, we'll use this format
+                console.log(`Date will be sent to API as: ${formattedDate}`);
               }
             }}
             disablePastDates={true}
@@ -703,7 +646,7 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
               <span className="ml-2">Loading booking questions...</span>
             </div>
           ) : (
-            <div className="space-y-4">
+            <>
               {/* Create a custom form to collect the answers from standard questions */}
               <div className="grid gap-6 md:grid-cols-2">
                 {(standardQuestions || []).concat(customQuestions || [])
@@ -731,6 +674,21 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
                           }}
                           required={question.required}
                         />
+                      ) : question.fieldType === 'PHONE' ? (
+                        <Input
+                          id={question.fieldKey}
+                          name={question.fieldKey}
+                          type="tel"
+                          value={bookingDetails[question.fieldKey] || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setBookingDetails(prev => ({
+                              ...prev,
+                              [question.fieldKey]: value
+                            }));
+                          }}
+                          required={question.required}
+                        />
                       ) : question.fieldType === 'TEXTAREA' ? (
                         <textarea
                           id={question.fieldKey}
@@ -747,6 +705,7 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
                           required={question.required}
                         />
                       ) : (
+                        // For other field types, default to text input
                         <Input
                           id={question.fieldKey}
                           name={question.fieldKey}
@@ -769,49 +728,6 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
               <div className="flex justify-between pt-4">
                 <Button onClick={() => setStep(2)} variant="outline">Back</Button>
                 <Button 
-                  onClick={() => {
-                    // Find all required questions based on the questions loaded from API
-                    const requiredQuestions = [
-                      ...(standardQuestions || []), 
-                      ...(customQuestions || [])
-                    ].filter((q: any) => q.required && q.included);
-                    
-                    // Check if all required questions have been answered
-                    const missingRequired = requiredQuestions.filter((q: any) => 
-                      !bookingDetails[q.fieldKey] || bookingDetails[q.fieldKey].trim() === ''
-                    );
-                    
-                    if (missingRequired.length > 0) {
-                      alert(`Please fill in all required fields: ${missingRequired.map((q: any) => q.label).join(', ')}`);
-                      return;
-                    }
-                    
-                    // Create the booking
-                    console.log("Submitting booking with details:", bookingDetails);
-                    
-                    bookingMutation.mutate({
-                      facilityId: Number(bookingData.facilityId),
-                      appointmentTypeId: Number(bookingData.appointmentTypeId),
-                      date: bookingData.date,
-                      time: bookingData.time,
-                      pickupOrDropoff: "pickup", // Default
-                      ...bookingDetails  // Include all the answers to questions
-                    });
-                  }}
-                  disabled={bookingMutation.isPending}
-                >
-                  {bookingMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Booking...
-                    </>
-                  ) : "Confirm Booking"}
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
                   onClick={() => {
                     // Find all required questions based on the questions loaded from API
                     const requiredQuestions = [

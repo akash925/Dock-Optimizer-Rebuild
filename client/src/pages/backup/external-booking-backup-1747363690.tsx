@@ -9,14 +9,11 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { format, addDays, isSunday, isSaturday, isMonday, isTuesday, isWednesday, isThursday, isFriday, parseISO } from 'date-fns';
+import { format, addDays, isSunday, isSaturday, isMonday, isTuesday, isWednesday, isThursday, isFriday } from 'date-fns';
 import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
 import { getUserTimeZone } from '@/lib/timezone-utils';
 import { safeToString } from '@/lib/utils';
-import { Form } from '@/components/ui/form';
 
 const serviceSelectionSchema = z.object({
   facilityId: z.coerce.number().min(1, "Please select a facility"),

@@ -532,7 +532,12 @@ export async function calculateAvailabilitySlots(
     // Calculate buffer cutoff based on the effective buffer minutes
     const effectiveBufferCutoff = addMinutes(now, effectiveBufferMinutes);
     
-    if (currentSlotStartTime < effectiveBufferCutoff) {
+    // Check if the requested date is today or a future date
+    // If a future date, we don't need to apply the buffer time check
+    const isToday = format(dateInFacilityTZ, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+    
+    // Only apply buffer time check if we're checking today's availability
+    if (isToday && currentSlotStartTime < effectiveBufferCutoff) {
         // Format times to display in logs using the effective timezone
         const slotTimeStr = tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone });
         const bufferTimeStr = tzFormat(effectiveBufferCutoff, 'HH:mm', { timeZone: effectiveTimezone });
