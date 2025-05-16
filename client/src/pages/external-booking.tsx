@@ -65,18 +65,8 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<any>(null);
   
   // Form data for booking details
-  const [bookingDetails, setBookingDetails] = useState({
-    companyName: '',
-    contactName: '',
-    email: '',
-    phone: '',
-    carrierName: '',
-    driverName: '',
-    driverPhone: '',
-    truckNumber: '',
-    trailerNumber: '',
-    customerRef: '',
-  });
+  // Dynamically populated from standard questions 
+  const [bookingDetails, setBookingDetails] = useState<Record<string, any>>({});
   const { bookingData, updateBookingData } = useBookingWizard();
 
   const form = useForm({
@@ -568,43 +558,106 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
             </div>
           ) : (
             <>
-              {/* Combine standard and custom questions if any */}
-              <StandardQuestionsFormFields
-                questions={[...(standardQuestions || []), ...(customQuestions || [])]}
-                onAnswersChange={(answers) => {
-                  // This will be called whenever answers change
-                  setBookingDetails({
-                    ...bookingDetails,
-                    ...answers,
-                    // Map specific field keys from questions to our expected API fields
-                    companyName: answers.companyName || answers.customerName || '',
-                    contactName: answers.contactName || answers.customerName || '',
-                    email: answers.email || answers.contactEmail || '',
-                    phone: answers.phone || answers.contactPhone || '',
-                    carrierName: answers.carrierName || '',
-                    driverName: answers.driverName || '',
-                    driverPhone: answers.driverPhone || '',
-                    truckNumber: answers.truckNumber || '',
-                    trailerNumber: answers.trailerNumber || '',
-                    customerRef: answers.customerRef || answers.referenceNumber || ''
-                  });
-                }}
-              />
+              {/* Create a custom form to collect the answers from standard questions */}
+              <div className="grid gap-6 md:grid-cols-2">
+                {(standardQuestions || []).concat(customQuestions || [])
+                  .filter((q: any) => q.included)
+                  .sort((a: any, b: any) => a.orderPosition - b.orderPosition)
+                  .map((question: any) => (
+                    <div key={question.id} className="space-y-2">
+                      <Label htmlFor={question.fieldKey}>
+                        {question.label}
+                        {question.required && <span className="text-red-500 ml-1">*</span>}
+                      </Label>
+                      
+                      {question.fieldType === 'TEXT' || question.fieldType === 'EMAIL' ? (
+                        <Input
+                          id={question.fieldKey}
+                          name={question.fieldKey}
+                          type={question.fieldType === 'EMAIL' ? 'email' : 'text'}
+                          value={bookingDetails[question.fieldKey] || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setBookingDetails(prev => ({
+                              ...prev,
+                              [question.fieldKey]: value
+                            }));
+                          }}
+                          required={question.required}
+                        />
+                      ) : question.fieldType === 'PHONE' ? (
+                        <Input
+                          id={question.fieldKey}
+                          name={question.fieldKey}
+                          type="tel"
+                          value={bookingDetails[question.fieldKey] || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setBookingDetails(prev => ({
+                              ...prev,
+                              [question.fieldKey]: value
+                            }));
+                          }}
+                          required={question.required}
+                        />
+                      ) : question.fieldType === 'TEXTAREA' ? (
+                        <textarea
+                          id={question.fieldKey}
+                          name={question.fieldKey}
+                          className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={bookingDetails[question.fieldKey] || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setBookingDetails(prev => ({
+                              ...prev,
+                              [question.fieldKey]: value
+                            }));
+                          }}
+                          required={question.required}
+                        />
+                      ) : (
+                        // For other field types, default to text input
+                        <Input
+                          id={question.fieldKey}
+                          name={question.fieldKey}
+                          value={bookingDetails[question.fieldKey] || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setBookingDetails(prev => ({
+                              ...prev,
+                              [question.fieldKey]: value
+                            }));
+                          }}
+                          required={question.required}
+                        />
+                      )}
+                    </div>
+                  ))
+                }
+              </div>
               
               <div className="flex justify-between pt-4">
                 <Button onClick={() => setStep(2)} variant="outline">Back</Button>
                 <Button 
                   onClick={() => {
-                    // The API needs certain fields, ensure we have them
-                    const requiredFields = ['companyName', 'contactName', 'email', 'phone', 'driverName'];
-                    const missingFields = requiredFields.filter(field => !bookingDetails[field]);
+                    // Find all required questions based on the questions loaded from API
+                    const requiredQuestions = [
+                      ...(standardQuestions || []), 
+                      ...(customQuestions || [])
+                    ].filter(q => q.required);
+                    
+                    // Check if any required fields are missing
+                    const missingFields = requiredQuestions
+                      .filter(q => !bookingDetails[q.fieldKey] && q.included)
+                      .map(q => q.label);
                     
                     if (missingFields.length > 0) {
-                      alert("Please fill in all required fields marked with *");
+                      alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
                       return;
                     }
                     
                     console.log("Submitting booking with data:", bookingData);
+                    console.log("Booking details:", bookingDetails);
                     
                     bookingMutation.mutate({
                       facilityId: Number(bookingData.facilityId),
