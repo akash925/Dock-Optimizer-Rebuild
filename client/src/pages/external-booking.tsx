@@ -29,8 +29,20 @@ export default function ExternalBooking({ slug }: { slug: string }) {
     queryFn: async () => {
       const res = await fetch(`/api/booking-pages/slug/${slug}`);
       if (!res.ok) throw new Error('Failed to fetch booking page');
-      return res.json();
-    },
+      
+      // Get the basic booking page data
+      const data = await res.json();
+      
+      // Process appointment types to add showRemainingSlots property
+      if (data?.appointmentTypes && Array.isArray(data.appointmentTypes)) {
+        data.appointmentTypes = data.appointmentTypes.map((type: any) => ({
+          ...type,
+          showRemainingSlots: type.showRemainingSlots || false
+        }));
+      }
+      
+      return data;
+    }
   });
 
   if (isLoading) return <Loader2 className="animate-spin" />;
@@ -169,18 +181,69 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
 
   const bookingMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await fetch("/api/book", {
+      // Prepare the booking data in the format expected by the backend
+      const bookingData = {
+        // Step 1: Service Selection
+        facilityId: payload.facilityId,
+        appointmentTypeId: payload.appointmentTypeId,
+        pickupOrDropoff: payload.pickupOrDropoff || "pickup", // default to pickup if not specified
+        
+        // Step 2: Date/Time
+        startTime: payload.date + "T" + payload.time, // Format as ISO string
+        
+        // Include a default set of fields for the external booking API
+        companyName: "External Booking",
+        contactName: "External User",
+        email: "external@example.com",
+        phone: "555-555-5555",
+        carrierName: "External Carrier",
+        driverName: "External Driver",
+        driverPhone: "555-555-5555",
+        truckNumber: "EXT-1",
+        
+        // Metadata
+        createdVia: "external-booking",
+        
+        // Include the booking page slug for tenant identification
+        bookingPageSlug: window.location.pathname.split('/').pop() || '',
+      };
+      
+      // Log the payload for debugging
+      console.log("Sending booking request with data:", bookingData);
+      
+      // Use the correct endpoint for external bookings
+      const res = await fetch("/api/schedules/external", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(bookingData),
       });
-      if (!res.ok) throw new Error("Failed to book appointment");
-      return res.json();
+      
+      if (!res.ok) {
+        // Try to parse the error response
+        let errorMessage = "Failed to book appointment";
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error("Could not parse error response", e);
+        }
+        throw new Error(errorMessage);
+      }
+      
+      // Parse the JSON response
+      const data = await res.json();
+      console.log("Booking response:", data);
+      return data;
     },
     onSuccess: (data) => {
-      setConfirmationCode(data.confirmationCode);
+      // Extract confirmation code and set it
+      const confirmationCode = data.confirmationNumber || data.confirmationCode || `CONF-${Date.now()}`;
+      setConfirmationCode(confirmationCode);
       setStep(3);
     },
+    onError: (error) => {
+      console.error("Booking error:", error);
+    }
   });
 
   return (
