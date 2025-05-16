@@ -25,9 +25,9 @@ const serviceSelectionSchema = z.object({
 
 export default function ExternalBooking({ slug }: { slug: string }) {
   const { data: bookingPage, isLoading, error } = useQuery({
-    queryKey: [`/api/booking-pages/by-slug/${slug}`],
+    queryKey: [`/api/booking-pages/slug/${slug}`],
     queryFn: async () => {
-      const res = await fetch(`/api/booking-pages/by-slug/${slug}`);
+      const res = await fetch(`/api/booking-pages/slug/${slug}`);
       if (!res.ok) throw new Error('Failed to fetch booking page');
       
       // Get the basic booking page data
