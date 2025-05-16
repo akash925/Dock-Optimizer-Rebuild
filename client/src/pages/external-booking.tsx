@@ -114,6 +114,31 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
     setStep(2);
   };
 
+  // Get appointment type details - we need to know if showRemainingSlots is enabled
+  const { data: appointmentTypeDetails, isLoading: loadingAppointmentType } = useQuery({
+    queryKey: ["appointmentType", bookingData?.appointmentTypeId],
+    queryFn: async () => {
+      // Only fetch if we have an appointment type ID
+      if (!bookingData?.appointmentTypeId) {
+        return null;
+      }
+      
+      // Find the appointment type in the booking page data first
+      const appointmentType = bookingPage.appointmentTypes.find(
+        (t: any) => t.id === Number(bookingData.appointmentTypeId)
+      );
+      
+      if (appointmentType) {
+        // Update the selectedAppointmentType state
+        setSelectedAppointmentType(appointmentType);
+        return appointmentType;
+      }
+      
+      return null;
+    },
+    enabled: !!bookingData?.appointmentTypeId && step === 2,
+  });
+
   // Get the real availability using the enhanced v2 endpoint
   const { data: availability, isLoading: loadingAvailability } = useQuery({
     queryKey: ["availability/v2", bookingData?.facilityId, bookingData?.appointmentTypeId, bookingData?.date],
@@ -190,8 +215,9 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
         appointmentTypeId: payload.appointmentTypeId,
         pickupOrDropoff: payload.pickupOrDropoff || "pickup", // default to pickup if not specified
         
-        // Step 2: Date/Time
+        // Step 2: Date/Time 
         startTime: payload.date + "T" + payload.time, // Format as ISO string
+        endTime: payload.date + "T" + payload.time, // Required by schema
         
         // Include a default set of fields for the external booking API
         companyName: "External Booking",
@@ -202,9 +228,11 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
         driverName: "External Driver",
         driverPhone: "555-555-5555",
         truckNumber: "EXT-1",
+        customerRef: "", // Adding required field
         
         // Metadata
         createdVia: "external-booking",
+        status: "scheduled",
         
         // Include the booking page slug for tenant identification
         bookingPageSlug: window.location.pathname.split('/').pop() || '',
@@ -424,8 +452,8 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                       <div className="flex flex-col items-center justify-center">
                         <span>{slot.time}</span>
                         
-                        {/* Show exact remaining slots count when enabled */}
-                        {slot.available && showExactSlots && slot.remainingCapacity > 0 && (
+                        {/* Show exact remaining slots count when enabled on the appointment type */}
+                        {slot.available && selectedAppointmentType?.showRemainingSlots && slot.remainingCapacity > 0 && (
                           <span className="text-xs font-medium mt-1 bg-green-100 text-green-800 px-1.5 py-0.5 rounded-full">
                             {slot.remainingCapacity} {slot.remainingCapacity === 1 ? 'slot' : 'slots'}
                           </span>
@@ -454,7 +482,7 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                       )}
                       
                       {/* Limited availability indicator - only show when not showing exact numbers */}
-                      {slot.available && slot.remainingCapacity === 1 && !showExactSlots && (
+                      {slot.available && slot.remainingCapacity === 1 && !selectedAppointmentType?.showRemainingSlots && (
                         <span className="ml-1 text-xs absolute top-1 right-1">⚠️</span>
                       )}
                       
