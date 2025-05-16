@@ -614,14 +614,19 @@ function TimeSlotsSelector({
       setError(null);
       
       try {
-        const res = await fetch(`/api/availability?date=${date}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}`);
+        // Use the booking page slug - this allows proper tenant access validation
+        const bookingPageSlug = window.location.pathname.split('/').pop() || '';
+        
+        const res = await fetch(`/api/availability/v2?date=${date}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${bookingPageSlug}`);
         
         if (!res.ok) {
-          throw new Error('Failed to fetch availability');
+          const errorData = await res.json();
+          console.error('Availability API error:', errorData);
+          throw new Error(errorData.message || 'Failed to fetch availability');
         }
         
         const data = await res.json();
-        setSlots(data);
+        setSlots(data.availableTimeSlots || []);
       } catch (err) {
         console.error('Error fetching availability:', err);
         setError('Failed to load available time slots');
