@@ -485,20 +485,27 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
                         'Not available')}
                     >
                       <div className="flex flex-col items-center justify-center">
-                        <span>{slot.time}</span>
+                        <span className="font-medium">{slot.time}</span>
                         
-                        {/* Always show remaining slots count */}
+                        {/* Always show remaining slots count with visual indicators */}
                         {slot.available && slot.remainingCapacity > 0 && (
-                          <span className="text-xs font-medium mt-1 bg-green-100 text-green-800 px-1.5 py-0.5 rounded-full">
-                            {slot.remainingCapacity} {slot.remainingCapacity === 1 ? 'slot' : 'slots'}
-                          </span>
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className={`inline-block w-2 h-2 rounded-full ${
+                              slot.remainingCapacity > 3 ? 'bg-green-500' : 
+                              slot.remainingCapacity > 1 ? 'bg-yellow-500' : 
+                              'bg-orange-500'
+                            }`}></span>
+                            <span className="text-xs font-medium">
+                              {slot.remainingCapacity} {slot.remainingCapacity === 1 ? 'slot' : 'slots'}
+                            </span>
+                          </div>
                         )}
                       </div>
                       
                       {/* Only show reason label if not available */}
                       {!slot.available && slot.reason && (
-                        <span className="text-xs mt-1 text-red-600">
-                          {slot.reason}
+                        <span className="text-xs mt-1 text-red-600 font-medium truncate max-w-[90px] block">
+                          {slot.reason.length > 12 ? `${slot.reason.substring(0, 12)}...` : slot.reason}
                         </span>
                       )}
                     </Button>
