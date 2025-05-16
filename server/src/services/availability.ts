@@ -325,40 +325,43 @@ export async function calculateAvailabilitySlots(
   const facilityTZDate = tzParseISO(date, { timeZone: effectiveTimezone });
   const facilityTZDateStr = tzFormat(facilityTZDate, 'yyyy-MM-dd', { timeZone: effectiveTimezone });
   
-  // Create proper time objects in facility timezone 
-  const operatingStartDateTime = tzParseISO(
-    `${facilityTZDateStr}T${operatingStartTimeStr}`, 
-    { timeZone: effectiveTimezone }
+  // Important: Always interpret facility hours in their local timezone as entered in DB
+  // Use parse instead of parseISO with the facility timezone to ensure correct time interpretation
+  const dateInFacilityTZ = parse(`${facilityTZDateStr} 00:00`, 'yyyy-MM-dd HH:mm', new Date());
+  
+  // First create the date objects in facility timezone without any conversion
+  const operatingStartDateTime = parse(
+    `${facilityTZDateStr} ${operatingStartTimeStr}`, 
+    'yyyy-MM-dd HH:mm', 
+    new Date()
   );
   
-  let operatingEndDateTime = tzParseISO(
-    `${facilityTZDateStr}T${operatingEndTimeStr}`, 
-    { timeZone: effectiveTimezone }
+  let operatingEndDateTime = parse(
+    `${facilityTZDateStr} ${operatingEndTimeStr}`, 
+    'yyyy-MM-dd HH:mm', 
+    new Date()
   );
   
   // DEBUG: Log time values for debugging
   console.log(`[AvailabilityService] DEBUG TIME VALUES:`);
   console.log(`  Original hours from DB: ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
+  console.log(`  Parsed time (local): ${format(operatingStartDateTime, 'HH:mm')} - ${format(operatingEndDateTime, 'HH:mm')}`);
   console.log(`  Direct parse with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
   console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
   
-
   // Adjust end time for loop comparison
   if (operatingEndTimeStr === "23:59") {
-      operatingEndDateTime = dayEnd; // Use start of next day as exclusive upper bound
+      operatingEndDateTime = addDays(dateInFacilityTZ, 1); // Use start of next day as exclusive upper bound
   } else if (operatingEndDateTime <= operatingStartDateTime) {
       operatingEndDateTime = addDays(operatingEndDateTime, 1);
   }
   
-  // DEBUG: Log time details to diagnose the timezone issue
-  console.log(`[AvailabilityService] DEBUG TIME VALUES:`);
-  console.log(`  Original hours from DB: ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
-  console.log(`  Direct parse with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
-  console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
+  // Convert the times to the facility timezone to ensure consistent display
+  const operatingStartInFacilityTZ = toZonedTime(operatingStartDateTime, effectiveTimezone);
+  const operatingEndInFacilityTZ = toZonedTime(operatingEndDateTime, effectiveTimezone);
   
-
   // Log the operating hours in facility timezone for debugging
-  console.log(`[AvailabilityService] Operating hours in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} to ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
+  console.log(`[AvailabilityService] Operating hours in ${effectiveTimezone}: ${tzFormat(operatingStartInFacilityTZ, 'HH:mm', { timeZone: effectiveTimezone })} to ${tzFormat(operatingEndInFacilityTZ, 'HH:mm', { timeZone: effectiveTimezone })}`);
   console.log(`[AvailabilityService] Operating hours in UTC: ${operatingStartDateTime.toISOString()} to ${operatingEndDateTime.toISOString()}`);
 
   // Step 2: Parse break times if they exist
