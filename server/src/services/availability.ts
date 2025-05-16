@@ -1,4 +1,4 @@
-import { and, eq, gt, gte, lt, lte, ne, notInArray, or } from 'drizzle-orm';
+import { and, eq, gt, gte, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm';
 import { toZonedTime, format as tzFormat } from 'date-fns-tz';
 import { getDay, parseISO, addDays, format, addMinutes, isEqual, isAfter, parse, differenceInCalendarDays } from 'date-fns';
 
@@ -82,7 +82,8 @@ export async function fetchRelevantAppointmentsForDay(
       .leftJoin(organizationFacilities, eq(docks.facilityId, organizationFacilities.facilityId))
       .where(
         and(
-          ne(schedules.dockId, null),
+          // Use SQL to handle null comparison properly
+          sql`${schedules.dockId} IS NOT NULL`,
           eq(docks.facilityId, facilityId),
           lt(schedules.startTime, dayEnd),
           gt(schedules.endTime, dayStart),
@@ -373,18 +374,18 @@ export async function calculateAvailabilitySlots(
       breakStartTimeStr.trim() !== "" && breakEndTimeStr.trim() !== "" && 
       breakStartTimeStr.includes(':') && breakEndTimeStr.includes(':')) {
       try {
-          // NEW FIX: Use the same approach as operating hours for break times
-          // This creates date objects that properly represent the times in the facility timezone
-          
-          // Create proper time objects in facility timezone
-          breakStartDateTime = tzParseISO(
-            `${facilityTZDateStr}T${breakStartTimeStr}`,
-            { timeZone: effectiveTimezone }
+          // UPDATED FIX: Use the same improved approach as we used for operating hours
+          // Parse break times directly without timezone conversion first
+          breakStartDateTime = parse(
+            `${facilityTZDateStr} ${breakStartTimeStr}`, 
+            'yyyy-MM-dd HH:mm', 
+            new Date()
           );
           
-          breakEndDateTime = tzParseISO(
-            `${facilityTZDateStr}T${breakEndTimeStr}`,
-            { timeZone: effectiveTimezone }
+          breakEndDateTime = parse(
+            `${facilityTZDateStr} ${breakEndTimeStr}`, 
+            'yyyy-MM-dd HH:mm', 
+            new Date()
           );
           
           // Adjust if break spans midnight
@@ -395,12 +396,17 @@ export async function calculateAvailabilitySlots(
           // DEBUG: Log break time details for debugging
           console.log(`[AvailabilityService] DEBUG BREAK TIME VALUES:`);
           console.log(`  Original break time from DB: ${breakStartTimeStr} - ${breakEndTimeStr}`);
+          console.log(`  Parsed time (local): ${breakStartDateTime ? format(breakStartDateTime, 'HH:mm') : 'null'} - ${breakEndDateTime ? format(breakEndDateTime, 'HH:mm') : 'null'}`);
           console.log(`  Direct parse with TZ: ${breakStartDateTime ? breakStartDateTime.toISOString() : 'null'} - ${breakEndDateTime ? breakEndDateTime.toISOString() : 'null'}`);
           console.log(`  Formatted in ${effectiveTimezone}: ${breakStartDateTime ? tzFormat(breakStartDateTime, 'HH:mm', { timeZone: effectiveTimezone }) : 'null'} - ${breakEndDateTime ? tzFormat(breakEndDateTime, 'HH:mm', { timeZone: effectiveTimezone }) : 'null'}`);
           
           
           if (breakStartDateTime && breakEndDateTime) {
-            console.log(`[AvailabilityService] Break time in ${effectiveTimezone}: ${tzFormat(breakStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} to ${tzFormat(breakEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
+            // Convert to facility timezone for consistent display
+            const breakStartInFacilityTZ = toZonedTime(breakStartDateTime, effectiveTimezone);
+            const breakEndInFacilityTZ = toZonedTime(breakEndDateTime, effectiveTimezone);
+            
+            console.log(`[AvailabilityService] Break time in ${effectiveTimezone}: ${tzFormat(breakStartInFacilityTZ, 'HH:mm', { timeZone: effectiveTimezone })} to ${tzFormat(breakEndInFacilityTZ, 'HH:mm', { timeZone: effectiveTimezone })}`);
             console.log(`[AvailabilityService] Break time in UTC: ${breakStartDateTime.toISOString()} to ${breakEndDateTime.toISOString()}`);
           }
       } catch (e) { 
