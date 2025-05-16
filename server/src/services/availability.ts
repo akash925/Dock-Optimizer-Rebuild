@@ -332,7 +332,7 @@ export async function calculateAvailabilitySlots(
   // Check if facility is open on this day
   const effectiveHours = getEffectiveHours(dayKey, availabilityContext);
   if (!effectiveHours || !effectiveHours.open) {
-    console.log(`[AvailabilityService] Facility ${facility.name} closed on ${date} (DoW: ${dayOfWeek})`);
+    console.log(`[AvailabilityService] Facility ${facility.name} closed on ${date} (DoW: ${effectiveDayOfWeek}, DayKey: ${dayKey})`);
     return [];
   }
   
@@ -341,7 +341,7 @@ export async function calculateAvailabilitySlots(
   const breakStartTimeStr = effectiveHours.breakStart || "";
   const breakEndTimeStr = effectiveHours.breakEnd || "";
   
-  console.log(`[AvailabilityService] Facility ${facility.name} open on ${date} (${dayOfWeek}) ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
+  console.log(`[AvailabilityService] Facility ${facility.name} open on ${date} (${effectiveDayOfWeek}) ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
 
   // Use effectiveTimezone instead of facilityTimezone for timezone-aware calculations
   const dayStart = toZonedTime(parseISO(`${date}T00:00:00`), effectiveTimezone);

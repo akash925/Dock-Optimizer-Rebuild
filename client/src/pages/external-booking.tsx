@@ -1,5 +1,3 @@
-// This file replaces: client/src/pages/external-booking.tsx
-
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
@@ -21,15 +19,15 @@ import { getUserTimeZone } from '@/lib/timezone-utils';
 import { safeToString } from '@/lib/utils';
 
 const serviceSelectionSchema = z.object({
-  facilityId: z.number().min(1, "Please select a facility"),
-  appointmentTypeId: z.number().min(1, "Please select a service type"),
+  facilityId: z.coerce.number().min(1, "Please select a facility"),
+  appointmentTypeId: z.coerce.number().min(1, "Please select a service type"),
 });
 
 export default function ExternalBooking({ slug }: { slug: string }) {
   const { data: bookingPage, isLoading, error } = useQuery({
-    queryKey: [`/api/booking-pages/slug/${slug}`],
+    queryKey: [`/api/booking-pages/by-slug/${slug}`],
     queryFn: async () => {
-      const res = await fetch(`/api/booking-pages/slug/${slug}`);
+      const res = await fetch(`/api/booking-pages/by-slug/${slug}`);
       if (!res.ok) throw new Error('Failed to fetch booking page');
       
       // Get the basic booking page data
@@ -59,7 +57,7 @@ export default function ExternalBooking({ slug }: { slug: string }) {
   );
 }
 
-function BookingPage({ bookingPage }: { bookingPage: any }) {
+function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
   const [step, setStep] = useState(1);
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<any>(null);
