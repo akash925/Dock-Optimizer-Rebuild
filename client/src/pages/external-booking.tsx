@@ -61,8 +61,20 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
   const [step, setStep] = useState(1);
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<any>(null);
-  // Add a separate state for the show slots toggle
-  const [showExactSlots, setShowExactSlots] = useState(false);
+  
+  // Form data for booking details
+  const [bookingDetails, setBookingDetails] = useState({
+    companyName: '',
+    contactName: '',
+    email: '',
+    phone: '',
+    carrierName: '',
+    driverName: '',
+    driverPhone: '',
+    truckNumber: '',
+    trailerNumber: '',
+    customerRef: '',
+  });
   const { bookingData, updateBookingData } = useBookingWizard();
 
   const form = useForm({
@@ -219,16 +231,17 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
         startTime: payload.date + "T" + payload.time, // Format as ISO string
         endTime: payload.date + "T" + payload.time, // Required by schema
         
-        // Include a default set of fields for the external booking API
-        companyName: "External Booking",
-        contactName: "External User",
-        email: "external@example.com",
-        phone: "555-555-5555",
-        carrierName: "External Carrier",
-        driverName: "External Driver",
-        driverPhone: "555-555-5555",
-        truckNumber: "EXT-1",
-        customerRef: "", // Adding required field
+        // Step 3: Customer details from form
+        companyName: payload.bookingDetails.companyName || "External Booking",
+        contactName: payload.bookingDetails.contactName || "External User",
+        email: payload.bookingDetails.email || "external@example.com",
+        phone: payload.bookingDetails.phone || "555-555-5555",
+        carrierName: payload.bookingDetails.carrierName || "External Carrier",
+        driverName: payload.bookingDetails.driverName || "External Driver",
+        driverPhone: payload.bookingDetails.driverPhone || "555-555-5555",
+        truckNumber: payload.bookingDetails.truckNumber || "EXT-1",
+        trailerNumber: payload.bookingDetails.trailerNumber || null,
+        customerRef: payload.bookingDetails.customerRef || "", // Adding required field
         
         // Metadata
         createdVia: "external-booking",
