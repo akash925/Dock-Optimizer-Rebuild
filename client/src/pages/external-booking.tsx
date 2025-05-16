@@ -61,6 +61,8 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
   const [step, setStep] = useState(1);
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<any>(null);
+  // Add a separate state for the show slots toggle
+  const [showExactSlots, setShowExactSlots] = useState(false);
   const { bookingData, updateBookingData } = useBookingWizard();
 
   const form = useForm({
@@ -373,28 +375,14 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                           <input 
                             type="checkbox" 
                             className="sr-only" 
-                            checked={selectedAppointmentType.showRemainingSlots}
+                            checked={showExactSlots}
                             onChange={(e) => {
-                              // Update both the booking page data and the selected type
-                              const updatedAppointmentTypes = bookingPage.appointmentTypes.map((type: any) => {
-                                if (type.id === selectedAppointmentType.id) {
-                                  return { ...type, showRemainingSlots: e.target.checked };
-                                }
-                                return type;
-                              });
-                              
-                              // Update booking page appointment types
-                              bookingPage.appointmentTypes = updatedAppointmentTypes;
-                              
-                              // Update the selected appointment type state
-                              setSelectedAppointmentType({
-                                ...selectedAppointmentType,
-                                showRemainingSlots: e.target.checked
-                              });
+                              // Simply update our simple state variable
+                              setShowExactSlots(e.target.checked);
                             }}
                           />
                           <div className="block bg-gray-300 w-10 h-5 rounded-full"></div>
-                          <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition ${selectedAppointmentType.showRemainingSlots ? 'transform translate-x-5' : ''}`}></div>
+                          <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition ${showExactSlots ? 'transform translate-x-5' : ''}`}></div>
                         </div>
                         <span className="ml-2 text-xs">Show exact available slots</span>
                       </label>
@@ -437,7 +425,7 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                         <span>{slot.time}</span>
                         
                         {/* Show exact remaining slots count when enabled */}
-                        {slot.available && selectedAppointmentType?.showRemainingSlots && slot.remainingCapacity > 0 && (
+                        {slot.available && showExactSlots && slot.remainingCapacity > 0 && (
                           <span className="text-xs font-medium mt-1 bg-green-100 text-green-800 px-1.5 py-0.5 rounded-full">
                             {slot.remainingCapacity} {slot.remainingCapacity === 1 ? 'slot' : 'slots'}
                           </span>
@@ -466,7 +454,7 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                       )}
                       
                       {/* Limited availability indicator - only show when not showing exact numbers */}
-                      {slot.available && slot.remainingCapacity === 1 && !selectedAppointmentType?.showRemainingSlots && (
+                      {slot.available && slot.remainingCapacity === 1 && !showExactSlots && (
                         <span className="ml-1 text-xs absolute top-1 right-1">⚠️</span>
                       )}
                       
@@ -497,7 +485,23 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
           )}
 
           <Button
-            onClick={() => bookingMutation.mutate(bookingData)}
+            onClick={() => {
+              // Make sure we have all the required data
+              if (!bookingData?.facilityId || !bookingData?.appointmentTypeId || !bookingData?.date || !bookingData?.time) {
+                console.error("Missing required booking data:", bookingData);
+                return;
+              }
+              
+              console.log("Submitting booking with data:", bookingData);
+              
+              bookingMutation.mutate({
+                facilityId: Number(bookingData.facilityId),
+                appointmentTypeId: Number(bookingData.appointmentTypeId),
+                date: bookingData.date,
+                time: bookingData.time,
+                pickupOrDropoff: "pickup" // Default
+              });
+            }}
             disabled={!bookingData?.time || bookingMutation.isPending}
           >
             {bookingMutation.isPending ? 'Booking...' : 'Confirm Booking'}
