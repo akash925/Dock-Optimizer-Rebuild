@@ -61,6 +61,8 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
   const [step, setStep] = useState(1);
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<any>(null);
+  const [selectedFacility, setSelectedFacility] = useState<any>(null);
+  const [organizationHolidays, setOrganizationHolidays] = useState<any[]>([]);
   
   // Form data for booking details
   // Dynamically populated from standard questions 
@@ -106,13 +108,81 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
     return [];
   }, [bookingPage.appointmentTypes, form.watch('facilityId')]);
 
+  // Load holidays for the organization associated with the booking page
+  const { data: holidays } = useQuery({
+    queryKey: ["holidays", bookingPage.organizationId],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/organizations/${bookingPage.organizationId}/holidays`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        setOrganizationHolidays(data || []);
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching holidays:", error);
+        return [];
+      }
+    },
+    enabled: !!bookingPage.organizationId,
+  });
+  
+  // Helper to check if a date falls on a holiday
+  const isHoliday = (date: Date) => {
+    if (!organizationHolidays || !organizationHolidays.length) return false;
+    
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return organizationHolidays.some(holiday => 
+      format(new Date(holiday.date), 'yyyy-MM-dd') === dateStr
+    );
+  };
+  
+  // Helper to determine if a date is closed based on facility settings
+  const isDateClosed = (date: Date) => {
+    if (!selectedFacility) return true;
+    
+    // Check if it's a holiday
+    if (isHoliday(date)) return true;
+    
+    // Check day of week and facility open/closed status
+    if (isSunday(date) && !selectedFacility.sunday_open) return true;
+    if (isMonday(date) && !selectedFacility.monday_open) return true;
+    if (isTuesday(date) && !selectedFacility.tuesday_open) return true;
+    if (isWednesday(date) && !selectedFacility.wednesday_open) return true;
+    if (isThursday(date) && !selectedFacility.thursday_open) return true;
+    if (isFriday(date) && !selectedFacility.friday_open) return true;
+    if (isSaturday(date) && !selectedFacility.saturday_open) return true;
+    
+    return false;
+  };
+  
+  // Find the next available date based on facility hours
+  const findNextAvailableDate = () => {
+    let date = new Date();
+    let daysChecked = 0;
+    
+    // Check up to 30 days in the future to avoid infinite loop
+    while (daysChecked < 30) {
+      date = addDays(date, 1); // Start with tomorrow
+      if (!isDateClosed(date)) return date;
+      daysChecked++;
+    }
+    
+    // If no available date found, return tomorrow
+    return addDays(new Date(), 1);
+  };
+
   const handleSubmit = (values: any) => {
-    const selectedFacility = facilities.find((f: any) => f.id === values.facilityId);
+    const facility = facilities.find((f: any) => f.id === values.facilityId);
+    
+    // Store the selected facility for use in date validation
+    setSelectedFacility(facility);
+    
     updateBookingData({
       facilityId: values.facilityId,
       appointmentTypeId: values.appointmentTypeId,
-      timezone: selectedFacility?.timezone || getUserTimeZone(),
+      timezone: facility?.timezone || getUserTimeZone(),
     });
+    
     setStep(2);
   };
 
@@ -387,6 +457,23 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
       {step === 2 && (
         <div className="space-y-4">
           <Label>Select Date</Label>
+          
+          {/* Auto-select next available date when reaching this step */}
+          {useEffect(() => {
+            if (step === 2 && selectedFacility && !bookingData?.date) {
+              const nextAvailableDate = findNextAvailableDate();
+              
+              // Format the date for the API
+              const year = nextAvailableDate.getFullYear();
+              const month = (nextAvailableDate.getMonth() + 1).toString().padStart(2, '0');
+              const day = nextAvailableDate.getDate().toString().padStart(2, '0');
+              const formattedDate = `${year}-${month}-${day}`;
+              
+              console.log("Setting default date to next available:", formattedDate);
+              updateBookingData({ date: formattedDate });
+            }
+          }, [step, selectedFacility])}
+          
           <DatePicker 
             date={bookingData?.date ? 
               // Make sure we properly parse the date string that could be in yyyy-MM-dd format
@@ -422,6 +509,7 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
               }
             }}
             disablePastDates={true}
+            disabledDays={isDateClosed}
           />
 
           {loadingAvailability ? (
