@@ -201,6 +201,25 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
     // If no available date found, return tomorrow
     return addDays(new Date(), 1);
   };
+  
+  // Effect to set the default date when entering step 2
+  useEffect(() => {
+    if (step === 2 && selectedFacility && !bookingData?.date) {
+      // Find next available date
+      const nextDate = findNextAvailableDate();
+      
+      // Format date for API
+      const year = nextDate.getFullYear();
+      const month = (nextDate.getMonth() + 1).toString().padStart(2, '0');
+      const day = nextDate.getDate().toString().padStart(2, '0');
+      const defaultDate = `${year}-${month}-${day}`;
+      
+      console.log(`Auto-selecting next available date: ${defaultDate}`);
+      
+      // Update booking data with default date
+      updateBookingData({ date: defaultDate });
+    }
+  }, [step, selectedFacility, bookingData?.date, updateBookingData]);
 
   const handleSubmit = (values: any) => {
     const facility = facilities.find((f: any) => f.id === values.facilityId);
@@ -511,6 +530,13 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
         <div className="space-y-4">
           <Label>Select Date</Label>
           
+          {/* Auto-select next available date if no date is currently selected */}
+          {!bookingData?.date && selectedFacility && (
+            <div className="text-sm text-muted-foreground mb-2">
+              Finding next available date...
+            </div>
+          )}
+          
           <DatePicker 
             date={bookingData?.date ? 
               // Make sure we properly parse the date string that could be in yyyy-MM-dd format
@@ -534,10 +560,6 @@ function BookingPage({ bookingPage }: { bookingPage: any }): JSX.Element {
                 
                 // Update the context with the exact date string
                 updateBookingData({ date: formattedDate });
-                
-                // Clear time slots when date changes
-                setSelectedTimeSlot(null);
-                setAvailableTimeSlots([]);
                 
                 console.log(`Date selected: ${formattedDate}`);
               }
