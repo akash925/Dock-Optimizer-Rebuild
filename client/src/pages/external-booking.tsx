@@ -656,16 +656,33 @@ function BookingPage({ bookingPage }: { bookingPage: any }) {
                       return;
                     }
                     
+                    // Log data for debugging
                     console.log("Submitting booking with data:", bookingData);
                     console.log("Booking details:", bookingDetails);
                     
+                    // Add default values for required fields
+                    const completeBookingDetails = {
+                      ...bookingDetails,
+                      companyName: bookingDetails.companyName || bookingDetails.customerName || "Guest Company",
+                      contactName: bookingDetails.contactName || bookingDetails.customerName || "Guest User",
+                      email: bookingDetails.email || "guest@example.com",
+                      phone: bookingDetails.phone || "555-555-5555",
+                      carrierName: bookingDetails.carrierName || "External Carrier",
+                      driverName: bookingDetails.driverName || "Guest Driver",
+                      driverPhone: bookingDetails.driverPhone || "555-555-5555",
+                      truckNumber: bookingDetails.truckNumber || "N/A",
+                      trailerNumber: bookingDetails.trailerNumber || "N/A",
+                      customerRef: bookingDetails.customerRef || ""
+                    };
+                    
+                    // Create the booking with the complete details
                     bookingMutation.mutate({
                       facilityId: Number(bookingData.facilityId),
                       appointmentTypeId: Number(bookingData.appointmentTypeId),
                       date: bookingData.date,
                       time: bookingData.time, 
                       pickupOrDropoff: "pickup", // Default
-                      bookingDetails: bookingDetails
+                      bookingDetails: completeBookingDetails
                     });
                   }}
                   disabled={bookingMutation.isPending}
