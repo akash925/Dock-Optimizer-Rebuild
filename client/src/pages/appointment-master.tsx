@@ -338,16 +338,23 @@ export default function AppointmentMaster() {
         throw new Error('You must select an appointment type first');
       }
       
+      // Improved debugging for question saving
+      console.log("[AppointmentMaster] Saving custom question:", field);
+      
       const payload = {
         appointmentTypeId: selectedAppointmentTypeId,
         label: field.label || "Untitled Field",
         type: field.type || "text",
         isRequired: !!field.required, // Convert to isRequired for backend
+        included: field.included !== false, // Ensure included flag is properly set (default to true)
         options: field.options ? JSON.stringify(field.options) : "[]",
         placeholder: field.placeholder || "",
         order_position: field.order || customFields.length + 1, // Use order_position field for database
         appointmentType: field.appointmentType || "both"
       };
+      
+      // Log the final payload being sent to API
+      console.log("[AppointmentMaster] Custom question payload:", payload);
       
       let url = '/api/custom-questions';
       let method = 'POST';
@@ -368,19 +375,26 @@ export default function AppointmentMaster() {
       const newField = await res.json();
       
       // Convert DB format to component format
-      return {
+      console.log("[AppointmentMaster] Received saved question from API:", newField);
+      
+      const formattedField = {
         id: newField.id,
         label: newField.label,
         type: newField.type,
         required: !!newField.isRequired,
-        included: true,
-        options: newField.options ? JSON.parse(newField.options) : [],
+        included: newField.included !== false, // Ensure included defaults to true if not specified
+        options: newField.options ? (typeof newField.options === 'string' ? JSON.parse(newField.options) : newField.options) : [],
         placeholder: newField.placeholder || "",
         order: newField.order_position,
         appointmentType: newField.appointmentType || "both"
       } as QuestionFormField;
+      
+      console.log("[AppointmentMaster] Formatted saved question:", formattedField);
+      return formattedField;
     },
     onSuccess: (newField) => {
+      console.log("[AppointmentMaster] Successfully saved custom question:", newField);
+      
       const updatedFields = selectedQuestionId 
         ? customFields.map(f => f.id === selectedQuestionId ? newField : f)
         : [...customFields, newField];
@@ -537,26 +551,35 @@ export default function AppointmentMaster() {
   // Helper function to load custom questions for a specific appointment type
   const loadCustomQuestionsForAppointmentType = async (appointmentTypeId: number) => {
     try {
+      console.log(`[AppointmentMaster] Loading custom questions for appointment type ${appointmentTypeId}`);
       const response = await fetch(`/api/custom-questions/${appointmentTypeId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch custom questions');
       }
       
       const questions = await response.json();
+      console.log(`[AppointmentMaster] Loaded ${questions.length} custom questions:`, questions);
       
-      // Convert API format to component format
-      const formattedQuestions = questions.map((q: any) => ({
-        id: q.id,
-        label: q.label,
-        type: q.type,
-        required: !!q.isRequired, // Convert isRequired to required
-        included: true,
-        options: q.options ? JSON.parse(q.options) : [],
-        placeholder: q.placeholder || "",
-        order: q.order_position, // Map order_position to order
-        appointmentType: q.appointmentType || "both"
-      }));
+      // Convert API format to component format with improved property handling
+      const formattedQuestions = questions.map((q: any) => {
+        // Make sure we properly handle the isRequired and included flags
+        const formattedQuestion = {
+          id: q.id,
+          label: q.label,
+          type: q.type,
+          required: !!q.isRequired, // Convert isRequired to required
+          included: q.included !== false, // Ensure included defaults to true if not specified
+          options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [],
+          placeholder: q.placeholder || "",
+          order: q.order_position, // Map order_position to order
+          appointmentType: q.appointmentType || "both"
+        };
+        
+        console.log(`[AppointmentMaster] Formatted question ${q.id}:`, formattedQuestion);
+        return formattedQuestion;
+      });
       
+      console.log(`[AppointmentMaster] Setting ${formattedQuestions.length} custom fields in state`);
       setCustomFields(formattedQuestions);
     } catch (error) {
       console.error('Error loading custom questions:', error);
@@ -726,9 +749,12 @@ export default function AppointmentMaster() {
                                     // Load custom questions for this appointment type
                                     loadCustomQuestionsForAppointmentType(appointmentTypeId);
                                     
-                                    // Changed from step 1 to step 3 to show questions tab by default
-                                    setAppointmentTypeFormStep(3);
+                                    // Always start at step 1 when editing an appointment type
+                                    setAppointmentTypeFormStep(1);
                                     setShowNewAppointmentTypeDialog(true);
+                                    
+                                    // Log that we're editing from step 1
+                                    console.log("[AppointmentMaster] Editing appointment type from step 1");
                                   }}>
                                     <Pencil className="h-4 w-4 mr-2" />
                                     Edit

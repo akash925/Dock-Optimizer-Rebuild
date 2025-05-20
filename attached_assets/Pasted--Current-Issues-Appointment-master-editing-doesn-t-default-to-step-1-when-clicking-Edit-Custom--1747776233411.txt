@@ -1,0 +1,121 @@
+🚩 Current Issues:
+Appointment master editing doesn't default to step 1 when clicking Edit.
+
+Custom questions added via the UI aren't persisting/saving properly.
+
+Fields marked as "Included" and/or "Is Required" aren't correctly reflected on frontend/backend.
+
+The UI isn’t properly reflecting saved questions upon returning.
+
+🔍 Detailed Problem Diagnosis:
+Editing Workflow:
+
+Clicking "Edit" should always reset to step 1.
+
+Currently, it's jumping straight to step 3, causing confusion.
+
+Question Persistence:
+
+Questions appear to save initially but aren’t present upon reopening.
+
+Suggests frontend state is updating prematurely or backend storage logic isn't implemented correctly.
+
+Frontend & Backend Synchronization:
+
+"Included" and "Required" status must be synchronized clearly with backend API and database.
+
+Frontend fields should directly reflect backend data upon form load.
+
+🛠️ Actionable Technical Fixes:
+✅ 1. Ensuring Edit Starts at Step 1:
+Frontend fix (React State):
+
+typescript
+Copy
+Edit
+useEffect(() => {
+  if (editingAppointmentTypeId) {
+    setCurrentStep(1); // Always reset to Step 1 on edit initiation
+  }
+}, [editingAppointmentTypeId]);
+✅ 2. Fixing Custom Question Persistence:
+Frontend adjustments (React Hook example):
+
+typescript
+Copy
+Edit
+const handleSaveQuestions = async (questions) => {
+  const response = await api.saveAppointmentQuestions(appointmentTypeId, questions);
+  if (response.ok) {
+    setQuestions(response.data);
+  } else {
+    console.error("Failed to save questions", response.error);
+  }
+};
+Backend adjustments (API Endpoint pseudocode):
+
+typescript
+Copy
+Edit
+app.post('/api/saveAppointmentQuestions', async (req, res) => {
+  const { appointmentTypeId, questions } = req.body;
+  try {
+    await db.transaction(async trx => {
+      await trx('appointment_questions').where({ appointmentTypeId }).del();
+      await trx('appointment_questions').insert(
+        questions.map(q => ({ ...q, appointmentTypeId }))
+      );
+    });
+    res.json({ success: true, data: questions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+✅ 3. Synchronizing "Included" and "Is Required" Flags:
+Ensure backend clearly stores these flags per question:
+
+sql
+Copy
+Edit
+CREATE TABLE appointment_questions (
+  id SERIAL PRIMARY KEY,
+  appointmentTypeId INT REFERENCES appointment_types(id),
+  question TEXT NOT NULL,
+  answerType TEXT,
+  included BOOLEAN DEFAULT false,
+  required BOOLEAN DEFAULT false
+);
+Frontend (reflect changes immediately upon load):
+
+typescript
+Copy
+Edit
+useEffect(() => {
+  async function loadQuestions() {
+    const response = await api.getAppointmentQuestions(appointmentTypeId);
+    setQuestions(response.data);
+  }
+  loadQuestions();
+}, [appointmentTypeId]);
+✅ Comprehensive QA Checklist (after fixes):
+ Clicking "Edit" always starts from Step 1.
+
+ Custom questions added are persisted and correctly retrieved from backend.
+
+ "Included" and "Required" statuses are reflected accurately on page reload.
+
+ Frontend properly handles asynchronous calls to save and fetch custom questions.
+
+📌 Recommended Next Steps:
+Implement fixes sequentially:
+
+First, the edit step reset logic.
+
+Second, ensure backend reliably saves and fetches custom questions.
+
+Third, verify frontend synchronizes flags ("Included"/"Required") correctly.
+
+Deploy each fix incrementally and test thoroughly.
+
+Document changes clearly in the codebase and share them with your team for easier maintenance.
+
