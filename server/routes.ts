@@ -4635,7 +4635,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/custom-questions", checkRole(["admin", "manager"]), async (req, res) => {
     try {
-      const validatedData = insertCustomQuestionSchema.parse(req.body);
+      // Enhanced logging for custom question creation
+      console.log(`[CustomQuestion-Create] Creating custom question with payload:`, req.body);
+      
+      // Ensure included flag is properly set with a default value if not provided
+      const enhancedData = {
+        ...req.body,
+        included: req.body.included !== false // Default to true if not explicitly set to false
+      };
+      
+      const validatedData = insertCustomQuestionSchema.parse(enhancedData);
       const tenantId = req.user?.tenantId;
       
       // Check if appointment type exists if appointmentTypeId is provided
@@ -4731,7 +4740,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const updatedCustomQuestion = await storage.updateCustomQuestion(id, req.body);
+      // Enhanced logging and data handling for custom question updates
+      console.log(`[CustomQuestion-Update] Updating question ${id} with payload:`, req.body);
+      
+      // Ensure included flag is handled correctly (default to true if not specified)
+      const updatePayload = {
+        ...req.body,
+        included: req.body.included !== false
+      };
+      
+      const updatedCustomQuestion = await storage.updateCustomQuestion(id, updatePayload);
+      console.log(`[CustomQuestion-Update] Question ${id} updated successfully:`, updatedCustomQuestion);
+      
       res.json(updatedCustomQuestion);
     } catch (err) {
       res.status(500).json({ message: "Failed to update custom question" });
