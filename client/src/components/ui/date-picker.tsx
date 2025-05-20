@@ -23,6 +23,30 @@ export function DatePicker({
   disablePastDates = false,
   disabledDays,
 }: DatePickerProps) {
+  // Create a helper function to normalize the date at 12 PM to avoid timezone issues
+  const normalizeDate = (date: Date): Date => {
+    // Create a new date at noon to avoid timezone edge cases
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+  };
+  
+  // Normalize the date before passing it to components
+  const normalizedDate = date ? normalizeDate(date) : undefined;
+  
+  // Wrap the onDateChange to normalize the selected date
+  const handleDateChange = (newDate: Date | undefined) => {
+    if (newDate) {
+      // Normalize the date to ensure it's set to noon
+      const normalizedNewDate = normalizeDate(newDate);
+      // Log information for debugging
+      console.log("Date selected in calendar:", newDate);
+      console.log("Normalized date (set to noon):", normalizedNewDate);
+      // Pass the normalized date to the parent component
+      onDateChange(normalizedNewDate);
+    } else {
+      onDateChange(undefined);
+    }
+  };
+  
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -30,18 +54,18 @@ export function DatePicker({
           variant={"outline"}
           className={cn(
             "w-full justify-start text-left font-normal",
-            !date && "text-muted-foreground"
+            !normalizedDate && "text-muted-foreground"
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {normalizedDate ? format(normalizedDate, "PPP") : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={date}
-          onSelect={onDateChange}
+          selected={normalizedDate}
+          onSelect={handleDateChange}
           disabled={
             disabledDays 
               ? (date) => (disablePastDates && date < new Date()) || disabledDays(date)
