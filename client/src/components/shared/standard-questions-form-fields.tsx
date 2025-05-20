@@ -53,8 +53,15 @@ export function StandardQuestionsFormFields({
   // Show a helpful message if no questions are available
   if (!questions || !questions.length) {
     return (
-      <div className="text-center py-4 text-muted-foreground">
-        <p>No standard questions are configured for this appointment type.</p>
+      <div className="my-6 p-4 border border-blue-100 rounded-md bg-blue-50 text-center">
+        <p className="text-sm text-blue-700">
+          No standard questions are configured for this appointment type.
+        </p>
+        {form && (
+          <p className="mt-2 text-xs text-blue-600">
+            You can proceed with booking without additional information.
+          </p>
+        )}
       </div>
     );
   }
