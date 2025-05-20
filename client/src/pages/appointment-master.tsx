@@ -487,6 +487,9 @@ export default function AppointmentMaster() {
     
     console.log(`[AppointmentMaster] Field ${field.id} - included: ${included}, required: ${required}`);
     
+    // First set the form step to 1 before setting any other state
+    setAppointmentTypeFormStep(1);
+    
     setSelectedQuestionId(field.id);
     setQuestionForm({
       label: field.label,
@@ -497,8 +500,6 @@ export default function AppointmentMaster() {
       placeholder: field.placeholder || "",
       appointmentType: field.appointmentType || "both"
     });
-    
-    // Always set to step 1 when editing
     setAppointmentTypeFormStep(1);
     setShowQuestionDialog(true);
   };
@@ -571,48 +572,7 @@ export default function AppointmentMaster() {
     }
   };
   
-  // Helper function to load custom questions for a specific appointment type
-  const loadCustomQuestionsForAppointmentType = async (appointmentTypeId: number) => {
-    try {
-      console.log(`[AppointmentMaster] Loading custom questions for appointment type ${appointmentTypeId}`);
-      const response = await fetch(`/api/custom-questions/${appointmentTypeId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch custom questions');
-      }
-      
-      const questions = await response.json();
-      console.log(`[AppointmentMaster] Loaded ${questions.length} custom questions:`, questions);
-      
-      // Convert API format to component format with improved property handling
-      const formattedQuestions = questions.map((q: any) => {
-        // Make sure we properly handle the isRequired and included flags
-        const formattedQuestion = {
-          id: q.id,
-          label: q.label,
-          type: q.type,
-          required: !!q.isRequired, // Convert isRequired to required
-          included: q.included !== false, // Ensure included defaults to true if not specified
-          options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [],
-          placeholder: q.placeholder || "",
-          order: q.order_position, // Map order_position to order
-          appointmentType: q.appointmentType || "both"
-        };
-        
-        console.log(`[AppointmentMaster] Formatted question ${q.id}:`, formattedQuestion);
-        return formattedQuestion;
-      });
-      
-      console.log(`[AppointmentMaster] Setting ${formattedQuestions.length} custom fields in state`);
-      setCustomFields(formattedQuestions);
-    } catch (error) {
-      console.error('Error loading custom questions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load custom questions for this appointment type",
-        variant: "destructive"
-      });
-    }
-  };
+  /* This section was causing a duplicate function declaration - removing it */
   
   // Handle moving between form steps
   const goToNextStep = () => {
@@ -741,6 +701,8 @@ export default function AppointmentMaster() {
                                     
                                     // Load standard questions from the database - this logs the questions correctly
                                     loadStandardQuestionsForAppointmentType(appointmentTypeId);
+                                    // Also load custom questions
+                                    loadCustomQuestionsForAppointmentType(appointmentTypeId);
                                     console.log(`[AppointmentMaster] Set step to 3 to show questions tab when form opens`);
                                     // Force the form to open on the questions tab (step 3)
                                     setAppointmentTypeFormStep(3);
