@@ -779,6 +779,7 @@ export default function AppointmentMaster() {
                                     
                                     // Always start at step 1 when editing an appointment type
                                     setAppointmentTypeFormStep(1);
+                                    console.log("[AppointmentMaster] Starting appointment type edit form at step 1");
                                     setShowNewAppointmentTypeDialog(true);
                                     
                                     // Log that we're editing from step 1
