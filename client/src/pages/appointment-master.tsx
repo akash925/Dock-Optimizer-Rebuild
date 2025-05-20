@@ -574,7 +574,48 @@ export default function AppointmentMaster() {
     }
   };
   
-  /* This section was causing a duplicate function declaration - removing it */
+  // Function to fetch custom questions for an appointment type
+  const fetchCustomQuestions = async (appointmentTypeId: number) => {
+    try {
+      console.log(`[AppointmentMaster] Loading custom questions for appointment type ${appointmentTypeId}`);
+      const response = await fetch(`/api/custom-questions/${appointmentTypeId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch custom questions');
+      }
+      
+      const questions = await response.json();
+      console.log(`[AppointmentMaster] Loaded ${questions.length} custom questions:`, questions);
+      
+      // Convert API format to component format with improved property handling
+      const formattedQuestions = questions.map((q: any) => {
+        // Make sure we properly handle the isRequired and included flags
+        const formattedQuestion = {
+          id: q.id,
+          label: q.label || "",
+          type: q.type?.toLowerCase() || "text",
+          required: !!q.isRequired, // Convert isRequired to required
+          included: q.included !== false, // Ensure included defaults to true if not specified
+          options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [],
+          placeholder: q.placeholder || "",
+          order: q.order_position, // Map order_position to order
+          appointmentType: q.appointmentType || "both"
+        };
+        
+        console.log(`[AppointmentMaster] Formatted question ${q.id}:`, formattedQuestion);
+        return formattedQuestion;
+      });
+      
+      console.log(`[AppointmentMaster] Setting ${formattedQuestions.length} custom fields in state`);
+      setCustomFields(formattedQuestions);
+    } catch (error) {
+      console.error('Error loading custom questions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load custom questions for this appointment type",
+        variant: "destructive"
+      });
+    }
+  };
   
   // Handle moving between form steps
   const goToNextStep = () => {
@@ -703,7 +744,7 @@ export default function AppointmentMaster() {
                                     
                                     // Load standard questions from the database - this logs the questions correctly
                                     loadStandardQuestionsForAppointmentType(appointmentTypeId);
-                                    // We've removed the duplicate function, using the main fetchCustomQuestions function
+                                    // Load custom questions for this appointment type
                                     fetchCustomQuestions(appointmentTypeId);
                                     console.log(`[AppointmentMaster] Set step to 3 to show questions tab when form opens`);
                                     // Force the form to open on the questions tab (step 3)
@@ -734,7 +775,7 @@ export default function AppointmentMaster() {
                                     });
                                     
                                     // Load custom questions for this appointment type
-                                    loadCustomQuestionsForAppointmentType(appointmentTypeId);
+                                    fetchCustomQuestions(appointmentTypeId);
                                     
                                     // Always start at step 1 when editing an appointment type
                                     setAppointmentTypeFormStep(1);
