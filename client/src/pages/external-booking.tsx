@@ -108,6 +108,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   const [bolFile, setBolFile] = useState<File | null>(null);
   const [isProcessingBol, setIsProcessingBol] = useState(false);
   const [bolData, setBolData] = useState<any | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
   
   // Setup form for standard questions
   const form = useForm({
@@ -214,34 +215,48 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     retry: 1 // Only retry once to avoid excessive requests
   });
 
-  // Create booking mutation
+  // Create booking mutation with enhanced error handling
   const bookingMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Starting booking creation with payload:", data);
-      const res = await fetch(`/api/booking-pages/book/${slug}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Booking error:", errorText);
-        throw new Error(errorText || 'Failed to create booking');
+      try {
+        const res = await fetch(`/api/booking-pages/book/${slug}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        
+        let responseData;
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          responseData = await res.json();
+        } else {
+          responseData = { message: await res.text() };
+        }
+        
+        if (!res.ok) {
+          console.error("Booking error response:", responseData);
+          throw new Error(responseData.message || 'Failed to create booking');
+        }
+        
+        return responseData;
+      } catch (error) {
+        console.error("Booking creation exception:", error);
+        throw error;
       }
-      
-      return res.json();
     },
     onSuccess: (data) => {
       // Store confirmation code and go to success step
-      setConfirmationCode(data.confirmationCode);
+      console.log("Booking created successfully:", data);
+      setConfirmationCode(data.confirmationCode || data.code || "Generated");
       setStep(4);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Booking error:", error);
-      // Stay on the same step and show error
+      // Stay on the same step and show error message in the UI
+      setBookingError(error.message || "Failed to create your appointment. Please try again.");
     }
   });
   
