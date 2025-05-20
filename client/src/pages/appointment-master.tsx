@@ -1205,7 +1205,7 @@ export default function AppointmentMaster() {
                   </p>
                 </div>
                 
-                <div className="space-y-2 md:col-span-2">
+                <div className="space-y-2 md:col-span-2 bg-blue-50 p-3 rounded-lg border border-blue-100">
                   <div className="flex items-center space-x-2">
                     <Switch 
                       id="appointment-allow-through-breaks"
@@ -1215,12 +1215,12 @@ export default function AppointmentMaster() {
                         allowAppointmentsThroughBreaks: checked
                       })}
                     />
-                    <Label htmlFor="appointment-allow-through-breaks">
+                    <Label htmlFor="appointment-allow-through-breaks" className="font-medium text-blue-800">
                       Allow appointments to span through breaks
                     </Label>
                   </div>
-                  <p className="text-sm text-muted-foreground ml-6">
-                    When enabled, appointments can be scheduled during facility break times
+                  <p className="text-sm text-blue-700 ml-6">
+                    When enabled, appointments can be scheduled during facility break times. This is important for longer appointments that might overlap with lunch or other breaks.
                   </p>
                 </div>
                 
@@ -1298,6 +1298,9 @@ export default function AppointmentMaster() {
                         emailReminderTime: parseInt(e.target.value) || 0
                       })}
                     />
+                    <p className="text-sm text-muted-foreground">
+                      Automatic email reminder will be sent this many hours before the appointment (0 = no reminder)
+                    </p>
                   </div>
                 </div>
                 
