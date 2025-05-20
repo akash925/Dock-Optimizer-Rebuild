@@ -99,8 +99,20 @@ export function StandardQuestionsFormFields({
   
   // Sort questions by order position and ONLY include questions marked as included=true
   // First, categorize questions by type to prioritize shipment/appointment fields
+  // Add more detailed logging about included status
+  console.log('[StandardQuestionsFormFields] Questions before filtering:', validQuestions.map(q => 
+    `${q.id} - ${q.label} - included: ${q.included}`
+  ));
+  
   const sortedQuestions = [...validQuestions]
-    .filter(q => q.included) // Only include questions that have included=true
+    .filter(q => {
+      // Default included to true if it's undefined or null
+      if (q.included === undefined || q.included === null) {
+        console.log(`[StandardQuestionsFormFields] Question ${q.id} (${q.label}) missing included property, defaulting to true`);
+        q.included = true;
+      }
+      return q.included;
+    }) // Only include questions that have included=true
     .sort((a, b) => {
       // Priority order:
       // 1. Appointment/shipment related fields first (use fieldKey pattern matching)

@@ -341,12 +341,18 @@ export default function AppointmentMaster() {
       // Improved debugging for question saving
       console.log("[AppointmentMaster] Saving custom question:", field);
       
+      // Ensure proper handling of required and included flags
+      const isRequired = field.required === true;
+      const isIncluded = field.included !== false; // Default to true if undefined or null
+      
+      console.log(`[AppointmentMaster] Processing field with required=${isRequired}, included=${isIncluded}`);
+      
       const payload = {
         appointmentTypeId: selectedAppointmentTypeId,
         label: field.label || "Untitled Field",
         type: field.type || "text",
-        isRequired: !!field.required, // Convert to isRequired for backend
-        included: field.included !== false, // Ensure included flag is properly set (default to true)
+        isRequired: isRequired, // Explicit boolean for backend
+        included: isIncluded, // Explicit boolean for included flag
         options: field.options ? JSON.stringify(field.options) : "[]",
         placeholder: field.placeholder || "",
         order_position: field.order || customFields.length + 1, // Use order_position field for database
@@ -377,15 +383,20 @@ export default function AppointmentMaster() {
       // Convert DB format to component format
       console.log("[AppointmentMaster] Received saved question from API:", newField);
       
+      // Create a properly formatted field with explicit boolean handling for required and included
       const formattedField = {
         id: newField.id,
-        label: newField.label,
-        type: newField.type,
-        required: !!newField.isRequired,
-        included: newField.included !== false, // Ensure included defaults to true if not specified
-        options: newField.options ? (typeof newField.options === 'string' ? JSON.parse(newField.options) : newField.options) : [],
+        label: newField.label || "",
+        type: newField.type || "text",
+        required: newField.isRequired === true, // Ensure required is boolean true/false
+        included: newField.included !== false, // Default included to true unless explicitly false
+        options: newField.options 
+          ? (typeof newField.options === 'string' 
+              ? JSON.parse(newField.options) 
+              : newField.options) 
+          : [],
         placeholder: newField.placeholder || "",
-        order: newField.order_position,
+        order: newField.order_position || 0,
         appointmentType: newField.appointmentType || "both"
       } as QuestionFormField;
       
@@ -467,16 +478,28 @@ export default function AppointmentMaster() {
   
   // Edit custom field
   const editCustomField = (field: QuestionFormField) => {
+    // Add debugging to track field properties
+    console.log(`[AppointmentMaster] Editing custom field ${field.id}:`, JSON.stringify(field, null, 2));
+    
+    // Ensure required and included flags are properly set with defaults if missing
+    const included = field.included !== undefined ? field.included : true;
+    const required = field.required !== undefined ? field.required : false;
+    
+    console.log(`[AppointmentMaster] Field ${field.id} - included: ${included}, required: ${required}`);
+    
     setSelectedQuestionId(field.id);
     setQuestionForm({
       label: field.label,
       type: field.type,
-      required: field.required,
-      included: field.included !== undefined ? field.included : true,
+      required: required,
+      included: included, 
       options: field.options || [],
-      placeholder: field.placeholder,
-      appointmentType: field.appointmentType
+      placeholder: field.placeholder || "",
+      appointmentType: field.appointmentType || "both"
     });
+    
+    // Always set to step 1 when editing
+    setAppointmentTypeFormStep(1);
     setShowQuestionDialog(true);
   };
   
