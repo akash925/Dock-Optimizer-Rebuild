@@ -487,10 +487,10 @@ export default function AppointmentMaster() {
     
     console.log(`[AppointmentMaster] Field ${field.id} - included: ${included}, required: ${required}`);
     
-    // First set the form step to 1 before setting any other state
-    setAppointmentTypeFormStep(1);
-    
+    // Clear any previous state first
     setSelectedQuestionId(field.id);
+    
+    // Then set the form fields
     setQuestionForm({
       label: field.label,
       type: field.type,
@@ -500,6 +500,8 @@ export default function AppointmentMaster() {
       placeholder: field.placeholder || "",
       appointmentType: field.appointmentType || "both"
     });
+    
+    // Set to step 1 last to ensure form is ready when displayed
     setAppointmentTypeFormStep(1);
     setShowQuestionDialog(true);
   };
@@ -558,7 +560,7 @@ export default function AppointmentMaster() {
       updateAppointmentTypeMutation.mutate(formData, {
         onSuccess: (updatedType) => {
           // After updating the appointment type, also load the custom questions
-          loadCustomQuestionsForAppointmentType(updatedType.id);
+          fetchCustomQuestions(updatedType.id);
         }
       });
     } else {
@@ -701,8 +703,8 @@ export default function AppointmentMaster() {
                                     
                                     // Load standard questions from the database - this logs the questions correctly
                                     loadStandardQuestionsForAppointmentType(appointmentTypeId);
-                                    // Also load custom questions
-                                    loadCustomQuestionsForAppointmentType(appointmentTypeId);
+                                    // We've removed the duplicate function, using the main fetchCustomQuestions function
+                                    fetchCustomQuestions(appointmentTypeId);
                                     console.log(`[AppointmentMaster] Set step to 3 to show questions tab when form opens`);
                                     // Force the form to open on the questions tab (step 3)
                                     setAppointmentTypeFormStep(3);
