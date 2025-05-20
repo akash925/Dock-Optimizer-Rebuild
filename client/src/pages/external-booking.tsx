@@ -737,6 +737,18 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   </div>
                 )}
                 
+                {/* Show error message if booking failed */}
+                {bookingError && (
+                  <div className="mb-6 p-4 border border-red-300 bg-red-50 rounded-md">
+                    <div className="flex items-center">
+                      <XCircle className="h-5 w-5 text-red-500 mr-2" />
+                      <h3 className="font-medium text-red-800">Booking Failed</h3>
+                    </div>
+                    <p className="mt-2 text-sm text-red-700">{bookingError}</p>
+                    <p className="mt-1 text-xs text-red-600">Please check your information and try again.</p>
+                  </div>
+                )}
+                
                 {/* Show message when no questions are available */}
                 {(standardQuestions?.length === 0 && customQuestions?.length === 0) ? (
                   <div className="my-6 p-4 border border-blue-100 rounded-md bg-blue-50 text-center">
@@ -759,7 +771,10 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 <div className="flex justify-between pt-4">
                   <Button 
                     type="button" 
-                    onClick={() => setStep(2)} 
+                    onClick={() => {
+                      setBookingError(null); // Clear any errors when going back
+                      setStep(2);
+                    }} 
                     variant="outline"
                   >
                     Back
@@ -767,6 +782,10 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   <Button 
                     type="submit"
                     disabled={bookingMutation.isPending}
+                    onClick={() => {
+                      // Clear any previous error when attempting to submit again
+                      setBookingError(null);
+                    }}
                   >
                     {bookingMutation.isPending ? (
                       <>
