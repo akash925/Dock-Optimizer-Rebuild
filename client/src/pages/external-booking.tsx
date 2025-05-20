@@ -587,20 +587,25 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 date={bookingData.date ? new Date(bookingData.date) : findNextAvailableDate()}
                 onDateChange={(date) => {
                   if (date) {
-                    // The date picker now returns a normalized date set to noon
-                    // to avoid timezone issues. This ensures consistent behavior
-                    // Format the date in YYYY-MM-DD format for sending to the server
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0'); 
-                    const day = String(date.getDate()).padStart(2, '0');
+                    // IMPORTANT: Get the date components directly from the date object's UI display
+                    // This ensures we use exactly the date shown in the calendar UI
+                    const calendarDateString = date.toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      timeZone: 'America/New_York' // Use facility timezone
+                    });
                     
-                    // Create formatted date string in YYYY-MM-DD format
+                    // Parse the calendar date string (MM/DD/YYYY format in en-US locale)
+                    const [month, day, year] = calendarDateString.split('/');
+                    
+                    // Create YYYY-MM-DD format for API
                     const formattedDate = `${year}-${month}-${day}`;
                     
-                    console.log("Normalized date for booking:", date);
-                    console.log("Sending to server date string:", formattedDate);
+                    console.log("Calendar shows date:", calendarDateString);
+                    console.log("API formatted date:", formattedDate);
                     
-                    // Set the booking data with the properly formatted date
+                    // Set the exact date shown in the UI calendar
                     setBookingData({
                       ...bookingData,
                       date: formattedDate,
