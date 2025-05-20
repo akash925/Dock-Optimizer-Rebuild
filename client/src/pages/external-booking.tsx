@@ -722,12 +722,24 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   </div>
                 )}
                 
-                <StandardQuestionsFormFields
-                  form={form}
-                  questions={[...(standardQuestions || []), ...(customQuestions || [])]}
-                  isLoading={loadingQuestions || loadingCustomQuestions}
-                  existingAnswers={bolData?.extractedFields}
-                />
+                {/* Show message when no questions are available */}
+                {(standardQuestions?.length === 0 && customQuestions?.length === 0) ? (
+                  <div className="my-6 p-4 border border-blue-100 rounded-md bg-blue-50 text-center">
+                    <p className="text-sm text-blue-700">
+                      No standard questions are configured for this appointment type.
+                    </p>
+                    <p className="mt-2 text-xs text-blue-600">
+                      You can proceed with booking without additional information.
+                    </p>
+                  </div>
+                ) : (
+                  <StandardQuestionsFormFields
+                    form={form}
+                    questions={[...(standardQuestions || []), ...(customQuestions || [])]}
+                    isLoading={loadingQuestions || loadingCustomQuestions}
+                    existingAnswers={bolData?.extractedFields}
+                  />
+                )}
                 
                 <div className="flex justify-between pt-4">
                   <Button 
