@@ -825,81 +825,63 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                       />
                     </PaginationItem>
                     
-                    {/* Show first page if not in first few pages */}
-                    {currentPage > 3 && (
-                      <>
-                        <PaginationItem>
-                          <PaginationLink 
-                            href="#" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handlePageChange(1);
-                            }}
-                            className="rounded-md hover:bg-secondary"
-                          >
-                            1
-                          </PaginationLink>
-                        </PaginationItem>
+                    {/* Pages are generated in the next section */}
+                    {(() => {
+                      // Generate page range with proper logic
+                      const visiblePages: number[] = [];
+                      
+                      // Always include current page and 1 page before/after (if they exist)
+                      for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages, currentPage + 1); i++) {
+                        visiblePages.push(i);
+                      }
+                      
+                      // Always include page 1 if not already included
+                      if (!visiblePages.includes(1)) {
+                        visiblePages.unshift(1);
+                      }
+                      
+                      // Always include last page if not already included
+                      if (!visiblePages.includes(totalPages) && totalPages > 1) {
+                        visiblePages.push(totalPages);
+                      }
+                      
+                      // Create the final pagination with ellipsis if needed
+                      const result: React.ReactNode[] = [];
+                      let prevPage: number | null = null;
+                      
+                      for (const page of visiblePages) {
+                        // Add ellipsis if there's a gap
+                        if (prevPage !== null && page - prevPage > 1) {
+                          result.push(
+                            <PaginationItem key={`ellipsis-${prevPage}`}>
+                              <span className="flex h-9 w-9 items-center justify-center text-sm">...</span>
+                            </PaginationItem>
+                          );
+                        }
                         
-                        {currentPage > 4 && (
-                          <PaginationItem>
-                            <span className="flex h-9 w-9 items-center justify-center text-sm">...</span>
+                        // Add the page number
+                        result.push(
+                          <PaginationItem key={page}>
+                            <PaginationLink 
+                              href="#" 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handlePageChange(page);
+                              }}
+                              isActive={page === currentPage}
+                              className="rounded-md hover:bg-secondary"
+                            >
+                              {page}
+                            </PaginationLink>
                           </PaginationItem>
-                        )}
-                      </>
-                    )}
-                    
-                    {/* Show pages surrounding the current page */}
-                    {Array.from({length: totalPages}, (_, i) => i + 1)
-                      .filter(page => {
-                        // Show pages within a range of the current page
-                        return Math.abs(page - currentPage) < 2 || page === 1 || page === totalPages;
-                      })
-                      .filter((page, _, self) => 
-                        // Remove duplicates (first and last page might be in range)
-                        self.indexOf(page) === self.lastIndexOf(page)
-                      )
-                      .sort((a, b) => a - b)
-                      .map(page => (
-                        <PaginationItem key={page}>
-                          <PaginationLink 
-                            href="#" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handlePageChange(page);
-                            }}
-                            isActive={page === currentPage}
-                            className="rounded-md hover:bg-secondary"
-                          >
-                            {page}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))
-                    }
-                    
-                    {/* Show ellipsis and last page if not in last few pages */}
-                    {currentPage < totalPages - 2 && (
-                      <>
-                        {currentPage < totalPages - 3 && (
-                          <PaginationItem>
-                            <span className="flex h-9 w-9 items-center justify-center text-sm">...</span>
-                          </PaginationItem>
-                        )}
+                        );
                         
-                        <PaginationItem>
-                          <PaginationLink 
-                            href="#" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handlePageChange(totalPages);
-                            }}
-                            className="rounded-md hover:bg-secondary"
-                          >
-                            {totalPages}
-                          </PaginationLink>
-                        </PaginationItem>
-                      </>
-                    )}
+                        prevPage = page;
+                      }
+                      
+                      return result;
+                    })()}
+                    {/* Pages are generated in the previous section */}
                     
                     <PaginationItem>
                       <PaginationNext 
