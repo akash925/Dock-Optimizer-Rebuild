@@ -249,6 +249,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Error registering BOL OCR routes:', error);
   }
   
+  // Run the add-email-field script during startup
+  try {
+    const { addEmailField } = await import('./add-email-field');
+    await addEmailField();
+    console.log('Driver/Dispatcher Email field added to all appointment types');
+  } catch (error) {
+    console.error('Error adding Driver/Dispatcher Email field:', error);
+  }
+  
   // Register hours routes
   try {
     const { registerHoursRoutes } = await import('./modules/hours/routes');
