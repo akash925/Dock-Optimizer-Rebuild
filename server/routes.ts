@@ -1319,6 +1319,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: req.user!.id
       };
       
+      // Handle the new customFormData field for standard and custom questions
+      if (rawData.customFormData) {
+        console.log("[Schedule Creation] Received customFormData:", rawData.customFormData);
+        // Store the customFormData in the customFields property for storage
+        scheduleData.customFields = {
+          ...scheduleData.customFields,
+          ...rawData.customFormData
+        };
+      }
+      
       // Extract newCarrier data if present
       const newCarrierData = scheduleData.newCarrier;
       delete scheduleData.newCarrier;

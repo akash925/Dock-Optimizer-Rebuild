@@ -545,10 +545,11 @@ export default function AppointmentForm({
         customFormData: {
           ...data.customFields || {},
           // For standard questions, extract the values from customFields using fieldKey as the key
-          ...standardQuestionsList.reduce((acc, question) => {
+          ...standardQuestionsList.reduce((acc: Record<string, any>, question) => {
             const fieldKey = question.fieldKey;
-            if (data.customFields && data.customFields[fieldKey] !== undefined) {
-              acc[fieldKey] = data.customFields[fieldKey];
+            if (data.customFields && typeof data.customFields === 'object' && 
+                Object.prototype.hasOwnProperty.call(data.customFields, fieldKey)) {
+              acc[fieldKey] = (data.customFields as Record<string, any>)[fieldKey];
             }
             return acc;
           }, {})
