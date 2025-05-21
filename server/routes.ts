@@ -8343,6 +8343,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add a helper endpoint to check email field status
+  app.get("/api/check-email-fields", checkRole(["admin", "manager"]), async (req, res) => {
+    try {
+      // Import the pool for direct database access
+      const { pool } = await import('./db');
+      
+      // Get all appointment types
+      const typesQuery = `SELECT id, name, tenant_id FROM appointment_types ORDER BY id`;
+      const typesResult = await pool.query(typesQuery);
+      
+      const report = [];
+      
+      // Check email fields for each appointment type
+      for (const type of typesResult.rows) {
+        const emailQuery = `
+          SELECT id, label, required, included, field_key
+          FROM standard_questions 
+          WHERE appointment_type_id = $1 
+          AND field_type = 'EMAIL'
+        `;
+        const emailResult = await pool.query(emailQuery, [type.id]);
+        
+        report.push({
+          appointmentTypeId: type.id,
+          name: type.name,
+          tenantId: type.tenant_id,
+          hasEmailField: emailResult.rows.length > 0,
+          emailFields: emailResult.rows
+        });
+      }
+      
+      res.json({
+        totalAppointmentTypes: typesResult.rows.length,
+        typesWithEmailField: report.filter(item => item.hasEmailField).length,
+        typesWithoutEmailField: report.filter(item => !item.hasEmailField).length,
+        details: report
+      });
+    } catch (error) {
+      console.error('Error checking email fields:', error);
+      res.status(500).json({ message: 'Error checking email fields', error: error.message });
+    }
+  });
+  
   // Test email template (development only)
   if (process.env.NODE_ENV === 'development') {
     // Test all email templates
