@@ -813,7 +813,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
             {totalPages > 1 && (
               <div className="flex justify-center my-6">
                 <Pagination>
-                  <PaginationContent>
+                  <PaginationContent className="flex items-center gap-1">
                     <PaginationItem>
                       <PaginationPrevious 
                         href="#" 
@@ -821,24 +821,85 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                           e.preventDefault();
                           if (currentPage > 1) handlePageChange(currentPage - 1);
                         }}
-                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                        className={`rounded-md ${currentPage === 1 ? 'pointer-events-none opacity-50' : 'hover:bg-secondary'}`}
                       />
                     </PaginationItem>
                     
-                    {Array.from({length: totalPages}, (_, i) => i + 1).map(page => (
-                      <PaginationItem key={page}>
-                        <PaginationLink 
-                          href="#" 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handlePageChange(page);
-                          }}
-                          isActive={page === currentPage}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
+                    {/* Show first page if not in first few pages */}
+                    {currentPage > 3 && (
+                      <>
+                        <PaginationItem>
+                          <PaginationLink 
+                            href="#" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(1);
+                            }}
+                            className="rounded-md hover:bg-secondary"
+                          >
+                            1
+                          </PaginationLink>
+                        </PaginationItem>
+                        
+                        {currentPage > 4 && (
+                          <PaginationItem>
+                            <span className="flex h-9 w-9 items-center justify-center text-sm">...</span>
+                          </PaginationItem>
+                        )}
+                      </>
+                    )}
+                    
+                    {/* Show pages surrounding the current page */}
+                    {Array.from({length: totalPages}, (_, i) => i + 1)
+                      .filter(page => {
+                        // Show pages within a range of the current page
+                        return Math.abs(page - currentPage) < 2 || page === 1 || page === totalPages;
+                      })
+                      .filter((page, _, self) => 
+                        // Remove duplicates (first and last page might be in range)
+                        self.indexOf(page) === self.lastIndexOf(page)
+                      )
+                      .sort((a, b) => a - b)
+                      .map(page => (
+                        <PaginationItem key={page}>
+                          <PaginationLink 
+                            href="#" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(page);
+                            }}
+                            isActive={page === currentPage}
+                            className="rounded-md hover:bg-secondary"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))
+                    }
+                    
+                    {/* Show ellipsis and last page if not in last few pages */}
+                    {currentPage < totalPages - 2 && (
+                      <>
+                        {currentPage < totalPages - 3 && (
+                          <PaginationItem>
+                            <span className="flex h-9 w-9 items-center justify-center text-sm">...</span>
+                          </PaginationItem>
+                        )}
+                        
+                        <PaginationItem>
+                          <PaginationLink 
+                            href="#" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(totalPages);
+                            }}
+                            className="rounded-md hover:bg-secondary"
+                          >
+                            {totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      </>
+                    )}
                     
                     <PaginationItem>
                       <PaginationNext 
@@ -847,7 +908,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                           e.preventDefault();
                           if (currentPage < totalPages) handlePageChange(currentPage + 1);
                         }}
-                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                        className={`rounded-md ${currentPage === totalPages ? 'pointer-events-none opacity-50' : 'hover:bg-secondary'}`}
                       />
                     </PaginationItem>
                   </PaginationContent>
