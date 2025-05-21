@@ -1162,6 +1162,76 @@ export default function AppointmentMaster() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* General Settings Tab */}
+          <TabsContent value="settings">
+            <Card className="border-0 shadow-none">
+              <CardHeader>
+                <CardTitle>Appointment System Settings</CardTitle>
+                <CardDescription>
+                  Configure general settings for the appointment system
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Email Notifications</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium">Send appointment confirmations</span>
+                          <Switch checked={true} onCheckedChange={() => {}} />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Send email confirmations when appointments are created
+                        </p>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium">Send appointment reminders</span>
+                          <Switch checked={true} onCheckedChange={() => {}} />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Send email reminders before scheduled appointments
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Calendar Settings</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div>
+                        <label className="block mb-2 font-medium">Default Calendar View</label>
+                        <Select defaultValue="week">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select view" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day">Day View</SelectItem>
+                            <SelectItem value="week">Week View</SelectItem>
+                            <SelectItem value="month">Month View</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block mb-2 font-medium">Week Starts On</label>
+                        <Select defaultValue="monday">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select day" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sunday">Sunday</SelectItem>
+                            <SelectItem value="monday">Monday</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
       
