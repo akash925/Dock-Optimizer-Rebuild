@@ -37,9 +37,9 @@ export function AssetManager() {
   };
 
   return (
-    <div className="container px-4 sm:px-6 lg:px-8 mx-auto py-4 sm:py-6 lg:py-8 max-w-full">
-      <div className="space-y-2 sm:space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div className="container w-full px-4 sm:px-6 lg:px-8 mx-auto py-4 sm:py-6 lg:py-8">
+      <div className="space-y-2 sm:space-y-4 w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Asset Manager</h2>
             <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Manage your organization's assets and files in one place</p>

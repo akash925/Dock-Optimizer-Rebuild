@@ -446,11 +446,11 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   };
 
   return (
-    <Card className="shadow-sm border-0">
-      <CardContent className="p-4 sm:p-6">
-        <div className="flex flex-col space-y-4 mb-4">
+    <Card className="shadow-sm border-0 w-full">
+      <CardContent className="p-4 sm:p-6 w-full">
+        <div className="flex flex-col space-y-4 mb-4 w-full">
           {/* Search and filter row */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between w-full">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -656,26 +656,26 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
           <>
             <div className="w-full rounded-md border">
               {/* Responsive table with horizontal scroll */}
-              <div className="overflow-x-auto w-full">
-                <Table className="w-full table-auto">
+              <div className="w-full overflow-x-auto">
+                <Table className="w-full border-collapse">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-10"></TableHead>
-                      <TableHead className="whitespace-nowrap">Asset Name</TableHead>
-                      <TableHead className="whitespace-nowrap">Category</TableHead>
-                      <TableHead className="whitespace-nowrap">Manufacturer</TableHead>
-                      <TableHead className="whitespace-nowrap">Status</TableHead>
-                      <TableHead className="whitespace-nowrap">Location</TableHead>
-                      <TableHead className="whitespace-nowrap">Serial/Barcode</TableHead>
+                      <TableHead className="w-10 p-2"></TableHead>
+                      <TableHead className="whitespace-nowrap p-2">Asset Name</TableHead>
+                      <TableHead className="whitespace-nowrap p-2">Category</TableHead>
+                      <TableHead className="whitespace-nowrap p-2">Manufacturer</TableHead>
+                      <TableHead className="whitespace-nowrap p-2">Status</TableHead>
+                      <TableHead className="whitespace-nowrap p-2">Location</TableHead>
+                      <TableHead className="whitespace-nowrap p-2">Serial/Barcode</TableHead>
                       {/* Hide less important columns on smaller screens */}
-                      <TableHead className="hidden lg:table-cell whitespace-nowrap">Owner</TableHead>
-                      <TableHead className="hidden lg:table-cell whitespace-nowrap">Department</TableHead>
-                      <TableHead className="hidden md:table-cell whitespace-nowrap">Purchase Price</TableHead>
-                      <TableHead className="hidden md:table-cell whitespace-nowrap">Purchase Date</TableHead>
-                      <TableHead className="hidden xl:table-cell whitespace-nowrap">Implementation Date</TableHead>
-                      <TableHead className="hidden xl:table-cell whitespace-nowrap">Next Maintenance</TableHead>
-                      <TableHead className="hidden lg:table-cell whitespace-nowrap">Tags</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap p-2">Owner</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap p-2">Department</TableHead>
+                      <TableHead className="hidden md:table-cell whitespace-nowrap p-2">Purchase Price</TableHead>
+                      <TableHead className="hidden md:table-cell whitespace-nowrap p-2">Purchase Date</TableHead>
+                      <TableHead className="hidden xl:table-cell whitespace-nowrap p-2">Implementation Date</TableHead>
+                      <TableHead className="hidden xl:table-cell whitespace-nowrap p-2">Next Maintenance</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap p-2">Tags</TableHead>
+                      <TableHead className="text-right whitespace-nowrap p-2">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                 <TableBody>
