@@ -818,8 +818,32 @@ export default function AppointmentMaster() {
               </CardContent>
             </Card>
             
-            <div className="mt-6">
+            <div className="mt-6 space-y-4">
               <SeedAppointmentTypes />
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Appointment Form Questions</CardTitle>
+                  <CardDescription>
+                    Add standard questions that will be available for all appointment types
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col space-y-2">
+                    <p>
+                      Standard questions can be toggled on/off for each appointment type. Common 
+                      questions include driver information, shipment details, and special instructions.
+                    </p>
+                    <Button 
+                      className="w-full sm:w-auto mt-2" 
+                      onClick={() => window.location.href = '/seed-questions'}
+                    >
+                      <FilePlus className="h-4 w-4 mr-2" />
+                      Seed Standard Questions
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
           
