@@ -1,7 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Quagga from 'quagga';
 import { Button } from '@/components/ui/button';
-import { Camera, XCircle, RotateCcw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Camera, 
+  XCircle, 
+  RotateCcw, 
+  SwitchCamera, 
+  Lightbulb 
+} from 'lucide-react';
 
 interface BarcodeScannerProps {
   onDetected: (barcode: string) => void;
@@ -15,8 +22,15 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
   const [scannerActive, setScannerActive] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [torch, setTorch] = useState(false);
+  const [lastDetection, setLastDetection] = useState<string | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
+    // Check if we're on a mobile device
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    
     const setupScanner = async () => {
       try {
         // Get available cameras
@@ -25,8 +39,13 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
         setCameras(videoDevices);
         
         if (videoDevices.length > 0) {
-          // Use the first camera by default
-          const defaultCamera = videoDevices[0].deviceId;
+          // Use rear camera by default if available
+          const rearCamera = videoDevices.find(
+            device => device.label.toLowerCase().includes('back') || 
+                     device.label.toLowerCase().includes('rear')
+          );
+          
+          const defaultCamera = rearCamera ? rearCamera.deviceId : videoDevices[0].deviceId;
           setActiveCamera(defaultCamera);
           startScanner(defaultCamera);
         } else {
@@ -49,10 +68,33 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
     };
   }, []);
 
+  const toggleTorch = async () => {
+    if (!streamRef.current) return;
+    
+    try {
+      const track = streamRef.current.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+      
+      // Check if torch is supported
+      if (capabilities.torch) {
+        const newTorchState = !torch;
+        await track.applyConstraints({ advanced: [{ torch: newTorchState }] });
+        setTorch(newTorchState);
+      }
+    } catch (error) {
+      console.error('Error toggling torch:', error);
+    }
+  };
+
   const startScanner = (deviceId: string) => {
     if (!videoRef.current) return;
     
     setLoading(true);
+    
+    // Save camera settings
+    if (localStorage) {
+      localStorage.setItem('lastUsedCameraId', deviceId);
+    }
     
     Quagga.init(
       {
@@ -62,8 +104,8 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
           target: videoRef.current,
           constraints: {
             deviceId: deviceId,
-            width: { min: 640 },
-            height: { min: 480 },
+            width: { min: 1280 },
+            height: { min: 720 },
             facingMode: 'environment', // prefer rear camera
           },
         },
@@ -71,7 +113,8 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
           patchSize: 'medium',
           halfSample: true,
         },
-        numOfWorkers: navigator.hardwareConcurrency || 4,
+        numOfWorkers: navigator.hardwareConcurrency || 2,
+        frequency: 10, // Increase scan frequency
         decoder: {
           readers: [
             'code_128_reader',
@@ -84,6 +127,7 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
             'upc_e_reader',
             'i2of5_reader',
           ],
+          multiple: false,
         },
         locate: true,
       },
@@ -100,6 +144,12 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
         setScannerActive(true);
         setLoading(false);
         
+        // Store reference to media stream for torch functionality
+        const videoElem = videoRef.current?.querySelector('video');
+        if (videoElem && videoElem.srcObject instanceof MediaStream) {
+          streamRef.current = videoElem.srcObject;
+        }
+        
         Quagga.start();
       }
     );
@@ -109,24 +159,44 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
         const code = result.codeResult.code;
         console.log('Barcode detected:', code);
         
-        // Stop scanning after detection
-        stopScanner();
+        // Set last detection for preview
+        setLastDetection(code);
         
-        // Send the detected barcode to the parent component
-        onDetected(code);
+        // Confirm detection is valid
+        if (code.length > 4) {
+          // Stop scanning after detection
+          stopScanner();
+          
+          // Send the detected barcode to the parent component
+          onDetected(code);
+        }
       }
     });
   };
 
   const stopScanner = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
     Quagga.stop();
     setScannerActive(false);
+    setTorch(false);
   };
 
   const handleCameraChange = (deviceId: string) => {
     stopScanner();
     setActiveCamera(deviceId);
     startScanner(deviceId);
+  };
+  
+  const switchCamera = () => {
+    if (cameras.length <= 1) return;
+    
+    const currentIndex = cameras.findIndex(camera => camera.deviceId === activeCamera);
+    const nextIndex = (currentIndex + 1) % cameras.length;
+    handleCameraChange(cameras[nextIndex].deviceId);
   };
   
   const handleRetry = () => {
@@ -162,40 +232,91 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
         <>
           <div 
             ref={videoRef} 
-            className={`bg-black rounded-lg w-full h-64 overflow-hidden relative ${loading ? 'flex items-center justify-center' : ''}`}
+            className={`bg-black rounded-lg w-full h-[70vh] max-h-[70vh] overflow-hidden relative ${loading ? 'flex items-center justify-center' : ''}`}
           >
-            {loading && (
+            {loading ? (
               <div className="flex flex-col items-center justify-center gap-2 text-white">
                 <Camera className="h-8 w-8 animate-pulse" />
                 <p>Activating camera...</p>
               </div>
+            ) : (
+              <>
+                {/* Scanner guide overlay */}
+                <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
+                  <div className="w-3/4 h-1/3 border-2 border-white/70 rounded-lg shadow-lg">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary -translate-x-1 -translate-y-1 rounded-tl-lg"></div>
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary translate-x-1 -translate-y-1 rounded-tr-lg"></div>
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary -translate-x-1 translate-y-1 rounded-bl-lg"></div>
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary translate-x-1 translate-y-1 rounded-br-lg"></div>
+                  </div>
+                </div>
+                
+                {/* Last detected value */}
+                {lastDetection && (
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                    <Badge variant="secondary" className="bg-black/70 text-white px-3 py-1">
+                      {lastDetection}
+                    </Badge>
+                  </div>
+                )}
+              </>
             )}
           </div>
           
-          {cameras.length > 1 && (
-            <div className="mt-2">
-              <label htmlFor="camera-select" className="block text-sm font-medium mb-1">
-                Select Camera
-              </label>
-              <select
-                id="camera-select"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={activeCamera || ''}
-                onChange={(e) => handleCameraChange(e.target.value)}
-                disabled={!scannerActive}
+          {/* Camera controls */}
+          <div className="flex items-center justify-between gap-2">
+            {/* Camera switcher - Shown as icon button on mobile */}
+            {cameras.length > 1 && (
+              isMobile ? (
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={switchCamera}
+                  disabled={!scannerActive || loading}
+                  className="flex-shrink-0"
+                  title="Switch Camera"
+                >
+                  <SwitchCamera className="h-5 w-5" />
+                </Button>
+              ) : (
+                <select
+                  id="camera-select"
+                  className="rounded-md border border-input bg-background px-3 py-2 text-sm flex-1"
+                  value={activeCamera || ''}
+                  onChange={(e) => handleCameraChange(e.target.value)}
+                  disabled={!scannerActive || loading}
+                >
+                  {cameras.map((camera) => (
+                    <option key={camera.deviceId} value={camera.deviceId}>
+                      {camera.label || `Camera ${camera.deviceId.substr(0, 5)}...`}
+                    </option>
+                  ))}
+                </select>
+              )
+            )}
+            
+            {/* Spacer when only one control is present */}
+            {cameras.length <= 1 && <div className="flex-1"></div>}
+            
+            {/* Instructions */}
+            <p className="text-center text-sm text-muted-foreground flex-1">
+              Point your camera at a barcode
+            </p>
+            
+            {/* Flash toggle - Only on mobile */}
+            {isMobile && (
+              <Button
+                variant={torch ? "secondary" : "outline"}
+                size="icon"
+                onClick={toggleTorch}
+                disabled={!scannerActive || loading}
+                className="flex-shrink-0"
+                title={torch ? "Turn Flashlight Off" : "Turn Flashlight On"}
               >
-                {cameras.map((camera) => (
-                  <option key={camera.deviceId} value={camera.deviceId}>
-                    {camera.label || `Camera ${camera.deviceId.substr(0, 5)}...`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          
-          <p className="text-center text-sm text-muted-foreground">
-            Point your camera at a barcode to scan it
-          </p>
+                <Lightbulb className={`h-5 w-5 ${torch ? 'text-yellow-500' : ''}`} />
+              </Button>
+            )}
+          </div>
         </>
       )}
     </div>
