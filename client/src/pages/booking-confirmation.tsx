@@ -42,12 +42,16 @@ interface BookingDetails {
   customerName: string;
   carrierName: string;
   contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  driverPhone: string;
   truckNumber: string;
   trailerNumber: string | null;
   type: string;
   notes: string | null;
   tenantId?: number | null;
   organizationName?: string;
+  appointmentType?: string;
 }
 
 export default function BookingConfirmation() {
@@ -164,6 +168,20 @@ export default function BookingConfirmation() {
         // For backward compatibility
         const appointmentTime = facilityTimeDisplay;
         
+        // Get appointment type name if available
+        let appointmentTypeName = "";
+        if (schedule.appointmentTypeId) {
+          try {
+            const typeResponse = await fetch(`/api/appointment-types/${schedule.appointmentTypeId}`);
+            if (typeResponse.ok) {
+              const appointmentType = await typeResponse.json();
+              appointmentTypeName = appointmentType.name;
+            }
+          } catch (error) {
+            console.error("Error fetching appointment type:", error);
+          }
+        }
+
         // Set booking details
         setBookingDetails({
           id: Number(bookingId),
@@ -176,12 +194,16 @@ export default function BookingConfirmation() {
           customerName: schedule.customerName || "Not provided",
           carrierName,
           contactName: schedule.driverName || "Not provided",
-          truckNumber: schedule.truckNumber,
-          trailerNumber: schedule.trailerNumber,
+          contactEmail: schedule.contactEmail || schedule.driverEmail || "Not provided",
+          contactPhone: schedule.contactPhone || "Not provided",
+          driverPhone: schedule.driverPhone || "Not provided",
+          truckNumber: schedule.truckNumber || "Not provided",
+          trailerNumber: schedule.trailerNumber || null,
           type: schedule.type,
           notes: schedule.notes,
           tenantId: schedule.tenantId,
           organizationName: organizationName,
+          appointmentType: appointmentTypeName || schedule.appointmentTypeName || "",
         });
         
       } catch (error) {
@@ -347,6 +369,13 @@ ${orgName}
                 <span className="text-sm font-medium text-gray-500">Confirmation Number</span>
                 <span className="text-lg font-bold">{bookingDetails.confirmationNumber}</span>
               </div>
+              
+              {bookingDetails.appointmentType && (
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-500">Appointment Type</span>
+                  <span className="text-lg font-semibold">{bookingDetails.appointmentType}</span>
+                </div>
+              )}
               
               {/* Enhanced Date/Time Display */}
               <div className="mb-4 bg-green-50 p-4 rounded-lg border border-green-100">
