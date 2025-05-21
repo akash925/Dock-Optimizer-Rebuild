@@ -47,7 +47,7 @@ const step2Schema = z.object({
 const step3Schema = z.object({
   companyName: z.string().min(2, "Company name is required"),
   contactName: z.string().min(2, "Contact name is required"),
-  email: z.string().email("Please enter a valid email"),
+  email: z.string().min(1, "Email is required for sending confirmations").email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
   // Allow customFields to hold any type of value (string, array, or file)
   customFields: z.record(z.any()).optional(),
@@ -570,11 +570,14 @@ export function BookingWizardContent({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email*</FormLabel>
+                    <FormLabel>Driver/Dispatcher Email*</FormLabel>
                     <FormControl>
                       <Input type="email" {...field} />
                     </FormControl>
                     <FormMessage />
+                    <p className="text-xs text-muted-foreground">
+                      Required for sending appointment confirmation and reminder emails
+                    </p>
                   </FormItem>
                 )}
               />
