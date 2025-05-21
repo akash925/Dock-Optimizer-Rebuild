@@ -232,7 +232,7 @@ export function BarcodeScanner({ onDetected, onClose }: BarcodeScannerProps) {
         <>
           <div 
             ref={videoRef} 
-            className={`bg-black rounded-lg w-full h-[70vh] max-h-[70vh] overflow-hidden relative ${loading ? 'flex items-center justify-center' : ''}`}
+            className={`bg-black rounded-lg w-full ${isMobile ? 'h-[70vh] max-h-[70vh]' : 'h-[400px]'} overflow-hidden relative ${loading ? 'flex items-center justify-center' : ''}`}
           >
             {loading ? (
               <div className="flex flex-col items-center justify-center gap-2 text-white">
