@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon } from "lucide-react";
+import { FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon, GripVertical } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,87 @@ import { Separator } from "@/components/ui/separator";
 import { weekDays } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  DndContext, 
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Row component for drag-and-drop question reordering
+interface SortableQuestionRowProps {
+  field: QuestionFormField;
+  index: number;
+  included: boolean;
+  required: boolean;
+  onIncludedChange: (checked: boolean) => void;
+  onRequiredChange: (checked: boolean) => void;
+}
+
+function SortableQuestionRow({ 
+  field, 
+  index, 
+  included, 
+  required, 
+  onIncludedChange, 
+  onRequiredChange 
+}: SortableQuestionRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: field.id });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1 : 0,
+    backgroundColor: isDragging ? 'var(--highlight)' : undefined,
+  };
+  
+  return (
+    <TableRow 
+      ref={setNodeRef} 
+      style={style} 
+      className={included ? "bg-green-50" : undefined}
+    >
+      <TableCell className="w-8 text-center cursor-move" {...attributes} {...listeners}>
+        <GripVertical className="h-4 w-4 mx-auto text-muted-foreground" />
+      </TableCell>
+      <TableCell className="text-center">{index}</TableCell>
+      <TableCell>{field.label}</TableCell>
+      <TableCell className="capitalize">{field.type}</TableCell>
+      <TableCell className="text-center">
+        <Checkbox 
+          checked={included} 
+          onCheckedChange={(checked) => onIncludedChange(!!checked)}
+        />
+      </TableCell>
+      <TableCell className="text-center">
+        <Checkbox 
+          disabled={!included}
+          checked={required} 
+          onCheckedChange={(checked) => onRequiredChange(!!checked)}
+        />
+      </TableCell>
+    </TableRow>
+  );
+}
 
 interface QuestionFormField {
   id: number;
@@ -154,6 +235,54 @@ export default function AppointmentMaster() {
   // Standard fields configuration - these fields are part of every appointment type
   // Initial state will be replaced when we load the data from API
   const [standardFields, setStandardFields] = useState<QuestionFormField[]>([]);
+  
+  // Setup sensors for drag and drop functionality
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+  
+  // Handle the end of a drag event
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      // Find the indices of the items being dragged
+      const activeIndex = standardFields.findIndex(q => q.id === active.id);
+      const overIndex = standardFields.findIndex(q => q.id === over.id);
+      
+      // Create a new array with the items reordered
+      const newOrder = arrayMove(standardFields, activeIndex, overIndex);
+      
+      // Update the order property of each question
+      const updatedFields = newOrder.map((field, index) => ({
+        ...field,
+        order: index + 1
+      }));
+      
+      // Update local state
+      setStandardFields(updatedFields);
+      
+      // Save the new order to the database
+      updatedFields.forEach(field => {
+        updateStandardQuestionMutation.mutate({
+          id: field.id,
+          data: { orderPosition: field.order }
+        });
+      });
+      
+      toast({
+        title: "Question order updated",
+        description: "The order of questions has been updated",
+      });
+    }
+  };
   
   // Mock data for custom question form fields
   const [customFields, setCustomFields] = useState<QuestionFormField[]>([
@@ -1422,134 +1551,110 @@ export default function AppointmentMaster() {
                     </div>
                   </div>
                   
-                  <div className="border rounded-md max-h-[400px] overflow-y-auto">
-                    <Table>
-                      <TableHeader className="sticky top-0 bg-background z-10">
-                        <TableRow>
-                          <TableHead className="w-12 text-center">Sr.No</TableHead>
-                          <TableHead>Question</TableHead>
-                          <TableHead>Answer Type</TableHead>
-                          <TableHead className="w-24 text-center">Included</TableHead>
-                          <TableHead className="w-24 text-center">Is Required</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {/* Standard/Built-in Fields */}
-                        {standardFields.map((field, index) => (
-                          <TableRow key={field.id} className={field.included ? "bg-green-50" : ""}>
-                            <TableCell className="text-center">{field.id}</TableCell>
-                            <TableCell>{field.label}</TableCell>
-                            <TableCell>{field.type.charAt(0).toUpperCase() + field.type.slice(1)}</TableCell>
-                            <TableCell className="text-center">
-                              <Checkbox 
-                                checked={field.included}
-                                onCheckedChange={(checked) => {
-                                  // Update local state for immediate UI feedback
-                                  const updatedFields = [...standardFields];
-                                  updatedFields[index].included = !!checked;
-                                  setStandardFields(updatedFields);
-                                  
-                                  // Persist to the database via API
-                                  updateStandardQuestionMutation.mutate({
-                                    id: field.id,
-                                    data: { included: !!checked }
-                                  }, {
-                                    onSuccess: () => {
-                                      toast({
-                                        description: `${field.label} ${checked ? "added to" : "removed from"} booking forms`,
-                                      });
-                                    },
-                                    onError: (error: Error) => {
-                                      // Revert local state on error
-                                      const revertedFields = [...standardFields];
-                                      revertedFields[index].included = !checked;
-                                      setStandardFields(revertedFields);
-                                      
-                                      toast({
-                                        variant: "destructive",
-                                        title: "Failed to update setting",
-                                        description: error.message || "An error occurred while updating the question",
-                                      });
-                                    }
-                                  });
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Checkbox 
-                                checked={field.required}
-                                onCheckedChange={(checked) => {
-                                  // Update local state for immediate UI feedback
-                                  const updatedFields = [...standardFields];
-                                  updatedFields[index].required = !!checked;
-                                  setStandardFields(updatedFields);
-                                  
-                                  // Persist to the database via API
-                                  updateStandardQuestionMutation.mutate({
-                                    id: field.id,
-                                    data: { required: !!checked }
-                                  }, {
-                                    onSuccess: () => {
-                                      toast({
-                                        description: `${field.label} required setting updated`,
-                                      });
-                                    },
-                                    onError: (error: Error) => {
-                                      // Revert local state on error
-                                      const revertedFields = [...standardFields];
-                                      revertedFields[index].required = !checked;
-                                      setStandardFields(revertedFields);
-                                      
-                                      toast({
-                                        variant: "destructive",
-                                        title: "Failed to update setting",
-                                        description: error.message || "An error occurred while updating the question",
-                                      });
-                                    }
-                                  });
-                                }}
-                              />
-                            </TableCell>
+                  {/* Create SortableRow component to render each question row */}
+                  {standardFields.length > 0 ? (
+                    <div className="border rounded-md max-h-[400px] overflow-y-auto">
+                      <Table>
+                        <TableHeader className="sticky top-0 bg-background z-10">
+                          <TableRow>
+                            <TableHead className="w-8 text-center"></TableHead>
+                            <TableHead className="w-12 text-center">Number</TableHead>
+                            <TableHead>Question</TableHead>
+                            <TableHead>Answer Type</TableHead>
+                            <TableHead className="w-24 text-center">Included</TableHead>
+                            <TableHead className="w-24 text-center">Is Required</TableHead>
                           </TableRow>
-                        ))}
-                        
-                        {/* Custom Fields - would map from actual data */}
-                        {customFields.map((field, index) => (
-                          <TableRow key={field.id} className={field.included !== undefined ? (field.included ? "bg-green-50" : "") : "bg-green-50"}>
-                            <TableCell className="text-center">{standardFields.length + index + 1}</TableCell>
-                            <TableCell>{field.label}</TableCell>
-                            <TableCell>{field.type.charAt(0).toUpperCase() + field.type.slice(1)}</TableCell>
-                            <TableCell className="text-center">
-                              <Checkbox 
-                                checked={field.included !== undefined ? field.included : true} 
-                                onCheckedChange={(checked) => {
-                                  const updatedFields = [...customFields];
-                                  updatedFields[index].included = !!checked;
-                                  setCustomFields(updatedFields);
-                                  toast({
-                                    description: `${field.label} ${checked ? "added to" : "removed from"} booking forms`,
-                                  });
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Checkbox 
-                                checked={field.required} 
-                                onCheckedChange={(checked) => {
-                                  const updatedFields = [...customFields];
-                                  updatedFields[index].required = !!checked;
-                                  setCustomFields(updatedFields);
-                                  toast({
-                                    description: `${field.label} ${checked ? "is now required" : "is now optional"}`,
-                                  });
-                                }}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          <DndContext 
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                          >
+                            <SortableContext 
+                              items={standardFields.map(field => field.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              {/* Standard/Built-in Fields */}
+                              {standardFields.map((field, index) => (
+                                <SortableQuestionRow
+                                  key={field.id}
+                                  field={field}
+                                  index={index + 1} // Showing sequential numbers starting from 1
+                                  included={field.included}
+                                  required={field.required}
+                                  onIncludedChange={(checked) => {
+                                    const updatedFields = [...standardFields];
+                                    updatedFields[index].included = !!checked;
+                                    setStandardFields(updatedFields);
+                                    
+                                    updateStandardQuestionMutation.mutate({
+                                      id: field.id,
+                                      data: { included: !!checked }
+                                    });
+                                  }}
+                                  onRequiredChange={(checked) => {
+                                    const updatedFields = [...standardFields];
+                                    updatedFields[index].required = !!checked;
+                                    setStandardFields(updatedFields);
+                                    
+                                    updateStandardQuestionMutation.mutate({
+                                      id: field.id,
+                                      data: { required: !!checked }
+                                    });
+                                  }}
+                                />
+                              ))}
+                            </SortableContext>
+                          </DndContext>
+                          
+                          {/* Custom Fields - would map from actual data */}
+                          {customFields.map((field, index) => (
+                            <TableRow key={field.id} className={field.included ? "bg-green-50" : ""}>
+                              <TableCell className="w-8 text-center"></TableCell>
+                              <TableCell className="text-center">{standardFields.length + index + 1}</TableCell>
+                              <TableCell>{field.label}</TableCell>
+                              <TableCell className="capitalize">{field.type}</TableCell>
+                              <TableCell className="text-center">
+                                <Checkbox 
+                                  checked={field.included !== undefined ? field.included : true} 
+                                  onCheckedChange={(checked) => {
+                                    const updatedFields = [...customFields];
+                                    updatedFields[index].included = !!checked;
+                                    setCustomFields(updatedFields);
+                                    toast({
+                                      description: `${field.label} ${checked ? "added to" : "removed from"} booking forms`,
+                                    });
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Checkbox 
+                                  disabled={!field.included}
+                                  checked={field.required} 
+                                  onCheckedChange={(checked) => {
+                                    const updatedFields = [...customFields];
+                                    updatedFields[index].required = !!checked;
+                                    setCustomFields(updatedFields);
+                                    toast({
+                                      description: `${field.label} ${checked ? "is now required" : "is now optional"}`,
+                                    });
+                                  }}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <Alert variant="default" className="bg-blue-50 border-blue-200">
+                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                      <AlertDescription>
+                        No standard questions have been configured. Click "Seed Standard Questions" to add common questions.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   
                   <div className="flex justify-between mt-4">
                     <Button 
