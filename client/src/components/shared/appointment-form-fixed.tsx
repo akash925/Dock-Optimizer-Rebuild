@@ -6,6 +6,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useStandardQuestions } from "@/hooks/use-standard-questions";
+import { StandardQuestionsFormFields } from "@/components/shared/standard-questions-form-fields";
 import { Facility, AppointmentType } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -297,6 +299,12 @@ export default function AppointmentForm({
   const watchedAppointmentTypeId = form.watch("appointmentTypeId");
   const lastAppointmentTypeIdRef = useRef<number | undefined>(watchedAppointmentTypeId);
   
+  // Get standard questions for the selected appointment type
+  const { questions: standardQuestionsList = [], isLoading: isLoadingStandardQuestions } = useStandardQuestions({
+    appointmentTypeId: watchedAppointmentTypeId, 
+    bookingPageSlug
+  });
+
   // Fetch custom questions for selected appointment type
   const { data: customQuestions = [], isLoading: isLoadingCustomQuestions } = useQuery<any[]>({
     queryKey: ["/api/custom-questions", watchedAppointmentTypeId, bookingPageSlug],
@@ -1506,6 +1514,20 @@ export default function AppointmentForm({
                   </FormItem>
                 )}
               />
+              
+              {/* Standard Questions Section */}
+              {watchedAppointmentTypeId && standardQuestionsList.length > 0 && (
+                <div className="space-y-4 mt-4">
+                  <h4 className="font-medium">Standard Information</h4>
+                  <div className="border border-border rounded-md p-4 space-y-4">
+                    <StandardQuestionsFormFields
+                      form={form}
+                      questions={standardQuestionsList}
+                      isLoading={isLoadingStandardQuestions}
+                    />
+                  </div>
+                </div>
+              )}
               
               {/* Custom Questions Section */}
               {customQuestions && customQuestions.length > 0 && (
