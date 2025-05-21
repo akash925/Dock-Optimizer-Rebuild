@@ -265,14 +265,22 @@ Hello,
 
 Here are your ${appointmentType} appointment details for ${orgName}:
 
+CONFIRMATION DETAILS:
 Confirmation Number: ${bookingDetails.confirmationNumber}
 Date: ${bookingDetails.appointmentDate}
 Time: ${timeDisplay}
 Location: ${bookingDetails.location}
+${bookingDetails.appointmentType ? `Appointment Type: ${bookingDetails.appointmentType}` : ''}
+
+CARRIER & VEHICLE INFORMATION:
 Carrier: ${bookingDetails.carrierName}
 ${bookingDetails.truckNumber ? `Truck #: ${bookingDetails.truckNumber}` : ''}
 ${bookingDetails.trailerNumber ? `Trailer #: ${bookingDetails.trailerNumber}` : ''}
-Driver: ${bookingDetails.contactName}
+
+DRIVER INFORMATION:
+Name: ${bookingDetails.contactName}
+Email: ${bookingDetails.contactEmail}
+${bookingDetails.driverPhone ? `Phone: ${bookingDetails.driverPhone}` : ''}
 
 IMPORTANT:
 - Please arrive 15 minutes before your scheduled time
@@ -449,24 +457,48 @@ ${orgName}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-500">Driver</span>
-                  <span>{bookingDetails.contactName}</span>
+              {/* Contact Information Section */}
+              <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Mail className="h-5 w-5 text-purple-600" />
+                  <h3 className="font-semibold text-lg text-purple-800">Contact Information</h3>
                 </div>
-                
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-500">Truck #</span>
-                  <span>{bookingDetails.truckNumber || "Not provided"}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Driver Information */}
+                  <div className="space-y-3">
+                    <h4 className="text-md font-semibold text-purple-900">Driver Details</h4>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-purple-700">Name</span>
+                      <span className="text-lg font-semibold">{bookingDetails.contactName}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-purple-700">Email</span>
+                      <span className="text-lg font-semibold">{bookingDetails.contactEmail}</span>
+                    </div>
+                    {bookingDetails.driverPhone && (
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-purple-700">Phone</span>
+                        <span className="text-lg font-semibold">{bookingDetails.driverPhone}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Vehicle Information */}
+                  <div className="space-y-3">
+                    <h4 className="text-md font-semibold text-purple-900">Vehicle Information</h4>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-purple-700">Truck #</span>
+                      <span className="text-lg font-semibold">{bookingDetails.truckNumber || "Not provided"}</span>
+                    </div>
+                    {bookingDetails.trailerNumber && (
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-purple-700">Trailer #</span>
+                        <span className="text-lg font-semibold">{bookingDetails.trailerNumber}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              {bookingDetails.trailerNumber && (
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-500">Trailer #</span>
-                  <span>{bookingDetails.trailerNumber}</span>
-                </div>
-              )}
 
               {bookingDetails.type && (
                 <div className="flex flex-col">
