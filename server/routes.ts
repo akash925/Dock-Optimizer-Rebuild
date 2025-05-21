@@ -249,10 +249,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Error registering BOL OCR routes:', error);
   }
   
-  // Run the add-email-field script during startup
+  // Run the email field setup during startup
   try {
-    const { addEmailField } = await import('./add-email-field');
-    await addEmailField();
+    // Define the function as a const arrow function to avoid strict mode issues
+    const setupEmailField = async () => {
+      console.log('Starting email field setup process...');
+      
+      // Import the pool for direct database access
+      const { pool } = await import('./db');
+      
+      // Get all appointment types from the database
+      const query = `SELECT * FROM appointment_types`;
+      const typesResult = await pool.query(query);
+      const appointmentTypes = typesResult.rows;
+      
+      console.log(`Found ${appointmentTypes.length} appointment types to process`);
+      
+      // Process each appointment type
+      for (const type of appointmentTypes) {
+        console.log(`Processing appointment type: ${type.id} - ${type.name}`);
+        
+        // Check if email field already exists
+        const checkQuery = `
+          SELECT * FROM standard_questions 
+          WHERE appointment_type_id = $1 
+          AND field_type = 'EMAIL' 
+          AND (field_key = 'driverEmail' OR field_key = 'contactEmail' OR label ILIKE '%email%')
+        `;
+        const existingResult = await pool.query(checkQuery, [type.id]);
+        
+        if (existingResult.rows.length > 0) {
+          const emailField = existingResult.rows[0];
+          console.log(`Email field already exists for appointment type ${type.id}: ${emailField.label} (ID: ${emailField.id})`);
+          
+          // Make sure it's required and included
+          if (!emailField.required || !emailField.included) {
+            const updateQuery = `
+              UPDATE standard_questions 
+              SET required = true, included = true 
+              WHERE id = $1
+            `;
+            await pool.query(updateQuery, [emailField.id]);
+            console.log(`Updated email field ${emailField.id} to be required and included`);
+          }
+        } else {
+          // Get the maximum order position
+          const orderQuery = `
+            SELECT MAX(order_position) as max_order 
+            FROM standard_questions 
+            WHERE appointment_type_id = $1
+          `;
+          const orderResult = await pool.query(orderQuery, [type.id]);
+          const maxOrder = orderResult.rows[0].max_order || 0;
+          
+          // Create a new email field
+          const insertQuery = `
+            INSERT INTO standard_questions 
+            (appointment_type_id, field_key, label, field_type, included, required, order_position) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id
+          `;
+          
+          const insertResult = await pool.query(insertQuery, [
+            type.id,
+            'driverEmail',
+            'Driver/Dispatcher Email',
+            'EMAIL',
+            true,
+            true,
+            maxOrder + 1
+          ]);
+          
+          console.log(`Added new email field for appointment type ${type.id} with ID ${insertResult.rows[0].id}`);
+        }
+      }
+      
+      console.log('Email field setup process completed successfully');
+    }
+    
+    await setupEmailField();
     console.log('Driver/Dispatcher Email field added to all appointment types');
   } catch (error) {
     console.error('Error adding Driver/Dispatcher Email field:', error);

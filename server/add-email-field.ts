@@ -1,7 +1,7 @@
 import { db } from './db';
-import { standardQuestions } from '@shared/schema';
+import { standardQuestions, type StandardQuestion } from '@shared/schema';
 import { eq } from 'drizzle-orm';
-// Import directly from the module where storage is created and exposed
+// Import the storage directly
 import storage from './storage';
 
 /**
