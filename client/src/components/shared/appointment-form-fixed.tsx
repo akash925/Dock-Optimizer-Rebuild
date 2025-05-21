@@ -541,7 +541,19 @@ export default function AppointmentForm({
         facilityId: facilityId,
         facilityName: facilityNameToUse, // Ensure we're getting the correct facility name
         facilityTimezone: data.facilityTimezone || facilityTimezone,
-        // Include custom fields data
+        // Combine both standard and custom question fields into customFormData
+        customFormData: {
+          ...data.customFields || {},
+          // For standard questions, extract the values from customFields using fieldKey as the key
+          ...standardQuestionsList.reduce((acc, question) => {
+            const fieldKey = question.fieldKey;
+            if (data.customFields && data.customFields[fieldKey] !== undefined) {
+              acc[fieldKey] = data.customFields[fieldKey];
+            }
+            return acc;
+          }, {})
+        },
+        // Keep this for backward compatibility
         customFields: data.customFields || {}
       };
       
