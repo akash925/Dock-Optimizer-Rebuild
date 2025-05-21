@@ -80,6 +80,7 @@ const protectedRoutes: RouteConfig[] = [
   { path: "/facility-settings/:id", component: FacilitySettings, roles: ["admin", "manager"], module: "facilityManagement" },
   { path: "/facility-settings", component: FacilitySettings, roles: ["admin", "manager"], module: "facilityManagement" },
   { path: "/appointment-master", component: AppointmentMaster, roles: ["admin", "manager"], module: "appointments" },
+  { path: "/seed-questions", component: SeedQuestionsPage, roles: ["admin", "manager"], module: "appointments" },
   { path: "/dock-status", component: DockStatus, module: "doorManager" },
   { path: "/door-manager", component: DoorManager, module: "doorManager" },
   { path: "/analytics", component: Analytics, module: "analytics" },
