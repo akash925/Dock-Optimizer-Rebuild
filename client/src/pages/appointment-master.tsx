@@ -234,7 +234,20 @@ export default function AppointmentMaster() {
   
   // Standard fields configuration - these fields are part of every appointment type
   // Initial state will be replaced when we load the data from API
-  const [standardFields, setStandardFields] = useState<QuestionFormField[]>([]);
+  const [standardFields, setStandardFields] = useState<QuestionFormField[]>([
+    { id: 1, label: "Customer Name", type: "text", required: true, included: true, order: 1, appointmentType: "both" },
+    { id: 2, label: "Carrier Name", type: "text", required: true, included: true, order: 2, appointmentType: "both" },
+    { id: 3, label: "Carrier MC #", type: "text", required: true, included: true, order: 3, appointmentType: "both" },
+    { id: 4, label: "Driver/Dispatcher Email", type: "email", required: true, included: true, order: 4, appointmentType: "both" },
+    { id: 5, label: "Driver/Dispatcher Phone Number", type: "text", required: false, included: true, order: 5, appointmentType: "both" },
+    { id: 6, label: "Driver's License Number", type: "text", required: false, included: true, order: 6, appointmentType: "both" },
+    { id: 7, label: "BOL Doc", type: "file", required: false, included: true, order: 7, appointmentType: "both" },
+    { id: 8, label: "BOL Number", type: "text", required: true, included: true, order: 8, appointmentType: "both" },
+    { id: 9, label: "Truck Number", type: "text", required: true, included: true, order: 9, appointmentType: "both" },
+    { id: 10, label: "Trailer Number", type: "text", required: false, included: true, order: 10, appointmentType: "both" },
+    { id: 11, label: "Driver's Name", type: "text", required: false, included: true, order: 11, appointmentType: "both" },
+    { id: 12, label: "Item Description/Quantity", type: "textarea", required: false, included: true, order: 12, appointmentType: "both" }
+  ]);
   
   // Setup sensors for drag and drop functionality
   const sensors = useSensors(
@@ -963,13 +976,6 @@ export default function AppointmentMaster() {
                       Standard questions can be toggled on/off for each appointment type. Common 
                       questions include driver information, shipment details, and special instructions.
                     </p>
-                    <Button 
-                      className="w-full sm:w-auto mt-2" 
-                      onClick={() => window.location.href = '/seed-questions'}
-                    >
-                      <FilePlus className="h-4 w-4 mr-2" />
-                      Seed Standard Questions
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
