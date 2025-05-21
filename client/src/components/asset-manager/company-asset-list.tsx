@@ -654,28 +654,28 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
           </div>
         ) : assets && assets.length > 0 ? (
           <>
-            <div className="w-full max-w-full rounded-md border">
+            <div className="w-full rounded-md border">
               {/* Responsive table with horizontal scroll */}
-              <div className="overflow-x-auto" style={{ maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
-                <Table className="min-w-full table-fixed">
+              <div className="overflow-x-auto w-full">
+                <Table className="w-full table-auto">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-10" style={{ minWidth: '50px' }}></TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '160px', width: '15%' }}>Asset Name</TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px', width: '10%' }}>Category</TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px', width: '10%' }}>Manufacturer</TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Status</TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px', width: '10%' }}>Location</TableHead>
-                      <TableHead className="whitespace-nowrap" style={{ minWidth: '120px', width: '12%' }}>Serial/Barcode</TableHead>
+                      <TableHead className="w-10"></TableHead>
+                      <TableHead className="whitespace-nowrap">Asset Name</TableHead>
+                      <TableHead className="whitespace-nowrap">Category</TableHead>
+                      <TableHead className="whitespace-nowrap">Manufacturer</TableHead>
+                      <TableHead className="whitespace-nowrap">Status</TableHead>
+                      <TableHead className="whitespace-nowrap">Location</TableHead>
+                      <TableHead className="whitespace-nowrap">Serial/Barcode</TableHead>
                       {/* Hide less important columns on smaller screens */}
-                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Owner</TableHead>
-                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Department</TableHead>
-                      <TableHead className="hidden md:table-cell whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Purchase Price</TableHead>
-                      <TableHead className="hidden md:table-cell whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Purchase Date</TableHead>
-                      <TableHead className="hidden xl:table-cell whitespace-nowrap" style={{ minWidth: '150px', width: '10%' }}>Implementation Date</TableHead>
-                      <TableHead className="hidden xl:table-cell whitespace-nowrap" style={{ minWidth: '150px', width: '10%' }}>Next Maintenance</TableHead>
-                      <TableHead className="hidden lg:table-cell whitespace-nowrap" style={{ minWidth: '120px', width: '8%' }}>Tags</TableHead>
-                      <TableHead className="text-right whitespace-nowrap" style={{ minWidth: '80px', width: '5%' }}>Actions</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap">Owner</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap">Department</TableHead>
+                      <TableHead className="hidden md:table-cell whitespace-nowrap">Purchase Price</TableHead>
+                      <TableHead className="hidden md:table-cell whitespace-nowrap">Purchase Date</TableHead>
+                      <TableHead className="hidden xl:table-cell whitespace-nowrap">Implementation Date</TableHead>
+                      <TableHead className="hidden xl:table-cell whitespace-nowrap">Next Maintenance</TableHead>
+                      <TableHead className="hidden lg:table-cell whitespace-nowrap">Tags</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                 <TableBody>
