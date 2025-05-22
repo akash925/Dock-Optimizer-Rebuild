@@ -6200,6 +6200,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create the schedule (appointment)
+      // Calculate the start_time by combining date and time from the request
+      const dateString = req.body.date; // Format: YYYY-MM-DD
+      const timeString = req.body.time; // Format: HH:MM
+      const startTime = `${dateString}T${timeString}:00.000Z`; // Combines into ISO format
+      
+      console.log(`[BookAppointment] Calculated start_time: ${startTime} from date: ${dateString} and time: ${timeString}`);
+      
       const schedule = {
         ...req.body,
         tenantId,
@@ -6212,7 +6219,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         carrierId: 1,
         // Add other potentially required fields with default values
         type: req.body.type || 'trailer',
-        dockId: null
+        dockId: null,
+        // Add start_time field
+        startTime: startTime,
+        // Add end_time field based on appointment type duration (default to 1 hour if not specified)
+        endTime: appointmentType?.duration 
+          ? new Date(new Date(startTime).getTime() + appointmentType.duration * 60000).toISOString()
+          : new Date(new Date(startTime).getTime() + 60 * 60000).toISOString()
       };
       
       // Add createdAt if not present

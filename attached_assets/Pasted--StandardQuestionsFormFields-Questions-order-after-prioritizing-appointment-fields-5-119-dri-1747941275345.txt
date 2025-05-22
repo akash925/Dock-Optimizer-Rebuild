@@ -1,0 +1,212 @@
+[StandardQuestionsFormFields] Questions order after prioritizing appointment fields: (5) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number']
+standard-questions-form-fields.tsx:160 [StandardQuestionsFormFields] About to render questions. Questions count after filtering: 9
+standard-questions-form-fields.tsx:161 [StandardQuestionsFormFields] First few questions after filtering: (5) [{…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 119 - Driver/Dispatcher Email
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 31 - Driver Name
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 32 - Driver Phone
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 33 - Truck Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 34 - Trailer Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 35 - BOL Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 36 - Number of Pallets
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 37 - Shipment Weight (lbs)
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 38 - Special Instructions
+standard-questions-form-fields.tsx:103 [StandardQuestionsFormFields] Questions before filtering: (9) ['119 - Driver/Dispatcher Email - included: true', '31 - Driver Name - included: true', '32 - Driver Phone - included: true', '33 - Truck Number - included: true', '34 - Trailer Number - included: true', '35 - BOL Number - included: true', '36 - Number of Pallets - included: true', '37 - Shipment Weight (lbs) - included: true', '38 - Special Instructions - included: true']
+standard-questions-form-fields.tsx:141 [StandardQuestionsFormFields] All questions (9): (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:142 [StandardQuestionsFormFields] Filtered questions with included=true (9): (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:144 [StandardQuestionsFormFields] Excluded questions with included=false (0): []
+standard-questions-form-fields.tsx:151 [StandardQuestionsFormFields] Appointment-related questions (6): (6) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number', '35 - bolNumber - BOL Number']
+standard-questions-form-fields.tsx:155 [StandardQuestionsFormFields] Questions order after prioritizing appointment fields: (5) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number']
+standard-questions-form-fields.tsx:160 [StandardQuestionsFormFields] About to render questions. Questions count after filtering: 9
+standard-questions-form-fields.tsx:161 [StandardQuestionsFormFields] First few questions after filtering: (5) [{…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 119 - Driver/Dispatcher Email
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 31 - Driver Name
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 32 - Driver Phone
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 33 - Truck Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 34 - Trailer Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 35 - BOL Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 36 - Number of Pallets
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 37 - Shipment Weight (lbs)
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 38 - Special Instructions
+standard-questions-form-fields.tsx:103 [StandardQuestionsFormFields] Questions before filtering: (9) ['119 - Driver/Dispatcher Email - included: true', '31 - Driver Name - included: true', '32 - Driver Phone - included: true', '33 - Truck Number - included: true', '34 - Trailer Number - included: true', '35 - BOL Number - included: true', '36 - Number of Pallets - included: true', '37 - Shipment Weight (lbs) - included: true', '38 - Special Instructions - included: true']
+standard-questions-form-fields.tsx:141 [StandardQuestionsFormFields] All questions (9): (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:142 [StandardQuestionsFormFields] Filtered questions with included=true (9): (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:144 [StandardQuestionsFormFields] Excluded questions with included=false (0): []
+standard-questions-form-fields.tsx:151 [StandardQuestionsFormFields] Appointment-related questions (6): (6) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number', '35 - bolNumber - BOL Number']
+standard-questions-form-fields.tsx:155 [StandardQuestionsFormFields] Questions order after prioritizing appointment fields: (5) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number']
+standard-questions-form-fields.tsx:160 [StandardQuestionsFormFields] About to render questions. Questions count after filtering: 9
+standard-questions-form-fields.tsx:161 [StandardQuestionsFormFields] First few questions after filtering: (5) [{…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 119 - Driver/Dispatcher Email
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 31 - Driver Name
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 32 - Driver Phone
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 33 - Truck Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 34 - Trailer Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 35 - BOL Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 36 - Number of Pallets
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 37 - Shipment Weight (lbs)
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 38 - Special Instructions
+external-booking.tsx:689 Form submitted with data: {customFields: {…}}
+external-booking.tsx:704 Submitting booking with data: {facilityId: 3, appointmentTypeId: 3, date: '2025-05-27', time: '08:00', timezone: 'America/New_York', …}
+standard-questions-form-fields.tsx:103 [StandardQuestionsFormFields] Questions before filtering: (9) ['119 - Driver/Dispatcher Email - included: true', '31 - Driver Name - included: true', '32 - Driver Phone - included: true', '33 - Truck Number - included: true', '34 - Trailer Number - included: true', '35 - BOL Number - included: true', '36 - Number of Pallets - included: true', '37 - Shipment Weight (lbs) - included: true', '38 - Special Instructions - included: true']
+standard-questions-form-fields.tsx:141 [StandardQuestionsFormFields] All questions (9): (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:142 [StandardQuestionsFormFields] Filtered questions with included=true (9): (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:144 [StandardQuestionsFormFields] Excluded questions with included=false (0): []
+standard-questions-form-fields.tsx:151 [StandardQuestionsFormFields] Appointment-related questions (6): (6) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number', '35 - bolNumber - BOL Number']
+standard-questions-form-fields.tsx:155 [StandardQuestionsFormFields] Questions order after prioritizing appointment fields: (5) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number']
+standard-questions-form-fields.tsx:160 [StandardQuestionsFormFields] About to render questions. Questions count after filtering: 9
+standard-questions-form-fields.tsx:161 [StandardQuestionsFormFields] First few questions after filtering: (5) [{…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 119 - Driver/Dispatcher Email
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 31 - Driver Name
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 32 - Driver Phone
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 33 - Truck Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 34 - Trailer Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 35 - BOL Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 36 - Number of Pallets
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 37 - Shipment Weight (lbs)
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 38 - Special Instructions
+external-booking.tsx:221 Starting booking creation with payload: {facilityId: 3, appointmentTypeId: 3, date: '2025-05-27', time: '08:00', timezone: 'America/New_York', …}
+standard-questions-form-fields.tsx:103 [StandardQuestionsFormFields] Questions before filtering: (9) ['119 - Driver/Dispatcher Email - included: true', '31 - Driver Name - included: true', '32 - Driver Phone - included: true', '33 - Truck Number - included: true', '34 - Trailer Number - included: true', '35 - BOL Number - included: true', '36 - Number of Pallets - included: true', '37 - Shipment Weight (lbs) - included: true', '38 - Special Instructions - included: true']
+standard-questions-form-fields.tsx:141 [StandardQuestionsFormFields] All questions (9): (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:142 [StandardQuestionsFormFields] Filtered questions with included=true (9): (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:144 [StandardQuestionsFormFields] Excluded questions with included=false (0): []
+standard-questions-form-fields.tsx:151 [StandardQuestionsFormFields] Appointment-related questions (6): (6) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number', '35 - bolNumber - BOL Number']
+standard-questions-form-fields.tsx:155 [StandardQuestionsFormFields] Questions order after prioritizing appointment fields: (5) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number']
+standard-questions-form-fields.tsx:160 [StandardQuestionsFormFields] About to render questions. Questions count after filtering: 9
+standard-questions-form-fields.tsx:161 [StandardQuestionsFormFields] First few questions after filtering: (5) [{…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 119 - Driver/Dispatcher Email
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 31 - Driver Name
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 32 - Driver Phone
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 33 - Truck Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 34 - Trailer Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 35 - BOL Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 36 - Number of Pallets
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 37 - Shipment Weight (lbs)
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 38 - Special Instructions
+external-booking.tsx:223 
+            
+            
+           POST https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/api/booking-pages/book/test-booking-page 500 (Internal Server Error)
+mutationFn @ external-booking.tsx:223
+fn @ @tanstack_react-query.js?v=fa50f9b1:1189
+run @ @tanstack_react-query.js?v=fa50f9b1:494
+start @ @tanstack_react-query.js?v=fa50f9b1:536
+execute @ @tanstack_react-query.js?v=fa50f9b1:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=fa50f9b1:2630
+(anonymous) @ @tanstack_react-query.js?v=fa50f9b1:3295
+(anonymous) @ external-booking.tsx:705
+(anonymous) @ chunk-YABUFNLM.js?v=fa50f9b1:1675
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=fa50f9b1:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=fa50f9b1:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=fa50f9b1:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=fa50f9b1:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=fa50f9b1:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=fa50f9b1:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=fa50f9b1:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=fa50f9b1:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=fa50f9b1:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=fa50f9b1:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=fa50f9b1:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=fa50f9b1:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=fa50f9b1:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=fa50f9b1:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=fa50f9b1:5449Understand this errorAI
+external-booking.tsx:240 Booking error response: {message: 'An error occurred while booking the appointment', error: 'null value in column "start_time" of relation "schedules" violates not-null constraint'}
+mutationFn @ external-booking.tsx:240
+await in mutationFn
+fn @ @tanstack_react-query.js?v=fa50f9b1:1189
+run @ @tanstack_react-query.js?v=fa50f9b1:494
+start @ @tanstack_react-query.js?v=fa50f9b1:536
+execute @ @tanstack_react-query.js?v=fa50f9b1:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=fa50f9b1:2630
+(anonymous) @ @tanstack_react-query.js?v=fa50f9b1:3295
+(anonymous) @ external-booking.tsx:705
+(anonymous) @ chunk-YABUFNLM.js?v=fa50f9b1:1675
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=fa50f9b1:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=fa50f9b1:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=fa50f9b1:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=fa50f9b1:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=fa50f9b1:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=fa50f9b1:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=fa50f9b1:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=fa50f9b1:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=fa50f9b1:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=fa50f9b1:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=fa50f9b1:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=fa50f9b1:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=fa50f9b1:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=fa50f9b1:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=fa50f9b1:5449Understand this errorAI
+external-booking.tsx:246 Booking creation exception: Error: An error occurred while booking the appointment
+    at Object.mutationFn (external-booking.tsx:241:17)
+mutationFn @ external-booking.tsx:246
+await in mutationFn
+fn @ @tanstack_react-query.js?v=fa50f9b1:1189
+run @ @tanstack_react-query.js?v=fa50f9b1:494
+start @ @tanstack_react-query.js?v=fa50f9b1:536
+execute @ @tanstack_react-query.js?v=fa50f9b1:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=fa50f9b1:2630
+(anonymous) @ @tanstack_react-query.js?v=fa50f9b1:3295
+(anonymous) @ external-booking.tsx:705
+(anonymous) @ chunk-YABUFNLM.js?v=fa50f9b1:1675
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=fa50f9b1:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=fa50f9b1:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=fa50f9b1:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=fa50f9b1:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=fa50f9b1:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=fa50f9b1:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=fa50f9b1:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=fa50f9b1:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=fa50f9b1:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=fa50f9b1:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=fa50f9b1:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=fa50f9b1:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=fa50f9b1:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=fa50f9b1:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=fa50f9b1:5449Understand this errorAI
+external-booking.tsx:259 Booking error: Error: An error occurred while booking the appointment
+    at Object.mutationFn (external-booking.tsx:241:17)
+onError @ external-booking.tsx:259
+execute @ @tanstack_react-query.js?v=fa50f9b1:1254
+await in execute
+mutate @ @tanstack_react-query.js?v=fa50f9b1:2630
+(anonymous) @ @tanstack_react-query.js?v=fa50f9b1:3295
+(anonymous) @ external-booking.tsx:705
+(anonymous) @ chunk-YABUFNLM.js?v=fa50f9b1:1675
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=fa50f9b1:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=fa50f9b1:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=fa50f9b1:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=fa50f9b1:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=fa50f9b1:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=fa50f9b1:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=fa50f9b1:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=fa50f9b1:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=fa50f9b1:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=fa50f9b1:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=fa50f9b1:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=fa50f9b1:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=fa50f9b1:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=fa50f9b1:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=fa50f9b1:5449Understand this errorAI
+standard-questions-form-fields.tsx:103 [StandardQuestionsFormFields] Questions before filtering: (9) ['119 - Driver/Dispatcher Email - included: true', '31 - Driver Name - included: true', '32 - Driver Phone - included: true', '33 - Truck Number - included: true', '34 - Trailer Number - included: true', '35 - BOL Number - included: true', '36 - Number of Pallets - included: true', '37 - Shipment Weight (lbs) - included: true', '38 - Special Instructions - included: true']
+standard-questions-form-fields.tsx:141 [StandardQuestionsFormFields] All questions (9): (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:142 [StandardQuestionsFormFields] Filtered questions with included=true (9): (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:144 [StandardQuestionsFormFields] Excluded questions with included=false (0): []
+standard-questions-form-fields.tsx:151 [StandardQuestionsFormFields] Appointment-related questions (6): (6) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number', '35 - bolNumber - BOL Number']
+standard-questions-form-fields.tsx:155 [StandardQuestionsFormFields] Questions order after prioritizing appointment fields: (5) ['119 - driverEmail - Driver/Dispatcher Email', '31 - driverName - Driver Name', '32 - driverPhone - Driver Phone', '33 - truckNumber - Truck Number', '34 - trailerNumber - Trailer Number']
+standard-questions-form-fields.tsx:160 [StandardQuestionsFormFields] About to render questions. Questions count after filtering: 9
+standard-questions-form-fields.tsx:161 [StandardQuestionsFormFields] First few questions after filtering: (5) [{…}, {…}, {…}, {…}, {…}]
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 119 - Driver/Dispatcher Email
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 31 - Driver Name
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 32 - Driver Phone
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 33 - Truck Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 34 - Trailer Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 35 - BOL Number
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 36 - Number of Pallets
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 37 - Shipment Weight (lbs)
+standard-questions-form-fields.tsx:219 [StandardQuestionsFormFields] Rendering question ID 38 - Special Instructions
