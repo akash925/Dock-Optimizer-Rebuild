@@ -6131,11 +6131,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[BookAppointment] No email provided, skipping confirmation email');
       }
       
-      // Return the confirmation code to the client
+      // Return the confirmation code to the client - ensure we use the actual code from the database
       return res.status(201).json({ 
         message: "Appointment created successfully", 
         appointmentId: newAppointment.id,
-        confirmationCode: confirmationCode 
+        confirmationCode: newAppointment.confirmationCode || confirmationCode 
       });
     } catch (err) {
       console.error('[BookAppointment] Error in slug endpoint:', err);
