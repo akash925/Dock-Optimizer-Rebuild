@@ -6021,7 +6021,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Collect all the appointment data
+      // Collect all the appointment data - properly mapping contact info
+      // Ensure we pick up the email field correctly - it could be in different fields from the form
+      const contactEmail = req.body.email || req.body.contactEmail || req.body.driverEmail;
+      console.log(`[BookAppointment] Using contact email: ${contactEmail}`);
+      
       const appointmentData = {
         tenantId: tenantId,
         facilityId: facilityId,
@@ -6034,8 +6038,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trailerNumber: req.body.trailerNumber || null,
         driverName: req.body.driverName || null,
         driverPhone: req.body.driverPhone || null,
-        driverEmail: req.body.driverEmail || null,
-        customerName: req.body.customerName || null,
+        driverEmail: contactEmail, // Use the properly extracted email
+        contactEmail: contactEmail, // Also set this field for backward compatibility
+        customerName: req.body.customerName || req.body.companyName || null, // Handle both field names
         carrierName: req.body.carrierName || null,
         mcNumber: req.body.mcNumber || null,
         palletCount: req.body.palletCount || null,
@@ -6289,13 +6294,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const organization = await storage.getTenantById(tenantId);
         const orgName = organization ? organization.name : bookingPage.name;
         
-        // Get local confirmation code for calendar invite
-        const confirmationCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+        // Use the same confirmation code that was already created and stored
+        // This ensures consistency across the application
+        const confirmationCode = createdAppointment.confirmationCode;
         
-        // Create enhanced appointment object for email
+        // Create enhanced appointment object for email with all required fields
         const enhancedAppointment: any = {
           ...appointmentData,
           id: createdAppointment.id,
+          confirmationCode: confirmationCode, // Explicitly add confirmation code
           facilityName: facility.name,
           appointmentTypeName: appointmentType.name,
           timezone: facility.timezone || 'America/New_York'
@@ -6317,8 +6324,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const facilityTimezone = facility.timezone || 'America/New_York';
         
         // Send confirmation email with calendar attachment and QR code
+        // Prioritize driver email but fall back to other contact emails
+        const recipientEmail = appointmentData.driverEmail || appointmentData.contactEmail || req.body.email;
+        console.log(`[BookAppointment] Sending confirmation email to: ${recipientEmail}`);
+        
         await sendEmail({
-          to: appointmentData.contactEmail,
+          to: recipientEmail,
           from: process.env.SENDGRID_FROM_EMAIL || 'noreply@dockoptimizer.com',
           subject: `${orgName}: Appointment Confirmation #${confirmationCode} - ${formattedStartDate}`,
           html: `
