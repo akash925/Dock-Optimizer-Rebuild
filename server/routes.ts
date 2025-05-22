@@ -6207,6 +6207,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[BookAppointment] Calculated start_time: ${startTime} from date: ${dateString} and time: ${timeString}`);
       
+      // Find a system user ID to use as created_by (required field)
+      // First check if we have a system user - typically ID 1 for admin
+      const systemUserId = 1; // Default system admin ID
+      
       const schedule = {
         ...req.body,
         tenantId,
@@ -6225,7 +6229,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Add end_time field based on appointment type duration (default to 1 hour if not specified)
         endTime: appointmentType?.duration 
           ? new Date(new Date(startTime).getTime() + appointmentType.duration * 60000).toISOString()
-          : new Date(new Date(startTime).getTime() + 60 * 60000).toISOString()
+          : new Date(new Date(startTime).getTime() + 60 * 60000).toISOString(),
+        // Add required created_by field with default system user ID
+        createdBy: systemUserId,
+        // Also set lastModifiedBy to the same system user
+        lastModifiedBy: systemUserId
       };
       
       // Add createdAt if not present
