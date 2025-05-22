@@ -182,10 +182,21 @@ export default function BookingConfirmation() {
           }
         }
 
+        // Enhanced confirmation code and email handling
+        const finalConfirmationCode = schedule.confirmationCode || confirmationNumber || "HZL-" + Math.floor(100000 + Math.random() * 900000);
+        console.log(`[BookingConfirmation] Using confirmation code: ${finalConfirmationCode}`);
+        
+        // Log the contact information for debugging
+        console.log(`[BookingConfirmation] Contact info:`, {
+          driverEmail: schedule.driverEmail,
+          contactEmail: schedule.contactEmail,
+          email: schedule.email
+        });
+        
         // Set booking details with proper confirmation code handling
         setBookingDetails({
           id: Number(bookingId),
-          confirmationNumber: schedule.confirmationCode || confirmationNumber || "HZL-" + Math.floor(100000 + Math.random() * 900000),
+          confirmationNumber: finalConfirmationCode,
           appointmentDate,
           appointmentTime,
           facilityTimeDisplay,
@@ -194,7 +205,7 @@ export default function BookingConfirmation() {
           customerName: schedule.customerName || "Not provided",
           carrierName,
           contactName: schedule.driverName || "Not provided",
-          contactEmail: schedule.contactEmail || schedule.driverEmail || "Not provided",
+          contactEmail: schedule.driverEmail || schedule.contactEmail || schedule.email || "Not provided",
           contactPhone: schedule.contactPhone || "Not provided",
           driverPhone: schedule.driverPhone || "Not provided",
           truckNumber: schedule.truckNumber || "Not provided",

@@ -6094,7 +6094,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Create the appointment if the slot is available
         console.log('[BookAppointment] Creating appointment with data:', appointmentData);
-        return await storage.createAppointment(appointmentData);
+        
+        // The line below was using storage.createAppointment but we should use storage.createSchedule
+        // to ensure the appointment shows up in the calendar and appointment log
+        return await storage.createSchedule(appointmentData);
       });
       
       if (!newAppointment) {
@@ -6102,15 +6105,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to create appointment" });
       }
       
-      console.log(`[BookAppointment] Created appointment with ID: ${newAppointment.id}`);
+      console.log(`[BookAppointment] Created appointment with ID: ${newAppointment.id} and confirmation code: ${newAppointment.confirmationCode}`);
       
-      // Send confirmation email if driver email is provided
-      if (req.body.driverEmail) {
+      // Try to find the best email address to use for confirmation
+      const emailRecipient = req.body.driverEmail || req.body.contactEmail || req.body.email;
+      
+      // Send confirmation email if any email is provided
+      if (emailRecipient) {
         try {
-          console.log(`[BookAppointment] Sending confirmation email to: ${req.body.driverEmail}`);
+          console.log(`[BookAppointment] Sending confirmation email to: ${emailRecipient}`);
           
           await sendConfirmationEmail({
-            to: req.body.driverEmail,
+            to: emailRecipient,
             appointment: newAppointment,
             facility: facility,
             appointmentType: appointmentType
@@ -6122,7 +6128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Continue even if email fails
         }
       } else {
-        console.log('[BookAppointment] No driver email provided, skipping confirmation email');
+        console.log('[BookAppointment] No email provided, skipping confirmation email');
       }
       
       // Return the confirmation code to the client
