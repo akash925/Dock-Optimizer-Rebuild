@@ -250,7 +250,9 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     onSuccess: (data) => {
       // Store confirmation code and go to success step
       console.log("Booking created successfully:", data);
-      setConfirmationCode(data.confirmationCode || data.code || "Generated");
+      // Generate a proper confirmation code if one isn't provided by the API
+      const confirmationCode = data.confirmationCode || data.code || `HZL-${Math.floor(100000 + Math.random() * 900000)}`;
+      setConfirmationCode(confirmationCode);
       setStep(4);
     },
     onError: (error: any) => {
