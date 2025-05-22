@@ -6207,7 +6207,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         confirmationCode: `${tenantId === 2 ? 'HZL' : 'FCC'}-${Math.floor(100000 + Math.random() * 900000)}`,
         // Make sure status is correctly set
         status: 'confirmed',
-        createdVia: 'external'
+        createdVia: 'external',
+        // Add required carrier_id field with default value 1
+        carrierId: 1,
+        // Add other potentially required fields with default values
+        type: req.body.type || 'trailer',
+        dockId: null
       };
       
       // Add createdAt if not present
