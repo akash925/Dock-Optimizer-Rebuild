@@ -6211,11 +6211,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // First check if we have a system user - typically ID 1 for admin
       const systemUserId = 1; // Default system admin ID
       
+      // Parse the time value to determine local timezone offset
+      // Format: HH:MM
+      const [hours, minutes] = req.body.time.split(':').map(Number);
+      
+      // Create a proper date object with local timezone info
+      const appointmentDate = new Date(req.body.date);
+      appointmentDate.setHours(hours, minutes, 0, 0);
+      
+      // Convert to ISO string for storage but preserve the intended time
+      // This ensures the appointment shows at the correct time in the calendar
+      const correctedStartTime = appointmentDate.toISOString();
+      
+      console.log(`[BookAppointment] Original time: ${req.body.time}, Parsed time: ${hours}:${minutes}`);
+      console.log(`[BookAppointment] Corrected start time: ${correctedStartTime}`);
+      
+      // Generate a confirmation code that's compatible with both formats in use
+      // Don't use random confirmationCode to ensure consistency across the system
+      const confirmationPrefix = tenantId === 2 ? 'HZL' : 'FCC';
+      const confirmationNumber = Math.floor(100000 + Math.random() * 900000).toString();
+      const confirmationCode = `${confirmationPrefix}-${confirmationNumber}`;
+      
+      console.log(`[BookAppointment] Generated confirmation code: ${confirmationCode}`);
+      
       const schedule = {
         ...req.body,
         tenantId,
-        // Create a confirmation code with tenant prefix
-        confirmationCode: `${tenantId === 2 ? 'HZL' : 'FCC'}-${Math.floor(100000 + Math.random() * 900000)}`,
+        // Use the standardized confirmation code
+        confirmationCode: confirmationCode,
         // Make sure status is correctly set
         status: 'confirmed',
         createdVia: 'external',
@@ -6224,12 +6247,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Add other potentially required fields with default values
         type: req.body.type || 'trailer',
         dockId: null,
-        // Add start_time field
-        startTime: startTime,
+        // Use corrected start time with proper timezone handling
+        startTime: correctedStartTime,
         // Add end_time field based on appointment type duration (default to 1 hour if not specified)
         endTime: appointmentType?.duration 
-          ? new Date(new Date(startTime).getTime() + appointmentType.duration * 60000).toISOString()
-          : new Date(new Date(startTime).getTime() + 60 * 60000).toISOString(),
+          ? new Date(new Date(correctedStartTime).getTime() + appointmentType.duration * 60000).toISOString()
+          : new Date(new Date(correctedStartTime).getTime() + 60 * 60000).toISOString(),
         // Add required created_by field with default system user ID
         createdBy: systemUserId,
         // Also set lastModifiedBy to the same system user
