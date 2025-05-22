@@ -6155,6 +6155,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add the new endpoint to handle booking via slug parameter
+  app.post("/api/booking-pages/book/:slug", uploadBol.single('bolFile'), async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      console.log(`[BookAppointment] Received appointment booking request via slug: ${slug}`);
+      
+      // Get the booking page to determine its tenant
+      const bookingPage = await storage.getBookingPageBySlug(slug);
+      if (!bookingPage) {
+        console.log(`[BookAppointment] Error: No booking page found with slug: ${slug}`);
+        return res.status(404).json({ message: "Booking page not found" });
+      }
+      
+      const tenantId = bookingPage.tenantId;
+      console.log(`[BookAppointment] Found booking page tenant ID: ${tenantId}`);
+      
+      // Check if the facility belongs to the same tenant as the booking page
+      const facilityId = parseInt(req.body.facilityId, 10);
+      const facility = await storage.getFacility(facilityId);
+      
+      if (!facility) {
+        console.log(`[BookAppointment] Error: Facility not found with ID: ${facilityId}`);
+        return res.status(404).json({ message: "Facility not found" });
+      }
+      
+      if (facility.tenantId !== tenantId) {
+        console.log(`[BookAppointment] Error: Facility ${facilityId} belongs to tenant ${facility.tenantId}, not booking page tenant ${tenantId}`);
+        return res.status(403).json({ message: "Facility does not belong to this booking page's organization" });
+      }
+      
+      // Check if the appointment type belongs to the same tenant
+      const appointmentTypeId = parseInt(req.body.appointmentTypeId, 10);
+      const appointmentType = await storage.getAppointmentType(appointmentTypeId);
+      
+      if (!appointmentType) {
+        console.log(`[BookAppointment] Error: Appointment type not found with ID: ${appointmentTypeId}`);
+        return res.status(404).json({ message: "Appointment type not found" });
+      }
+      
+      // Create the schedule (appointment)
+      const schedule = {
+        ...req.body,
+        tenantId,
+        // Create a confirmation code with tenant prefix
+        confirmationCode: `${tenantId === 2 ? 'HZL' : 'FCC'}-${Math.floor(100000 + Math.random() * 900000)}`,
+        // Make sure status is correctly set
+        status: 'confirmed',
+        createdVia: 'external'
+      };
+      
+      // Add createdAt if not present
+      if (!schedule.createdAt) {
+        schedule.createdAt = new Date().toISOString();
+      }
+      
+      console.log(`[BookAppointment] Creating schedule with data:`, schedule);
+      
+      // Create the schedule record
+      const result = await storage.createSchedule(schedule);
+      
+      console.log(`[BookAppointment] Successfully created schedule with ID: ${result.id}`);
+      
+      // Send confirmation email if driver/dispatcher email is provided
+      if (result.driverEmail || result.contactEmail || result.email) {
+        try {
+          const emailTo = result.driverEmail || result.contactEmail || result.email;
+          console.log(`[BookAppointment] Sending confirmation email to: ${emailTo}`);
+          
+          // Send the confirmation email
+          await sendConfirmationEmail(result);
+          
+          console.log(`[BookAppointment] Successfully sent confirmation email to: ${emailTo}`);
+        } catch (emailError) {
+          console.error(`[BookAppointment] Error sending confirmation email:`, emailError);
+          // Don't fail the booking if email fails
+        }
+      } else {
+        console.log(`[BookAppointment] No email address provided for confirmation email`);
+      }
+      
+      // Return the created schedule with the confirmation code
+      res.status(201).json(result);
+      
+    } catch (err) {
+      console.error(`[BookAppointment] Error creating appointment:`, err);
+      
+      res.status(500).json({ 
+        message: "An error occurred while booking the appointment",
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
+
   // Keep the existing endpoint as well for backward compatibility
   app.post("/api/booking-pages/book-appointment", uploadBol.single('bolFile'), async (req, res) => {
     try {
