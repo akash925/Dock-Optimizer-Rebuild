@@ -182,10 +182,10 @@ export default function BookingConfirmation() {
           }
         }
 
-        // Set booking details
+        // Set booking details with proper confirmation code handling
         setBookingDetails({
           id: Number(bookingId),
-          confirmationNumber: confirmationNumber || "HZL-" + Math.floor(100000 + Math.random() * 900000),
+          confirmationNumber: schedule.confirmationCode || confirmationNumber || "HZL-" + Math.floor(100000 + Math.random() * 900000),
           appointmentDate,
           appointmentTime,
           facilityTimeDisplay,
