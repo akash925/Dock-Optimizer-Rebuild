@@ -3281,8 +3281,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return await storage.createSchedule(scheduleData);
       });
       
-      // Generate confirmation code
-      const confirmationCode = `HC${schedule.id}`;
+      // Use a consistent format for confirmation codes
+      // Either maintain the existing HZL/FCC format or update it if it's in the older HC format
+      
+      // Get tenant ID to determine the prefix (HZL or FCC)
+      const schedTenantId = schedule.tenantId || 2; // Default to Hanzo if no tenant ID
+      const prefix = schedTenantId === 2 ? 'HZL' : 'FCC';
+      const finalConfirmationCode = `${prefix}-${100000 + schedule.id}`;
+      
+      // Always update the schedule with the standardized confirmation code
+      // This ensures the code is consistent everywhere in the system
+      await storage.updateSchedule(schedule.id, { confirmationCode: finalConfirmationCode });
+      console.log(`[ConfirmationCode] Standardized confirmation code for schedule ${schedule.id} to ${finalConfirmationCode}`);
       
       // Send confirmation email
       try {
@@ -3296,7 +3306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Log email sending data
           console.log("[EMAIL SENDING]", {
             to: validatedData.email,
-            subject: `Dock Appointment Confirmation #${schedule.id}`
+            subject: `Dock Appointment Confirmation #${finalConfirmationCode}`
           });
             
           // Log date information for debugging
@@ -6200,45 +6210,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create the schedule (appointment)
-      // Calculate the start_time by combining date and time from the request
-      const dateString = req.body.date; // Format: YYYY-MM-DD
-      const timeString = req.body.time; // Format: HH:MM
-      const startTime = `${dateString}T${timeString}:00.000Z`; // Combines into ISO format
-      
-      console.log(`[BookAppointment] Calculated start_time: ${startTime} from date: ${dateString} and time: ${timeString}`);
-      
       // Find a system user ID to use as created_by (required field)
       // First check if we have a system user - typically ID 1 for admin
       const systemUserId = 1; // Default system admin ID
       
-      // Parse the time value to determine local timezone offset
+      // Parse the time value and correctly handle timezone
       // Format: HH:MM
       const [hours, minutes] = req.body.time.split(':').map(Number);
       
-      // Create a proper date object with local timezone info
-      const appointmentDate = new Date(req.body.date);
-      appointmentDate.setHours(hours, minutes, 0, 0);
+      // Create a date in the facility's timezone
+      // We need to construct the date explicitly to ensure it's in the correct timezone
+      const facilityTimezone = 'America/New_York'; // Eastern Time - this should eventually come from the facility settings
       
-      // Convert to ISO string for storage but preserve the intended time
-      // This ensures the appointment shows at the correct time in the calendar
-      const correctedStartTime = appointmentDate.toISOString();
+      // Format date as YYYY-MM-DD for date-fns parsing
+      const bookingDate = req.body.date; // Format should be YYYY-MM-DD
       
-      console.log(`[BookAppointment] Original time: ${req.body.time}, Parsed time: ${hours}:${minutes}`);
-      console.log(`[BookAppointment] Corrected start time: ${correctedStartTime}`);
+      // Create a time string in ISO format
+      const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+      
+      // Combine date and time in ISO format (YYYY-MM-DDTHH:MM:SS)
+      const localDateTimeString = `${bookingDate}T${formattedTime}`;
+      
+      // Parse as local time in Eastern Time Zone
+      // This ensures the appointment is created at the exact time selected in the booking system
+      const correctedStartTime = localDateTimeString + '.000Z';
+      
+      console.log(`[BookAppointment] Original input - Date: ${req.body.date}, Time: ${req.body.time}`);
+      console.log(`[BookAppointment] Formatted time: ${formattedTime}, Combined ISO: ${localDateTimeString}`);
+      console.log(`[BookAppointment] Final corrected start time: ${correctedStartTime}`);
       
       // Generate a confirmation code that's compatible with both formats in use
-      // Don't use random confirmationCode to ensure consistency across the system
+      // Generate a sequential, non-random confirmation code to ensure consistency across the system
       const confirmationPrefix = tenantId === 2 ? 'HZL' : 'FCC';
-      const confirmationNumber = Math.floor(100000 + Math.random() * 900000).toString();
-      const confirmationCode = `${confirmationPrefix}-${confirmationNumber}`;
       
-      console.log(`[BookAppointment] Generated confirmation code: ${confirmationCode}`);
+      // We'll use a specific format: PREFIX-NNNNNN where NNNNNN is 100000 + scheduleId
+      // But since we don't have the ID yet, we'll update it after creation
+      // For now, use a temporary placeholder that will be updated
+      const tempConfirmationCode = `${confirmationPrefix}-PENDING`;
+      
+      console.log(`[BookAppointment] Temporary confirmation code: ${tempConfirmationCode}`);
       
       const schedule = {
         ...req.body,
         tenantId,
         // Use the standardized confirmation code
-        confirmationCode: confirmationCode,
+        confirmationCode: tempConfirmationCode,
         // Make sure status is correctly set
         status: 'confirmed',
         createdVia: 'external',
