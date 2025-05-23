@@ -2,7 +2,7 @@ import { pgTable, serial, integer, timestamp, primaryKey } from 'drizzle-orm/pg-
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { bolDocuments } from './bol.ts';
-import { schedules } from '../shared/schema';
+import { schedules } from '../../shared/schema.ts';
 
 /**
  * Schema for linking BOL documents to appointments/schedules
