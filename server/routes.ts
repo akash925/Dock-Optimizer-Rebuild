@@ -3296,16 +3296,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Use a consistent format for confirmation codes
-      // Either maintain the existing HZL/FCC format or update it if it's in the older HC format
+      // Standard format across entire system: [PREFIX]-[6-DIGIT ID]
       
       // Get tenant ID to determine the prefix (HZL or FCC)
       const schedTenantId = schedule.tenantId || 2; // Default to Hanzo if no tenant ID
       const prefix = schedTenantId === 2 ? 'HZL' : 'FCC';
-      const finalConfirmationCode = `${prefix}-${100000 + schedule.id}`;
+      
+      // Always use 6 digits with leading zeros if needed
+      const paddedId = String(100000 + schedule.id).padStart(6, '0');
+      const finalConfirmationCode = `${prefix}-${paddedId}`;
       
       // Always update the schedule with the standardized confirmation code
       // This ensures the code is consistent everywhere in the system
       await storage.updateSchedule(schedule.id, { confirmationCode: finalConfirmationCode });
+      
+      // Log the standardization for debugging
       console.log(`[ConfirmationCode] Standardized confirmation code for schedule ${schedule.id} to ${finalConfirmationCode}`);
       
       // Send confirmation email
@@ -3341,6 +3346,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isEndTimeValid: endTime instanceof Date && !isNaN(endTime.getTime())
           });
           
+          // Check if BOL document was included in the booking data
+          let bolData = null;
+          if (validatedData.bolData) {
+            console.log("[BOL-Email] BOL data found in booking data:", validatedData.bolData);
+            bolData = validatedData.bolData;
+          }
+          
           // Send confirmation email with enhanced information - ensuring all required fields are present
           await sendConfirmationEmail(
             recipientEmail,
@@ -3360,7 +3372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               customerName: schedule.customerName || null,
               carrierName: schedule.carrierName || null,
               mcNumber: schedule.mcNumber || null,
-              bolNumber: schedule.bolNumber || null,
+              bolNumber: schedule.bolNumber || validatedData.bolNumber || null,
               poNumber: schedule.poNumber || null,
               palletCount: schedule.palletCount || null,
               weight: schedule.weight || null,
@@ -3373,6 +3385,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: schedule.status || 'scheduled',
               notes: schedule.notes || null,
               customFormData: schedule.customFormData || null,
+              
+              // Include BOL document information if available
+              bolData: bolData,
+              bolFileUploaded: !!bolData || !!validatedData.bolFileUploaded,
               createdBy: schedule.createdBy,
               createdAt: schedule.createdAt,
               lastModifiedAt: schedule.lastModifiedAt || null,

@@ -361,21 +361,42 @@ ${msg.text}
   }
 
   try {
-    logger.debug('EmailService', 'Sending email via SendGrid');
+    // First attempt
+    logger.debug('EmailService', 'Sending email via SendGrid (attempt 1)');
     await sgMail.send(msg);
     logger.info('EmailService', `Email sent successfully to ${params.to}`);
     return true;
   } catch (error: unknown) {
-    logger.error('EmailService', 'Error sending email via SendGrid', error);
+    logger.warn('EmailService', 'First attempt to send email failed, retrying once...', error);
     
     // Extract specific SendGrid error details if available
     if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'body' in error.response) {
-      logger.error('EmailService', 'SendGrid API error details', null, {
+      logger.error('EmailService', 'SendGrid API error details (first attempt)', null, {
         responseBody: error.response.body
       });
     }
     
-    return false;
+    // Try one more time after a brief delay
+    try {
+      // Wait 1 second before retry
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      logger.debug('EmailService', 'Sending email via SendGrid (attempt 2)');
+      await sgMail.send(msg);
+      logger.info('EmailService', `Email sent successfully on retry to ${params.to}`);
+      return true;
+    } catch (retryError: unknown) {
+      logger.error('EmailService', 'Error sending email via SendGrid (both attempts failed)', retryError);
+      
+      // Extract specific SendGrid error details if available
+      if (retryError && typeof retryError === 'object' && 'response' in retryError && retryError.response && typeof retryError.response === 'object' && 'body' in retryError.response) {
+        logger.error('EmailService', 'SendGrid API error details (retry attempt)', null, {
+          responseBody: retryError.response.body
+        });
+      }
+      
+      return false;
+    }
   }
 }
 
@@ -860,6 +881,16 @@ export async function sendConfirmationEmail(
             <tr>
               <td style="padding: 8px 0; color: #666;">Notes:</td>
               <td style="padding: 8px 0;"><strong>${schedule.notes}</strong></td>
+            </tr>` : ''}
+            ${schedule.bolNumber ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">BOL #:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.bolNumber}</strong></td>
+            </tr>` : ''}
+            ${schedule.bolFileUploaded ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">BOL Document:</td>
+              <td style="padding: 8px 0;"><strong style="color: #22c55e;">✓ Uploaded</strong></td>
             </tr>` : ''}
           </table>
         </div>
