@@ -277,7 +277,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         throw error;
       }
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Store confirmation code and go to success step
       console.log("Booking created successfully:", data);
       
@@ -285,17 +285,67 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       const confirmationCode = data.confirmationCode || data.code || `HZL-${Math.floor(100000 + Math.random() * 900000)}`;
       setConfirmationCode(confirmationCode);
       
+      // Link BOL document to the created appointment if available
+      let bolLinked = false;
+      if (bolFile && bolData && bolData.documentId && data.schedule?.id) {
+        try {
+          console.log("Linking BOL document to appointment...", {
+            documentId: bolData.documentId,
+            scheduleId: data.schedule.id
+          });
+          
+          // Try to link the existing BOL document to the appointment
+          const linkResponse = await fetch('/api/bol-upload/link', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              documentId: bolData.documentId,
+              scheduleId: data.schedule.id
+            }),
+          });
+          
+          if (linkResponse.ok) {
+            const linkResult = await linkResponse.json();
+            console.log("BOL document linked successfully:", linkResult);
+            bolLinked = true;
+          } else {
+            console.warn("Failed to link BOL document, trying re-upload with scheduleId");
+            
+            // Fallback: Re-upload the file with scheduleId
+            const formData = new FormData();
+            formData.append('bolFile', bolFile);
+            formData.append('scheduleId', String(data.schedule.id));
+            
+            const reuploadResponse = await fetch('/api/bol-upload/upload', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (reuploadResponse.ok) {
+              const reuploadResult = await reuploadResponse.json();
+              console.log("BOL document re-uploaded with scheduleId:", reuploadResult);
+              bolLinked = reuploadResult.appointmentLinked || false;
+            }
+          }
+        } catch (error) {
+          console.error("Error linking BOL document:", error);
+        }
+      }
+      
       // Store additional booking details for the confirmation page
       setBookingDetails({
         ...bookingDetails,
         confirmationCode,
         id: data.schedule?.id,
+        scheduleId: data.schedule?.id, // Ensure scheduleId is available
         emailSent: data.emailSent || false,
         startTime: data.schedule?.startTime,
         endTime: data.schedule?.endTime,
         facilityName: data.facilityName || bookingDetails.facilityName,
         appointmentTypeName: data.appointmentTypeName || bookingDetails.appointmentTypeName,
-        bolUploaded: !!bolData
+        bolUploaded: !!bolData && (bolLinked || !!bolData.documentId)
       });
       
       setStep(4); // Move to confirmation step
