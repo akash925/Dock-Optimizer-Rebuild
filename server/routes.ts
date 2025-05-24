@@ -251,9 +251,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register simplified BOL upload routes
   try {
-    const bolUploadRoutes = require('./routes/bol-upload');
-    app.use('/api/bol-upload', bolUploadRoutes);
-    console.log('BOL Upload routes registered');
+    // Use the new ESM-compatible module
+    import('./routes/bol-upload.mjs').then(bolUploadModule => {
+      const bolUploadRoutes = bolUploadModule.default;
+      app.use('/api/bol-upload', bolUploadRoutes);
+      console.log('BOL Upload routes registered');
+    }).catch(error => {
+      console.error('Error importing BOL Upload routes:', error);
+    });
   } catch (error) {
     console.error('Error registering BOL Upload routes:', error);
   }
