@@ -221,52 +221,76 @@ export function BookingWizardContent({
       setIsLoading(true);
       
       try {
-        // Format data for submission
+        // Format data for submission using the external booking format
+        // This ensures both internal and external booking use the same data structure
         const formattedData = {
+          // Core appointment details
           facilityId: bookingData.facilityId,
           appointmentTypeId: bookingData.appointmentTypeId,
-          type: bookingData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound',
+          pickupOrDropoff: bookingData.pickupOrDropoff || "dropoff",
           startTime: bookingData.startTime,
           endTime: bookingData.endTime,
-          customerName: bookingData.companyName, 
+          dockId: initialDockId,
+          
+          // Company and contact details
+          companyName: bookingData.companyName,
           contactName: bookingData.contactName,
-          contactEmail: bookingData.email,
-          contactPhone: bookingData.phone,
-          // Use 0 as default carrierId if not provided to avoid "Invalid carrier ID" error
+          email: bookingData.email,
+          phone: bookingData.phone,
+          customerRef: bookingData.customerRef || "",
+          
+          // Carrier and vehicle details
           carrierId: bookingData.carrierId || 0,
           carrierName: bookingData.carrierName,
           driverName: bookingData.driverName,
           driverPhone: bookingData.driverPhone,
+          driverEmail: bookingData.driverEmail || bookingData.email,
+          mcNumber: bookingData.mcNumber || "",
           truckNumber: bookingData.truckNumber,
-          trailerNumber: bookingData.trailerNumber,
-          notes: bookingData.notes,
-          // Include custom fields with standard questions properly wrapped
+          trailerNumber: bookingData.trailerNumber || "",
+          
+          // Additional details
+          notes: bookingData.notes || "",
+          status: "scheduled",
+          createdVia: internalMode ? "internal" : "external",
+          
+          // Custom form data with properly wrapped standard questions
           customFields: {
             standardQuestions: bookingData.customFields || {}
           },
-          // Additional fields for internal booking
-          status: 'scheduled',
-          source: internalMode ? 'internal' : 'external',
-          dockId: initialDockId
+          bolExtractedData: bookingData.bolExtractedData || null,
+          bolFileUploaded: bookingData.bolFileUploaded || false
         };
         
         console.log("Submitting appointment:", formattedData);
         
         if (onSubmitSuccess) {
+          // For internal mode, let the external-booking-modal handle the submission
           onSubmitSuccess(formattedData);
         } else {
-          // Default submission logic for external booking
+          // Default submission logic - always use the external booking endpoint
+          // This ensures consistent validation and processing for all bookings
           const res = await apiRequest('POST', '/api/schedules/external', formattedData);
           
           if (!res.ok) {
-            throw new Error('Failed to create appointment');
+            // Get detailed error message
+            try {
+              const errorData = await res.json();
+              if (errorData.errorCode === 'SLOT_UNAVAILABLE') {
+                throw new Error('The selected time slot is no longer available. Please select a different time.');
+              } else {
+                throw new Error(errorData.message || 'Failed to create appointment');
+              }
+            } catch (jsonError) {
+              throw new Error('Failed to create appointment');
+            }
           }
           
           const result = await res.json();
           
           toast({
             title: "Appointment Scheduled",
-            description: "Your appointment has been successfully scheduled.",
+            description: `Your appointment has been successfully scheduled. Confirmation code: ${result.confirmationCode}`,
           });
           
           // Navigate to confirmation page
