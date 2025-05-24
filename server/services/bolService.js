@@ -254,4 +254,99 @@ export class BolService {
       throw error;
     }
   }
+
+  /**
+   * Process and save a BOL document, optionally linking it to an appointment
+   * 
+   * @param {Object} fileInfo - Information about the uploaded file
+   * @param {number} tenantId - ID of the tenant
+   * @param {number} userId - ID of the user who uploaded the document
+   * @param {number|null} scheduleId - Optional ID of the appointment to link with
+   * @returns {Promise<Object>} - Result of processing and saving
+   */
+  async processAndSaveBolDocument(fileInfo, tenantId, userId, scheduleId = null) {
+    try {
+      logger.info('BOL-Service', `Processing and saving BOL document`, {
+        fileName: fileInfo.originalName,
+        tenantId,
+        userId,
+        scheduleId
+      });
+      
+      // Determine if file is processable by OCR
+      const processableTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+      const canProcess = processableTypes.includes(fileInfo.mimetype);
+      
+      let ocrResult = null;
+      let status = 'pending';
+      
+      // Attempt OCR processing if file type is supported
+      if (canProcess) {
+        try {
+          logger.info('BOL-Service', `Starting OCR processing for file: ${fileInfo.path}`);
+          ocrResult = await this.processImageWithTimeout(fileInfo.path);
+          status = 'completed';
+          
+          logger.info('BOL-Service', 'OCR processing completed', {
+            success: ocrResult.validation?.success || false,
+            fieldsExtracted: Object.keys(ocrResult.metadata || {}).length
+          });
+        } catch (ocrError) {
+          logger.error('BOL-Service', 'OCR processing failed', ocrError, {
+            filePath: fileInfo.path
+          });
+          status = 'failed';
+        }
+      } else {
+        logger.info('BOL-Service', `File type not supported for OCR processing: ${fileInfo.mimetype}`);
+        status = 'skipped';
+      }
+      
+      // Save the document to the database regardless of OCR result
+      const savedDocument = await this.saveBolDocument(
+        fileInfo,
+        ocrResult,
+        tenantId,
+        userId,
+        status
+      );
+      
+      logger.info('BOL-Service', `BOL document saved to database with ID: ${savedDocument.id}`);
+      
+      // Link to appointment if scheduleId is provided
+      let linkCreated = false;
+      if (scheduleId && savedDocument.id) {
+        try {
+          const link = await this.linkBolToAppointment(savedDocument.id, scheduleId);
+          linkCreated = !!link;
+          
+          logger.info('BOL-Service', `BOL document linked to appointment`, {
+            documentId: savedDocument.id,
+            scheduleId,
+            linkId: link?.id
+          });
+        } catch (linkError) {
+          logger.error('BOL-Service', 'Error linking BOL to appointment', linkError, {
+            documentId: savedDocument.id,
+            scheduleId
+          });
+          // Don't fail the whole operation if linking fails
+        }
+      }
+      
+      // Return the results
+      return {
+        documentId: savedDocument.id,
+        ocrResult,
+        linkCreated,
+        status
+      };
+      
+    } catch (error) {
+      logger.error('BOL-Service', 'Error processing and saving BOL document', error, {
+        fileName: fileInfo.originalName
+      });
+      throw error;
+    }
+  }
 }
