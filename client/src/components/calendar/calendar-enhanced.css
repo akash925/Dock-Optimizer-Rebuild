@@ -43,14 +43,22 @@
   font-size: 0.75rem !important;
 }
 
-/* Tighter day spacing */
+/* Eliminate column spacing and whitespace */
 .fc-timegrid-cols table {
   border-spacing: 0 !important;
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+.fc-timegrid-col.fc-day {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: calc(100% / 7) !important;
 }
 
 .fc .fc-daygrid-day-frame {
-  padding-top: 4px !important;
-  padding-bottom: 4px !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 /* Responsive adaptations */

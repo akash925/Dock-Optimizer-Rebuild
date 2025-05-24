@@ -389,29 +389,30 @@ export default function ScheduleWeekCalendar({
 
       {/* View mode buttons removed - now using view switcher in the header */}
       
-      {/* Week Calendar Grid - With sticky headers */}
+      {/* Week Calendar Grid - With sticky headers - Improved spacing */}
       <div className="border rounded relative">
         {/* Sticky day headers */}
         <div 
           ref={dayHeadersRef}
           className="grid grid-cols-8 min-w-max sticky top-0 z-20 shadow-sm" 
-          style={{ width: 'calc(100% - 0px)' }}
+          style={{ width: '100%' }}
         >
           {/* Empty top-left cell */}
           <div className="border-b border-r h-10 w-16 bg-gray-50"></div>
           
-          {/* Day headers */}
+          {/* Day headers - Improved sizing with no gaps */}
           {weekDays.map((day, i) => (
             <div 
               key={i} 
               className={cn(
-                "border-b border-r h-10 px-1 w-[calc((100%-4rem)/7)] min-w-[6rem] text-center flex flex-col justify-center",
+                "border-b border-r h-10 px-0 w-[calc((100%-4rem)/7)] min-w-[6rem] text-center flex flex-col justify-center",
                 day.getDate() === new Date().getDate() && 
                 day.getMonth() === new Date().getMonth() && 
                 day.getFullYear() === new Date().getFullYear() 
                   ? "bg-blue-50" 
                   : "bg-gray-50"
               )}
+              style={{ padding: '0', margin: '0' }}
             >
               <div className="font-medium text-sm">{format(day, 'EEE M/d')}</div>
             </div>
