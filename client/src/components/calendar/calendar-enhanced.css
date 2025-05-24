@@ -113,6 +113,18 @@
   left: 1px !important;
 }
 
+/* Fix calendar header layout/whitespace issues */
+.fc-col-header-cell {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.fc-timegrid-col.fc-day {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: calc(100% / 7) !important;
+}
+
 /* Calendar boundaries */
 .fc-view-harness {
   max-width: 100%;

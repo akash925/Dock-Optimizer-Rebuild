@@ -1665,7 +1665,7 @@ export function AppointmentDetailsDialog({
                       </div>
                       
                       <div className="flex space-x-2">
-                        {parsedData.bolData?.fileUrl && (
+                        {parsedData?.bolData?.fileUrl && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
