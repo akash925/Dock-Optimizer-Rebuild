@@ -1,7 +1,12 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, date, varchar, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, date, varchar, unique, decimal } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Import custom schema files
+import { bolDocuments, BolDocument, InsertBolDocument } from "../drizzle/schema/bol";
+import { appointmentBolLinks, AppointmentBolLink, InsertAppointmentBolLink } from "../drizzle/schema/appointment_bol_links";
+import { ocrAnalytics, OcrAnalytics, InsertOcrAnalytics } from "../drizzle/schema/ocr_analytics";
 
 // Tenant status enum
 export const TenantStatus = {

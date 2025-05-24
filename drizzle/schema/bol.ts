@@ -16,7 +16,7 @@ export const bolDocuments = pgTable('bol_documents', {
   uploadedBy: integer('uploaded_by'),
   ocrData: jsonb('ocr_data'),  // Raw OCR output
   parsedData: jsonb('parsed_data'), // Structured extracted fields
-  processingStatus: varchar('processing_status', { length: 50 }).default('completed'),
+  ocrStatus: varchar('ocr_status', { length: 50 }).default('completed').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
@@ -26,7 +26,7 @@ export const insertBolDocumentSchema = createInsertSchema(bolDocuments, {
   // Define custom validations for specific fields if needed
   fileSize: z.number().positive(),
   mimeType: z.string().min(1),
-}).omit({ id: true });
+}).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Create types from the schema
 export type BolDocument = typeof bolDocuments.$inferSelect;
