@@ -1449,7 +1449,7 @@ export function AppointmentDetailsDialog({
                 Appointment Confirmation Code
               </h3>
               <span className="bg-slate-100 px-3 py-1 rounded-md font-mono font-medium">
-                {appointment.confirmationCode || `HZL-${appointment.id.toString().padStart(6, '0')}`}
+                {appointment.confirmationCode}
               </span>
             </div>
             
@@ -1468,7 +1468,7 @@ export function AppointmentDetailsDialog({
                       carrierId: appointment.carrierId ?? null,
                       appointmentTypeId: appointment.appointmentTypeId ?? null
                     }}
-                    confirmationCode={appointment.confirmationCode || `HZL-${appointment.id.toString().padStart(6, '0')}`}
+                    confirmationCode={appointment.confirmationCode}
                     isExternal={true}
                   />
                 </div>
@@ -1638,7 +1638,11 @@ export function AppointmentDetailsDialog({
               const parsedData = parseCustomFormData();
               
               // Check for BOL data in either customFormData or directly on the appointment
-              if (parsedData?.bolData || appointment.bolNumber || appointment.bolDocumentPath) {
+              const hasBolData = parsedData && parsedData.bolData && typeof parsedData.bolData === 'object';
+              const hasDirectBolInfo = appointment.bolNumber || appointment.bolDocumentPath;
+              const hasBolDocuments = appointment.bolDocuments && appointment.bolDocuments.length > 0;
+              
+              if (hasBolData || hasDirectBolInfo || hasBolDocuments) {
                 return (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between bg-primary/5 p-3 rounded-md border border-primary/20">
@@ -1646,17 +1650,17 @@ export function AppointmentDetailsDialog({
                         <FileCheck className="h-5 w-5 text-primary mr-2" />
                         <div>
                           <p className="font-medium">
-                            {(parsedData?.bolData?.originalName || 
-                             parsedData?.bolData?.fileName || 
-                             appointment.bolNumber ||
-                             'BOL Document')}
+                            {(hasBolData && (parsedData?.bolData?.originalName || parsedData?.bolData?.fileName)) 
+                              || (hasBolDocuments && appointment.bolDocuments && appointment.bolDocuments[0]?.name)
+                              || appointment.bolNumber
+                              || 'BOL Document'}
                           </p>
-                          {(parsedData?.bolData?.bolNumber || appointment.bolNumber) && (
+                          {(hasBolData && parsedData?.bolData?.bolNumber || appointment.bolNumber) && (
                             <p className="text-xs text-muted-foreground">
-                              BOL Number: {parsedData?.bolData?.bolNumber || appointment.bolNumber}
+                              BOL Number: {(hasBolData && parsedData?.bolData?.bolNumber) || appointment.bolNumber}
                             </p>
                           )}
-                          {parsedData?.bolData?.uploadedAt && (
+                          {(hasBolData && parsedData?.bolData?.uploadedAt) && (
                             <p className="text-xs text-muted-foreground">
                               Uploaded: {new Date(parsedData.bolData.uploadedAt).toLocaleDateString()}
                             </p>
@@ -1665,7 +1669,7 @@ export function AppointmentDetailsDialog({
                       </div>
                       
                       <div className="flex space-x-2">
-                        {parsedData?.bolData?.fileUrl && (
+                        {(hasBolData && parsedData?.bolData?.fileUrl) && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
