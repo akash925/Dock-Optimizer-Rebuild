@@ -1438,7 +1438,7 @@ export function AppointmentDetailsDialog({
                       carrierId: appointment.carrierId ?? null,
                       appointmentTypeId: appointment.appointmentTypeId ?? null
                     }}
-                    confirmationCode={`HC${appointment.id.toString().padStart(6, '0')}`}
+                    confirmationCode={appointment.confirmationCode || `HZL-${appointment.id.toString().padStart(6, '0')}`}
                     isExternal={true}
                   />
                 </div>
@@ -1607,7 +1607,8 @@ export function AppointmentDetailsDialog({
               
               const parsedData = parseCustomFormData();
               
-              if (parsedData?.bolData) {
+              // Check for BOL data in either customFormData or directly on the appointment
+              if (parsedData?.bolData || appointment.bolNumber || appointment.bolDocumentPath) {
                 return (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between bg-primary/5 p-3 rounded-md border border-primary/20">
