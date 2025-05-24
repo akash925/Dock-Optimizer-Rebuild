@@ -45,7 +45,11 @@ export interface EnhancedSchedule {
   dockName?: string;
   timezone?: string;
   creatorEmail?: string;  // Email of the person who created the appointment
-  confirmationCode?: string; // Optional confirmation code format
+  confirmationCode?: string; // Standardized confirmation code format
+  
+  // BOL-related properties
+  bolData?: any; // OCR extracted data from BOL document
+  bolFileUploaded?: boolean; // Whether a BOL file was uploaded
 }
 
 // Initialize SendGrid if API key is available
@@ -949,6 +953,8 @@ export async function sendConfirmationEmail(
     ${schedule.trailerNumber ? `Trailer #: ${schedule.trailerNumber}` : ''}
     ${schedule.poNumber ? `PO #: ${schedule.poNumber}` : ''}
     ${schedule.notes ? `Notes: ${schedule.notes}` : ''}
+    ${schedule.bolNumber ? `BOL #: ${schedule.bolNumber}` : ''}
+    ${schedule.bolFileUploaded ? `BOL Document: Uploaded` : ''}
     
     CHECK-IN INFORMATION
     ------------------
