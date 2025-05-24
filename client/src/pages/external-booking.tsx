@@ -970,6 +970,51 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                       <p>{bookingDetails.appointmentTypeName}</p>
                     </>
                   )}
+                  
+                  {/* Driver Information */}
+                  {bookingDetails.driverName && (
+                    <>
+                      <p className="text-muted-foreground">Driver:</p>
+                      <p>{bookingDetails.driverName}</p>
+                    </>
+                  )}
+                  
+                  {bookingDetails.driverPhone && (
+                    <>
+                      <p className="text-muted-foreground">Driver Phone:</p>
+                      <p>{bookingDetails.driverPhone}</p>
+                    </>
+                  )}
+                  
+                  {/* Customer/Carrier Information */}
+                  {bookingDetails.carrierName && (
+                    <>
+                      <p className="text-muted-foreground">Carrier:</p>
+                      <p>{bookingDetails.carrierName}</p>
+                    </>
+                  )}
+                  
+                  {bookingDetails.companyName && (
+                    <>
+                      <p className="text-muted-foreground">Company:</p>
+                      <p>{bookingDetails.companyName}</p>
+                    </>
+                  )}
+                  
+                  {/* Vehicle Information */}
+                  {bookingDetails.truckNumber && (
+                    <>
+                      <p className="text-muted-foreground">Truck #:</p>
+                      <p>{bookingDetails.truckNumber}</p>
+                    </>
+                  )}
+                  
+                  {bookingDetails.trailerNumber && (
+                    <>
+                      <p className="text-muted-foreground">Trailer #:</p>
+                      <p>{bookingDetails.trailerNumber}</p>
+                    </>
+                  )}
                 </div>
               </div>
             )}

@@ -1449,7 +1449,7 @@ export function AppointmentDetailsDialog({
                 Appointment Confirmation Code
               </h3>
               <span className="bg-slate-100 px-3 py-1 rounded-md font-mono font-medium">
-                {appointment.confirmationCode}
+                {appointment.confirmationCode || `HZL-${appointment.id.toString().padStart(6, '0')}`}
               </span>
             </div>
             
@@ -1669,6 +1669,7 @@ export function AppointmentDetailsDialog({
                       </div>
                       
                       <div className="flex space-x-2">
+                        {/* Download button for BOL data from customFormData */}
                         {(hasBolData && parsedData?.bolData?.fileUrl) && (
                           <TooltipProvider>
                             <Tooltip>
@@ -1696,7 +1697,63 @@ export function AppointmentDetailsDialog({
                           </TooltipProvider>
                         )}
                         
-                        {parsedData.bolData.fileUrl && (
+                        {/* Download button for BOL documents from appointment.bolDocuments */}
+                        {(hasBolDocuments && appointment.bolDocuments && appointment.bolDocuments[0]?.fileUrl) && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs"
+                                  asChild
+                                >
+                                  <a 
+                                    href={appointment.bolDocuments[0].fileUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Download className="h-3.5 w-3.5 mr-1" />
+                                    Download
+                                  </a>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Download BOL document</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        
+                        {/* Download button for direct BOL document path */}
+                        {appointment.bolDocumentPath && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs"
+                                  asChild
+                                >
+                                  <a 
+                                    href={appointment.bolDocumentPath} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Download className="h-3.5 w-3.5 mr-1" />
+                                    Download
+                                  </a>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Download BOL document</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        
+                        {(hasBolData && parsedData?.bolData?.fileUrl) && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1708,6 +1765,33 @@ export function AppointmentDetailsDialog({
                                 >
                                   <a 
                                     href={parsedData.bolData.fileUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                  </a>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View in new tab</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        
+                        {/* View in new tab for bolDocuments */}
+                        {(hasBolDocuments && appointment.bolDocuments && appointment.bolDocuments[0]?.fileUrl) && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs"
+                                  asChild
+                                >
+                                  <a 
+                                    href={appointment.bolDocuments[0].fileUrl} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                   >
