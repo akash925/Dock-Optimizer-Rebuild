@@ -217,16 +217,27 @@ export function generateICalEvent(
   return icalContent;
 }
 
+import logger from './logger';
+
 export async function sendEmail(params: EmailParams): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
+  // Check for required email module
+  const isEmailModuleEnabled = !process.env.DISABLE_EMAIL_NOTIFICATIONS;
+  if (!isEmailModuleEnabled) {
+    logger.warn('EmailService', 'Email notifications are disabled by system configuration');
+    return false;
+  }
+
   if (!params.to || !params.subject) {
-    console.error('Missing required email parameters (to, subject)');
+    logger.error('EmailService', 'Missing required email parameters (to, subject)', null, { 
+      providedParams: Object.keys(params)
+    });
     return false;
   }
 
   // Validate email address format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(params.to)) {
-    console.error(`Invalid email address format: ${params.to}`);
+    logger.error('EmailService', `Invalid email address format: ${params.to}`);
     return false;
   }
 
@@ -235,21 +246,20 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
   
   // Validate the sender email with improved error handling
   if (!senderEmail) {
-    console.error('No sender email specified - using default');
+    logger.warn('EmailService', 'No sender email specified - using default');
     senderEmail = 'notifications@dockoptimizer.com';
   } else if (senderEmail.startsWith('SG.')) {
-    console.error('ERROR: SENDGRID_FROM_EMAIL appears to be an API key instead of an email address.');
-    console.error('Please update your environment variables:');
-    console.error('  SENDGRID_API_KEY: Should be your API key starting with "SG."');
-    console.error('  SENDGRID_FROM_EMAIL: Should be a valid sender email (e.g., notifications@dockoptimizer.com)');
+    logger.error('EmailService', 'SENDGRID_FROM_EMAIL appears to be an API key instead of an email address', null, {
+      action: "Please update your environment variables: SENDGRID_API_KEY should be your API key starting with 'SG.' and SENDGRID_FROM_EMAIL should be a valid sender email"
+    });
     senderEmail = 'notifications@dockoptimizer.com';
   } else if (!emailRegex.test(senderEmail)) {
-    console.error(`Invalid sender email address format: "${senderEmail}"`);
-    console.error('Email address must be in the format: name@domain.com');
-    console.error('Using default sender email instead');
+    logger.error('EmailService', `Invalid sender email address format: "${senderEmail}"`, null, {
+      message: 'Email address must be in the format: name@domain.com'
+    });
     senderEmail = 'notifications@dockoptimizer.com';
   } else {
-    console.log(`Using sender email: ${senderEmail}`);
+    logger.debug('EmailService', `Using sender email: ${senderEmail}`);
   }
 
   // Prepare the email message
@@ -264,19 +274,17 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
   // Add attachments if present
   if (params.attachments && params.attachments.length > 0) {
     msg.attachments = params.attachments;
+    logger.debug('EmailService', `Including ${params.attachments.length} attachment(s)`);
   }
 
   // Skip email sending only if explicitly told to do so
   if (process.env.SKIP_EMAIL_SENDING === 'true') {
-    console.log(`[DEV MODE] Email would be sent to: ${params.to} with subject: ${params.subject}`);
-    console.log(`[DEV MODE] From: ${senderEmail}`);
-    console.log('Email HTML preview:');
-    console.log(msg.html.substring(0, 500) + (msg.html.length > 500 ? '...' : ''));
-    
-    // Log calendar attachment if present
-    if (params.attachments && params.attachments.length > 0) {
-      console.log('Email has calendar attachment:', params.attachments[0].filename);
-    }
+    logger.info('EmailService', `[DEV MODE] Email would be sent to: ${params.to}`, {
+      subject: params.subject,
+      from: senderEmail,
+      previewLength: msg.html.length,
+      hasAttachments: !!params.attachments?.length
+    });
     
     return {
       html: msg.html,
@@ -286,24 +294,42 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
   }
   
   // Always log email attempt for debugging 
-  console.log(`Attempting to send email to: ${params.to} with subject: ${params.subject}`);
-  console.log(`From: ${senderEmail}`);
+  logger.info('EmailService', `Attempting to send email to: ${params.to}`, {
+    subject: params.subject,
+    from: senderEmail
+  });
 
-  // In production, attempt to send via SendGrid
+  // Check if we have a valid SendGrid API key
   if (!process.env.SENDGRID_API_KEY) {
-    console.warn('SendGrid API key not set, skipping email send');
+    logger.error('EmailService', 'SendGrid API key not set, skipping email send', null, {
+      action: "Add the SENDGRID_API_KEY to your environment variables"
+    });
+    return false;
+  }
+
+  // Check if the API key looks valid (basic format check)
+  if (!process.env.SENDGRID_API_KEY.startsWith('SG.')) {
+    logger.error('EmailService', 'Invalid SendGrid API key format', null, {
+      message: "The API key should start with 'SG.'"
+    });
     return false;
   }
 
   try {
+    logger.debug('EmailService', 'Sending email via SendGrid');
     await sgMail.send(msg);
-    console.log(`Email sent successfully to ${params.to}`);
+    logger.info('EmailService', `Email sent successfully to ${params.to}`);
     return true;
   } catch (error: unknown) {
-    console.error('Error sending email:', error);
+    logger.error('EmailService', 'Error sending email via SendGrid', error);
+    
+    // Extract specific SendGrid error details if available
     if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'body' in error.response) {
-      console.error(`SendGrid API error: ${JSON.stringify(error.response.body)}`);
+      logger.error('EmailService', 'SendGrid API error details', null, {
+        responseBody: error.response.body
+      });
     }
+    
     return false;
   }
 }
