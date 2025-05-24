@@ -1194,6 +1194,76 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             </div>
           </div>
           
+          {/* Appointment Details */}
+          <div className="bg-primary/5 border border-primary/20 rounded-md p-4 my-4">
+            <h3 className="text-sm font-medium mb-2 text-primary">Appointment Details</h3>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {bookingDetails.facilityName && (
+                <>
+                  <p className="text-muted-foreground">Facility:</p>
+                  <p className="font-medium">{bookingDetails.facilityName}</p>
+                </>
+              )}
+              
+              {bookingDetails.appointmentTypeName && (
+                <>
+                  <p className="text-muted-foreground">Service Type:</p>
+                  <p className="font-medium">{bookingDetails.appointmentTypeName}</p>
+                </>
+              )}
+              
+              {bookingDetails.startTime && (
+                <>
+                  <p className="text-muted-foreground">Date:</p>
+                  <p className="font-medium">{new Date(bookingDetails.startTime).toLocaleDateString(undefined, {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}</p>
+                </>
+              )}
+              
+              {bookingDetails.startTime && bookingDetails.endTime && (
+                <>
+                  <p className="text-muted-foreground">Time:</p>
+                  <p className="font-medium">
+                    {new Date(bookingDetails.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+                    {new Date(bookingDetails.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </p>
+                </>
+              )}
+              
+              {bookingDetails.type && (
+                <>
+                  <p className="text-muted-foreground">Appointment Type:</p>
+                  <p className="font-medium">{bookingDetails.type === 'inbound' ? 'Delivery' : 'Pickup'}</p>
+                </>
+              )}
+              
+              {bookingDetails.status && (
+                <>
+                  <p className="text-muted-foreground">Status:</p>
+                  <p className="font-medium capitalize">{bookingDetails.status}</p>
+                </>
+              )}
+              
+              {bookingDetails.dockName && (
+                <>
+                  <p className="text-muted-foreground">Dock:</p>
+                  <p className="font-medium">{bookingDetails.dockName}</p>
+                </>
+              )}
+              
+              {bookingDetails.scheduleId && (
+                <>
+                  <p className="text-muted-foreground">Appointment ID:</p>
+                  <p className="font-medium">#{bookingDetails.scheduleId}</p>
+                </>
+              )}
+            </div>
+          </div>
+          
           {/* Customer Information */}
           {bookingDetails.customerName && (
             <div className="bg-primary/5 border border-primary/20 rounded-md p-4 my-4">
@@ -1213,6 +1283,52 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   <>
                     <p className="text-muted-foreground">Phone:</p>
                     <p>{bookingDetails.phone}</p>
+                  </>
+                )}
+                
+                {bookingDetails.companyName && (
+                  <>
+                    <p className="text-muted-foreground">Company:</p>
+                    <p>{bookingDetails.companyName}</p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Driver Information */}
+          {bookingDetails.driverName && (
+            <div className="bg-primary/5 border border-primary/20 rounded-md p-4 my-4">
+              <h3 className="text-sm font-medium mb-2 text-primary">Driver Information</h3>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <p className="text-muted-foreground">Driver Name:</p>
+                <p className="font-medium">{bookingDetails.driverName}</p>
+                
+                {bookingDetails.driverPhone && (
+                  <>
+                    <p className="text-muted-foreground">Driver Phone:</p>
+                    <p>{bookingDetails.driverPhone}</p>
+                  </>
+                )}
+                
+                {bookingDetails.driverEmail && (
+                  <>
+                    <p className="text-muted-foreground">Driver Email:</p>
+                    <p>{bookingDetails.driverEmail}</p>
+                  </>
+                )}
+                
+                {bookingDetails.truckNumber && (
+                  <>
+                    <p className="text-muted-foreground">Truck #:</p>
+                    <p>{bookingDetails.truckNumber}</p>
+                  </>
+                )}
+                
+                {bookingDetails.trailerNumber && (
+                  <>
+                    <p className="text-muted-foreground">Trailer #:</p>
+                    <p>{bookingDetails.trailerNumber}</p>
                   </>
                 )}
               </div>

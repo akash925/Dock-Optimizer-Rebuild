@@ -6396,10 +6396,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const emailTo = result.driverEmail || result.contactEmail || result.email;
           console.log(`[BookAppointment] Sending confirmation email to: ${emailTo}`);
           
-          // Send the confirmation email
-          await sendConfirmationEmail(result);
+          // Send the confirmation email with the correct parameters
+          const confirmationCode = result.confirmationCode || 'NO-CODE';
           
-          console.log(`[BookAppointment] Successfully sent confirmation email to: ${emailTo}`);
+          // Get enhanced schedule data from the database
+          const db = require('./db').db;
+          const { schedules } = require('../shared/schema');
+          const { eq } = require('drizzle-orm');
+          
+          // Fetch the schedule with related data
+          const scheduleData = await db.query.schedules.findFirst({
+            where: eq(schedules.id, result.id),
+            with: {
+              facility: true,
+              appointmentType: true,
+              dock: true
+            }
+          });
+          
+          if (scheduleData) {
+            // Create enhanced schedule object with display-friendly names
+            const enhancedSchedule = {
+              ...scheduleData,
+              facilityName: scheduleData.facility?.name || 'Main Facility',
+              appointmentTypeName: scheduleData.appointmentType?.name || 'Standard Appointment',
+              dockName: scheduleData.dock?.name || 'Not assigned',
+              timezone: scheduleData.facility?.timezone || 'America/New_York'
+            };
+            
+            await sendConfirmationEmail(emailTo, confirmationCode, enhancedSchedule);
+            console.log(`[BookAppointment] Successfully sent confirmation email to: ${emailTo}`);
+          } else {
+            console.error(`[BookAppointment] Could not find schedule data for ID: ${result.id}`);
+          }
         } catch (emailError) {
           console.error(`[BookAppointment] Error sending confirmation email:`, emailError);
           // Don't fail the booking if email fails
