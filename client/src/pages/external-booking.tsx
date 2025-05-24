@@ -861,14 +861,79 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
           <CheckCircle className="text-green-500 w-10 h-10 mx-auto" />
           <h2 className="text-lg font-bold">Booking Confirmed!</h2>
           <p>Your appointment has been successfully scheduled.</p>
+          
+          {/* Confirmation Code Card */}
           <div className="bg-primary/10 rounded-md p-4 my-4">
             <p className="text-sm">Confirmation Code:</p>
             <p className="text-lg font-bold">{confirmationCode}</p>
+            
+            {/* Show appointment details if available */}
+            {bookingDetails.startTime && (
+              <div className="mt-2 pt-2 border-t border-primary/20 text-sm">
+                <div className="grid grid-cols-2 gap-2 text-left">
+                  <p className="text-muted-foreground">Date:</p>
+                  <p>{new Date(bookingDetails.startTime).toLocaleDateString()}</p>
+                  
+                  <p className="text-muted-foreground">Time:</p>
+                  <p>{new Date(bookingDetails.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                  
+                  {bookingDetails.facilityName && (
+                    <>
+                      <p className="text-muted-foreground">Location:</p>
+                      <p>{bookingDetails.facilityName}</p>
+                    </>
+                  )}
+                  
+                  {bookingDetails.appointmentTypeName && (
+                    <>
+                      <p className="text-muted-foreground">Service:</p>
+                      <p>{bookingDetails.appointmentTypeName}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+          
+          {/* BOL Information Section */}
+          {bookingDetails.bolUploaded && (
+            <div className="bg-blue-50 rounded-md p-4 my-4 border border-blue-100">
+              <div className="flex items-center justify-center mb-2">
+                <FileCheck className="h-5 w-5 text-blue-500 mr-2" />
+                <p className="text-sm font-medium">Bill of Lading Document Uploaded</p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Your BOL has been linked to this appointment and will be available to the facility.
+              </p>
+            </div>
+          )}
+          
+          {/* Email Notification Status */}
+          <div className={`rounded-md p-4 my-4 ${bookingDetails.emailSent ? 'bg-green-50 border border-green-100' : 'bg-yellow-50 border border-yellow-100'}`}>
+            <div className="flex items-center justify-center mb-1">
+              {bookingDetails.emailSent ? (
+                <>
+                  <Mail className="h-5 w-5 text-green-500 mr-2" />
+                  <p className="text-sm font-medium">Confirmation Email Sent</p>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-5 w-5 text-yellow-500 mr-2" />
+                  <p className="text-sm font-medium">Email Notification Status</p>
+                </>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {bookingDetails.emailSent 
+                ? "A confirmation email has been sent with your appointment details." 
+                : "Please make note of your confirmation code as the email could not be sent."}
+            </p>
+          </div>
+          
           <p className="text-sm text-muted-foreground">
-            A confirmation email has been sent with your appointment details.
             Please keep your confirmation code for check-in.
           </p>
+          
           <Button 
             onClick={() => {
               // Reset the form and go back to step 1
