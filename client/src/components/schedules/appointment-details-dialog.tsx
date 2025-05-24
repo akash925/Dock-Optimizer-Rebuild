@@ -50,16 +50,38 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import AppointmentQRCode from "./appointment-qr-code";
 
-interface ExtendedSchedule extends Omit<Schedule, 'facilityId'> {
+// Type definition that avoids type mismatches
+interface ExtendedSchedule {
+  id: number;
+  dockId: number | null;
+  carrierId: number | null;
+  appointmentTypeId: number;
+  startTime: string;
+  endTime: string;
+  status: string;
+  type: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: number | null;
+  lastModifiedBy: number | null;
+  truckNumber: string;
+  trailerNumber: string | null;
+  driverName: string | null;
+  customerName?: string;
   dockName?: string;
   appointmentTypeName?: string;
   facilityName?: string;
-  facilityId?: number;
+  facilityId?: number | null;
   facilityTimezone?: string;
   confirmationCode?: string;
-  bolNumber?: string;
-  bolDocumentPath?: string;
+  bolNumber?: string | null;
+  bolDocumentPath?: string | null;
   customFormData?: any;
+  bolDocuments?: any[];
+  weight?: string | null;
+  palletCount?: string | null;
+  mcNumber?: string | null;
 }
 
 interface AppointmentDetailsDialogProps {
@@ -456,8 +478,12 @@ export function AppointmentDetailsDialog({
       });
       
       // Race the API call against a timeout
-      const res = await Promise.race([apiPromise, timeoutPromise]);
+      const res = await Promise.race([apiPromise, timeoutPromise]) as Response;
       console.log("[Checkout] Received response from server");
+      
+      if (!res.ok) {
+        throw new Error("Failed to check out appointment");
+      }
       
       return res.json();
     },
@@ -1620,16 +1646,17 @@ export function AppointmentDetailsDialog({
                         <FileCheck className="h-5 w-5 text-primary mr-2" />
                         <div>
                           <p className="font-medium">
-                            {parsedData.bolData.originalName || 
-                             parsedData.bolData.fileName || 
-                             'BOL Document'}
+                            {(parsedData?.bolData?.originalName || 
+                             parsedData?.bolData?.fileName || 
+                             appointment.bolNumber ||
+                             'BOL Document')}
                           </p>
-                          {parsedData.bolData.bolNumber && (
+                          {(parsedData?.bolData?.bolNumber || appointment.bolNumber) && (
                             <p className="text-xs text-muted-foreground">
-                              BOL Number: {parsedData.bolData.bolNumber}
+                              BOL Number: {parsedData?.bolData?.bolNumber || appointment.bolNumber}
                             </p>
                           )}
-                          {parsedData.bolData.uploadedAt && (
+                          {parsedData?.bolData?.uploadedAt && (
                             <p className="text-xs text-muted-foreground">
                               Uploaded: {new Date(parsedData.bolData.uploadedAt).toLocaleDateString()}
                             </p>
@@ -1638,7 +1665,7 @@ export function AppointmentDetailsDialog({
                       </div>
                       
                       <div className="flex space-x-2">
-                        {parsedData.bolData.fileUrl && (
+                        {parsedData.bolData?.fileUrl && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
