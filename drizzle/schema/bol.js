@@ -8,7 +8,6 @@
 import { pgTable, text, integer, timestamp, serial, json } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
-import { schedules } from './index.js';
 
 /**
  * BOL Documents Table
@@ -82,13 +81,3 @@ export const insertAppointmentBolLinkSchema = createInsertSchema(appointmentBolL
   id: true,
   createdAt: true
 });
-
-// Type definitions
-export type BolDocument = typeof bolDocuments.$inferSelect;
-export type InsertBolDocument = z.infer<typeof insertBolDocumentSchema>;
-
-export type OcrAnalytics = typeof ocrAnalytics.$inferSelect;
-export type InsertOcrAnalytics = z.infer<typeof insertOcrAnalyticsSchema>;
-
-export type AppointmentBolLink = typeof appointmentBolLinks.$inferSelect;
-export type InsertAppointmentBolLink = z.infer<typeof insertAppointmentBolLinkSchema>;

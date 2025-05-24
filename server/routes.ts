@@ -249,6 +249,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Error registering BOL OCR routes:', error);
   }
   
+  // Register simplified BOL upload routes
+  try {
+    const bolUploadRoutes = require('./routes/bol-upload');
+    app.use('/api/bol-upload', bolUploadRoutes);
+    console.log('BOL Upload routes registered');
+  } catch (error) {
+    console.error('Error registering BOL Upload routes:', error);
+  }
+  
   // Run the email field setup during startup
   try {
     // Define the function as a const arrow function to avoid strict mode issues
