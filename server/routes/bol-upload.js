@@ -11,6 +11,7 @@ const path = require('path');
 const fs = require('fs');
 const bolService = require('../services/bol-service');
 const logger = require('../logger');
+const documentValidator = require('../utils/documentValidator');
 
 const router = express.Router();
 
@@ -66,6 +67,22 @@ router.post('/upload', upload.single('bolFile'), async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'No file uploaded. Please provide a BOL document file.'
+      });
+    }
+    
+    // Validate the uploaded document before processing
+    const validationResult = documentValidator.validateDocument(req.file.path);
+    if (!validationResult.isValid) {
+      logger.warn('BOL-Upload', `Document validation failed: ${validationResult.error}`, {
+        details: validationResult.details,
+        filename: req.file.originalname
+      });
+      
+      return res.status(400).json({
+        success: false,
+        error: validationResult.error,
+        details: validationResult.details,
+        message: 'The uploaded document could not be processed. Please check the file and try again.'
       });
     }
     

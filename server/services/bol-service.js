@@ -9,6 +9,9 @@ const fs = require('fs');
 const path = require('path');
 const { pool } = require('../db');
 const logger = require('../logger');
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
 
 /**
  * Save BOL document information to the database
@@ -155,15 +158,33 @@ async function processAndSaveBolDocument(fileInfo, tenantId, userId, scheduleId)
   try {
     logger.info('BOL-Service', `Processing and saving BOL document: ${fileInfo.originalName}`);
     
-    // For now, we'll create a placeholder OCR result
-    // In a real implementation, this would call the OCR service
-    const ocrResult = {
-      success: true,
-      metadata: {
-        bolNumber: extractBolNumberFromFilename(fileInfo.originalName),
-        processingTimestamp: new Date().toISOString()
-      }
+    // Process the document with OCR
+    const startTime = Date.now();
+    const ocrResult = await processDocumentWithOCR(fileInfo.path);
+    const processingTime = Date.now() - startTime;
+    
+    // Enhance OCR result with additional metadata
+    ocrResult.metadata = {
+      ...ocrResult.metadata,
+      processingTimestamp: new Date().toISOString(),
+      processingTimeMs: processingTime,
+      originalFilename: fileInfo.originalName,
+      fileSize: fileInfo.size
     };
+    
+    // If OCR didn't extract a BOL number, try to get it from the filename
+    if (!ocrResult.metadata.bolNumber) {
+      ocrResult.metadata.bolNumber = extractBolNumberFromFilename(fileInfo.originalName);
+      ocrResult.metadata.bolNumberSource = 'filename';
+    } else {
+      ocrResult.metadata.bolNumberSource = 'ocr';
+    }
+    
+    logger.info('BOL-Service', `OCR processing completed in ${processingTime}ms`, {
+      success: ocrResult.success,
+      fileSize: fileInfo.size,
+      processingTime
+    });
     
     // Save to database
     const savedDocument = await saveBolDocument(fileInfo, ocrResult, tenantId, userId);
@@ -209,10 +230,106 @@ async function processAndSaveBolDocument(fileInfo, tenantId, userId, scheduleId)
 }
 
 /**
- * Extract BOL number from filename (placeholder implementation)
+ * Process a document with OCR to extract BOL information
+ * 
+ * @param {string} filePath - Path to the document file
+ * @returns {Promise<Object>} - OCR processing results
+ */
+async function processDocumentWithOCR(filePath) {
+  try {
+    logger.info('BOL-Service', `Starting OCR processing for: ${filePath}`);
+    
+    // Check if the file exists
+    if (!fs.existsSync(filePath)) {
+      return {
+        success: false,
+        error: 'File not found',
+        metadata: {}
+      };
+    }
+    
+    // Default result structure
+    const result = {
+      success: false,
+      metadata: {}
+    };
+    
+    try {
+      // Call the Python OCR script to process the document
+      const scriptPath = path.join(process.cwd(), 'server', 'utils', 'ocr_processor.py');
+      
+      // Set a timeout for OCR processing (10 seconds)
+      const { stdout, stderr } = await execPromise(`python ${scriptPath} "${filePath}"`, {
+        timeout: 10000 // 10 seconds
+      });
+      
+      if (stderr) {
+        logger.warn('BOL-Service', `OCR processing stderr: ${stderr}`);
+      }
+      
+      // Parse the OCR results
+      if (stdout) {
+        try {
+          const ocrData = JSON.parse(stdout);
+          result.success = true;
+          result.metadata = {
+            bolNumber: ocrData.bol_number || null,
+            customerName: ocrData.customer_name || null,
+            carrierName: ocrData.carrier_name || null,
+            shipDate: ocrData.ship_date || null,
+            deliveryDate: ocrData.delivery_date || null,
+            detectedText: ocrData.text || null,
+            confidence: ocrData.confidence || 0
+          };
+          
+          // If specific fields were found, mark extraction as successful
+          if (ocrData.bol_number || ocrData.customer_name || ocrData.carrier_name) {
+            result.extractionSuccess = true;
+          }
+        } catch (parseError) {
+          logger.error('BOL-Service', 'Error parsing OCR output', parseError, { stdout });
+          result.error = 'Error parsing OCR output';
+          result.rawOutput = stdout.substring(0, 500); // Store truncated raw output for debugging
+        }
+      } else {
+        result.error = 'OCR process produced no output';
+      }
+    } catch (ocrError) {
+      logger.error('BOL-Service', 'Error during OCR processing', ocrError);
+      
+      // Handle timeout specifically
+      if (ocrError.code === 'ETIMEDOUT' || (ocrError.message && ocrError.message.includes('timeout'))) {
+        result.error = 'OCR processing timed out';
+      } else {
+        result.error = `OCR processing error: ${ocrError.message}`;
+      }
+    }
+    
+    // If OCR failed but the document exists, still consider this a partial success
+    // so the document can be stored and processed manually
+    if (!result.success && fs.existsSync(filePath)) {
+      result.success = true; // Document exists and was saved
+      result.ocrFailed = true; // But OCR processing failed
+      result.metadata = result.metadata || {};
+      result.metadata.ocrError = result.error;
+    }
+    
+    return result;
+  } catch (error) {
+    logger.error('BOL-Service', 'Unexpected error in processDocumentWithOCR', error);
+    return {
+      success: false,
+      error: error.message,
+      metadata: {}
+    };
+  }
+}
+
+/**
+ * Extract BOL number from filename
  * 
  * @param {string} filename - Original filename
- * @returns {string} - Extracted BOL number or placeholder
+ * @returns {string} - Extracted BOL number or generated placeholder
  */
 function extractBolNumberFromFilename(filename) {
   // Try to extract a BOL number from the filename
