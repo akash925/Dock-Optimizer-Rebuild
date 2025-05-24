@@ -1457,61 +1457,6 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
               </div>
             </div>
           </div>
-              
-              {bookingDetails.status && (
-                <>
-                  <p className="text-muted-foreground">Status:</p>
-                  <p className="font-medium capitalize">{bookingDetails.status}</p>
-                </>
-              )}
-              
-              {bookingDetails.dockName && (
-                <>
-                  <p className="text-muted-foreground">Dock:</p>
-                  <p className="font-medium">{bookingDetails.dockName}</p>
-                </>
-              )}
-              
-              {bookingDetails.scheduleId && (
-                <>
-                  <p className="text-muted-foreground">Appointment ID:</p>
-                  <p className="font-medium">#{bookingDetails.scheduleId}</p>
-                </>
-              )}
-            </div>
-          </div>
-          
-          {/* Customer Information */}
-          {bookingDetails.customerName && (
-            <div className="bg-primary/5 border border-primary/20 rounded-md p-4 my-4">
-              <h3 className="text-sm font-medium mb-2 text-primary">Customer Information</h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <p className="text-muted-foreground">Name:</p>
-                <p className="font-medium">{bookingDetails.customerName}</p>
-                
-                {bookingDetails.email && (
-                  <>
-                    <p className="text-muted-foreground">Email:</p>
-                    <p>{bookingDetails.email}</p>
-                  </>
-                )}
-                
-                {bookingDetails.phone && (
-                  <>
-                    <p className="text-muted-foreground">Phone:</p>
-                    <p>{bookingDetails.phone}</p>
-                  </>
-                )}
-                
-                {bookingDetails.companyName && (
-                  <>
-                    <p className="text-muted-foreground">Company:</p>
-                    <p>{bookingDetails.companyName}</p>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
           
           {/* Driver Information */}
           {bookingDetails.driverName && (
