@@ -64,6 +64,7 @@
     "@types/papaparse": "^5.3.15",
     "@types/qrcode": "^1.5.5",
     "@types/react-window": "^1.8.8",
+    "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",

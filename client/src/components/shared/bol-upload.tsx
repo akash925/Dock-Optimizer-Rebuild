@@ -278,6 +278,28 @@ export default function BolUpload({
             {uploadStage === 'error' && uploadedFileUrl && (
               <div className="mt-2">
                 <p className="text-sm">Document was saved but data extraction failed. You can still access the file.</p>
+                <div className="mt-2 flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    asChild
+                    className="text-xs"
+                  >
+                    <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Download
+                    </a>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs"
+                    onClick={() => handleFileChange(null)}
+                  >
+                    <span className="mr-1">⟳</span>
+                    Try Again
+                  </Button>
+                </div>
               </div>
             )}
           </AlertDescription>

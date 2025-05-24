@@ -1014,16 +1014,58 @@ function extractTextFromFilename(filename: string): string {
  * @param file - The file to compress
  * @returns The compressed file (or original if compression is not supported)
  */
+import imageCompression from 'browser-image-compression';
+
 export async function compressFile(file: File): Promise<File> {
-  console.log(`Compressing file: ${file.name}, size: ${file.size} bytes`);
+  console.log(`Processing file for upload: ${file.name}, size: ${formatBytes(file.size)}`);
   
-  // In a production app, we would use compression libraries based on file type
-  // For images: browser-image-compression
-  // For PDFs: pdf-lib with compression settings
-  // For this implementation, we'll just return the original file
+  // Skip compression for non-image files or files smaller than 1MB
+  if (!file.type.startsWith('image/') || file.size < 1024 * 1024) {
+    console.log('Skipping compression: Not an image or already small enough');
+    return file;
+  }
   
-  // Log that we would compress in production
-  console.log('Compression skipped for demo purposes. In production, we would use proper compression libraries');
+  try {
+    // Configure compression options
+    const options = {
+      maxSizeMB: 1, // Max file size in MB
+      maxWidthOrHeight: 1920, // Max width/height
+      useWebWorker: true, // Use web worker for better performance
+      fileType: file.type, // Maintain original file type
+      initialQuality: 0.7, // Initial quality setting for JPEG compression
+    };
+    
+    console.log(`Starting image compression with settings: maxSize=${options.maxSizeMB}MB, maxDimension=${options.maxWidthOrHeight}px`);
+    
+    const startTime = Date.now();
+    const compressedFile = await imageCompression(file, options);
+    const compressionTime = Date.now() - startTime;
+    
+    const compressionRatio = (file.size / compressedFile.size).toFixed(2);
+    const sizeSaved = formatBytes(file.size - compressedFile.size);
+    
+    console.log(`Compression complete:
+      - Original size: ${formatBytes(file.size)}
+      - Compressed size: ${formatBytes(compressedFile.size)}
+      - Compression ratio: ${compressionRatio}x
+      - Size reduction: ${sizeSaved}
+      - Processing time: ${compressionTime}ms`);
+    
+    return compressedFile;
+  } catch (error) {
+    console.error('Error during file compression:', error);
+    console.log('Using original file due to compression error');
+    return file;
+  }
+}
+
+// Helper function to format bytes into human-readable format
+function formatBytes(bytes: number, decimals: number = 2): string {
+  if (bytes === 0) return '0 Bytes';
   
-  return file;
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + sizes[i];
 }
