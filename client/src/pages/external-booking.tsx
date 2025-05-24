@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider } from '@/hooks/use-booking-theme';
-import { Loader2, XCircle, CheckCircle, Upload } from 'lucide-react';
+import { Loader2, XCircle, CheckCircle, Upload, FileCheck, Mail, AlertCircle, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
@@ -58,7 +58,19 @@ export default function ExternalBooking({ slug }: { slug: string }) {
           <div className="bg-white rounded-lg shadow-lg p-6 mx-auto max-w-4xl">
             {/* Header with logo */}
             <div className="flex items-center mb-6">
-              {bookingPage.logoUrl ? (
+              {bookingPage.useOrganizationLogo ? (
+                <img 
+                  src={`/api/admin/organizations/${bookingPage.organizationId}/logo`} 
+                  alt={`${bookingPage.name} logo`} 
+                  className="h-16 mr-4"
+                  onError={(e) => {
+                    // Fallback to booking page logo or default
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = bookingPage.logoUrl ? 
+                      `/api/booking-pages/logo/${bookingPage.id}` : dockOptimizerLogo;
+                  }}
+                />
+              ) : bookingPage.logoUrl ? (
                 <img 
                   src={`/api/booking-pages/logo/${bookingPage.id}`} 
                   alt={`${bookingPage.name} logo`} 
@@ -861,6 +873,24 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
           <CheckCircle className="text-green-500 w-10 h-10 mx-auto" />
           <h2 className="text-lg font-bold">Booking Confirmed!</h2>
           <p>Your appointment has been successfully scheduled.</p>
+          
+          {/* QR Code for Check-in */}
+          <div className="bg-white p-4 rounded-lg shadow-sm mb-4 inline-block mx-auto">
+            <div className="bg-gradient-to-tr from-primary-100 to-primary-50 p-3 rounded-lg">
+              <div className="bg-white p-3 rounded-lg">
+                {/* Generate QR code based on confirmation code */}
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(confirmationCode)}`} 
+                  alt="Check-in QR Code" 
+                  className="w-32 h-32 mx-auto"
+                />
+                <div className="flex items-center justify-center mt-2">
+                  <QrCode className="h-4 w-4 mr-1 text-primary" />
+                  <p className="text-xs text-muted-foreground">Scan for quick check-in</p>
+                </div>
+              </div>
+            </div>
+          </div>
           
           {/* Confirmation Code Card */}
           <div className="bg-primary/10 rounded-md p-4 my-4">
