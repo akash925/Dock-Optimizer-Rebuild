@@ -13,7 +13,7 @@ import path from 'path';
 import fs from 'fs';
 import { processImageFile, processBase64Image, testOcr } from '../ocr/ocr_connector.mjs';
 import { BolService } from '../services/bolService.js';
-import { validateOcrResult, extractFieldsFromOcrResults } from '../utils/ocrValidator.js';
+import { validateOcrResult, extractFieldsFromOcrResults } from '../utils/ocrValidator.mjs';
 import logger from '../logger.js';
 
 const router = express.Router();

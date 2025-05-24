@@ -1,15 +1,19 @@
 /**
- * OCR Validator Utility
+ * OCR Validator Utility (ESM Version)
  * 
  * Provides specialized validation for OCR processing to ensure documents
  * are suitable for text extraction before they're passed to the OCR engine.
  */
 
-const fs = require('fs');
-const path = require('path');
-const logger = require('../logger');
-const { execSync } = require('child_process');
-const documentValidator = require('./documentValidator');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
+import logger from '../logger.js';
+
+// Get the directory name in ESM context
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Validates that an image has sufficient quality for OCR processing
@@ -17,19 +21,28 @@ const documentValidator = require('./documentValidator');
  * @param {string} imagePath - Path to the image file
  * @returns {Object} - Validation result with success flag and error message if any
  */
-function validateImageForOcr(imagePath) {
+export function validateImageForOcr(imagePath) {
   try {
-    // First use the general document validator
-    const baseValidation = documentValidator.validateImage(imagePath);
-    if (!baseValidation.isValid) {
-      return baseValidation;
+    // Basic checks - file exists and has minimum size
+    if (!fs.existsSync(imagePath)) {
+      return { 
+        isValid: false, 
+        error: 'File not found', 
+        details: `File ${imagePath} does not exist` 
+      };
     }
     
-    // Additional checks specific to OCR quality
-    // For production, we would check resolution, contrast, etc.
+    // Check file size
+    const stats = fs.statSync(imagePath);
+    if (stats.size === 0) {
+      return { 
+        isValid: false, 
+        error: 'Empty file', 
+        details: 'The image file is empty (0 bytes)' 
+      };
+    }
     
     // Simple size check - images that are too small often produce poor OCR results
-    const stats = fs.statSync(imagePath);
     if (stats.size < 10000) { // Less than 10KB
       return {
         isValid: false,
@@ -38,41 +51,12 @@ function validateImageForOcr(imagePath) {
       };
     }
     
-    // Add image dimensions check if available
-    try {
-      // Try to get image dimensions using ImageMagick if available
-      const dimensionsResult = execSync(`identify -format "%wx%h" "${imagePath}"`, { encoding: 'utf8' });
-      const [width, height] = dimensionsResult.trim().split('x').map(Number);
-      
-      if (width < 300 || height < 300) {
-        return {
-          isValid: false,
-          error: 'Image dimensions too small for OCR',
-          details: `Image dimensions (${width}x${height}) are too small for reliable OCR. Minimum recommended is 300x300.`,
-          width,
-          height
-        };
-      }
-      
-      // Add the dimensions to the result
-      return {
-        isValid: true,
-        width,
-        height,
-        fileSize: stats.size,
-        format: path.extname(imagePath).substring(1).toUpperCase()
-      };
-    } catch (dimensionError) {
-      // If we can't get dimensions, still proceed with the validation
-      logger.warn('OCR-Validator', `Could not determine image dimensions for ${imagePath}: ${dimensionError.message}`);
-      return {
-        isValid: true,
-        warning: 'Could not verify image dimensions',
-        fileSize: stats.size,
-        format: path.extname(imagePath).substring(1).toUpperCase()
-      };
-    }
-    
+    // If we got here, the image seems valid
+    return { 
+      isValid: true,
+      fileSize: stats.size,
+      format: path.extname(imagePath).substring(1).toUpperCase()
+    };
   } catch (error) {
     logger.error('OCR-Validator', `Error validating image for OCR ${imagePath}: ${error.message}`);
     return {
@@ -89,51 +73,40 @@ function validateImageForOcr(imagePath) {
  * @param {string} pdfPath - Path to the PDF file
  * @returns {Object} - Validation result with success flag and error message if any
  */
-function validatePdfForOcr(pdfPath) {
+export function validatePdfForOcr(pdfPath) {
   try {
-    // First use the general document validator
-    const baseValidation = documentValidator.validatePdf(pdfPath);
-    if (!baseValidation.isValid) {
-      return baseValidation;
-    }
-    
-    // Check if the PDF has extractable text
-    try {
-      // Try to extract text using pdftotext if available
-      const textSample = execSync(`pdftotext -f 1 -l 1 "${pdfPath}" - | head -c 1000`, { encoding: 'utf8' });
-      
-      // If we got some text, the PDF is probably good for text extraction
-      if (textSample && textSample.trim().length > 10) {
-        return {
-          isValid: true,
-          hasExtractableText: true,
-          textSample: textSample.substring(0, 100) + '...',
-          pageCount: baseValidation.pageCount || 'unknown',
-          fileSize: baseValidation.fileSize
-        };
-      }
-      
-      // If no text was extracted, the PDF might be scanned/image-based
-      logger.info('OCR-Validator', `PDF ${pdfPath} has no extractable text, will use OCR processing`);
-      return {
-        isValid: true,
-        hasExtractableText: false,
-        needsOcr: true,
-        warning: 'PDF contains no extractable text, will use OCR processing',
-        pageCount: baseValidation.pageCount || 'unknown',
-        fileSize: baseValidation.fileSize
-      };
-    } catch (textExtractionError) {
-      // If pdftotext is not available, we'll assume the PDF is valid and continue
-      logger.warn('OCR-Validator', `Could not check PDF for extractable text: ${textExtractionError.message}`);
-      return {
-        isValid: true,
-        warning: 'Could not verify PDF text extraction capability',
-        pageCount: baseValidation.pageCount || 'unknown',
-        fileSize: baseValidation.fileSize
+    // Basic checks - file exists and has minimum size
+    if (!fs.existsSync(pdfPath)) {
+      return { 
+        isValid: false, 
+        error: 'File not found', 
+        details: `File ${pdfPath} does not exist` 
       };
     }
     
+    // Check file size
+    const stats = fs.statSync(pdfPath);
+    if (stats.size === 0) {
+      return { 
+        isValid: false, 
+        error: 'Empty file', 
+        details: 'The PDF file is empty (0 bytes)' 
+      };
+    }
+
+    if (stats.size < 1000) { // Less than 1KB
+      return { 
+        isValid: false, 
+        error: 'Suspiciously small PDF', 
+        details: `The PDF file is only ${stats.size} bytes, which is unusually small` 
+      };
+    }
+    
+    // If we got here, the PDF seems valid
+    return { 
+      isValid: true,
+      fileSize: stats.size
+    };
   } catch (error) {
     logger.error('OCR-Validator', `Error validating PDF for OCR ${pdfPath}: ${error.message}`);
     return {
@@ -150,7 +123,7 @@ function validatePdfForOcr(pdfPath) {
  * @param {string} filePath - Path to the document file
  * @returns {Object} - Validation result with success flag and error message if any
  */
-function validateDocumentForOcr(filePath) {
+export function validateDocumentForOcr(filePath) {
   if (!filePath) {
     return { 
       isValid: false, 
@@ -180,7 +153,7 @@ function validateDocumentForOcr(filePath) {
  * @param {Object} ocrResult - Result from OCR processing
  * @returns {boolean} - Whether the result is valid
  */
-function validateOcrResult(ocrResult) {
+export function validateOcrResult(ocrResult) {
   if (!ocrResult) return false;
   
   // Check if any text was detected
@@ -202,7 +175,7 @@ function validateOcrResult(ocrResult) {
  * @param {Object} ocrResult - Result from OCR processing
  * @returns {Object} - Extracted structured fields
  */
-function extractFieldsFromOcrResults(ocrResult) {
+export function extractFieldsFromOcrResults(ocrResult) {
   const text = ocrResult.text || '';
   const metadata = {
     processingTimestamp: new Date().toISOString()
@@ -262,11 +235,3 @@ function extractFieldsFromOcrResults(ocrResult) {
   
   return metadata;
 }
-
-module.exports = {
-  validateImageForOcr,
-  validatePdfForOcr,
-  validateDocumentForOcr,
-  validateOcrResult,
-  extractFieldsFromOcrResults
-};

@@ -12,6 +12,9 @@ const logger = require('../logger');
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
+const documentValidator = require('../utils/documentValidator');
+const ocrValidator = require('../utils/ocrValidator');
+const metricsLogger = require('../utils/metrics-logger');
 
 /**
  * Save BOL document information to the database
@@ -30,6 +33,19 @@ async function saveBolDocument(fileInfo, ocrResult, tenantId, userId) {
     
     // Determine OCR status based on result
     const ocrStatus = ocrResult && ocrResult.success !== false ? 'completed' : 'failed';
+    
+    // Log metrics for document processing
+    if (ocrResult) {
+      const fileExt = path.extname(fileInfo.name).toLowerCase().substring(1);
+      metricsLogger.recordDocumentProcessingMetrics({
+        documentType: fileInfo.mimetype || fileExt,
+        documentSize: fileInfo.size,
+        processingTime: ocrResult.metadata?.processingTimeMs || 0,
+        success: ocrStatus === 'completed',
+        errorType: ocrResult.error || null,
+        tenantId
+      });
+    }
     
     // Insert into database
     const query = `
@@ -248,10 +264,50 @@ async function processDocumentWithOCR(filePath) {
       };
     }
     
+    // Validate the document for OCR processing
+    const validationResult = ocrValidator.validateDocumentForOcr(filePath);
+    if (!validationResult.isValid) {
+      logger.warn('BOL-Service', `Document validation failed for OCR: ${validationResult.error}`, {
+        details: validationResult.details,
+        filePath
+      });
+      
+      return {
+        success: false,
+        error: validationResult.error,
+        details: validationResult.details,
+        metadata: {
+          validationFailed: true,
+          validationDetails: validationResult.details,
+          processingTimestamp: new Date().toISOString()
+        }
+      };
+    }
+    
+    // Log validation results
+    logger.info('BOL-Service', `Document validated for OCR processing`, {
+      filePath,
+      fileSize: validationResult.fileSize,
+      hasExtractableText: validationResult.hasExtractableText,
+      needsOcr: validationResult.needsOcr,
+      pageCount: validationResult.pageCount,
+      warning: validationResult.warning
+    });
+    
     // Default result structure
     const result = {
       success: false,
-      metadata: {}
+      metadata: {
+        validationResults: {
+          fileSize: validationResult.fileSize,
+          hasExtractableText: validationResult.hasExtractableText,
+          needsOcr: validationResult.needsOcr,
+          pageCount: validationResult.pageCount,
+          width: validationResult.width,
+          height: validationResult.height,
+          format: validationResult.format
+        }
+      }
     };
     
     try {

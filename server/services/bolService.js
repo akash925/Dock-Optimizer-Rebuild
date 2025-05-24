@@ -6,7 +6,7 @@
  */
 
 import { processImageFile } from '../ocr/ocr_connector.mjs';
-import { validateOcrResult, extractFieldsFromOcrResults } from '../utils/ocrValidator.js';
+import { validateOcrResult, extractFieldsFromOcrResults } from '../utils/ocrValidator.mjs';
 import { BolRepository } from '../repositories/bolRepository.js';
 import logger from '../logger.js';
 

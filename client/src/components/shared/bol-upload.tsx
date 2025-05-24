@@ -31,7 +31,7 @@ export default function BolUpload({
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'processing' | 'analyzing' | 'completed' | 'error'>('idle');
+  const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'compressing' | 'processing' | 'analyzing' | 'validating' | 'extracting' | 'completed' | 'error'>('idle');
 
   const handleFileChange = async (file: File | null) => {
     // Clear previous state
@@ -59,16 +59,24 @@ export default function BolUpload({
 
       // 1. Parse the BOL using the enhanced OCR service
       setUploadStage('processing');
-      setUploadProgress(30);
+      setUploadProgress(20);
       const parsedData = await parseBol(file);
       setBolData(parsedData);
       
       console.log('BOL parsed successfully:', parsedData);
       
       // 2. Compress the file for upload
-      setUploadStage('processing');
-      setUploadProgress(50);
+      setUploadStage('compressing');
+      setUploadProgress(35);
       const compressedFile = await compressFile(file);
+      
+      // Update progress based on compression result
+      setUploadProgress(45);
+      if (compressedFile.size < file.size) {
+        console.log(`File compressed: ${file.size} → ${compressedFile.size} bytes (${Math.round((1 - compressedFile.size / file.size) * 100)}% reduction)`);
+      } else {
+        console.log('File not compressed (not an image or already optimized)');
+      }
       
       // 3. Upload the file to the server
       setUploadStage('uploading');
