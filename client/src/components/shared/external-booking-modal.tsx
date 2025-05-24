@@ -48,22 +48,23 @@ export default function ExternalBookingModal({
     updatedAt: new Date().toISOString(),
   });
   
-  // Mutation for submitting the appointment
+  // Mutation for submitting the appointment - using the same endpoint as external booking
   const appointmentMutation = useMutation({
     mutationFn: async (data: any) => {
-      const endpoint = editMode === 'edit' 
-        ? `/api/schedules/${initialData?.id}` 
-        : '/api/schedules';
-        
-      const method = editMode === 'edit' ? 'PATCH' : 'POST';
+      // For edit mode, use the standard PATCH endpoint
+      if (editMode === 'edit' && initialData?.id) {
+        const res = await apiRequest('PATCH', `/api/schedules/${initialData.id}`, data);
+        return await res.json();
+      }
       
-      const res = await apiRequest(method, endpoint, data);
+      // For create mode, use the external booking endpoint with internal flag
+      const res = await apiRequest('POST', '/api/schedules/external', data);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: `Appointment ${editMode === 'edit' ? 'Updated' : 'Created'}`,
-        description: `The appointment has been successfully ${editMode === 'edit' ? 'updated' : 'created'}.`,
+        description: `The appointment has been successfully ${editMode === 'edit' ? 'updated' : 'created'}.${data?.confirmationCode ? ` Confirmation code: ${data.confirmationCode}` : ''}`,
       });
       
       // Invalidate relevant queries
@@ -73,11 +74,20 @@ export default function ExternalBookingModal({
       onClose();
     },
     onError: (error: Error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to ${editMode === 'edit' ? 'update' : 'create'} appointment: ${error.message}`,
-        variant: 'destructive',
-      });
+      // Check for specific error codes
+      if (error.message.includes('SLOT_UNAVAILABLE')) {
+        toast({
+          title: 'Time Slot Unavailable',
+          description: 'The selected time slot is no longer available. Please select a different time.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: `Failed to ${editMode === 'edit' ? 'update' : 'create'} appointment: ${error.message}`,
+          variant: 'destructive',
+        });
+      }
     },
   });
 
@@ -85,40 +95,84 @@ export default function ExternalBookingModal({
   const handleAppointmentSubmit = (appointmentData: any) => {
     console.log("Received data from wizard:", appointmentData);
     
-    // Transform data format for API submission
+    if (editMode === 'edit' && initialData?.id) {
+      // Transform data format for API submission in edit mode
+      const formattedData = {
+        ...(initialData || {}),
+        facilityId: facilityId || appointmentData.facilityId,
+        appointmentTypeId: appointmentTypeId || appointmentData.appointmentTypeId,
+        type: appointmentData.type || (appointmentData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound'),
+        status: 'scheduled',
+        startTime: appointmentData.startTime,
+        endTime: appointmentData.endTime, 
+        dockId: initialDockId || appointmentData.dockId,
+        
+        // Customer information
+        customerName: appointmentData.companyName,
+        contactName: appointmentData.contactName,
+        contactEmail: appointmentData.email,
+        contactPhone: appointmentData.phone,
+        
+        // Carrier and driver information
+        carrierId: appointmentData.carrierId,
+        carrierName: appointmentData.carrierName,
+        driverName: appointmentData.driverName,
+        driverPhone: appointmentData.driverPhone,
+        truckNumber: appointmentData.truckNumber,
+        trailerNumber: appointmentData.trailerNumber,
+        
+        // Additional information
+        notes: appointmentData.notes,
+        customFields: appointmentData.customFields, // Custom fields from standard questions
+        source: "internal" // Mark as created through internal interface
+      };
+      
+      console.log("Submitting formatted data for edit:", formattedData);
+      appointmentMutation.mutate(formattedData);
+      return;
+    }
+    
+    // For new appointments, use same format as external booking endpoint
     const formattedData = {
-      ...(initialData || {}),  // Include any existing data if editing
+      // Core appointment details
       facilityId: facilityId || appointmentData.facilityId,
       appointmentTypeId: appointmentTypeId || appointmentData.appointmentTypeId,
-      type: appointmentData.type || (appointmentData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound'),
-      status: 'scheduled',
+      pickupOrDropoff: appointmentData.pickupOrDropoff || "dropoff",
       startTime: appointmentData.startTime,
-      endTime: appointmentData.endTime, 
+      endTime: appointmentData.endTime,
       dockId: initialDockId || appointmentData.dockId,
       
-      // Customer information
-      customerName: appointmentData.companyName,
+      // Company and contact details
+      companyName: appointmentData.companyName,
       contactName: appointmentData.contactName,
-      contactEmail: appointmentData.email,
-      contactPhone: appointmentData.phone,
+      email: appointmentData.email,
+      phone: appointmentData.phone,
+      customerRef: appointmentData.customerRef || "",
       
-      // Carrier and driver information
+      // Carrier and vehicle details
       carrierId: appointmentData.carrierId,
       carrierName: appointmentData.carrierName,
       driverName: appointmentData.driverName,
       driverPhone: appointmentData.driverPhone,
+      driverEmail: appointmentData.driverEmail || appointmentData.email,
+      mcNumber: appointmentData.mcNumber || "",
       truckNumber: appointmentData.truckNumber,
-      trailerNumber: appointmentData.trailerNumber,
+      trailerNumber: appointmentData.trailerNumber || "",
       
-      // Additional information
-      notes: appointmentData.notes,
-      customFields: appointmentData.customFields, // Custom fields from standard questions
-      source: "internal" // Mark as created through internal interface
+      // Additional details
+      notes: appointmentData.notes || "",
+      status: "scheduled",
+      createdVia: "internal",
+      
+      // Custom form data
+      customFields: appointmentData.customFields || {},
+      bolExtractedData: appointmentData.bolExtractedData || null,
+      bolFileUploaded: appointmentData.bolFileUploaded || false
     };
     
     console.log("Submitting formatted data:", formattedData);
     
-    // Submit appointment
+    // Submit appointment using the external booking endpoint
     appointmentMutation.mutate(formattedData);
   };
   
