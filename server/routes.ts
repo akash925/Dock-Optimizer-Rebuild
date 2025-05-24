@@ -249,6 +249,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Error registering BOL OCR routes:', error);
   }
   
+  // Register resend email confirmation endpoint
+  try {
+    const { resendConfirmationEmail } = await import('./notifications');
+    
+    app.post('/api/appointments/:id/resend-email', async (req, res) => {
+      try {
+        const scheduleId = parseInt(req.params.id);
+        const { confirmationCode, recipientEmail } = req.body;
+        
+        if (!scheduleId || isNaN(scheduleId)) {
+          return res.status(400).json({ success: false, message: 'Invalid appointment ID' });
+        }
+        
+        if (!confirmationCode) {
+          return res.status(400).json({ success: false, message: 'Confirmation code is required' });
+        }
+        
+        if (!recipientEmail) {
+          return res.status(400).json({ success: false, message: 'Recipient email is required' });
+        }
+        
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(recipientEmail)) {
+          return res.status(400).json({ success: false, message: 'Invalid email format' });
+        }
+        
+        // Attempt to resend the confirmation email
+        const success = await resendConfirmationEmail(
+          recipientEmail,
+          confirmationCode,
+          scheduleId
+        );
+        
+        if (success) {
+          return res.status(200).json({ 
+            success: true, 
+            message: 'Confirmation email sent successfully' 
+          });
+        } else {
+          return res.status(500).json({ 
+            success: false, 
+            message: 'Failed to send confirmation email' 
+          });
+        }
+      } catch (error) {
+        console.error('Error in resend email endpoint:', error);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Server error while processing resend email request' 
+        });
+      }
+    });
+    
+    console.log('Resend email confirmation endpoint registered');
+  } catch (error) {
+    console.error('Error registering resend email endpoint:', error);
+  }
+  
   // Register simplified BOL upload routes
   try {
     // Use the new ESM-compatible module

@@ -2,7 +2,8 @@ import sgMail from '@sendgrid/mail';
 import { Schedule } from '../shared/schema';
 import { format } from 'date-fns';
 import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone';
-import { generateQRCodeSVG } from './endpoints/qr-codes';
+// Use existing QR code generation function from the server
+import { generateQRCodeSVG as generateQRCode } from './endpoints/qr-codes';
 
 // Enhanced schedule with UI-specific fields - extends the base Schedule type
 // This type is used for email templates and notifications that need additional context
@@ -674,6 +675,57 @@ async function generateQRCodeSVG(confirmationCode: string, baseUrl: string): Pro
 /**
  * Send a confirmation email for a new or rescheduled appointment
  */
+/**
+ * Resend a confirmation email for an existing appointment
+ * This function is used when the user requests an email resend from the confirmation page
+ * or wants to send the confirmation to an additional email address
+ */
+export async function resendConfirmationEmail(
+  to: string,
+  confirmationCode: string,
+  scheduleId: number
+): Promise<boolean> {
+  try {
+    console.log(`[Email] Attempting to resend confirmation email for schedule #${scheduleId} to ${to}`);
+    
+    // Fetch the appointment details to get the latest data
+    const db = require('./db').db;
+    const { schedules, facilities, appointmentTypes } = require('../shared/schema');
+    const { eq } = require('drizzle-orm');
+    
+    // Get the schedule with related data
+    const result = await db.query.schedules.findFirst({
+      where: eq(schedules.id, scheduleId),
+      with: {
+        facility: true,
+        appointmentType: true,
+        dock: true
+      }
+    });
+    
+    if (!result) {
+      console.error(`[Email] Cannot resend confirmation - Schedule #${scheduleId} not found`);
+      return false;
+    }
+    
+    // Convert to EnhancedSchedule format
+    const schedule = {
+      ...result,
+      facilityName: result.facility?.name || 'Main Facility',
+      appointmentTypeName: result.appointmentType?.name || 'Standard Appointment',
+      dockName: result.dock?.name || 'Not assigned',
+      timezone: result.facility?.timezone || 'America/New_York',
+      confirmationCode: confirmationCode
+    };
+    
+    // Send the confirmation email
+    return await sendConfirmationEmail(to, confirmationCode, schedule);
+  } catch (error) {
+    console.error('[Email] Error resending confirmation email:', error);
+    return false;
+  }
+}
+
 export async function sendConfirmationEmail(
   to: string,
   confirmationCode: string,

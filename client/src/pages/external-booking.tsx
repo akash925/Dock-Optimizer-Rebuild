@@ -1101,33 +1101,153 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 </>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mb-3">
               {bookingDetails.emailSent 
                 ? "A confirmation email has been sent with your appointment details." 
                 : "Please make note of your confirmation code as the email could not be sent."}
             </p>
+            
+            {/* Resend Email Button */}
+            <div className="flex justify-center">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  try {
+                    if (!bookingDetails.scheduleId) {
+                      throw new Error("Appointment ID is missing");
+                    }
+                    
+                    const response = await fetch(`/api/appointments/${bookingDetails.scheduleId}/resend-email`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        confirmationCode: confirmationCode,
+                        recipientEmail: bookingDetails.email || ""
+                      }),
+                    });
+                    
+                    if (!response.ok) {
+                      throw new Error("Failed to resend email");
+                    }
+                    
+                    const result = await response.json();
+                    
+                    // Update booking details with email sent status
+                    setBookingDetails({
+                      ...bookingDetails,
+                      emailSent: true
+                    });
+                    
+                    alert("Confirmation email has been sent successfully.");
+                  } catch (error) {
+                    console.error("Error resending email:", error);
+                    alert("Failed to resend confirmation email. Please try again.");
+                  }
+                }}
+                className="mr-2"
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                Resend Email
+              </Button>
+              
+              {/* Add option to send to another email */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  const newEmail = prompt("Enter additional email address to send confirmation:");
+                  if (newEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+                    // Call resend API with new email
+                    fetch(`/api/appointments/${bookingDetails.scheduleId}/resend-email`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        confirmationCode: confirmationCode,
+                        recipientEmail: newEmail
+                      }),
+                    })
+                    .then(response => {
+                      if (!response.ok) throw new Error("Failed to send to additional email");
+                      return response.json();
+                    })
+                    .then(() => {
+                      // Show success message
+                      alert(`Confirmation sent to ${newEmail}`);
+                    })
+                    .catch(error => {
+                      console.error("Error sending to additional email:", error);
+                      alert("Failed to send to additional email. Please try again.");
+                    });
+                  } else if (newEmail) {
+                    alert("Please enter a valid email address.");
+                  }
+                }}
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                Send to Another Email
+              </Button>
+            </div>
           </div>
+          
+          {/* Customer Information */}
+          {bookingDetails.customerName && (
+            <div className="bg-primary/5 border border-primary/20 rounded-md p-4 my-4">
+              <h3 className="text-sm font-medium mb-2 text-primary">Customer Information</h3>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <p className="text-muted-foreground">Name:</p>
+                <p className="font-medium">{bookingDetails.customerName}</p>
+                
+                {bookingDetails.email && (
+                  <>
+                    <p className="text-muted-foreground">Email:</p>
+                    <p>{bookingDetails.email}</p>
+                  </>
+                )}
+                
+                {bookingDetails.phone && (
+                  <>
+                    <p className="text-muted-foreground">Phone:</p>
+                    <p>{bookingDetails.phone}</p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
           
           <p className="text-sm text-muted-foreground">
             Please keep your confirmation code for check-in.
           </p>
           
-          <Button 
-            onClick={() => {
-              // Reset the form and go back to step 1
-              setStep(1);
-              setBookingData({
-                timezone: getUserTimeZone()
-              });
-              setConfirmationCode(null);
-              setBookingDetails({});
-              setBolFile(null);
-              setBolData(null);
-            }}
-            className="mt-4"
-          >
-            Book Another Appointment
-          </Button>
+          <div className="flex justify-between mt-4">
+            <Button 
+              onClick={() => {
+                // Reset the form and go back to step 1
+                setStep(1);
+                setBookingData({
+                  timezone: getUserTimeZone()
+                });
+                setConfirmationCode(null);
+                setBookingDetails({});
+                setBolFile(null);
+                setBolData(null);
+              }}
+            >
+              Book Another Appointment
+            </Button>
+            
+            {/* Add print button for printing confirmation */}
+            <Button 
+              variant="outline"
+              onClick={() => window.print()}
+            >
+              Print Confirmation
+            </Button>
+          </div>
         </div>
       )}
     </div>
