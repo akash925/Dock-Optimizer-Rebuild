@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, FileText, CheckCircle, AlertTriangle, Download } from 'lucide-react';
+import { Loader2, FileText, CheckCircle, AlertTriangle, Download, FileUp, Clock } from 'lucide-react';
 import { FormLabel } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { queryClient } from '@/lib/queryClient';
 import { parseBol, compressFile, ParsedBolData } from '@/lib/ocr-service';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Tooltip } from '@/components/ui/tooltip';
+import { TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface BolUploadProps {
   onBolProcessed: (data: ParsedBolData, fileUrl: string) => void;
@@ -26,6 +30,8 @@ export default function BolUpload({
   const [bolData, setBolData] = useState<ParsedBolData | null>(null);
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'processing' | 'analyzing' | 'completed' | 'error'>('idle');
 
   const handleFileChange = async (file: File | null) => {
     // Clear previous state
@@ -34,6 +40,8 @@ export default function BolUpload({
     setBolData(null);
     setUploadedFileUrl(null);
     setUploadedFileName(null);
+    setUploadProgress(0);
+    setUploadStage('idle');
     
     if (!file) {
       onProcessingStateChange(false);
@@ -41,22 +49,30 @@ export default function BolUpload({
     }
 
     try {
-      // Start processing
+      // Start processing - show uploading state
       setIsProcessing(true);
+      setUploadStage('uploading');
+      setUploadProgress(10);
       onProcessingStateChange(true);
       
       console.log(`Starting BOL processing for file: ${file.name} (${file.size} bytes)`);
 
       // 1. Parse the BOL using the enhanced OCR service
+      setUploadStage('processing');
+      setUploadProgress(30);
       const parsedData = await parseBol(file);
       setBolData(parsedData);
       
       console.log('BOL parsed successfully:', parsedData);
       
       // 2. Compress the file for upload
+      setUploadStage('processing');
+      setUploadProgress(50);
       const compressedFile = await compressFile(file);
       
       // 3. Upload the file to the server
+      setUploadStage('uploading');
+      setUploadProgress(70); 
       const formData = new FormData();
       formData.append('bolFile', compressedFile);
       
@@ -78,8 +94,8 @@ export default function BolUpload({
       
       console.log('Uploading BOL file to server...');
       
-      // Make a fetch request directly since apiRequest doesn't fully support FormData
-      const response = await fetch('/api/upload-bol', {
+      // Make a fetch request to our new simplified BOL upload endpoint
+      const response = await fetch('/api/bol-upload/upload', {
         method: 'POST',
         body: formData
       });
@@ -90,8 +106,15 @@ export default function BolUpload({
         throw new Error(`Failed to upload BOL file: ${response.status} ${response.statusText}`);
       }
       
+      setUploadStage('analyzing');
+      setUploadProgress(85);
+      
       const responseData = await response.json();
       console.log('File upload successful:', responseData);
+      
+      // Set completed stage
+      setUploadStage('completed');
+      setUploadProgress(100);
       
       setUploadedFileUrl(responseData.fileUrl);
       setUploadedFileName(responseData.filename);
@@ -184,6 +207,8 @@ export default function BolUpload({
     } catch (error) {
       console.error('Error processing BOL file:', error);
       setProcessingError(error instanceof Error ? error.message : 'Failed to process BOL file');
+      setUploadStage('error');
+      setUploadProgress(100);
     } finally {
       setIsProcessing(false);
       onProcessingStateChange(false);
