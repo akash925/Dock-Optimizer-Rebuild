@@ -215,10 +215,28 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     retry: 1 // Only retry once to avoid excessive requests
   });
 
-  // Create booking mutation with enhanced error handling
+  // Create booking mutation with enhanced error handling and BOL handling
   const bookingMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Starting booking creation with payload:", data);
+      
+      // Add BOL document information if available
+      if (bolData) {
+        data.bolFileUploaded = true;
+        data.bolData = {
+          documentId: bolData.documentId || null,
+          fileUrl: bolData.fileUrl || null,
+          fileName: bolData.fileName || null,
+          extractedData: bolData.extractedFields || bolData.metadata || {},
+          uploadedAt: bolData.uploadedAt || new Date().toISOString()
+        };
+        
+        // Add extracted BOL number if available
+        if (bolData.extractedFields?.bolNumber || bolData.metadata?.bolNumber) {
+          data.bolNumber = bolData.extractedFields?.bolNumber || bolData.metadata?.bolNumber;
+        }
+      }
+      
       try {
         const res = await fetch(`/api/booking-pages/book/${slug}`, {
           method: 'POST',
@@ -250,10 +268,25 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     onSuccess: (data) => {
       // Store confirmation code and go to success step
       console.log("Booking created successfully:", data);
-      // Generate a proper confirmation code if one isn't provided by the API
+      
+      // Use the standardized confirmation code from the response
       const confirmationCode = data.confirmationCode || data.code || `HZL-${Math.floor(100000 + Math.random() * 900000)}`;
       setConfirmationCode(confirmationCode);
-      setStep(4);
+      
+      // Store additional booking details for the confirmation page
+      setBookingDetails({
+        ...bookingDetails,
+        confirmationCode,
+        id: data.schedule?.id,
+        emailSent: data.emailSent || false,
+        startTime: data.schedule?.startTime,
+        endTime: data.schedule?.endTime,
+        facilityName: data.facilityName || bookingDetails.facilityName,
+        appointmentTypeName: data.appointmentTypeName || bookingDetails.appointmentTypeName,
+        bolUploaded: !!bolData
+      });
+      
+      setStep(4); // Move to confirmation step
     },
     onError: (error: any) => {
       console.error("Booking error:", error);
@@ -270,36 +303,55 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     setBolFile(file);
     
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('bolFile', file); // Changed to 'bolFile' for the BOL-specific endpoints
     
     // Add compression flag to request
     formData.append('compress', 'true');
     
     try {
-      // Try to use the dedicated BOL processing endpoint first
-      const response = await fetch('/api/bol-ocr/upload', {
+      console.log('Uploading BOL document...');
+      
+      // Try to use the updated BOL upload endpoint first
+      const response = await fetch('/api/bol-upload/upload', {
         method: 'POST',
         body: formData,
-      }).catch(() => {
-        // Fallback to standard document processing if BOL endpoint fails
-        return fetch('/api/document-processing', {
+      }).catch(error => {
+        console.warn('Primary BOL upload endpoint failed:', error);
+        // Fallback to secondary BOL endpoint if primary fails
+        return fetch('/api/bol-ocr/upload', {
           method: 'POST',
           body: formData,
+        }).catch(secondError => {
+          console.warn('Secondary BOL endpoint failed:', secondError);
+          // Last resort fallback to generic document processing
+          return fetch('/api/document-processing', {
+            method: 'POST',
+            body: formData,
+          });
         });
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to process BOL document: ${response.status}`);
+        throw new Error(`Failed to process BOL document: ${response.status} - ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log('Extracted BOL data:', data);
-      setBolData(data);
+      console.log('BOL upload successful. Extracted data:', data);
+      
+      // Store both raw response and the BOL data for later use
+      setBolData({
+        ...data,
+        fileUrl: data.fileUrl || null,
+        fileName: data.filename || file.name,
+        fileSize: data.size || file.size,
+        documentId: data.documentId || null, // Important: Save document ID for later linking
+        uploadedAt: new Date().toISOString()
+      });
       
       // More intelligent pre-filling of form fields with extracted BOL data
-      if (data && (data.extractedFields || data.data)) {
-        // Normalize the data structure (handle both formats)
-        const extractedData = data.extractedFields || data.data || {};
+      if (data && (data.extractedFields || data.metadata || data.ocrData)) {
+        // Normalize the data structure (handle multiple possible formats)
+        const extractedData = data.extractedFields || data.metadata || (data.ocrData && data.ocrData.metadata) || {};
         
         // Try to extract facility/location information
         if (extractedData.toAddress || extractedData.shipToAddress) {

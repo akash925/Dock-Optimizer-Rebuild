@@ -115,18 +115,52 @@ router.post('/upload', upload.single('bolFile'), async (req, res) => {
       mimetype: req.file.mimetype
     };
     
-    // Process and save document
-    const result = await bolService.processAndSaveBolDocument(
-      fileInfo,
+    logger.info('BOL-Upload', `Attempting to process and save document with scheduleId: ${scheduleId}`, {
+      scheduleId,
       tenantId,
-      userId,
-      scheduleId
-    );
+      userId
+    });
+    
+    let result;
+    let ocrSuccess = false;
+    try {
+      // Process and save document with better error handling
+      result = await bolService.processAndSaveBolDocument(
+        fileInfo,
+        tenantId,
+        userId,
+        scheduleId
+      );
+      ocrSuccess = true;
+      
+      logger.info('BOL-Upload', `Document processed successfully`, {
+        documentId: result.documentId,
+        scheduleId,
+        hasOcrResult: !!result.ocrResult
+      });
+    } catch (processingError) {
+      // Still continue even if processing fails
+      logger.error('BOL-Upload', `Error in document processing, but continuing`, processingError, {
+        scheduleId,
+        filename: req.file.originalname
+      });
+      
+      // Create a minimal result if processing failed
+      result = {
+        documentId: null,
+        ocrResult: null,
+        linkCreated: false,
+        error: processingError.message
+      };
+    }
     
     // Generate file URL for frontend access
     const fileUrl = `/uploads/bol/${req.file.filename}`;
     
-    // Return the results
+    // Check if the document was linked to an appointment
+    const appointmentLinked = result.linkCreated || false;
+    
+    // Return the results - ALWAYS return 200 unless file validation failed
     res.status(200).json({
       success: true,
       fileUrl,
@@ -135,7 +169,12 @@ router.post('/upload', upload.single('bolFile'), async (req, res) => {
       size: req.file.size,
       documentId: result.documentId,
       metadata: result.ocrResult?.metadata || {},
-      message: 'BOL document uploaded and processed successfully'
+      ocrSuccess,
+      scheduleId: scheduleId, // Return the scheduleId to confirm linkage
+      appointmentLinked,
+      message: ocrSuccess 
+        ? 'BOL document uploaded and processed successfully' 
+        : 'BOL document uploaded successfully, but OCR processing had issues'
     });
     
   } catch (error) {

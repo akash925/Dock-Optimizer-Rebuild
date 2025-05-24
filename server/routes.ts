@@ -3309,9 +3309,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[ConfirmationCode] Standardized confirmation code for schedule ${schedule.id} to ${finalConfirmationCode}`);
       
       // Send confirmation email
+      let emailSent = false;
       try {
-        // Use driverEmail from validated data for the recipient
-        if (validatedData.email) {
+        // Find an email to send to - check multiple potential sources
+        const recipientEmail = validatedData.email || 
+                               validatedData.driverEmail || 
+                               schedule.driverEmail || 
+                               null;
+        
+        if (recipientEmail) {
           // Get dock name (or "Not scheduled yet" if null)
           const dockName = schedule.dockId 
             ? (await storage.getDock(schedule.dockId))?.name || `Dock ${schedule.dockId}` 
@@ -3319,12 +3325,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
           // Log email sending data
           console.log("[EMAIL SENDING]", {
-            to: validatedData.email,
-            subject: `Dock Appointment Confirmation #${finalConfirmationCode}`
+            to: recipientEmail,
+            subject: `Dock Appointment Confirmation #${finalConfirmationCode}`,
+            scheduleId: schedule.id
           });
             
           // Log date information for debugging
           console.log("[EMAIL DEBUG] Date values:", {
+            scheduleId: schedule.id,
             startTimeFromDB: schedule.startTime,
             endTimeFromDB: schedule.endTime, 
             parsedStartTime: startTime,
@@ -3334,9 +3342,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           // Send confirmation email with enhanced information - ensuring all required fields are present
-          sendConfirmationEmail(
-            validatedData.email,
-            confirmationCode,
+          await sendConfirmationEmail(
+            recipientEmail,
+            finalConfirmationCode, // Using the standardized confirmation code
             {
               // Core fields from original schedule
               id: schedule.id,
@@ -3376,10 +3384,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               appointmentTypeName: appointmentType?.name || 'Standard Appointment',
               timezone: facility?.timezone || 'America/New_York'
             }
-          ).catch(err => {
+          ).then(() => {
+            console.log(`[Email] Successfully sent confirmation email to ${recipientEmail} for schedule ${schedule.id}`);
+            emailSent = true;
+          }).catch(err => {
             // Just log errors, don't let email failures affect API response
             console.error('Failed to send confirmation email:', err);
           });
+        } else {
+          console.log(`[Email] No email address available for confirmation email for schedule ${schedule.id}`);
         }
       } catch (emailError) {
         // Log the error but don't fail the API call
@@ -3390,7 +3403,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({
         success: true,
         schedule,
-        confirmationCode,
+        confirmationCode: finalConfirmationCode, // Use the standardized confirmation code
+        emailSent, // Include email status in the response
         message: "Appointment successfully scheduled"
       });
       
