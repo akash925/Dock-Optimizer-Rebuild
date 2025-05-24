@@ -56,6 +56,10 @@ interface ExtendedSchedule extends Omit<Schedule, 'facilityId'> {
   facilityName?: string;
   facilityId?: number;
   facilityTimezone?: string;
+  confirmationCode?: string;
+  bolNumber?: string;
+  bolDocumentPath?: string;
+  customFormData?: any;
 }
 
 interface AppointmentDetailsDialogProps {
