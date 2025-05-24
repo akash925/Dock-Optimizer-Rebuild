@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider } from '@/hooks/use-booking-theme';
-import { Loader2, XCircle, CheckCircle, Upload, FileCheck, Mail, AlertCircle, QrCode, Forward } from 'lucide-react';
+import { Loader2, XCircle, CheckCircle, Upload, FileCheck, Mail, AlertCircle, QrCode, Forward, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Dialog,
@@ -118,6 +118,7 @@ export default function ExternalBooking({ slug }: { slug: string }) {
 }
 
 function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: string }) {
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [bookingData, setBookingData] = useState<{
     facilityId?: number;
@@ -134,6 +135,8 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   const [isProcessingBol, setIsProcessingBol] = useState(false);
   const [bolData, setBolData] = useState<any | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  // State for additional email in the Send to Another Email dialog
+  const [additionalEmail, setAdditionalEmail] = useState<string>('');
   
   // Setup form for standard questions with Zod validation
   const bookingFormSchema = z.object({
@@ -1322,52 +1325,138 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             </div>
           </div>
           
-          {/* Appointment Details */}
+          {/* Enhanced Appointment Details */}
           <div className="bg-primary/5 border border-primary/20 rounded-md p-4 my-4">
-            <h3 className="text-sm font-medium mb-2 text-primary">Appointment Details</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              {bookingDetails.facilityName && (
-                <>
-                  <p className="text-muted-foreground">Facility:</p>
-                  <p className="font-medium">{bookingDetails.facilityName}</p>
-                </>
-              )}
+            <h3 className="text-sm font-medium mb-3 text-primary flex items-center">
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Appointment Details
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {/* Facility Information */}
+              <div className="col-span-2 mb-2">
+                <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Location</h4>
+                <div className="border-b pb-2">
+                  {bookingDetails.facilityName && (
+                    <p className="font-medium">{bookingDetails.facilityName}</p>
+                  )}
+                  {bookingDetails.facilityAddress && (
+                    <p className="text-xs text-muted-foreground">{bookingDetails.facilityAddress}</p>
+                  )}
+                </div>
+              </div>
               
-              {bookingDetails.appointmentTypeName && (
-                <>
-                  <p className="text-muted-foreground">Service Type:</p>
-                  <p className="font-medium">{bookingDetails.appointmentTypeName}</p>
-                </>
-              )}
+              {/* Appointment Date & Time */}
+              <div className="col-span-2 mb-2">
+                <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Date & Time</h4>
+                <div className="border-b pb-2">
+                  {bookingDetails.startTime && (
+                    <p className="font-medium">
+                      {new Date(bookingDetails.startTime).toLocaleDateString(undefined, {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  )}
+                  {bookingDetails.startTime && bookingDetails.endTime && (
+                    <p className="text-sm">
+                      {new Date(bookingDetails.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+                      {new Date(bookingDetails.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      {bookingDetails.timezone && (
+                        <span className="text-xs text-muted-foreground ml-1">({bookingDetails.timezone})</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </div>
               
-              {bookingDetails.startTime && (
-                <>
-                  <p className="text-muted-foreground">Date:</p>
-                  <p className="font-medium">{new Date(bookingDetails.startTime).toLocaleDateString(undefined, {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}</p>
-                </>
-              )}
+              {/* Service Information */}
+              <div className="col-span-2 mb-2">
+                <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Service Details</h4>
+                <div className="border-b pb-2">
+                  {bookingDetails.appointmentTypeName && (
+                    <p className="font-medium">{bookingDetails.appointmentTypeName}</p>
+                  )}
+                  {bookingDetails.type && (
+                    <p className="text-sm">
+                      Type: <span className="font-medium">{bookingDetails.type === 'inbound' ? 'Delivery' : 'Pickup'}</span>
+                    </p>
+                  )}
+                  {bookingDetails.duration && (
+                    <p className="text-xs text-muted-foreground">
+                      Duration: {bookingDetails.duration} minutes
+                    </p>
+                  )}
+                </div>
+              </div>
               
-              {bookingDetails.startTime && bookingDetails.endTime && (
-                <>
-                  <p className="text-muted-foreground">Time:</p>
-                  <p className="font-medium">
-                    {new Date(bookingDetails.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
-                    {new Date(bookingDetails.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                  </p>
-                </>
-              )}
+              {/* Contact Information */}
+              <div className="col-span-2 mb-2">
+                <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Contact Information</h4>
+                <div className="border-b pb-2">
+                  {bookingDetails.customerName && (
+                    <p className="font-medium">{bookingDetails.customerName}</p>
+                  )}
+                  {bookingDetails.email && (
+                    <p className="text-sm">{bookingDetails.email}</p>
+                  )}
+                  {bookingDetails.contactPhone && (
+                    <p className="text-sm">{bookingDetails.contactPhone}</p>
+                  )}
+                </div>
+              </div>
               
-              {bookingDetails.type && (
-                <>
-                  <p className="text-muted-foreground">Appointment Type:</p>
-                  <p className="font-medium">{bookingDetails.type === 'inbound' ? 'Delivery' : 'Pickup'}</p>
-                </>
-              )}
+              {/* Logistics Information */}
+              <div className="col-span-2">
+                <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Logistics Information</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {bookingDetails.carrierName && (
+                    <>
+                      <p className="text-muted-foreground">Carrier:</p>
+                      <p className="font-medium">{bookingDetails.carrierName}</p>
+                    </>
+                  )}
+                  
+                  {bookingDetails.driverName && (
+                    <>
+                      <p className="text-muted-foreground">Driver:</p>
+                      <p className="font-medium">{bookingDetails.driverName}</p>
+                    </>
+                  )}
+                  
+                  {bookingDetails.truckNumber && (
+                    <>
+                      <p className="text-muted-foreground">Truck #:</p>
+                      <p className="font-medium">{bookingDetails.truckNumber}</p>
+                    </>
+                  )}
+                  
+                  {bookingDetails.trailerNumber && (
+                    <>
+                      <p className="text-muted-foreground">Trailer #:</p>
+                      <p className="font-medium">{bookingDetails.trailerNumber}</p>
+                    </>
+                  )}
+                  
+                  {bookingDetails.poNumber && (
+                    <>
+                      <p className="text-muted-foreground">PO #:</p>
+                      <p className="font-medium">{bookingDetails.poNumber}</p>
+                    </>
+                  )}
+                  
+                  {bookingDetails.bolNumber && (
+                    <>
+                      <p className="text-muted-foreground">BOL #:</p>
+                      <p className="font-medium">{bookingDetails.bolNumber}</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
               
               {bookingDetails.status && (
                 <>
