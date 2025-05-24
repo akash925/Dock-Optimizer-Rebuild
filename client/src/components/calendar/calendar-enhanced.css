@@ -117,12 +117,43 @@
 .fc-col-header-cell {
   padding: 0 !important;
   margin: 0 !important;
+  box-sizing: border-box !important;
+  border-spacing: 0 !important;
 }
 
 .fc-timegrid-col.fc-day {
   padding: 0 !important;
   margin: 0 !important;
   width: calc(100% / 7) !important;
+  box-sizing: border-box !important;
+  border-spacing: 0 !important;
+}
+
+/* Force column spacing to be 0 and make columns butt against each other */
+.fc-theme-standard td, 
+.fc-theme-standard th,
+.fc-theme-standard .fc-scrollgrid {
+  border-width: 1px !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+}
+
+.fc-scrollgrid-sync-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+}
+
+.fc .fc-scrollgrid-section table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+}
+
+/* Reduce spacing between header and body */
+.fc .fc-scrollgrid-section-header > *,
+.fc .fc-scrollgrid-section-body > * {
+  border-bottom-width: 0 !important;
 }
 
 /* Calendar boundaries */
