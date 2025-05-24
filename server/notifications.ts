@@ -218,6 +218,20 @@ export function generateICalEvent(
 }
 
 import logger from './logger';
+import fs from 'fs';
+import path from 'path';
+
+// Create email logs directory if it doesn't exist
+const EMAIL_DEBUG = process.env.DEBUG_EMAILS === 'true';
+const logsDir = path.join(process.cwd(), 'logs', 'emails');
+if (EMAIL_DEBUG && !fs.existsSync(logsDir)) {
+  try {
+    fs.mkdirSync(logsDir, { recursive: true });
+    logger.info('EmailService', `Created email logs directory at ${logsDir}`);
+  } catch (error) {
+    logger.error('EmailService', 'Failed to create email logs directory', error);
+  }
+}
 
 export async function sendEmail(params: EmailParams): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   // Check for required email module
@@ -275,6 +289,37 @@ export async function sendEmail(params: EmailParams): Promise<{ html: string, te
   if (params.attachments && params.attachments.length > 0) {
     msg.attachments = params.attachments;
     logger.debug('EmailService', `Including ${params.attachments.length} attachment(s)`);
+  }
+
+  // Write email content to file for debugging if enabled
+  if (EMAIL_DEBUG) {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const emailId = `email_${timestamp}_${Math.floor(Math.random() * 10000)}`;
+      const emailLogPath = path.join(logsDir, `${emailId}.txt`);
+      const htmlLogPath = path.join(logsDir, `${emailId}.html`);
+      
+      // Write metadata and text content
+      const metadataContent = `
+To: ${msg.to}
+From: ${msg.from}
+Subject: ${msg.subject}
+Date: ${new Date().toISOString()}
+Has Attachments: ${!!msg.attachments}
+Attachment Count: ${msg.attachments?.length || 0}
+
+--- TEXT CONTENT ---
+${msg.text}
+`;
+      fs.writeFileSync(emailLogPath, metadataContent);
+      
+      // Write HTML content separately
+      fs.writeFileSync(htmlLogPath, msg.html);
+      
+      logger.info('EmailService', `Email debug files written to ${emailLogPath} and ${htmlLogPath}`);
+    } catch (debugError) {
+      logger.error('EmailService', 'Failed to write email debug files', debugError);
+    }
   }
 
   // Skip email sending only if explicitly told to do so

@@ -296,6 +296,13 @@ export class BolService {
             filePath: fileInfo.path
           });
           status = 'failed';
+          
+          // Even if OCR fails, we still save the document, just with a different status
+          // This allows customers to see and download the file even if OCR extraction failed
+          logger.info('BOL-Service', `OCR failed but continuing with document storage`, {
+            fileName: fileInfo.originalName,
+            errorMessage: ocrError.message
+          });
         }
       } else {
         logger.info('BOL-Service', `File type not supported for OCR processing: ${fileInfo.mimetype}`);
@@ -330,16 +337,47 @@ export class BolService {
             documentId: savedDocument.id,
             scheduleId
           });
-          // Don't fail the whole operation if linking fails
+          
+          // Retry once if there was an error linking
+          try {
+            logger.info('BOL-Service', `Retrying BOL document link to appointment`, {
+              documentId: savedDocument.id,
+              scheduleId
+            });
+            
+            const retryLink = await this.linkBolToAppointment(savedDocument.id, scheduleId);
+            linkCreated = !!retryLink;
+            
+            logger.info('BOL-Service', `BOL document link retry successful`, {
+              documentId: savedDocument.id,
+              scheduleId,
+              linkId: retryLink?.id
+            });
+          } catch (retryError) {
+            logger.error('BOL-Service', 'Error in retry attempt for BOL appointment linking', retryError, {
+              documentId: savedDocument.id,
+              scheduleId
+            });
+            // Don't fail the whole operation if linking retry also fails
+          }
         }
       }
       
-      // Return the results
+      // Return the results with extended information for better client feedback
       return {
         documentId: savedDocument.id,
         ocrResult,
         linkCreated,
-        status
+        status,
+        fileInfo: {
+          fileName: fileInfo.name,
+          originalName: fileInfo.originalName,
+          fileSize: fileInfo.size,
+          mimeType: fileInfo.mimetype
+        },
+        ocrSuccess: status === 'completed' && ocrResult?.validation?.success === true,
+        appointmentLinked: linkCreated,
+        scheduleId: scheduleId
       };
       
     } catch (error) {
