@@ -2,7 +2,18 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider } from '@/hooks/use-booking-theme';
-import { Loader2, XCircle, CheckCircle, Upload, FileCheck, Mail, AlertCircle, QrCode } from 'lucide-react';
+import { Loader2, XCircle, CheckCircle, Upload, FileCheck, Mail, AlertCircle, QrCode, Forward } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
