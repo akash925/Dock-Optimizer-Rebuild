@@ -1183,7 +1183,7 @@ export default function UnifiedAppointmentForm({
                 </div>
               </div>
               
-              {/* Form Actions */}
+              {/* Form Actions Area */}
               <div className="flex justify-between mt-6">
                 {showBackButton && (
                   <Button type="button" variant="outline" onClick={goBack}>

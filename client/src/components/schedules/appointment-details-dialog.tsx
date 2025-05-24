@@ -1419,7 +1419,7 @@ export function AppointmentDetailsDialog({
                 Appointment Confirmation Code
               </h3>
               <span className="bg-slate-100 px-3 py-1 rounded-md font-mono font-medium">
-                HC{appointment.id.toString().padStart(6, '0')}
+                {appointment.confirmationCode || `HZL-${appointment.id.toString().padStart(6, '0')}`}
               </span>
             </div>
             
@@ -1503,11 +1503,12 @@ export function AppointmentDetailsDialog({
                                 <img src="${document.querySelector('canvas')?.toDataURL()}" width="200" height="200" />
                               </div>
                               <p><strong>Confirmation Code:</strong></p>
-                              <div class="confirmation">HC${appointment.id.toString().padStart(6, '0')}</div>
+                              <div class="confirmation">${appointment.confirmationCode || `HZL-${appointment.id.toString().padStart(6, '0')}`}</div>
                               <p class="info">Your Local Time: ${userTimeFormatted} ${userTimeZoneAbbr}</p>
                               <p class="info">Facility Time: ${facilityTimeFormatted} ${facilityTimeZoneAbbr}</p>
                               <p class="info">Carrier: ${appointment.carrierName || "Not specified"}</p>
                               <p class="info">Type: ${appointment.type === "inbound" ? "Inbound" : "Outbound"}</p>
+                              ${appointment.bolNumber ? `<p class="info">BOL #: ${appointment.bolNumber}</p>` : ''}
                               <script>
                                 window.onload = function() { window.print(); }
                               </script>
@@ -1552,7 +1553,10 @@ export function AppointmentDetailsDialog({
           {/* BOL Documents */}
           <div className="border-t py-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium mb-3">Bill of Lading (BOL) Documents</h3>
+              <h3 className="text-sm font-medium mb-3 flex items-center">
+                <FileText className="h-4 w-4 mr-2 text-primary" />
+                Bill of Lading (BOL) Documents
+              </h3>
               {(() => {
                 // Helper function to safely parse customFormData if it's a string
                 const parseCustomFormData = () => {
@@ -1573,9 +1577,9 @@ export function AppointmentDetailsDialog({
                 
                 const parsedData = parseCustomFormData();
                 
-                return appointment.bolNumber && !parsedData?.bolData && (
-                  <Badge variant="outline" className="mb-3 text-xs">
-                    <Info className="h-3 w-3 mr-1 text-muted-foreground" />
+                return appointment.bolNumber && (
+                  <Badge variant="outline" className="mb-3 text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    <FileCheck className="h-3 w-3 mr-1" />
                     BOL #{appointment.bolNumber}
                   </Badge>
                 );
