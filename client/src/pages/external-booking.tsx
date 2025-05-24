@@ -36,6 +36,8 @@ const serviceSelectionSchema = z.object({
 });
 
 export default function ExternalBooking({ slug }: { slug: string }) {
+  // State for additional email in the Send to Another Email dialog
+  const [additionalEmail, setAdditionalEmail] = useState<string>('');
   const { data: bookingPage, isLoading, error } = useQuery({
     queryKey: [`/api/booking-pages/slug/${slug}`],
     queryFn: async () => {
@@ -1193,44 +1195,130 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 Resend Email
               </Button>
               
-              {/* Add option to send to another email */}
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  const newEmail = prompt("Enter additional email address to send confirmation:");
-                  if (newEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
-                    // Call resend API with new email
-                    fetch(`/api/appointments/${bookingDetails.scheduleId}/resend-email`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        confirmationCode: confirmationCode,
-                        recipientEmail: newEmail
-                      }),
-                    })
-                    .then(response => {
-                      if (!response.ok) throw new Error("Failed to send to additional email");
-                      return response.json();
-                    })
-                    .then(() => {
-                      // Show success message
-                      alert(`Confirmation sent to ${newEmail}`);
-                    })
-                    .catch(error => {
-                      console.error("Error sending to additional email:", error);
-                      alert("Failed to send to additional email. Please try again.");
-                    });
-                  } else if (newEmail) {
-                    alert("Please enter a valid email address.");
-                  }
-                }}
-              >
-                <Mail className="h-4 w-4 mr-1" />
-                Send to Another Email
-              </Button>
+              {/* Improved Send to Another Email Dialog */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Forward className="h-4 w-4 mr-1" />
+                    Send to Another Email
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Share Appointment Details</DialogTitle>
+                    <DialogDescription>
+                      Send the appointment confirmation to additional people who need to be informed.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    
+                    // Validate email
+                    if (!additionalEmail || !additionalEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                      toast({
+                        title: "Invalid Email",
+                        description: "Please enter a valid email address",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    if (!bookingDetails.scheduleId) {
+                      toast({
+                        title: "Error",
+                        description: "Appointment ID is missing",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    try {
+                      toast({
+                        title: "Sending Email",
+                        description: `Sending confirmation to ${additionalEmail}...`,
+                      });
+                      
+                      console.log("Sending to alternative email:", additionalEmail);
+                      
+                      const response = await fetch(`/api/appointments/${bookingDetails.scheduleId}/resend-email`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          confirmationCode: confirmationCode,
+                          recipientEmail: additionalEmail
+                        }),
+                      });
+                      
+                      const result = await response.json();
+                      
+                      if (!response.ok) {
+                        console.error("Failed to send email:", result);
+                        throw new Error(result.message || "Failed to send email");
+                      }
+                      
+                      toast({
+                        title: "Success",
+                        description: `Confirmation email sent to ${additionalEmail}`,
+                      });
+                      
+                      // Reset the input field
+                      setAdditionalEmail('');
+                      
+                      // Close the dialog
+                      document.querySelector<HTMLButtonElement>('[aria-label="Close"]')?.click();
+                    } catch (error) {
+                      console.error("Error sending email:", error);
+                      toast({
+                        title: "Error",
+                        description: error instanceof Error ? error.message : "Failed to send confirmation email",
+                        variant: "destructive",
+                      });
+                    }
+                  }}>
+                    <div className="grid gap-4 py-4">
+                      <div className="flex flex-col gap-2">
+                        <Label htmlFor="email" className="font-medium">
+                          Recipient Email Address
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="colleague@example.com"
+                          className="w-full"
+                          value={additionalEmail}
+                          onChange={(e) => setAdditionalEmail(e.target.value)}
+                          required
+                          autoFocus
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          The recipient will receive a copy of the appointment confirmation with all details.
+                        </p>
+                      </div>
+                      
+                      <div className="bg-blue-50 border border-blue-100 rounded-md p-3 mt-2">
+                        <div className="flex items-center">
+                          <Info className="h-4 w-4 text-blue-500 mr-2" />
+                          <span className="text-xs font-medium text-blue-700">Information Being Shared</span>
+                        </div>
+                        <p className="text-xs text-blue-600 mt-1">
+                          Appointment details including facility, date/time, confirmation code, and any provided logistics information.
+                        </p>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button type="button" variant="secondary">Cancel</Button>
+                      </DialogClose>
+                      <Button type="submit">
+                        <Mail className="h-4 w-4 mr-2" />
+                        Send Confirmation
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
           
