@@ -97,34 +97,45 @@ export default function ExternalBookingModal({
     
     if (editMode === 'edit' && initialData?.id) {
       // Transform data format for API submission in edit mode
+      // Use the same format as create to ensure consistency
       const formattedData = {
         ...(initialData || {}),
+        id: initialData.id, // Make sure to include the ID for the update operation
+        
+        // Core appointment details
         facilityId: facilityId || appointmentData.facilityId,
         appointmentTypeId: appointmentTypeId || appointmentData.appointmentTypeId,
-        type: appointmentData.type || (appointmentData.pickupOrDropoff === 'pickup' ? 'outbound' : 'inbound'),
-        status: 'scheduled',
+        pickupOrDropoff: appointmentData.pickupOrDropoff || "dropoff",
         startTime: appointmentData.startTime,
-        endTime: appointmentData.endTime, 
+        endTime: appointmentData.endTime,
         dockId: initialDockId || appointmentData.dockId,
         
-        // Customer information
-        customerName: appointmentData.companyName,
+        // Company and contact details
+        companyName: appointmentData.companyName,
         contactName: appointmentData.contactName,
-        contactEmail: appointmentData.email,
-        contactPhone: appointmentData.phone,
+        email: appointmentData.email,
+        phone: appointmentData.phone,
+        customerRef: appointmentData.customerRef || "",
         
-        // Carrier and driver information
+        // Carrier and vehicle details
         carrierId: appointmentData.carrierId,
         carrierName: appointmentData.carrierName,
         driverName: appointmentData.driverName,
         driverPhone: appointmentData.driverPhone,
+        driverEmail: appointmentData.driverEmail || appointmentData.email,
+        mcNumber: appointmentData.mcNumber || "",
         truckNumber: appointmentData.truckNumber,
-        trailerNumber: appointmentData.trailerNumber,
+        trailerNumber: appointmentData.trailerNumber || "",
         
-        // Additional information
-        notes: appointmentData.notes,
-        customFields: appointmentData.customFields, // Custom fields from standard questions
-        source: "internal" // Mark as created through internal interface
+        // Additional details
+        notes: appointmentData.notes || "",
+        status: "scheduled",
+        createdVia: "internal",
+        
+        // Custom form data with properly wrapped standard questions
+        customFields: appointmentData.customFields || {},
+        bolExtractedData: appointmentData.bolExtractedData || null,
+        bolFileUploaded: appointmentData.bolFileUploaded || false
       };
       
       console.log("Submitting formatted data for edit:", formattedData);
