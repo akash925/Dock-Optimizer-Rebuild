@@ -646,7 +646,8 @@ export function AppointmentDetailsDialog({
   };
   
   // Get the carrier details from the carrier ID
-  const carrier = { name: appointment.carrierName || "Unknown Carrier" };
+  // Don't use default values like "FedEx", show "Not provided" when missing
+  const carrier = { name: appointment.carrierName || "Not provided" };
   
   // Get the time remaining until the appointment (in minutes)
   const getTimeRemaining = () => {

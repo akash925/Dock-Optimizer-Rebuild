@@ -122,11 +122,20 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   const [bolData, setBolData] = useState<any | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   
-  // Setup form for standard questions
+  // Setup form for standard questions with Zod validation
+  const bookingFormSchema = z.object({
+    customFields: z.object({
+      // Always require customer name and email regardless of form configuration
+      customerName: z.string().min(1, "Customer name is required"),
+      email: z.string().email("A valid email address is required"),
+    }).passthrough() // Allow other fields to pass through
+  });
+
   const form = useForm({
     defaultValues: {
       customFields: {}
-    }
+    },
+    resolver: zodResolver(bookingFormSchema)
   });
   
   // Fetch standards questions based on appointment type with comprehensive error handling
@@ -812,7 +821,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     time: bookingData.time,
                     timezone: bookingData.timezone,
                     pickupOrDropoff: "pickup", // Default
-                    ...data.customFields // Include all custom field answers
+                    // Always ensure we have a customerName that's not FedEx or any other default
+                    customerName: data.customFields?.customerName || "",
+                    email: data.customFields?.email || "",
+                    // Include all other custom field answers
+                    ...data.customFields
                   };
                   
                   console.log("Submitting booking with data:", bookingPayload);
@@ -865,14 +878,54 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   </div>
                 )}
                 
-                {/* Show message when no questions are available */}
+                {/* Critical required fields - always show regardless of configuration */}
+                <div className="my-6 p-4 border border-primary/20 rounded-md bg-primary/5">
+                  <h3 className="font-medium mb-3 text-primary">Essential Information</h3>
+                  <div className="space-y-4">
+                    {/* Customer Name - Always Required */}
+                    <FormField
+                      control={form.control}
+                      name="customFields.customerName"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1.5">
+                          <FormLabel>
+                            Customer Name <span className="text-destructive ml-1">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    {/* Email - Always Required */}
+                    <FormField
+                      control={form.control}
+                      name="customFields.email"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1.5">
+                          <FormLabel>
+                            Email Address <span className="text-destructive ml-1">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+                
+                {/* Show message when no additional questions are available */}
                 {(standardQuestions?.length === 0 && customQuestions?.length === 0) ? (
                   <div className="my-6 p-4 border border-blue-100 rounded-md bg-blue-50 text-center">
                     <p className="text-sm text-blue-700">
-                      No standard questions are configured for this appointment type.
+                      No additional questions are configured for this appointment type.
                     </p>
                     <p className="mt-2 text-xs text-blue-600">
-                      You can proceed with booking without additional information.
+                      You can proceed with booking with the essential information above.
                     </p>
                   </div>
                 ) : (
