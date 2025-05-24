@@ -1115,8 +1115,29 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 onClick={async () => {
                   try {
                     if (!bookingDetails.scheduleId) {
-                      throw new Error("Appointment ID is missing");
+                      toast({
+                        title: "Error",
+                        description: "Appointment ID is missing",
+                        variant: "destructive",
+                      });
+                      return;
                     }
+                    
+                    if (!bookingDetails.email) {
+                      toast({
+                        title: "Error",
+                        description: "Email address is required to resend confirmation",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    
+                    toast({
+                      title: "Sending Email",
+                      description: "Sending confirmation email...",
+                    });
+                    
+                    console.log("Resending email for schedule:", bookingDetails.scheduleId, "to:", bookingDetails.email);
                     
                     const response = await fetch(`/api/appointments/${bookingDetails.scheduleId}/resend-email`, {
                       method: 'POST',
@@ -1125,15 +1146,16 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                       },
                       body: JSON.stringify({
                         confirmationCode: confirmationCode,
-                        recipientEmail: bookingDetails.email || ""
+                        recipientEmail: bookingDetails.email
                       }),
                     });
                     
-                    if (!response.ok) {
-                      throw new Error("Failed to resend email");
-                    }
-                    
                     const result = await response.json();
+                    
+                    if (!response.ok) {
+                      console.error("Server error:", result);
+                      throw new Error(result.message || "Failed to resend email");
+                    }
                     
                     // Update booking details with email sent status
                     setBookingDetails({
@@ -1141,10 +1163,17 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                       emailSent: true
                     });
                     
-                    alert("Confirmation email has been sent successfully.");
+                    toast({
+                      title: "Success",
+                      description: "Confirmation email has been sent successfully.",
+                    });
                   } catch (error) {
                     console.error("Error resending email:", error);
-                    alert("Failed to resend confirmation email. Please try again.");
+                    toast({
+                      title: "Error",
+                      description: error instanceof Error ? error.message : "Failed to resend confirmation email. Please try again.",
+                      variant: "destructive",
+                    });
                   }
                 }}
                 className="mr-2"
