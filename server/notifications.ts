@@ -694,7 +694,7 @@ export async function resendConfirmationEmail(
     const { eq } = require('drizzle-orm');
     
     // Get the schedule with related data
-    const result = await db.query.schedules.findFirst({
+    const scheduleData = await db.query.schedules.findFirst({
       where: eq(schedules.id, scheduleId),
       with: {
         facility: true,
@@ -703,23 +703,25 @@ export async function resendConfirmationEmail(
       }
     });
     
-    if (!result) {
+    if (!scheduleData) {
       console.error(`[Email] Cannot resend confirmation - Schedule #${scheduleId} not found`);
       return false;
     }
     
     // Convert to EnhancedSchedule format
     const schedule = {
-      ...result,
-      facilityName: result.facility?.name || 'Main Facility',
-      appointmentTypeName: result.appointmentType?.name || 'Standard Appointment',
-      dockName: result.dock?.name || 'Not assigned',
-      timezone: result.facility?.timezone || 'America/New_York',
+      ...scheduleData,
+      facilityName: scheduleData.facility?.name || 'Main Facility',
+      appointmentTypeName: scheduleData.appointmentType?.name || 'Standard Appointment',
+      dockName: scheduleData.dock?.name || 'Not assigned',
+      timezone: scheduleData.facility?.timezone || 'America/New_York',
       confirmationCode: confirmationCode
     };
     
     // Send the confirmation email
-    return await sendConfirmationEmail(to, confirmationCode, schedule);
+    const emailResult = await sendConfirmationEmail(to, confirmationCode, schedule);
+    // Return true if email was sent successfully (could be either a boolean or email details)
+    return emailResult !== false;
   } catch (error) {
     console.error('[Email] Error resending confirmation email:', error);
     return false;
