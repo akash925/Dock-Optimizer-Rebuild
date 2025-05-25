@@ -229,18 +229,24 @@ export async function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     console.log("Login attempt:", req.body.username);
     
-    // Ensure response will be JSON
-    res.setHeader('Content-Type', 'application/json');
+    // Force content type to be application/json to bypass Vite middleware
+    res.contentType('application/json');
     
     passport.authenticate("local", async (err, user, info) => {
       if (err) {
         console.error("Login error:", err);
-        return res.status(500).json({ success: false, message: err.message || "Internal server error" });
+        return res.status(500).send(JSON.stringify({ 
+          success: false, 
+          message: err.message || "Internal server error" 
+        }));
       }
       
       if (!user) {
         console.log("Authentication failed:", info?.message || "Unknown reason");
-        return res.status(401).json({ success: false, message: info?.message || "Authentication failed" });
+        return res.status(401).send(JSON.stringify({ 
+          success: false, 
+          message: info?.message || "Authentication failed" 
+        }));
       }
       
       try {
@@ -253,16 +259,21 @@ export async function setupAuth(app: Express) {
         req.login(enrichedUser, (loginErr) => {
           if (loginErr) {
             console.error("Login session error:", loginErr);
-            return res.status(500).json({ success: false, message: "Login session error" });
+            return res.status(500).send(JSON.stringify({ 
+              success: false, 
+              message: "Login session error" 
+            }));
           }
           
           console.log("Login successful, session created:", req.sessionID);
           // Don't send password in response
           const { password, ...userWithoutPassword } = enrichedUser;
-          return res.status(200).json({ 
+          
+          // Use direct send with JSON string to avoid middleware issues
+          return res.status(200).send(JSON.stringify({ 
             success: true, 
             user: userWithoutPassword 
-          });
+          }));
         });
       } catch (enrichErr) {
         console.error("Error enriching user data:", enrichErr);
@@ -271,15 +282,20 @@ export async function setupAuth(app: Express) {
         req.login(user, (loginErr) => {
           if (loginErr) {
             console.error("Login session error:", loginErr);
-            return res.status(500).json({ success: false, message: "Login session error" });
+            return res.status(500).send(JSON.stringify({ 
+              success: false, 
+              message: "Login session error" 
+            }));
           }
           
           console.log("Login successful with original user data, session created:", req.sessionID);
           const { password, ...userWithoutPassword } = user;
-          return res.status(200).json({ 
+          
+          // Use direct send with JSON string to avoid middleware issues
+          return res.status(200).send(JSON.stringify({ 
             success: true, 
             user: userWithoutPassword 
-          });
+          }));
         });
       }
     })(req, res, next);

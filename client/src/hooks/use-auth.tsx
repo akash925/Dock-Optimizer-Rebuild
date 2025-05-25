@@ -54,56 +54,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       try {
-        const response = await fetch("/api/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          body: JSON.stringify(credentials),
-          credentials: "include",
+        // Instead of a normal fetch, we'll use an XMLHttpRequest for more direct control
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", "/api/login", true);
+          xhr.setRequestHeader("Content-Type", "application/json");
+          xhr.setRequestHeader("Accept", "application/json");
+          xhr.withCredentials = true;
+          
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+              // Log response headers for debugging
+              console.log("Login response status:", xhr.status);
+              console.log("Login response headers:", xhr.getAllResponseHeaders());
+              
+              if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                  // Try to parse the response as JSON
+                  const data = JSON.parse(xhr.responseText);
+                  if (data && (data.user || data.id)) {
+                    // Extract user data from response 
+                    const user = data.user || data;
+                    resolve(user);
+                  } else {
+                    console.error("Unexpected response format:", data);
+                    reject(new Error("Invalid response format"));
+                  }
+                } catch (e) {
+                  console.error("Failed to parse login response:", e);
+                  console.error("Raw response:", xhr.responseText.slice(0, 200));
+                  reject(new Error("Failed to parse server response"));
+                }
+              } else {
+                let errorMessage = "Login failed";
+                try {
+                  const errorData = JSON.parse(xhr.responseText);
+                  errorMessage = errorData.message || errorMessage;
+                } catch (e) {
+                  // If parsing fails, use status text
+                  errorMessage = xhr.statusText || errorMessage;
+                }
+                reject(new Error(errorMessage));
+              }
+            }
+          };
+          
+          xhr.onerror = function() {
+            console.error("Network error during login");
+            reject(new Error("Network error during login"));
+          };
+          
+          xhr.send(JSON.stringify(credentials));
         });
-        
-        // Check content type to ensure we received JSON
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          // Log the raw response for debugging
-          const rawText = await response.text();
-          console.error("Login response is not JSON:", contentType);
-          console.error("Raw response (first 100 chars):", rawText.slice(0, 100));
-          throw new Error("Server did not return a valid JSON response");
-        }
-        
-        // Now parse as JSON since we've confirmed the content type
-        let data;
-        try {
-          // Reset the response body stream
-          const clonedResponse = response.clone();
-          data = await clonedResponse.json();
-        } catch (parseError) {
-          console.error("JSON parsing error:", parseError);
-          throw new Error("Failed to parse server response as JSON");
-        }
-        
-        if (!response.ok) {
-          throw new Error(data.message || "Login failed");
-        }
-        
-        return data;
       } catch (error) {
         console.error("Login error:", error);
         throw error;
       }
     },
-    onSuccess: (response: {success: boolean, user: Omit<User, "password">}) => {
-      // Extract user from the response
-      const user = response.user;
+    onSuccess: (userData: any) => {
+      // Handle both response formats - either the user object directly or nested in a success response
+      const user = userData.user ? userData.user : userData;
       
       // Update the cache with just the user data
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Login successful",
-        description: `Welcome back, ${user.firstName || "User"}!`,
+        description: `Welcome back, ${user.firstName || user.username || "User"}!`,
       });
     },
     onError: (error: Error) => {
