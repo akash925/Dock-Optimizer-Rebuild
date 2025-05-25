@@ -45,6 +45,41 @@ const app = express();
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: false, limit: "5mb" }));
 
+// Initialize session and authentication early
+// This ensures auth middleware is available throughout the application
+(async () => {
+  try {
+    // Get the storage instance for session store
+    const storage = await import("./storage").then(m => m.getStorage());
+    
+    // Initialize session middleware
+    const session = await import("express-session").then(m => m.default);
+    const sessionSettings = {
+      secret: process.env.SESSION_SECRET || "dock-optimizer-secret-key",
+      resave: false,
+      saveUninitialized: false,
+      store: (await storage).sessionStore,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      }
+    };
+    
+    // Apply session middleware
+    app.set("trust proxy", 1);
+    app.use(session(sessionSettings));
+    
+    // Initialize passport
+    const passport = await import("passport").then(m => m.default);
+    app.use(passport.initialize());
+    app.use(passport.session());
+    
+    console.log("Authentication middleware initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize authentication middleware:", error);
+  }
+})();
+
 // Force all API routes to return application/json content type
 app.use("/api", (req, res, next) => {
   res.setHeader('Content-Type', 'application/json');

@@ -65,28 +65,12 @@ export async function comparePasswords(supplied: string, stored: string) {
   }
 }
 
-export async function setupAuth(app: Express) {
+export async function setupAuth(router: any) { // Using 'any' type to avoid Express vs Router type conflicts
   // Get the storage instance
   const storage = await getStorage();
   
-  // Ensure we have a session secret
-  const sessionSecret = process.env.SESSION_SECRET || "dock-optimizer-secret-key";
-
-  const sessionSettings: session.SessionOptions = {
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    store: storage.sessionStore,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    }
-  };
-
-  app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
-  app.use(passport.initialize());
-  app.use(passport.session());
+  // Setup passport configuration without middleware application
+  // We'll assume session middleware is already initialized in the main app
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -184,7 +168,7 @@ export async function setupAuth(app: Express) {
     };
   }
 
-  app.post("/api/register", async (req, res, next) => {
+  router.post("/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
@@ -226,7 +210,7 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
+  router.post("/login", (req, res, next) => {
     console.log("Login attempt:", req.body.username);
     
     // Force content type to be application/json to bypass Vite middleware
@@ -302,7 +286,7 @@ export async function setupAuth(app: Express) {
   });
   
   // Add a test route to log in as super-admin (for development)
-  app.get("/api/test-login", async (req, res, next) => {
+  router.get("/test-login", async (req, res, next) => {
     try {
       console.log("Test login endpoint called");
       const { enrichUserWithRole } = await import('./enrich-user-role');
@@ -438,7 +422,7 @@ export async function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/logout", (req, res, next) => {
+  router.post("/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
       res.sendStatus(200);
