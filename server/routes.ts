@@ -53,6 +53,26 @@ export function registerRoutes(app: Express): Server {
   // Setup authentication routes on the API router
   setupAuth(apiRouter);
   
+  // Register system module routes
+  try {
+    import('./modules/modules/routes').then(module => {
+      apiRouter.use('/modules', module.default);
+      console.log('Modules router registered successfully');
+    }).catch(error => {
+      console.log('Modules router failed to load:', error);
+    });
+    
+    // Import and register organizations router for admin functionality
+    import('./modules/admin/routes').then(module => {
+      apiRouter.use('/admin', module.default);
+      console.log('Admin router registered successfully');
+    }).catch(error => {
+      console.log('Admin router failed to load:', error);
+    });
+  } catch (error) {
+    console.log('Error loading module routers:', error);
+  }
+  
   // Basic API Health check
   apiRouter.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
