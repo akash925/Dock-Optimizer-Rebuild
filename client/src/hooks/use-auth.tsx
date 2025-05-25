@@ -43,7 +43,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
   } = useQuery<Omit<User, "password"> | undefined, Error>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/user", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          credentials: "include"
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            return undefined;
+          }
+          throw new Error("Failed to fetch user data");
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        return undefined;
+      }
+    },
     // Skip the authentication API call entirely for public routes
     enabled: !skipAuth,
     retry: false,

@@ -441,7 +441,7 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
   });
   
   // Debug route for auth status
-  app.get("/api/auth-status", (req, res) => {
+  router.get("/auth-status", (req, res) => {
     res.json({
       isAuthenticated: req.isAuthenticated(),
       sessionID: req.sessionID,
