@@ -43,30 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
   } = useQuery<Omit<User, "password"> | undefined, Error>({
     queryKey: ["/api/user"],
-    queryFn: async () => {
-      try {
-        const response = await fetch("/api/user", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          credentials: "include"
-        });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            return undefined;
-          }
-          throw new Error("Failed to fetch user data");
-        }
-        
-        return await response.json();
-      } catch (error) {
-        console.error("Error fetching user:", error);
-        return undefined;
-      }
-    },
+    queryFn: getQueryFn({ on401: "returnNull" }),
     // Skip the authentication API call entirely for public routes
     enabled: !skipAuth,
     retry: false,
@@ -76,71 +53,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      try {
-        // For development environment, access API on a separate port to bypass Vite
-        // This ensures that Express handles the API routes directly
-        const apiBaseUrl = '/api';
-        
-        const response = await fetch(`${apiBaseUrl}/login`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          body: JSON.stringify(credentials),
-          credentials: "include",
-        });
-        
-        if (!response.ok) {
-          // Handle error response
-          const errorText = await response.text();
-          let errorMessage = "Login failed";
-          
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.message || errorMessage;
-          } catch (e) {
-            // If parsing fails, use status text
-            errorMessage = response.statusText || errorMessage;
-          }
-          
-          throw new Error(errorMessage);
-        }
-        
-        // Process successful response
-        const contentType = response.headers.get("content-type");
-        
-        // Check for HTML response (indicates Vite is still intercepting)
-        if (contentType && contentType.includes("text/html")) {
-          console.error("API returning HTML instead of JSON. Server routing issue detected.");
-          throw new Error("Server configuration error. API returning HTML instead of JSON.");
-        }
-        
-        // Parse JSON response
-        const data = await response.json();
-        const user = data.user || data;
-        return user;
-      } catch (error) {
-        console.error("Login error:", error);
-        throw error;
-      }
+      const res = await apiRequest("POST", "/api/login", credentials);
+      return await res.json();
     },
-    onSuccess: (userData: any) => {
-      // Handle both response formats - either the user object directly or nested in a success response
-      const user = userData.user ? userData.user : userData;
-      
-      // Update the cache with just the user data
+    onSuccess: (user: Omit<User, "password">) => {
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Login successful",
-        description: `Welcome back, ${user.firstName || user.username || "User"}!`,
+        description: `Welcome back, ${user.firstName}!`,
       });
     },
     onError: (error: Error) => {
-      console.error("Login mutation error:", error);
       toast({
         title: "Login failed",
-        description: error.message || "An error occurred during login",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -148,64 +74,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
-      try {
-        const response = await fetch("/api/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          body: JSON.stringify(credentials),
-          credentials: "include",
-        });
-        
-        // Check content type to ensure we received JSON
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          // Log the raw response for debugging
-          const rawText = await response.text();
-          console.error("Registration response is not JSON:", contentType);
-          console.error("Raw response (first 100 chars):", rawText.slice(0, 100));
-          throw new Error("Server did not return a valid JSON response");
-        }
-        
-        // Now parse as JSON since we've confirmed the content type
-        let data;
-        try {
-          // Reset the response body stream
-          const clonedResponse = response.clone();
-          data = await clonedResponse.json();
-        } catch (parseError) {
-          console.error("JSON parsing error:", parseError);
-          throw new Error("Failed to parse server response as JSON");
-        }
-        
-        if (!response.ok) {
-          throw new Error(data.message || "Registration failed");
-        }
-        
-        return data;
-      } catch (error) {
-        console.error("Registration error:", error);
-        throw error;
-      }
+      const res = await apiRequest("POST", "/api/register", credentials);
+      return await res.json();
     },
-    onSuccess: (response: {success: boolean, user: Omit<User, "password">} | Omit<User, "password">) => {
-      // Handle both response formats - either the user object directly or nested in a success response
-      const user = 'user' in response ? response.user : response;
-      
-      // Update the cache with just the user data
+    onSuccess: (user: Omit<User, "password">) => {
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Registration successful",
-        description: `Welcome, ${user.firstName || "User"}!`,
+        description: `Welcome, ${user.firstName}!`,
       });
     },
     onError: (error: Error) => {
-      console.error("Registration mutation error:", error);
       toast({
         title: "Registration failed",
-        description: error.message || "An error occurred during registration",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -213,22 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      try {
-        const response = await fetch("/api/logout", {
-          method: "POST",
-          credentials: "include",
-        });
-        
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          throw new Error(data.message || "Logout failed");
-        }
-        
-        return;
-      } catch (error) {
-        console.error("Logout error:", error);
-        throw error;
-      }
+      await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
@@ -238,10 +105,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
-      console.error("Logout mutation error:", error);
       toast({
         title: "Logout failed",
-        description: error.message || "An error occurred during logout",
+        description: error.message,
         variant: "destructive",
       });
     },

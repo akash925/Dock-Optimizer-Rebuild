@@ -65,12 +65,28 @@ export async function comparePasswords(supplied: string, stored: string) {
   }
 }
 
-export async function setupAuth(router: any) { // Using 'any' type to avoid Express vs Router type conflicts
+export async function setupAuth(app: Express) {
   // Get the storage instance
   const storage = await getStorage();
   
-  // Note: We now properly set up session and passport in routes.ts before calling this
-  // So we don't need to initialize passport here, just configure it
+  // Ensure we have a session secret
+  const sessionSecret = process.env.SESSION_SECRET || "dock-optimizer-secret-key";
+
+  const sessionSettings: session.SessionOptions = {
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    store: storage.sessionStore,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    }
+  };
+
+  app.set("trust proxy", 1);
+  app.use(session(sessionSettings));
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
@@ -168,14 +184,11 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
     };
   }
 
-  router.post("/register", async (req, res, next) => {
+  app.post("/api/register", async (req, res, next) => {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Username already exists" 
-        });
+        return res.status(400).json({ message: "Username already exists" });
       }
 
       const hashedPassword = await hashPassword(req.body.password);
@@ -186,51 +199,27 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
       });
 
       req.login(user, (err) => {
-        if (err) {
-          console.error("Registration session error:", err);
-          return res.status(500).json({ 
-            success: false, 
-            message: "Registration session error" 
-          });
-        }
-        
+        if (err) return next(err);
         // Don't send password in response
         const { password, ...userWithoutPassword } = user;
-        res.status(201).json({ 
-          success: true, 
-          user: userWithoutPassword 
-        });
+        res.status(201).json(userWithoutPassword);
       });
     } catch (err) {
-      console.error("Registration error:", err);
-      res.status(500).json({ 
-        success: false, 
-        message: err instanceof Error ? err.message : "An error occurred during registration" 
-      });
+      next(err);
     }
   });
 
-  router.post("/login", (req, res, next) => {
+  app.post("/api/login", (req, res, next) => {
     console.log("Login attempt:", req.body.username);
-    
-    // Force content type to be application/json to bypass Vite middleware
-    res.contentType('application/json');
     
     passport.authenticate("local", async (err, user, info) => {
       if (err) {
         console.error("Login error:", err);
-        return res.status(500).send(JSON.stringify({ 
-          success: false, 
-          message: err.message || "Internal server error" 
-        }));
+        return next(err);
       }
-      
       if (!user) {
         console.log("Authentication failed:", info?.message || "Unknown reason");
-        return res.status(401).send(JSON.stringify({ 
-          success: false, 
-          message: info?.message || "Authentication failed" 
-        }));
+        return res.status(401).json({ message: info?.message || "Authentication failed" });
       }
       
       try {
@@ -243,21 +232,13 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
         req.login(enrichedUser, (loginErr) => {
           if (loginErr) {
             console.error("Login session error:", loginErr);
-            return res.status(500).send(JSON.stringify({ 
-              success: false, 
-              message: "Login session error" 
-            }));
+            return next(loginErr);
           }
           
           console.log("Login successful, session created:", req.sessionID);
           // Don't send password in response
           const { password, ...userWithoutPassword } = enrichedUser;
-          
-          // Use direct send with JSON string to avoid middleware issues
-          return res.status(200).send(JSON.stringify({ 
-            success: true, 
-            user: userWithoutPassword 
-          }));
+          res.status(200).json(userWithoutPassword);
         });
       } catch (enrichErr) {
         console.error("Error enriching user data:", enrichErr);
@@ -266,27 +247,19 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
         req.login(user, (loginErr) => {
           if (loginErr) {
             console.error("Login session error:", loginErr);
-            return res.status(500).send(JSON.stringify({ 
-              success: false, 
-              message: "Login session error" 
-            }));
+            return next(loginErr);
           }
           
           console.log("Login successful with original user data, session created:", req.sessionID);
           const { password, ...userWithoutPassword } = user;
-          
-          // Use direct send with JSON string to avoid middleware issues
-          return res.status(200).send(JSON.stringify({ 
-            success: true, 
-            user: userWithoutPassword 
-          }));
+          res.status(200).json(userWithoutPassword);
         });
       }
     })(req, res, next);
   });
   
   // Add a test route to log in as super-admin (for development)
-  router.get("/test-login", async (req, res, next) => {
+  app.get("/api/test-login", async (req, res, next) => {
     try {
       console.log("Test login endpoint called");
       const { enrichUserWithRole } = await import('./enrich-user-role');
@@ -422,14 +395,14 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
     }
   });
 
-  router.post("/logout", (req, res, next) => {
+  app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
       res.sendStatus(200);
     });
   });
 
-  router.get("/user", (req, res) => {
+  app.get("/api/user", (req, res) => {
     console.log("GET /api/user - isAuthenticated:", req.isAuthenticated());
     console.log("Session ID:", req.sessionID);
     console.log("Session:", req.session);
@@ -441,7 +414,7 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
   });
   
   // Debug route for auth status
-  router.get("/auth-status", (req, res) => {
+  app.get("/api/auth-status", (req, res) => {
     res.json({
       isAuthenticated: req.isAuthenticated(),
       sessionID: req.sessionID,
@@ -453,9 +426,5 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
   });
 
   // Make auth middleware available for routes
-  // Expose the checkRole function through the router instead
-  router.use((req, res, next) => {
-    req.checkRole = checkRole;
-    next();
-  });
+  app.locals.checkRole = checkRole;
 }

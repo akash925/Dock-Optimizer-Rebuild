@@ -1,5 +1,4 @@
-// Remove problematic import to fix server startup
-// We'll handle booking pages through the regular router system
+import bookingPages from "./bookingPages";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -39,66 +38,13 @@ console.log(
   `Enabled modules: ${ENABLED_MODULES.length ? ENABLED_MODULES.join(", ") : "none"}`,
 );
 
-// Import the booking router if it exists, otherwise use an empty router
-let bookingPublicRouter;
-try {
-  bookingPublicRouter = require("./routes/public/booking").default;
-} catch (error) {
-  console.log("Could not load booking router, using empty router instead");
-  bookingPublicRouter = express.Router();
-}
+import bookingPublicRouter from "./routes/public/booking"; // Adjust path if needed
 
 const app = express();
 // Increase JSON payload size limit to 5MB for logo uploads
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: false, limit: "5mb" }));
-
-// Initialize session and authentication early
-// This ensures auth middleware is available throughout the application
-(async () => {
-  try {
-    // Get the storage instance for session store
-    const storage = await import("./storage").then(m => m.getStorage());
-    
-    // Initialize session middleware
-    const session = await import("express-session").then(m => m.default);
-    const sessionSettings = {
-      secret: process.env.SESSION_SECRET || "dock-optimizer-secret-key",
-      resave: false,
-      saveUninitialized: false,
-      store: (await storage).sessionStore,
-      cookie: {
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-      }
-    };
-    
-    // Apply session middleware
-    app.set("trust proxy", 1);
-    app.use(session(sessionSettings));
-    
-    // Initialize passport
-    const passport = await import("passport").then(m => m.default);
-    app.use(passport.initialize());
-    app.use(passport.session());
-    
-    console.log("Authentication middleware initialized successfully");
-  } catch (error) {
-    console.error("Failed to initialize authentication middleware:", error);
-  }
-})();
-
-// Force all API routes to return application/json content type
-app.use("/api", (req, res, next) => {
-  res.setHeader('Content-Type', 'application/json');
-  next();
-});
-
-// Register the public booking router - ensure it has higher priority than Vite routes
 app.use("/api", bookingPublicRouter);
-
-// Remove any reference to the missing bookingPages module
-console.log("Booking router registered successfully");
 
 // Add tenant identification middleware
 app.use(tenantMiddleware);
@@ -191,16 +137,9 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // No longer needed as we'll fix the route registration in routes.ts
-  
-  // Important: First register all API routes,
-  // then set up Vite middleware for frontend routes
-  
-  // Double-check that API routes have been properly registered
-  console.log("API routes registered - setting up frontend routes");
-  
-  // Only setup Vite in development and AFTER
-  // all API routes are registered
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
