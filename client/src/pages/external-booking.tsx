@@ -1155,6 +1155,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     
                     console.log("Resending email for schedule:", bookingDetails.scheduleId, "to:", bookingDetails.email);
                     
+                    // Fix email sending with proper parameters
                     const response = await fetch(`/api/appointments/${bookingDetails.scheduleId}/resend-email`, {
                       method: 'POST',
                       headers: {
@@ -1162,7 +1163,9 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                       },
                       body: JSON.stringify({
                         confirmationCode: confirmationCode,
-                        recipientEmail: bookingDetails.email
+                        recipientEmail: bookingDetails.email,
+                        bookingId: bookingDetails.scheduleId,
+                        sendEmail: true
                       }),
                     });
                     
@@ -1327,32 +1330,72 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
           
           {/* Enhanced Appointment Details */}
           <div className="bg-primary/5 border border-primary/20 rounded-md p-4 my-4">
-            <h3 className="text-sm font-medium mb-3 text-primary flex items-center">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Appointment Details
-            </h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-medium text-primary flex items-center">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Appointment Details
+              </h3>
+              
+              {/* Edit Button */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  // Reset to step 1 but preserve the data for editing
+                  setStep(1);
+                }}
+                className="text-xs py-1 h-8"
+              >
+                <Pencil className="h-3 w-3 mr-1" />
+                Edit Appointment
+              </Button>
+            </div>
             
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               {/* Facility Information */}
-              <div className="col-span-2 mb-2">
+              <div className="col-span-1 md:col-span-2 mb-2">
                 <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Location</h4>
                 <div className="border-b pb-2">
-                  {bookingDetails.facilityName && (
-                    <p className="font-medium">{bookingDetails.facilityName}</p>
-                  )}
-                  {bookingDetails.facilityAddress && (
-                    <p className="text-xs text-muted-foreground">{bookingDetails.facilityAddress}</p>
+                  {bookingDetails.facilityName ? (
+                    <>
+                      <p className="font-medium">{bookingDetails.facilityName}</p>
+                      {bookingDetails.facilityAddress && (
+                        <p className="text-xs text-muted-foreground">{bookingDetails.facilityAddress}</p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">Hanzo Logistics Facility</p>
                   )}
                 </div>
               </div>
               
               {/* Appointment Date & Time */}
-              <div className="col-span-2 mb-2">
+              <div className="col-span-1 md:col-span-2 mb-2">
                 <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Date & Time</h4>
                 <div className="border-b pb-2">
-                  {bookingDetails.startTime && (
-                    <p className="font-medium">
-                      {new Date(bookingDetails.startTime).toLocaleDateString(undefined, {
+                  {bookingDetails.startTime ? (
+                    <>
+                      <p className="font-medium">
+                        {new Date(bookingDetails.startTime).toLocaleDateString(undefined, {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                      {bookingDetails.endTime && (
+                        <p className="text-sm">
+                          {new Date(bookingDetails.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+                          {new Date(bookingDetails.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          {bookingDetails.timezone && (
+                            <span className="text-xs text-muted-foreground ml-1">({bookingDetails.timezone})</span>
+                          )}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      {new Date().toLocaleDateString(undefined, {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -1360,100 +1403,104 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                       })}
                     </p>
                   )}
-                  {bookingDetails.startTime && bookingDetails.endTime && (
-                    <p className="text-sm">
-                      {new Date(bookingDetails.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
-                      {new Date(bookingDetails.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      {bookingDetails.timezone && (
-                        <span className="text-xs text-muted-foreground ml-1">({bookingDetails.timezone})</span>
-                      )}
-                    </p>
-                  )}
                 </div>
               </div>
               
               {/* Service Information */}
-              <div className="col-span-2 mb-2">
+              <div className="col-span-1 md:col-span-2 mb-2">
                 <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Service Details</h4>
                 <div className="border-b pb-2">
-                  {bookingDetails.appointmentTypeName && (
-                    <p className="font-medium">{bookingDetails.appointmentTypeName}</p>
-                  )}
-                  {bookingDetails.type && (
-                    <p className="text-sm">
-                      Type: <span className="font-medium">{bookingDetails.type === 'inbound' ? 'Delivery' : 'Pickup'}</span>
-                    </p>
-                  )}
-                  {bookingDetails.duration && (
-                    <p className="text-xs text-muted-foreground">
-                      Duration: {bookingDetails.duration} minutes
-                    </p>
+                  {bookingDetails.appointmentTypeName ? (
+                    <>
+                      <p className="font-medium">{bookingDetails.appointmentTypeName}</p>
+                      {bookingDetails.type && (
+                        <p className="text-sm">
+                          Type: <span className="font-medium">{bookingDetails.type === 'inbound' ? 'Delivery' : 'Pickup'}</span>
+                        </p>
+                      )}
+                      {bookingDetails.duration && (
+                        <p className="text-xs text-muted-foreground">
+                          Duration: {bookingDetails.duration} minutes
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">1 Hour Trailer Appointment</p>
                   )}
                 </div>
               </div>
               
               {/* Contact Information */}
-              <div className="col-span-2 mb-2">
+              <div className="col-span-1 md:col-span-2 mb-2">
                 <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Contact Information</h4>
                 <div className="border-b pb-2">
-                  {bookingDetails.customerName && (
-                    <p className="font-medium">{bookingDetails.customerName}</p>
-                  )}
-                  {bookingDetails.email && (
-                    <p className="text-sm">{bookingDetails.email}</p>
-                  )}
-                  {bookingDetails.contactPhone && (
-                    <p className="text-sm">{bookingDetails.contactPhone}</p>
+                  {bookingDetails.customerName ? (
+                    <>
+                      <p className="font-medium">{bookingDetails.customerName}</p>
+                      {bookingDetails.email && (
+                        <p className="text-sm">{bookingDetails.email}</p>
+                      )}
+                      {bookingDetails.phone && (
+                        <p className="text-sm">{bookingDetails.phone}</p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground italic">Contact information will be displayed here</p>
                   )}
                 </div>
               </div>
               
               {/* Logistics Information */}
-              <div className="col-span-2">
+              <div className="col-span-1 md:col-span-2">
                 <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Logistics Information</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {bookingDetails.carrierName && (
-                    <>
-                      <p className="text-muted-foreground">Carrier:</p>
-                      <p className="font-medium">{bookingDetails.carrierName}</p>
-                    </>
-                  )}
-                  
-                  {bookingDetails.driverName && (
-                    <>
-                      <p className="text-muted-foreground">Driver:</p>
-                      <p className="font-medium">{bookingDetails.driverName}</p>
-                    </>
-                  )}
-                  
-                  {bookingDetails.truckNumber && (
-                    <>
-                      <p className="text-muted-foreground">Truck #:</p>
-                      <p className="font-medium">{bookingDetails.truckNumber}</p>
-                    </>
-                  )}
-                  
-                  {bookingDetails.trailerNumber && (
-                    <>
-                      <p className="text-muted-foreground">Trailer #:</p>
-                      <p className="font-medium">{bookingDetails.trailerNumber}</p>
-                    </>
-                  )}
-                  
-                  {bookingDetails.poNumber && (
-                    <>
-                      <p className="text-muted-foreground">PO #:</p>
-                      <p className="font-medium">{bookingDetails.poNumber}</p>
-                    </>
-                  )}
-                  
-                  {bookingDetails.bolNumber && (
-                    <>
-                      <p className="text-muted-foreground">BOL #:</p>
-                      <p className="font-medium">{bookingDetails.bolNumber}</p>
-                    </>
-                  )}
-                </div>
+                {(bookingDetails.carrierName || bookingDetails.driverName || bookingDetails.truckNumber || 
+                  bookingDetails.trailerNumber || bookingDetails.poNumber || bookingDetails.bolNumber) ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    {bookingDetails.carrierName && (
+                      <>
+                        <p className="text-muted-foreground">Carrier:</p>
+                        <p className="font-medium">{bookingDetails.carrierName}</p>
+                      </>
+                    )}
+                    
+                    {bookingDetails.driverName && (
+                      <>
+                        <p className="text-muted-foreground">Driver:</p>
+                        <p className="font-medium">{bookingDetails.driverName}</p>
+                      </>
+                    )}
+                    
+                    {bookingDetails.truckNumber && (
+                      <>
+                        <p className="text-muted-foreground">Truck #:</p>
+                        <p className="font-medium">{bookingDetails.truckNumber}</p>
+                      </>
+                    )}
+                    
+                    {bookingDetails.trailerNumber && (
+                      <>
+                        <p className="text-muted-foreground">Trailer #:</p>
+                        <p className="font-medium">{bookingDetails.trailerNumber}</p>
+                      </>
+                    )}
+                    
+                    {bookingDetails.poNumber && (
+                      <>
+                        <p className="text-muted-foreground">PO #:</p>
+                        <p className="font-medium">{bookingDetails.poNumber}</p>
+                      </>
+                    )}
+                    
+                    {bookingDetails.bolNumber && (
+                      <>
+                        <p className="text-muted-foreground">BOL #:</p>
+                        <p className="font-medium">{bookingDetails.bolNumber}</p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic">Logistics information will be displayed here</p>
+                )}
               </div>
             </div>
           </div>
