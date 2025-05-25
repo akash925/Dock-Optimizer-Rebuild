@@ -488,7 +488,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       
       // Force redirect to confirmation page using URL parameter
       // This ensures the UI re-renders with the confirmation page
-      window.history.replaceState(null, '', `?step=4`);
+      window.history.replaceState(null, '', `?confirmation=${confirmationCode}`);
       setStep(4); // Move to confirmation step
     },
     onError: (error: any) => {
