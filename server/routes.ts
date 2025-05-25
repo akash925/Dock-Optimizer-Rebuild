@@ -456,7 +456,7 @@ export function registerRoutes(app: Express): Server {
   
   // Register QR code routes
   try {
-    await registerQrCodeRoutes(app);
+    registerQrCodeRoutes(app);
     console.log('QR code routes registered');
   } catch (error) {
     console.error('Error registering QR code routes:', error);
@@ -609,8 +609,8 @@ export function registerRoutes(app: Express): Server {
             message: "Failed to calculate availability", 
             error: err instanceof Error ? err.message : String(err)
           });
-      }
-    });
+        });
+      });
     
     console.log('Enhanced availability (v2) endpoint registered');
   } catch (error) {
