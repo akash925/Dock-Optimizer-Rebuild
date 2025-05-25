@@ -6278,8 +6278,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Import validation middleware
-import { bookAppointmentSchema, validateWithZod } from './middleware/validation';
+  // Use validation middleware for appointment booking
+  // (already imported at the top of the file)
 
 // Add the new endpoint to handle booking via slug parameter with Zod validation
 app.post("/api/booking-pages/book/:slug", 
@@ -9311,3 +9311,5 @@ app.post("/api/booking-pages/book/:slug",
   
   return httpServer;
 }
+
+
