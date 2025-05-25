@@ -194,7 +194,7 @@ interface TenantWebSocket extends WebSocket {
   isAlive?: boolean;
 }
 
-export function registerRoutes(app: Express): Server {
+export async function registerRoutes(app: Express): Promise<Server> {
   // Get storage instance
   const storage = getStorage();
   
@@ -204,23 +204,19 @@ export function registerRoutes(app: Express): Server {
   // Run super-admin creation script
   try {
     console.log("Running create-super-admin script...");
-    createSuperAdmin().catch(error => {
-      console.error("Error running super-admin creation script:", error);
-    });
-    console.log("Super-admin creation script started");
+    await createSuperAdmin();
+    console.log("Super-admin creation script completed");
   } catch (error) {
-    console.error("Error starting super-admin creation script:", error);
+    console.error("Error running super-admin creation script:", error);
   }
   
   // Seed roles
   try {
     console.log("Running seed-roles script...");
-    seedRoles().catch(error => {
-      console.error("Error seeding roles:", error);
-    });
-    console.log("Roles seeding started");
+    await seedRoles();
+    console.log("Roles seeding completed");
   } catch (error) {
-    console.error("Error starting roles seeding:", error);
+    console.error("Error seeding roles:", error);
   }
   
   // Fix admin password
@@ -9122,8 +9118,6 @@ app.post("/api/booking-pages/book/:slug",
     });
   */
     
-  /*
-    // WEBSOCKET CODE TEMPORARILY DISABLED TO FIX SERVER STARTUP
     // Store connected clients with their tenant information and ping status
     const clients = new Map<WebSocket, { 
       tenantId?: number,
@@ -9152,11 +9146,11 @@ app.post("/api/booking-pages/book/:slug",
       });
     }, 30000); // Check every 30 seconds
     
-    // Clean up interval on server shutdown
+    /* // Clean up interval on server shutdown - COMMENTED OUT TO FIX SERVER STARTUP
     wss.on('close', () => {
       console.log('[WebSocket] Server closing, clearing ping interval');
       clearInterval(pingInterval);
-    });
+    }); */
     
     // Handle WebSocket connections
     wss.on('connection', (ws, req) => {
@@ -9164,9 +9158,32 @@ app.post("/api/booking-pages/book/:slug",
       
       // Store client connection with alive status
       clients.set(ws, { isAlive: true });
-  */
       
-  // All WebSocket code has been commented out to ensure server startup
+      // Handle pong messages (heartbeat response)
+      ws.on('pong', () => {
+      const clientInfo = clients.get(ws);
+      if (clientInfo) {
+        clientInfo.isAlive = true;
+        clients.set(ws, clientInfo);
+      }
+    });
+    
+    // Send initial connection message
+    ws.send(JSON.stringify({ type: 'connected' }));
+    
+    // Handle auth message to associate connection with user/tenant
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        // Handle auth message
+        if (data.type === 'auth' && data.tenantId) {
+          console.log(`[WebSocket] Authenticated client for tenant ${data.tenantId}`);
+          const currentInfo = clients.get(ws) || { isAlive: true };
+          clients.set(ws, { 
+            ...currentInfo,
+            tenantId: data.tenantId,
+            userId: data.userId
           });
         }
       } catch (error) {
@@ -9291,11 +9308,69 @@ app.post("/api/booking-pages/book/:slug",
   
   // Add a global function to broadcast schedule updates to relevant tenants
   // Set up broadcast function for schedule updates with secure tenant isolation
-  // TEMPORARILY DISABLED: WebSocket functionality removed to fix server startup
-  // This function will be properly reimplemented after server is stable
   app.locals.broadcastScheduleUpdate = (schedule: any) => {
-    console.log(`[WebSocket] Broadcasting disabled - update for schedule ID: ${schedule.id} not sent`);
-    return 0;
+    try {
+      // Try to use the secure WebSocket handler if available
+      if (secureWebSocketHandler) {
+        console.log(`[SecureWebSocket] Broadcasting schedule update for tenant ${schedule.tenantId}, schedule ID: ${schedule.id}`);
+        
+        // Format the payload according to required format
+        const scheduleEvent = {
+          type: "schedule.created",
+          payload: {
+            scheduleId: schedule.id,
+            tenantId: schedule.tenantId,
+            dockId: schedule.dockId,
+            time: schedule.startTime
+          }
+        };
+        
+        // Use the secure handler to broadcast with tenant isolation
+        return secureWebSocketHandler.broadcastToTenant(
+          schedule.tenantId, 
+          "schedule.created", 
+          scheduleEvent.payload
+        );
+      } 
+      
+      // Fallback to legacy WebSocket implementation if secure handler not available
+      const tenantId = schedule.tenantId;
+      
+      // Log broadcast attempt
+      console.log(`[WebSocket] Broadcasting schedule update for tenant ${tenantId}, schedule ID: ${schedule.id} (legacy mode)`);
+      
+      // Convert schedule to a message with standard format
+      const message = JSON.stringify({
+        type: "schedule.created",
+        payload: {
+          scheduleId: schedule.id,
+          tenantId: schedule.tenantId,
+          dockId: schedule.dockId,
+          time: schedule.startTime
+        }
+      });
+      
+      // Send to all connected clients for this tenant
+      let clientCount = 0;
+      clients.forEach((clientInfo, client) => {
+        // Check if client is still connected and belongs to the correct tenant
+        // (or is a super admin that should receive all updates)
+        if (
+          client.readyState === WebSocket.OPEN && 
+          clientInfo.isAuthenticated &&
+          (clientInfo.tenantId === tenantId || clientInfo.tenantId === 0)
+        ) {
+          client.send(message);
+          clientCount++;
+        }
+      });
+      
+      console.log(`[WebSocket] Sent update to ${clientCount} connected clients (legacy mode)`);
+      return clientCount;
+    } catch (error) {
+      console.error(`[WebSocket] Error broadcasting schedule update:`, error);
+      return 0;
+    }
   };
   
   // Start the email reminder scheduler
