@@ -6770,7 +6770,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail the request if email sending fails
       }
       
-      res.status(201).json(createdAppointment);
+      // Ensure we never return undefined for confirmationCode
+      // First check if the created appointment has a confirmation code
+      if (!createdAppointment.confirmationCode) {
+        // Generate a deterministic fallback confirmation code if one wasn't set
+        const prefixFromOrg = organization?.name?.substring(0, 3).toUpperCase() || 'DO';
+        const fallbackCode = `${prefixFromOrg}-${createdAppointment.id.toString().padStart(6, '0')}`;
+        
+        console.log(`[BookAppointment] Missing confirmation code, using fallback: ${fallbackCode}`);
+        
+        // Update our response object with the fallback code
+        createdAppointment.confirmationCode = fallbackCode;
+        
+        // Also update in the database for consistency
+        try {
+          await storage.updateSchedule(createdAppointment.id, { confirmationCode: fallbackCode });
+          console.log(`[BookAppointment] Updated database with fallback confirmation code: ${fallbackCode}`);
+        } catch (updateError) {
+          console.error(`[BookAppointment] Failed to update database with fallback code: ${updateError}`);
+          // Continue with the response even if the update fails
+        }
+      }
+      
+      console.log(`[BookAppointment] Returning appointment with confirmation code: ${createdAppointment.confirmationCode}`);
+      
+      // Return the full response with guaranteed valid confirmation code
+      res.status(201).json({
+        ...createdAppointment,
+        // Add these explicitly to ensure they're in the response
+        confirmationCode: createdAppointment.confirmationCode,
+        schedule: {
+          ...createdAppointment,
+          confirmationCode: createdAppointment.confirmationCode
+        },
+        facility: facility,
+        appointmentType: appointmentType
+      });
     } catch (err) {
       console.error(`[BookAppointment] Error creating appointment:`, err);
       
