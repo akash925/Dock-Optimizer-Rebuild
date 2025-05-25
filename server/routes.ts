@@ -3,6 +3,15 @@ import { createServer, type Server } from "http";
 import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
+import { 
+  checkInSchema, 
+  checkOutSchema, 
+  validateWithZod, 
+  bolDocumentLinkSchema,
+  bolUploadSchema,
+  bookAppointmentSchema,
+  resendEmailSchema,
+} from "./middleware/validation";
 import { getBookingStyles } from "./controllers/admin-controller";
 import path from "path";
 import fs from "fs";
@@ -1983,8 +1992,21 @@ export function registerRoutes(app: Express): Server {
   });
   
   // QR Code check-in endpoint - for driver self-service check-in
-  app.post("/api/schedules/:id/check-in", validateWithZod(checkInSchema), async (req, res) => {
+  app.post("/api/schedules/:id/check-in", async (req, res) => {
     try {
+      // Validate request body for check-in
+      try {
+        checkInSchema.parse(req.body);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          console.log(`[Check-in] Validation failed: ${JSON.stringify(validationError.errors)}`);
+          return res.status(400).json({
+            message: 'Validation error',
+            errors: validationError.errors
+          });
+        }
+      }
+      
       const scheduleId = Number(req.params.id);
       const schedule = await storage.getSchedule(scheduleId);
       
@@ -2098,6 +2120,26 @@ export function registerRoutes(app: Express): Server {
   // Check-out endpoint - completes appointment
   app.patch("/api/schedules/:id/check-out", async (req, res) => {
     try {
+      // Validate request body for check-out
+      try {
+        const checkOutSchema = z.object({
+          notes: z.string().optional(),
+          checkOutTime: z.string().optional(),
+          exitNotes: z.string().optional(),
+          customFormData: z.union([z.string(), z.record(z.any())]).optional(),
+        });
+        
+        checkOutSchema.parse(req.body);
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          console.log(`[Check-out] Validation failed: ${JSON.stringify(validationError.errors)}`);
+          return res.status(400).json({
+            message: 'Validation error',
+            errors: validationError.errors
+          });
+        }
+      }
+      
       const id = Number(req.params.id);
       const schedule = await storage.getSchedule(id);
       if (!schedule) {

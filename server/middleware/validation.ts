@@ -133,6 +133,7 @@ export const validateWithZod = (schema: z.ZodSchema) => {
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.log(`[Validation] Failed validation: ${JSON.stringify(error.errors)}`);
         return res.status(400).json({
           message: 'Validation error',
           errors: error.errors
