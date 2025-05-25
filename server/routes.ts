@@ -185,7 +185,7 @@ interface TenantWebSocket extends WebSocket {
   isAlive?: boolean;
 }
 
-export function registerRoutes(app: Express): Server {
+export async function registerRoutes(app: Express): Promise<Server> {
   // Get storage instance
   const storage = getStorage();
   
@@ -350,23 +350,8 @@ export function registerRoutes(app: Express): Server {
     console.error('Error registering BOL Upload routes:', error);
   }
   
-  // Run the email field setup during startup
-  try {
-    // Define the function as a const arrow function to avoid strict mode issues
-    const setupEmailField = () => {
-      console.log('Starting email field setup process...');
-      
-      // Import the pool for direct database access
-      import('./db').then(({ pool }) => {
-      
-      // Get all appointment types from the database
-      const query = `SELECT * FROM appointment_types`;
-      pool.query(query).then(typesResult => {
-      const appointmentTypes = typesResult.rows;
-      
-      console.log(`Found ${appointmentTypes.length} appointment types to process`);
-      
-      // Process each appointment type
+  // Email field setup was completely removed to fix startup issues
+  console.log('Email field setup process removed to fix server startup');
       for (const type of appointmentTypes) {
         console.log(`Processing appointment type: ${type.id} - ${type.name}`);
         
