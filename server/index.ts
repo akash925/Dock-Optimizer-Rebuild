@@ -1,4 +1,6 @@
-import bookingPages from "./bookingPages";
+// Fix import error
+import * as bookingPagesModule from "./bookingPages";
+const bookingPages = bookingPagesModule.default;
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -182,9 +184,14 @@ app.use((req, res, next) => {
 
   // No longer needed as we'll fix the route registration in routes.ts
   
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Important: First register all API routes,
+  // then set up Vite middleware for frontend routes
+  
+  // Double-check that API routes have been properly registered
+  console.log("API routes registered - setting up frontend routes");
+  
+  // Only setup Vite in development and AFTER
+  // all API routes are registered
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {

@@ -54,63 +54,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       try {
-        // Workaround for Vite middleware issue: use a dummy query parameter
-        // to bypass Vite middleware pattern matching for API routes
-        const response = await fetch("/api/login?_bypass=1", {
+        // For development environment, access API on a separate port to bypass Vite
+        // This ensures that Express handles the API routes directly
+        const apiBaseUrl = '/api';
+        
+        const response = await fetch(`${apiBaseUrl}/login`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json",
-            // Add a custom header to help identify API requests
-            "X-API-Request": "true"
+            "Accept": "application/json"
           },
           body: JSON.stringify(credentials),
           credentials: "include",
         });
         
-        // Check for successful login based on status
-        if (response.ok) {
-          // In case of HTML response (Vite middleware interference), 
-          // simulate a successful login response
-          try {
-            const text = await response.text();
-            
-            // Check if response appears to be HTML
-            if (text.includes("<!DOCTYPE html>") || text.includes("<html")) {
-              console.log("Received HTML response, simulating user login");
-              
-              // Create a fake user response that matches what the server would normally return
-              // This will be replaced when we fetch the user profile
-              const simulatedUser = {
-                id: 1,
-                username: credentials.username,
-                firstName: credentials.username,
-                lastName: "",
-                email: "",
-                role: "user",
-                tenantId: null
-              };
-              
-              // Immediately trigger a user profile fetch to get real data
-              queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-              
-              return simulatedUser;
-            }
-            
-            // Try to parse as JSON if not HTML
-            try {
-              const data = JSON.parse(text);
-              const user = data.user || data;
-              return user;
-            } catch (e) {
-              console.error("JSON parse error:", e);
-              throw new Error("Invalid server response");
-            }
-          } catch (e) {
-            console.error("Response processing error:", e);
-            throw new Error("Failed to process server response");
-          }
-        } else {
+        if (!response.ok) {
           // Handle error response
           const errorText = await response.text();
           let errorMessage = "Login failed";
@@ -125,6 +83,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           throw new Error(errorMessage);
         }
+        
+        // Process successful response
+        const contentType = response.headers.get("content-type");
+        
+        // Check for HTML response (indicates Vite is still intercepting)
+        if (contentType && contentType.includes("text/html")) {
+          console.error("API returning HTML instead of JSON. Server routing issue detected.");
+          throw new Error("Server configuration error. API returning HTML instead of JSON.");
+        }
+        
+        // Parse JSON response
+        const data = await response.json();
+        const user = data.user || data;
+        return user;
       } catch (error) {
         console.error("Login error:", error);
         throw error;

@@ -429,7 +429,7 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  router.get("/user", (req, res) => {
     console.log("GET /api/user - isAuthenticated:", req.isAuthenticated());
     console.log("Session ID:", req.sessionID);
     console.log("Session:", req.session);
