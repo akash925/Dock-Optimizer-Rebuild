@@ -9046,56 +9046,71 @@ app.post("/api/booking-pages/book/:slug",
   });
 
   const httpServer = createServer(app);
-  
-  // Initialize WebSocket server on the same HTTP server but with a different path
-  const wss = new WebSocketServer({ 
-    server: httpServer, 
-    path: '/ws' 
-  });
-  
-  // Store connected clients with their tenant information and ping status
-  const clients = new Map<WebSocket, { 
-    tenantId?: number,
-    userId?: number,
-    isAlive: boolean
-  }>();
-  
-  // Set up ping interval to detect disconnected clients
-  const pingInterval = setInterval(() => {
-    wss.clients.forEach((ws) => {
-      const clientInfo = clients.get(ws);
-      if (clientInfo && clientInfo.isAlive === false) {
-        console.log('[WebSocket] Terminating inactive client');
-        clients.delete(ws);
-        return ws.terminate();
-      }
-      
-      // Mark client as inactive and send ping
-      if (clientInfo) {
-        clientInfo.isAlive = false;
-        clients.set(ws, clientInfo);
-      }
-      
-      // Send ping (client should respond with pong)
-      ws.ping();
+
+  // Initialize secure WebSocket handler with tenant isolation
+  let secureWebSocketHandler: any;
+  try {
+    // Import the WebSocket handler
+    const { initializeWebSocket } = await import('./websocket');
+    
+    // Initialize the secure WebSocket handler
+    secureWebSocketHandler = initializeWebSocket(httpServer, storage);
+    console.log('[WebSocket] Secure WebSocket handler initialized successfully');
+  } catch (error: any) {
+    console.error('[WebSocket] Error initializing secure WebSocket handler:', error);
+    
+    // Fallback to basic WebSocket server if secure handler fails
+    console.log('[WebSocket] Falling back to basic WebSocket implementation');
+    
+    // Initialize basic WebSocket server on the same HTTP server but with a different path
+    const wss = new WebSocketServer({ 
+      server: httpServer, 
+      path: '/ws' 
     });
-  }, 30000); // Check every 30 seconds
-  
-  // Clean up interval on server shutdown
-  wss.on('close', () => {
-    console.log('[WebSocket] Server closing, clearing ping interval');
-    clearInterval(pingInterval);
-  });
-  
-  // Handle WebSocket connections
-  wss.on('connection', (ws, req) => {
-    console.log('[WebSocket] New client connected');
     
-    // Store client connection with alive status
-    clients.set(ws, { isAlive: true });
+    // Store connected clients with their tenant information and ping status
+    const clients = new Map<WebSocket, { 
+      tenantId?: number,
+      userId?: number,
+      isAlive: boolean
+    }>();
     
-    // Handle pong messages (heartbeat response)
-    ws.on('pong', () => {
+    // Set up ping interval to detect disconnected clients
+    const pingInterval = setInterval(() => {
+      wss.clients.forEach((ws) => {
+        const clientInfo = clients.get(ws);
+        if (clientInfo && clientInfo.isAlive === false) {
+          console.log('[WebSocket] Terminating inactive client');
+          clients.delete(ws);
+          return ws.terminate();
+        }
+        
+        // Mark client as inactive and send ping
+        if (clientInfo) {
+          clientInfo.isAlive = false;
+          clients.set(ws, clientInfo);
+        }
+        
+        // Send ping (client should respond with pong)
+        ws.ping();
+      });
+    }, 30000); // Check every 30 seconds
+    
+    // Clean up interval on server shutdown
+    wss.on('close', () => {
+      console.log('[WebSocket] Server closing, clearing ping interval');
+      clearInterval(pingInterval);
+    });
+    
+    // Handle WebSocket connections
+    wss.on('connection', (ws, req) => {
+      console.log('[WebSocket] New client connected');
+      
+      // Store client connection with alive status
+      clients.set(ws, { isAlive: true });
+      
+      // Handle pong messages (heartbeat response)
+      ws.on('pong', () => {
       const clientInfo = clients.get(ws);
       if (clientInfo) {
         clientInfo.isAlive = true;
@@ -9242,33 +9257,47 @@ app.post("/api/booking-pages/book/:slug",
   });
   
   // Add a global function to broadcast schedule updates to relevant tenants
+  // Set up broadcast function for schedule updates with secure tenant isolation
   app.locals.broadcastScheduleUpdate = (schedule: any) => {
-    const tenantId = schedule.tenantId;
-    
-    // Log broadcast attempt
-    console.log(`[WebSocket] Broadcasting schedule update for tenant ${tenantId}, schedule ID: ${schedule.id}`);
-    
-    // Convert schedule to a message
-    const message = JSON.stringify({
-      type: 'schedule_update',
-      data: schedule
-    });
-    
-    // Send to all connected clients for this tenant
-    let clientCount = 0;
-    clients.forEach((clientInfo, client) => {
-      // Check if client is still connected and belongs to the correct tenant
-      // (or is a super admin that should receive all updates)
-      if (
-        client.readyState === WebSocket.OPEN && 
-        (clientInfo.tenantId === tenantId || clientInfo.tenantId === 0)
-      ) {
-        client.send(message);
-        clientCount++;
-      }
-    });
-    
-    console.log(`[WebSocket] Sent update to ${clientCount} connected clients`);
+    try {
+      // Try to use the secure WebSocket handler if available
+      if (secureWebSocketHandler) {
+        console.log(`[SecureWebSocket] Broadcasting schedule update for tenant ${schedule.tenantId}, schedule ID: ${schedule.id}`);
+        return secureWebSocketHandler.broadcastScheduleUpdate(schedule);
+      } 
+      
+      // Fallback to legacy WebSocket implementation if secure handler not available
+      const tenantId = schedule.tenantId;
+      
+      // Log broadcast attempt
+      console.log(`[WebSocket] Broadcasting schedule update for tenant ${tenantId}, schedule ID: ${schedule.id} (legacy mode)`);
+      
+      // Convert schedule to a message
+      const message = JSON.stringify({
+        type: 'schedule_update',
+        data: schedule
+      });
+      
+      // Send to all connected clients for this tenant
+      let clientCount = 0;
+      clients.forEach((clientInfo, client) => {
+        // Check if client is still connected and belongs to the correct tenant
+        // (or is a super admin that should receive all updates)
+        if (
+          client.readyState === WebSocket.OPEN && 
+          (clientInfo.tenantId === tenantId || clientInfo.tenantId === 0)
+        ) {
+          client.send(message);
+          clientCount++;
+        }
+      });
+      
+      console.log(`[WebSocket] Sent update to ${clientCount} connected clients (legacy mode)`);
+      return clientCount;
+    } catch (error) {
+      console.error(`[WebSocket] Error broadcasting schedule update:`, error);
+      return 0;
+    }
   };
   
   // Start the email reminder scheduler
