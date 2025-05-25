@@ -453,5 +453,9 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
   });
 
   // Make auth middleware available for routes
-  app.locals.checkRole = checkRole;
+  // Expose the checkRole function through the router instead
+  router.use((req, res, next) => {
+    req.checkRole = checkRole;
+    next();
+  });
 }
