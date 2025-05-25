@@ -308,15 +308,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Error registering resend email endpoint:', error);
   }
   
-  // Register simplified BOL upload routes
+  // Register enhanced secure BOL upload routes with validation and tenant isolation
   try {
-    // Use the new ESM-compatible module
-    import('./routes/bol-upload.mjs').then(bolUploadModule => {
+    // Use the new secure BOL upload module with validation and tenant isolation
+    import('./routes/bol-upload-secure.mjs').then(bolUploadModule => {
       const bolUploadRoutes = bolUploadModule.default;
       app.use('/api/bol-upload', bolUploadRoutes);
-      console.log('BOL Upload routes registered');
+      console.log('Enhanced secure BOL Upload routes registered with tenant isolation');
     }).catch(error => {
-      console.error('Error importing BOL Upload routes:', error);
+      console.error('Error importing secure BOL Upload routes:', error);
+      
+      // Fallback to original routes if secure version fails to load
+      console.log('Attempting to load original BOL upload routes as fallback...');
+      import('./routes/bol-upload.mjs').then(bolUploadModule => {
+        const bolUploadRoutes = bolUploadModule.default;
+        app.use('/api/bol-upload', bolUploadRoutes);
+        console.log('Original BOL Upload routes registered as fallback');
+      }).catch(fallbackError => {
+        console.error('Error importing fallback BOL Upload routes:', fallbackError);
+      });
     });
   } catch (error) {
     console.error('Error registering BOL Upload routes:', error);
@@ -6268,8 +6278,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add the new endpoint to handle booking via slug parameter
-  app.post("/api/booking-pages/book/:slug", uploadBol.single('bolFile'), async (req, res) => {
+  // Import validation middleware
+import { bookAppointmentSchema, validateWithZod } from './middleware/validation';
+
+// Add the new endpoint to handle booking via slug parameter with Zod validation
+app.post("/api/booking-pages/book/:slug", 
+  uploadBol.single('bolFile'), 
+  validateWithZod(bookAppointmentSchema),
+  async (req, res) => {
     try {
       const slug = req.params.slug;
       console.log(`[BookAppointment] Received appointment booking request via slug: ${slug}`);
@@ -6929,8 +6945,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendFile(filePath);
   });
   
-  // Associate BOL file with a schedule
-  app.post("/api/schedules/:id/associate-bol", async (req, res) => {
+  // Associate BOL file with a schedule - with improved security and validation
+  app.post("/api/schedules/:id/associate-bol", isAuthenticated, async (req, res) => {
     try {
       const scheduleId = parseInt(req.params.id);
       const { fileUrl, filename, metadata } = req.body;
@@ -6953,6 +6969,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schedule = await storage.getSchedule(scheduleId);
       if (!schedule) {
         return res.status(404).json({ error: 'Schedule not found' });
+      }
+      
+      // Security check: Verify tenant isolation - users can only modify schedules from their tenant
+      // Super admins bypass this check
+      if (req.user && req.user.role !== 'super-admin') {
+        const facilityId = schedule.facilityId;
+        if (facilityId) {
+          const facility = await storage.getFacility(facilityId);
+          if (facility && facility.tenantId !== req.user.tenantId) {
+            console.log(`[BOL Associate] Security violation: User tenant ${req.user.tenantId} attempted to access facility ${facilityId} from tenant ${facility.tenantId}`);
+            return res.status(403).json({ error: 'You do not have permission to access this schedule' });
+          }
+        }
       }
       
       console.log(`[BOL Associate] Retrieved schedule: ${scheduleId}`, {

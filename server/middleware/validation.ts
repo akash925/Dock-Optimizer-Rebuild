@@ -7,7 +7,6 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { insertAppointmentBolLinkSchema } from '../drizzle/schema/appointment_bol_links';
 
 // Validate tenant belongs to user
 export const checkTenant = (req: Request, res: Response, next: NextFunction) => {
@@ -88,8 +87,9 @@ export const bookAppointmentSchema = z.object({
 });
 
 // Schema for linking BOL documents to appointments
-export const bolLinkSchema = insertAppointmentBolLinkSchema.extend({
-  // Add any additional validation if needed
+export const bolLinkSchema = z.object({
+  appointmentId: z.number().positive({ message: "Appointment ID is required" }),
+  bolDocumentId: z.number().positive({ message: "BOL document ID is required" })
 });
 
 // Schema for resending confirmation emails
