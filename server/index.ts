@@ -44,6 +44,14 @@ const app = express();
 // Increase JSON payload size limit to 5MB for logo uploads
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: false, limit: "5mb" }));
+
+// Force all API routes to return application/json content type
+app.use("/api", (req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
+
+// Register the public booking router - ensure it has higher priority than Vite routes
 app.use("/api", bookingPublicRouter);
 
 // Add tenant identification middleware
@@ -137,6 +145,8 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // No longer needed as we'll fix the route registration in routes.ts
+  
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
