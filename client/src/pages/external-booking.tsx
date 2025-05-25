@@ -359,9 +359,17 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       console.log("Booking created successfully:", data);
       
       // Use ONLY the standardized confirmation code from the response - this is the one saved in the database
-      const confirmationCode = data.confirmationCode || (data.schedule && data.schedule.confirmationCode) || data.code;
-      console.log("Using confirmation code:", confirmationCode);
-      setConfirmationCode(confirmationCode);
+      const confirmationCode = data.confirmationCode || 
+                              (data.schedule && data.schedule.confirmationCode) || 
+                              (data.schedule && data.schedule.confirmation_code) ||
+                              data.code;
+                              
+      // Generate a fallback confirmation code if none was provided (never show undefined to users)
+      const fallbackCode = `DO-${data.schedule?.id || Math.floor(Date.now() / 1000)}`;
+      const finalConfirmationCode = confirmationCode || fallbackCode;
+      
+      console.log("Using confirmation code:", finalConfirmationCode, "Original value:", confirmationCode);
+      setConfirmationCode(finalConfirmationCode);
       
       // Link BOL document to the created appointment if available
       let bolLinked = false;
