@@ -364,17 +364,44 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       }
       
       // Store additional booking details for the confirmation page
+      console.log("Setting booking details with data:", data);
+      // Extract all facility and appointment type information from the response
+      const facility = data.facility || {};
+      const appointmentType = data.appointmentType || {};
+      
+      // Full logging to help diagnose display issues
+      console.log("Setting booking details for confirmation page:", {
+        responseData: data,
+        scheduleData: data.schedule,
+        facilityData: facility,
+        appointmentTypeData: appointmentType,
+        existingBookingDetails: bookingDetails,
+        confirmationCode
+      });
+      
       setBookingDetails({
         ...bookingDetails,
         confirmationCode,
         id: data.schedule?.id,
-        scheduleId: data.schedule?.id, // Ensure scheduleId is available
+        scheduleId: data.schedule?.id,
         emailSent: data.emailSent || false,
         startTime: data.schedule?.startTime,
         endTime: data.schedule?.endTime,
-        bolFileUploaded: bolLinked, // Track if BOL was successfully linked
-        facilityName: data.facilityName || bookingDetails.facilityName,
-        appointmentTypeName: data.appointmentTypeName || bookingDetails.appointmentTypeName,
+        
+        // Facility information
+        facilityId: data.schedule?.facilityId || bookingDetails.facilityId,
+        facilityName: facility.name || data.facilityName || bookingDetails.facilityName,
+        facilityAddress: facility.address || data.facilityAddress || bookingDetails.facilityAddress,
+        
+        // Appointment type information
+        appointmentTypeId: data.schedule?.appointmentTypeId || bookingDetails.appointmentTypeId,
+        appointmentTypeName: appointmentType.name || data.appointmentTypeName || bookingDetails.appointmentTypeName,
+        
+        // Time information
+        timezone: data.timezone || bookingData.timezone || bookingDetails.timezone,
+        
+        // BOL information
+        bolFileUploaded: bolLinked,
         bolUploaded: !!bolData && (bolLinked || !!bolData.documentId)
       });
       
