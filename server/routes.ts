@@ -3,15 +3,6 @@ import { createServer, type Server } from "http";
 import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
-import { 
-  checkInSchema, 
-  checkOutSchema, 
-  validateWithZod, 
-  bolDocumentLinkSchema,
-  bolUploadSchema,
-  bookAppointmentSchema,
-  resendEmailSchema,
-} from "./middleware/validation";
 import { getBookingStyles } from "./controllers/admin-controller";
 import path from "path";
 import fs from "fs";
@@ -1994,19 +1985,6 @@ export function registerRoutes(app: Express): Server {
   // QR Code check-in endpoint - for driver self-service check-in
   app.post("/api/schedules/:id/check-in", async (req, res) => {
     try {
-      // Validate request body for check-in
-      try {
-        checkInSchema.parse(req.body);
-      } catch (validationError) {
-        if (validationError instanceof z.ZodError) {
-          console.log(`[Check-in] Validation failed: ${JSON.stringify(validationError.errors)}`);
-          return res.status(400).json({
-            message: 'Validation error',
-            errors: validationError.errors
-          });
-        }
-      }
-      
       const scheduleId = Number(req.params.id);
       const schedule = await storage.getSchedule(scheduleId);
       
@@ -2120,26 +2098,6 @@ export function registerRoutes(app: Express): Server {
   // Check-out endpoint - completes appointment
   app.patch("/api/schedules/:id/check-out", async (req, res) => {
     try {
-      // Validate request body for check-out
-      try {
-        const checkOutSchema = z.object({
-          notes: z.string().optional(),
-          checkOutTime: z.string().optional(),
-          exitNotes: z.string().optional(),
-          customFormData: z.union([z.string(), z.record(z.any())]).optional(),
-        });
-        
-        checkOutSchema.parse(req.body);
-      } catch (validationError) {
-        if (validationError instanceof z.ZodError) {
-          console.log(`[Check-out] Validation failed: ${JSON.stringify(validationError.errors)}`);
-          return res.status(400).json({
-            message: 'Validation error',
-            errors: validationError.errors
-          });
-        }
-      }
-      
       const id = Number(req.params.id);
       const schedule = await storage.getSchedule(id);
       if (!schedule) {
@@ -6539,11 +6497,8 @@ app.post("/api/booking-pages/book/:slug",
     }
   });
 
-  // Keep the existing endpoint as well for backward compatibility, but add validation
-  app.post("/api/booking-pages/book-appointment", 
-    uploadBol.single('bolFile'), 
-    validateWithZod(bookAppointmentSchema),
-    async (req, res) => {
+  // Keep the existing endpoint as well for backward compatibility
+  app.post("/api/booking-pages/book-appointment", uploadBol.single('bolFile'), async (req, res) => {
     try {
       console.log(`[BookAppointment] Received appointment booking request:`, req.body);
       
@@ -9306,24 +9261,7 @@ app.post("/api/booking-pages/book/:slug",
       // Try to use the secure WebSocket handler if available
       if (secureWebSocketHandler) {
         console.log(`[SecureWebSocket] Broadcasting schedule update for tenant ${schedule.tenantId}, schedule ID: ${schedule.id}`);
-        
-        // Format the payload according to required format
-        const scheduleEvent = {
-          type: "schedule.created",
-          payload: {
-            scheduleId: schedule.id,
-            tenantId: schedule.tenantId,
-            dockId: schedule.dockId,
-            time: schedule.startTime
-          }
-        };
-        
-        // Use the secure handler to broadcast with tenant isolation
-        return secureWebSocketHandler.broadcastToTenant(
-          schedule.tenantId, 
-          "schedule.created", 
-          scheduleEvent.payload
-        );
+        return secureWebSocketHandler.broadcastScheduleUpdate(schedule);
       } 
       
       // Fallback to legacy WebSocket implementation if secure handler not available
@@ -9332,15 +9270,10 @@ app.post("/api/booking-pages/book/:slug",
       // Log broadcast attempt
       console.log(`[WebSocket] Broadcasting schedule update for tenant ${tenantId}, schedule ID: ${schedule.id} (legacy mode)`);
       
-      // Convert schedule to a message with standard format
+      // Convert schedule to a message
       const message = JSON.stringify({
-        type: "schedule.created",
-        payload: {
-          scheduleId: schedule.id,
-          tenantId: schedule.tenantId,
-          dockId: schedule.dockId,
-          time: schedule.startTime
-        }
+        type: 'schedule_update',
+        data: schedule
       });
       
       // Send to all connected clients for this tenant
@@ -9350,7 +9283,6 @@ app.post("/api/booking-pages/book/:slug",
         // (or is a super admin that should receive all updates)
         if (
           client.readyState === WebSocket.OPEN && 
-          clientInfo.isAuthenticated &&
           (clientInfo.tenantId === tenantId || clientInfo.tenantId === 0)
         ) {
           client.send(message);
