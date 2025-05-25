@@ -185,12 +185,12 @@ interface TenantWebSocket extends WebSocket {
   isAlive?: boolean;
 }
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export function registerRoutes(app: Express): Server {
   // Get storage instance
   const storage = getStorage();
   
   // Setup authentication routes
-  await setupAuth(app);
+  setupAuth(app);
   
   // Run super-admin creation script
   try {
@@ -9051,10 +9051,7 @@ app.post("/api/booking-pages/book/:slug",
   // Initialize secure WebSocket handler with tenant isolation
   let secureWebSocketHandler: any;
   try {
-    // Import the WebSocket handler
-    const { initializeWebSocket } = await import('./websocket');
-    
-    // Initialize the secure WebSocket handler
+    // Initialize the secure WebSocket handler using our imported function
     secureWebSocketHandler = initializeWebSocket(httpServer, storage);
     console.log('[WebSocket] Secure WebSocket handler initialized successfully');
   } catch (error: any) {
