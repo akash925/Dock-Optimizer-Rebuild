@@ -95,6 +95,7 @@ import {
   insertUserPreferencesSchema,
   type UserPreferences
 } from "@shared/schema";
+import { initializeWebSocket, broadcastScheduleUpdate, shutdownWebSocket } from "./secure-websocket";
 
 // Import BOL OCR routes using ES modules
 import bolOcrRoutes from "./routes/bol-ocr.mjs";
@@ -186,7 +187,7 @@ interface TenantWebSocket extends WebSocket {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get storage instance
-  const storage = await getStorage();
+  const storage = getStorage();
   
   // Setup authentication routes
   await setupAuth(app);
@@ -9311,5 +9312,3 @@ app.post("/api/booking-pages/book/:slug",
   
   return httpServer;
 }
-
-

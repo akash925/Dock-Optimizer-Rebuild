@@ -1,5 +1,5 @@
 /**
- * Secure WebSocket Handler
+ * Secure WebSocket Handler for Dock Optimizer
  * 
  * Provides enhanced security for WebSocket connections with proper tenant isolation,
  * authentication verification, and data validation.
