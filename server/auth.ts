@@ -69,8 +69,8 @@ export async function setupAuth(router: any) { // Using 'any' type to avoid Expr
   // Get the storage instance
   const storage = await getStorage();
   
-  // Setup passport configuration without middleware application
-  // We'll assume session middleware is already initialized in the main app
+  // Note: We now properly set up session and passport in routes.ts before calling this
+  // So we don't need to initialize passport here, just configure it
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {

@@ -3,8 +3,41 @@ import { createServer, type Server } from "http";
 import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
 import express from "express";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
+import passport from "passport";
 
 export function registerRoutes(app: Express): Server {
+  // Set up session store with PostgreSQL
+  const PostgresStore = connectPg(session);
+  
+  // Configure session middleware
+  const sessionConfig = {
+    store: new PostgresStore({
+      pool,
+      tableName: 'session',
+      createTableIfMissing: true
+    }),
+    name: 'dock.sid',
+    secret: process.env.SESSION_SECRET || 'dock-optimizer-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production'
+      // Removed problematic sameSite option
+    }
+  };
+  
+  // Apply session middleware to the main app
+  app.use(session(sessionConfig));
+  
+  // Initialize passport middleware on the main app
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
   // Create a dedicated API router that will handle ALL API routes
   const apiRouter = express.Router();
   
