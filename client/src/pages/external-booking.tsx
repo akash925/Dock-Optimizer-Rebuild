@@ -119,7 +119,59 @@ export default function ExternalBooking({ slug }: { slug: string }) {
 
 function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: string }) {
   const { toast } = useToast();
+  // Initialize to step 1 by default
   const [step, setStep] = useState(1);
+  
+  // Check for direct confirmation code in URL params
+  const params = new URLSearchParams(window.location.search);
+  const confirmationParam = params.get('confirmation');
+  
+  // Use effect to handle URL parameters for direct confirmation view
+  useEffect(() => {
+    if (confirmationParam) {
+      // If confirmation code provided in URL, set to step 4 and fetch appointment details
+      console.log("Direct confirmation mode with code:", confirmationParam);
+      setConfirmationCode(confirmationParam);
+      setStep(4);
+      
+      // Fetch the appointment details by confirmation code
+      fetch(`/api/schedules/confirmation/${confirmationParam}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to fetch appointment details");
+          return res.json();
+        })
+        .then(data => {
+          console.log("Fetched appointment details for confirmation:", data);
+          if (data && data.schedule) {
+            // Set booking details from the fetched data
+            setBookingDetails({
+              confirmationCode: confirmationParam,
+              id: data.schedule.id,
+              scheduleId: data.schedule.id,
+              facilityId: data.schedule.facilityId,
+              facilityName: data.facilityName || data.facility?.name,
+              facilityAddress: data.facilityAddress || data.facility?.address,
+              startTime: data.schedule.startTime,
+              endTime: data.schedule.endTime,
+              appointmentTypeId: data.schedule.appointmentTypeId,
+              appointmentTypeName: data.appointmentTypeName || data.appointmentType?.name,
+              timezone: data.timezone,
+              emailSent: true,
+              bolFileUploaded: !!data.schedule.bolUrl
+            });
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching confirmation details:", err);
+          toast({
+            title: "Error",
+            description: "Could not load appointment details. Please try again.",
+            variant: "destructive"
+          });
+        });
+    }
+  }, [confirmationParam, toast]);
+  
   const [bookingData, setBookingData] = useState<{
     facilityId?: number;
     appointmentTypeId?: number;
@@ -365,46 +417,78 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       
       // Store additional booking details for the confirmation page
       console.log("Setting booking details with data:", data);
-      // Extract all facility and appointment type information from the response
+      // Extract critical data from the response
+      const schedule = data.schedule || {};
       const facility = data.facility || {};
       const appointmentType = data.appointmentType || {};
       
       // Full logging to help diagnose display issues
       console.log("Setting booking details for confirmation page:", {
         responseData: data,
-        scheduleData: data.schedule,
-        facilityData: facility,
-        appointmentTypeData: appointmentType,
-        existingBookingDetails: bookingDetails,
-        confirmationCode
+        scheduleData: schedule,
+        confirmationCode,
+        facilityId: schedule.facilityId,
+        startTime: schedule.startTime
       });
       
+      // Make a direct HTTP request to get facility details if not included
+      const getFacilityDetails = async (facilityId: number) => {
+        try {
+          const response = await fetch(`/api/facilities/${facilityId}`);
+          if (response.ok) {
+            const facilityData = await response.json();
+            return facilityData;
+          }
+        } catch (error) {
+          console.error("Error fetching facility details:", error);
+        }
+        return null;
+      };
+      
+      // Get additional facility data if needed
+      if (schedule.facilityId && !facility.name) {
+        getFacilityDetails(schedule.facilityId).then(facilityData => {
+          if (facilityData) {
+            console.log("Got additional facility data:", facilityData);
+            setBookingDetails(prev => ({
+              ...prev,
+              facilityName: facilityData.name,
+              facilityAddress: facilityData.address
+            }));
+          }
+        });
+      }
+      
+      // Update the booking details with all available information
       setBookingDetails({
         ...bookingDetails,
         confirmationCode,
-        id: data.schedule?.id,
-        scheduleId: data.schedule?.id,
+        id: schedule.id,
+        scheduleId: schedule.id,
         emailSent: data.emailSent || false,
-        startTime: data.schedule?.startTime,
-        endTime: data.schedule?.endTime,
         
-        // Facility information
-        facilityId: data.schedule?.facilityId || bookingDetails.facilityId,
+        // Time information
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        timezone: data.timezone || bookingData.timezone || bookingDetails.timezone,
+        
+        // Facility information (with fallbacks)
+        facilityId: schedule.facilityId || bookingDetails.facilityId,
         facilityName: facility.name || data.facilityName || bookingDetails.facilityName,
         facilityAddress: facility.address || data.facilityAddress || bookingDetails.facilityAddress,
         
         // Appointment type information
-        appointmentTypeId: data.schedule?.appointmentTypeId || bookingDetails.appointmentTypeId,
+        appointmentTypeId: schedule.appointmentTypeId || bookingDetails.appointmentTypeId,
         appointmentTypeName: appointmentType.name || data.appointmentTypeName || bookingDetails.appointmentTypeName,
-        
-        // Time information
-        timezone: data.timezone || bookingData.timezone || bookingDetails.timezone,
         
         // BOL information
         bolFileUploaded: bolLinked,
         bolUploaded: !!bolData && (bolLinked || !!bolData.documentId)
       });
       
+      // Force redirect to confirmation page using URL parameter
+      // This ensures the UI re-renders with the confirmation page
+      window.history.replaceState(null, '', `?step=4`);
       setStep(4); // Move to confirmation step
     },
     onError: (error: any) => {
