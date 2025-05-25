@@ -235,20 +235,26 @@ export function registerRoutes(app: Express): Server {
   
   // Register organization modules routes
   try {
-    const { registerOrganizationModulesRoutes } = await import('./modules/admin/organizations/routes');
-    registerOrganizationModulesRoutes(app);
-    console.log('Organization modules routes registered');
+    import('./modules/admin/organizations/routes').then(({ registerOrganizationModulesRoutes }) => {
+      registerOrganizationModulesRoutes(app);
+      console.log('Organization modules routes registered');
+    }).catch(err => {
+      console.error('Error registering organization modules routes:', err);
+    });
   } catch (error) {
-    console.error('Error registering organization modules routes:', error);
+    console.error('Error importing organization modules routes:', error);
   }
   
   // Register booking page logo endpoint
   try {
-    const { registerBookingPagesLogoEndpoint } = await import('./endpoints/booking-pages-logo');
-    registerBookingPagesLogoEndpoint(app);
-    console.log('Booking pages logo endpoint registered');
+    import('./endpoints/booking-pages-logo').then(({ registerBookingPagesLogoEndpoint }) => {
+      registerBookingPagesLogoEndpoint(app);
+      console.log('Booking pages logo endpoint registered');
+    }).catch(err => {
+      console.error('Error registering booking pages logo endpoint:', err);
+    });
   } catch (error) {
-    console.error('Error registering booking pages logo endpoint:', error);
+    console.error('Error importing booking pages logo endpoint:', error);
   }
   
   // Register BOL OCR routes
@@ -261,59 +267,61 @@ export function registerRoutes(app: Express): Server {
   
   // Register resend email confirmation endpoint
   try {
-    const { resendConfirmationEmail } = await import('./notifications');
-    
-    app.post('/api/appointments/:id/resend-email', async (req, res) => {
-      try {
-        const scheduleId = parseInt(req.params.id);
-        const { confirmationCode, recipientEmail } = req.body;
-        
-        if (!scheduleId || isNaN(scheduleId)) {
-          return res.status(400).json({ success: false, message: 'Invalid appointment ID' });
-        }
-        
-        if (!confirmationCode) {
-          return res.status(400).json({ success: false, message: 'Confirmation code is required' });
-        }
-        
-        if (!recipientEmail) {
-          return res.status(400).json({ success: false, message: 'Recipient email is required' });
-        }
-        
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(recipientEmail)) {
-          return res.status(400).json({ success: false, message: 'Invalid email format' });
-        }
-        
-        // Attempt to resend the confirmation email
-        const success = await resendConfirmationEmail(
-          recipientEmail,
-          confirmationCode,
-          scheduleId
-        );
-        
-        if (success) {
-          return res.status(200).json({ 
-            success: true, 
-            message: 'Confirmation email sent successfully' 
-          });
-        } else {
+    import('./notifications').then(({ resendConfirmationEmail }) => {
+      app.post('/api/appointments/:id/resend-email', async (req, res) => {
+        try {
+          const scheduleId = parseInt(req.params.id);
+          const { confirmationCode, recipientEmail } = req.body;
+          
+          if (!scheduleId || isNaN(scheduleId)) {
+            return res.status(400).json({ success: false, message: 'Invalid appointment ID' });
+          }
+          
+          if (!confirmationCode) {
+            return res.status(400).json({ success: false, message: 'Confirmation code is required' });
+          }
+          
+          if (!recipientEmail) {
+            return res.status(400).json({ success: false, message: 'Recipient email is required' });
+          }
+          
+          // Email validation
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(recipientEmail)) {
+            return res.status(400).json({ success: false, message: 'Invalid email format' });
+          }
+          
+          // Attempt to resend the confirmation email
+          const success = await resendConfirmationEmail(
+            recipientEmail,
+            confirmationCode,
+            scheduleId
+          );
+          
+          if (success) {
+            return res.status(200).json({ 
+              success: true, 
+              message: 'Confirmation email sent successfully' 
+            });
+          } else {
+            return res.status(500).json({ 
+              success: false, 
+              message: 'Failed to send confirmation email' 
+            });
+          }
+        } catch (error) {
+          console.error('Error in resend email endpoint:', error);
           return res.status(500).json({ 
             success: false, 
-            message: 'Failed to send confirmation email' 
+            message: 'Server error while processing resend email request' 
           });
         }
-      } catch (error) {
-        console.error('Error in resend email endpoint:', error);
-        return res.status(500).json({ 
-          success: false, 
-          message: 'Server error while processing resend email request' 
-        });
-      }
+      });
+      
+      console.log('Resend email confirmation endpoint registered');
+    }).catch(err => {
+      console.error('Error importing notifications module:', err);
     });
-    
-    console.log('Resend email confirmation endpoint registered');
   } catch (error) {
     console.error('Error registering resend email endpoint:', error);
   }
@@ -345,11 +353,11 @@ export function registerRoutes(app: Express): Server {
   // Run the email field setup during startup
   try {
     // Define the function as a const arrow function to avoid strict mode issues
-    const setupEmailField = async () => {
+    const setupEmailField = () => {
       console.log('Starting email field setup process...');
       
       // Import the pool for direct database access
-      const { pool } = await import('./db');
+      import('./db').then(({ pool }) => {
       
       // Get all appointment types from the database
       const query = `SELECT * FROM appointment_types`;
