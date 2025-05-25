@@ -9103,12 +9103,6 @@ app.post("/api/booking-pages/book/:slug",
   // NOTE: WebSocket setup has been disabled to ensure server can start properly
   // TODO: Re-integrate WebSocket setup after fixing the async/await issues
   console.log('[WebSocket] WebSocket initialization temporarily disabled to ensure server startup');
-  
-  /* WebSocket functionality will be re-enabled in a future update
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
-  // WebSocket connection handling code will go here
-  */
     // Store connected clients with their tenant information and ping status
     const clients = new Map<WebSocket, { 
       tenantId?: number,
