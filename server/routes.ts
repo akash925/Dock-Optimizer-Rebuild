@@ -361,7 +361,7 @@ export function registerRoutes(app: Express): Server {
       
       // Get all appointment types from the database
       const query = `SELECT * FROM appointment_types`;
-      const typesResult = await pool.query(query);
+      pool.query(query).then(typesResult => {
       const appointmentTypes = typesResult.rows;
       
       console.log(`Found ${appointmentTypes.length} appointment types to process`);
@@ -428,17 +428,20 @@ export function registerRoutes(app: Express): Server {
       console.log('Email field setup process completed successfully');
     }
     
-    await setupEmailField();
-    console.log('Driver/Dispatcher Email field added to all appointment types');
+    setupEmailField();
+    console.log('Initializing Driver/Dispatcher Email field setup...');
   } catch (error) {
     console.error('Error adding Driver/Dispatcher Email field:', error);
   }
   
   // Register hours routes
   try {
-    const { registerHoursRoutes } = await import('./modules/hours/routes');
-    registerHoursRoutes(app);
-    console.log('Hours routes registered');
+    import('./modules/hours/routes').then(({ registerHoursRoutes }) => {
+      registerHoursRoutes(app);
+      console.log('Hours routes registered');
+    }).catch(err => {
+      console.error('Error importing hours routes module:', err);
+    });
   } catch (error) {
     console.error('Error registering hours routes:', error);
   }
@@ -469,8 +472,8 @@ export function registerRoutes(app: Express): Server {
   
   // Register enhanced availability endpoint (v2)
   try {
-    // Import the new availability service
-    const { calculateAvailabilitySlots, defaultConfig } = await import('./src/services/availability');
+    // Import the new availability service using Promise.then()
+    import('./src/services/availability').then(({ calculateAvailabilitySlots, defaultConfig }) => {
     
     // Register the v2 endpoint
     app.get("/api/availability/v2", async (req, res) => {
@@ -572,7 +575,7 @@ export function registerRoutes(app: Express): Server {
         const effectiveTimezone = parsedTimezone || facilityTimezone;
         console.log(`[AvailabilityV2] Using timezone: ${effectiveTimezone} (facility: ${facilityTimezone})`);
         
-        const availabilitySlots = await calculateAvailabilitySlots(
+        calculateAvailabilitySlots(
           db,
           storage,
           parsedDate,
@@ -581,32 +584,31 @@ export function registerRoutes(app: Express): Server {
           effectiveTenantId || 0, // Fallback to 0 if no tenant ID (should never happen due to check above)
           undefined, // No test appointments
           config // Pass our configuration parameters
-        );
-        
-        // For backward compatibility, extract just the time strings for available slots
-        const availableTimes = availabilitySlots
-          .filter(slot => slot.available)
-          .map(slot => slot.time);
-        
-        // Create response with both new and legacy formats
-        const responseData = {
-          slots: availabilitySlots,
-          availableTimes,
-          date: parsedDate,
-          facilityId: parsedFacilityId,
-          appointmentTypeId: parsedAppointmentTypeId
-        };
-        
-        console.log(`[AvailabilityV2] Generated ${availabilitySlots.length} slots, ${availableTimes.length} available`);
-        console.log("===== /api/availability/v2 COMPLETE =====");
-        
-        res.json(responseData);
-      } catch (err) {
-        console.error("[AvailabilityV2] Error calculating availability:", err);
-        res.status(500).json({ 
-          message: "Failed to calculate availability", 
-          error: err instanceof Error ? err.message : String(err)
-        });
+        ).then(availabilitySlots => {
+          // For backward compatibility, extract just the time strings for available slots
+          const availableTimes = availabilitySlots
+            .filter(slot => slot.available)
+            .map(slot => slot.time);
+          
+          // Create response with both new and legacy formats
+          const responseData = {
+            slots: availabilitySlots,
+            availableTimes,
+            date: parsedDate,
+            facilityId: parsedFacilityId,
+            appointmentTypeId: parsedAppointmentTypeId
+          };
+          
+          console.log(`[AvailabilityV2] Generated ${availabilitySlots.length} slots, ${availableTimes.length} available`);
+          console.log("===== /api/availability/v2 COMPLETE =====");
+          
+          res.json(responseData);
+        }).catch(err => {
+          console.error("[AvailabilityV2] Error calculating availability:", err);
+          res.status(500).json({ 
+            message: "Failed to calculate availability", 
+            error: err instanceof Error ? err.message : String(err)
+          });
       }
     });
     
