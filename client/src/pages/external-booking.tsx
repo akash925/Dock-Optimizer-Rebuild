@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider } from '@/hooks/use-booking-theme';
-import { Loader2, XCircle, CheckCircle, Upload, FileCheck, Mail, AlertCircle, QrCode, Forward, Info } from 'lucide-react';
+import { Loader2, XCircle, CheckCircle, Upload, FileCheck, Mail, AlertCircle, QrCode, Forward, Info, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Dialog,
@@ -1346,7 +1346,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 }}
                 className="text-xs py-1 h-8"
               >
-                <Pencil className="h-3 w-3 mr-1" />
+                <Edit className="h-3 w-3 mr-1" />
                 Edit Appointment
               </Button>
             </div>
