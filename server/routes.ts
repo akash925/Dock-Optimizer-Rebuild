@@ -4,6 +4,12 @@ import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
 
 export function registerRoutes(app: Express): Server {
+  // Add middleware to set proper Content-Type for all API routes
+  app.use('/api', (req, res, next) => {
+    res.setHeader('Content-Type', 'application/json');
+    next();
+  });
+  
   // Get storage instance
   const storage = getStorage();
   

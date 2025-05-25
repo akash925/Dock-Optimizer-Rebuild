@@ -58,13 +58,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Accept": "application/json"
           },
           body: JSON.stringify(credentials),
           credentials: "include",
         });
         
-        // Even if the response is not 200, don't throw automatically
-        const data = await response.json();
+        // Check content type to ensure we received JSON
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          // Log the raw response for debugging
+          const rawText = await response.text();
+          console.error("Login response is not JSON:", contentType);
+          console.error("Raw response (first 100 chars):", rawText.slice(0, 100));
+          throw new Error("Server did not return a valid JSON response");
+        }
+        
+        // Now parse as JSON since we've confirmed the content type
+        let data;
+        try {
+          // Reset the response body stream
+          const clonedResponse = response.clone();
+          data = await clonedResponse.json();
+        } catch (parseError) {
+          console.error("JSON parsing error:", parseError);
+          throw new Error("Failed to parse server response as JSON");
+        }
         
         if (!response.ok) {
           throw new Error(data.message || "Login failed");
@@ -76,7 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     },
-    onSuccess: (user: Omit<User, "password">) => {
+    onSuccess: (response: {success: boolean, user: Omit<User, "password">}) => {
+      // Extract user from the response
+      const user = response.user;
+      
+      // Update the cache with just the user data
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Login successful",
@@ -100,13 +123,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "Accept": "application/json"
           },
           body: JSON.stringify(credentials),
           credentials: "include",
         });
         
-        // Handle the response similarly to login
-        const data = await response.json();
+        // Check content type to ensure we received JSON
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          // Log the raw response for debugging
+          const rawText = await response.text();
+          console.error("Registration response is not JSON:", contentType);
+          console.error("Raw response (first 100 chars):", rawText.slice(0, 100));
+          throw new Error("Server did not return a valid JSON response");
+        }
+        
+        // Now parse as JSON since we've confirmed the content type
+        let data;
+        try {
+          // Reset the response body stream
+          const clonedResponse = response.clone();
+          data = await clonedResponse.json();
+        } catch (parseError) {
+          console.error("JSON parsing error:", parseError);
+          throw new Error("Failed to parse server response as JSON");
+        }
         
         if (!response.ok) {
           throw new Error(data.message || "Registration failed");
@@ -118,7 +160,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     },
-    onSuccess: (user: Omit<User, "password">) => {
+    onSuccess: (response: {success: boolean, user: Omit<User, "password">} | Omit<User, "password">) => {
+      // Handle both response formats - either the user object directly or nested in a success response
+      const user = 'user' in response ? response.user : response;
+      
+      // Update the cache with just the user data
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Registration successful",

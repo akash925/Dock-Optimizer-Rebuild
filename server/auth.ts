@@ -188,7 +188,10 @@ export async function setupAuth(app: Express) {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res.status(400).json({ 
+          success: false, 
+          message: "Username already exists" 
+        });
       }
 
       const hashedPassword = await hashPassword(req.body.password);
@@ -199,27 +202,45 @@ export async function setupAuth(app: Express) {
       });
 
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error("Registration session error:", err);
+          return res.status(500).json({ 
+            success: false, 
+            message: "Registration session error" 
+          });
+        }
+        
         // Don't send password in response
         const { password, ...userWithoutPassword } = user;
-        res.status(201).json(userWithoutPassword);
+        res.status(201).json({ 
+          success: true, 
+          user: userWithoutPassword 
+        });
       });
     } catch (err) {
-      next(err);
+      console.error("Registration error:", err);
+      res.status(500).json({ 
+        success: false, 
+        message: err instanceof Error ? err.message : "An error occurred during registration" 
+      });
     }
   });
 
   app.post("/api/login", (req, res, next) => {
     console.log("Login attempt:", req.body.username);
     
+    // Ensure response will be JSON
+    res.setHeader('Content-Type', 'application/json');
+    
     passport.authenticate("local", async (err, user, info) => {
       if (err) {
         console.error("Login error:", err);
-        return next(err);
+        return res.status(500).json({ success: false, message: err.message || "Internal server error" });
       }
+      
       if (!user) {
         console.log("Authentication failed:", info?.message || "Unknown reason");
-        return res.status(401).json({ message: info?.message || "Authentication failed" });
+        return res.status(401).json({ success: false, message: info?.message || "Authentication failed" });
       }
       
       try {
@@ -232,13 +253,16 @@ export async function setupAuth(app: Express) {
         req.login(enrichedUser, (loginErr) => {
           if (loginErr) {
             console.error("Login session error:", loginErr);
-            return next(loginErr);
+            return res.status(500).json({ success: false, message: "Login session error" });
           }
           
           console.log("Login successful, session created:", req.sessionID);
           // Don't send password in response
           const { password, ...userWithoutPassword } = enrichedUser;
-          res.status(200).json(userWithoutPassword);
+          return res.status(200).json({ 
+            success: true, 
+            user: userWithoutPassword 
+          });
         });
       } catch (enrichErr) {
         console.error("Error enriching user data:", enrichErr);
@@ -247,12 +271,15 @@ export async function setupAuth(app: Express) {
         req.login(user, (loginErr) => {
           if (loginErr) {
             console.error("Login session error:", loginErr);
-            return next(loginErr);
+            return res.status(500).json({ success: false, message: "Login session error" });
           }
           
           console.log("Login successful with original user data, session created:", req.sessionID);
           const { password, ...userWithoutPassword } = user;
-          res.status(200).json(userWithoutPassword);
+          return res.status(200).json({ 
+            success: true, 
+            user: userWithoutPassword 
+          });
         });
       }
     })(req, res, next);
