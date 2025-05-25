@@ -194,7 +194,7 @@ interface TenantWebSocket extends WebSocket {
   isAlive?: boolean;
 }
 
-export function registerRoutes(app: Express): Server {
+export async function registerRoutes(app: Express): Promise<Server> {
   // Get storage instance
   const storage = getStorage();
   
@@ -9093,6 +9093,12 @@ app.post("/api/booking-pages/book/:slug",
 
   const httpServer = createServer(app);
 
+  // TEMPORARILY DISABLED WEBSOCKET INITIALIZATION - TO BE RE-INTEGRATED AFTER SERVER BOOT WORKS
+  // NOTE: WebSocket setup has been disabled to ensure server can start properly
+  // TODO: Re-integrate WebSocket setup after fixing the async/await issues
+  console.log('[WebSocket] WebSocket initialization temporarily disabled to ensure server startup');
+  
+  /* 
   // Initialize secure WebSocket handler with tenant isolation
   let secureWebSocketHandler: any;
   try {
@@ -9110,6 +9116,7 @@ app.post("/api/booking-pages/book/:slug",
       server: httpServer, 
       path: '/ws' 
     });
+  */
     
     // Store connected clients with their tenant information and ping status
     const clients = new Map<WebSocket, { 
@@ -9139,11 +9146,11 @@ app.post("/api/booking-pages/book/:slug",
       });
     }, 30000); // Check every 30 seconds
     
-    // Clean up interval on server shutdown
+    /* // Clean up interval on server shutdown - COMMENTED OUT TO FIX SERVER STARTUP
     wss.on('close', () => {
       console.log('[WebSocket] Server closing, clearing ping interval');
       clearInterval(pingInterval);
-    });
+    }); */
     
     // Handle WebSocket connections
     wss.on('connection', (ws, req) => {
