@@ -1120,7 +1120,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             <p className="text-xs text-muted-foreground mb-3">
               {bookingDetails.emailSent 
                 ? "A confirmation email has been sent with your appointment details." 
-                : "Please make note of your confirmation code as the email could not be sent."}
+                : <>Please make note of your confirmation code: <strong className="text-black">{confirmationCode}</strong> as the email could not be sent.</>}
             </p>
             
             {/* Resend Email Button */}
@@ -1364,7 +1364,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                       )}
                     </>
                   ) : (
-                    <p className="text-muted-foreground italic">Hanzo Logistics Facility</p>
+                    <p className="text-muted-foreground italic">Facility information unavailable</p>
                   )}
                 </div>
               </div>
@@ -1395,12 +1395,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     </>
                   ) : (
                     <p className="text-muted-foreground italic">
-                      {new Date().toLocaleDateString(undefined, {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+                      Time slot information unavailable. Please check your confirmation email for details.
                     </p>
                   )}
                 </div>
