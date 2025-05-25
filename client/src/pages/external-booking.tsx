@@ -306,8 +306,9 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       // Store confirmation code and go to success step
       console.log("Booking created successfully:", data);
       
-      // Use the standardized confirmation code from the response
-      const confirmationCode = data.confirmationCode || data.code || `HZL-${Math.floor(100000 + Math.random() * 900000)}`;
+      // Use ONLY the standardized confirmation code from the response - this is the one saved in the database
+      const confirmationCode = data.confirmationCode || (data.schedule && data.schedule.confirmationCode) || data.code;
+      console.log("Using confirmation code:", confirmationCode);
       setConfirmationCode(confirmationCode);
       
       // Link BOL document to the created appointment if available
@@ -339,6 +340,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             console.warn("Failed to link BOL document, trying re-upload with scheduleId");
             
             // Fallback: Re-upload the file with scheduleId
+            console.log("Attempting BOL re-upload with explicit scheduleId", String(data.schedule.id));
             const formData = new FormData();
             formData.append('bolFile', bolFile);
             formData.append('scheduleId', String(data.schedule.id));
@@ -347,6 +349,8 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
               method: 'POST',
               body: formData,
             });
+            
+            console.log("BOL re-upload response status:", reuploadResponse.status);
             
             if (reuploadResponse.ok) {
               const reuploadResult = await reuploadResponse.json();
@@ -368,6 +372,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         emailSent: data.emailSent || false,
         startTime: data.schedule?.startTime,
         endTime: data.schedule?.endTime,
+        bolFileUploaded: bolLinked, // Track if BOL was successfully linked
         facilityName: data.facilityName || bookingDetails.facilityName,
         appointmentTypeName: data.appointmentTypeName || bookingDetails.appointmentTypeName,
         bolUploaded: !!bolData && (bolLinked || !!bolData.documentId)
