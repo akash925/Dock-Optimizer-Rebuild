@@ -86,16 +86,42 @@ export const bookAppointmentSchema = z.object({
   customFormData: z.union([z.string(), z.record(z.any())]).optional(),
 });
 
-// Schema for linking BOL documents to appointments
-export const bolLinkSchema = z.object({
-  appointmentId: z.number().positive({ message: "Appointment ID is required" }),
-  bolDocumentId: z.number().positive({ message: "BOL document ID is required" })
-});
-
 // Schema for resending confirmation emails
 export const resendEmailSchema = z.object({
   confirmationCode: z.string().min(1, { message: "Confirmation code is required" }),
   recipientEmail: z.string().email({ message: "Valid email is required" }),
+  scheduleId: z.number().positive().optional(),
+});
+
+// Schema for checking in appointments
+export const checkInSchema = z.object({
+  driverName: z.string().min(1, { message: "Driver name is required" }).optional(),
+  driverPhone: z.string().optional(),
+  notes: z.string().optional(),
+  checkInTime: z.string().optional(),
+  qrCode: z.string().optional(),
+});
+
+// Schema for checking out appointments
+export const checkOutSchema = z.object({
+  notes: z.string().optional(),
+  checkOutTime: z.string().optional(),
+  exitNotes: z.string().optional(),
+});
+
+// Schema for BOL upload
+export const bolUploadSchema = z.object({
+  fileName: z.string().min(1, { message: "File name is required" }),
+  fileSize: z.number().positive({ message: "File size must be positive" }),
+  mimeType: z.string().min(1, { message: "MIME type is required" }),
+  tenantId: z.number().positive({ message: "Tenant ID is required" }).optional(),
+});
+
+// Schema for linking BOL to appointment 
+export const bolDocumentLinkSchema = z.object({
+  scheduleId: z.number().positive({ message: "Schedule ID is required" }),
+  bolDocumentId: z.number().positive({ message: "BOL document ID is required" }),
+  tenantId: z.number().positive({ message: "Tenant ID is required" }).optional(),
 });
 
 // Middleware factory for Zod validation

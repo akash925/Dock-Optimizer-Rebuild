@@ -1983,7 +1983,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // QR Code check-in endpoint - for driver self-service check-in
-  app.post("/api/schedules/:id/check-in", async (req, res) => {
+  app.post("/api/schedules/:id/check-in", validateWithZod(checkInSchema), async (req, res) => {
     try {
       const scheduleId = Number(req.params.id);
       const schedule = await storage.getSchedule(scheduleId);
@@ -6497,8 +6497,11 @@ app.post("/api/booking-pages/book/:slug",
     }
   });
 
-  // Keep the existing endpoint as well for backward compatibility
-  app.post("/api/booking-pages/book-appointment", uploadBol.single('bolFile'), async (req, res) => {
+  // Keep the existing endpoint as well for backward compatibility, but add validation
+  app.post("/api/booking-pages/book-appointment", 
+    uploadBol.single('bolFile'), 
+    validateWithZod(bookAppointmentSchema),
+    async (req, res) => {
     try {
       console.log(`[BookAppointment] Received appointment booking request:`, req.body);
       
@@ -9261,7 +9264,24 @@ app.post("/api/booking-pages/book/:slug",
       // Try to use the secure WebSocket handler if available
       if (secureWebSocketHandler) {
         console.log(`[SecureWebSocket] Broadcasting schedule update for tenant ${schedule.tenantId}, schedule ID: ${schedule.id}`);
-        return secureWebSocketHandler.broadcastScheduleUpdate(schedule);
+        
+        // Format the payload according to required format
+        const scheduleEvent = {
+          type: "schedule.created",
+          payload: {
+            scheduleId: schedule.id,
+            tenantId: schedule.tenantId,
+            dockId: schedule.dockId,
+            time: schedule.startTime
+          }
+        };
+        
+        // Use the secure handler to broadcast with tenant isolation
+        return secureWebSocketHandler.broadcastToTenant(
+          schedule.tenantId, 
+          "schedule.created", 
+          scheduleEvent.payload
+        );
       } 
       
       // Fallback to legacy WebSocket implementation if secure handler not available
@@ -9270,10 +9290,15 @@ app.post("/api/booking-pages/book/:slug",
       // Log broadcast attempt
       console.log(`[WebSocket] Broadcasting schedule update for tenant ${tenantId}, schedule ID: ${schedule.id} (legacy mode)`);
       
-      // Convert schedule to a message
+      // Convert schedule to a message with standard format
       const message = JSON.stringify({
-        type: 'schedule_update',
-        data: schedule
+        type: "schedule.created",
+        payload: {
+          scheduleId: schedule.id,
+          tenantId: schedule.tenantId,
+          dockId: schedule.dockId,
+          time: schedule.startTime
+        }
       });
       
       // Send to all connected clients for this tenant
@@ -9283,6 +9308,7 @@ app.post("/api/booking-pages/book/:slug",
         // (or is a super admin that should receive all updates)
         if (
           client.readyState === WebSocket.OPEN && 
+          clientInfo.isAuthenticated &&
           (clientInfo.tenantId === tenantId || clientInfo.tenantId === 0)
         ) {
           client.send(message);
