@@ -195,8 +195,11 @@ export function registerRoutes(app: Express): Server {
   // Run super-admin creation script
   try {
     console.log("Running create-super-admin script...");
-    await createSuperAdmin();
-    console.log("Super-admin creation script completed");
+    createSuperAdmin().then(() => {
+      console.log("Super-admin creation script completed");
+    }).catch(err => {
+      console.error("Error in super-admin creation:", err);
+    });
   } catch (error) {
     console.error("Error running super-admin creation script:", error);
   }
@@ -204,8 +207,11 @@ export function registerRoutes(app: Express): Server {
   // Seed roles
   try {
     console.log("Running seed-roles script...");
-    await seedRoles();
-    console.log("Roles seeding completed");
+    seedRoles().then(() => {
+      console.log("Roles seeding completed");
+    }).catch(err => {
+      console.error("Error in roles seeding:", err);
+    });
   } catch (error) {
     console.error("Error seeding roles:", error);
   }
@@ -213,8 +219,11 @@ export function registerRoutes(app: Express): Server {
   // Fix admin password
   try {
     console.log("Running fix-admin-password script...");
-    await fixAdminPassword();
-    console.log("Admin password fix completed");
+    fixAdminPassword().then(() => {
+      console.log("Admin password fix completed");
+    }).catch(err => {
+      console.error("Error in admin password fix:", err);
+    });
   } catch (error) {
     console.error("Error fixing admin password:", error);
   }
