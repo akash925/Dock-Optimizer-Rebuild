@@ -204,7 +204,7 @@ export function registerRoutes(app: Express): Server {
   // Seed roles
   try {
     console.log("Running seed-roles script...");
-    await seedRoles();
+    seedRoles();
     console.log("Roles seeding completed");
   } catch (error) {
     console.error("Error seeding roles:", error);
@@ -213,7 +213,7 @@ export function registerRoutes(app: Express): Server {
   // Fix admin password
   try {
     console.log("Running fix-admin-password script...");
-    await fixAdminPassword();
+    fixAdminPassword();
     console.log("Admin password fix completed");
   } catch (error) {
     console.error("Error fixing admin password:", error);
@@ -226,18 +226,24 @@ export function registerRoutes(app: Express): Server {
   
   // Register organization modules routes
   try {
-    const { registerOrganizationModulesRoutes } = await import('./modules/admin/organizations/routes');
-    registerOrganizationModulesRoutes(app);
-    console.log('Organization modules routes registered');
+    import('./modules/admin/organizations/routes').then(({ registerOrganizationModulesRoutes }) => {
+      registerOrganizationModulesRoutes(app);
+      console.log('Organization modules routes registered');
+    }).catch(error => {
+      console.error('Error registering organization modules routes:', error);
+    });
   } catch (error) {
     console.error('Error registering organization modules routes:', error);
   }
   
   // Register booking page logo endpoint
   try {
-    const { registerBookingPagesLogoEndpoint } = await import('./endpoints/booking-pages-logo');
-    registerBookingPagesLogoEndpoint(app);
-    console.log('Booking pages logo endpoint registered');
+    import('./endpoints/booking-pages-logo').then(({ registerBookingPagesLogoEndpoint }) => {
+      registerBookingPagesLogoEndpoint(app);
+      console.log('Booking pages logo endpoint registered');
+    }).catch(error => {
+      console.error('Error registering booking pages logo endpoint:', error);
+    });
   } catch (error) {
     console.error('Error registering booking pages logo endpoint:', error);
   }
@@ -252,7 +258,7 @@ export function registerRoutes(app: Express): Server {
   
   // Register resend email confirmation endpoint
   try {
-    const { resendConfirmationEmail } = await import('./notifications');
+    import('./notifications').then(({ resendConfirmationEmail }) => {
     
     app.post('/api/appointments/:id/resend-email', async (req, res) => {
       try {
@@ -305,6 +311,9 @@ export function registerRoutes(app: Express): Server {
     });
     
     console.log('Resend email confirmation endpoint registered');
+    }).catch(error => {
+      console.error('Error importing resend email functions:', error);
+    });
   } catch (error) {
     console.error('Error registering resend email endpoint:', error);
   }
@@ -411,7 +420,7 @@ export function registerRoutes(app: Express): Server {
       console.log('Email field setup process completed successfully');
     }
     
-    await setupEmailField();
+    setupEmailField();
     console.log('Driver/Dispatcher Email field added to all appointment types');
   } catch (error) {
     console.error('Error adding Driver/Dispatcher Email field:', error);
@@ -419,9 +428,12 @@ export function registerRoutes(app: Express): Server {
   
   // Register hours routes
   try {
-    const { registerHoursRoutes } = await import('./modules/hours/routes');
-    registerHoursRoutes(app);
-    console.log('Hours routes registered');
+    import('./modules/hours/routes').then(({ registerHoursRoutes }) => {
+      registerHoursRoutes(app);
+      console.log('Hours routes registered');
+    }).catch(error => {
+      console.error('Error registering hours routes:', error);
+    });
   } catch (error) {
     console.error('Error registering hours routes:', error);
   }
