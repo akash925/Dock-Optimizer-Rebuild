@@ -195,7 +195,7 @@ export function registerRoutes(app: Express): Server {
   // Run super-admin creation script
   try {
     console.log("Running create-super-admin script...");
-    await createSuperAdmin();
+    createSuperAdmin();
     console.log("Super-admin creation script completed");
   } catch (error) {
     console.error("Error running super-admin creation script:", error);
