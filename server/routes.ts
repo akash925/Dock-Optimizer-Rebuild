@@ -185,7 +185,7 @@ interface TenantWebSocket extends WebSocket {
   isAlive?: boolean;
 }
 
-export function registerRoutes(app: Express): Server {
+export async function registerRoutes(app: Express): Promise<Server> {
   // Get storage instance
   const storage = getStorage();
   
@@ -213,7 +213,7 @@ export function registerRoutes(app: Express): Server {
   // Fix admin password
   try {
     console.log("Running fix-admin-password script...");
-    fixAdminPassword();
+    await fixAdminPassword();
     console.log("Admin password fix completed");
   } catch (error) {
     console.error("Error fixing admin password:", error);
@@ -448,7 +448,7 @@ export function registerRoutes(app: Express): Server {
   
   // Register QR code routes
   try {
-    await registerQrCodeRoutes(app);
+    registerQrCodeRoutes(app);
     console.log('QR code routes registered');
   } catch (error) {
     console.error('Error registering QR code routes:', error);
@@ -465,7 +465,7 @@ export function registerRoutes(app: Express): Server {
   // Register enhanced availability endpoint (v2)
   try {
     // Import the new availability service
-    const { calculateAvailabilitySlots, defaultConfig } = await import('./src/services/availability');
+    import('./src/services/availability').then(({ calculateAvailabilitySlots, defaultConfig }) => {
     
     // Register the v2 endpoint
     app.get("/api/availability/v2", async (req, res) => {
@@ -606,6 +606,9 @@ export function registerRoutes(app: Express): Server {
     });
     
     console.log('Enhanced availability (v2) endpoint registered');
+    }).catch(error => {
+      console.error('Error importing availability service:', error);
+    });
   } catch (error) {
     console.error('Error registering enhanced availability endpoint:', error);
   }
