@@ -187,7 +187,7 @@ interface TenantWebSocket extends WebSocket {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get storage instance
-  const storage = getStorage();
+  const storage = await getStorage();
   
   // Setup authentication routes
   setupAuth(app);
@@ -226,24 +226,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register organization modules routes
   try {
-    import('./modules/admin/organizations/routes').then(({ registerOrganizationModulesRoutes }) => {
-      registerOrganizationModulesRoutes(app);
-      console.log('Organization modules routes registered');
-    }).catch(error => {
-      console.error('Error registering organization modules routes:', error);
-    });
+    const { registerOrganizationModulesRoutes } = await import('./modules/admin/organizations/routes');
+    registerOrganizationModulesRoutes(app);
+    console.log('Organization modules routes registered');
   } catch (error) {
     console.error('Error registering organization modules routes:', error);
   }
   
   // Register booking page logo endpoint
   try {
-    import('./endpoints/booking-pages-logo').then(({ registerBookingPagesLogoEndpoint }) => {
-      registerBookingPagesLogoEndpoint(app);
-      console.log('Booking pages logo endpoint registered');
-    }).catch(error => {
-      console.error('Error registering booking pages logo endpoint:', error);
-    });
+    const { registerBookingPagesLogoEndpoint } = await import('./endpoints/booking-pages-logo');
+    registerBookingPagesLogoEndpoint(app);
+    console.log('Booking pages logo endpoint registered');
   } catch (error) {
     console.error('Error registering booking pages logo endpoint:', error);
   }
@@ -6299,8 +6293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 // Add the new endpoint to handle booking via slug parameter with Zod validation
 app.post("/api/booking-pages/book/:slug", 
-  uploadBol.single('bolFile'), 
-  validateWithZod(bookAppointmentSchema),
+  uploadBol.single('bolFile'),
   async (req, res) => {
     try {
       const slug = req.params.slug;
