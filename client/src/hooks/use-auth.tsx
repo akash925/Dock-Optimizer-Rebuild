@@ -41,14 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     data: user,
     error,
     isLoading,
-  } = useQuery<Omit<User, "password"> | undefined, Error>({
+  } = useQuery<Omit<User, "password"> | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    // Skip the authentication API call entirely for public routes
     enabled: !skipAuth,
     retry: false,
-    // Don't refetch when window gets focus on public routes
-    refetchOnWindowFocus: !skipAuth
+    refetchOnWindowFocus: !skipAuth,
+    onError: (error) => {
+      console.error("Error fetching user:", error);
+      toast({
+        title: "Error fetching user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const loginMutation = useMutation({
@@ -113,10 +119,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Ensure user is not undefined
+  const safeUser = user ?? null;
+
   return (
     <AuthContext.Provider
       value={{
-        user: user ?? null,
+        user: safeUser,
         isLoading: skipAuth ? false : isLoading,
         error,
         loginMutation,

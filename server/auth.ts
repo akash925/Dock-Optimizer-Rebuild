@@ -154,14 +154,14 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
-      
-      // Import the enrichUserWithRole function using dynamic import to avoid circular dependencies
       const { enrichUserWithRole } = await import('./enrich-user-role');
-      
-      // Enrich the user object with the correct role information
       const enrichedUser = await enrichUserWithRole(user);
-      
-      done(null, enrichedUser);
+
+      // Ensure tenantId and modules are included
+      const tenantId = await storage.getTenantIdForUser(id);
+      const modules = await storage.getModulesForUser(id);
+
+      done(null, { ...enrichedUser, tenantId, modules });
     } catch (err) {
       console.error("Error in deserializeUser:", err);
       done(err);
