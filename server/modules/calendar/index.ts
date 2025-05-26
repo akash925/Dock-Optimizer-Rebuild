@@ -8,7 +8,7 @@ import routes, { calendarRouter } from './routes';
 export async function getSchedules(req: Request, res: Response) {
   try {
     const storage = await getStorage();
-    const schedules = await storage.getAllSchedules();
+    const schedules = await storage.getSchedules();
     
     // Return schedules data
     res.json(schedules);
