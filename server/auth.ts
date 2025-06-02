@@ -60,4 +60,65 @@ export function setupAuth(app: any) {
   
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Login route
+  app.post('/api/login', (req: any, res: any, next: any) => {
+    passport.authenticate('local', (err: any, user: any, info: any) => {
+      if (err) {
+        console.error('Login error:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+      
+      req.logIn(user, (err: any) => {
+        if (err) {
+          console.error('Session error:', err);
+          return res.status(500).json({ error: 'Session error' });
+        }
+        
+        // Return user data as JSON
+        return res.json({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          tenantId: user.tenantId,
+          modules: user.modules || []
+        });
+      });
+    })(req, res, next);
+  });
+
+  // Logout route
+  app.post('/api/logout', (req: any, res: any) => {
+    req.logout((err: any) => {
+      if (err) {
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+      res.json({ message: 'Logged out successfully' });
+    });
+  });
+
+  // Get current user route
+  app.get('/api/user', (req: any, res: any) => {
+    if (req.isAuthenticated()) {
+      res.json({
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        role: req.user.role,
+        tenantId: req.user.tenantId,
+        modules: req.user.modules || []
+      });
+    } else {
+      res.status(401).json({ error: 'Not authenticated' });
+    }
+  });
 }
