@@ -2,10 +2,12 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
 import session from "express-session";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
+import { users } from "@shared/schema";
 import { getUserByUsername, validatePassword } from "./storage/users";
 import { getTenantIdForUser } from "./storage/tenants";
 import { getModulesForOrganization } from "./storage/modules";
-import { getStorage } from "./storage";
 
 
 passport.use(
