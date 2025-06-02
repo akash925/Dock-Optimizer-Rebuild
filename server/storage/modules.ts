@@ -1,13 +1,14 @@
 // server/storage/modules.ts
 
 import { db } from "../db";
-import { modules } from "@shared/schema";
+import { organizationModules } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
-export async function getModulesForUser(userId: number): Promise<string[]> {
+export async function getModulesForOrganization(organizationId: number): Promise<string[]> {
   const records = await db
-    .select({ moduleKey: modules.moduleKey })
-    .from(modules)
-    .where(modules.userId.eq(userId));
+    .select({ moduleName: organizationModules.moduleName })
+    .from(organizationModules)
+    .where(eq(organizationModules.organizationId, organizationId));
 
-  return records.map((r) => r.moduleKey);
+  return records.map((r) => r.moduleName);
 }

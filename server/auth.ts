@@ -1,7 +1,10 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
-import { getUserByUsername, getTenantIdForUser, getModulesForUser } from "./storage";
+import { getUserByUsername, validatePassword } from "./storage/users";
+import { getTenantIdForUser } from "./storage/tenants";
+import { getModulesForOrganization } from "./storage/modules";
+
 
 passport.use(
   new LocalStrategy(async (username, password, done) => {
@@ -29,7 +32,7 @@ passport.deserializeUser(async (id: number, done) => {
     if (!user) return done(null, false);
 
     const tenantId = await getTenantIdForUser(user.id);
-    const modules = await getModulesForUser(user.id);
+    const modules = await getModulesForOrganization(user.tenantId || 0);
 
     user.tenantId = tenantId;
     user.modules = modules;
