@@ -1,9 +1,11 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
+import session from "express-session";
 import { getUserByUsername, validatePassword } from "./storage/users";
 import { getTenantIdForUser } from "./storage/tenants";
 import { getModulesForOrganization } from "./storage/modules";
+import { getStorage } from "./storage";
 
 
 passport.use(
@@ -32,10 +34,10 @@ passport.deserializeUser(async (id: number, done) => {
     if (!user) return done(null, false);
 
     const tenantId = await getTenantIdForUser(user.id);
-    const modules = await getModulesForOrganization(user.tenantId || 0);
+    const modules = await getModulesForOrganization(tenantId || 0);
 
-    user.tenantId = tenantId;
-    user.modules = modules;
+    (user as any).tenantId = tenantId;
+    (user as any).modules = modules;
     user.role = user.role || "user";
 
     done(null, user);
@@ -43,3 +45,19 @@ passport.deserializeUser(async (id: number, done) => {
     done(err);
   }
 });
+
+export function setupAuth(app: any) {
+  // Configure session middleware
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // Set to true in production with HTTPS
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
+  
+  app.use(passport.initialize());
+  app.use(passport.session());
+}
