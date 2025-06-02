@@ -1,22 +1,17 @@
 // server/storage/users.ts
 
 import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "@shared/schema";
 
-type User = {
-  id: number;
-  username: string;
-  password: string;
-  tenantId: number;
-  role?: string;
-};
+type User = typeof users.$inferSelect;
 
 export async function getUserByUsername(username: string): Promise<User | null> {
   const [user] = await db
     .select()
     .from(users)
-    .where(users.username.eq(username));
+    .where(eq(users.username, username));
   return user || null;
 }
 

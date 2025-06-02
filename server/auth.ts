@@ -17,7 +17,13 @@ passport.use(
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) return done(null, false, { message: "Incorrect password." });
 
-      return done(null, user);
+      // Transform user data to match Express user type
+      const authUser = {
+        ...user,
+        tenantId: user.tenantId || undefined
+      };
+
+      return done(null, authUser);
     } catch (err) {
       return done(err);
     }
@@ -30,17 +36,19 @@ passport.serializeUser((user: any, done) => {
 
 passport.deserializeUser(async (id: number, done) => {
   try {
-    const user = await getUserByUsername(id.toString());
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     if (!user) return done(null, false);
 
     const tenantId = await getTenantIdForUser(user.id);
     const modules = await getModulesForOrganization(tenantId || 0);
 
-    (user as any).tenantId = tenantId;
-    (user as any).modules = modules;
-    user.role = user.role || "user";
+    const authUser = {
+      ...user,
+      tenantId: tenantId || undefined,
+      modules: modules || []
+    };
 
-    done(null, user);
+    done(null, authUser);
   } catch (err) {
     done(err);
   }
