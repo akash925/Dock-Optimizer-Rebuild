@@ -4,6 +4,7 @@ import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
 import path from "path";
 import { WebSocketServer } from "ws";
+import { db } from "./db";
 
 // Type for the WebSocket client with tenant metadata
 interface TenantWebSocket extends WebSocket {
