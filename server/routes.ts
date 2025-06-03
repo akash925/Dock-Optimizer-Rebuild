@@ -22,6 +22,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
   setupAuth(app);
   
+  // Core API routes that frontend expects
+  app.get('/api/users', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const users = await storage.getUsers();
+      // Remove password field for security
+      const safeUsers = users.map(({ password, ...user }) => user);
+      res.json(safeUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+  
+  // Appointment types endpoint
+  app.get('/api/appointment-types', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const appointmentTypes = await storage.getAppointmentTypes();
+      res.json(appointmentTypes);
+    } catch (error) {
+      console.error('Error fetching appointment types:', error);
+      res.status(500).json({ error: 'Failed to fetch appointment types' });
+    }
+  });
+  
+  // Booking pages endpoint
+  app.get('/api/booking-pages', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const bookingPages = await storage.getBookingPages();
+      res.json(bookingPages);
+    } catch (error) {
+      console.error('Error fetching booking pages:', error);
+      res.status(500).json({ error: 'Failed to fetch booking pages' });
+    }
+  });
+  
+  // Docks endpoint
+  app.get('/api/docks', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const docks = await storage.getDocks();
+      res.json(docks);
+    } catch (error) {
+      console.error('Error fetching docks:', error);
+      res.status(500).json({ error: 'Failed to fetch docks' });
+    }
+  });
+  
+  // Create user with invitation email
+  app.post('/api/users', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const { email, firstName, lastName, role = 'worker' } = req.body;
+      
+      if (!email || !firstName || !lastName) {
+        return res.status(400).json({ error: 'Email, firstName, and lastName are required' });
+      }
+      
+      // Generate temporary password
+      const tempPassword = Math.random().toString(36).slice(-8);
+      
+      // Create user
+      const newUser = await storage.createUser({
+        username: email,
+        email,
+        firstName,
+        lastName,
+        role,
+        password: tempPassword // This will be hashed in storage
+      });
+      
+      // Send invitation email if SendGrid is configured
+      if (process.env.SENDGRID_API_KEY) {
+        try {
+          const { sendUserInvitationEmail } = require('./services/email');
+          const currentUser = req.user;
+          const inviterName = `${currentUser.firstName} ${currentUser.lastName}`;
+          const organizationName = 'Dock Optimizer'; // Could be dynamic based on tenant
+          
+          await sendUserInvitationEmail(email, tempPassword, organizationName, inviterName);
+          console.log(`Invitation email sent to ${email}`);
+        } catch (emailError) {
+          console.error('Failed to send invitation email:', emailError);
+          // Don't fail the user creation if email fails
+        }
+      }
+      
+      // Remove password from response
+      const { password, ...safeUser } = newUser;
+      res.status(201).json(safeUser);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      res.status(500).json({ error: 'Failed to create user' });
+    }
+  });
+  
   // Create the HTTP server
   const httpServer = createServer(app);
   
