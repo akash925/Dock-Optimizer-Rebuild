@@ -196,8 +196,9 @@ export default function AppointmentsPage() {
       options[column.key] = new Set();
       
       schedules.forEach(schedule => {
-        if (schedule.customFormData) {
-          const value = schedule.customFormData[column.key];
+        if (schedule.customFormData && typeof schedule.customFormData === 'object') {
+          const formData = schedule.customFormData as Record<string, string>;
+          const value = formData[column.key];
           if (value && typeof value === 'string' && value.trim()) {
             options[column.key].add(value.trim());
           }

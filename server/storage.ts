@@ -1659,21 +1659,30 @@ export class MemStorage implements IStorage {
     required: boolean;
     orderPosition: number;
   }>> {
-    const fields = [];
-    for (const [id, question] of this.standardQuestions.entries()) {
-      if (question.included) {
-        fields.push({
-          fieldKey: question.fieldKey,
-          label: question.label,
-          fieldType: question.fieldType,
-          appointmentTypeId: question.appointmentTypeId,
-          included: question.included,
-          required: question.required,
-          orderPosition: question.orderPosition
-        });
-      }
+    try {
+      const result = await pool.query(`
+        SELECT DISTINCT
+          sq.field_key as "fieldKey",
+          sq.label,
+          sq.field_type as "fieldType", 
+          sq.appointment_type_id as "appointmentTypeId",
+          sq.included,
+          sq.required,
+          sq.order_position as "orderPosition"
+        FROM standard_questions sq
+        JOIN appointment_types at ON sq.appointment_type_id = at.id
+        JOIN facilities f ON at.facility_id = f.id
+        JOIN organization_facilities of ON f.id = of.facility_id
+        WHERE of.organization_id = $1
+          AND sq.included = true
+        ORDER BY sq.order_position
+      `, [organizationId]);
+      
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching appointment type fields:', error);
+      return [];
     }
-    return fields.sort((a, b) => a.orderPosition - b.orderPosition);
   }
 
   // Organization utility operations for MemStorage

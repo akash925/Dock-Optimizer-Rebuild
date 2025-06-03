@@ -105,7 +105,7 @@ export function useRealtimeUpdates() {
           console.log('[WebSocket] Max reconnect attempts reached, falling back to polling');
           setIsFallbackPolling(true);
           
-          // Setup polling as fallback
+          // Setup polling as fallback with much longer intervals to prevent performance issues
           pollingInterval = setInterval(() => {
             console.log('[Polling] Checking for updates via poll');
             queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
@@ -113,7 +113,7 @@ export function useRealtimeUpdates() {
             // Also periodically refresh availability data
             queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
             queryClient.invalidateQueries({ queryKey: ['/api/availability/v2'] });
-          }, 30000); // Poll every 30 seconds
+          }, 300000); // Poll every 5 minutes instead of 30 seconds
         }
       }
     });
