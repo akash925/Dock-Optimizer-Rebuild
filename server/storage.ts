@@ -247,6 +247,7 @@ export class MemStorage implements IStorage {
   private assets: Map<number, Asset>;
   private companyAssets: Map<number, CompanyAsset>;
   private userPreferences: Map<number, UserPreferences>;
+  private fileRecords: Map<string, any>;
   
   // Admin console related
   private tenants: Map<number, Tenant>;
@@ -292,6 +293,7 @@ export class MemStorage implements IStorage {
     this.assets = new Map();
     this.companyAssets = new Map();
     this.userPreferences = new Map();
+    this.fileRecords = new Map();
     
     // Admin console related
     this.tenants = new Map();
@@ -4204,38 +4206,47 @@ export async function initializeDatabase() {
 
 // Add file storage methods to DatabaseStorage class
 DatabaseStorage.prototype.createFileRecord = async function(fileRecord: any): Promise<any> {
-  const [result] = await db.raw(`
-    INSERT INTO file_storage (id, original_name, mime_type, size, path, url, folder, tenant_id, uploaded_by, is_temporary)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    RETURNING *
-  `, [
-    fileRecord.id,
-    fileRecord.originalName,
-    fileRecord.mimeType,
-    fileRecord.size,
-    fileRecord.path,
-    fileRecord.url,
-    fileRecord.folder || 'general',
-    fileRecord.tenantId || null,
-    fileRecord.uploadedBy || null,
-    fileRecord.isTemporary || false
-  ]);
-  return result;
+  try {
+    const result = await db.execute(sql`
+      INSERT INTO file_storage (id, original_name, mime_type, size, path, url, folder, tenant_id, uploaded_by, is_temporary)
+      VALUES (${fileRecord.id}, ${fileRecord.originalName}, ${fileRecord.mimeType}, ${fileRecord.size}, ${fileRecord.path}, ${fileRecord.url}, ${fileRecord.folder || 'general'}, ${fileRecord.tenantId || null}, ${fileRecord.uploadedBy || null}, ${fileRecord.isTemporary || false})
+      RETURNING *
+    `);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error creating file record:', error);
+    throw error;
+  }
 };
 
 DatabaseStorage.prototype.getFileRecord = async function(fileId: string): Promise<any | null> {
-  const result = await db.raw('SELECT * FROM file_storage WHERE id = ?', [fileId]);
-  return result.rows.length > 0 ? result.rows[0] : null;
+  try {
+    const result = await db.execute(sql`SELECT * FROM file_storage WHERE id = ${fileId}`);
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error('Error getting file record:', error);
+    return null;
+  }
 };
 
 DatabaseStorage.prototype.deleteFileRecord = async function(fileId: string): Promise<boolean> {
-  const result = await db.raw('DELETE FROM file_storage WHERE id = ?', [fileId]);
-  return result.rowCount > 0;
+  try {
+    const result = await db.execute(sql`DELETE FROM file_storage WHERE id = ${fileId}`);
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error deleting file record:', error);
+    return false;
+  }
 };
 
 DatabaseStorage.prototype.getTempFiles = async function(cutoffDate: Date): Promise<any[]> {
-  const result = await db.raw('SELECT * FROM file_storage WHERE is_temporary = true AND created_at < ?', [cutoffDate]);
-  return result.rows;
+  try {
+    const result = await db.execute(sql`SELECT * FROM file_storage WHERE is_temporary = true AND created_at < ${cutoffDate}`);
+    return result.rows;
+  } catch (error) {
+    console.error('Error getting temp files:', error);
+    return [];
+  }
 };
 
 // Use database storage

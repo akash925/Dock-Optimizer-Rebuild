@@ -21,6 +21,32 @@ const upload = multer({
   }
 });
 
+// More permissive upload for BOL documents
+const bolUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit for BOL documents
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow PDFs, images, and document files for BOL
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/tiff',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype) || file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, image, and document files are allowed for BOL uploads'));
+    }
+  }
+});
+
 // Upload organization logo
 router.post('/upload/organization-logo', upload.single('logo'), async (req, res) => {
   try {
@@ -90,6 +116,53 @@ router.get('/serve/:fileId', async (req, res) => {
   } catch (error) {
     console.error('Error serving file:', error);
     res.status(500).json({ error: 'Failed to serve file' });
+  }
+});
+
+// Upload BOL document 
+router.post('/upload/bol', bolUpload.single('bolFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No BOL file uploaded' });
+    }
+
+    const { scheduleId, appointmentId } = req.body;
+    const storage = await getStorage();
+
+    // Upload file to blob storage
+    const uploadedFile = await blobStorageService.uploadFile(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype,
+      {
+        folder: 'bol-documents',
+        tenantId: (req as any).user?.tenantId,
+        uploadedBy: (req as any).user?.id,
+        metadata: {
+          scheduleId: scheduleId || null,
+          appointmentId: appointmentId || null,
+          bolNumber: req.body.bolNumber || null,
+          customerName: req.body.customerName || null,
+          carrierName: req.body.carrierName || null
+        }
+      }
+    );
+
+    // Store file record in database
+    await storage.createFileRecord(uploadedFile);
+
+    res.json({
+      success: true,
+      fileId: uploadedFile.id,
+      fileUrl: uploadedFile.url,
+      filename: uploadedFile.originalName,
+      size: uploadedFile.size,
+      documentId: uploadedFile.id
+    });
+
+  } catch (error) {
+    console.error('Error uploading BOL document:', error);
+    res.status(500).json({ error: 'Failed to upload BOL document' });
   }
 });
 
