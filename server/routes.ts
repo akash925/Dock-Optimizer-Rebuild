@@ -420,8 +420,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const appointment = await storage.createSchedule(appointmentData);
       
-      // Generate confirmation code
-      const confirmationCode = `DO-${Date.now()}`;
+      // Generate tenant-specific confirmation code
+      // Get organization details to determine the proper prefix
+      const facility = await storage.getFacility(bookingData.facilityId);
+      const organization = facility ? await storage.getOrganizationById(facility.tenantId!) : null;
+      
+      // Use organization-specific prefix or fallback to HZL for Hanzo
+      let prefix = 'HZL'; // Default for Hanzo Logistics
+      if (organization && organization.name) {
+        // Extract initials from organization name
+        const words = organization.name.split(' ');
+        if (words.length >= 2) {
+          prefix = words.map(word => word.charAt(0).toUpperCase()).join('').substring(0, 3);
+        } else if (words[0].length >= 3) {
+          prefix = words[0].substring(0, 3).toUpperCase();
+        }
+      }
+      
+      const confirmationCode = `${prefix}-${appointment.id}`;
       
       res.json({
         success: true,

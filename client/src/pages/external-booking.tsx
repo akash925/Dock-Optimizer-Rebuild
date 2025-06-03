@@ -1195,10 +1195,52 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             </div>
           </div>
           
-          {/* Confirmation Code Card */}
-          <div className="bg-primary/10 rounded-md p-4 my-4">
-            <p className="text-sm">Confirmation Code:</p>
-            <p className="text-lg font-bold">{confirmationCode}</p>
+          {/* Clickable Confirmation Code Card with Barcode */}
+          <div 
+            className="bg-primary/10 rounded-md p-4 my-4 cursor-pointer hover:bg-primary/15 transition-colors border-2 border-dashed border-primary/30"
+            onClick={() => {
+              // Generate QR code URL and open in new window
+              const baseUrl = window.location.origin;
+              const checkInUrl = `${baseUrl}/driver-check-in?code=${confirmationCode}`;
+              const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkInUrl)}`;
+              
+              // Open QR code in a new window for easy access
+              const qrWindow = window.open('', '_blank', 'width=400,height=500,scrollbars=yes');
+              if (qrWindow) {
+                qrWindow.document.write(`
+                  <html>
+                    <head><title>Appointment QR Code - ${confirmationCode}</title></head>
+                    <body style="text-align: center; font-family: Arial, sans-serif; padding: 20px;">
+                      <h2>Appointment Confirmation Code</h2>
+                      <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <div style="font-size: 24px; font-weight: bold; color: #2563eb; margin-bottom: 10px;">
+                          ${confirmationCode}
+                        </div>
+                        <img src="${qrUrl}" alt="QR Code for ${confirmationCode}" style="border: 1px solid #ccc; border-radius: 8px;" />
+                        <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                          Scan this QR code or use the confirmation code for check-in
+                        </p>
+                      </div>
+                      <button onclick="window.print()" style="background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+                        Print QR Code
+                      </button>
+                    </body>
+                  </html>
+                `);
+                qrWindow.document.close();
+              }
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Appointment Confirmation Code</p>
+                <p className="text-lg font-bold text-primary">{confirmationCode}</p>
+                <p className="text-xs text-muted-foreground mt-1">Click to view barcode/QR code</p>
+              </div>
+              <div className="text-primary">
+                <QrCode className="h-8 w-8" />
+              </div>
+            </div>
             
             {/* Show appointment details if available */}
             {bookingDetails.startTime && (
@@ -1557,7 +1599,27 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
               <div className="col-span-1 md:col-span-2 mb-2">
                 <h4 className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Date & Time</h4>
                 <div className="border-b pb-2">
-                  {bookingDetails.startTime ? (
+                  {bookingDetails.date && bookingDetails.time ? (
+                    <>
+                      <p className="font-medium">
+                        {new Date(bookingDetails.date).toLocaleDateString(undefined, {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                      <p className="text-sm">
+                        {bookingDetails.time}
+                        {bookingDetails.duration && (
+                          <span className="text-muted-foreground"> ({bookingDetails.duration} minutes)</span>
+                        )}
+                        {bookingDetails.timezone && (
+                          <span className="text-xs text-muted-foreground ml-1">({bookingDetails.timezone})</span>
+                        )}
+                      </p>
+                    </>
+                  ) : bookingDetails.startTime ? (
                     <>
                       <p className="font-medium">
                         {new Date(bookingDetails.startTime).toLocaleDateString(undefined, {

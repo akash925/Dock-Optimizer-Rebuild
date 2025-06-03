@@ -2775,46 +2775,52 @@ export class DatabaseStorage implements IStorage {
       console.log(`[getScheduleByConfirmationCode] Processing code: ${code}`);
       
       // Handle different confirmation code formats:
-      // - DO-1748911136273 (new timestamp-based format)
+      // - HZL-123 (new tenant-specific format with appointment ID)
+      // - DO-1748911136273 (old timestamp-based format)
       // - HC123 (standard format)
-      // - HZL-123 (legacy format)
       // - Just 123 (numeric ID only)
       
-      if (code.startsWith('DO-')) {
-        // New timestamp-based format: DO-timestamp
-        // For now, search for schedules created around this timestamp
-        const timestamp = code.substring(3);
-        const timestampNum = parseInt(timestamp, 10);
-        
-        if (!isNaN(timestampNum)) {
-          console.log(`[getScheduleByConfirmationCode] Looking for schedule with timestamp: ${timestampNum}`);
+      if (code.includes('-')) {
+        // Format: PREFIX-ID (e.g., HZL-123, DO-123)
+        const parts = code.split('-');
+        if (parts.length === 2) {
+          const prefix = parts[0];
+          const idPart = parts[1];
+          const scheduleId = parseInt(idPart, 10);
           
-          // Convert timestamp to date range (within 1 minute)
-          const targetDate = new Date(timestampNum);
-          const startRange = new Date(timestampNum - 60000); // 1 minute before
-          const endRange = new Date(timestampNum + 60000);   // 1 minute after
+          if (!isNaN(scheduleId)) {
+            console.log(`[getScheduleByConfirmationCode] Looking up schedule with ID: ${scheduleId} (prefix: ${prefix})`);
+            return this.getSchedule(scheduleId);
+          }
           
-          console.log(`[getScheduleByConfirmationCode] Searching for schedules created between ${startRange.toISOString()} and ${endRange.toISOString()}`);
-          
-          // Search for schedules created in this time range
-          const schedules = await this.db
-            .select()
-            .from(this.tables.schedules)
-            .where(
-              sql`${this.tables.schedules.createdAt} >= ${startRange.toISOString()} 
-                  AND ${this.tables.schedules.createdAt} <= ${endRange.toISOString()}`
-            )
-            .orderBy(sql`${this.tables.schedules.createdAt} DESC`)
-            .limit(1);
-          
-          if (schedules.length > 0) {
-            console.log(`[getScheduleByConfirmationCode] Found schedule with ID: ${schedules[0].id}`);
-            return schedules[0] as Schedule;
+          // Handle old timestamp-based DO- format
+          if (prefix === 'DO' && !isNaN(parseInt(idPart, 10)) && idPart.length > 6) {
+            const timestampNum = parseInt(idPart, 10);
+            console.log(`[getScheduleByConfirmationCode] Looking for schedule with timestamp: ${timestampNum}`);
+            
+            // Convert timestamp to date range (within 1 minute)
+            const startRange = new Date(timestampNum - 60000);
+            const endRange = new Date(timestampNum + 60000);
+            
+            const schedules = await this.db
+              .select()
+              .from(this.tables.schedules)
+              .where(
+                sql`${this.tables.schedules.createdAt} >= ${startRange.toISOString()} 
+                    AND ${this.tables.schedules.createdAt} <= ${endRange.toISOString()}`
+              )
+              .orderBy(sql`${this.tables.schedules.createdAt} DESC`)
+              .limit(1);
+            
+            if (schedules.length > 0) {
+              console.log(`[getScheduleByConfirmationCode] Found schedule with ID: ${schedules[0].id}`);
+              return schedules[0] as Schedule;
+            }
           }
         }
       } else {
-        // Legacy format handling
-        const cleanCode = code.replace(/^[A-Za-z]+-?/, '');
+        // Legacy format handling - remove any prefix letters and get numeric ID
+        const cleanCode = code.replace(/^[A-Za-z]+/, '');
         console.log(`[getScheduleByConfirmationCode] Cleaned legacy code: ${cleanCode}`);
         
         const scheduleId = parseInt(cleanCode, 10);
