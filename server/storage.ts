@@ -220,6 +220,12 @@ export interface IStorage {
   createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
   updateUserPreferences(userId: number, organizationId: number, preferences: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
   
+  // File Storage operations for blob management
+  createFileRecord(fileRecord: any): Promise<any>;
+  getFileRecord(fileId: string): Promise<any | null>;
+  deleteFileRecord(fileId: string): Promise<boolean>;
+  getTempFiles(cutoffDate: Date): Promise<any[]>;
+  
   // Session store
   sessionStore: any; // Type-safe session store
 }
@@ -4195,6 +4201,47 @@ export async function initializeDatabase() {
   
   return dbStorage;
 }
+
+// Add file storage methods to DatabaseStorage class
+DatabaseStorage.prototype.createFileRecord = async function(fileRecord: any): Promise<any> {
+  // For now, store in memory until we push schema changes
+  if (!this.fileRecords) {
+    this.fileRecords = new Map();
+  }
+  this.fileRecords.set(fileRecord.id, {
+    ...fileRecord,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+  return this.fileRecords.get(fileRecord.id);
+};
+
+DatabaseStorage.prototype.getFileRecord = async function(fileId: string): Promise<any | null> {
+  if (!this.fileRecords) {
+    return null;
+  }
+  return this.fileRecords.get(fileId) || null;
+};
+
+DatabaseStorage.prototype.deleteFileRecord = async function(fileId: string): Promise<boolean> {
+  if (!this.fileRecords) {
+    return false;
+  }
+  return this.fileRecords.delete(fileId);
+};
+
+DatabaseStorage.prototype.getTempFiles = async function(cutoffDate: Date): Promise<any[]> {
+  if (!this.fileRecords) {
+    return [];
+  }
+  const tempFiles = [];
+  for (const [id, file] of this.fileRecords.entries()) {
+    if (file.isTemporary && file.createdAt < cutoffDate) {
+      tempFiles.push(file);
+    }
+  }
+  return tempFiles;
+};
 
 // Use database storage
 let storage: IStorage;

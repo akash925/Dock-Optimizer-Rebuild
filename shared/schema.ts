@@ -904,6 +904,41 @@ export type CompanyAsset = typeof companyAssets.$inferSelect;
 export type InsertCompanyAsset = z.infer<typeof insertCompanyAssetSchema>;
 export type UpdateCompanyAsset = z.infer<typeof updateCompanyAssetSchema>;
 
+// File Storage Table - for blob storage management
+export const fileStorage = pgTable("file_storage", {
+  id: text("id").primaryKey(), // UUID for file identification
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(), // File size in bytes
+  path: text("path").notNull(), // Physical file path
+  url: text("url").notNull(), // Public URL for access
+  folder: text("folder").default("general"), // Organization folder (images, documents, etc.)
+  tenantId: integer("tenant_id"), // For multi-tenant isolation
+  uploadedBy: integer("uploaded_by"), // User who uploaded the file
+  isTemporary: boolean("is_temporary").default(false), // For cleanup of temp files
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const fileStorageRelations = relations(fileStorage, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [fileStorage.tenantId],
+    references: [tenants.id],
+  }),
+  uploader: one(users, {
+    fields: [fileStorage.uploadedBy],
+    references: [users.id],
+  }),
+}));
+
+export const insertFileStorageSchema = createInsertSchema(fileStorage).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type FileStorage = typeof fileStorage.$inferSelect;
+export type InsertFileStorage = z.infer<typeof insertFileStorageSchema>;
+
 // Default hours type for organization settings
 export type DayHours = {
   open: boolean;
