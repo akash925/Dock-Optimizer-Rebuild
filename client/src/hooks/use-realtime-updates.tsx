@@ -94,27 +94,8 @@ export function useRealtimeUpdates() {
       if (event.code !== 1000 && event.code !== 1001) {
         setSocketError(`Connection closed (${event.code}): ${event.reason || 'Unknown reason'}`);
         
-        // Try to reconnect if we haven't exceeded max attempts
-        if (reconnectAttempts < maxReconnectAttempts) {
-          console.log(`[WebSocket] Attempting to reconnect in 5 seconds (Attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
-          
-          reconnectTimeout = setTimeout(() => {
-            setReconnectAttempts(prev => prev + 1);
-          }, 5000);
-        } else {
-          console.log('[WebSocket] Max reconnect attempts reached, falling back to polling');
-          setIsFallbackPolling(true);
-          
-          // Setup polling as fallback with much longer intervals to prevent performance issues
-          pollingInterval = setInterval(() => {
-            console.log('[Polling] Checking for updates via poll');
-            queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
-            
-            // Also periodically refresh availability data
-            queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/availability/v2'] });
-          }, 300000); // Poll every 5 minutes instead of 30 seconds
-        }
+        // Disable reconnections to prevent excessive WebSocket churning
+        console.log('[WebSocket] Connection closed - disabling reconnections to prevent system overload');
       }
     });
 

@@ -238,8 +238,20 @@ export interface IStorage {
   createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
   updateUserPreferences(userId: number, organizationId: number, preferences: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
   
-  // File Storage operations for blob management
-  createFileRecord(fileRecord: any): Promise<any>;
+  // File Storage operations for BOL document management
+  createFileRecord(fileRecord: {
+    id: string;
+    filename: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
+    path: string;
+    appointmentId?: number;
+    ocrText?: string;
+    metadata?: any;
+    uploadedBy: number;
+    uploadedAt: Date;
+  }): Promise<any>;
   getFileRecord(fileId: string): Promise<any | null>;
   deleteFileRecord(fileId: string): Promise<boolean>;
   getTempFiles(cutoffDate: Date): Promise<any[]>;
