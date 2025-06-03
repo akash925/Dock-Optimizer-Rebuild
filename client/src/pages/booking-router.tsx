@@ -3,6 +3,7 @@
 import React from 'react';
 import { Route, Switch, useRoute, useLocation } from 'wouter';
 import ExternalBooking from './external-booking';
+import BookingConfirmation from './booking-confirmation';
 
 export default function BookingRouter() {
   const [_, params] = useRoute('/booking/:slug');
@@ -21,6 +22,9 @@ export default function BookingRouter() {
   
   return (
     <Switch>
+      <Route path="/external/:slug/confirmation/:code">
+        {(params) => <BookingConfirmation confirmationCode={params.code} />}
+      </Route>
       <Route path="/external/:slug">
         {(params) => <ExternalBooking slug={params.slug} />}
       </Route>

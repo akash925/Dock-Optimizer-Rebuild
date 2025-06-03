@@ -2735,30 +2735,61 @@ export class DatabaseStorage implements IStorage {
 
   async getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined> {
     try {
-      // Handle multiple possible formats:
+      console.log(`[getScheduleByConfirmationCode] Processing code: ${code}`);
+      
+      // Handle different confirmation code formats:
+      // - DO-1748911136273 (new timestamp-based format)
       // - HC123 (standard format)
       // - HZL-123 (legacy format)
       // - Just 123 (numeric ID only)
       
-      // First log the incoming code for debugging
-      console.log(`[getScheduleByConfirmationCode] Processing code: ${code}`);
-      
-      // Remove any prefix (HC, HZL-, etc.) and extract just the numeric part
-      const cleanCode = code.replace(/^[A-Za-z]+-?/, '');
-      console.log(`[getScheduleByConfirmationCode] Cleaned code: ${cleanCode}`);
-      
-      const scheduleId = parseInt(cleanCode, 10);
-      
-      if (isNaN(scheduleId)) {
-        console.log(`[getScheduleByConfirmationCode] Invalid numeric code: ${cleanCode}`);
-        return undefined;
+      if (code.startsWith('DO-')) {
+        // New timestamp-based format: DO-timestamp
+        // For now, search for schedules created around this timestamp
+        const timestamp = code.substring(3);
+        const timestampNum = parseInt(timestamp, 10);
+        
+        if (!isNaN(timestampNum)) {
+          console.log(`[getScheduleByConfirmationCode] Looking for schedule with timestamp: ${timestampNum}`);
+          
+          // Convert timestamp to date range (within 1 minute)
+          const targetDate = new Date(timestampNum);
+          const startRange = new Date(timestampNum - 60000); // 1 minute before
+          const endRange = new Date(timestampNum + 60000);   // 1 minute after
+          
+          console.log(`[getScheduleByConfirmationCode] Searching for schedules created between ${startRange.toISOString()} and ${endRange.toISOString()}`);
+          
+          // Search for schedules created in this time range
+          const schedules = await this.db
+            .select()
+            .from(this.tables.schedules)
+            .where(
+              sql`${this.tables.schedules.createdAt} >= ${startRange.toISOString()} 
+                  AND ${this.tables.schedules.createdAt} <= ${endRange.toISOString()}`
+            )
+            .orderBy(sql`${this.tables.schedules.createdAt} DESC`)
+            .limit(1);
+          
+          if (schedules.length > 0) {
+            console.log(`[getScheduleByConfirmationCode] Found schedule with ID: ${schedules[0].id}`);
+            return schedules[0] as Schedule;
+          }
+        }
+      } else {
+        // Legacy format handling
+        const cleanCode = code.replace(/^[A-Za-z]+-?/, '');
+        console.log(`[getScheduleByConfirmationCode] Cleaned legacy code: ${cleanCode}`);
+        
+        const scheduleId = parseInt(cleanCode, 10);
+        
+        if (!isNaN(scheduleId)) {
+          console.log(`[getScheduleByConfirmationCode] Looking up schedule with ID: ${scheduleId}`);
+          return this.getSchedule(scheduleId);
+        }
       }
       
-      console.log(`[getScheduleByConfirmationCode] Looking up schedule with ID: ${scheduleId}`);
-      
-      // For now, simply call getSchedule with the ID
-      // In the future, we might want a more sophisticated confirmation code system
-      return this.getSchedule(scheduleId);
+      console.log(`[getScheduleByConfirmationCode] No schedule found for code: ${code}`);
+      return undefined;
     } catch (error) {
       console.error("Error executing getScheduleByConfirmationCode:", error);
       throw error;
