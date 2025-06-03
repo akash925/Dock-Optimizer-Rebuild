@@ -111,6 +111,9 @@ app.use((req, res, next) => {
     modulesToLoad.push("assetManager");
   }
 
+  // Add facility management module to ensure API routes are available
+  modulesToLoad.push("facilityManagement");
+
   // Load modules based on legacy configuration
   for (const moduleName of modulesToLoad) {
     console.log(`Loading ${moduleName} module...`);
