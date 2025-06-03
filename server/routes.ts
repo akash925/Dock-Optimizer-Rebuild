@@ -356,6 +356,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // External booking submission endpoint
+  app.post('/api/booking-pages/book/:slug', async (req: any, res) => {
+    try {
+      const { slug } = req.params;
+      const bookingData = req.body;
+      
+      // Get booking page to determine tenant context
+      const bookingPage = await storage.getBookingPageBySlug(slug);
+      if (!bookingPage) {
+        return res.status(404).json({ error: 'Booking page not found' });
+      }
+      
+      // Create the appointment
+      const appointmentData = {
+        type: bookingData.pickupOrDropoff || 'pickup',
+        status: 'scheduled',
+        startTime: new Date(`${bookingData.date}T${bookingData.time}:00`),
+        endTime: new Date(`${bookingData.date}T${bookingData.time}:00`),
+        appointmentTypeId: bookingData.appointmentTypeId,
+        customFormData: {
+          customerInfo: {
+            name: bookingData.customerName,
+            email: bookingData.email
+          },
+          facilityInfo: {
+            id: bookingData.facilityId
+          }
+        },
+        createdBy: 1, // System user for external bookings
+        truckNumber: bookingData.truckNumber || 'TBD'
+      };
+      
+      const appointment = await storage.createSchedule(appointmentData);
+      
+      // Generate confirmation code
+      const confirmationCode = `DO-${Date.now()}`;
+      
+      res.json({
+        success: true,
+        confirmationCode,
+        schedule: appointment,
+        message: 'Appointment booked successfully'
+      });
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      res.status(500).json({ 
+        error: 'Failed to create booking',
+        message: error.message 
+      });
+    }
+  });
   
   // Create the HTTP server
   const httpServer = createServer(app);
