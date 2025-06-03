@@ -86,12 +86,11 @@ export default function AppointmentsPage() {
     start: subDays(new Date(), 7),
     end: new Date(),
   });
-  const [customerFilter, setCustomerFilter] = useState<string>("all");
-  const [carrierFilter, setCarrierFilter] = useState<string>("all");
   const [facilityFilter, setFacilityFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
+  const [dynamicFilters, setDynamicFilters] = useState<Record<string, string>>({});
   
   // Fetch all schedules
   const { data: schedules, isLoading, error } = useQuery({
@@ -152,6 +151,62 @@ export default function AppointmentsPage() {
       return response.json();
     },
   });
+
+  // Fetch appointment type fields for dynamic columns
+  const { data: appointmentTypeFields } = useQuery({
+    queryKey: ["/api/appointment-type-fields"],
+    queryFn: async () => {
+      const response = await fetch("/api/appointment-type-fields");
+      if (!response.ok) {
+        throw new Error("Failed to fetch appointment type fields");
+      }
+      return response.json();
+    },
+  });
+
+  // Generate dynamic columns based on appointment type fields
+  const dynamicColumns = useMemo(() => {
+    if (!appointmentTypeFields || !schedules || !user?.tenantId) return [];
+    
+    // Get unique fields across all appointment types for this tenant
+    const uniqueFields = new Map();
+    
+    appointmentTypeFields.forEach((field: any) => {
+      if (field.included && !uniqueFields.has(field.fieldKey)) {
+        uniqueFields.set(field.fieldKey, {
+          key: field.fieldKey,
+          label: field.label,
+          type: field.fieldType
+        });
+      }
+    });
+    
+    return Array.from(uniqueFields.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [appointmentTypeFields, schedules, user?.tenantId]);
+
+  // Generate dynamic filter options for each column
+  const dynamicFilterOptions = useMemo(() => {
+    if (!schedules || !dynamicColumns) return {};
+    
+    const options: Record<string, Set<string>> = {};
+    
+    dynamicColumns.forEach(column => {
+      options[column.key] = new Set();
+      
+      schedules.forEach(schedule => {
+        if (schedule.customFormData) {
+          const value = schedule.customFormData[column.key];
+          if (value && typeof value === 'string' && value.trim()) {
+            options[column.key].add(value.trim());
+          }
+        }
+      });
+    });
+    
+    return Object.fromEntries(
+      Object.entries(options).map(([key, valueSet]) => [key, Array.from(valueSet).sort()])
+    );
+  }, [schedules, dynamicColumns]);
   
   // Delete schedule mutation
   const deleteScheduleMutation = useMutation({
@@ -330,18 +385,13 @@ export default function AppointmentsPage() {
         if (scheduleDate > endDate) return false;
       }
       
-      // Customer filter
-      if (customerFilter !== "all" && 
-          schedule.customerName && 
-          !schedule.customerName.toLowerCase().includes(customerFilter.toLowerCase())) {
-        return false;
-      }
-      
-      // Carrier filter
-      if (carrierFilter !== "all" && schedule.carrierId) {
-        const carrierName = getCarrierName(schedule.carrierId).toLowerCase();
-        if (!carrierName.includes(carrierFilter.toLowerCase())) {
-          return false;
+      // Dynamic filters
+      for (const [key, value] of Object.entries(dynamicFilters)) {
+        if (value !== "all" && schedule.customFormData) {
+          const fieldValue = schedule.customFormData[key];
+          if (!fieldValue || !fieldValue.toString().toLowerCase().includes(value.toLowerCase())) {
+            return false;
+          }
         }
       }
       
@@ -380,15 +430,23 @@ export default function AppointmentsPage() {
     }).sort((a, b) => 
       new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
     );
-  }, [schedules, dateRange, customerFilter, carrierFilter, facilityFilter, typeFilter, searchQuery, facilities]);
+  }, [schedules, dateRange, dynamicFilters, facilityFilter, typeFilter, searchQuery, facilities]);
   
   // Create list of unique values for filters
-  const customerList = useMemo(() => {
+  const facilityList = useMemo(() => {
+    if (!schedules || !facilities) return [];
+    const facilityNames = schedules
+      .map(s => getFacilityName(s))
+      .filter((name): name is string => !!name && name !== "No facility assigned");
+    return Array.from(new Set(facilityNames)).sort();
+  }, [schedules, facilities]);
+
+  const typeList = useMemo(() => {
     if (!schedules) return [];
-    const customers = schedules
-      .map(s => s.customerName)
-      .filter((name): name is string => !!name);
-    return Array.from(new Set(customers)).sort();
+    const types = schedules
+      .map(s => s.type)
+      .filter((type): type is string => !!type);
+    return Array.from(new Set(types)).sort();
   }, [schedules]);
   
   // Export to Excel
