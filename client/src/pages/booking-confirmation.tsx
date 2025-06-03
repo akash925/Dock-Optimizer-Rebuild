@@ -82,8 +82,8 @@ export default function BookingConfirmation() {
           return;
         }
         
-        // Fetch the schedule data
-        const response = await fetch(`/api/schedules/${bookingId}`);
+        // Fetch the schedule data using confirmation code
+        const response = await fetch(`/api/schedules/confirmation/${encodeURIComponent(confirmationCode)}`);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch schedule data: ${response.statusText}`);
