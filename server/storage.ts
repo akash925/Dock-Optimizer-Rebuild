@@ -198,6 +198,24 @@ export interface IStorage {
   updateOrganizationModules(organizationId: number, modules: InsertOrganizationModule[]): Promise<OrganizationModule[]>;
   updateOrganizationModule(organizationId: number, moduleName: AvailableModule, enabled: boolean): Promise<OrganizationModule | undefined>;
   
+  // Appointment Type Fields operations
+  getAppointmentTypeFields(organizationId: number): Promise<Array<{
+    fieldKey: string;
+    label: string;
+    fieldType: string;
+    appointmentTypeId: number;
+    included: boolean;
+    required: boolean;
+    orderPosition: number;
+  }>>;
+  
+  // Organization utility operations
+  getOrganizationByFacilityId(facilityId: number): Promise<Tenant | undefined>;
+  getOrganizationByAppointmentTypeId(appointmentTypeId: number): Promise<Tenant | undefined>;
+  
+  // Standard Questions operations
+  createStandardQuestionWithId(question: InsertStandardQuestion & { id: number }): Promise<StandardQuestion>;
+  
   // Organization Activity operations
   logOrganizationActivity(data: { 
     organizationId: number;
@@ -1629,6 +1647,79 @@ export class MemStorage implements IStorage {
       }
     }
     return tempFiles;
+  }
+
+  // Appointment Type Fields operations for MemStorage
+  async getAppointmentTypeFields(organizationId: number): Promise<Array<{
+    fieldKey: string;
+    label: string;
+    fieldType: string;
+    appointmentTypeId: number;
+    included: boolean;
+    required: boolean;
+    orderPosition: number;
+  }>> {
+    const fields = [];
+    for (const [id, question] of this.standardQuestions.entries()) {
+      if (question.included) {
+        fields.push({
+          fieldKey: question.fieldKey,
+          label: question.label,
+          fieldType: question.fieldType,
+          appointmentTypeId: question.appointmentTypeId,
+          included: question.included,
+          required: question.required,
+          orderPosition: question.orderPosition
+        });
+      }
+    }
+    return fields.sort((a, b) => a.orderPosition - b.orderPosition);
+  }
+
+  // Organization utility operations for MemStorage
+  async getOrganizationByFacilityId(facilityId: number): Promise<Tenant | undefined> {
+    // Simple implementation for MemStorage - in real app would use junction table
+    for (const [id, facility] of this.facilities.entries()) {
+      if (facility.id === facilityId && facility.tenantId) {
+        return Array.from(this.users.values()).find(u => u.id === facility.tenantId) as any;
+      }
+    }
+    return undefined;
+  }
+
+  async getOrganizationByAppointmentTypeId(appointmentTypeId: number): Promise<Tenant | undefined> {
+    const appointmentType = this.appointmentTypes.get(appointmentTypeId);
+    if (appointmentType?.tenantId) {
+      return Array.from(this.users.values()).find(u => u.id === appointmentType.tenantId) as any;
+    }
+    return undefined;
+  }
+
+  // Standard Questions operations for MemStorage
+  async createStandardQuestionWithId(question: InsertStandardQuestion & { id: number }): Promise<StandardQuestion> {
+    const newQuestion: StandardQuestion = {
+      ...question,
+      createdAt: new Date(),
+      lastModifiedAt: new Date()
+    };
+    this.standardQuestions.set(question.id, newQuestion);
+    return newQuestion;
+  }
+
+  // Role operations alias for MemStorage
+  async getRoleById(id: number): Promise<RoleRecord | undefined> {
+    return this.getRole(id);
+  }
+
+  // Additional missing method for MemStorage
+  async getDocksByFacility(facilityId: number): Promise<Dock[]> {
+    const docks = [];
+    for (const [id, dock] of this.docks.entries()) {
+      if (dock.facilityId === facilityId) {
+        docks.push(dock);
+      }
+    }
+    return docks;
   }
 }
 
@@ -4355,6 +4446,108 @@ DatabaseStorage.prototype.getTempFiles = async function(cutoffDate: Date): Promi
   } catch (error) {
     console.error('Error getting temp files:', error);
     return [];
+  }
+};
+
+// Appointment Type Fields operations
+DatabaseStorage.prototype.getAppointmentTypeFields = async function(organizationId: number): Promise<Array<{
+  fieldKey: string;
+  label: string;
+  fieldType: string;
+  appointmentTypeId: number;
+  included: boolean;
+  required: boolean;
+  orderPosition: number;
+}>> {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        sq.field_key,
+        sq.label,
+        sq.field_type,
+        sq.appointment_type_id,
+        sq.included,
+        sq.required,
+        sq.order_position
+      FROM standard_questions sq
+      JOIN appointment_types at ON sq.appointment_type_id = at.id
+      JOIN facilities f ON at.facility_id = f.id
+      JOIN organization_facilities of ON f.id = of.facility_id
+      WHERE of.organization_id = $1
+        AND sq.included = true
+      ORDER BY sq.order_position
+    `, [organizationId]);
+    
+    return result.rows.map(row => ({
+      fieldKey: row.field_key,
+      label: row.label,
+      fieldType: row.field_type,
+      appointmentTypeId: row.appointment_type_id,
+      included: row.included,
+      required: row.required,
+      orderPosition: row.order_position
+    }));
+  } catch (error) {
+    console.error('Error fetching appointment type fields:', error);
+    return [];
+  }
+};
+
+// Organization utility operations
+DatabaseStorage.prototype.getOrganizationByFacilityId = async function(facilityId: number): Promise<Tenant | undefined> {
+  try {
+    const result = await pool.query(`
+      SELECT o.* FROM organizations o
+      JOIN organization_facilities of ON o.id = of.organization_id
+      WHERE of.facility_id = $1
+    `, [facilityId]);
+    
+    return result.rows[0] || undefined;
+  } catch (error) {
+    console.error('Error fetching organization by facility ID:', error);
+    return undefined;
+  }
+};
+
+DatabaseStorage.prototype.getOrganizationByAppointmentTypeId = async function(appointmentTypeId: number): Promise<Tenant | undefined> {
+  try {
+    const result = await pool.query(`
+      SELECT o.* FROM organizations o
+      JOIN appointment_types at ON o.id = at.tenant_id
+      WHERE at.id = $1
+    `, [appointmentTypeId]);
+    
+    return result.rows[0] || undefined;
+  } catch (error) {
+    console.error('Error fetching organization by appointment type ID:', error);
+    return undefined;
+  }
+};
+
+// Standard Questions operations
+DatabaseStorage.prototype.createStandardQuestionWithId = async function(question: InsertStandardQuestion & { id: number }): Promise<StandardQuestion> {
+  try {
+    const result = await pool.query(`
+      INSERT INTO standard_questions (
+        id, appointment_type_id, label, field_key, field_type, 
+        included, required, order_position, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+      RETURNING *
+    `, [
+      question.id,
+      question.appointmentTypeId,
+      question.label,
+      question.fieldKey,
+      question.fieldType,
+      question.included,
+      question.required,
+      question.orderPosition
+    ]);
+    
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error creating standard question with ID:', error);
+    throw error;
   }
 };
 

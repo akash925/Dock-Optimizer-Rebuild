@@ -667,6 +667,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Appointment type fields endpoint for dynamic columns
+  app.get('/api/appointment-types/:organizationId/fields', async (req, res) => {
+    try {
+      const { organizationId } = req.params;
+      const orgId = parseInt(organizationId);
+      
+      if (isNaN(orgId)) {
+        return res.status(400).json({ error: 'Invalid organization ID' });
+      }
+      
+      const fields = await storage.getAppointmentTypeFields(orgId);
+      res.json(fields);
+    } catch (error) {
+      console.error('Error fetching appointment type fields:', error);
+      res.status(500).json({ error: 'Failed to fetch appointment type fields' });
+    }
+  });
+
   console.log('Core routes registered successfully');
   
   return httpServer;
