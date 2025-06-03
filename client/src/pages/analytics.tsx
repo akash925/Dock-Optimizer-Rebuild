@@ -522,10 +522,14 @@ export default function Analytics() {
       {/* Performance Metrics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2">
-          <EnhancedFacilityReport 
-            data={facilityStats.data || []} 
-            dateRange={dateRangeDisplay()} 
-          />
+          {useFacilityStats(dateParams).isLoading ? (
+            <div className="h-96 flex items-center justify-center">Loading facility data...</div>
+          ) : (
+            <EnhancedFacilityReport 
+              data={useFacilityStats(dateParams).data || []} 
+              dateRange={dateRangeDisplay()} 
+            />
+          )}
         </div>
         <div>
           <PerformanceMetrics 

@@ -29,9 +29,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
+      const currentUser = req.user;
       const users = await storage.getUsers();
+      
+      // Filter users by tenant ID for proper tenant isolation
+      const tenantUsers = users.filter(user => user.tenantId === currentUser.tenantId);
+      
       // Remove password field for security
-      const safeUsers = users.map(({ password, ...user }) => user);
+      const safeUsers = tenantUsers.map(({ password, ...user }) => user);
       res.json(safeUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -46,8 +51,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
+      const currentUser = req.user;
       const appointmentTypes = await storage.getAppointmentTypes();
-      res.json(appointmentTypes);
+      
+      // Filter appointment types by tenant ID for proper tenant isolation
+      const tenantAppointmentTypes = appointmentTypes.filter(type => type.tenantId === currentUser.tenantId);
+      
+      res.json(tenantAppointmentTypes);
     } catch (error) {
       console.error('Error fetching appointment types:', error);
       res.status(500).json({ error: 'Failed to fetch appointment types' });
@@ -61,8 +71,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
+      const currentUser = req.user;
       const bookingPages = await storage.getBookingPages();
-      res.json(bookingPages);
+      
+      // Filter booking pages by tenant ID for proper tenant isolation
+      const tenantBookingPages = bookingPages.filter(page => page.tenantId === currentUser.tenantId);
+      
+      res.json(tenantBookingPages);
     } catch (error) {
       console.error('Error fetching booking pages:', error);
       res.status(500).json({ error: 'Failed to fetch booking pages' });
@@ -76,8 +91,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
+      const currentUser = req.user;
       const docks = await storage.getDocks();
-      res.json(docks);
+      
+      // Filter docks by tenant ID through facility association
+      const facilities = await storage.getFacilities();
+      const tenantFacilities = facilities.filter(facility => facility.tenantId === currentUser.tenantId);
+      const tenantFacilityIds = tenantFacilities.map(facility => facility.id);
+      
+      const tenantDocks = docks.filter(dock => tenantFacilityIds.includes(dock.facilityId));
+      
+      res.json(tenantDocks);
     } catch (error) {
       console.error('Error fetching docks:', error);
       res.status(500).json({ error: 'Failed to fetch docks' });
@@ -100,14 +124,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate temporary password
       const tempPassword = Math.random().toString(36).slice(-8);
       
-      // Create user
+      // Create user with proper tenant ID
+      const currentUser = req.user;
       const newUser = await storage.createUser({
         username: email,
         email,
         firstName,
         lastName,
         role,
-        password: tempPassword // This will be hashed in storage
+        password: tempPassword, // This will be hashed in storage
+        tenantId: currentUser.tenantId // Assign to same tenant as creator
       });
       
       // Send invitation email if SendGrid is configured
