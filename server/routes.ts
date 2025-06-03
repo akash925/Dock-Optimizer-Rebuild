@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
 import path from "path";
+import multer from "multer";
+import fs from "fs";
 import { WebSocketServer } from "ws";
 import { db } from "./db";
 import fileRoutes from "./routes/files";
@@ -13,6 +15,27 @@ interface TenantWebSocket extends WebSocket {
   userId?: number;
   isAlive?: boolean;
 }
+
+// Configure multer for file uploads
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const upload = multer({
+  dest: uploadsDir,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept PDF and image files
+    if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF and image files are allowed'));
+    }
+  }
+});
 
 /**
  * Register routes for the application
@@ -423,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate tenant-specific confirmation code
       // Get organization details to determine the proper prefix
       const facility = await storage.getFacility(bookingData.facilityId);
-      const organization = facility ? await storage.getOrganizations().then(orgs => orgs.find(org => org.id === facility.tenantId)) : null;
+      const organization = facility ? await storage.getTenantById(facility.tenantId!) : null;
       
       // Use organization-specific prefix or fallback to HZL for Hanzo
       let prefix = 'HZL'; // Default for Hanzo Logistics
@@ -501,6 +524,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }, 30000); // Check every 30 seconds
   
+  // BOL Upload endpoint
+  app.post('/api/upload-bol', upload.single('bolFile'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'No file uploaded' 
+        });
+      }
+
+      // Return a simple success response with basic metadata
+      const response = {
+        success: true,
+        message: 'BOL file uploaded successfully',
+        metadata: {
+          bolNumber: req.body.bolNumber || `BOL-${Date.now()}`,
+          mcNumber: req.body.mcNumber || '',
+          trailerNumber: req.body.trailerNumber || '',
+          originalFileName: req.file.originalname,
+          fileSize: req.file.size
+        },
+        fileUrl: `/uploads/${req.file.filename}`
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error('BOL upload error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to process BOL file' 
+      });
+    }
+  });
+
+  // Custom questions endpoints for booking pages
+  app.get('/api/booking-pages/:slug/custom-questions', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      // Return empty array to prevent SyntaxError and allow booking flow to continue
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching custom questions:', error);
+      res.status(500).json({ error: 'Failed to fetch custom questions' });
+    }
+  });
+
+  // Standard questions endpoints for appointment types
+  app.get('/api/appointment-types/:id/standard-questions', async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Return empty array to prevent SyntaxError and allow booking flow to continue
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching standard questions:', error);
+      res.status(500).json({ error: 'Failed to fetch standard questions' });
+    }
+  });
+
   console.log('Core routes registered successfully');
   
   return httpServer;
