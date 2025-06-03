@@ -7,10 +7,17 @@ import routes, { calendarRouter } from './routes';
 // Get all schedules with timezone support
 export async function getSchedules(req: Request, res: Response) {
   try {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
     const storage = await getStorage();
-    const schedules = await storage.getSchedules();
+    const currentUser = req.user;
     
-    // Return schedules data
+    // CRITICAL: Filter schedules by tenant ID to prevent data leakage
+    const schedules = await storage.getSchedules(currentUser.tenantId);
+    
+    // Return tenant-filtered schedules data
     res.json(schedules);
   } catch (error) {
     console.error('Error fetching schedules:', error);

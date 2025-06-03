@@ -113,6 +113,9 @@ app.use((req, res, next) => {
 
   // Add facility management module to ensure API routes are available
   modulesToLoad.push("facilityManagement");
+  
+  // CRITICAL: Add calendar module to ensure tenant-filtered schedules endpoint is available
+  modulesToLoad.push("calendar");
 
   // Load modules based on legacy configuration
   for (const moduleName of modulesToLoad) {
