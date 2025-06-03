@@ -8,6 +8,7 @@ import fs from "fs";
 import { WebSocketServer } from "ws";
 import { db } from "./db";
 import fileRoutes from "./routes/files";
+import { registerQrCodeRoutes } from "./endpoints/qr-codes";
 
 // Type for the WebSocket client with tenant metadata
 interface TenantWebSocket extends WebSocket {
@@ -46,6 +47,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup authentication routes
   setupAuth(app);
+  
+  // Register QR code routes for email functionality
+  registerQrCodeRoutes(app);
   
   // File upload and serving routes
   app.use('/api/files', fileRoutes);
@@ -281,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const currentUser = req.user;
-      const appointmentTypeFields = await storage.getAppointmentTypeFields();
+      const appointmentTypeFields = await storage.getAppointmentTypeFields(currentUser.tenantId);
       
       // Filter by tenant through appointment types
       const appointmentTypes = await storage.getAppointmentTypes();
@@ -830,14 +834,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Filter fields for this specific appointment type
       const typeFields = fields.filter(field => field.appointmentTypeId === parseInt(id));
       
-      // Transform to standard questions format
-      const standardQuestions = typeFields.map(field => ({
+      // Transform to standard questions format using only available fields
+      const standardQuestions = typeFields.map((field, index) => ({
+        id: field.appointmentTypeId * 1000 + index, // Generate ID from appointment type and index
         fieldKey: field.fieldKey,
         fieldLabel: field.label,
         fieldType: field.fieldType,
-        required: field.required || false,
-        appointmentTypeId: field.appointmentTypeId
+        required: field.required || false,  // Use 'required' for consistency
+        isRequired: field.required || false, // Also provide 'isRequired' for backward compatibility
+        appointmentTypeId: field.appointmentTypeId,
+        options: [], // Default empty array since options aren't stored in this structure
+        orderPosition: field.orderPosition || 0,
+        included: field.included !== false // Default to true if not specified
       }));
+      
+      console.log(`[API] Standard questions for appointment type ${id}:`, standardQuestions);
+      
+      res.json(standardQuestions);
+    } catch (error) {
+      console.error('Error fetching standard questions:', error);
+      res.status(500).json({ error: 'Failed to fetch standard questions' });
+    }
+  });
+
+  // Alternative endpoint path for standard questions (for better URL structure)
+  app.get('/api/standard-questions/appointment-type/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { bookingPageSlug } = req.query;
+      
+      console.log(`[API] Fetching standard questions for appointment type ${id}, booking page: ${bookingPageSlug}`);
+      
+      // Get appointment type to determine tenant
+      const appointmentType = await storage.getAppointmentType(parseInt(id));
+      if (!appointmentType) {
+        console.log(`[API] Appointment type ${id} not found`);
+        return res.json([]);
+      }
+      
+      // Get dynamic fields for this appointment type's tenant
+      const fields = await storage.getAppointmentTypeFields(appointmentType.tenantId || 0);
+      
+      // Filter fields for this specific appointment type
+      const typeFields = fields.filter(field => field.appointmentTypeId === parseInt(id));
+      
+      // Transform to standard questions format using only available fields
+      const standardQuestions = typeFields.map((field, index) => ({
+        id: field.appointmentTypeId * 1000 + index, // Generate ID from appointment type and index
+        fieldKey: field.fieldKey,
+        fieldLabel: field.label,
+        fieldType: field.fieldType,
+        required: field.required || false,  // Use 'required' for consistency
+        isRequired: field.required || false, // Also provide 'isRequired' for backward compatibility
+        appointmentTypeId: field.appointmentTypeId,
+        options: [], // Default empty array since options aren't stored in this structure
+        orderPosition: field.orderPosition || 0,
+        included: field.included !== false, // Default to true if not specified
+        placeholder: '', // Default empty string since placeholder isn't stored
+        defaultValue: '' // Default empty string since defaultValue isn't stored
+      }));
+      
+      console.log(`[API] Returning ${standardQuestions.length} standard questions for appointment type ${id}`);
       
       res.json(standardQuestions);
     } catch (error) {

@@ -225,35 +225,23 @@ export async function calculateAvailabilitySlots(
   const effectiveTimezone = customTimezone || facilityTimezone;
   console.log(`[AvailabilityService] Using timezone: ${effectiveTimezone} (facility default: ${facilityTimezone})`);
   
-  // Create date object and get the day of week, ensuring timezone is properly handled
-  // We'll use direct date construction which is more reliable than parseISO
   // First, parse the date parts
   const [year, month, day] = date.split('-').map(num => parseInt(num, 10));
   
-  // Create a date at noon to avoid DST issues, and use proper timezone conversion
-  // Month is 0-indexed in JavaScript Date
-  const directDate = toZonedTime(new Date(year, month - 1, day, 12, 0, 0), effectiveTimezone);
+  // SIMPLIFIED: Use consistent date parsing approach to avoid timezone confusion
+  // Create a date at noon in the facility timezone to avoid DST edge cases
+  // Month is 0-indexed in JavaScript Date constructor
+  const appointmentDate = toZonedTime(new Date(year, month - 1, day, 12, 0, 0), effectiveTimezone);
+  const dayOfWeek = getDay(appointmentDate);
   
-  // Get the day of week using the reliable direct date method
-  const effectiveDayOfWeek = getDay(directDate);
-  
-  // For backward compatibility, also calculate using parseISO
-  const zonedDate = toZonedTime(parseISO(`${date}T12:00:00`), effectiveTimezone);
-  const oldDayOfWeek = getDay(zonedDate);
-  
-  // Enhanced debugging for Monday issue
+  // Enhanced debugging for date calculation
   console.log(`[AvailabilityService] Date calculation for ${date} in ${effectiveTimezone}:`);
   console.log(`- Date parts: Year=${year}, Month=${month}, Day=${day}`);
-  console.log(`- Old method (parseISO): day of week = ${oldDayOfWeek} (${oldDayOfWeek === 1 ? 'Monday' : oldDayOfWeek === 0 ? 'Sunday' : 'Other Day'})`);
-  console.log(`- New method (direct): day of week = ${effectiveDayOfWeek} (${effectiveDayOfWeek === 1 ? 'Monday' : effectiveDayOfWeek === 0 ? 'Sunday' : 'Other Day'})`);
-  console.log(`- Direct date object: ${directDate.toString()}`);
+  console.log(`- Calculated day of week: ${dayOfWeek} (${dayOfWeek === 1 ? 'Monday' : dayOfWeek === 0 ? 'Sunday' : 'Other Day'})`);
+  console.log(`- Appointment date object: ${appointmentDate.toString()}`);
   
-  // Always use the more reliable method for calculations
-  const dayOfWeek = effectiveDayOfWeek;
-  
-  // Debug logging
-  console.log(`[AvailabilityService] Using day of week: ${effectiveDayOfWeek} for calculations`);
-  console.log(`[AvailabilityService] Full date details: Original=${date}, ISO=${zonedDate.toISOString()}, Direct=${directDate.toString()}, Effective Day=${effectiveDayOfWeek}`);
+  // Debug logging for final day calculation
+  console.log(`[AvailabilityService] Using day of week: ${dayOfWeek} for calculations`);
 
   const getObjectField = (obj: any, camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
     // Check both camelCase and snake_case field names
@@ -346,7 +334,7 @@ export async function calculateAvailabilitySlots(
   const breakStartTimeStr = effectiveHours.breakStart || "";
   const breakEndTimeStr = effectiveHours.breakEnd || "";
   
-  console.log(`[AvailabilityService] Facility ${facility.name} open on ${date} (${effectiveDayOfWeek}) ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
+  console.log(`[AvailabilityService] Facility ${facility.name} open on ${date} (${dayOfWeek}) ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
 
   // Use effectiveTimezone instead of facilityTimezone for timezone-aware calculations
   const dayStart = toZonedTime(parseISO(`${date}T00:00:00`), effectiveTimezone);

@@ -854,7 +854,8 @@ export async function sendConfirmationEmail(
   // Host URL with potential fallback
   const host = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
 
-  // Create reschedule/cancel links
+  // Create reschedule/cancel links - these need to include booking page slug if available
+  // For now, using generic URLs that work with the app routing structure
   const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
   const cancelLink = `${host}/cancel?code=${confirmationCode}`;
   
