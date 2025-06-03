@@ -154,14 +154,16 @@ export default function AppointmentsPage() {
 
   // Fetch appointment type fields for dynamic columns
   const { data: appointmentTypeFields } = useQuery({
-    queryKey: ["/api/appointment-type-fields"],
+    queryKey: ["/api/appointment-types/fields", user?.tenantId],
     queryFn: async () => {
-      const response = await fetch("/api/appointment-type-fields");
+      if (!user?.tenantId) return [];
+      const response = await fetch(`/api/appointment-types/${user.tenantId}/fields`);
       if (!response.ok) {
         throw new Error("Failed to fetch appointment type fields");
       }
       return response.json();
     },
+    enabled: !!user?.tenantId,
   });
 
   // Generate dynamic columns based on appointment type fields
