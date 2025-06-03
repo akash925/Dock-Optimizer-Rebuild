@@ -1601,6 +1601,35 @@ export class MemStorage implements IStorage {
       throw error;
     }
   }
+
+  // File Storage operations for MemStorage
+  async createFileRecord(fileRecord: any): Promise<any> {
+    const record = {
+      ...fileRecord,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.fileRecords.set(fileRecord.id, record);
+    return record;
+  }
+
+  async getFileRecord(fileId: string): Promise<any | null> {
+    return this.fileRecords.get(fileId) || null;
+  }
+
+  async deleteFileRecord(fileId: string): Promise<boolean> {
+    return this.fileRecords.delete(fileId);
+  }
+
+  async getTempFiles(cutoffDate: Date): Promise<any[]> {
+    const tempFiles = [];
+    for (const [id, file] of this.fileRecords.entries()) {
+      if (file.isTemporary && file.createdAt < cutoffDate) {
+        tempFiles.push(file);
+      }
+    }
+    return tempFiles;
+  }
 }
 
 // Database Storage Implementation
