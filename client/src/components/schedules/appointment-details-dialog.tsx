@@ -1682,7 +1682,7 @@ export function AppointmentDetailsDialog({
                                   asChild
                                 >
                                   <a 
-                                    href={parsedData.bolData.fileUrl} 
+                                    href={`/api/files/download/${parsedData.bolData.fileUrl.split('/').pop()}`} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                   >
@@ -1710,7 +1710,7 @@ export function AppointmentDetailsDialog({
                                   asChild
                                 >
                                   <a 
-                                    href={appointment.bolDocuments[0].fileUrl} 
+                                    href={`/api/files/download/${appointment.bolDocuments[0].fileUrl.split('/').pop()}`} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                   >
@@ -1738,7 +1738,7 @@ export function AppointmentDetailsDialog({
                                   asChild
                                 >
                                   <a 
-                                    href={appointment.bolDocumentPath} 
+                                    href={`/api/files/download/${appointment.bolDocumentPath.split('/').pop()}`} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                   >
