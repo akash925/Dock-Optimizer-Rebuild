@@ -467,7 +467,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         });
       }
       
-      // Update the booking details with all available information
+      // Update the booking details with all available information including form data
       setBookingDetails({
         ...bookingDetails,
         confirmationCode,
@@ -488,6 +488,23 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         // Appointment type information
         appointmentTypeId: schedule.appointmentTypeId || bookingDetails.appointmentTypeId,
         appointmentTypeName: appointmentType.name || data.appointmentTypeName || bookingDetails.appointmentTypeName,
+        type: schedule.type || bookingDetails.type,
+        duration: appointmentType.duration || bookingDetails.duration,
+        
+        // Customer information from form data
+        customerName: bookingDetails.customerName,
+        email: bookingDetails.email,
+        phone: bookingDetails.phone,
+        
+        // Logistics information from form data
+        carrierName: bookingDetails.carrierName,
+        driverName: bookingDetails.driverName,
+        driverPhone: bookingDetails.driverPhone,
+        driverEmail: bookingDetails.driverEmail,
+        truckNumber: bookingDetails.truckNumber,
+        trailerNumber: bookingDetails.trailerNumber,
+        poNumber: bookingDetails.poNumber,
+        bolNumber: bookingDetails.bolNumber,
         
         // BOL information
         bolFileUploaded: bolLinked,
@@ -950,8 +967,51 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 className="space-y-6" 
                 onSubmit={form.handleSubmit((data) => {
                   console.log("Form submitted with data:", data);
-                  // Store the answers
-                  setBookingDetails(data.customFields || {});
+                  
+                  // Get selected facility and appointment type details for display
+                  const selectedFacility = facilities?.find(f => f.id === Number(bookingData.facilityId));
+                  const selectedAppointmentType = appointmentTypes?.find(at => at.id === Number(bookingData.appointmentTypeId));
+                  
+                  // Store comprehensive booking details for confirmation display
+                  setBookingDetails({
+                    // Form data
+                    ...data.customFields,
+                    
+                    // Facility information
+                    facilityId: Number(bookingData.facilityId),
+                    facilityName: selectedFacility?.name,
+                    facilityAddress: selectedFacility?.address1 ? `${selectedFacility.address1}, ${selectedFacility.city}, ${selectedFacility.state}` : undefined,
+                    
+                    // Appointment type information
+                    appointmentTypeId: Number(bookingData.appointmentTypeId),
+                    appointmentTypeName: selectedAppointmentType?.name,
+                    type: selectedAppointmentType?.type?.toLowerCase(),
+                    duration: selectedAppointmentType?.duration,
+                    
+                    // Date and time information
+                    date: bookingData.date,
+                    time: bookingData.time,
+                    timezone: bookingData.timezone,
+                    
+                    // Customer information from form
+                    customerName: data.customFields?.customerName || "",
+                    email: data.customFields?.email || "",
+                    phone: data.customFields?.phone || data.customFields?.phoneNumber || "",
+                    
+                    // Logistics information from form
+                    carrierName: data.customFields?.carrierName || "",
+                    driverName: data.customFields?.driverName || "",
+                    driverPhone: data.customFields?.driverPhone || "",
+                    driverEmail: data.customFields?.driverEmail || "",
+                    truckNumber: data.customFields?.truckNumber || "",
+                    trailerNumber: data.customFields?.trailerNumber || "",
+                    poNumber: data.customFields?.poNumber || "",
+                    bolNumber: data.customFields?.bolNumber || "",
+                    
+                    // BOL information
+                    bolUploaded: !!bolData,
+                    bolFileUploaded: !!bolFile
+                  });
                   
                   // Create the booking
                   const bookingPayload = {
