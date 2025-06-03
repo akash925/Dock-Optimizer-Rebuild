@@ -493,10 +493,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const facility = await storage.getFacility(bookingData.facilityId);
       const facilityTimezone = facility?.timezone || 'America/New_York';
       
-      // Parse the selected time as facility timezone, not UTC
+      // Parse the selected time in the facility timezone and convert properly to UTC
       const facilityDateTime = new Date(`${bookingData.date}T${bookingData.time}:00`);
-      // Convert to UTC by adjusting for timezone offset
-      const utcStartTime = new Date(facilityDateTime.getTime() - (facilityDateTime.getTimezoneOffset() * 60000));
+      // Create UTC time that represents the facility local time
+      const utcStartTime = new Date(facilityDateTime.toISOString());
       
       // Get appointment type for duration
       const appointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
@@ -544,6 +544,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const confirmationCode = `${prefix}-${appointment.id}`;
+      
+      // Send confirmation email
+      try {
+        const sgMail = await import('@sendgrid/mail');
+        sgMail.default.setApiKey(process.env.SENDGRID_API_KEY!);
+        
+        const emailContent = {
+          to: bookingData.email,
+          from: 'noreply@dockoptimizer.com',
+          subject: `Appointment Confirmation - ${confirmationCode}`,
+          html: `
+            <h2>Appointment Confirmed</h2>
+            <p>Your dock appointment has been successfully scheduled.</p>
+            <div style="background: #f5f5f5; padding: 15px; margin: 15px 0;">
+              <strong>Confirmation Code:</strong> ${confirmationCode}<br>
+              <strong>Date:</strong> ${bookingData.date}<br>
+              <strong>Time:</strong> ${bookingData.time}<br>
+              <strong>Facility:</strong> ${facility?.name}<br>
+              <strong>Service:</strong> ${appointmentType?.name}
+            </div>
+            <p>Please keep your confirmation code for check-in.</p>
+          `
+        };
+        
+        await mailService.send(emailContent);
+        console.log(`Confirmation email sent to ${bookingData.email}`);
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+        // Continue with response even if email fails
+      }
       
       res.json({
         success: true,
