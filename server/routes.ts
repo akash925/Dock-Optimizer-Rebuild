@@ -611,8 +611,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appointment = await storage.createSchedule(appointmentData);
       
       // Generate tenant-specific confirmation code
-      // Get organization details to determine the proper prefix
-      const organization = facility ? await storage.getTenantById(facility.tenantId!) : null;
+      // Get facility's tenant information using the organization_facilities mapping
+      const facilityTenantId = await storage.getFacilityTenantId(bookingData.facilityId);
+      const organization = await storage.getTenantById(facilityTenantId);
       
       // Generate tenant-specific confirmation code prefix
       let prefix = 'DOC'; // Default fallback

@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2, Loader2, Settings, Scan, MapPin } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { 
   formatInFacilityTimeZone, 
   formatForDualTimeZoneDisplay, 
