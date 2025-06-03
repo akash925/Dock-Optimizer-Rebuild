@@ -494,9 +494,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const facilityTimezone = facility?.timezone || 'America/New_York';
       
       // Parse the selected time as facility timezone, not UTC
-      const { zonedTimeToUtc } = await import('date-fns-tz');
-      const facilityDateTime = `${bookingData.date}T${bookingData.time}:00`;
-      const utcStartTime = zonedTimeToUtc(facilityDateTime, facilityTimezone);
+      const facilityDateTime = new Date(`${bookingData.date}T${bookingData.time}:00`);
+      // Convert to UTC by adjusting for timezone offset
+      const utcStartTime = new Date(facilityDateTime.getTime() - (facilityDateTime.getTimezoneOffset() * 60000));
       
       // Get appointment type for duration
       const appointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
@@ -659,8 +659,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       
-      // Return empty array to prevent SyntaxError and allow booking flow to continue
-      res.json([]);
+      // Get appointment type to determine tenant
+      const appointmentType = await storage.getAppointmentType(parseInt(id));
+      if (!appointmentType) {
+        return res.json([]);
+      }
+      
+      // Get dynamic fields for this appointment type's tenant
+      const fields = await storage.getAppointmentTypeFields(appointmentType.tenantId || 0);
+      
+      // Filter fields for this specific appointment type
+      const typeFields = fields.filter(field => field.appointmentTypeId === parseInt(id));
+      
+      // Transform to standard questions format
+      const standardQuestions = typeFields.map(field => ({
+        fieldKey: field.fieldKey,
+        fieldLabel: field.label,
+        fieldType: field.fieldType,
+        required: field.required || false,
+        appointmentTypeId: field.appointmentTypeId
+      }));
+      
+      res.json(standardQuestions);
     } catch (error) {
       console.error('Error fetching standard questions:', error);
       res.status(500).json({ error: 'Failed to fetch standard questions' });
