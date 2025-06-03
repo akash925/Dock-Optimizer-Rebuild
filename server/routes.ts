@@ -462,12 +462,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Booking page not found' });
       }
       
+      // Get facility information to handle timezone correctly
+      const facility = await storage.getFacility(bookingData.facilityId);
+      const facilityTimezone = facility?.timezone || 'America/New_York';
+      
+      // Parse the selected time as facility timezone, not UTC
+      const { zonedTimeToUtc } = await import('date-fns-tz');
+      const facilityDateTime = `${bookingData.date}T${bookingData.time}:00`;
+      const utcStartTime = zonedTimeToUtc(facilityDateTime, facilityTimezone);
+      
+      // Get appointment type for duration
+      const appointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
+      const durationHours = appointmentType?.duration || 1;
+      const utcEndTime = new Date(utcStartTime.getTime() + (durationHours * 60 * 60 * 1000));
+      
       // Create the appointment
       const appointmentData = {
         type: bookingData.pickupOrDropoff || 'pickup',
         status: 'scheduled',
-        startTime: new Date(`${bookingData.date}T${bookingData.time}:00`),
-        endTime: new Date(`${bookingData.date}T${bookingData.time}:00`),
+        startTime: utcStartTime,
+        endTime: utcEndTime,
         facilityId: bookingData.facilityId, // Explicitly set facility ID
         appointmentTypeId: bookingData.appointmentTypeId,
         customFormData: {
@@ -476,7 +490,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: bookingData.email
           },
           facilityInfo: {
-            id: bookingData.facilityId
+            facilityId: bookingData.facilityId,
+            facilityName: facility?.name
           }
         },
         createdBy: 1, // System user for external bookings
@@ -487,7 +502,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Generate tenant-specific confirmation code
       // Get organization details to determine the proper prefix
-      const facility = await storage.getFacility(bookingData.facilityId);
       const organization = facility ? await storage.getTenantById(facility.tenantId!) : null;
       
       // Use organization-specific prefix or fallback to HZL for Hanzo

@@ -2329,6 +2329,80 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getScheduleById(id: number): Promise<Schedule | undefined> {
+    try {
+      const result = await pool.query(`
+        SELECT s.*, 
+        f.name AS facility_name,
+        f.timezone AS facility_timezone,
+        d.facility_id AS facility_id,
+        at.name AS appointment_type_name 
+        FROM schedules s
+        LEFT JOIN docks d ON s.dock_id = d.id
+        LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id
+        LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+        WHERE s.id = $1
+      `, [id]);
+      
+      if (result.rows.length === 0) {
+        return undefined;
+      }
+      
+      const row = result.rows[0];
+      
+      // Extract facility information
+      let facilityName = null;
+      let facilityId = null;
+      
+      // First check if we have explicitly saved facility info
+      if (row.custom_form_data && row.custom_form_data.facilityInfo) {
+        facilityName = row.custom_form_data.facilityInfo.facilityName;
+        facilityId = row.custom_form_data.facilityInfo.facilityId;
+      }
+      
+      // Fall back to joined table values if explicit values aren't available
+      facilityName = facilityName || row.facility_name;
+      facilityId = facilityId || row.facility_id;
+      
+      return {
+        id: row.id,
+        type: row.type,
+        status: row.status,
+        dockId: row.dock_id,
+        carrierId: row.carrier_id,
+        appointmentTypeId: row.appointment_type_id,
+        truckNumber: row.truck_number,
+        trailerNumber: row.trailer_number,
+        driverName: row.driver_name,
+        driverPhone: row.driver_phone,
+        driverEmail: row.driver_email,
+        customerName: row.customer_name,
+        carrierName: row.carrier_name,
+        mcNumber: row.mc_number,
+        bolNumber: row.bol_number,
+        facilityName: facilityName,
+        facilityId: facilityId,
+        poNumber: row.po_number,
+        palletCount: row.pallet_count,
+        weight: row.weight,
+        appointmentMode: row.appointment_mode || "trailer",
+        startTime: row.start_time,
+        endTime: row.end_time,
+        actualStartTime: row.actual_start_time,
+        actualEndTime: row.actual_end_time,
+        notes: row.notes,
+        customFormData: row.custom_form_data,
+        createdAt: row.created_at,
+        createdBy: row.created_by,
+        lastModifiedAt: row.last_modified_at,
+        lastModifiedBy: row.last_modified_by
+      };
+    } catch (error) {
+      console.error("Error executing getScheduleById:", error);
+      throw error;
+    }
+  }
+
   async getSchedules(tenantId?: number): Promise<Schedule[]> {
     try {
       // First, check the schema of the schedules table to see if facility_id exists
