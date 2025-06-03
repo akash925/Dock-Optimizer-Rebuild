@@ -122,7 +122,8 @@ export default function BookingConfirmation() {
           }
         }
         
-        // Get facility information for location
+        // Get facility information for location and timezone
+        let facilityTimeZone = 'America/New_York'; // Default fallback
         if (facilityId) {
           try {
             const facilityResponse = await fetch(`/api/facilities/${facilityId}`);
@@ -135,6 +136,10 @@ export default function BookingConfirmation() {
               if (facility.city && facility.state) {
                 locationName += `, ${facility.city}, ${facility.state}`;
               }
+              // Use facility timezone if available
+              if (facility.timezone) {
+                facilityTimeZone = facility.timezone;
+              }
             }
           } catch (err) {
             console.error("Error fetching facility info:", err);
@@ -143,8 +148,8 @@ export default function BookingConfirmation() {
         
         // Get carrier information
         let carrierName = "Unknown Carrier";
-        if (schedule.carrierId) {
-          const carrierResponse = await fetch(`/api/carriers/${schedule.carrierId}`);
+        if (scheduleData.carrierId) {
+          const carrierResponse = await fetch(`/api/carriers/${scheduleData.carrierId}`);
           if (carrierResponse.ok) {
             const carrier = await carrierResponse.json();
             carrierName = carrier.name;
@@ -152,8 +157,7 @@ export default function BookingConfirmation() {
         }
         
         // Format dates using our timezone utilities
-        const startDate = new Date(schedule.startTime);
-        const facilityTimeZone = 'America/New_York'; // Eastern Time
+        const startDate = new Date(scheduleData.startTime);
         
         // Get the date in facility timezone (Eastern Time)
         const appointmentDate = formatInFacilityTimeZone(startDate, 'MM/dd/yyyy', facilityTimeZone);
@@ -179,9 +183,9 @@ export default function BookingConfirmation() {
         
         // Get appointment type name if available
         let appointmentTypeName = "";
-        if (schedule.appointmentTypeId) {
+        if (scheduleData.appointmentTypeId) {
           try {
-            const typeResponse = await fetch(`/api/appointment-types/${schedule.appointmentTypeId}`);
+            const typeResponse = await fetch(`/api/appointment-types/${scheduleData.appointmentTypeId}`);
             if (typeResponse.ok) {
               const appointmentType = await typeResponse.json();
               appointmentTypeName = appointmentType.name;
@@ -192,14 +196,14 @@ export default function BookingConfirmation() {
         }
 
         // Enhanced confirmation code and email handling
-        const finalConfirmationCode = schedule.confirmationCode || confirmationNumber || "HZL-" + Math.floor(100000 + Math.random() * 900000);
+        const finalConfirmationCode = scheduleData.confirmationCode || confirmationCode || "HZL-" + Math.floor(100000 + Math.random() * 900000);
         console.log(`[BookingConfirmation] Using confirmation code: ${finalConfirmationCode}`);
         
         // Log the contact information for debugging
         console.log(`[BookingConfirmation] Contact info:`, {
-          driverEmail: schedule.driverEmail,
-          contactEmail: schedule.contactEmail,
-          email: schedule.email
+          driverEmail: scheduleData.driverEmail,
+          contactEmail: scheduleData.contactEmail,
+          email: scheduleData.email
         });
         
         // Set booking details with proper confirmation code handling
@@ -215,15 +219,15 @@ export default function BookingConfirmation() {
           carrierName,
           contactName: scheduleData.customFormData?.customerInfo?.name || scheduleData.driverName || "Not provided",
           contactEmail: scheduleData.customFormData?.customerInfo?.email || scheduleData.driverEmail || scheduleData.contactEmail || scheduleData.email || "Not provided",
-          contactPhone: schedule.contactPhone || "Not provided",
-          driverPhone: schedule.driverPhone || "Not provided",
-          truckNumber: schedule.truckNumber || "Not provided",
-          trailerNumber: schedule.trailerNumber || null,
-          type: schedule.type,
-          notes: schedule.notes,
-          tenantId: schedule.tenantId,
+          contactPhone: scheduleData.contactPhone || "Not provided",
+          driverPhone: scheduleData.driverPhone || "Not provided",
+          truckNumber: scheduleData.truckNumber || "Not provided",
+          trailerNumber: scheduleData.trailerNumber || null,
+          type: scheduleData.type,
+          notes: scheduleData.notes,
+          tenantId: scheduleData.tenantId,
           organizationName: organizationName,
-          appointmentType: appointmentTypeName || schedule.appointmentTypeName || "",
+          appointmentType: appointmentTypeName || scheduleData.appointmentTypeName || "",
         });
         
       } catch (error) {
@@ -273,7 +277,7 @@ export default function BookingConfirmation() {
     
     const subject = `Dock Appointment Confirmation: ${bookingDetails.confirmationNumber}`;
     const appointmentType = bookingDetails.type ? bookingDetails.type.toLowerCase() : "appointment";
-    const orgName = schedule?.organizationName || 'our logistics facility';
+    const orgName = bookingDetails?.organizationName || 'our logistics facility';
     
     // Format time display based on user preference
     const timeDisplay = showUserTimeFirst 
