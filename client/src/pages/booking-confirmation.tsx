@@ -63,24 +63,23 @@ export default function BookingConfirmation() {
   const [showTimePreferences, setShowTimePreferences] = useState(false);
   const { toast } = useToast();
   
-  // Fetch the schedule and related data based on URL parameters
+  // Fetch the schedule and related data based on confirmation code
   useEffect(() => {
     const fetchBookingDetails = async () => {
       try {
         setLoading(true);
-        const urlParams = new URLSearchParams(window.location.search);
-        const bookingId = urlParams.get("bookingId");
-        const confirmationNumber = urlParams.get("confirmationNumber");
         
-        if (!bookingId || isNaN(Number(bookingId))) {
+        if (!confirmationCode) {
           toast({
-            title: "Missing booking information",
-            description: "No valid booking ID was provided. Redirecting you to the booking page.",
+            title: "Missing confirmation code",
+            description: "No valid confirmation code was provided. Redirecting you to the booking page.",
             variant: "destructive",
           });
           setTimeout(() => navigate("/external-booking"), 3000);
           return;
         }
+        
+        console.log(`[BookingConfirmation] Fetching details for confirmation code: ${confirmationCode}`);
         
         // Fetch the schedule data using confirmation code
         const response = await fetch(`/api/schedules/confirmation/${encodeURIComponent(confirmationCode)}`);
@@ -107,28 +106,38 @@ export default function BookingConfirmation() {
           }
         }
         
-        // Get dock information to get the facility/location
-        const dockResponse = await fetch(`/api/docks/${schedule.dockId}`);
+        // Get facility information - check customFormData first, then dock
         let facilityId = null;
+        let locationName = "Unknown Location";
         
-        if (dockResponse.ok) {
-          const dock = await dockResponse.json();
-          facilityId = dock.facilityId;
+        // Try to get facility ID from customFormData first
+        if (scheduleData.customFormData?.facilityInfo?.id) {
+          facilityId = scheduleData.customFormData.facilityInfo.id;
+        } else if (scheduleData.dockId) {
+          // Fallback to dock if available
+          const dockResponse = await fetch(`/api/docks/${scheduleData.dockId}`);
+          if (dockResponse.ok) {
+            const dock = await dockResponse.json();
+            facilityId = dock.facilityId;
+          }
         }
         
         // Get facility information for location
-        let locationName = "Unknown Location";
         if (facilityId) {
-          const facilityResponse = await fetch(`/api/facilities/${facilityId}`);
-          if (facilityResponse.ok) {
-            const facility = await facilityResponse.json();
-            locationName = facility.name;
-            if (facility.address1) {
-              locationName += `, ${facility.address1}`;
+          try {
+            const facilityResponse = await fetch(`/api/facilities/${facilityId}`);
+            if (facilityResponse.ok) {
+              const facility = await facilityResponse.json();
+              locationName = facility.name;
+              if (facility.address1) {
+                locationName += `, ${facility.address1}`;
+              }
+              if (facility.city && facility.state) {
+                locationName += `, ${facility.city}, ${facility.state}`;
+              }
             }
-            if (facility.city && facility.state) {
-              locationName += `, ${facility.city}, ${facility.state}`;
-            }
+          } catch (err) {
+            console.error("Error fetching facility info:", err);
           }
         }
         
@@ -195,17 +204,17 @@ export default function BookingConfirmation() {
         
         // Set booking details with proper confirmation code handling
         setBookingDetails({
-          id: Number(bookingId),
+          id: scheduleData.id,
           confirmationNumber: finalConfirmationCode,
           appointmentDate,
           appointmentTime,
           facilityTimeDisplay,
           userTimeDisplay,
           location: locationName,
-          customerName: schedule.customerName || "Not provided",
+          customerName: scheduleData.customFormData?.customerInfo?.name || scheduleData.customerName || "Not provided",
           carrierName,
-          contactName: schedule.driverName || "Not provided",
-          contactEmail: schedule.driverEmail || schedule.contactEmail || schedule.email || "Not provided",
+          contactName: scheduleData.customFormData?.customerInfo?.name || scheduleData.driverName || "Not provided",
+          contactEmail: scheduleData.customFormData?.customerInfo?.email || scheduleData.driverEmail || scheduleData.contactEmail || scheduleData.email || "Not provided",
           contactPhone: schedule.contactPhone || "Not provided",
           driverPhone: schedule.driverPhone || "Not provided",
           truckNumber: schedule.truckNumber || "Not provided",
