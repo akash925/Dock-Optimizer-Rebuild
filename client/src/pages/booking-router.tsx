@@ -23,10 +23,23 @@ export default function BookingRouter() {
   return (
     <Switch>
       <Route path="/external/:slug/confirmation/:code">
-        {(params) => <BookingConfirmation confirmationCode={params.code} />}
+        {(params) => <BookingConfirmation confirmationCode={params.code} bookingPageSlug={params.slug} />}
       </Route>
       <Route path="/external/:slug">
         {(params) => <ExternalBooking slug={params.slug} />}
+      </Route>
+      {/* Legacy route for booking confirmation without slug */}
+      <Route path="/external/booking-confirmation">
+        {() => {
+          // Extract code from query parameters
+          const urlParams = new URLSearchParams(window.location.search);
+          const code = urlParams.get('code');
+          return code ? <BookingConfirmation confirmationCode={code} /> : (
+            <div className="p-6 text-center text-gray-500">
+              Invalid booking link. Please check your URL.
+            </div>
+          );
+        }}
       </Route>
       <Route>
         <div className="p-6 text-center text-gray-500">

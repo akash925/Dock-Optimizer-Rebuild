@@ -55,7 +55,12 @@ interface BookingDetails {
   appointmentType?: string;
 }
 
-export default function BookingConfirmation() {
+interface BookingConfirmationProps {
+  confirmationCode?: string;
+  bookingPageSlug?: string;
+}
+
+export default function BookingConfirmation(props?: BookingConfirmationProps) {
   const [, navigate] = useLocation();
   const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
   const [schedule, setSchedule] = useState<any>(null);
@@ -64,9 +69,11 @@ export default function BookingConfirmation() {
   const [showTimePreferences, setShowTimePreferences] = useState(false);
   const { toast } = useToast();
 
-  // Extract confirmation code from URL parameters
+  // Extract confirmation code from props or URL parameters
   const urlParams = new URLSearchParams(window.location.search);
-  const confirmationCode = urlParams.get('code') || urlParams.get('confirmationCode');
+  const confirmationCode = props?.confirmationCode || 
+                          urlParams.get('code') || 
+                          urlParams.get('confirmationCode');
   
   // Fetch the schedule and related data based on confirmation code
   useEffect(() => {

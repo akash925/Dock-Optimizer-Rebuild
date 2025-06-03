@@ -651,7 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Generate QR code and confirmation page URL
         const baseUrl = process.env.BASE_URL || `https://${process.env.REPLIT_DEV_DOMAIN}` || 'http://localhost:5000';
-        const confirmationUrl = `${baseUrl}/external/booking-confirmation?code=${confirmationCode}`;
+        const confirmationUrl = `${baseUrl}/external/${slug}/confirmation/${confirmationCode}`;
         
         // Generate QR code using qrcode library
         const QRCode = await import('qrcode');
@@ -839,13 +839,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: field.appointmentTypeId * 1000 + index, // Generate ID from appointment type and index
         fieldKey: field.fieldKey,
         fieldLabel: field.label,
+        label: field.label,
         fieldType: field.fieldType,
         required: field.required || false,  // Use 'required' for consistency
         isRequired: field.required || false, // Also provide 'isRequired' for backward compatibility
         appointmentTypeId: field.appointmentTypeId,
         options: [], // Default empty array since options aren't stored in this structure
         orderPosition: field.orderPosition || 0,
-        included: field.included !== false // Default to true if not specified
+        included: field.included !== false, // Default to true if not specified
+        placeholder: '', // Default empty string since placeholder isn't stored
+        defaultValue: '' // Default empty string since defaultValue isn't stored
       }));
       
       console.log(`[API] Standard questions for appointment type ${id}:`, standardQuestions);
@@ -883,6 +886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: field.appointmentTypeId * 1000 + index, // Generate ID from appointment type and index
         fieldKey: field.fieldKey,
         fieldLabel: field.label,
+        label: field.label,
         fieldType: field.fieldType,
         required: field.required || false,  // Use 'required' for consistency
         isRequired: field.required || false, // Also provide 'isRequired' for backward compatibility
