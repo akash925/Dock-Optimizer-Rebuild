@@ -634,43 +634,28 @@ export default function AppointmentsPage() {
               </div>
             </div>
             
-            {/* Customer */}
-            <div className="space-y-2">
-              <div className="font-medium text-sm">Customer</div>
-              <Select
-                value={customerFilter}
-                onValueChange={setCustomerFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All customers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All customers</SelectItem>
-                  {customerList.map(customer => (
-                    <SelectItem key={customer} value={customer}>{customer}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Carrier */}
-            <div className="space-y-2">
-              <div className="font-medium text-sm">Carrier</div>
-              <Select
-                value={carrierFilter}
-                onValueChange={setCarrierFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All carriers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All carriers</SelectItem>
-                  {carriers?.map((carrier: any) => (
-                    <SelectItem key={carrier.id} value={carrier.name}>{carrier.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Dynamic Filters based on appointment type fields */}
+            {dynamicColumns.map(column => (
+              <div key={column.key} className="space-y-2">
+                <div className="font-medium text-sm">{column.label}</div>
+                <Select
+                  value={dynamicFilters[column.key] || "all"}
+                  onValueChange={(value) => 
+                    setDynamicFilters(prev => ({ ...prev, [column.key]: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={`All ${column.label.toLowerCase()}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All {column.label.toLowerCase()}</SelectItem>
+                    {(dynamicFilterOptions[column.key] || []).map(option => (
+                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
             
             {/* Facility */}
             <div className="space-y-2">
@@ -740,8 +725,7 @@ export default function AppointmentsPage() {
                     start: subDays(new Date(), 7), 
                     end: new Date() 
                   });
-                  setCustomerFilter("all");
-                  setCarrierFilter("all");
+                  setDynamicFilters({});
                   setFacilityFilter("all");
                   setTypeFilter("all");
                   setSearchQuery("");
@@ -768,11 +752,12 @@ export default function AppointmentsPage() {
               <TableRow>
                 <TableHead>Event Date</TableHead>
                 <TableHead>Event Time</TableHead>
-                <TableHead>Event Type</TableHead>
-                <TableHead>Customer</TableHead>
                 <TableHead>Facility</TableHead>
-                <TableHead>Dock Door</TableHead>
-                <TableHead>Carrier</TableHead>
+                <TableHead>Event Type</TableHead>
+                {/* Dynamic columns based on appointment type fields */}
+                {dynamicColumns.map(column => (
+                  <TableHead key={column.key}>{column.label}</TableHead>
+                ))}
                 <TableHead>MC #</TableHead>
                 <TableHead>Truck #</TableHead>
                 <TableHead>Status</TableHead>
@@ -788,13 +773,18 @@ export default function AppointmentsPage() {
                   <TableCell>
                     <div className="text-muted-foreground">{formatTime(schedule.startTime)}</div>
                   </TableCell>
-                  <TableCell>{getAppointmentTypeBadge(schedule.type)}</TableCell>
-                  <TableCell>{schedule.customerName || "-"}</TableCell>
                   <TableCell>{getFacilityName(schedule)}</TableCell>
-                  <TableCell>{getDockName(schedule.dockId)}</TableCell>
-                  <TableCell>{getCarrierName(schedule.carrierId)}</TableCell>
+                  <TableCell>{getAppointmentTypeBadge(schedule.type)}</TableCell>
+                  {/* Dynamic columns based on appointment type fields */}
+                  {dynamicColumns.map(column => (
+                    <TableCell key={column.key}>
+                      {schedule.customFormData && schedule.customFormData[column.key] 
+                        ? schedule.customFormData[column.key] 
+                        : "-"}
+                    </TableCell>
+                  ))}
                   <TableCell>{schedule.mcNumber || "-"}</TableCell>
-                  <TableCell>{schedule.truckNumber}</TableCell>
+                  <TableCell>{schedule.truckNumber || "-"}</TableCell>
                   <TableCell>{getAppointmentStatusBadge(schedule.status)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => setSelectedScheduleId(schedule.id)}>
@@ -806,7 +796,7 @@ export default function AppointmentsPage() {
               
               {filteredSchedules.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center py-8">
+                  <TableCell colSpan={7 + dynamicColumns.length} className="text-center py-8">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <Calendar className="h-10 w-10 mb-2" />
                       <p>No appointments found</p>

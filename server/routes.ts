@@ -189,6 +189,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get appointment type fields for dynamic columns
+  app.get('/api/appointment-type-fields', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const currentUser = req.user;
+      const appointmentTypeFields = await storage.getAppointmentTypeFields();
+      
+      // Filter by tenant through appointment types
+      const appointmentTypes = await storage.getAppointmentTypes();
+      const tenantAppointmentTypeIds = appointmentTypes
+        .filter(type => type.tenantId === currentUser.tenantId)
+        .map(type => type.id);
+      
+      const tenantFields = appointmentTypeFields.filter(field => 
+        tenantAppointmentTypeIds.includes(field.appointmentTypeId)
+      );
+      
+      res.json(tenantFields);
+    } catch (error) {
+      console.error('Error fetching appointment type fields:', error);
+      res.status(500).json({ error: 'Failed to fetch appointment type fields' });
+    }
+  });
+
   // Sample data creation endpoint for testing analytics
   app.post('/api/sample-data', async (req: any, res) => {
     try {
