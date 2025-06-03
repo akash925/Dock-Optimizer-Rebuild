@@ -577,15 +577,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const facility = await storage.getFacility(bookingData.facilityId);
       const facilityTimezone = facility?.timezone || 'America/New_York';
       
-      // Parse the selected time in the facility timezone and convert properly to UTC
-      const facilityDateTime = new Date(`${bookingData.date}T${bookingData.time}:00`);
-      // Create UTC time that represents the facility local time
-      const utcStartTime = new Date(facilityDateTime.toISOString());
+      // Parse the selected time correctly without timezone conversion issues
+      const utcStartTime = new Date(`${bookingData.date}T${bookingData.time}:00.000Z`);
       
       // Get appointment type for duration
       const appointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
-      const durationHours = appointmentType?.duration || 1;
-      const utcEndTime = new Date(utcStartTime.getTime() + (durationHours * 60 * 60 * 1000));
+      // Duration is stored in minutes, calculate end time correctly
+      const durationMinutes = appointmentType?.duration || 60;
+      const utcEndTime = new Date(utcStartTime.getTime() + (durationMinutes * 60 * 1000));
       
       // Create the appointment
       const appointmentData = {
