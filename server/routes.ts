@@ -614,15 +614,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get organization details to determine the proper prefix
       const organization = facility ? await storage.getTenantById(facility.tenantId!) : null;
       
-      // Use organization-specific prefix or fallback to HZL for Hanzo
-      let prefix = 'HZL'; // Default for Hanzo Logistics
+      // Generate tenant-specific confirmation code prefix
+      let prefix = 'DOC'; // Default fallback
       if (organization && organization.name) {
-        // Extract initials from organization name
-        const words = organization.name.split(' ');
-        if (words.length >= 2) {
-          prefix = words.map(word => word.charAt(0).toUpperCase()).join('').substring(0, 3);
-        } else if (words[0].length >= 3) {
-          prefix = words[0].substring(0, 3).toUpperCase();
+        const name = organization.name.toLowerCase();
+        if (name.includes('hanzo')) {
+          prefix = 'HZL';
+        } else if (name.includes('fresh connect')) {
+          prefix = 'FCH';
+        } else {
+          // Extract initials from organization name
+          const words = organization.name.split(' ');
+          if (words.length >= 2) {
+            prefix = words.map(word => word.charAt(0).toUpperCase()).join('').substring(0, 3);
+          } else if (words[0].length >= 3) {
+            prefix = words[0].substring(0, 3).toUpperCase();
+          }
         }
       }
       
@@ -633,21 +640,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const sgMail = await import('@sendgrid/mail');
         sgMail.default.setApiKey(process.env.SENDGRID_API_KEY!);
         
+        // Generate QR code and confirmation page URL
+        const baseUrl = process.env.BASE_URL || `https://${process.env.REPLIT_DEV_DOMAIN}` || 'http://localhost:5000';
+        const confirmationUrl = `${baseUrl}/external/booking-confirmation?code=${confirmationCode}`;
+        
+        // Generate QR code using qrcode library
+        const QRCode = await import('qrcode');
+        const qrCodeDataUrl = await QRCode.toDataURL(confirmationUrl);
+        
         const emailContent = {
           to: bookingData.email,
           from: 'noreply@dockoptimizer.com',
           subject: `Appointment Confirmation - ${confirmationCode}`,
           html: `
-            <h2>Appointment Confirmed</h2>
-            <p>Your dock appointment has been successfully scheduled.</p>
-            <div style="background: #f5f5f5; padding: 15px; margin: 15px 0;">
-              <strong>Confirmation Code:</strong> ${confirmationCode}<br>
-              <strong>Date:</strong> ${bookingData.date}<br>
-              <strong>Time:</strong> ${bookingData.time}<br>
-              <strong>Facility:</strong> ${facility?.name}<br>
-              <strong>Service:</strong> ${appointmentType?.name}
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #333;">Appointment Confirmed</h2>
+              <p>Your dock appointment has been successfully scheduled.</p>
+              
+              <div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                <h3 style="margin-top: 0;">Appointment Details</h3>
+                <strong>Confirmation Code:</strong> ${confirmationCode}<br>
+                <strong>Date:</strong> ${bookingData.date}<br>
+                <strong>Time:</strong> ${bookingData.time}<br>
+                <strong>Facility:</strong> ${facility?.name}<br>
+                <strong>Service:</strong> ${appointmentType?.name}<br>
+                <strong>Customer:</strong> ${bookingData.customerName}<br>
+                <strong>Type:</strong> ${bookingData.pickupOrDropoff}
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <img src="${qrCodeDataUrl}" alt="QR Code for Check-in" style="width: 150px; height: 150px;">
+                <p style="color: #666; font-size: 14px;">Scan this QR code for quick check-in at the facility</p>
+              </div>
+              
+              <div style="background: #e3f2fd; padding: 15px; margin: 20px 0; border-radius: 8px;">
+                <p style="margin: 0;"><strong>Manage Your Appointment:</strong></p>
+                <p style="margin: 5px 0 0 0;">
+                  <a href="${confirmationUrl}" style="color: #1976d2; text-decoration: none;">
+                    View, Edit, Reschedule, or Cancel Your Appointment
+                  </a>
+                </p>
+              </div>
+              
+              <p>Please keep your confirmation code for check-in and arrive on time for your scheduled appointment.</p>
+              
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              <p style="color: #666; font-size: 12px;">
+                This is an automated message from Dock Optimizer. Please do not reply to this email.
+              </p>
             </div>
-            <p>Please keep your confirmation code for check-in.</p>
           `
         };
         

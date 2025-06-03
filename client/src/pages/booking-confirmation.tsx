@@ -160,26 +160,21 @@ export default function BookingConfirmation() {
           }
         }
         
-        // Format dates using our timezone utilities
+        // Format dates - treat the stored time as already in facility timezone
         const startDate = new Date(scheduleData.startTime);
         
-        // Get the date in facility timezone (Eastern Time)
+        // Get the date in facility timezone
         const appointmentDate = formatInFacilityTimeZone(startDate, 'MM/dd/yyyy', facilityTimeZone);
         
-        // Get time display in both facility and user timezones
-        const { 
-          facilityTime, 
-          userTime, 
-          facilityZone, 
-          userZone 
-        } = formatForDualTimeZoneDisplay(startDate, facilityTimeZone, 'h:mm a');
+        // Since the time is stored as UTC but represents facility local time,
+        // format it directly without additional timezone conversion
+        const facilityTime = format(startDate, 'h:mm a');
+        const facilityTimeDisplay = `${facilityTime}`;
         
-        // Get timezone abbreviations
-        const facilityZoneAbbr = getTimeZoneAbbreviation(facilityZone, startDate);
-        const userZoneAbbr = getTimeZoneAbbreviation(userZone, startDate);
-        
-        // Format time displays for facility and user
-        const facilityTimeDisplay = `${facilityTime} ${facilityZoneAbbr}`;
+        // For user timezone display, convert from facility timezone to user timezone
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const userTime = formatInTimeZone(startDate, userTimeZone, 'h:mm a');
+        const userZoneAbbr = getTimeZoneAbbreviation(userTimeZone, startDate);
         const userTimeDisplay = `${userTime} ${userZoneAbbr}`;
         
         // For backward compatibility
