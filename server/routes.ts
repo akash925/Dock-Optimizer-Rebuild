@@ -290,7 +290,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`[API] Found schedule with ID: ${schedule.id}`);
-      res.json(schedule);
+      
+      // Get additional details for complete response
+      let facility = null;
+      let appointmentType = null;
+      
+      // Get facility information if facilityId exists
+      if (schedule.facilityId) {
+        facility = await storage.getFacility(schedule.facilityId);
+      }
+      
+      // Get appointment type information
+      if (schedule.appointmentTypeId) {
+        appointmentType = await storage.getAppointmentType(schedule.appointmentTypeId);
+      }
+      
+      // Build complete response with facility and appointment type details
+      const response = {
+        schedule,
+        facility: facility ? {
+          id: facility.id,
+          name: facility.name,
+          address1: facility.address1,
+          address2: facility.address2,
+          city: facility.city,
+          state: facility.state,
+          pincode: facility.pincode,
+          country: facility.country,
+          timezone: facility.timezone
+        } : null,
+        facilityName: facility?.name,
+        facilityAddress: facility ? `${facility.address1}, ${facility.city}, ${facility.state} ${facility.pincode}` : null,
+        appointmentType: appointmentType ? {
+          id: appointmentType.id,
+          name: appointmentType.name,
+          duration: appointmentType.duration,
+          type: appointmentType.type
+        } : null,
+        appointmentTypeName: appointmentType?.name,
+        timezone: facility?.timezone || 'America/New_York'
+      };
+      
+      res.json(response);
     } catch (error) {
       console.error('Error fetching schedule by confirmation code:', error);
       res.status(500).json({ error: 'Failed to fetch schedule' });
@@ -427,6 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'scheduled',
         startTime: new Date(`${bookingData.date}T${bookingData.time}:00`),
         endTime: new Date(`${bookingData.date}T${bookingData.time}:00`),
+        facilityId: bookingData.facilityId, // Explicitly set facility ID
         appointmentTypeId: bookingData.appointmentTypeId,
         customFormData: {
           customerInfo: {

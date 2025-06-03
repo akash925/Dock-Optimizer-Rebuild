@@ -1622,20 +1622,26 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   ) : bookingDetails.startTime ? (
                     <>
                       <p className="font-medium">
-                        {new Date(bookingDetails.startTime).toLocaleDateString(undefined, {
+                        {new Date(bookingDetails.startTime).toLocaleDateString('en-US', {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',
-                          day: 'numeric'
+                          day: 'numeric',
+                          timeZone: 'America/New_York'
                         })}
                       </p>
                       {bookingDetails.endTime && (
                         <p className="text-sm">
-                          {new Date(bookingDetails.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
-                          {new Date(bookingDetails.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          {bookingDetails.timezone && (
-                            <span className="text-xs text-muted-foreground ml-1">({bookingDetails.timezone})</span>
-                          )}
+                          {new Date(bookingDetails.startTime).toLocaleTimeString('en-US', {
+                            hour: '2-digit', 
+                            minute:'2-digit',
+                            timeZone: 'America/New_York'
+                          })} ({new Date(bookingDetails.startTime).toLocaleTimeString('en-US', {
+                            hour: '2-digit', 
+                            minute:'2-digit',
+                            timeZone: 'America/Los_Angeles'
+                          })} Pacific)
+                          <span className="text-xs text-muted-foreground ml-1">(America/Los_Angeles)</span>
                         </p>
                       )}
                     </>
