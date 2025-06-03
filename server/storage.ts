@@ -4518,8 +4518,8 @@ DatabaseStorage.prototype.getAppointmentTypeFields = async function(organization
 DatabaseStorage.prototype.getOrganizationByFacilityId = async function(facilityId: number): Promise<Tenant | undefined> {
   try {
     const result = await pool.query(`
-      SELECT o.* FROM organizations o
-      JOIN organization_facilities of ON o.id = of.organization_id
+      SELECT t.* FROM tenants t
+      JOIN organization_facilities of ON t.id = of.organization_id
       WHERE of.facility_id = $1
     `, [facilityId]);
     
