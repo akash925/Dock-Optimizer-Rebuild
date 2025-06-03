@@ -370,6 +370,18 @@ export default function AppointmentsPage() {
     return carrier ? carrier.name : `Carrier #${carrierId}`;
   };
   
+  // Helper function to safely get custom form data
+  const getCustomFormValue = (schedule: Schedule, key: string) => {
+    try {
+      if (schedule.customFormData && typeof schedule.customFormData === 'object') {
+        return (schedule.customFormData as Record<string, any>)[key] || "";
+      }
+      return "";
+    } catch (e) {
+      return "";
+    }
+  };
+
   // Filter and sort schedules
   const filteredSchedules = useMemo(() => {
     if (!schedules) return [];
@@ -387,8 +399,8 @@ export default function AppointmentsPage() {
       
       // Dynamic filters
       for (const [key, value] of Object.entries(dynamicFilters)) {
-        if (value !== "all" && schedule.customFormData) {
-          const fieldValue = schedule.customFormData[key];
+        if (value !== "all") {
+          const fieldValue = getCustomFormValue(schedule, key);
           if (!fieldValue || !fieldValue.toString().toLowerCase().includes(value.toLowerCase())) {
             return false;
           }
@@ -778,9 +790,7 @@ export default function AppointmentsPage() {
                   {/* Dynamic columns based on appointment type fields */}
                   {dynamicColumns.map(column => (
                     <TableCell key={column.key}>
-                      {schedule.customFormData && schedule.customFormData[column.key] 
-                        ? schedule.customFormData[column.key] 
-                        : "-"}
+                      {getCustomFormValue(schedule, column.key) || "-"}
                     </TableCell>
                   ))}
                   <TableCell>{schedule.mcNumber || "-"}</TableCell>

@@ -69,3 +69,68 @@ export function getRelativeTimeString(date: Date): string {
   const diffInYears = Math.floor(diffInMonths / 12);
   return rtf.format(-diffInYears, 'year');
 }
+
+/**
+ * Format a date/time string in a specific facility's timezone
+ * @param dateString The date string to format
+ * @param timezone The facility's timezone (e.g. "America/New_York")
+ * @returns Formatted time string in facility timezone
+ */
+export function formatInFacilityTimeZone(dateString: string, timezone?: string): string {
+  try {
+    const date = new Date(dateString);
+    const tz = timezone || 'America/New_York';
+    
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true,
+      timeZone: tz
+    }).format(date);
+  } catch (e) {
+    return formatTime(new Date(dateString));
+  }
+}
+
+/**
+ * Format a date for dual timezone display (facility time + user time)
+ * @param dateString The date string to format
+ * @param facilityTimezone The facility's timezone
+ * @returns Formatted string showing both timezones
+ */
+export function formatForDualTimeZoneDisplay(dateString: string, facilityTimezone?: string): string {
+  try {
+    const date = new Date(dateString);
+    const facilityTime = formatInFacilityTimeZone(dateString, facilityTimezone);
+    const userTime = formatTime(date);
+    
+    if (facilityTimezone && facilityTimezone !== Intl.DateTimeFormat().resolvedOptions().timeZone) {
+      return `${facilityTime} (${getTimeZoneAbbreviation(facilityTimezone)})`;
+    }
+    
+    return userTime;
+  } catch (e) {
+    return formatTime(new Date(dateString));
+  }
+}
+
+/**
+ * Get timezone abbreviation from timezone identifier
+ * @param timezone The timezone identifier (e.g. "America/New_York")
+ * @returns Timezone abbreviation (e.g. "EST" or "EDT")
+ */
+export function getTimeZoneAbbreviation(timezone: string): string {
+  try {
+    const date = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'short'
+    });
+    
+    const parts = formatter.formatToParts(date);
+    const timeZonePart = parts.find(part => part.type === 'timeZoneName');
+    return timeZonePart?.value || timezone;
+  } catch (e) {
+    return timezone;
+  }
+}
