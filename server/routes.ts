@@ -5,6 +5,7 @@ import { setupAuth } from "./auth";
 import path from "path";
 import { WebSocketServer } from "ws";
 import { db } from "./db";
+import fileRoutes from "./routes/files";
 
 // Type for the WebSocket client with tenant metadata
 interface TenantWebSocket extends WebSocket {
@@ -22,6 +23,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup authentication routes
   setupAuth(app);
+  
+  // File upload and serving routes
+  app.use('/api/files', fileRoutes);
   
   // Core API routes that frontend expects
   app.get('/api/users', async (req: any, res) => {

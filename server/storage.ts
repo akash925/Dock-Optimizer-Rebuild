@@ -4204,43 +4204,38 @@ export async function initializeDatabase() {
 
 // Add file storage methods to DatabaseStorage class
 DatabaseStorage.prototype.createFileRecord = async function(fileRecord: any): Promise<any> {
-  // For now, store in memory until we push schema changes
-  if (!this.fileRecords) {
-    this.fileRecords = new Map();
-  }
-  this.fileRecords.set(fileRecord.id, {
-    ...fileRecord,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
-  return this.fileRecords.get(fileRecord.id);
+  const [result] = await db.raw(`
+    INSERT INTO file_storage (id, original_name, mime_type, size, path, url, folder, tenant_id, uploaded_by, is_temporary)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    RETURNING *
+  `, [
+    fileRecord.id,
+    fileRecord.originalName,
+    fileRecord.mimeType,
+    fileRecord.size,
+    fileRecord.path,
+    fileRecord.url,
+    fileRecord.folder || 'general',
+    fileRecord.tenantId || null,
+    fileRecord.uploadedBy || null,
+    fileRecord.isTemporary || false
+  ]);
+  return result;
 };
 
 DatabaseStorage.prototype.getFileRecord = async function(fileId: string): Promise<any | null> {
-  if (!this.fileRecords) {
-    return null;
-  }
-  return this.fileRecords.get(fileId) || null;
+  const result = await db.raw('SELECT * FROM file_storage WHERE id = ?', [fileId]);
+  return result.rows.length > 0 ? result.rows[0] : null;
 };
 
 DatabaseStorage.prototype.deleteFileRecord = async function(fileId: string): Promise<boolean> {
-  if (!this.fileRecords) {
-    return false;
-  }
-  return this.fileRecords.delete(fileId);
+  const result = await db.raw('DELETE FROM file_storage WHERE id = ?', [fileId]);
+  return result.rowCount > 0;
 };
 
 DatabaseStorage.prototype.getTempFiles = async function(cutoffDate: Date): Promise<any[]> {
-  if (!this.fileRecords) {
-    return [];
-  }
-  const tempFiles = [];
-  for (const [id, file] of this.fileRecords.entries()) {
-    if (file.isTemporary && file.createdAt < cutoffDate) {
-      tempFiles.push(file);
-    }
-  }
-  return tempFiles;
+  const result = await db.raw('SELECT * FROM file_storage WHERE is_temporary = true AND created_at < ?', [cutoffDate]);
+  return result.rows;
 };
 
 // Use database storage
