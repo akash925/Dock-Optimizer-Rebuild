@@ -619,9 +619,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let prefix = 'DOC'; // Default fallback
       if (organization && organization.name) {
         const name = organization.name.toLowerCase();
+        console.log(`Organization name for confirmation code: ${organization.name}`);
+        
         if (name.includes('hanzo')) {
           prefix = 'HZL';
-        } else if (name.includes('fresh connect')) {
+        } else if (name.includes('fresh connect') || name.includes('fresh')) {
           prefix = 'FCH';
         } else {
           // Extract initials from organization name
@@ -633,6 +635,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
+      
+      console.log(`Generated confirmation code prefix: ${prefix} for organization: ${organization?.name}`);
       
       const confirmationCode = `${prefix}-${appointment.id}`;
       
