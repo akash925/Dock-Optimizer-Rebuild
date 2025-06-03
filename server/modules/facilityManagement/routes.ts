@@ -24,8 +24,10 @@ router.get("/facilities/:id", isAuthenticated, async (req, res) => {
   try {
     const storage = await getStorage();
     const facilityId = parseInt(req.params.id);
+    const user = req.user as any;
+    const tenantId = user?.tenantId;
     
-    const facility = await storage.getFacilityById(facilityId);
+    const facility = await storage.getFacility(facilityId, tenantId);
     if (!facility) {
       return res.status(404).json({ error: "Facility not found" });
     }
@@ -47,7 +49,13 @@ router.post("/facilities", isAuthenticated, async (req, res) => {
     
     // Associate facility with user's organization if they have one
     if (user?.tenantId) {
-      await storage.addFacilityToOrganization(facility.id, user.tenantId);
+      // Insert into organization_facilities table directly via database
+      const { db } = require("../../db");
+      const { organizationFacilities } = require("@shared/schema");
+      await db.insert(organizationFacilities).values({
+        organizationId: user.tenantId,
+        facilityId: facility.id
+      });
     }
     
     res.status(201).json(facility);
