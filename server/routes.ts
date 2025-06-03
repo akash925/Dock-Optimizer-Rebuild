@@ -423,7 +423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate tenant-specific confirmation code
       // Get organization details to determine the proper prefix
       const facility = await storage.getFacility(bookingData.facilityId);
-      const organization = facility ? await storage.getOrganizationById(facility.tenantId!) : null;
+      const organization = facility ? await storage.getOrganizations().then(orgs => orgs.find(org => org.id === facility.tenantId)) : null;
       
       // Use organization-specific prefix or fallback to HZL for Hanzo
       let prefix = 'HZL'; // Default for Hanzo Logistics

@@ -1449,9 +1449,45 @@ export function AppointmentDetailsDialog({
                 <QrCode className="h-4 w-4 mr-2 text-primary" />
                 Appointment Confirmation Code
               </h3>
-              <span className="bg-slate-100 px-3 py-1 rounded-md font-mono font-medium">
+              <div 
+                className="bg-slate-100 px-3 py-1 rounded-md font-mono font-medium cursor-pointer hover:bg-slate-200 transition-colors border-2 border-dashed border-slate-300"
+                onClick={() => {
+                  const confirmationCode = appointment.confirmationCode || `HZL-${appointment.id.toString().padStart(6, '0')}`;
+                  // Generate QR code URL and open in new window
+                  const baseUrl = window.location.origin;
+                  const checkInUrl = `${baseUrl}/driver-check-in?code=${confirmationCode}`;
+                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkInUrl)}`;
+                  
+                  // Open QR code in a new window for easy access
+                  const qrWindow = window.open('', '_blank', 'width=400,height=500,scrollbars=yes');
+                  if (qrWindow) {
+                    qrWindow.document.write(`
+                      <html>
+                        <head><title>Appointment QR Code - ${confirmationCode}</title></head>
+                        <body style="text-align: center; font-family: Arial, sans-serif; padding: 20px;">
+                          <h2>Appointment Confirmation Code</h2>
+                          <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <div style="font-size: 24px; font-weight: bold; color: #2563eb; margin-bottom: 10px;">
+                              ${confirmationCode}
+                            </div>
+                            <img src="${qrUrl}" alt="QR Code for ${confirmationCode}" style="border: 1px solid #ccc; border-radius: 8px;" />
+                            <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                              Scan this QR code or use the confirmation code for check-in
+                            </p>
+                          </div>
+                          <button onclick="window.print()" style="background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+                            Print QR Code
+                          </button>
+                        </body>
+                      </html>
+                    `);
+                    qrWindow.document.close();
+                  }
+                }}
+                title="Click to view barcode/QR code"
+              >
                 {appointment.confirmationCode || `HZL-${appointment.id.toString().padStart(6, '0')}`}
-              </span>
+              </div>
             </div>
             
             {/* Only show QR code for external appointments (identified by having null createdBy or no carrier name) */}
