@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import PerformanceChart from "@/components/analytics/performance-chart";
 import MetricBar from "@/components/dashboard/metric-bar";
 import AnalyticsHeatMap from "@/components/analytics/heat-map";
+import PerformanceMetrics from "@/components/analytics/performance-metrics";
+import EnhancedFacilityReport from "@/components/analytics/enhanced-facility-report";
 import { Download, Calendar as CalendarIcon, BarChart2, FileText, Clock, BarChart } from "lucide-react";
 import { format, subDays, subMonths, startOfWeek, endOfWeek, addDays } from "date-fns";
 
@@ -517,23 +519,21 @@ export default function Analytics() {
         </CardContent>
       </Card>
       
-      {/* Facility Stats */}
-      <Card className="mb-6">
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-lg">Facility Report</CardTitle>
-              <CardDescription>Appointment counts by facility</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => exportToCSV('facilities', dateParams)}>
-              <Download className="h-4 w-4 mr-2" /> Export
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {useFacilityStats(dateParams)}
-        </CardContent>
-      </Card>
+      {/* Performance Metrics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-2">
+          <EnhancedFacilityReport 
+            data={facilityStats.data || []} 
+            dateRange={dateRangeDisplay()} 
+          />
+        </div>
+        <div>
+          <PerformanceMetrics 
+            facilityFilter="All Facilities"
+            dateRange={dateRangeDisplay()}
+          />
+        </div>
+      </div>
       
       {/* Heatmap */}
       <div className="mb-6">
