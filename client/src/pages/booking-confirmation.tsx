@@ -62,6 +62,10 @@ export default function BookingConfirmation() {
   const [showUserTimeFirst, setShowUserTimeFirst] = useState(false);
   const [showTimePreferences, setShowTimePreferences] = useState(false);
   const { toast } = useToast();
+
+  // Extract confirmation code from URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const confirmationCode = urlParams.get('code') || urlParams.get('confirmationCode');
   
   // Fetch the schedule and related data based on confirmation code
   useEffect(() => {

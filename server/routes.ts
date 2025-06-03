@@ -245,6 +245,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Schedule confirmation lookup endpoint
+  app.get('/api/schedules/confirmation/:code', async (req: any, res) => {
+    try {
+      const { code } = req.params;
+      
+      if (!code) {
+        return res.status(400).json({ error: 'Confirmation code is required' });
+      }
+      
+      console.log(`[API] Looking up schedule with confirmation code: ${code}`);
+      
+      const schedule = await storage.getScheduleByConfirmationCode(code);
+      
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+      
+      console.log(`[API] Found schedule with ID: ${schedule.id}`);
+      res.json(schedule);
+    } catch (error) {
+      console.error('Error fetching schedule by confirmation code:', error);
+      res.status(500).json({ error: 'Failed to fetch schedule' });
+    }
+  });
+
   // Availability API endpoints
   app.get('/api/availability/v2', async (req: any, res) => {
     try {
