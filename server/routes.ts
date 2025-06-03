@@ -161,6 +161,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Sample data creation endpoint for testing analytics
+  app.post('/api/sample-data', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const currentUser = req.user;
+      if (currentUser.role !== 'admin' && currentUser.role !== 'super-admin') {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+      
+      // Get facilities for this tenant
+      const facilities = await storage.getFacilities();
+      const tenantFacilities = facilities.filter(facility => facility.tenantId === currentUser.tenantId);
+      
+      if (tenantFacilities.length === 0) {
+        return res.status(400).json({ error: 'No facilities found for tenant' });
+      }
+      
+      // Get appointment types for this tenant
+      const appointmentTypes = await storage.getAppointmentTypes();
+      const tenantAppointmentTypes = appointmentTypes.filter(type => type.tenantId === currentUser.tenantId);
+      
+      if (tenantAppointmentTypes.length === 0) {
+        return res.status(400).json({ error: 'No appointment types found for tenant' });
+      }
+      
+      // Create sample appointments for the last 7 days
+      const sampleAppointments = [];
+      const now = new Date();
+      
+      for (let i = 0; i < 7; i++) {
+        const appointmentDate = new Date(now);
+        appointmentDate.setDate(appointmentDate.getDate() - i);
+        appointmentDate.setHours(9 + (i % 8), 0, 0, 0); // Vary the hours
+        
+        const facility = tenantFacilities[i % tenantFacilities.length];
+        const appointmentType = tenantAppointmentTypes[i % tenantAppointmentTypes.length];
+        
+        const endTime = new Date(appointmentDate);
+        endTime.setHours(endTime.getHours() + 2); // 2-hour appointments
+        
+        const appointment = {
+          type: i % 2 === 0 ? 'inbound' : 'outbound',
+          status: ['scheduled', 'in-progress', 'completed'][i % 3],
+          startTime: appointmentDate,
+          endTime: endTime,
+          appointmentTypeId: appointmentType.id,
+          customFormData: {
+            facilityInfo: {
+              id: facility.id,
+              name: facility.name
+            },
+            customerInfo: {
+              name: `Sample Customer ${i + 1}`,
+              email: `customer${i + 1}@example.com`
+            },
+            carrierInfo: {
+              name: `Sample Carrier ${i + 1}`,
+              contact: `carrier${i + 1}@example.com`
+            }
+          }
+        };
+        
+        try {
+          const createdAppointment = await storage.createSchedule(appointment);
+          sampleAppointments.push(createdAppointment);
+        } catch (error) {
+          console.error('Error creating sample appointment:', error);
+        }
+      }
+      
+      res.json({ 
+        message: `Created ${sampleAppointments.length} sample appointments`,
+        appointments: sampleAppointments
+      });
+    } catch (error) {
+      console.error('Error creating sample data:', error);
+      res.status(500).json({ error: 'Failed to create sample data' });
+    }
+  });
+
+  // Availability API endpoints
+  app.get('/api/availability/v2', async (req: any, res) => {
+    try {
+      const { date, facilityId, appointmentTypeId, bookingPageSlug } = req.query;
+      
+      if (!date || !facilityId || !appointmentTypeId) {
+        return res.status(400).json({ 
+          error: 'Missing required parameters: date, facilityId, appointmentTypeId' 
+        });
+      }
+      
+      // Import the availability service
+      const { calculateAvailabilitySlots } = await import('./src/services/availability');
+      
+      // Get tenant context from booking page if available
+      let effectiveTenantId = null;
+      if (bookingPageSlug) {
+        try {
+          const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+          if (bookingPage) {
+            effectiveTenantId = bookingPage.tenantId;
+          }
+        } catch (error) {
+          console.warn('Could not get tenant from booking page:', error);
+        }
+      }
+      
+      // If no tenant from booking page and user is authenticated, use user's tenant
+      if (!effectiveTenantId && req.isAuthenticated()) {
+        effectiveTenantId = req.user.tenantId;
+      }
+      
+      // Calculate availability slots
+      const slots = await calculateAvailabilitySlots(
+        db,
+        storage,
+        date,
+        parseInt(facilityId),
+        parseInt(appointmentTypeId),
+        effectiveTenantId
+      );
+      
+      // Return slots in expected format
+      res.json({
+        slots: slots,
+        availableTimes: slots.filter(slot => slot.available).map(slot => slot.time),
+        date: date,
+        facilityId: parseInt(facilityId),
+        appointmentTypeId: parseInt(appointmentTypeId)
+      });
+    } catch (error) {
+      console.error('Error calculating availability:', error);
+      res.status(500).json({ 
+        error: 'Failed to calculate availability',
+        message: error.message 
+      });
+    }
+  });
+  
+  // Legacy availability endpoint for backward compatibility
+  app.get('/api/availability', async (req: any, res) => {
+    try {
+      const { date, facilityId, appointmentTypeId, bookingPageSlug } = req.query;
+      
+      if (!date || !facilityId || !appointmentTypeId) {
+        return res.status(400).json({ 
+          error: 'Missing required parameters: date, facilityId, appointmentTypeId' 
+        });
+      }
+      
+      // Import the availability service
+      const { calculateAvailabilitySlots } = await import('./src/services/availability');
+      
+      // Get tenant context from booking page if available
+      let effectiveTenantId = null;
+      if (bookingPageSlug) {
+        try {
+          const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+          if (bookingPage) {
+            effectiveTenantId = bookingPage.tenantId;
+          }
+        } catch (error) {
+          console.warn('Could not get tenant from booking page:', error);
+        }
+      }
+      
+      // If no tenant from booking page and user is authenticated, use user's tenant
+      if (!effectiveTenantId && req.isAuthenticated()) {
+        effectiveTenantId = req.user.tenantId;
+      }
+      
+      // Calculate availability slots
+      const slots = await calculateAvailabilitySlots(
+        db,
+        storage,
+        date,
+        parseInt(facilityId),
+        parseInt(appointmentTypeId),
+        effectiveTenantId
+      );
+      
+      // Return in legacy format
+      res.json(slots);
+    } catch (error) {
+      console.error('Error calculating availability:', error);
+      res.status(500).json({ 
+        error: 'Failed to calculate availability',
+        message: error.message 
+      });
+    }
+  });
+  
   // Create the HTTP server
   const httpServer = createServer(app);
   
