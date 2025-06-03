@@ -1593,6 +1593,164 @@ export function AppointmentDetailsDialog({
             )}
           </div>
           
+          {/* BOL Documents Section */}
+          <div className="border-t py-4">
+            <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              BOL Documents
+            </h3>
+            
+            {/* Check if BOL number exists or BOL file is uploaded */}
+            {(appointment.bolNumber || appointment.customFormData) && (
+              <div className="space-y-3">
+                {/* BOL Number Display */}
+                {appointment.bolNumber && (
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border">
+                    <FileCheck className="h-4 w-4 text-blue-600" />
+                    <div>
+                      <div className="text-sm font-medium">BOL Number: {appointment.bolNumber}</div>
+                      <div className="text-xs text-muted-foreground">Bill of Lading reference</div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* BOL File Links - Check custom form data for uploaded files */}
+                {(() => {
+                  try {
+                    const customData = typeof appointment.customFormData === 'string' 
+                      ? JSON.parse(appointment.customFormData) 
+                      : appointment.customFormData || {};
+                    
+                    const bolFiles = customData.bolFiles || [];
+                    const bolUpload = customData.bolUpload;
+                    
+                    // Check if there are any BOL-related files
+                    if (bolFiles.length > 0 || bolUpload) {
+                      return (
+                        <div className="space-y-2">
+                          {/* Individual BOL files */}
+                          {bolFiles.map((file: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+                              <div className="flex items-center gap-3">
+                                <FileText className="h-4 w-4 text-slate-600" />
+                                <div>
+                                  <div className="text-sm font-medium">{file.name || `BOL Document ${index + 1}`}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {file.size ? `${Math.round(file.size / 1024)} KB` : 'Document'} • 
+                                    {file.uploadedAt ? format(new Date(file.uploadedAt), 'MMM dd, yyyy') : 'Uploaded'}
+                                  </div>
+                                  {/* OCR Summary if available */}
+                                  {file.ocrSummary && (
+                                    <div className="mt-2 p-2 bg-white rounded border text-xs">
+                                      <div className="font-medium mb-1">OCR Summary:</div>
+                                      <div className="text-slate-600">{file.ocrSummary}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {file.url && (
+                                  <>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => window.open(file.url, '_blank')}
+                                      className="text-xs"
+                                    >
+                                      <ExternalLink className="h-3 w-3 mr-1" />
+                                      View
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => {
+                                        const link = document.createElement('a');
+                                        link.href = file.url;
+                                        link.download = file.name || 'bol-document.pdf';
+                                        link.click();
+                                      }}
+                                      className="text-xs"
+                                    >
+                                      <Download className="h-3 w-3 mr-1" />
+                                      Download
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {/* Legacy BOL upload format */}
+                          {bolUpload && !bolFiles.length && (
+                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+                              <div className="flex items-center gap-3">
+                                <FileText className="h-4 w-4 text-slate-600" />
+                                <div>
+                                  <div className="text-sm font-medium">BOL Document</div>
+                                  <div className="text-xs text-muted-foreground">Uploaded document</div>
+                                  {/* OCR Summary if available */}
+                                  {bolUpload.ocrSummary && (
+                                    <div className="mt-2 p-2 bg-white rounded border text-xs">
+                                      <div className="font-medium mb-1">OCR Summary:</div>
+                                      <div className="text-slate-600">{bolUpload.ocrSummary}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {bolUpload.fileUrl && (
+                                  <>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => window.open(bolUpload.fileUrl, '_blank')}
+                                      className="text-xs"
+                                    >
+                                      <ExternalLink className="h-3 w-3 mr-1" />
+                                      View
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => {
+                                        const link = document.createElement('a');
+                                        link.href = bolUpload.fileUrl;
+                                        link.download = 'bol-document.pdf';
+                                        link.click();
+                                      }}
+                                      className="text-xs"
+                                    >
+                                      <Download className="h-3 w-3 mr-1" />
+                                      Download
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    
+                    return null;
+                  } catch (e) {
+                    console.warn("Failed to parse custom form data for BOL documents:", e);
+                    return null;
+                  }
+                })()}
+              </div>
+            )}
+            
+            {/* No BOL documents message */}
+            {!appointment.bolNumber && !appointment.customFormData && (
+              <div className="text-center py-6 text-muted-foreground">
+                <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <div className="text-sm">No BOL documents uploaded</div>
+                <div className="text-xs">BOL documents will appear here when uploaded</div>
+              </div>
+            )}
+          </div>
+
           {/* Notes */}
           <div className="border-t py-4">
             <h3 className="text-sm font-medium mb-3">Notes</h3>
