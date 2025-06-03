@@ -50,6 +50,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // File upload and serving routes
   app.use('/api/files', fileRoutes);
   
+  // BOL document access endpoint
+  app.get('/api/schedules/:id/documents', async (req: any, res) => {
+    try {
+      const scheduleId = parseInt(req.params.id);
+      const user = req.user;
+      
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // Get schedule to verify tenant access
+      const schedule = await storage.getSchedule(scheduleId);
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+
+      // Get facility to check tenant ownership
+      const facility = await storage.getFacility(schedule.facilityId);
+      if (!facility || facility.tenantId !== user.tenantId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Find documents associated with this schedule
+      const documentsDir = path.join(process.cwd(), 'uploads', 'bol');
+      const documents = [];
+      
+      if (fs.existsSync(documentsDir)) {
+        const files = fs.readdirSync(documentsDir);
+        for (const file of files) {
+          if (file.includes(`schedule_${scheduleId}_`) || file.includes(`appointment_${scheduleId}_`)) {
+            const filePath = path.join(documentsDir, file);
+            const stats = fs.statSync(filePath);
+            documents.push({
+              filename: file,
+              uploadDate: stats.mtime,
+              size: stats.size,
+              downloadUrl: `/api/schedules/${scheduleId}/documents/${file}`
+            });
+          }
+        }
+      }
+
+      res.json({ documents });
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      res.status(500).json({ error: 'Failed to fetch documents' });
+    }
+  });
+
+  // BOL document download endpoint
+  app.get('/api/schedules/:id/documents/:filename', async (req: any, res) => {
+    try {
+      const scheduleId = parseInt(req.params.id);
+      const filename = req.params.filename;
+      const user = req.user;
+      
+      if (!user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // Verify tenant access
+      const schedule = await storage.getSchedule(scheduleId);
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+
+      const facility = await storage.getFacility(schedule.facilityId);
+      if (!facility || facility.tenantId !== user.tenantId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Serve the file
+      const filePath = path.join(process.cwd(), 'uploads', 'bol', filename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Document not found' });
+      }
+
+      res.download(filePath);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      res.status(500).json({ error: 'Failed to download document' });
+    }
+  });
+  
   // Core API routes that frontend expects
   app.get('/api/users', async (req: any, res) => {
     try {
@@ -568,7 +652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           `
         };
         
-        await mailService.send(emailContent);
+        await sgMail.default.send(emailContent);
         console.log(`Confirmation email sent to ${bookingData.email}`);
       } catch (emailError) {
         console.error('Error sending confirmation email:', emailError);
