@@ -26,12 +26,30 @@ export function useRealtimeUpdates() {
     // Reset state for new connection
     setSocketError(null);
     
-    // Create WebSocket connection
+    // Create WebSocket connection with better URL construction
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const host = window.location.host;
+    
+    // Ensure we have a valid host before attempting connection
+    if (!host || host === 'undefined' || host.includes('undefined')) {
+      console.error('[WebSocket] Invalid host detected:', host);
+      setSocketError('Invalid WebSocket host configuration');
+      return;
+    }
+    
+    const wsUrl = `${protocol}//${host}/ws`;
     
     console.log(`[WebSocket] Connecting to: ${wsUrl} (Attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
-    const socket = new WebSocket(wsUrl);
+    
+    let socket: WebSocket;
+    
+    try {
+      socket = new WebSocket(wsUrl);
+    } catch (error) {
+      console.error('[WebSocket] Failed to create WebSocket connection:', error);
+      setSocketError(`Failed to create WebSocket: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return;
+    }
     
     let pollingInterval: NodeJS.Timeout | null = null;
     let reconnectTimeout: NodeJS.Timeout | null = null;

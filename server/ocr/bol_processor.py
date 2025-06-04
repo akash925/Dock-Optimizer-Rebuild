@@ -14,6 +14,9 @@ import base64
 import tempfile
 from typing import Dict, List, Any, Optional, Union, Tuple
 import sys
+import time
+import traceback
+import re
 
 # Handle dependencies with try/except for more resilience
 DEPENDENCIES_AVAILABLE = True
@@ -236,7 +239,6 @@ class BOLProcessor:
                             table_data["html"] = region["html"]
                             
                             # Also attempt to parse the data as rows/columns
-                            import re
                             from bs4 import BeautifulSoup
                             
                             soup = BeautifulSoup(region["html"], 'lxml')
@@ -287,6 +289,8 @@ class BOLProcessor:
         Returns:
             Dict with structured extracted information including text and tables
         """
+        start_time = time.time()
+        
         # Check if dependencies are available
         if not DEPENDENCIES_AVAILABLE:
             return {
@@ -298,7 +302,8 @@ class BOLProcessor:
                 ],
                 "system_dependencies": [
                     "libgl1" # Required by OpenCV
-                ]
+                ],
+                "processing_time": time.time() - start_time
             }
             
         # Check if OCR engine was initialized properly
@@ -306,14 +311,19 @@ class BOLProcessor:
             return {
                 "success": False,
                 "error": "OCR engine was not initialized properly",
-                "error_type": "InitializationError"
+                "error_type": "InitializationError",
+                "processing_time": time.time() - start_time
             }
         
         try:
+            print(f"[BOLProcessor] Starting image processing...")
+            
             # Preprocess the image
             preprocessed_img = self._preprocess_image(image_data)
+            print(f"[BOLProcessor] Image preprocessing completed")
             
             # Use PP-Structure for layout analysis and table recognition
+            print(f"[BOLProcessor] Running PP-Structure analysis...")
             structure_result = self.pp_structure(preprocessed_img)
             
             # Convert PP-Structure result to structured format
@@ -321,11 +331,14 @@ class BOLProcessor:
             
             # Also run regular OCR for full-page text detection as a fallback
             # This ensures we don't miss any text that PP-Structure might not catch
+            print(f"[BOLProcessor] Running fallback OCR...")
             ocr_result = self.ocr(preprocessed_img)
             
             # Extract text from OCR result
             full_text = []
             full_text_with_positions = []
+            total_confidence = 0
+            confidence_count = 0
             
             if ocr_result and len(ocr_result) > 0:
                 for line in ocr_result[0]:
@@ -340,6 +353,14 @@ class BOLProcessor:
                             "bbox": bbox,
                             "confidence": round(confidence, 3) if isinstance(confidence, float) else confidence
                         })
+                        
+                        # Track confidence for average calculation
+                        if isinstance(confidence, (int, float)):
+                            total_confidence += confidence
+                            confidence_count += 1
+            
+            # Calculate average confidence
+            average_confidence = round(total_confidence / confidence_count, 2) if confidence_count > 0 else 0
             
             # Add full text results to the structured data
             structured_data["full_text"] = {
@@ -347,18 +368,184 @@ class BOLProcessor:
                 "lines": full_text_with_positions
             }
             
-            # Add success status
-            structured_data["success"] = True
+            # Enhanced BOL field extraction
+            full_text_content = structured_data["full_text"]["text"]
+            extracted_fields = self._extract_bol_fields(full_text_content)
+            structured_data["extracted_fields"] = extracted_fields
+            
+            # Calculate processing metrics
+            processing_time = time.time() - start_time
+            
+            # Determine extraction quality score
+            quality_score = self._calculate_quality_score(structured_data, average_confidence)
+            
+            # Add success status and metadata
+            structured_data.update({
+                "success": True,
+                "processing_time": round(processing_time, 2),
+                "average_confidence": average_confidence,
+                "quality_score": quality_score,
+                "engine_version": "PaddleOCR",
+                "total_text_lines": len(full_text),
+                "total_tables": len(structured_data.get("tables", [])),
+                "total_layout_elements": len(structured_data.get("layout", []))
+            })
+            
+            print(f"[BOLProcessor] Processing completed successfully in {processing_time:.2f}s")
+            print(f"[BOLProcessor] Average confidence: {average_confidence}%, Quality score: {quality_score}%")
             
             return structured_data
             
         except Exception as e:
-            # Return error information
+            processing_time = time.time() - start_time
+            error_msg = str(e)
+            
+            print(f"[BOLProcessor] Error during processing: {error_msg}")
+            
             return {
                 "success": False,
-                "error": str(e),
-                "error_type": type(e).__name__
+                "error": error_msg,
+                "error_type": type(e).__name__,
+                "processing_time": round(processing_time, 2),
+                "traceback": traceback.format_exc() if hasattr(traceback, 'format_exc') else str(e)
             }
+
+    def _extract_bol_fields(self, text_content: str) -> Dict[str, Any]:
+        """
+        Extract specific BOL fields from the OCR text using advanced pattern matching.
+        
+        Args:
+            text_content: Full extracted text from the document
+            
+        Returns:
+            Dict with extracted BOL fields
+        """
+        extracted = {}
+        
+        # BOL Number patterns (enhanced)
+        bol_patterns = [
+            r'(?:BOL|B/L|Bill\s+of\s+Lading)[\s#:]*([A-Z0-9]{4,})',
+            r'(?:BOL|BL)\s*#?\s*([A-Z0-9]{4,})',
+            r'Bill\s+of\s+Lading\s+(?:Number|No|#)[\s:]*([A-Z0-9]{4,})',
+            r'\bBOL([A-Z0-9]{6,})\b'
+        ]
+        
+        for pattern in bol_patterns:
+            match = re.search(pattern, text_content, re.IGNORECASE)
+            if match:
+                extracted['bol_number'] = match.group(1).strip()
+                break
+        
+        # Carrier/Shipper patterns
+        carrier_patterns = [
+            r'(?:Carrier|Shipper)[\s:]*([A-Za-z\s&.,]+?)(?:\n|$|[A-Z]{2}\s+\d{5})',
+            r'(?:Transport|Trucking|Express|Logistics)[\s:]*([A-Za-z\s&.,]+)',
+            r'MC[\s#]*\d+[\s]*([A-Za-z\s&.,]+)'
+        ]
+        
+        for pattern in carrier_patterns:
+            match = re.search(pattern, text_content, re.IGNORECASE)
+            if match:
+                carrier_name = match.group(1).strip()
+                if len(carrier_name) > 3 and len(carrier_name) < 100:  # Reasonable length
+                    extracted['carrier_name'] = carrier_name
+                    break
+        
+        # Weight patterns
+        weight_patterns = [
+            r'(?:Weight|Wt)[\s:]*(\d+(?:\.\d+)?)\s*(?:lbs?|pounds?|kg|kgs?)',
+            r'(\d+(?:\.\d+)?)\s*(?:lbs?|pounds?)',
+            r'Total\s+Weight[\s:]*(\d+(?:\.\d+)?)'
+        ]
+        
+        for pattern in weight_patterns:
+            match = re.search(pattern, text_content, re.IGNORECASE)
+            if match:
+                extracted['weight'] = match.group(1) + ' lbs'
+                break
+        
+        # Pallet/Piece count patterns
+        pallet_patterns = [
+            r'(?:Pallets?|Skids?)[\s:]*(\d+)',
+            r'(\d+)\s*(?:Pallets?|Skids?)',
+            r'(?:Pieces?|Pcs?)[\s:]*(\d+)',
+            r'(?:Count|Qty)[\s:]*(\d+)'
+        ]
+        
+        for pattern in pallet_patterns:
+            match = re.search(pattern, text_content, re.IGNORECASE)
+            if match:
+                extracted['pallet_count'] = match.group(1)
+                break
+        
+        # Date patterns (ship date, delivery date)
+        date_patterns = [
+            r'(?:Ship|Shipping)\s+Date[\s:]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+            r'(?:Delivery|Del)\s+Date[\s:]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})',
+            r'Date[\s:]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})'
+        ]
+        
+        for pattern in date_patterns:
+            match = re.search(pattern, text_content, re.IGNORECASE)
+            if match:
+                extracted['ship_date'] = match.group(1)
+                break
+        
+        # Address patterns (simplified)
+        address_patterns = [
+            r'(?:From|Origin)[\s:]*([A-Za-z\s,]+,\s*[A-Z]{2}\s+\d{5})',
+            r'(?:To|Destination|Consignee)[\s:]*([A-Za-z\s,]+,\s*[A-Z]{2}\s+\d{5})'
+        ]
+        
+        for i, pattern in enumerate(address_patterns):
+            match = re.search(pattern, text_content, re.IGNORECASE)
+            if match:
+                field_name = 'from_address' if i == 0 else 'to_address'
+                extracted[field_name] = match.group(1).strip()
+        
+        return extracted
+
+    def _calculate_quality_score(self, structured_data: Dict, average_confidence: float) -> int:
+        """
+        Calculate a quality score for the extraction based on various factors.
+        
+        Args:
+            structured_data: The structured extraction results
+            average_confidence: Average OCR confidence score
+            
+        Returns:
+            Quality score from 0-100
+        """
+        score = 0
+        
+        # Base score from OCR confidence (40% weight)
+        score += (average_confidence * 0.4)
+        
+        # Text extraction score (30% weight)
+        full_text = structured_data.get("full_text", {}).get("text", "")
+        if len(full_text) > 100:  # Reasonable amount of text extracted
+            score += 30
+        elif len(full_text) > 50:
+            score += 20
+        elif len(full_text) > 10:
+            score += 10
+        
+        # Field extraction score (30% weight)
+        extracted_fields = structured_data.get("extracted_fields", {})
+        field_weights = {
+            'bol_number': 10,
+            'carrier_name': 8,
+            'weight': 5,
+            'pallet_count': 4,
+            'ship_date': 3
+        }
+        
+        for field, weight in field_weights.items():
+            if field in extracted_fields and extracted_fields[field]:
+                score += weight
+        
+        # Ensure score is within 0-100 range
+        return min(100, max(0, int(score)))
 
 # Simple function to check if OCR is working
 def test_ocr():

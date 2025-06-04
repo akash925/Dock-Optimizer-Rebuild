@@ -543,22 +543,89 @@ export async function calculateAvailabilitySlots(
         reason = `Too soon (${effectiveBufferMinutes}min buffer)`;
     }
 
-    // Check for conflicts with existing appointments
+    // Enhanced concurrent slot validation with detailed logging
     if (isSlotAvailable && existingAppointments && existingAppointments.length > 0) {
+        console.log(`[AvailabilityService] Checking conflicts for slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} against ${existingAppointments.length} existing appointments`);
+        console.log(`[AvailabilityService] Appointment type max concurrent: ${maxConcurrent || 'unlimited'}`);
+        
         conflictingApptsCount = existingAppointments.filter((appt) => {
             const apptStart = appt.startTime.getTime();
             const apptEnd = appt.endTime.getTime();
             const slotStart = currentSlotStartTime.getTime();
             const slotEnd = currentSlotEndTime.getTime();
-            return apptStart < slotEnd && apptEnd > slotStart;
+            
+            // Check if there's any time overlap between slot and existing appointment
+            const hasOverlap = (slotStart < apptEnd && slotEnd > apptStart);
+            
+            if (hasOverlap) {
+                console.log(`[AvailabilityService] Found overlapping appointment: ID ${appt.id}, type: ${appt.appointmentTypeId}, time: ${tzFormat(new Date(apptStart), 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(new Date(apptEnd), 'HH:mm', { timeZone: effectiveTimezone })}`);
+                
+                // For concurrent slot calculation, only count appointments of the same type
+                if (maxConcurrent !== null && appt.appointmentTypeId === appointmentTypeId) {
+                    console.log(`[AvailabilityService] Counting towards concurrent limit (same appointment type: ${appointmentTypeId})`);
+                    return true;
+                }
+                
+                // For different appointment types or unlimited concurrent, check if it's a true conflict
+                // (i.e., appointments that completely block the time slot)
+                const isCompleteConflict = (slotStart >= apptStart && slotEnd <= apptEnd) || 
+                                         (apptStart >= slotStart && apptEnd <= slotEnd);
+                
+                if (isCompleteConflict) {
+                    console.log(`[AvailabilityService] Found complete time conflict with appointment ID ${appt.id}`);
+                    return true;
+                }
+                
+                console.log(`[AvailabilityService] Partial overlap with appointment ID ${appt.id}, not blocking slot (different types or concurrent allowed)`);
+            }
+            
+            return false;
         }).length;
+        
+        console.log(`[AvailabilityService] Total conflicting appointments for slot: ${conflictingApptsCount}`);
+        
+        // Apply concurrent slot limits
+        if (maxConcurrent !== null && conflictingApptsCount >= maxConcurrent) {
+            console.log(`[AvailabilityService] Slot exceeded max concurrent limit: ${conflictingApptsCount} >= ${maxConcurrent}`);
+            isSlotAvailable = false;
+        } else if (maxConcurrent !== null) {
+            console.log(`[AvailabilityService] Slot within concurrent limit: ${conflictingApptsCount} < ${maxConcurrent}`);
+        } else {
+            console.log(`[AvailabilityService] No concurrent limit set, allowing overlapping appointments`);
+        }
+        
+        // Additional validation: Check for hard conflicts (same exact time, regardless of type)
+        const exactTimeConflicts = existingAppointments.filter((appt) => {
+            const apptStart = appt.startTime.getTime();
+            const apptEnd = appt.endTime.getTime();
+            const slotStart = currentSlotStartTime.getTime();
+            const slotEnd = currentSlotEndTime.getTime();
+            
+            // Exact time match
+            return (apptStart === slotStart && apptEnd === slotEnd);
+        }).length;
+        
+        if (exactTimeConflicts > 0) {
+            console.log(`[AvailabilityService] Found ${exactTimeConflicts} appointments with exact same time slot - checking if this should block availability`);
+            
+            // If max concurrent is 1 or null (meaning exclusive), block the slot
+            if (maxConcurrent === null || maxConcurrent <= 1) {
+                console.log(`[AvailabilityService] Blocking slot due to exact time conflict and exclusive/single concurrent setting`);
+                isSlotAvailable = false;
+            }
+        }
+    } else if (existingAppointments && existingAppointments.length === 0) {
+        console.log(`[AvailabilityService] No existing appointments for slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} - slot available`);
     }
 
-    // Check capacity
+    // Check capacity with detailed logging
     const currentCapacity = maxConcurrent - conflictingApptsCount;
+    console.log(`[AvailabilityService] Capacity calculation for slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })}: maxConcurrent=${maxConcurrent}, conflictingAppts=${conflictingApptsCount}, remainingCapacity=${currentCapacity}`);
+    
     if (isSlotAvailable && currentCapacity <= 0) {
         isSlotAvailable = false;
         reason = "Capacity full";
+        console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} marked unavailable due to full capacity (${conflictingApptsCount}/${maxConcurrent})`);
     }
 
     // Check break time - only apply if valid break times are configured

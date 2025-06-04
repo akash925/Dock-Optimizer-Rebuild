@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ChevronLeft, Users, LayoutDashboard, Building2, Settings, BarChart3, Calendar } from "lucide-react";
 import AdminTopNav from "./admin-top-nav";
 
@@ -8,6 +8,8 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
+  const [location] = useLocation();
+  
   return (
     <div className="flex min-h-screen bg-neutral-100">
       <div className="w-64 bg-white border-r border-neutral-200 p-4">
