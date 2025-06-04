@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon, GripVertical } from "lucide-react";
+import { FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon, GripVertical, Calendar } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
@@ -786,14 +786,10 @@ export default function AppointmentMaster() {
       
       <div className="border rounded-md bg-white">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="types">
               <FilePlus className="h-4 w-4 mr-2" />
               Appointment Types
-            </TabsTrigger>
-            <TabsTrigger value="questions">
-              <FilePlus className="h-4 w-4 mr-2" />
-              Custom Questions
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="h-4 w-4 mr-2" />
@@ -965,88 +961,6 @@ export default function AppointmentMaster() {
             </div>
           </TabsContent>
           
-          {/* Custom Questions Tab */}
-          <TabsContent value="questions">
-            <Card className="border-0 shadow-none">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Custom Form Questions</CardTitle>
-                    <CardDescription>
-                      Create and manage custom fields for appointment forms
-                    </CardDescription>
-                  </div>
-                  <Button onClick={() => {
-                    setSelectedQuestionId(null);
-                    setQuestionForm({
-                      label: "",
-                      type: "text",
-                      required: false,
-                      options: [],
-                      placeholder: "",
-                      appointmentType: "both"
-                    });
-                    setShowQuestionDialog(true);
-                  }}>
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Add Question
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  {customFields.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>No custom questions have been created yet.</p>
-                      <p className="text-sm mt-2">Click "Add Question" to create your first custom question.</p>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[50px]">Order</TableHead>
-                          <TableHead>Field Label</TableHead>
-                          <TableHead>Field Type</TableHead>
-                          <TableHead>Required</TableHead>
-                          <TableHead>Appointment Type</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {customFields.map((field) => (
-                          <TableRow key={field.id}>
-                            <TableCell>{field.order}</TableCell>
-                            <TableCell className="font-medium">{field.label}</TableCell>
-                            <TableCell className="capitalize">{field.type}</TableCell>
-                            <TableCell>{field.required ? "Yes" : "No"}</TableCell>
-                            <TableCell>{getAppointmentTypeLabel(field.appointmentType)}</TableCell>
-                            <TableCell className="text-right">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => editCustomField(field)}
-                              >
-                                Edit
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-red-500"
-                                onClick={() => deleteCustomField(field.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
           {/* General Settings Tab */}
           <TabsContent value="settings">
             <Card className="border-0 shadow-none">
@@ -1151,81 +1065,11 @@ export default function AppointmentMaster() {
                           <SelectItem value="1">1 hour</SelectItem>
                           <SelectItem value="2">2 hours</SelectItem>
                           <SelectItem value="4">4 hours</SelectItem>
-                          <SelectItem value="8">8 hours</SelectItem>
+                          <SelectItem value="12">12 hours</SelectItem>
                           <SelectItem value="24">24 hours</SelectItem>
                           <SelectItem value="48">48 hours</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* General Settings Tab */}
-          <TabsContent value="settings">
-            <Card className="border-0 shadow-none">
-              <CardHeader>
-                <CardTitle>Appointment System Settings</CardTitle>
-                <CardDescription>
-                  Configure general settings for the appointment system
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Email Notifications</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">Send appointment confirmations</span>
-                          <Switch checked={true} onCheckedChange={() => {}} />
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Send email confirmations when appointments are created
-                        </p>
-                      </div>
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">Send appointment reminders</span>
-                          <Switch checked={true} onCheckedChange={() => {}} />
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Send email reminders before scheduled appointments
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Calendar Settings</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div>
-                        <label className="block mb-2 font-medium">Default Calendar View</label>
-                        <Select defaultValue="week">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select view" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="day">Day View</SelectItem>
-                            <SelectItem value="week">Week View</SelectItem>
-                            <SelectItem value="month">Month View</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="block mb-2 font-medium">Week Starts On</label>
-                        <Select defaultValue="monday">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select day" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="sunday">Sunday</SelectItem>
-                            <SelectItem value="monday">Monday</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
                   </div>
                 </div>

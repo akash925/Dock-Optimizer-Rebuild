@@ -240,6 +240,10 @@ export async function calculateAvailabilitySlots(
   console.log(`- Calculated day of week: ${dayOfWeek} (${dayOfWeek === 1 ? 'Monday' : dayOfWeek === 0 ? 'Sunday' : 'Other Day'})`);
   console.log(`- Appointment date object: ${appointmentDate.toString()}`);
   
+  // Use the appointment date directly for facility timezone date string
+  const facilityTZDateStr = format(appointmentDate, 'yyyy-MM-dd');
+  console.log(`- Facility TZ date string: ${facilityTZDateStr}`);
+  
   // Debug logging for final day calculation
   console.log(`[AvailabilityService] Using day of week: ${dayOfWeek} for calculations`);
 
@@ -273,12 +277,18 @@ export async function calculateAvailabilitySlots(
     return result.value;
   };
 
-  // Extract appointment type settings with detailed logging
-  const overrideFacilityHours = getAppTypeField('overrideFacilityHours', 'override_facility_hours', false);
+  // Extract appointment type settings with proper field name handling
+  const appointmentTypeDuration = getAppTypeField('duration', 'duration', 60); // Default to 60 minutes
+  const appointmentTypeBufferTime = getAppTypeField('bufferTime', 'buffer_time', 0); // Default to 0 minutes
+  
+  // FIXED: Use correct field name for maxConcurrent - from your screenshots it shows "Max Concurrent Appointments = 2"
+  const maxConcurrent = getAppTypeField('maxConcurrent', 'max_concurrent', 1); // Default to 1 concurrent appointment
+  
+  // Log the extracted values for debugging
+  console.log(`[AvailabilityService] Appointment type settings: duration=${appointmentTypeDuration}min, buffer=${appointmentTypeBufferTime}min, maxConcurrent=${maxConcurrent}`);
+  
   const allowAppointmentsThroughBreaks = getAppTypeField('allowAppointmentsThroughBreaks', 'allow_appointments_through_breaks', false);
-  const appointmentTypeDuration = getAppTypeField('duration', 'duration', 60);
-  const appointmentTypeBufferTime = getAppTypeField('bufferTime', 'buffer_time', 0);
-  const maxConcurrent = getAppTypeField('maxConcurrent', 'max_concurrent', 1);
+  const overrideFacilityHours = getAppTypeField('overrideFacilityHours', 'override_facility_hours', false);
 
   console.log(`[AvailabilityService] APPOINTMENT TYPE SETTINGS SUMMARY:`);
   console.log(`[AvailabilityService] - Type ID: ${appointmentTypeId}`);
@@ -378,7 +388,6 @@ export async function calculateAvailabilitySlots(
   
   // Start by creating a date-less base time in facility timezone
   const facilityTZDate = tzParseISO(date, { timeZone: effectiveTimezone });
-  const facilityTZDateStr = tzFormat(facilityTZDate, 'yyyy-MM-dd', { timeZone: effectiveTimezone });
   
   // Important: Always interpret facility hours in their local timezone as entered in DB
   // Use parse instead of parseISO with the facility timezone to ensure correct time interpretation

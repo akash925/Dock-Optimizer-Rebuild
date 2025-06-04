@@ -26,12 +26,7 @@ import AssetManagerPage from "@/pages/asset-manager-page";
 import AssetEditPage from "@/pages/asset-edit-page";
 import CalendarView from "@/pages/calendar-view";
 import WebSocketTestPage from "@/pages/websocket-test";
-import AuthDebugPage from "@/pages/auth-debug-page";
-import TestFixedAppointment from "@/pages/test-fixed-appointment";
 import SeedQuestionsPage from "@/pages/seed-questions";
-import TestFixedAppointmentV2 from "@/pages/test-fixed-appointment-v2";
-import TestAppointmentPatchedPage from "@/pages/test-appointment-patched";
-import DebugAuthPage from "@/pages/debug-auth";
 import AdminDashboard from "@/pages/admin/index";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminProtectedRoute } from "./lib/admin-protected-route";
@@ -182,12 +177,7 @@ const publicRoutes: RouteConfig[] = [
   { path: "/booking-confirmation", component: BookingConfirmation },
   { path: "/driver-check-in", component: DriverCheckIn },
   { path: "/reschedule", component: Reschedule },
-  { path: "/cancel", component: Cancel },
-  { path: "/auth-debug", component: AuthDebugPage },
-  { path: "/test-fixed-appointment", component: TestFixedAppointment },
-  { path: "/test-fixed-appointment-v2", component: TestFixedAppointmentV2 },
-  { path: "/test-appointment-patched", component: TestAppointmentPatchedPage },
-  { path: "/debug-auth", component: DebugAuthPage }
+  { path: "/cancel", component: Cancel }
 ];
 
 // Router component that filters routes based on modules
