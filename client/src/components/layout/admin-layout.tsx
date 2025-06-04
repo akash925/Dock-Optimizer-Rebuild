@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "wouter";
-import { ChevronLeft, Users, LayoutDashboard, Building2, Settings } from "lucide-react";
+import { ChevronLeft, Users, LayoutDashboard, Building2, Settings, BarChart3, Calendar } from "lucide-react";
 import AdminTopNav from "./admin-top-nav";
 
 interface AdminLayoutProps {
@@ -21,22 +21,62 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="space-y-1">
           <p className="text-xs text-gray-500 font-semibold uppercase mb-2">Admin Panel</p>
           
-          <Link href="/admin" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-neutral-100 hover:text-primary">
-            <LayoutDashboard className="h-4 w-4" />
+          <Link
+            to="/admin"
+            className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              location === "/admin"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
             <span>Dashboard</span>
           </Link>
           
-          <Link href="/admin/organizations" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-neutral-100 hover:text-primary">
+          <Link
+            to="/admin/orgs"
+            className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              location.startsWith("/admin/orgs")
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
             <Building2 className="h-4 w-4" />
             <span>Organizations</span>
           </Link>
           
-          <Link href="/admin/users" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-neutral-100 hover:text-primary">
+          <Link
+            to="/admin/users"
+            className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              location.startsWith("/admin/users")
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
             <Users className="h-4 w-4" />
             <span>Users</span>
           </Link>
+
+          <Link
+            to="/admin/appointments"
+            className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              location.startsWith("/admin/appointments")
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Appointments</span>
+          </Link>
           
-          <Link href="/admin/settings" className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-neutral-100 hover:text-primary">
+          <Link
+            to="/admin/settings"
+            className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              location.startsWith("/admin/settings")
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
             <Settings className="h-4 w-4" />
             <span>Settings</span>
           </Link>

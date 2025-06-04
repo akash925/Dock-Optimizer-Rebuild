@@ -750,5 +750,263 @@ export const adminRoutes = (app: Express) => {
     }
   });
   
+  // Get all appointments across all organizations (admin view)
+  app.get('/api/admin/appointments', isSuperAdmin, async (req, res) => {
+    try {
+      const { page = 1, limit = 50, status, organizationId, startDate, endDate, search } = req.query;
+      const offset = (Number(page) - 1) * Number(limit);
+      
+      console.log('[Admin] Fetching appointments across all organizations');
+      
+      // Build query conditions
+      let whereConditions = [];
+      let queryParams = [];
+      let paramIndex = 1;
+      
+      // Filter by status if provided
+      if (status && status !== 'all') {
+        whereConditions.push(`s.status = $${paramIndex}`);
+        queryParams.push(status);
+        paramIndex++;
+      }
+      
+      // Filter by organization if provided
+      if (organizationId && organizationId !== 'all') {
+        whereConditions.push(`t.id = $${paramIndex}`);
+        queryParams.push(Number(organizationId));
+        paramIndex++;
+      }
+      
+      // Filter by date range if provided
+      if (startDate) {
+        whereConditions.push(`s.start_time >= $${paramIndex}`);
+        queryParams.push(startDate);
+        paramIndex++;
+      }
+      
+      if (endDate) {
+        whereConditions.push(`s.start_time <= $${paramIndex}`);
+        queryParams.push(endDate);
+        paramIndex++;
+      }
+      
+      // Search functionality (customer name, confirmation code, etc.)
+      if (search) {
+        whereConditions.push(`(
+          s.customer_name ILIKE $${paramIndex} OR 
+          s.confirmation_code ILIKE $${paramIndex} OR 
+          s.driver_name ILIKE $${paramIndex} OR
+          c.name ILIKE $${paramIndex}
+        )`);
+        queryParams.push(`%${search}%`);
+        paramIndex++;
+      }
+      
+      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+      
+      // Main query to get appointments with organization context
+      const appointmentsQuery = `
+        SELECT 
+          s.id,
+          s.start_time,
+          s.end_time,
+          s.status,
+          s.customer_name,
+          s.driver_name,
+          s.confirmation_code,
+          s.notes,
+          s.created_at,
+          s.updated_at,
+          
+          -- Organization info
+          t.id as organization_id,
+          t.name as organization_name,
+          t.subdomain as organization_subdomain,
+          
+          -- Facility info
+          f.id as facility_id,
+          f.name as facility_name,
+          f.address1 as facility_address,
+          
+          -- Dock info
+          d.id as dock_id,
+          d.name as dock_name,
+          
+          -- Carrier info
+          c.id as carrier_id,
+          c.name as carrier_name,
+          
+          -- Appointment type info
+          at.id as appointment_type_id,
+          at.name as appointment_type_name,
+          at.duration as appointment_duration
+          
+        FROM schedules s
+        
+        -- Join with docks to get facility
+        LEFT JOIN docks d ON s.dock_id = d.id
+        LEFT JOIN facilities f ON d.facility_id = f.id
+        
+        -- Join with organization through facility relationship
+        LEFT JOIN organization_facilities of ON f.id = of.facility_id
+        LEFT JOIN tenants t ON of.organization_id = t.id
+        
+        -- Join with other entities
+        LEFT JOIN carriers c ON s.carrier_id = c.id
+        LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+        
+        ${whereClause}
+        
+        ORDER BY s.start_time DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      
+      // Add pagination parameters
+      queryParams.push(Number(limit), offset);
+      
+      // Count query for pagination
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM schedules s
+        LEFT JOIN docks d ON s.dock_id = d.id
+        LEFT JOIN facilities f ON d.facility_id = f.id
+        LEFT JOIN organization_facilities of ON f.id = of.facility_id
+        LEFT JOIN tenants t ON of.organization_id = t.id
+        LEFT JOIN carriers c ON s.carrier_id = c.id
+        ${whereClause}
+      `;
+      
+      // Execute queries
+      const appointmentsResult = await db.execute(appointmentsQuery);
+      const countResult = await db.execute(countQuery.replace(/\$\d+/g, (match, p1) => {
+        const index = parseInt(match.replace('$', '')) - 1;
+        return queryParams[index] !== undefined ? `$${index + 1}` : match;
+      }));
+      
+      const appointments = appointmentsResult.rows;
+      const total = parseInt(countResult.rows[0]?.total || '0');
+      const totalPages = Math.ceil(total / Number(limit));
+      
+      console.log(`[Admin] Found ${appointments.length} appointments (${total} total)`);
+      
+      res.json({
+        appointments,
+        pagination: {
+          currentPage: Number(page),
+          totalPages,
+          totalItems: total,
+          itemsPerPage: Number(limit),
+          hasNextPage: Number(page) < totalPages,
+          hasPreviousPage: Number(page) > 1
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching admin appointments:', error);
+      res.status(500).json({ message: 'Failed to fetch appointments' });
+    }
+  });
+
+  // Get single appointment details for admin view
+  app.get('/api/admin/appointments/:id', isSuperAdmin, async (req, res) => {
+    try {
+      const appointmentId = Number(req.params.id);
+      
+      if (isNaN(appointmentId)) {
+        return res.status(400).json({ message: 'Invalid appointment ID' });
+      }
+      
+      console.log(`[Admin] Fetching appointment details for ID: ${appointmentId}`);
+      
+      // Detailed appointment query with all related information
+      const appointmentQuery = `
+        SELECT 
+          s.*,
+          
+          -- Organization info
+          t.id as organization_id,
+          t.name as organization_name,
+          t.subdomain as organization_subdomain,
+          t.contact_email as organization_contact,
+          
+          -- Facility info
+          f.id as facility_id,
+          f.name as facility_name,
+          f.address1 as facility_address,
+          f.city as facility_city,
+          f.state as facility_state,
+          f.pincode as facility_zip,
+          
+          -- Dock info
+          d.id as dock_id,
+          d.name as dock_name,
+          
+          -- Carrier info
+          c.id as carrier_id,
+          c.name as carrier_name,
+          c.contact_phone as carrier_phone,
+          
+          -- Appointment type info
+          at.id as appointment_type_id,
+          at.name as appointment_type_name,
+          at.duration as appointment_duration,
+          at.description as appointment_type_description,
+          
+          -- User who created the appointment
+          u.first_name as created_by_first_name,
+          u.last_name as created_by_last_name,
+          u.email as created_by_email
+          
+        FROM schedules s
+        
+        -- Join with docks to get facility
+        LEFT JOIN docks d ON s.dock_id = d.id
+        LEFT JOIN facilities f ON d.facility_id = f.id
+        
+        -- Join with organization through facility relationship
+        LEFT JOIN organization_facilities of ON f.id = of.facility_id
+        LEFT JOIN tenants t ON of.organization_id = t.id
+        
+        -- Join with other entities
+        LEFT JOIN carriers c ON s.carrier_id = c.id
+        LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+        LEFT JOIN users u ON s.created_by = u.id
+        
+        WHERE s.id = $1
+      `;
+      
+      const result = await db.execute(appointmentQuery);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: 'Appointment not found' });
+      }
+      
+      const appointment = result.rows[0];
+      
+      // Get any custom field data for this appointment
+      let customFields = [];
+      try {
+        const customFieldsQuery = `
+          SELECT field_key, field_value, field_type
+          FROM appointment_custom_fields 
+          WHERE appointment_id = $1
+          ORDER BY field_key
+        `;
+        const customFieldsResult = await db.execute(customFieldsQuery);
+        customFields = customFieldsResult.rows;
+      } catch (error) {
+        console.warn('Could not fetch custom fields:', error);
+      }
+      
+      console.log(`[Admin] Successfully retrieved appointment ${appointmentId} details`);
+      
+      res.json({
+        appointment,
+        customFields
+      });
+    } catch (error) {
+      console.error('Error fetching admin appointment details:', error);
+      res.status(500).json({ message: 'Failed to fetch appointment details' });
+    }
+  });
 
 };

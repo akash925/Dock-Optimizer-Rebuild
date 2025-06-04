@@ -27,7 +27,11 @@ import AssetEditPage from "@/pages/asset-edit-page";
 import CalendarView from "@/pages/calendar-view";
 import WebSocketTestPage from "@/pages/websocket-test";
 import SeedQuestionsPage from "@/pages/seed-questions";
-import AdminDashboard from "@/pages/admin/index";
+import AdminDashboard from "@/pages/admin";
+import AdminOrganizations from "@/pages/admin/orgs";
+import AdminUsers from "@/pages/admin/users";
+import AdminSettings from "@/pages/admin/settings";
+import AdminAppointments from "@/pages/admin/appointments";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminProtectedRoute } from "./lib/admin-protected-route";
 import { ThemeProvider } from "@/components/ui/theme-provider";
@@ -161,7 +165,16 @@ const adminRoutes: RouteConfig[] = [
     path: "/admin/settings", 
     component: () => (
       <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-        <AdminSettingsPage />
+        <AdminSettings />
+      </Suspense>
+    ),
+    isAdmin: true
+  },
+  { 
+    path: "/admin/appointments", 
+    component: () => (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <AdminAppointments />
       </Suspense>
     ),
     isAdmin: true
