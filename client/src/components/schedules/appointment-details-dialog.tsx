@@ -1822,198 +1822,72 @@ export function AppointmentDetailsDialog({
                           )}
                         </div>
                       </div>
-                
-                {/* Enhanced Extracted Information Display */}
-                {(hasBolData && (parsedData.bolData.parsedOcrText || appointment.bolNumber)) && (
-                  <div className="mt-4 bg-white rounded-lg border p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="bg-green-100 p-1.5 rounded">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                    </div>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="space-y-4">
+                  {/* Upload BOL Section */}
+                  <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <div className="text-sm text-gray-600 mb-4">
+                      <div className="font-medium">No BOL documents uploaded</div>
+                      <div className="text-xs">Upload a BOL document to extract and display shipment information</div>
+                    </div>
+                    
+                    {!isUploadingBol ? (
+                      <Button 
+                        variant="outline" 
+                        className="bg-white hover:bg-gray-50"
+                        onClick={() => setIsUploadingBol(true)}
+                      >
+                        <FileUp className="h-4 w-4 mr-2" />
+                        Upload BOL Document
+                      </Button>
+                    ) : (
+                      <div className="space-y-4 max-w-md mx-auto">
+                        <BolUpload 
+                          scheduleId={appointment.id}
+                          onBolProcessed={(data, fileUrl) => {
+                            // This will be called after BOL processing is complete
+                            console.log("BOL processed with data:", data);
+                            toast({
+                              title: "BOL document uploaded",
+                              description: "The BOL has been processed and linked to this appointment",
+                            });
+                            
+                            // Refresh appointment data to show the newly linked BOL
+                            queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+                            
+                            // Close the upload section
+                            setIsUploadingBol(false);
+                          }}
+                          onProcessingStateChange={(isProcessing) => {
+                            // Show toast for OCR processing start/end if needed
+                            if (isProcessing) {
+                              toast({
+                                title: "Processing BOL document",
+                                description: "Extracting data from document using OCR...",
+                              });
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsUploadingBol(false)}
+                          className="w-full"
+                        >
+                          Cancel Upload
+                        </Button>
                       </div>
-                      <span className="text-sm font-medium text-gray-900">Extracted Information</span>
-                    </div>
-                    
-                    {/* Key Information Cards */}
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      {appointment.bolNumber && (
-                        <div className="bg-blue-50 p-2 rounded border">
-                          <div className="text-xs text-blue-600 font-medium">BOL Number</div>
-                          <div className="text-sm font-mono">{appointment.bolNumber}</div>
-                        </div>
-                      )}
-                      
-                      {appointment.carrierName && (
-                        <div className="bg-purple-50 p-2 rounded border">
-                          <div className="text-xs text-purple-600 font-medium">Carrier</div>
-                          <div className="text-sm">{appointment.carrierName}</div>
-                        </div>
-                      )}
-                      
-                      {appointment.weight && (
-                        <div className="bg-yellow-50 p-2 rounded border">
-                          <div className="text-xs text-yellow-600 font-medium">Weight</div>
-                          <div className="text-sm">{appointment.weight}</div>
-                        </div>
-                      )}
-                      
-                      {appointment.palletCount && (
-                        <div className="bg-green-50 p-2 rounded border">
-                          <div className="text-xs text-green-600 font-medium">Pallets</div>
-                          <div className="text-sm">{appointment.palletCount}</div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Full OCR Text */}
-                    {parsedData.bolData.parsedOcrText && (
-                      <details className="group">
-                        <summary className="cursor-pointer text-xs text-gray-600 hover:text-gray-800 font-medium mb-2 flex items-center gap-1">
-                          <span className="group-open:rotate-90 transition-transform">▶</span>
-                          View Full Extracted Text
-                        </summary>
-                        <pre className="text-xs font-mono p-3 bg-gray-50 rounded border whitespace-pre-wrap max-h-40 overflow-y-auto">
-                          {parsedData.bolData.parsedOcrText}
-                        </pre>
-                      </details>
                     )}
                   </div>
-                )}
-              </div>
-            ) 
-                }
-                  return (
-                    <div className="space-y-4">
-                      {/* Upload BOL Section */}
-                      <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                        <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                        <div className="text-sm text-gray-600 mb-4">
-                          <div className="font-medium">No BOL documents uploaded</div>
-                          <div className="text-xs">Upload a BOL document to extract and display shipment information</div>
-                        </div>
-                        
-                        {!isUploadingBol ? (
-                          <Button 
-                            variant="outline" 
-                            className="bg-white hover:bg-gray-50"
-                            onClick={() => setIsUploadingBol(true)}
-                          >
-                            <FileUp className="h-4 w-4 mr-2" />
-                            Upload BOL Document
-                          </Button>
-                        ) : (
-                          <div className="space-y-4 max-w-md mx-auto">
-                            <BolUpload 
-                              scheduleId={appointment.id}
-                              onBolProcessed={(data, fileUrl) => {
-                                // This will be called after BOL processing is complete
-                                console.log("BOL processed with data:", data);
-                                toast({
-                                  title: "BOL document uploaded",
-                                  description: "The BOL has been processed and linked to this appointment",
-                                });
-                                
-                                // Refresh appointment data to show the newly linked BOL
-                                queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
-                                
-                                // Close the upload section
-                                setIsUploadingBol(false);
-                              }}
-                              onProcessingStateChange={(isProcessing) => {
-                                // Show toast for OCR processing start/end if needed
-                                if (isProcessing) {
-                                  toast({
-                                    title: "Processing BOL Document",
-                                    description: "Extracting data from document using OCR...",
-                                  });
-                                }
-                              }}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setIsUploadingBol(false)}
-                              className="w-full"
-                            >
-                              Cancel Upload
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-              })()}
-          </div>
-                          
-                          {/* Legacy BOL upload format */}
-                          {bolUpload && !bolFiles.length && (
-                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
-                              <div className="flex items-center gap-3">
-                                <FileText className="h-4 w-4 text-slate-600" />
-                                <div>
-                                  <div className="text-sm font-medium">BOL Document</div>
-                                  <div className="text-xs text-muted-foreground">Uploaded document</div>
-                                  {/* OCR Summary if available */}
-                                  {bolUpload.ocrSummary && (
-                                    <div className="mt-2 p-2 bg-white rounded border text-xs">
-                                      <div className="font-medium mb-1">OCR Summary:</div>
-                                      <div className="text-slate-600">{bolUpload.ocrSummary}</div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {bolUpload.fileUrl && (
-                                  <>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => window.open(bolUpload.fileUrl, '_blank')}
-                                      className="text-xs"
-                                    >
-                                      <ExternalLink className="h-3 w-3 mr-1" />
-                                      View
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => {
-                                        const link = document.createElement('a');
-                                        link.href = bolUpload.fileUrl;
-                                        link.download = 'bol-document.pdf';
-                                        link.click();
-                                      }}
-                                      className="text-xs"
-                                    >
-                                      <Download className="h-3 w-3 mr-1" />
-                                      Download
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-                    
-                    return null;
-                  } catch (e) {
-                    console.warn("Failed to parse custom form data for BOL documents:", e);
-                    return null;
-                  }
-                })()}
-              </div>
-            )}
-            
-            {/* No BOL documents message */}
-            {!appointment.bolNumber && !appointment.customFormData && (
-              <div className="text-center py-6 text-muted-foreground">
-                <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <div className="text-sm">No BOL documents uploaded</div>
-                <div className="text-xs">BOL documents will appear here when uploaded</div>
-              </div>
-            )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Notes */}
@@ -2039,14 +1913,17 @@ export function AppointmentDetailsDialog({
               )}
             </div>
           </div>
-          
-          {/* BOL Documents */}
-          <div className="border-t py-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium mb-3 flex items-center">
-                <FileText className="h-4 w-4 mr-2 text-primary" />
-                Bill of Lading (BOL) Documents
-              </h3>
+           
+          {/* Release Photos Section - Only shown for completed appointments */}
+          {appointment.status === "completed" && (
+            <div className="border-t py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium mb-3 flex items-center">
+                  <ImageIcon className="h-4 w-4 mr-2 text-primary" />
+                  Release Photos
+                </h3>
+              </div>
+              
               {(() => {
                 // Helper function to safely parse customFormData if it's a string
                 const parseCustomFormData = () => {
@@ -2066,157 +1943,244 @@ export function AppointmentDetailsDialog({
                 };
                 
                 const parsedData = parseCustomFormData();
+                const releasePhoto = parsedData?.releasePhoto;
                 
-                return appointment.bolNumber && (
-                  <Badge variant="outline" className="mb-3 text-xs bg-blue-50 text-blue-700 border-blue-200">
-                    <FileCheck className="h-3 w-3 mr-1" />
-                    BOL #{appointment.bolNumber}
-                  </Badge>
-                );
+                if (releasePhoto) {
+                  return (
+                    <div className="space-y-3">
+                      <div className="bg-primary/5 p-3 rounded-md border border-primary/20">
+                        <div className="mb-2">
+                          <p className="text-xs text-muted-foreground">
+                            Photo taken at: {appointment.actualEndTime 
+                              ? new Date(appointment.actualEndTime).toLocaleString() 
+                              : "Unknown time"}
+                          </p>
+                        </div>
+                        <div className="border rounded-lg overflow-hidden bg-white">
+                          <img 
+                            src={releasePhoto.fileUrl || `/uploads/${releasePhoto.filename}`} 
+                            alt="Release confirmation" 
+                            className="w-full h-auto max-h-64 object-contain"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="text-center p-6 border border-dashed rounded-md bg-slate-50">
+                      <ImageIcon className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-50" />
+                      <p className="text-sm text-muted-foreground">No release photos available</p>
+                    </div>
+                  );
+                }
               })()}
             </div>
+          )}
+           
+          {/* History Button */}
+          <div className="border-t py-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="text-xs flex items-center gap-1"
+              onClick={() => setIsHistoryDialogOpen(true)}
+            >
+              <History className="h-3.5 w-3.5" />
+              View Appointment History
+            </Button>
             
-            {/* Enhanced BOL Document Display */}
-            {(() => {
-              // Helper function to safely parse customFormData if it's a string
-              const parseCustomFormData = () => {
-                if (!appointment.customFormData) return null;
+            {/* Appointment History Dialog */}
+            <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Appointment History</DialogTitle>
+                  <DialogDescription>
+                    View the full history and changes for this appointment.
+                  </DialogDescription>
+                </DialogHeader>
                 
-                try {
-                  // If it's already an object, use it directly
-                  if (typeof appointment.customFormData === 'object') {
-                    return appointment.customFormData;
+                <ScrollArea className="max-h-[300px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead>User</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {eventHistory.map((event) => (
+                        <TableRow key={event.id}>
+                          <TableCell className="font-medium capitalize">
+                            {event.type.replace('-', ' ')}
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(event.timestamp), timeFormat === "24h" ? "MM/dd/yyyy HH:mm" : "MM/dd/yyyy hh:mm a")}
+                          </TableCell>
+                          <TableCell>
+                            {typeof event.user === 'number' 
+                              ? `User #${event.user}` 
+                              : event.user}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+                
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsHistoryDialogOpen(false)}
+                  >
+                    Close
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Actions Footer */}
+          <DialogFooter className="flex justify-between pt-2 border-t">
+            <div className="flex items-center gap-2">
+              {/* Delete button (only for admin users) */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-xs text-destructive border-destructive hover:bg-destructive/10"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
+                    deleteAppointmentMutation.mutate();
                   }
-                  // Otherwise parse it from string
-                  return JSON.parse(appointment.customFormData as string);
-                } catch (e) {
-                  console.error("Failed to parse customFormData:", e);
-                  return null;
-                }
-              };
+                }}
+                disabled={deleteAppointmentMutation.isPending}
+              >
+                {deleteAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                Delete
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {/* Edit or Save button */}
+              {isEditing ? (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => updateAppointmentMutation.mutate(formData)}
+                  disabled={updateAppointmentMutation.isPending}
+                >
+                  {updateAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                  <Save className="h-3.5 w-3.5 mr-1" />
+                  Save
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit className="h-3.5 w-3.5 mr-1" />
+                  Edit
+                </Button>
+              )}
               
-              const parsedData = parseCustomFormData();
+              {/* Reschedule button (only if not completed or cancelled) */}
+              {!["completed", "cancelled"].includes(appointment.status) && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setIsRescheduling(true)}
+                >
+                  <Calendar className="h-3.5 w-3.5 mr-1" />
+                  Reschedule
+                </Button>
+              )}
               
-              // Check for BOL data in either customFormData or directly on the appointment
-              const hasBolData = parsedData && parsedData.bolData && typeof parsedData.bolData === 'object';
-              const hasDirectBolInfo = appointment.bolNumber || appointment.bolDocumentPath;
-              const hasBolDocuments = appointment.bolDocuments && appointment.bolDocuments.length > 0;
+              {/* Status-based action buttons */}
+              {appointment.status === "scheduled" && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => cancelAppointmentMutation.mutate()}
+                    disabled={cancelAppointmentMutation.isPending}
+                  >
+                    {cancelAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                    Cancel
+                  </Button>
+                  
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="text-xs bg-blue-600 hover:bg-blue-700"
+                    onClick={() => setShowCheckInDialog(true)}
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Check In
+                  </Button>
+                </>
+              )}
               
-              if (hasBolData || hasDirectBolInfo || hasBolDocuments) {
-                return (
-                  <div className="space-y-4">
-                    {/* Enhanced BOL Document Display */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-3">
-                          <div className="bg-blue-100 p-2 rounded-lg">
-                            <FileCheck className="h-6 w-6 text-blue-600" />
-                          </div>
-                          
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900 mb-1">
-                              {(hasBolData && (parsedData?.bolData?.originalName || parsedData?.bolData?.fileName)) 
-                                || (hasBolDocuments && appointment.bolDocuments && appointment.bolDocuments[0]?.name)
-                                || appointment.bolNumber
-                                || 'BOL Document'}
-                            </h4>
-                            
-                            <div className="text-sm text-gray-600 space-y-1">
-                              {/* BOL Number */}
-                              {(hasBolData && parsedData?.bolData?.bolNumber || appointment.bolNumber) && (
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">BOL Number:</span>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {(hasBolData && parsedData?.bolData?.bolNumber) || appointment.bolNumber}
-                                  </Badge>
-                                </div>
-                              )}
-                              
-                              {/* Upload Date */}
-                              {(hasBolData && parsedData?.bolData?.uploadedAt) && (
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-3 w-3" />
-                                  <span>Uploaded: {new Date(parsedData.bolData.uploadedAt).toLocaleDateString()}</span>
-                                </div>
-                              )}
-                              
-                              {/* File Size */}
-                              {(hasBolData && parsedData?.bolData?.fileSize) && (
-                                <div className="flex items-center gap-2">
-                                  <span>Size: {Math.round(parsedData.bolData.fileSize / 1024)} KB</span>
-                                </div>
-                              )}
-                              
-                              {/* Extraction Confidence */}
-                              {(hasBolData && parsedData?.bolData?.extractionConfidence) && (
-                                <div className="flex items-center gap-2">
-                                  <span>Scan Quality:</span>
-                                  <Badge 
-                                    variant={parsedData.bolData.extractionConfidence > 80 ? "default" : "secondary"}
-                                    className="text-xs"
-                                  >
-                                    {parsedData.bolData.extractionConfidence}% confidence
-                                  </Badge>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Action Buttons */}
-                        <div className="flex flex-col space-y-2">
-                          {/* View/Preview Button */}
-                          {(hasBolData && parsedData?.bolData?.fileUrl) && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-xs bg-white hover:bg-gray-50"
-                                    onClick={() => window.open(parsedData.bolData.fileUrl, '_blank')}
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                                    Preview
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>View document in new tab</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          
-                          {/* Download Button */}
-                          {(hasBolData && parsedData?.bolData?.fileUrl) && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    className="text-xs"
-                                    asChild
-                                  >
-                                    <a 
-                                      href={`/api/files/download/${parsedData.bolData.fileUrl.split('/').pop()}`} 
-                                      download={parsedData.bolData.originalName || 'bol-document.pdf'}
-                                    >
-                                      <Download className="h-3.5 w-3.5 mr-1" />
-                                      Download
-                                    </a>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Download original document</p>
-                                </TooltipContent>
-                              </Tooltip>
+              {appointment.status === "in-progress" && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => cancelAppointmentMutation.mutate()}
+                    disabled={cancelAppointmentMutation.isPending}
+                  >
+                    {cancelAppointmentMutation.isPending && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                    Cancel
+                  </Button>
+                  
+                  <Button 
+                    variant="default"
+                    size="sm"
+                    className="text-xs bg-green-600 hover:bg-green-700"
+                    onClick={() => setShowCheckOutDialog(true)}
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    Check Out
+                  </Button>
                 </>
               )}
             </div>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Reschedule Dialog */}
+    <Dialog open={isRescheduling} onOpenChange={setIsRescheduling}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Reschedule Appointment</DialogTitle>
+          <DialogDescription>
+            Select a new date and time for this appointment.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-muted-foreground">
+            Rescheduling functionality will be available soon.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsRescheduling(false)}
+          >
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </>
   );
 }
