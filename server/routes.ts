@@ -9,6 +9,7 @@ import { WebSocketServer } from "ws";
 import { db } from "./db";
 import fileRoutes from "./routes/files";
 import { registerQrCodeRoutes } from "./endpoints/qr-codes";
+import { adminRoutes } from "./modules/admin/routes";
 
 // Type for the WebSocket client with tenant metadata
 interface TenantWebSocket extends WebSocket {
@@ -50,9 +51,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register QR code routes for email functionality
   registerQrCodeRoutes(app);
+
+  // Check-in appointment endpoint
+  app.patch('/api/schedules/:id/check-in', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const scheduleId = parseInt(req.params.id);
+      const { actualStartTime } = req.body;
+      
+      if (isNaN(scheduleId)) {
+        return res.status(400).json({ error: 'Invalid schedule ID' });
+      }
+
+      const schedule = await storage.getSchedule(scheduleId);
+      
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+
+      // Update schedule with check-in information
+      const updatedSchedule = await storage.updateSchedule(scheduleId, {
+        status: 'in-progress',
+        actualStartTime: actualStartTime ? new Date(actualStartTime) : new Date(),
+        lastModifiedAt: new Date(),
+        lastModifiedBy: req.user.id
+      });
+
+      res.json(updatedSchedule);
+    } catch (error) {
+      console.error('Error checking in appointment:', error);
+      res.status(500).json({ error: 'Failed to check in appointment' });
+    }
+  });
+
+  // Check-out appointment endpoint
+  app.patch('/api/schedules/:id/check-out', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const scheduleId = parseInt(req.params.id);
+      const { actualEndTime, notes, customFormData } = req.body;
+      
+      if (isNaN(scheduleId)) {
+        return res.status(400).json({ error: 'Invalid schedule ID' });
+      }
+
+      const schedule = await storage.getSchedule(scheduleId);
+      
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+
+      // Update schedule with check-out information
+      const updatedSchedule = await storage.updateSchedule(scheduleId, {
+        status: 'completed',
+        actualEndTime: actualEndTime ? new Date(actualEndTime) : new Date(),
+        notes: notes || schedule.notes,
+        customFormData: customFormData || schedule.customFormData,
+        lastModifiedAt: new Date(),
+        lastModifiedBy: req.user.id
+      });
+
+      res.json(updatedSchedule);
+    } catch (error) {
+      console.error('Error checking out appointment:', error);
+      res.status(500).json({ error: 'Failed to check out appointment' });
+    }
+  });
+
+  // Assign door to appointment endpoint
+  app.patch('/api/schedules/:id/assign-door', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const scheduleId = parseInt(req.params.id);
+      const { dockId } = req.body;
+      
+      if (isNaN(scheduleId) || isNaN(dockId)) {
+        return res.status(400).json({ error: 'Invalid schedule or dock ID' });
+      }
+
+      const schedule = await storage.getSchedule(scheduleId);
+      
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+
+      // Update schedule with dock assignment
+      const updatedSchedule = await storage.updateSchedule(scheduleId, {
+        dockId: dockId,
+        lastModifiedAt: new Date(),
+        lastModifiedBy: req.user.id
+      });
+
+      res.json(updatedSchedule);
+    } catch (error) {
+      console.error('Error assigning door to appointment:', error);
+      res.status(500).json({ error: 'Failed to assign door to appointment' });
+    }
+  });
+
+  // Cancel appointment endpoint
+  app.patch('/api/schedules/:id/cancel', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const scheduleId = parseInt(req.params.id);
+      
+      if (isNaN(scheduleId)) {
+        return res.status(400).json({ error: 'Invalid schedule ID' });
+      }
+
+      const schedule = await storage.getSchedule(scheduleId);
+      
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+
+      // Update schedule status to cancelled
+      const updatedSchedule = await storage.updateSchedule(scheduleId, {
+        status: 'cancelled',
+        lastModifiedAt: new Date(),
+        lastModifiedBy: req.user.id
+      });
+
+      res.json(updatedSchedule);
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      res.status(500).json({ error: 'Failed to cancel appointment' });
+    }
+  });
+
+  // Reschedule appointment endpoint
+  app.patch('/api/schedules/:id/reschedule', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const scheduleId = parseInt(req.params.id);
+      const { startTime, endTime } = req.body;
+      
+      if (isNaN(scheduleId)) {
+        return res.status(400).json({ error: 'Invalid schedule ID' });
+      }
+
+      if (!startTime || !endTime) {
+        return res.status(400).json({ error: 'Start time and end time are required' });
+      }
+
+      const schedule = await storage.getSchedule(scheduleId);
+      
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+
+      // Update schedule with new times
+      const updatedSchedule = await storage.updateSchedule(scheduleId, {
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        lastModifiedAt: new Date(),
+        lastModifiedBy: req.user.id
+      });
+
+      res.json(updatedSchedule);
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error);
+      res.status(500).json({ error: 'Failed to reschedule appointment' });
+    }
+  });
   
   // File upload and serving routes
   app.use('/api/files', fileRoutes);
+  
+  // Register admin routes
+  adminRoutes(app);
   
   // BOL document access endpoint
   app.get('/api/schedules/:id/documents', async (req: any, res) => {
