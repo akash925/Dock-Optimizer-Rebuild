@@ -69,7 +69,7 @@ export default function ExternalBooking({ slug }: { slug: string }) {
       <div className="min-h-screen bg-gradient-to-b from-primary/20 to-background">
         <div className="container mx-auto py-8 px-4">
           <div className="bg-white rounded-lg shadow-lg p-6 mx-auto max-w-4xl">
-            {/* Header with logo */}
+            {/* Header with organization logo */}
             <div className="flex items-center mb-6">
               {bookingPage.useOrganizationLogo ? (
                 <img 
@@ -77,7 +77,7 @@ export default function ExternalBooking({ slug }: { slug: string }) {
                   alt={`${bookingPage.name} logo`} 
                   className="h-16 mr-4"
                   onError={(e) => {
-                    // Fallback to booking page logo or default
+                    // Fallback to booking page logo or default organization branding
                     e.currentTarget.onerror = null;
                     e.currentTarget.src = bookingPage.logoUrl ? 
                       `/api/booking-pages/logo/${bookingPage.id}` : dockOptimizerLogo;
@@ -90,11 +90,12 @@ export default function ExternalBooking({ slug }: { slug: string }) {
                   className="h-16 mr-4" 
                 />
               ) : (
-                <img 
-                  src={dockOptimizerLogo} 
-                  alt="Dock Optimizer" 
-                  className="h-16 mr-4" 
-                />
+                // Show organization name as text if no logo available
+                <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mr-4">
+                  <span className="text-primary font-bold text-xl">
+                    {bookingPage.name?.charAt(0) || 'O'}
+                  </span>
+                </div>
               )}
               <div>
                 <h1 className="text-2xl font-bold">{bookingPage.name} Dock Appointment Scheduler</h1>
@@ -110,6 +111,20 @@ export default function ExternalBooking({ slug }: { slug: string }) {
               bookingPage={bookingPage}
               slug={slug}
             />
+            
+            {/* Dock Optimizer footer */}
+            <div className="flex justify-center items-center mt-8 pt-6 border-t border-gray-200">
+              <div className="flex items-center space-x-2 opacity-60 hover:opacity-100 transition-opacity">
+                <img 
+                  src={dockOptimizerLogo} 
+                  alt="Powered by Dock Optimizer" 
+                  className="h-8" 
+                />
+                <span className="text-sm text-gray-600">
+                  Powered by Dock Optimizer
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { getStorage } from "./storage";
 import { setupAuth } from "./auth";
@@ -45,6 +46,9 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get storage instance
   const storage = await getStorage();
+  
+  // Serve static files from uploads directory for photos and documents
+  app.use('/uploads', express.static(uploadsDir));
   
   // Setup authentication routes
   setupAuth(app);
@@ -763,14 +767,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const facility = await storage.getFacility(bookingData.facilityId);
       const facilityTimezone = facility?.timezone || 'America/New_York';
       
+      // Get appointment type for duration and validation
+      const appointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
+      if (!appointmentType) {
+        return res.status(400).json({ error: 'Invalid appointment type' });
+      }
+      
       // Parse the selected time correctly without timezone conversion issues
       const utcStartTime = new Date(`${bookingData.date}T${bookingData.time}:00.000Z`);
       
-      // Get appointment type for duration
-      const appointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
       // Duration is stored in minutes, calculate end time correctly
-      const durationMinutes = appointmentType?.duration || 60;
+      const durationMinutes = appointmentType.duration || 60;
       const utcEndTime = new Date(utcStartTime.getTime() + (durationMinutes * 60 * 1000));
+      
+      // 🔥 CRITICAL VALIDATION: Check availability before creating appointment
+      console.log(`[Booking Validation] Checking availability for ${bookingData.date} ${bookingData.time} at facility ${bookingData.facilityId}`);
+      
+      try {
+        // Import availability service
+        const { calculateAvailabilitySlots } = await import('./src/services/availability');
+        
+        // Calculate available slots for the requested date
+        const availableSlots = await calculateAvailabilitySlots(
+          db,
+          storage,
+          bookingData.date,
+          bookingData.facilityId,
+          bookingData.appointmentTypeId,
+          bookingPage.tenantId
+        );
+        
+        // Find the specific time slot that was requested
+        const requestedSlot = availableSlots.find(slot => slot.time === bookingData.time);
+        
+        if (!requestedSlot) {
+          console.log(`[Booking Validation] ❌ Time slot ${bookingData.time} not found in available slots`);
+          return res.status(400).json({ 
+            error: 'Invalid time slot selected',
+            message: 'The selected time slot is not available for booking'
+          });
+        }
+        
+        if (!requestedSlot.available) {
+          console.log(`[Booking Validation] ❌ Time slot ${bookingData.time} is not available: ${requestedSlot.reason}`);
+          return res.status(409).json({ 
+            error: 'Time slot not available',
+            message: requestedSlot.reason || 'The selected time slot is no longer available'
+          });
+        }
+        
+        if (requestedSlot.remainingCapacity <= 0) {
+          console.log(`[Booking Validation] ❌ Time slot ${bookingData.time} has no remaining capacity`);
+          return res.status(409).json({ 
+            error: 'Slot fully booked',
+            message: 'This time slot is fully booked. Please select another time.'
+          });
+        }
+        
+        console.log(`[Booking Validation] ✅ Time slot ${bookingData.time} is available with ${requestedSlot.remainingCapacity} remaining capacity`);
+        
+      } catch (availabilityError) {
+        console.error('[Booking Validation] Error checking availability:', availabilityError);
+        return res.status(500).json({ 
+          error: 'Unable to verify availability',
+          message: 'Please try again or contact support'
+        });
+      }
       
       // Create the appointment
       const appointmentData = {
