@@ -30,4 +30,14 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
+  server: {
+    host: "0.0.0.0",
+    port: 5173,
+    hmr: {
+      // Fix HMR for Replit environment
+      port: process.env.REPL_ID ? undefined : 5173,
+      host: process.env.REPL_ID ? process.env.REPL_SLUG + "." + process.env.REPL_OWNER + ".repl.co" : "localhost",
+      protocol: process.env.REPL_ID ? "wss" : "ws",
+    },
+  },
 });
