@@ -100,17 +100,23 @@ function AppointmentDetailsModal({ appointmentId, open, onOpenChange }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { data: details, isLoading } = useQuery<{
+  const { data: details, isLoading, error: detailsError } = useQuery<{
     appointment: AppointmentDetails;
     customFields: CustomField[];
   }>({
     queryKey: [`/api/admin/appointments/${appointmentId}`],
     enabled: !!appointmentId && open,
+    retry: 3,
     queryFn: async () => {
+      if (!appointmentId) throw new Error('No appointment ID provided');
       const res = await fetch(`/api/admin/appointments/${appointmentId}`, {
         credentials: 'include'
       });
-      if (!res.ok) throw new Error('Failed to fetch appointment details');
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`Failed to fetch appointment ${appointmentId}:`, res.status, errorText);
+        throw new Error(`Failed to fetch appointment details: ${res.status}`);
+      }
       return res.json();
     }
   });

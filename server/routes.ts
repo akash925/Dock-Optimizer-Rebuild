@@ -1169,6 +1169,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Availability slots endpoint for real-time slot checking
+  app.get('/api/availability-slots', async (req: any, res) => {
+    try {
+      const { facilityId, appointmentTypeId, date, bookingPageSlug } = req.query;
+      
+      if (!facilityId || !appointmentTypeId || !date) {
+        return res.status(400).json({ 
+          error: 'Missing required parameters: facilityId, appointmentTypeId, date' 
+        });
+      }
+      
+      // Get tenant context from booking page if provided
+      let tenantId;
+      if (bookingPageSlug) {
+        const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+        if (!bookingPage) {
+          return res.status(404).json({ error: 'Booking page not found' });
+        }
+        tenantId = bookingPage.tenantId;
+      } else if (req.isAuthenticated?.()) {
+        tenantId = req.user.tenantId;
+      } else {
+        return res.status(401).json({ error: 'Authentication required or booking page slug needed' });
+      }
+      
+      // Import and use availability service
+      const { calculateAvailabilitySlots } = await import('./src/services/availability');
+      
+      const slots = await calculateAvailabilitySlots(
+        db,
+        storage,
+        date,
+        parseInt(facilityId),
+        parseInt(appointmentTypeId),
+        tenantId
+      );
+      
+      console.log(`[Availability API] Returning ${slots.length} slots for facility ${facilityId}, type ${appointmentTypeId}, date ${date}`);
+      res.json(slots);
+    } catch (error) {
+      console.error('Error calculating availability slots:', error);
+      res.status(500).json({ error: 'Failed to calculate availability slots' });
+    }
+  });
+
   console.log('Core routes registered successfully');
   
   return httpServer;
