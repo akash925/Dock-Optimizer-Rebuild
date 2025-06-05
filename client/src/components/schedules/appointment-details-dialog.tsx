@@ -2153,8 +2153,7 @@ export function AppointmentDetailsDialog({
               )}
             </div>
           </DialogFooter>
-        </div>
-      </DialogContent>
+        </DialogContent>
     </Dialog>
 
     {/* Reschedule Dialog */}
