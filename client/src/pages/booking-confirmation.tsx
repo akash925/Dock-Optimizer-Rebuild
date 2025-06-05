@@ -53,6 +53,10 @@ interface BookingDetails {
   tenantId?: number | null;
   organizationName?: string;
   appointmentType?: string;
+  bolNumber?: string | null;
+  poNumber?: string | null;
+  bolDocuments?: any[];
+  customFormData?: any;
 }
 
 interface BookingConfirmationProps {
@@ -168,25 +172,25 @@ export default function BookingConfirmation(props?: BookingConfirmationProps) {
           }
         }
         
-        // Format dates - treat the stored time as already in facility timezone
+        // Format dates properly using the same logic as the email notifications
         const startDate = new Date(scheduleData.startTime);
         
         // Get the date in facility timezone
         const appointmentDate = formatInFacilityTimeZone(startDate, 'MM/dd/yyyy', facilityTimeZone);
         
-        // Since the time is stored as UTC but represents facility local time,
-        // format it directly without additional timezone conversion
-        const facilityTime = format(startDate, 'h:mm a');
-        const facilityTimeDisplay = `${facilityTime}`;
+        // Format time in facility timezone (same as email logic)
+        const facilityTime = formatInTimeZone(startDate, facilityTimeZone, 'h:mm a');
+        const facilityZoneAbbr = getTimeZoneAbbreviation(facilityTimeZone, startDate);
+        const facilityTimeDisplay = `${facilityTime} ${facilityZoneAbbr}`;
         
-        // For user timezone display, convert from facility timezone to user timezone
+        // For user timezone display, convert to user timezone
         const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const userTime = formatInTimeZone(startDate, userTimeZone, 'h:mm a');
         const userZoneAbbr = getTimeZoneAbbreviation(userTimeZone, startDate);
         const userTimeDisplay = `${userTime} ${userZoneAbbr}`;
         
-        // For backward compatibility
-        const appointmentTime = facilityTimeDisplay;
+        // For backward compatibility - use facility time without abbreviation
+        const appointmentTime = facilityTime;
         
         // Get appointment type name if available
         let appointmentTypeName = "";
@@ -235,6 +239,10 @@ export default function BookingConfirmation(props?: BookingConfirmationProps) {
           tenantId: scheduleData.tenantId,
           organizationName: organizationName,
           appointmentType: appointmentTypeName || scheduleData.appointmentTypeName || "",
+          bolNumber: scheduleData.bolNumber || scheduleData.customFormData?.bolData?.bolNumber || null,
+          poNumber: scheduleData.poNumber || scheduleData.customFormData?.poNumber || null,
+          bolDocuments: scheduleData.bolDocuments || [],
+          customFormData: scheduleData.customFormData,
         });
         
       } catch (error) {
@@ -530,6 +538,42 @@ ${orgName}
                   </div>
                 </div>
               </div>
+
+              {/* BOL and Document Information */}
+              {(bookingDetails.bolNumber || bookingDetails.poNumber || (bookingDetails.bolDocuments && bookingDetails.bolDocuments.length > 0) || bookingDetails.customFormData?.bolData) && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="h-5 w-5 text-green-600" />
+                    <h3 className="font-semibold text-lg text-green-800">Document Information</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {bookingDetails.bolNumber && (
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-green-700">BOL Number</span>
+                        <span className="text-lg font-semibold">{bookingDetails.bolNumber}</span>
+                      </div>
+                    )}
+                    {bookingDetails.poNumber && (
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-green-700">PO Number</span>
+                        <span className="text-lg font-semibold">{bookingDetails.poNumber}</span>
+                      </div>
+                    )}
+                    {bookingDetails.customFormData?.bolData?.fileName && (
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-green-700">BOL Document</span>
+                        <span className="text-sm font-semibold">{bookingDetails.customFormData.bolData.fileName}</span>
+                      </div>
+                    )}
+                    {bookingDetails.bolDocuments && bookingDetails.bolDocuments.length > 0 && (
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-green-700">Uploaded Documents</span>
+                        <span className="text-sm font-semibold">{bookingDetails.bolDocuments.length} document(s) uploaded</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {bookingDetails.type && (
                 <div className="flex flex-col">
