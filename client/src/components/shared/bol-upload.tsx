@@ -102,8 +102,8 @@ export default function BolUpload({
       
       console.log('Uploading BOL file to server...');
       
-      // Make a fetch request to our new file storage BOL upload endpoint
-      const response = await fetch('/api/files/upload/bol', {
+      // Make a fetch request to our BOL upload endpoint
+      const response = await fetch('/api/upload-bol', {
         method: 'POST',
         body: formData
       });

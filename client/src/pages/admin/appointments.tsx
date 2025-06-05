@@ -106,6 +106,13 @@ function AppointmentDetailsModal({ appointmentId, open, onOpenChange }: {
   }>({
     queryKey: [`/api/admin/appointments/${appointmentId}`],
     enabled: !!appointmentId && open,
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/appointments/${appointmentId}`, {
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to fetch appointment details');
+      return res.json();
+    }
   });
 
   if (!appointmentId) return null;

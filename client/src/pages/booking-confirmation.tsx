@@ -178,19 +178,19 @@ export default function BookingConfirmation(props?: BookingConfirmationProps) {
         // Get the date in facility timezone
         const appointmentDate = formatInFacilityTimeZone(startDate, 'MM/dd/yyyy', facilityTimeZone);
         
-        // Format time in facility timezone (same as email logic) 
+        // SIMPLIFIED: Just format in facility timezone consistently (like emails do)
         const facilityTime = formatInTimeZone(startDate, facilityTimeZone, 'h:mm a');
         const facilityZoneAbbr = getTimeZoneAbbreviation(facilityTimeZone, startDate);
         const facilityTimeDisplay = `${facilityTime} ${facilityZoneAbbr}`;
         
-        // For user timezone display, convert to user timezone
+        // For user timezone display, convert to user timezone  
         const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const userTime = formatInTimeZone(startDate, userTimeZone, 'h:mm a');
         const userZoneAbbr = getTimeZoneAbbreviation(userTimeZone, startDate);
         const userTimeDisplay = `${userTime} ${userZoneAbbr}`;
         
-        // Fix: Use the correct facility time consistently
-        const appointmentTime = facilityTime;
+        // CRITICAL FIX: Use facility time with timezone display (like emails)
+        const appointmentTime = facilityTimeDisplay;
         
         // Get appointment type name if available
         let appointmentTypeName = "";
