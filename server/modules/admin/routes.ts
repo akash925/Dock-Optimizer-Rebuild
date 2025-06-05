@@ -1,6 +1,7 @@
 import { Express, Request, Response } from 'express';
 import { getStorage } from '../../storage';
 import { db } from '../../db';
+import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { TenantStatus, AvailableModule } from '@shared/schema';
 import { organizationsRoutes } from './organizations/routes';
@@ -877,12 +878,9 @@ export const adminRoutes = (app: Express) => {
         ${whereClause}
       `;
       
-      // Execute queries
-      const appointmentsResult = await db.execute(appointmentsQuery);
-      const countResult = await db.execute(countQuery.replace(/\$\d+/g, (match, p1) => {
-        const index = parseInt(match.replace('$', '')) - 1;
-        return queryParams[index] !== undefined ? `$${index + 1}` : match;
-      }));
+      // Execute queries using Drizzle SQL syntax
+      const appointmentsResult = await db.execute(sql.raw(appointmentsQuery, queryParams));
+      const countResult = await db.execute(sql.raw(countQuery, queryParams.slice(0, -2))); // Remove pagination params for count
       
       const appointments = appointmentsResult.rows;
       const total = parseInt(countResult.rows[0]?.total || '0');
@@ -975,7 +973,7 @@ export const adminRoutes = (app: Express) => {
         WHERE s.id = $1
       `;
       
-      const result = await db.execute(appointmentQuery);
+      const result = await db.execute(sql.raw(appointmentQuery, [appointmentId]));
       
       if (result.rows.length === 0) {
         return res.status(404).json({ message: 'Appointment not found' });
@@ -992,7 +990,7 @@ export const adminRoutes = (app: Express) => {
           WHERE appointment_id = $1
           ORDER BY field_key
         `;
-        const customFieldsResult = await db.execute(customFieldsQuery);
+        const customFieldsResult = await db.execute(sql.raw(customFieldsQuery, [appointmentId]));
         customFields = customFieldsResult.rows;
       } catch (error) {
         console.warn('Could not fetch custom fields:', error);
