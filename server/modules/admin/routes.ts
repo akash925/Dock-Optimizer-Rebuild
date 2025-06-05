@@ -1,5 +1,6 @@
 import { Express, Request, Response } from 'express';
 import { getStorage } from '../../storage';
+import { db } from '../../db';
 import { z } from 'zod';
 import { TenantStatus, AvailableModule } from '@shared/schema';
 import { organizationsRoutes } from './organizations/routes';
