@@ -33,11 +33,7 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
-    hmr: process.env.NODE_ENV === "production" ? false : {
-      // Enable HMR only for local development
-      port: 5173,
-      host: "localhost", 
-      protocol: "ws",
-    },
+    // Disable HMR to eliminate WebSocket connection errors in Replit
+    hmr: false,
   },
 });
