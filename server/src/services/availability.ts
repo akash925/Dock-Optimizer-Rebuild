@@ -299,44 +299,80 @@ export async function calculateAvailabilitySlots(
   console.log(`[AvailabilityService] - Override Facility Hours: ${overrideFacilityHours}`);
   console.log(`[AvailabilityService] - Allow Through Breaks: ${allowAppointmentsThroughBreaks}`);
 
-  // Build hours context
+  // Build hours context with proper hierarchy
   const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  // Use our properly calculated day of week value
   const dayKey = dayKeys[dayOfWeek];
   
   console.log(`[AvailabilityService] Using day key: ${dayKey} from day of week: ${dayOfWeek}`);
   
-  // Get organization hours
+  // STEP 1: Get organization default hours 
   const organization = await storage.getOrganizationByFacilityId(facilityId);
   if (!organization) {
     throw new Error('Organization not found for this facility');
   }
   
-  // Build the organization hours record from DB
+  // For now, skip organization holidays check until we implement that feature
+  // TODO: Check organization holidays when getOrganizationHolidays is implemented
+  
+  // STEP 2: Build organization default hours (with sensible defaults)
   const orgHours: Record<string, DayHours> = {};
   
   for (const day of dayKeys) {
-    // Use organization data for organization hours, not facility data
-    const isOpen = getObjectField(organization, `${day}Open`, `${day}_open`) === true;
+    const dayOpenField = getObjectField(organization, `${day}Open`, `${day}_open`);
+    
+    // Organization defaults: weekdays open unless explicitly false, weekends closed unless explicitly true
+    let defaultOpen = false;
+    if (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].includes(day)) {
+      defaultOpen = dayOpenField !== false; // Weekdays open by default
+    } else {
+      defaultOpen = dayOpenField === true; // Weekends require explicit true
+    }
+    
     orgHours[day] = {
-      open: isOpen,
-      start: getObjectField(organization, `${day}Start`, `${day}_start`) || "09:00",
+      open: defaultOpen,
+      start: getObjectField(organization, `${day}Start`, `${day}_start`) || "08:00",
       end: getObjectField(organization, `${day}End`, `${day}_end`) || "17:00",
       breakStart: getObjectField(organization, `${day}BreakStart`, `${day}_break_start`, ""),
       breakEnd: getObjectField(organization, `${day}BreakEnd`, `${day}_break_end`, ""),
     };
+    
+    console.log(`[AvailabilityService] Organization hours for ${day}:`, {
+      rawField: dayOpenField,
+      computed: defaultOpen,
+      hours: `${orgHours[day].start} - ${orgHours[day].end}`
+    });
   }
   
-  // Create availability context
-  const availabilityContext: AvailabilityContext = {
-    orgHours,
-    facilityOverrides: overrideFacilityHours
-  };
+  // STEP 3: Check facility hours (facilities can override organization hours)
+  let effectiveHours = orgHours[dayKey]; // Start with org default
   
-  // Check if facility is open on this day
-  const effectiveHours = getEffectiveHours(dayKey, availabilityContext);
+  // Check if facility has its own hours configured (any day-specific fields)
+  const facilityDayOpen = getObjectField(facility, `${dayKey}Open`, `${dayKey}_open`);
+  const facilityDayStart = getObjectField(facility, `${dayKey}Start`, `${dayKey}_start`);
+  const facilityDayEnd = getObjectField(facility, `${dayKey}End`, `${dayKey}_end`);
+  const facilityBreakStart = getObjectField(facility, `${dayKey}BreakStart`, `${dayKey}_break_start`);
+  const facilityBreakEnd = getObjectField(facility, `${dayKey}BreakEnd`, `${dayKey}_break_end`);
+  
+  // If facility has any hours configured, use them instead of org defaults
+  if (facilityDayOpen !== null || facilityDayStart || facilityDayEnd) {
+    console.log(`[AvailabilityService] Facility ${facility.name} has configured hours for ${dayKey}`);
+    
+    effectiveHours = {
+      open: facilityDayOpen !== null ? facilityDayOpen : orgHours[dayKey].open,
+      start: facilityDayStart || orgHours[dayKey].start,
+      end: facilityDayEnd || orgHours[dayKey].end,
+      breakStart: facilityBreakStart || orgHours[dayKey].breakStart,
+      breakEnd: facilityBreakEnd || orgHours[dayKey].breakEnd,
+    };
+    
+    console.log(`[AvailabilityService] Using facility hours:`, effectiveHours);
+  } else {
+    console.log(`[AvailabilityService] Using organization default hours for ${facility.name}`);
+  }
+  
+  // STEP 4: Check if facility is open on this day
   if (!effectiveHours || !effectiveHours.open) {
-    console.log(`[AvailabilityService] Facility ${facility.name} closed on ${date} (DoW: ${dayOfWeek}, DayKey: ${dayKey})`);
+    console.log(`[AvailabilityService] Facility ${facility.name} closed on ${date} (${dayKey})`);
     return [];
   }
   

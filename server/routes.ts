@@ -394,14 +394,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const currentUser = req.user;
+      console.log(`[Docks] User requesting docks:`, {
+        id: currentUser.id,
+        username: currentUser.username,
+        tenantId: currentUser.tenantId
+      });
+      
       const docks = await storage.getDocks();
+      console.log(`[Docks] Total docks in database: ${docks.length}`);
+      docks.forEach(dock => {
+        console.log(`[Docks] Dock ${dock.id}: ${dock.name}, facilityId: ${dock.facilityId}`);
+      });
       
       // Filter docks by tenant ID through facility association
       const facilities = await storage.getFacilities();
+      console.log(`[Docks] Total facilities in database: ${facilities.length}`);
+      
       const tenantFacilities = facilities.filter(facility => facility.tenantId === currentUser.tenantId);
+      console.log(`[Docks] Facilities for tenant ${currentUser.tenantId}: ${tenantFacilities.length}`);
+      tenantFacilities.forEach(facility => {
+        console.log(`[Docks] Tenant facility ${facility.id}: ${facility.name}, tenantId: ${facility.tenantId}`);
+      });
+      
       const tenantFacilityIds = tenantFacilities.map(facility => facility.id);
+      console.log(`[Docks] Tenant facility IDs: [${tenantFacilityIds.join(', ')}]`);
       
       const tenantDocks = docks.filter(dock => tenantFacilityIds.includes(dock.facilityId));
+      console.log(`[Docks] Filtered docks for tenant: ${tenantDocks.length}`);
+      tenantDocks.forEach(dock => {
+        console.log(`[Docks] Tenant dock ${dock.id}: ${dock.name}, facilityId: ${dock.facilityId}`);
+      });
       
       res.json(tenantDocks);
     } catch (error) {
@@ -1259,6 +1281,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Custom Questions API endpoints
+  // Get custom questions for an appointment type
+  app.get('/api/custom-questions/:appointmentTypeId', async (req, res) => {
+    try {
+      const { appointmentTypeId } = req.params;
+      const questions = await storage.getCustomQuestionsByAppointmentType(parseInt(appointmentTypeId));
+      res.json(questions);
+    } catch (error) {
+      console.error('Error fetching custom questions:', error);
+      res.status(500).json({ error: 'Failed to fetch custom questions' });
+    }
+  });
+
+  // Create a new custom question
+  app.post('/api/custom-questions', async (req, res) => {
+    try {
+      const questionData = req.body;
+      
+      // Map frontend field names to backend schema
+      const mappedData = {
+        label: questionData.label,
+        type: questionData.type || 'TEXT',
+        isRequired: questionData.isRequired || false,
+        placeholder: questionData.placeholder || '',
+        options: questionData.options ? (typeof questionData.options === 'string' ? JSON.parse(questionData.options) : questionData.options) : null,
+        defaultValue: questionData.defaultValue || '',
+        order: questionData.order_position || 1,
+        appointmentTypeId: questionData.appointmentTypeId,
+        applicableType: questionData.appointmentType || 'both'
+      };
+      
+      console.log('[API] Creating custom question with data:', mappedData);
+      const newQuestion = await storage.createCustomQuestion(mappedData);
+      res.json(newQuestion);
+    } catch (error) {
+      console.error('Error creating custom question:', error);
+      res.status(500).json({ error: 'Failed to create custom question' });
+    }
+  });
+
+  // Update an existing custom question
+  app.put('/api/custom-questions/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const questionData = req.body;
+      
+      // Map frontend field names to backend schema
+      const mappedData = {
+        label: questionData.label,
+        type: questionData.type,
+        isRequired: questionData.isRequired,
+        placeholder: questionData.placeholder,
+        options: questionData.options ? (typeof questionData.options === 'string' ? JSON.parse(questionData.options) : questionData.options) : null,
+        defaultValue: questionData.defaultValue,
+        order: questionData.order_position,
+        appointmentTypeId: questionData.appointmentTypeId,
+        applicableType: questionData.appointmentType,
+        lastModifiedAt: new Date()
+      };
+      
+      console.log(`[API] Updating custom question ${id} with data:`, mappedData);
+      const updatedQuestion = await storage.updateCustomQuestion(parseInt(id), mappedData);
+      
+      if (!updatedQuestion) {
+        return res.status(404).json({ error: 'Custom question not found' });
+      }
+      
+      res.json(updatedQuestion);
+    } catch (error) {
+      console.error('Error updating custom question:', error);
+      res.status(500).json({ error: 'Failed to update custom question' });
+    }
+  });
+
+  // Delete a custom question
+  app.delete('/api/custom-questions/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteCustomQuestion(parseInt(id));
+      
+      if (!success) {
+        return res.status(404).json({ error: 'Custom question not found' });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting custom question:', error);
+      res.status(500).json({ error: 'Failed to delete custom question' });
+    }
+  });
+
   // Availability slots endpoint for real-time slot checking
   app.get('/api/availability-slots', async (req: any, res) => {
     try {
@@ -1667,7 +1780,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'User with this username or email already exists' });
       }
       
-      // Create user (password will be hashed in storage)
+      // Find a default organization to assign the user to
+      // For now, assign to the first active organization (Hanzo Logistics)
+      const organizations = await storage.getTenants();
+      const defaultOrg = organizations.find(org => org.status === 'active') || organizations[0];
+      
+      if (!defaultOrg) {
+        return res.status(500).json({ error: 'No organization available for user assignment' });
+      }
+      
+      // Create user with default organization assignment
       const newUser = await storage.createUser({
         username,
         email,
@@ -1675,8 +1797,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastName,
         password,
         role,
-        tenantId: null // No tenant assigned by default for public registration
+        tenantId: defaultOrg.id // Assign to default organization
       });
+      
+      console.log(`[Registration] Created user ${newUser.username} and assigned to organization ${defaultOrg.name} (ID: ${defaultOrg.id})`);
       
       // Remove password from response
       const { password: _, ...safeUser } = newUser;

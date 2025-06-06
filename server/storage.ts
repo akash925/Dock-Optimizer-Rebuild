@@ -258,6 +258,9 @@ export interface IStorage {
   
   // Session store
   sessionStore: any; // Type-safe session store
+  
+  // Organization holiday management
+  getOrganizationHolidays(organizationId: number): Promise<any[]>;
 }
 
 // In-Memory Storage Implementation
@@ -931,11 +934,11 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createAppointmentType(insertAppointmentType: InsertAppointmentType): Promise<AppointmentType> {
+  async createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType> {
     const id = this.appointmentTypeIdCounter++;
     const createdAt = new Date();
     const appointmentType: AppointmentType = {
-      ...insertAppointmentType,
+      ...appointmentType,
       id,
       createdAt,
       lastModifiedAt: null
@@ -1010,10 +1013,10 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createCustomQuestion(insertCustomQuestion: InsertCustomQuestion): Promise<CustomQuestion> {
+  async createCustomQuestion(customQuestion: InsertCustomQuestion): Promise<CustomQuestion> {
     const id = this.customQuestionIdCounter++;
     const customQuestion: CustomQuestion = {
-      ...insertCustomQuestion,
+      ...customQuestion,
       id
     };
     this.customQuestions.set(id, customQuestion);
@@ -1742,6 +1745,12 @@ export class MemStorage implements IStorage {
     }
     return docks;
   }
+  
+  // Organization holiday management
+  async getOrganizationHolidays(organizationId: number): Promise<any[]> {
+    // Implement holiday management logic
+    return [];
+  }
 }
 
 // Database Storage Implementation
@@ -2384,7 +2393,7 @@ export class DatabaseStorage implements IStorage {
       
       const row = result.rows[0];
       
-      // Extract facility information - prioritize the explicit saved values 
+      // Extract facility information - prioritize the explicitly saved values 
       // from customFormData over the joined values
       let facilityName = null;
       let facilityId = null;
@@ -4319,7 +4328,11 @@ export class DatabaseStorage implements IStorage {
     return updatedPref;
   }
   
-
+  // Organization holiday management
+  async getOrganizationHolidays(organizationId: number): Promise<any[]> {
+    // Implement holiday management logic
+    return [];
+  }
 }
 
 // Initialize database
