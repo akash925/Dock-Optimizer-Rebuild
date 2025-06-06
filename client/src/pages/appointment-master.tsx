@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useUpdateStandardQuestion } from "@/hooks/use-standard-questions";
@@ -210,6 +210,16 @@ export default function AppointmentMaster() {
     placeholder: "",
     appointmentType: "both"
   });
+
+  // System settings state
+  const [systemSettings, setSystemSettings] = useState({
+    emailConfirmations: true,
+    emailReminders: true,
+    defaultCalendarView: "week",
+    weekStartsOn: "1",
+    maxDaysInAdvance: "90",
+    minNoticeHours: "24"
+  });
   
   // Fetch facilities from API
   const { data: facilities = [], isLoading: isLoadingFacilities } = useQuery<Facility[]>({
@@ -219,6 +229,44 @@ export default function AppointmentMaster() {
   // Fetch appointment types from API
   const { data: apiAppointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useQuery<AppointmentType[]>({
     queryKey: ["/api/appointment-types"],
+  });
+
+  // Fetch system settings
+  const { data: loadedSystemSettings } = useQuery({
+    queryKey: ["/api/system-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/system-settings");
+      if (!response.ok) throw new Error("Failed to fetch system settings");
+      return response.json();
+    }
+  });
+
+  // Update system settings when loaded
+  useEffect(() => {
+    if (loadedSystemSettings) {
+      setSystemSettings(loadedSystemSettings);
+    }
+  }, [loadedSystemSettings]);
+
+  // Mutation to save system settings
+  const saveSystemSettingsMutation = useMutation({
+    mutationFn: async (settings: typeof systemSettings) => {
+      const response = await apiRequest("PUT", "/api/system-settings", settings);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Settings Saved",
+        description: "System settings have been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Save Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   });
   
   // For displaying in the table, we'll map the API data to include facility names
@@ -976,7 +1024,14 @@ export default function AppointmentMaster() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        <Switch id="email-confirmations" checked={true} />
+                        <Switch 
+                          id="email-confirmations" 
+                          checked={systemSettings.emailConfirmations}
+                          onCheckedChange={(checked) => setSystemSettings({
+                            ...systemSettings, 
+                            emailConfirmations: checked
+                          })}
+                        />
                         <Label htmlFor="email-confirmations">
                           Send appointment confirmations
                         </Label>
@@ -988,7 +1043,14 @@ export default function AppointmentMaster() {
                     
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        <Switch id="email-reminders" checked={true} />
+                        <Switch 
+                          id="email-reminders" 
+                          checked={systemSettings.emailReminders}
+                          onCheckedChange={(checked) => setSystemSettings({
+                            ...systemSettings, 
+                            emailReminders: checked
+                          })}
+                        />
                         <Label htmlFor="email-reminders">
                           Send appointment reminders
                         </Label>
@@ -1007,7 +1069,13 @@ export default function AppointmentMaster() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="default-view">Default Calendar View</Label>
-                      <Select defaultValue="week">
+                      <Select 
+                        value={systemSettings.defaultCalendarView}
+                        onValueChange={(value) => setSystemSettings({
+                          ...systemSettings, 
+                          defaultCalendarView: value
+                        })}
+                      >
                         <SelectTrigger id="default-view">
                           <SelectValue placeholder="Select view" />
                         </SelectTrigger>
@@ -1021,7 +1089,13 @@ export default function AppointmentMaster() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="week-starts">Week Starts On</Label>
-                      <Select defaultValue="1">
+                      <Select 
+                        value={systemSettings.weekStartsOn}
+                        onValueChange={(value) => setSystemSettings({
+                          ...systemSettings, 
+                          weekStartsOn: value
+                        })}
+                      >
                         <SelectTrigger id="week-starts">
                           <SelectValue placeholder="Select day" />
                         </SelectTrigger>
@@ -1041,7 +1115,13 @@ export default function AppointmentMaster() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="max-days-advance">Maximum Days in Advance</Label>
-                      <Select defaultValue="90">
+                      <Select 
+                        value={systemSettings.maxDaysInAdvance}
+                        onValueChange={(value) => setSystemSettings({
+                          ...systemSettings, 
+                          maxDaysInAdvance: value
+                        })}
+                      >
                         <SelectTrigger id="max-days-advance">
                           <SelectValue placeholder="Select days" />
                         </SelectTrigger>
@@ -1057,7 +1137,13 @@ export default function AppointmentMaster() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="min-notice">Minimum Notice Period</Label>
-                      <Select defaultValue="24">
+                      <Select 
+                        value={systemSettings.minNoticeHours}
+                        onValueChange={(value) => setSystemSettings({
+                          ...systemSettings, 
+                          minNoticeHours: value
+                        })}
+                      >
                         <SelectTrigger id="min-notice">
                           <SelectValue placeholder="Select hours" />
                         </SelectTrigger>
@@ -1072,6 +1158,25 @@ export default function AppointmentMaster() {
                       </Select>
                     </div>
                   </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => saveSystemSettingsMutation.mutate(systemSettings)}
+                    disabled={saveSystemSettingsMutation.isPending}
+                    className="min-w-[140px]"
+                  >
+                    {saveSystemSettingsMutation.isPending ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

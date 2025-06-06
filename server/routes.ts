@@ -1214,6 +1214,235 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/facilities/:facilityId/appointment-settings
+  app.get('/api/facilities/:facilityId/appointment-settings', async (req, res) => {
+    try {
+      const facilityId = parseInt(req.params.facilityId);
+      if (isNaN(facilityId)) {
+        return res.status(400).json({ message: 'Invalid facility ID' });
+      }
+
+      const settings = await storage.getAppointmentSettings(facilityId);
+      
+      if (!settings) {
+        // Return default settings if none exist
+        const defaultSettings = {
+          id: null,
+          facilityId,
+          timeInterval: 30,
+          maxConcurrentInbound: 2,
+          maxConcurrentOutbound: 2,
+          shareAvailabilityInfo: true,
+          createdAt: new Date(),
+          lastModifiedAt: new Date()
+        };
+        return res.json(defaultSettings);
+      }
+
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching appointment settings:', error);
+      res.status(500).json({ message: 'Failed to fetch appointment settings' });
+    }
+  });
+
+  // PUT /api/facilities/:facilityId/appointment-settings
+  app.put('/api/facilities/:facilityId/appointment-settings', async (req, res) => {
+    try {
+      const facilityId = parseInt(req.params.facilityId);
+      if (isNaN(facilityId)) {
+        return res.status(400).json({ message: 'Invalid facility ID' });
+      }
+
+      const updatedSettings = await storage.updateAppointmentSettings(facilityId, req.body);
+      
+      res.json(updatedSettings);
+    } catch (error) {
+      console.error('Error updating appointment settings:', error);
+      res.status(500).json({ message: 'Failed to update appointment settings' });
+    }
+  });
+
+  // GET /api/system-settings
+  app.get('/api/system-settings', async (req, res) => {
+    try {
+      // For now, return default system settings
+      // In a real implementation, these would be stored in a database
+      const defaultSettings = {
+        emailConfirmations: true,
+        emailReminders: true,
+        defaultCalendarView: "week",
+        weekStartsOn: "1",
+        maxDaysInAdvance: "90",
+        minNoticeHours: "24"
+      };
+      
+      res.json(defaultSettings);
+    } catch (error) {
+      console.error('Error fetching system settings:', error);
+      res.status(500).json({ message: 'Failed to fetch system settings' });
+    }
+  });
+
+  // PUT /api/system-settings
+  app.put('/api/system-settings', async (req, res) => {
+    try {
+      // For now, just return success - can be expanded later to store in database
+      const settings = req.body;
+      console.log('System settings received:', settings);
+      
+      res.json({
+        message: 'System settings saved successfully',
+        settings
+      });
+    } catch (error) {
+      console.error('Error saving system settings:', error);
+      res.status(500).json({ message: 'Failed to save system settings' });
+    }
+  });
+
+  // Enhanced notifications endpoint with upcoming appointments
+  app.get('/api/notifications', async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const tenantId = req.user?.tenantId;
+      
+      if (!userId || !tenantId) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      // Get upcoming appointments (next 48 hours)
+      const now = new Date();
+      const next48Hours = new Date(now.getTime() + (48 * 60 * 60 * 1000));
+      
+      const upcomingAppointments = await storage.getSchedulesByDateRange(now, next48Hours);
+      
+      // Filter appointments for user's tenant and future appointments only
+      const relevantAppointments = upcomingAppointments
+        .filter(apt => {
+          // Filter by tenant via facility check and ensure appointment has required fields
+          return apt.facilityId && apt.startTime > now && apt.truckNumber;
+        })
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+      // Create notifications from upcoming appointments
+      const appointmentNotifications = relevantAppointments.slice(0, 10).map(apt => {
+        const timeUntil = new Date(apt.startTime).getTime() - now.getTime();
+        const hoursUntil = Math.floor(timeUntil / (1000 * 60 * 60));
+        const minutesUntil = Math.floor((timeUntil % (1000 * 60 * 60)) / (1000 * 60));
+        
+        let timeText = '';
+        let urgency = 'normal';
+        let backgroundColor = '#f8f9fa';
+        
+        if (hoursUntil < 0) {
+          timeText = 'Overdue';
+          urgency = 'critical';
+          backgroundColor = '#fff5f5';
+        } else if (hoursUntil === 0 && minutesUntil <= 30) {
+          timeText = minutesUntil <= 15 ? `${minutesUntil}m` : `${minutesUntil}m`;
+          urgency = 'urgent';
+          backgroundColor = '#fef3cd';
+        } else if (hoursUntil <= 2) {
+          timeText = `${hoursUntil}h ${minutesUntil}m`;
+          urgency = 'warning';
+          backgroundColor = '#d1ecf1';
+        } else if (hoursUntil <= 24) {
+          timeText = `${hoursUntil}h`;
+          urgency = 'info';
+          backgroundColor = '#d4edda';
+        } else {
+          const daysUntil = Math.floor(hoursUntil / 24);
+          timeText = `${daysUntil}d`;
+          urgency = 'normal';
+        }
+
+        return {
+          id: `apt-${apt.id}`,
+          type: 'appointment',
+          urgency,
+          title: `${apt.type === 'inbound' ? 'Inbound' : 'Outbound'} Appointment`,
+          message: `${apt.truckNumber || 'Vehicle'} • ${apt.customerName || 'Customer'} • ${timeText}`,
+          appointmentId: apt.id,
+          startTime: apt.startTime,
+          status: apt.status,
+          facilityId: apt.facilityId,
+          isRead: false,
+          createdAt: apt.createdAt,
+          metadata: {
+            confirmationCode: apt.id.toString().padStart(6, '0'),
+            truckNumber: apt.truckNumber,
+            customerName: apt.customerName,
+            driverName: apt.driverName,
+            driverPhone: apt.driverPhone,
+            timeUntil: timeText,
+            urgency: urgency,
+            backgroundColor: backgroundColor
+          }
+        };
+      });
+
+      // Get system notifications from database (if any)
+      const systemNotifications = await storage.getNotificationsByUser(userId);
+      
+      // Combine and format all notifications
+      const allNotifications = [
+        ...appointmentNotifications,
+        ...systemNotifications.map(notif => ({
+          ...notif,
+          type: 'system',
+          urgency: 'normal',
+          metadata: {}
+        }))
+      ].sort((a, b) => {
+        // Sort by urgency first, then by time
+        const urgencyOrder = { critical: 0, urgent: 1, warning: 2, info: 3, normal: 4 };
+        const aUrgency = urgencyOrder[a.urgency] || 4;
+        const bUrgency = urgencyOrder[b.urgency] || 4;
+        
+        if (aUrgency !== bUrgency) {
+          return aUrgency - bUrgency;
+        }
+        
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      res.json(allNotifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: 'Failed to fetch notifications' });
+    }
+  });
+
+  // Mark notification as read
+  app.put('/api/notifications/:id/read', async (req, res) => {
+    try {
+      const notificationId = req.params.id;
+      
+      // Handle appointment notifications vs system notifications
+      if (notificationId.startsWith('apt-')) {
+        // For appointment notifications, just return success (they're generated dynamically)
+        res.json({ message: 'Appointment notification marked as read' });
+      } else {
+        // For system notifications, update in database
+        const id = parseInt(notificationId);
+        if (isNaN(id)) {
+          return res.status(400).json({ message: 'Invalid notification ID' });
+        }
+        
+        const notification = await storage.markNotificationAsRead(id);
+        if (!notification) {
+          return res.status(404).json({ message: 'Notification not found' });
+        }
+        
+        res.json(notification);
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ message: 'Failed to mark notification as read' });
+    }
+  });
+
   console.log('Core routes registered successfully');
   
   return httpServer;

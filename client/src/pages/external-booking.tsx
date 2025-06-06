@@ -71,39 +71,12 @@ export default function ExternalBooking({ slug }: { slug: string }) {
           <div className="bg-white rounded-lg shadow-lg p-6 mx-auto max-w-4xl">
             {/* Header with organization logo */}
             <div className="flex items-center mb-6">
-              {/* Try organization logo first, then booking page logo, then fallback */}
-              <img 
-                src={`/api/admin/organizations/${bookingPage.organizationId}/logo`} 
-                alt={`${bookingPage.name} logo`} 
-                className="h-16 mr-4"
-                onError={(e) => {
-                  // First fallback: try booking page logo
-                  if (bookingPage.logoUrl) {
-                    e.currentTarget.onerror = () => {
-                      // Second fallback: show organization initial as text
-                      const parent = e.currentTarget.parentElement;
-                      if (parent) {
-                        e.currentTarget.style.display = 'none';
-                        const fallbackDiv = document.createElement('div');
-                        fallbackDiv.className = 'h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mr-4';
-                        fallbackDiv.innerHTML = `<span class="text-primary font-bold text-xl">${bookingPage.name?.charAt(0) || 'O'}</span>`;
-                        parent.insertBefore(fallbackDiv, e.currentTarget);
-                      }
-                    };
-                    e.currentTarget.src = `/api/booking-pages/logo/${bookingPage.id}`;
-                  } else {
-                    // No booking page logo, show organization initial
-                    const parent = e.currentTarget.parentElement;
-                    if (parent) {
-                      e.currentTarget.style.display = 'none';
-                      const fallbackDiv = document.createElement('div');
-                      fallbackDiv.className = 'h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mr-4';
-                      fallbackDiv.innerHTML = `<span class="text-primary font-bold text-xl">${bookingPage.name?.charAt(0) || 'O'}</span>`;
-                      parent.insertBefore(fallbackDiv, e.currentTarget);
-                    }
-                  }
-                }}
-              />
+              {/* Show organization initial as default - simpler and more reliable */}
+              <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mr-4">
+                <span className="text-primary font-bold text-xl">
+                  {bookingPage.name?.charAt(0) || 'O'}
+                </span>
+              </div>
               <div>
                 <h1 className="text-2xl font-bold">{bookingPage.name} Dock Appointment Scheduler</h1>
                 <p className="text-muted-foreground">

@@ -43,6 +43,33 @@ import {
 import { Notification, BookingPage } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
+// Enhanced notification type for UI
+interface EnhancedNotification {
+  id: string | number;
+  userId?: number;
+  title: string;
+  message: string;
+  isRead: boolean;
+  type: string;
+  urgency?: 'critical' | 'urgent' | 'warning' | 'info' | 'normal';
+  appointmentId?: number;
+  startTime?: Date;
+  status?: string;
+  facilityId?: number;
+  createdAt: Date;
+  relatedScheduleId?: number | null;
+  metadata?: {
+    confirmationCode?: string;
+    truckNumber?: string;
+    customerName?: string;
+    driverName?: string;
+    driverPhone?: string;
+    timeUntil?: string;
+    urgency?: string;
+    backgroundColor?: string;
+  };
+}
+
 export default function TopNav() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
@@ -91,13 +118,21 @@ export default function TopNav() {
     enabled: !!user,
   });
   
-  const { data: notifications = [] } = useQuery<Notification[]>({
+  // Enhanced notifications with live updates
+  const { data: notifications = [] } = useQuery<EnhancedNotification[]>({
     queryKey: ["/api/notifications"],
     enabled: !!user,
+    refetchInterval: 30000, // Refetch every 30 seconds for live updates
+    refetchOnWindowFocus: true,
   });
   
-  // Count unread notifications
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  // Count urgent notifications (critical and urgent priority)
+  const urgentCount = notifications.filter((n: EnhancedNotification) => 
+    (n.urgency === 'critical' || n.urgency === 'urgent') && !n.isRead
+  ).length;
+  
+  // Count total unread notifications
+  const unreadCount = notifications.filter((n: EnhancedNotification) => !n.isRead).length;
   
   if (!user) return null;
 
@@ -166,7 +201,7 @@ export default function TopNav() {
                   No booking pages found
                 </div>
               ) : (
-                <DropdownMenuRadioGroup value={selectedBookingPage} onValueChange={setSelectedBookingPage}>
+                <DropdownMenuRadioGroup value={selectedBookingPage || undefined} onValueChange={setSelectedBookingPage}>
                   {bookingPages.map(page => (
                     <DropdownMenuRadioItem key={page.id} value={page.slug}>
                       <div className="flex items-center justify-between w-full">
@@ -235,6 +270,9 @@ export default function TopNav() {
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5 text-neutral-500" />
+              {urgentCount > 0 && (
+                <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              )}
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                   {unreadCount > 9 ? '9+' : unreadCount}
@@ -242,30 +280,110 @@ export default function TopNav() {
               )}
             </Button>
           </SheetTrigger>
-          <SheetContent side="right">
+          <SheetContent side="right" className="w-96">
             <div className="py-4">
-              <h2 className="text-lg font-semibold mb-4">Notifications</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Notifications</h2>
+                {unreadCount > 0 && (
+                  <span className="text-xs text-neutral-500">
+                    {unreadCount} unread
+                  </span>
+                )}
+              </div>
               
               {notifications.length === 0 ? (
                 <div className="text-neutral-400 text-center py-6">
-                  No notifications
+                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No notifications</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {notifications.map((notification) => (
-                    <div 
-                      key={notification.id} 
-                      className={`p-3 border rounded-md ${notification.isRead ? 'border-neutral-200' : 'border-primary bg-primary/5'}`}
-                    >
-                      <div className="font-medium">{notification.title}</div>
-                      <div className="text-sm text-neutral-600 mt-1">
-                        {notification.message}
+                <div className="space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto">
+                  {notifications.map((notification: EnhancedNotification) => {
+                    const isAppointment = notification.type === 'appointment';
+                    const urgencyColors = {
+                      critical: 'border-red-500 bg-red-50',
+                      urgent: 'border-orange-500 bg-orange-50',
+                      warning: 'border-yellow-500 bg-yellow-50',
+                      info: 'border-blue-500 bg-blue-50',
+                      normal: 'border-neutral-200 bg-white'
+                    };
+                    
+                    const urgencyColor = urgencyColors[notification.urgency || 'normal'];
+                    
+                    return (
+                      <div 
+                        key={notification.id} 
+                        className={`p-3 border rounded-md transition-all hover:shadow-sm ${
+                          notification.isRead ? 'border-neutral-200 bg-neutral-50' : urgencyColor
+                        }`}
+                        style={notification.metadata?.backgroundColor ? {
+                          backgroundColor: notification.metadata.backgroundColor
+                        } : {}}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium text-sm">{notification.title}</div>
+                              {notification.urgency === 'critical' && (
+                                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                              )}
+                              {notification.urgency === 'urgent' && (
+                                <span className="w-2 h-2 bg-orange-500 rounded-full" />
+                              )}
+                            </div>
+                            
+                            <div className="text-sm text-neutral-600 mt-1">
+                              {notification.message}
+                            </div>
+                            
+                            {isAppointment && notification.metadata && (
+                              <div className="mt-2 space-y-1">
+                                {notification.metadata.confirmationCode && (
+                                  <div className="text-xs font-mono text-neutral-500">
+                                    #{notification.metadata.confirmationCode}
+                                  </div>
+                                )}
+                                {notification.metadata.driverName && (
+                                  <div className="text-xs text-neutral-500">
+                                    Driver: {notification.metadata.driverName}
+                                  </div>
+                                )}
+                                {notification.metadata.driverPhone && (
+                                  <div className="text-xs text-neutral-500">
+                                    📞 {notification.metadata.driverPhone}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="text-xs text-neutral-400">
+                                {new Date(notification.createdAt).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })} · {new Date(notification.createdAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </div>
+                              
+                              {isAppointment && notification.metadata?.timeUntil && (
+                                <div className={`text-xs px-2 py-1 rounded-full ${
+                                  notification.urgency === 'critical' ? 'bg-red-100 text-red-700' :
+                                  notification.urgency === 'urgent' ? 'bg-orange-100 text-orange-700' :
+                                  notification.urgency === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {notification.metadata.timeUntil}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-neutral-400 mt-2">
-                        {new Date(notification.createdAt).toLocaleTimeString()} · {new Date(notification.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -307,12 +425,7 @@ export default function TopNav() {
               <div className="text-xs text-neutral-400 mt-1 capitalize">{user.role} role</div>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/profile" className="flex items-center cursor-pointer">
-                <UserIcon className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </Link>
-            </DropdownMenuItem>
+
             <DropdownMenuItem asChild>
               <Link href="/settings" className="flex items-center cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />

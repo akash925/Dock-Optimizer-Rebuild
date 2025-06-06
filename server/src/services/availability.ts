@@ -316,13 +316,14 @@ export async function calculateAvailabilitySlots(
   const orgHours: Record<string, DayHours> = {};
   
   for (const day of dayKeys) {
-    const isOpen = getFacilityField(`${day}Open`, `${day}_open`) === true;
+    // Use organization data for organization hours, not facility data
+    const isOpen = getObjectField(organization, `${day}Open`, `${day}_open`) === true;
     orgHours[day] = {
       open: isOpen,
-      start: getFacilityField(`${day}Start`, `${day}_start`) || "09:00",
-      end: getFacilityField(`${day}End`, `${day}_end`) || "17:00",
-      breakStart: getFacilityField(`${day}BreakStart`, `${day}_break_start`, ""),
-      breakEnd: getFacilityField(`${day}BreakEnd`, `${day}_break_end`, ""),
+      start: getObjectField(organization, `${day}Start`, `${day}_start`) || "09:00",
+      end: getObjectField(organization, `${day}End`, `${day}_end`) || "17:00",
+      breakStart: getObjectField(organization, `${day}BreakStart`, `${day}_break_start`, ""),
+      breakEnd: getObjectField(organization, `${day}BreakEnd`, `${day}_break_end`, ""),
     };
   }
   
