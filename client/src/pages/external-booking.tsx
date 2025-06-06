@@ -652,13 +652,42 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     if (isHoliday(date)) return true;
     
     // Check day of week and see if facility is open
-    if (isSunday(date) && !facility.sunday_open) return true;
-    if (isMonday(date) && !facility.monday_open) return true;
-    if (isTuesday(date) && !facility.tuesday_open) return true;
-    if (isWednesday(date) && !facility.wednesday_open) return true;
-    if (isThursday(date) && !facility.thursday_open) return true;
-    if (isFriday(date) && !facility.friday_open) return true;
-    if (isSaturday(date) && !facility.saturday_open) return true;
+    // Handle null/undefined values - weekdays default to open, weekends to closed
+    console.log(`[isDateClosed] Checking ${date.toDateString()}, facility:`, {
+      id: facility.id,
+      name: facility.name,
+      friday_open: facility.friday_open,
+      isFriday: isFriday(date)
+    });
+    
+    if (isSunday(date) && facility.sunday_open !== true) {
+      console.log(`[isDateClosed] Sunday closed: sunday_open=${facility.sunday_open}`);
+      return true;
+    }
+    if (isMonday(date) && facility.monday_open === false) {
+      console.log(`[isDateClosed] Monday closed: monday_open=${facility.monday_open}`);
+      return true;
+    }
+    if (isTuesday(date) && facility.tuesday_open === false) {
+      console.log(`[isDateClosed] Tuesday closed: tuesday_open=${facility.tuesday_open}`);
+      return true;
+    }
+    if (isWednesday(date) && facility.wednesday_open === false) {
+      console.log(`[isDateClosed] Wednesday closed: wednesday_open=${facility.wednesday_open}`);
+      return true;
+    }
+    if (isThursday(date) && facility.thursday_open === false) {
+      console.log(`[isDateClosed] Thursday closed: thursday_open=${facility.thursday_open}`);
+      return true;
+    }
+    if (isFriday(date) && facility.friday_open === false) {
+      console.log(`[isDateClosed] Friday closed: friday_open=${facility.friday_open}`);
+      return true;
+    }
+    if (isSaturday(date) && facility.saturday_open !== true) {
+      console.log(`[isDateClosed] Saturday closed: saturday_open=${facility.saturday_open}`);
+      return true;
+    }
     
     // If it's today, check if there's enough buffer time for scheduling
     const now = new Date();
