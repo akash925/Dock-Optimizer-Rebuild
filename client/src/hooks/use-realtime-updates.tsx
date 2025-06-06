@@ -26,18 +26,31 @@ export function useRealtimeUpdates() {
     // Reset state for new connection
     setSocketError(null);
     
-    // Create WebSocket connection with better URL construction
+    // Create WebSocket connection with better URL construction for Replit
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     
-    // Ensure we have a valid host before attempting connection
+    // Enhanced host validation and Replit environment detection
     if (!host || host === 'undefined' || host.includes('undefined')) {
       console.error('[WebSocket] Invalid host detected:', host);
       setSocketError('Invalid WebSocket host configuration');
       return;
     }
     
-    const wsUrl = `${protocol}//${host}/ws`;
+    // Special handling for Replit environment
+    let wsUrl: string;
+    if (host.includes('replit.dev') || host.includes('repl.co')) {
+      // For Replit, use the same host as the web interface
+      wsUrl = `${protocol}//${host}/ws`;
+      console.log('[WebSocket] Detected Replit environment');
+    } else if (host.includes('localhost')) {
+      // For local development, ensure we have a valid port
+      const port = window.location.port || '3000';
+      wsUrl = `${protocol}//${window.location.hostname}:${port}/ws`;
+    } else {
+      // For other environments, use the current host
+      wsUrl = `${protocol}//${host}/ws`;
+    }
     
     console.log(`[WebSocket] Connecting to: ${wsUrl} (Attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
     

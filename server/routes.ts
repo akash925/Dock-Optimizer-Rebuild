@@ -1443,6 +1443,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoints for testing
+  app.get('/api/test', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      message: 'API is responding',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      database: process.env.DATABASE_URL ? 'configured' : 'not configured'
+    });
+  });
+
+  app.get('/api/test/db-connection', async (req, res) => {
+    try {
+      const storage = await getStorage();
+      // Try a simple query
+      const facilities = await storage.list();
+      res.json({ 
+        status: 'ok', 
+        message: 'Database connection successful',
+        storageType: storage.constructor.name,
+        facilitiesCount: facilities.length
+      });
+    } catch (error: any) {
+      console.error('Database connection test failed:', error);
+      res.status(500).json({ 
+        status: 'error', 
+        message: 'Database connection failed',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get('/api/test/company-assets', async (req, res) => {
+    try {
+      const storage = await getStorage();
+      const assets = await storage.getCompanyAssets();
+      res.json({ 
+        status: 'ok', 
+        message: 'Company assets query successful',
+        assetsCount: assets.length,
+        sampleAsset: assets.length > 0 ? assets[0] : null
+      });
+    } catch (error: any) {
+      console.error('Company assets test failed:', error);
+      res.status(500).json({ 
+        status: 'error', 
+        message: 'Company assets query failed',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   console.log('Core routes registered successfully');
   
   return httpServer;
