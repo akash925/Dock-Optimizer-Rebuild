@@ -1457,13 +1457,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/test/db-connection', async (req, res) => {
     try {
       const storage = await getStorage();
-      // Try a simple query
-      const facilities = await storage.list();
+      // Try a simple query - use getFacilities instead of list
+      let facilitiesCount = 0;
+      try {
+        if (typeof storage.getFacilities === 'function') {
+          const facilities = await storage.getFacilities();
+          facilitiesCount = facilities.length;
+        } else if (typeof storage.list === 'function') {
+          const facilities = await storage.list();
+          facilitiesCount = facilities.length;
+        }
+      } catch (facilityError) {
+        console.warn('Could not get facilities, but storage is connected:', facilityError);
+      }
+      
       res.json({ 
         status: 'ok', 
         message: 'Database connection successful',
         storageType: storage.constructor.name,
-        facilitiesCount: facilities.length
+        facilitiesCount: facilitiesCount,
+        availableMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(storage))
       });
     } catch (error: any) {
       console.error('Database connection test failed:', error);

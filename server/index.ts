@@ -1,14 +1,14 @@
+// CRITICAL: Load environment variables FIRST before any other imports
+import dotenv from "dotenv";
+dotenv.config();
+
 import bookingPages from "./bookingPages";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import fs from "fs";
-import dotenv from "dotenv";
 import { tenantMiddleware } from "./middleware/tenant";
-
-// Load environment variables from .env file
-dotenv.config();
 
 // Default system modules (always loaded)
 const SYSTEM_MODULES = ["tenants", "featureFlags", "modules", "organizations", "admin"];
@@ -30,9 +30,13 @@ const ENABLED_MODULES = (process.env.ENABLED_MODULES || "")
   .split(",")
   .filter(Boolean);
 
+// FIXED: Make Asset Manager available by default so organizations can choose to enable it
+// This makes the module available as an option, but doesn't force it on all orgs
+const MAKE_ASSET_MANAGER_AVAILABLE = true;
+
 // Log enabled modules for backward compatibility
 console.log(
-  `Asset Manager module is ${ENABLE_ASSET_MANAGER ? "enabled" : "disabled"}`,
+  `Asset Manager module is ${(ENABLE_ASSET_MANAGER || MAKE_ASSET_MANAGER_AVAILABLE) ? "available" : "disabled"}`,
 );
 console.log(
   `Enabled modules: ${ENABLED_MODULES.length ? ENABLED_MODULES.join(", ") : "none"}`,
@@ -107,7 +111,7 @@ app.use((req, res, next) => {
   // Load tenant-specific enabled modules
   // For backward compatibility, load modules from environment
   const modulesToLoad = [...ENABLED_MODULES];
-  if (ENABLE_ASSET_MANAGER && !modulesToLoad.includes("assetManager")) {
+  if ((ENABLE_ASSET_MANAGER || MAKE_ASSET_MANAGER_AVAILABLE) && !modulesToLoad.includes("assetManager")) {
     modulesToLoad.push("assetManager");
   }
 
@@ -152,14 +156,14 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
+  // Serve the app on port 5000 (or PORT env var for flexibility)
   // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Port 5000 is the standard for Replit deployment.
+  const port = process.env.PORT || 5000;
   server.listen(
     {
       port,
-      host: "0.0.0.0",
+      host: process.env.NODE_ENV === "development" ? "localhost" : "0.0.0.0",
       reusePort: true,
     },
     () => {
