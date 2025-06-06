@@ -1598,6 +1598,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get organization holidays
+  app.get('/api/organizations/:id/holidays', async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.id);
+      
+      if (isNaN(organizationId)) {
+        return res.status(400).json({ error: 'Invalid organization ID' });
+      }
+      
+      const organization = await storage.getTenantById(organizationId);
+      
+      if (!organization) {
+        return res.status(404).json({ error: 'Organization not found' });
+      }
+      
+      // Get holidays from organization metadata
+      const holidays = organization.metadata?.holidays || [];
+      
+      console.log(`[API] Retrieved ${holidays.length} holidays for organization ${organizationId}`);
+      res.json(holidays);
+    } catch (error) {
+      console.error('Error fetching organization holidays:', error);
+      res.status(500).json({ error: 'Failed to fetch organization holidays' });
+    }
+  });
+
+  // Get facility organization context
+  app.get('/api/facilities/:id/organization', async (req, res) => {
+    try {
+      const facilityId = parseInt(req.params.id);
+      
+      if (isNaN(facilityId)) {
+        return res.status(400).json({ error: 'Invalid facility ID' });
+      }
+      
+      const facility = await storage.getFacilityById(facilityId);
+      
+      if (!facility) {
+        return res.status(404).json({ error: 'Facility not found' });
+      }
+      
+      res.json({ 
+        organizationId: facility.tenantId || facility.organizationId,
+        facilityId: facility.id,
+        overrideOrganizationHours: facility.overrideOrganizationHours 
+      });
+    } catch (error) {
+      console.error('Error fetching facility organization:', error);
+      res.status(500).json({ error: 'Failed to fetch facility organization' });
+    }
+  });
+
+  // User registration endpoint
+  app.post('/api/register', async (req: any, res) => {
+    try {
+      const { username, password, email, firstName, lastName, role = 'worker' } = req.body;
+      
+      if (!username || !password || !email || !firstName || !lastName) {
+        return res.status(400).json({ error: 'All fields are required' });
+      }
+      
+      // Check if user already exists
+      const existingUsers = await storage.getUsers();
+      const existingUser = existingUsers.find(u => u.username === username || u.email === email);
+      
+      if (existingUser) {
+        return res.status(400).json({ error: 'User with this username or email already exists' });
+      }
+      
+      // Create user (password will be hashed in storage)
+      const newUser = await storage.createUser({
+        username,
+        email,
+        firstName,
+        lastName,
+        password,
+        role,
+        tenantId: null // No tenant assigned by default for public registration
+      });
+      
+      // Remove password from response
+      const { password: _, ...safeUser } = newUser;
+      res.status(201).json(safeUser);
+    } catch (error) {
+      console.error('Error registering user:', error);
+      res.status(500).json({ error: 'Failed to register user' });
+    }
+  });
+
   console.log('Core routes registered successfully');
   
   return httpServer;
