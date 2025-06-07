@@ -1,28 +1,26 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dock, Schedule, Carrier, Facility } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import DoorAppointmentForm from "../components/door-manager/door-appointment-form-fixed";
-import ReleaseDoorForm from "../components/door-manager/release-door-form";
-import AppointmentSelectorDialog from "../components/door-manager/appointment-selector-dialog";
-import { useAssignAppointmentToDoor } from "../components/door-manager/assign-appointment-service";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { LogOut, RefreshCw, Calendar, Settings } from "lucide-react";
+import ReleaseDoorForm from "@/components/door-manager/release-door-form";
+import UnifiedAppointmentFlow from "@/components/appointment/unified-appointment-flow";
 import DoorBoard from "../components/door-manager/door-board";
-import { X, LogOut, RefreshCw } from "lucide-react";
-import { queryClient } from "@/lib/queryClient";
 
 export default function DoorManager() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(null);
   const [filterType, setFilterType] = useState<"all" | "available" | "not_available">("all");
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [showAppointmentSelector, setShowAppointmentSelector] = useState(false);
   const [showAppointmentForm, setShowAppointmentForm] = useState(false);
   const [showReleaseDoorForm, setShowReleaseDoorForm] = useState(false);
   const [selectedDockId, setSelectedDockId] = useState<number | null>(null);
   const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{start: Date, end: Date} | null>(null);
   
   // Add state for tracking recently assigned door
   const [recentlyAssignedDock, setRecentlyAssignedDock] = useState<number | null>(null);
@@ -147,10 +145,7 @@ export default function DoorManager() {
     return facilityMatch && availabilityMatch;
   });
   
-  // Use the door assignment mutation
-  const assignAppointmentMutation = useAssignAppointmentToDoor();
-  
-  // Open the appointment selector
+  // Open the unified appointment form
   const handleUseDoor = (dockId: number) => {
     setSelectedDockId(dockId);
     
@@ -161,7 +156,7 @@ export default function DoorManager() {
       setSelectedFacilityId(selectedDock.facilityId);
     }
     
-    setShowAppointmentSelector(true);
+    setShowAppointmentForm(true);
   };
   
   // Create a new appointment with the facility pre-selected
@@ -560,7 +555,7 @@ export default function DoorManager() {
       
       {/* Appointment Selector Dialog */}
       {showAppointmentSelector && selectedDockId && (
-        <AppointmentSelectorDialog
+        <AppointmentSelector
           isOpen={showAppointmentSelector}
           onClose={() => setShowAppointmentSelector(false)}
           dockId={selectedDockId}

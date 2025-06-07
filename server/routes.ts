@@ -522,6 +522,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DEPRECATED: Use /api/docks instead - maintained for backward compatibility
+  app.get('/api/docks-all', async (req: any, res) => {
+    // Redirect to new consolidated endpoint
+    return res.redirect('/api/docks');
+  });
+
   // Create user with invitation email
   app.post('/api/users', async (req: any, res) => {
     try {
