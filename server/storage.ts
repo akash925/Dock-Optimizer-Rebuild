@@ -937,14 +937,14 @@ export class MemStorage implements IStorage {
   async createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType> {
     const id = this.appointmentTypeIdCounter++;
     const createdAt = new Date();
-    const appointmentType: AppointmentType = {
+    const newAppointmentType: AppointmentType = {
       ...appointmentType,
       id,
       createdAt,
       lastModifiedAt: null
     };
-    this.appointmentTypes.set(id, appointmentType);
-    return appointmentType;
+    this.appointmentTypes.set(id, newAppointmentType);
+    return newAppointmentType;
   }
 
   async updateAppointmentType(id: number, appointmentTypeUpdate: Partial<AppointmentType>): Promise<AppointmentType | undefined> {
@@ -1015,12 +1015,12 @@ export class MemStorage implements IStorage {
 
   async createCustomQuestion(customQuestion: InsertCustomQuestion): Promise<CustomQuestion> {
     const id = this.customQuestionIdCounter++;
-    const customQuestion: CustomQuestion = {
+    const newCustomQuestion: CustomQuestion = {
       ...customQuestion,
       id
     };
-    this.customQuestions.set(id, customQuestion);
-    return customQuestion;
+    this.customQuestions.set(id, newCustomQuestion);
+    return newCustomQuestion;
   }
 
   async updateCustomQuestion(id: number, customQuestionUpdate: Partial<CustomQuestion>): Promise<CustomQuestion | undefined> {
