@@ -6,10 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, RefreshCw, Calendar, Settings } from "lucide-react";
+import { LogOut, RefreshCw, Calendar, Settings, X } from "lucide-react";
 import ReleaseDoorForm from "@/components/door-manager/release-door-form";
 import UnifiedAppointmentFlow from "@/components/appointment/unified-appointment-flow";
 import DoorBoard from "../components/door-manager/door-board";
+import AppointmentSelector from "@/components/door-manager/appointment-selector-dialog";
+import DoorAppointmentForm from "@/components/door-manager/door-appointment-form";
 
 export default function DoorManager() {
   const { toast } = useToast();
@@ -22,8 +24,10 @@ export default function DoorManager() {
   const [selectedDockId, setSelectedDockId] = useState<number | null>(null);
   const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
   
-  // Add state for tracking recently assigned door
+  // Add missing state variables
   const [recentlyAssignedDock, setRecentlyAssignedDock] = useState<number | null>(null);
+  const [showAppointmentSelector, setShowAppointmentSelector] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<{ start: Date; end: Date } | null>(null);
   
   // Fetch facilities
   const { data: facilities = [] } = useQuery<Facility[]>({

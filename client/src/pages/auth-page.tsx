@@ -93,42 +93,6 @@ export default function AuthPage() {
     }
   }
   
-  // Handle test login for development/debugging 
-  async function handleTestLogin() {
-    try {
-      const res = await fetch('/api/test-login', {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        toast({
-          title: "Test login successful",
-          description: `Logged in as ${data.user.username}`,
-        });
-        // Refresh the page after successful login to update auth state
-        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-        // Redirect after successful login
-        navigate("/");
-      } else {
-        const errorResponse = await res.json();
-        toast({
-          title: "Test login failed",
-          description: errorResponse?.message || "Unknown error",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      console.error("Test login error:", err);
-      toast({
-        title: "Error during test login",
-        description: String(err),
-        variant: "destructive",
-      });
-    }
-  }
-  
   // Handle registration submission
   async function onRegisterSubmit(data: RegisterFormValues) {
     registerMutation.mutate(data, {
@@ -203,16 +167,6 @@ export default function AuthPage() {
                       >
                         {loginMutation.isPending ? "Logging in..." : "Login"}
                       </Button>
-                      <div className="pt-4">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={handleTestLogin}
-                        >
-                          Test Login (Development)
-                        </Button>
-                      </div>
                     </form>
                   </Form>
                 </TabsContent>
@@ -320,10 +274,36 @@ export default function AuthPage() {
             </CardContent>
             <CardFooter className="flex flex-col items-center">
               <p className="text-xs text-center text-neutral-500 mt-4 mb-4">
-                By signing in, you agree to our Terms of Service and Privacy Policy.
+                By signing in, you agree to our{" "}
+                <a 
+                  href="https://conmitto.io/terms-of-service" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-primary hover:underline"
+                >
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a 
+                  href="https://conmitto.io/privacy-policy" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-primary hover:underline"
+                >
+                  Privacy Policy
+                </a>.
               </p>
               <div className="flex items-center text-xs text-neutral-500">
-                <span>© 2025 Conmitto Inc. All rights reserved</span>
+                <span>© 2025{" "}
+                  <a 
+                    href="https://conmitto.io" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-primary hover:underline"
+                  >
+                    Conmitto Inc
+                  </a>. All rights reserved
+                </span>
               </div>
             </CardFooter>
           </Card>
