@@ -150,12 +150,17 @@ export default function DoorManager() {
   });
   
   // Open the unified appointment form
-    const handleUseDoor = (dockId: number) => {
-    console.log("[DoorManager] Use door clicked for dock ID:", dockId);
+  const handleUseDoor = (dockId: number) => {
     setSelectedDockId(dockId);
     
-    // Use only AppointmentSelector to avoid modal stacking
-    setShowAppointmentSelector(true);
+    // Find the door's facility ID
+    const selectedDock = docks.find(dock => dock.id === dockId);
+    if (selectedDock) {
+      // Set the facility filter to the door's facility
+      setSelectedFacilityId(selectedDock.facilityId);
+    }
+    
+    setShowAppointmentForm(true);
   };
   
   // Create a new appointment with the facility pre-selected
@@ -527,6 +532,20 @@ export default function DoorManager() {
           )}
         </div>
       </div>
+      
+      {/* Door Appointment Form Dialog */}
+      {showAppointmentForm && selectedDockId && (
+        <DoorAppointmentForm 
+          isOpen={showAppointmentForm}
+          onClose={handleCloseAppointmentForm}
+          dockId={selectedDockId}
+          facilityId={selectedFacilityId || undefined}
+          onSuccess={() => {
+            refetchSchedules();
+            handleCloseAppointmentForm();
+          }}
+        />
+      )}
       
       {/* Release Door Form Dialog */}
       {showReleaseDoorForm && selectedScheduleId && (

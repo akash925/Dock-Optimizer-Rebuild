@@ -1,19 +1,6 @@
 import { and, eq, gt, gte, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm';
 import { toZonedTime, format as tzFormat } from 'date-fns-tz';
 import { getDay, parseISO, addDays, format, addMinutes, isEqual, isAfter, parse, differenceInCalendarDays } from 'date-fns';
-// Safe date formatting function to prevent "Invalid time value" errors
-function safeFormat(date: Date | null | undefined, formatStr: string, fallback = 'Invalid Date'): string {
-  if (!date || !isValid(date)) {
-    console.warn('[AvailabilityService] Invalid date encountered:', date);
-    return fallback;
-  }
-  try {
-    return format(date, formatStr);
-  } catch (error) {
-    console.error('[AvailabilityService] Date formatting error:', error);
-    return fallback;
-  }
-}
 
 // Helper function to parse ISO dates with timezone options
 function tzParseISO(dateStr: string, options?: { timeZone?: string }): Date {
@@ -459,7 +446,7 @@ export async function calculateAvailabilitySlots(
   // DEBUG: Log time values for debugging
   console.log(`[AvailabilityService] DEBUG TIME VALUES:`);
   console.log(`  Original hours from DB: ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
-  console.log(`  Parsed time (local): ${safeFormat(operatingStartDateTime, 'HH:mm')} - ${safeFormat(operatingEndDateTime, 'HH:mm')}`);
+  console.log(`  Parsed time (local): ${format(operatingStartDateTime, 'HH:mm')} - ${format(operatingEndDateTime, 'HH:mm')}`);
   console.log(`  Direct parse with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
   console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
   
@@ -581,7 +568,7 @@ export async function calculateAvailabilitySlots(
     
     // Check if the requested date is today or a future date
     // If a future date, we don't need to apply the buffer time check
-    const isToday = safeFormat(dateInFacilityTZ, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+    const isToday = format(dateInFacilityTZ, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
     
     // Only apply buffer time check if we're checking today's availability
     if (isToday && currentSlotStartTime < effectiveBufferCutoff) {
