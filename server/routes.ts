@@ -406,14 +406,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[Docks] Dock ${dock.id}: ${dock.name}, facilityId: ${dock.facilityId}`);
       });
       
-      // Filter docks by tenant ID through facility association
-      const facilities = await storage.getFacilities();
-      console.log(`[Docks] Total facilities in database: ${facilities.length}`);
+      // Filter docks by tenant ID through organization_facilities junction table
+      console.log(`[Docks] Using organization_facilities for tenant isolation`);
       
-      const tenantFacilities = facilities.filter(facility => facility.tenantId === currentUser.tenantId);
+      const tenantFacilities = await storage.getFacilitiesByOrganizationId(currentUser.tenantId);
       console.log(`[Docks] Facilities for tenant ${currentUser.tenantId}: ${tenantFacilities.length}`);
       tenantFacilities.forEach(facility => {
-        console.log(`[Docks] Tenant facility ${facility.id}: ${facility.name}, tenantId: ${facility.tenantId}`);
+        console.log(`[Docks] Tenant facility ${facility.id}: ${facility.name}`);
       });
       
       const tenantFacilityIds = tenantFacilities.map(facility => facility.id);

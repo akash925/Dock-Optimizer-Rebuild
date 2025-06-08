@@ -1,6 +1,6 @@
 import { and, eq, gt, gte, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm';
 import { toZonedTime, format as tzFormat } from 'date-fns-tz';
-import { getDay, parseISO, addDays, format, addMinutes, isEqual, isAfter, parse, differenceInCalendarDays } from 'date-fns';
+import { getDay, parseISO, addDays, format, addMinutes, isEqual, isAfter, parse, differenceInCalendarDays, isValid } from 'date-fns';
 // Safe date formatting function to prevent "Invalid time value" errors
 function safeFormat(date: Date | null | undefined, formatStr: string, fallback = 'Invalid Date'): string {
   if (!date || !isValid(date)) {
