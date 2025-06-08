@@ -2452,6 +2452,26 @@ export class DatabaseStorage implements IStorage {
 
   async getScheduleById(id: number): Promise<Schedule | undefined> {
     try {
+      // Check if schedules table has facility_id column (since it might not exist in all environments)
+      let schedulesColumns;
+      try {
+        const columnsResult = await pool.query(`
+          SELECT column_name FROM information_schema.columns 
+          WHERE table_name = 'schedules'
+        `);
+        schedulesColumns = columnsResult.rows.map(row => row.column_name);
+      } catch (err) {
+        console.error('Error checking schedules table schema:', err);
+        schedulesColumns = [];
+      }
+      
+      const hasFacilityIdInSchedules = schedulesColumns.includes('facility_id');
+      
+      // Use appropriate facility reference based on table schema
+      const facilityJoin = hasFacilityIdInSchedules 
+        ? `LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id`
+        : `LEFT JOIN facilities f ON d.facility_id = f.id`;
+      
       const result = await pool.query(`
         SELECT s.*, 
         f.name AS facility_name,
@@ -2460,7 +2480,7 @@ export class DatabaseStorage implements IStorage {
         at.name AS appointment_type_name 
         FROM schedules s
         LEFT JOIN docks d ON s.dock_id = d.id
-        LEFT JOIN facilities f ON COALESCE(s.facility_id, d.facility_id) = f.id
+        ${facilityJoin}
         LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
         WHERE s.id = $1
       `, [id]);

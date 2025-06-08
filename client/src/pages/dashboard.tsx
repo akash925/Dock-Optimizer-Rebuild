@@ -140,7 +140,7 @@ export default function Dashboard() {
       facilities: facilities.length 
     });
     
-    if (docks.length > 0 && carriers.length > 0) {
+    if (docks.length > 0) {
       // Get date range based on selected option
       const { start, end } = getDateRangeParams();
       const now = new Date();
@@ -315,11 +315,11 @@ export default function Dashboard() {
         );
         
         const currentCarrier = currentSchedule 
-          ? carriers.find(c => c.id === currentSchedule.carrierId)?.name || "Unknown" 
+          ? carriers?.find(c => c.id === currentSchedule.carrierId)?.name || "Unknown" 
           : undefined;
         
         const nextCarrier = nextSchedule 
-          ? carriers.find(c => c.id === nextSchedule.carrierId)?.name || "Unknown" 
+          ? carriers?.find(c => c.id === nextSchedule.carrierId)?.name || "Unknown" 
           : undefined;
         
         return {
@@ -362,7 +362,7 @@ export default function Dashboard() {
         .slice(0, 4);
       
       const arrivals = futureSchedules.map(schedule => {
-        const carrierName = carriers.find(c => c.id === schedule.carrierId)?.name || "Unknown";
+        const carrierName = carriers?.find(c => c.id === schedule.carrierId)?.name || "Unknown";
         const dockName = docks.find(d => d.id === schedule.dockId)?.name || "Unknown";
         
         // Simulate status (in a real app this would come from data)
@@ -502,18 +502,6 @@ export default function Dashboard() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {/* Debug info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="col-span-full text-xs text-gray-400 mb-2">
-              Debug: {dockStatuses.length} total dock statuses, 
-              selected facility: {selectedFacilityId}, 
-              filtered count: {dockStatuses.filter(dock => {
-                if (selectedFacilityId === "all") return true;
-                const fullDock = docks.find(d => d.id === dock.id);
-                return fullDock?.facilityId === selectedFacilityId;
-              }).length}
-            </div>
-          )}
           
           {dockStatuses
             .filter(dock => {
