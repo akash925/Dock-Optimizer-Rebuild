@@ -1,5 +1,5 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Dialog, 
   DialogContent, 
@@ -8,12 +8,14 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from 'lucide-react';
+import { Loader2, DoorOpen, CheckCircle2, LogOut } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLocation } from 'wouter';
 import { Schedule } from '@shared/schema';
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface AppointmentDetailsProps {
   scheduleId: number | null;
@@ -22,10 +24,96 @@ interface AppointmentDetailsProps {
 
 export default function AppointmentDetails({ scheduleId, onClose }: AppointmentDetailsProps) {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showDockAssignment, setShowDockAssignment] = useState(false);
 
   const { data: schedule, isLoading } = useQuery<Schedule>({
     queryKey: [`/api/schedules/${scheduleId}`],
     enabled: !!scheduleId,
+  });
+
+  // Fetch docks for door assignment
+  const { data: docks = [] } = useQuery<any[]>({
+    queryKey: ["/api/docks"],
+    enabled: showDockAssignment,
+  });
+
+  // Check-in mutation
+  const checkInMutation = useMutation({
+    mutationFn: async () => {
+      if (!schedule?.id) throw new Error("No schedule ID");
+      const res = await apiRequest("PATCH", `/api/schedules/${schedule.id}/check-in`, {
+        actualStartTime: new Date().toISOString()
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/schedules/${scheduleId}`] });
+      toast({
+        title: "Appointment checked in",
+        description: "The appointment has been checked in successfully",
+      });
+      setShowDockAssignment(true);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error checking in",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Check-out mutation
+  const checkOutMutation = useMutation({
+    mutationFn: async () => {
+      if (!schedule?.id) throw new Error("No schedule ID");
+      const res = await apiRequest("PATCH", `/api/schedules/${schedule.id}/check-out`, {
+        actualEndTime: new Date().toISOString()
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/schedules/${scheduleId}`] });
+      toast({
+        title: "Appointment checked out",
+        description: "The appointment has been completed successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error checking out",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Assign dock mutation
+  const assignDockMutation = useMutation({
+    mutationFn: async (dockId: number) => {
+      if (!schedule?.id) throw new Error("No schedule ID");
+      const res = await apiRequest("PATCH", `/api/schedules/${schedule.id}/assign-door`, {
+        dockId
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/schedules/${scheduleId}`] });
+      setShowDockAssignment(false);
+      toast({
+        title: "Door assigned",
+        description: "The appointment has been assigned to a door successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error assigning door",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   });
 
   if (isLoading || !schedule) {
@@ -58,10 +146,11 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
   
   const getStatusBadgeColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'checked-in': return 'bg-yellow-500';
+      case 'in-progress': return 'bg-yellow-500';
       case 'completed': return 'bg-green-500';
-      case 'canceled': return 'bg-red-500';
+      case 'cancelled': return 'bg-red-500';
       case 'no-show': return 'bg-gray-500';
+      case 'scheduled': return 'bg-blue-500';
       default: return 'bg-blue-500';
     }
   };
@@ -109,7 +198,29 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
                 </div>
               )}
               <div className="mt-2 text-sm">
-                {schedule.dockId ? `Dock #${schedule.dockId}` : 'No dock assigned'}
+                {schedule.dockId ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-600 font-medium">
+                      🚪 Dock #{schedule.dockId}
+                    </span>
+                    <Badge variant="secondary" className="text-xs">Assigned</Badge>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-orange-600">No dock assigned</span>
+                    {schedule.status === 'in-progress' && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setShowDockAssignment(true)}
+                        className="text-xs"
+                      >
+                        <DoorOpen className="h-3 w-3 mr-1" />
+                        Assign Dock
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -261,18 +372,97 @@ export default function AppointmentDetails({ scheduleId, onClose }: AppointmentD
           >
             Close
           </Button>
-          <Button
-            onClick={() => {
-              if (scheduleId) {
-                // Redirect to schedules page with edit mode flag for this appointment
-                navigate(`/schedules?edit=${scheduleId}`);
-              }
-            }}
-          >
-            Edit Appointment
-          </Button>
+          
+          {/* Status-based action buttons */}
+          {schedule.status === 'scheduled' && (
+            <Button
+              onClick={() => checkInMutation.mutate()}
+              disabled={checkInMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {checkInMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Check In
+            </Button>
+          )}
+          
+          {schedule.status === 'in-progress' && (
+            <Button
+              onClick={() => checkOutMutation.mutate()}
+              disabled={checkOutMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {checkOutMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <LogOut className="h-4 w-4 mr-2" />
+              Check Out
+            </Button>
+          )}
+          
+          {(schedule.status === 'completed' || schedule.status === 'scheduled' || schedule.status === 'in-progress') && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (scheduleId) {
+                  // Redirect to schedules page with edit mode flag for this appointment
+                  navigate(`/schedules?edit=${scheduleId}`);
+                }
+              }}
+            >
+              Edit Appointment
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
-    </Dialog>
-  );
+      
+      {/* Dock Assignment Dialog */}
+      <Dialog open={showDockAssignment} onOpenChange={setShowDockAssignment}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Assign Dock</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Select an available dock for this checked-in appointment:
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {docks
+                .filter(dock => dock.isActive)
+                .map(dock => (
+                  <Button
+                    key={dock.id}
+                    variant="outline"
+                    className="h-auto p-4 flex flex-col items-center gap-2"
+                    onClick={() => assignDockMutation.mutate(dock.id)}
+                    disabled={assignDockMutation.isPending}
+                  >
+                    <DoorOpen className="h-6 w-6" />
+                    <span className="font-medium">{dock.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {dock.type || 'Standard'}
+                    </span>
+                  </Button>
+                ))}
+            </div>
+            {docks.filter(dock => dock.isActive).length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                No available docks found for this facility
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDockAssignment(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="secondary"
+              onClick={() => navigate("/door-manager")}
+            >
+              <DoorOpen className="h-4 w-4 mr-2" />
+              Go to Door Manager
+            </Button>
+                     </DialogFooter>
+         </DialogContent>
+       </Dialog>
+      </Dialog>
+    );
 }

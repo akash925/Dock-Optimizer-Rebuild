@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import EnhancedAppointmentDetails from "@/components/appointments/enhanced-appointment-details";
+import AppointmentDetails from "@/components/calendar/appointment-details";
 import {
   Calendar,
   Loader2,
@@ -892,7 +892,7 @@ export default function AppointmentsPage() {
       </div>
       
       {/* Appointment Details Modal */}
-      <EnhancedAppointmentDetails 
+      <AppointmentDetails 
         scheduleId={selectedScheduleId} 
         onClose={() => setSelectedScheduleId(null)}
       />

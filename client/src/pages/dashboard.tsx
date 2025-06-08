@@ -39,7 +39,7 @@ export default function Dashboard() {
     queryKey: ["/api/facilities"],
   });
   
-  // Selected facility filter
+  // Selected facility filter - default to "all" to show all docks initially
   const [selectedFacilityId, setSelectedFacilityId] = useState<number | "all">("all");
   
   // Calculate KPI metrics
@@ -133,7 +133,14 @@ export default function Dashboard() {
   
   // Process data for dashboard components
   useEffect(() => {
-    if (docks.length > 0 && schedules.length > 0 && carriers.length > 0) {
+    console.log('[Dashboard] Data status:', { 
+      docks: docks.length, 
+      schedules: schedules.length, 
+      carriers: carriers.length,
+      facilities: facilities.length 
+    });
+    
+    if (docks.length > 0 && carriers.length > 0) {
       // Get date range based on selected option
       const { start, end } = getDateRangeParams();
       const now = new Date();
@@ -290,6 +297,7 @@ export default function Dashboard() {
       });
       
       // Calculate dock statuses
+      console.log('[Dashboard] Processing', docks.length, 'docks for status calculation');
       const statuses = docks.map(dock => {
         const status = getDockStatus(dock.id, schedules);
         
@@ -335,6 +343,7 @@ export default function Dashboard() {
         };
       });
       
+      console.log('[Dashboard] Created', statuses.length, 'dock statuses');
       setDockStatuses(statuses);
       
       // Calculate upcoming arrivals
@@ -493,6 +502,19 @@ export default function Dashboard() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {/* Debug info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="col-span-full text-xs text-gray-400 mb-2">
+              Debug: {dockStatuses.length} total dock statuses, 
+              selected facility: {selectedFacilityId}, 
+              filtered count: {dockStatuses.filter(dock => {
+                if (selectedFacilityId === "all") return true;
+                const fullDock = docks.find(d => d.id === dock.id);
+                return fullDock?.facilityId === selectedFacilityId;
+              }).length}
+            </div>
+          )}
+          
           {dockStatuses
             .filter(dock => {
               // If "all facilities" is selected, show all docks
