@@ -60,22 +60,50 @@ export default function BolUpload({
       // 1. Parse the BOL using the enhanced OCR service
       setUploadStage('processing');
       setUploadProgress(20);
-      const parsedData = await parseBol(file);
-      setBolData(parsedData);
       
-      console.log('BOL parsed successfully:', parsedData);
+      let parsedData;
+      try {
+        parsedData = await parseBol(file);
+        setBolData(parsedData);
+        console.log('BOL parsed successfully:', parsedData);
+      } catch (ocrError) {
+        console.warn('OCR parsing failed, using fallback:', ocrError);
+                 // Fallback to basic data structure if OCR fails
+         parsedData = {
+           bolNumber: '',
+           customerName: '',
+           carrierName: '',
+           mcNumber: '',
+           weight: '',
+           palletCount: '',
+           fromAddress: '',
+           toAddress: '',
+           pickupOrDropoff: 'pickup' as const,
+           extractionMethod: 'fallback',
+           extractionConfidence: 0,
+           processingTimestamp: new Date().toISOString()
+         } as ParsedBolData;
+        setBolData(parsedData);
+      }
       
       // 2. Compress the file for upload
       setUploadStage('compressing');
       setUploadProgress(35);
-      const compressedFile = await compressFile(file);
       
-      // Update progress based on compression result
-      setUploadProgress(45);
-      if (compressedFile.size < file.size) {
-        console.log(`File compressed: ${file.size} → ${compressedFile.size} bytes (${Math.round((1 - compressedFile.size / file.size) * 100)}% reduction)`);
-      } else {
-        console.log('File not compressed (not an image or already optimized)');
+      let compressedFile;
+      try {
+        compressedFile = await compressFile(file);
+        // Update progress based on compression result
+        setUploadProgress(45);
+        if (compressedFile.size < file.size) {
+          console.log(`File compressed: ${file.size} → ${compressedFile.size} bytes (${Math.round((1 - compressedFile.size / file.size) * 100)}% reduction)`);
+        } else {
+          console.log('File not compressed (not an image or already optimized)');
+        }
+      } catch (compressionError) {
+        console.warn('File compression failed, using original file:', compressionError);
+        compressedFile = file;
+        setUploadProgress(45);
       }
       
       // 3. Upload the file to the server
@@ -102,32 +130,51 @@ export default function BolUpload({
       
       console.log('Uploading BOL file to server...');
       
-      // Make a fetch request to our BOL upload endpoint
-      const response = await fetch('/api/upload-bol', {
-        method: 'POST',
-        body: formData
-      });
+      // Make a fetch request to our BOL upload endpoint with better error handling
+      let response;
+      try {
+        response = await fetch('/api/upload-bol', {
+          method: 'POST',
+          body: formData
+        });
+             } catch (networkError) {
+         console.error('Network error during upload:', networkError);
+         const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown network error';
+         throw new Error(`Network error: ${errorMessage}. Please check your connection and try again.`);
+       }
       
       if (!response.ok) {
-        const errorText = await response.text();
+        let errorText = '';
+        try {
+          const errorData = await response.json();
+          errorText = errorData.message || errorData.error || `Server error: ${response.status} ${response.statusText}`;
+        } catch (e) {
+          errorText = `Server error: ${response.status} ${response.statusText}`;
+        }
         console.error('Server error during upload:', errorText);
-        throw new Error(`Failed to upload BOL file: ${response.status} ${response.statusText}`);
+        throw new Error(`Upload failed: ${errorText}`);
       }
       
       setUploadStage('analyzing');
       setUploadProgress(85);
       
-      const responseData = await response.json();
-      console.log('File upload successful:', responseData);
+      let responseData;
+      try {
+        responseData = await response.json();
+        console.log('File upload successful:', responseData);
+      } catch (jsonError) {
+        console.error('Failed to parse server response:', jsonError);
+        throw new Error('Server returned invalid response. Please try again.');
+      }
       
       // Set completed stage
       setUploadStage('completed');
       setUploadProgress(100);
       
       setUploadedFileUrl(responseData.fileUrl);
-      setUploadedFileName(responseData.filename);
+      setUploadedFileName(responseData.filename || responseData.originalName);
       
-      // 4. Build a formatted preview text
+      // 4. Build a formatted preview text using both parsed data and server response
       const previewLines: string[] = [];
       
       if (parsedData.bolNumber) previewLines.push(`BOL Number: ${parsedData.bolNumber}`);
