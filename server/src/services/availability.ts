@@ -23,6 +23,56 @@ function tzParseISO(dateStr: string, options?: { timeZone?: string }): Date {
   }
   return parsedDate;
 }
+
+// Helper function to check for holidays and special closures
+async function checkHolidaysAndClosures(
+  date: string,
+  currentHours: DayHours,
+  organization: any,
+  facility: any,
+  appointmentType: any
+): Promise<DayHours> {
+  console.log(`[AvailabilityService] Checking holidays and closures for ${date}`);
+  
+  // Check organization holidays
+  const orgHolidays = organization.holidays || [];
+  const isOrgHoliday = orgHolidays.some((holiday: any) => {
+    return holiday.date === date || (holiday.startDate <= date && holiday.endDate >= date);
+  });
+  
+  if (isOrgHoliday) {
+    console.log(`[AvailabilityService] Organization holiday detected for ${date}`);
+    return { ...currentHours, open: false };
+  }
+  
+  // Check facility-specific closures
+  const facilityClosures = facility.closures || [];
+  const isFacilityClosed = facilityClosures.some((closure: any) => {
+    return closure.date === date || (closure.startDate <= date && closure.endDate >= date);
+  });
+  
+  if (isFacilityClosed) {
+    console.log(`[AvailabilityService] Facility closure detected for ${date}`);
+    return { ...currentHours, open: false };
+  }
+  
+  // Check appointment type specific restrictions
+  const appointmentTypeRestrictions = appointmentType.dateRestrictions || [];
+  const isRestrictedForAppointmentType = appointmentTypeRestrictions.some((restriction: any) => {
+    if (restriction.type === 'blackout') {
+      return restriction.date === date || (restriction.startDate <= date && restriction.endDate >= date);
+    }
+    return false;
+  });
+  
+  if (isRestrictedForAppointmentType) {
+    console.log(`[AvailabilityService] Appointment type restriction detected for ${date}`);
+    return { ...currentHours, open: false };
+  }
+  
+  console.log(`[AvailabilityService] No holidays or closures found for ${date}`);
+  return currentHours;
+}
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import type { IStorage } from '../../storage';
 import { schedules, docks, appointmentTypes, organizationFacilities } from '@shared/schema';
@@ -333,32 +383,36 @@ export async function calculateAvailabilitySlots(
   // For now, skip organization holidays check until we implement that feature
   // TODO: Check organization holidays when getOrganizationHolidays is implemented
   
-  // STEP 2: Build organization default hours (with sensible defaults)
+  // STEP 2: Build organization default hours (fully configurable, no hardcoded defaults)
   const orgHours: Record<string, DayHours> = {};
   
   for (const day of dayKeys) {
     const dayOpenField = getObjectField(organization, `${day}Open`, `${day}_open`);
+    const dayStartField = getObjectField(organization, `${day}Start`, `${day}_start`);
+    const dayEndField = getObjectField(organization, `${day}End`, `${day}_end`);
+    const dayBreakStartField = getObjectField(organization, `${day}BreakStart`, `${day}_break_start`);
+    const dayBreakEndField = getObjectField(organization, `${day}BreakEnd`, `${day}_break_end`);
     
-    // Organization defaults: weekdays open unless explicitly false, weekends closed unless explicitly true
-    let defaultOpen = false;
-    if (['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].includes(day)) {
-      defaultOpen = dayOpenField !== false; // Weekdays open by default
-    } else {
-      defaultOpen = dayOpenField === true; // Weekends require explicit true
-    }
+    // Use configured values, or reasonable fallbacks only if nothing is configured
+    const isOpen = dayOpenField?.value !== undefined ? dayOpenField.value : false;
+    const startTime = dayStartField?.value || "08:00";
+    const endTime = dayEndField?.value || "17:00";
+    const breakStartTime = dayBreakStartField?.value || "";
+    const breakEndTime = dayBreakEndField?.value || "";
     
     orgHours[day] = {
-      open: defaultOpen,
-      start: getObjectField(organization, `${day}Start`, `${day}_start`) || "08:00",
-      end: getObjectField(organization, `${day}End`, `${day}_end`) || "17:00",
-      breakStart: getObjectField(organization, `${day}BreakStart`, `${day}_break_start`, ""),
-      breakEnd: getObjectField(organization, `${day}BreakEnd`, `${day}_break_end`, ""),
+      open: isOpen,
+      start: startTime,
+      end: endTime,
+      breakStart: breakStartTime,
+      breakEnd: breakEndTime,
     };
     
     console.log(`[AvailabilityService] Organization hours for ${day}:`, {
       rawField: dayOpenField,
-      computed: defaultOpen,
-      hours: `${orgHours[day].start} - ${orgHours[day].end}`
+      computed: isOpen,
+      hours: `${startTime} - ${endTime}`,
+      source: dayOpenField?.source || 'default'
     });
   }
   
@@ -373,28 +427,55 @@ export async function calculateAvailabilitySlots(
   const facilityBreakEnd = getObjectField(facility, `${dayKey}BreakEnd`, `${dayKey}_break_end`);
   
   // If facility has any hours configured, use them instead of org defaults
-  if (facilityDayOpen !== null || facilityDayStart || facilityDayEnd) {
+  if (facilityDayOpen?.value !== undefined || facilityDayStart?.value || facilityDayEnd?.value) {
     console.log(`[AvailabilityService] Facility ${facility.name} has configured hours for ${dayKey}`);
     
     effectiveHours = {
-      open: facilityDayOpen !== null ? facilityDayOpen : orgHours[dayKey].open,
-      start: facilityDayStart || orgHours[dayKey].start,
-      end: facilityDayEnd || orgHours[dayKey].end,
-      breakStart: facilityBreakStart || orgHours[dayKey].breakStart,
-      breakEnd: facilityBreakEnd || orgHours[dayKey].breakEnd,
+      open: facilityDayOpen?.value !== undefined ? facilityDayOpen.value : orgHours[dayKey].open,
+      start: facilityDayStart?.value || orgHours[dayKey].start,
+      end: facilityDayEnd?.value || orgHours[dayKey].end,
+      breakStart: facilityBreakStart?.value || orgHours[dayKey].breakStart,
+      breakEnd: facilityBreakEnd?.value || orgHours[dayKey].breakEnd,
     };
     
     console.log(`[AvailabilityService] Using facility hours:`, effectiveHours);
   } else {
     console.log(`[AvailabilityService] Using organization default hours for ${facility.name}`);
   }
+
+  // STEP 4: Check appointment type hours (highest priority - can override facility/org hours)
+  const appointmentTypeHoursOverride = getAppTypeField('hoursOverride', 'hours_override', null);
+  const appointmentTypeDayOpen = getAppTypeField(`${dayKey}Open`, `${dayKey}_open`, null);
+  const appointmentTypeDayStart = getAppTypeField(`${dayKey}Start`, `${dayKey}_start`, null);
+  const appointmentTypeDayEnd = getAppTypeField(`${dayKey}End`, `${dayKey}_end`, null);
+  const appointmentTypeBreakStart = getAppTypeField(`${dayKey}BreakStart`, `${dayKey}_break_start`, null);
+  const appointmentTypeBreakEnd = getAppTypeField(`${dayKey}BreakEnd`, `${dayKey}_break_end`, null);
+
+  // If appointment type has specific hours configured, they take highest priority
+  if (appointmentTypeHoursOverride || appointmentTypeDayOpen !== null || appointmentTypeDayStart || appointmentTypeDayEnd) {
+    console.log(`[AvailabilityService] Appointment type ${appointmentType.name} has configured hours for ${dayKey}`);
+    
+    effectiveHours = {
+      open: appointmentTypeDayOpen !== null ? appointmentTypeDayOpen : effectiveHours.open,
+      start: appointmentTypeDayStart || effectiveHours.start,
+      end: appointmentTypeDayEnd || effectiveHours.end,
+      breakStart: appointmentTypeBreakStart || effectiveHours.breakStart,
+      breakEnd: appointmentTypeBreakEnd || effectiveHours.breakEnd,
+    };
+    
+    console.log(`[AvailabilityService] Using appointment type hours override:`, effectiveHours);
+  }
+
+  // STEP 5: Check for holidays and special closures
+  effectiveHours = await checkHolidaysAndClosures(date, effectiveHours, organization, facility, appointmentType);
   
-  // STEP 4: Check if facility is open on this day
+  // STEP 6: Check if facility is open on this day
   if (!effectiveHours || !effectiveHours.open) {
     console.log(`[AvailabilityService] Facility ${facility.name} closed on ${date} (${dayKey})`);
     return [];
   }
   
+  // Now these should be simple strings since we extract .value above
   const operatingStartTimeStr = effectiveHours.start;
   const operatingEndTimeStr = effectiveHours.end;
   const breakStartTimeStr = effectiveHours.breakStart || "";
