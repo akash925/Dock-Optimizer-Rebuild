@@ -854,10 +854,10 @@ export async function sendConfirmationEmail(
   // Host URL with potential fallback
   const host = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
 
-  // Create reschedule/cancel links - these need to include booking page slug if available
-  // For now, using generic URLs that work with the app routing structure
-  const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
-  const cancelLink = `${host}/cancel?code=${confirmationCode}`;
+  // Create management links for the email
+  const viewEditLink = `${host}/view?code=${encodeURIComponent(confirmationCode)}`;
+  const rescheduleLink = `${host}/reschedule?code=${encodeURIComponent(confirmationCode)}`;
+  const cancelLink = `${host}/cancel?code=${encodeURIComponent(confirmationCode)}`;
   
   // Generate QR code SVG directly instead of using URLs
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
@@ -965,16 +965,11 @@ export async function sendConfirmationEmail(
         </div>
         
         <div style="margin: 30px 0; text-align: center;">
-          <p style="margin-bottom: 15px;">Need to make changes to your appointment?</p>
+          <p style="margin-bottom: 15px;">Manage Your Appointment:</p>
           
-          <a href="${rescheduleLink}" 
-             style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px; display: inline-block;">
-            Reschedule
-          </a>
-          
-          <a href="${cancelLink}" 
-             style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            Cancel
+          <a href="${viewEditLink}" 
+             style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+            View, Edit, Reschedule, or Cancel Your Appointment
           </a>
         </div>
         
@@ -1018,10 +1013,7 @@ export async function sendConfirmationEmail(
     
     MANAGE YOUR APPOINTMENT
     ---------------------
-    Need to make changes? 
-    
-    Reschedule: ${rescheduleLink}
-    Cancel: ${cancelLink}
+    View, Edit, Reschedule, or Cancel: ${viewEditLink}
     
     If you have any questions, please contact the facility directly.
     

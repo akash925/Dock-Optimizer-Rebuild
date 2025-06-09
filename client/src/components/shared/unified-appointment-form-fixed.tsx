@@ -370,17 +370,17 @@ export default function UnifiedAppointmentForm({
       
       console.log("Updating facility timezone to", facilityTimezone);
       
-      // Create Date object with explicit timezone handling
-      // This ensures we're creating the appointment in the facility's timezone
-      const dateTimeString = `${appointmentDate}T${appointmentTime}:00`;
+      // 🔥 CRITICAL TIMEZONE FIX: Create date that preserves facility-local time
+      // Parse date and time components manually to avoid timezone conversion
+      const [year, month, day] = appointmentDate.split('-').map(num => parseInt(num, 10));
+      const [hours, minutes] = appointmentTime.split(':').map(num => parseInt(num, 10));
       
-      // First create the date object as local time
-      const localStartTime = new Date(`${appointmentDate}T${appointmentTime}`);
+      // Create date in UTC but representing the facility's local time exactly as user selected
+      // This prevents automatic timezone conversion while preserving the intended time
+      const startTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
       
-      // Then create a date that's timezone-aware in the facility timezone
-      // This maintains the exact hour/minute selected in the facility's timezone
-      const tzOptions = { timeZone: facilityTimezone };
-      const startTime = localStartTime;
+      console.log(`[Booking] User selected ${appointmentTime} in ${facilityTimezone}`);
+      console.log(`[Booking] Storing as UTC: ${startTime.toISOString()} (preserves ${hours}:${minutes.toString().padStart(2, '0')} local time)`);
       
       if (isNaN(startTime.getTime())) {
         throw new Error("Invalid date/time");

@@ -973,11 +973,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[Booking] User selected: ${bookingData.date} ${bookingData.time} in ${facilityTimezone}`);
       
       // Parse date and time components to avoid timezone conversion issues
-      const [year, month, day] = bookingData.date.split('-').map(num => parseInt(num, 10));
-      const [hours, minutes] = bookingData.time.split(':').map(num => parseInt(num, 10));
+      const [year, month, day] = bookingData.date.split('-').map((num: string) => parseInt(num, 10));
+      const [hours, minutes] = bookingData.time.split(':').map((num: string) => parseInt(num, 10));
       
       // Create the date in UTC but representing the facility's local time
-      // This preserves the exact time the user intended
+      // This preserves the exact time the user intended in the facility timezone
       const utcStartTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
       
       console.log(`[Booking] Storing time as: ${utcStartTime.toISOString()} (preserves ${hours}:${minutes.toString().padStart(2, '0')} local time)`);
@@ -2015,6 +2015,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   console.log('Core routes registered successfully');
+  
+  // Add routes for email link management - these handle the links in confirmation emails
+  // Route for viewing appointment details via confirmation code
+  app.get('/view', async (req: any, res) => {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).send('Missing confirmation code');
+    }
+    
+    // Redirect to appointment confirmation page with the code
+    res.redirect(`/booking-confirmation?confirmationCode=${encodeURIComponent(code)}`);
+  });
+
+  // Route for editing appointment via confirmation code  
+  app.get('/edit', async (req: any, res) => {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).send('Missing confirmation code');
+    }
+    
+    // Redirect to reschedule page with the code
+    res.redirect(`/reschedule?code=${encodeURIComponent(code)}`);
+  });
+
+  // Route for cancelling appointment via confirmation code
+  app.get('/cancel', async (req: any, res) => {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).send('Missing confirmation code');
+    }
+    
+    // Redirect to cancel page with the code
+    res.redirect(`/cancel?code=${encodeURIComponent(code)}`);
+  });
+
+  // Route for rescheduling appointment via confirmation code
+  app.get('/reschedule', async (req: any, res) => {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).send('Missing confirmation code');
+    }
+    
+    // Redirect to reschedule page with the code  
+    res.redirect(`/reschedule?code=${encodeURIComponent(code)}`);
+  });
   
   return httpServer;
 }
