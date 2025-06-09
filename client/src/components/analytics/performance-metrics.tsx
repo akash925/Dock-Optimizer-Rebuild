@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,65 +24,179 @@ interface PerformanceMetric {
   description: string;
 }
 
-const defaultMetrics: PerformanceMetric[] = [
-  {
-    id: 'dock-utilization',
-    name: 'Dock Utilization',
-    value: 0,
-    target: 75,
-    unit: '%',
-    trend: 'down',
-    trendValue: 75,
-    enabled: true,
-    color: 'red',
-    description: 'Percentage of dock time actively used for operations'
-  },
-  {
-    id: 'on-time-arrivals',
-    name: 'On-Time Arrivals',
-    value: 50,
-    target: 90,
-    unit: '%',
-    trend: 'down',
-    trendValue: 40,
-    enabled: true,
-    color: 'red',
-    description: 'Percentage of appointments that arrive within the scheduled time window'
-  },
-  {
-    id: 'turnaround-time',
-    name: 'Average Turnaround Time',
-    value: 60,
-    target: 35,
-    unit: 'min',
-    trend: 'up',
-    trendValue: 25,
-    enabled: true,
-    color: 'red',
-    description: 'Average time from arrival to departure'
-  },
-  {
-    id: 'dwell-accuracy',
-    name: 'Dwell Time Accuracy',
-    value: 50,
-    target: 85,
-    unit: '%',
-    trend: 'up',
-    trendValue: 35,
-    enabled: true,
-    color: 'green',
-    description: 'Accuracy of estimated vs actual dwell times'
-  }
-];
-
 interface PerformanceMetricsProps {
   facilityFilter?: string;
   dateRange?: string;
 }
 
 export default function PerformanceMetrics({ facilityFilter = "All Facilities", dateRange = "Last 7 Days" }: PerformanceMetricsProps) {
-  const [metrics, setMetrics] = useState<PerformanceMetric[]>(defaultMetrics);
+  const [configMetrics, setConfigMetrics] = useState<PerformanceMetric[]>([
+    {
+      id: 'dock-utilization',
+      name: 'Dock Utilization',
+      value: 0,
+      target: 75,
+      unit: '%',
+      trend: 'down',
+      trendValue: 75,
+      enabled: true,
+      color: 'red',
+      description: 'Percentage of dock time actively used for operations'
+    },
+    {
+      id: 'on-time-arrivals',
+      name: 'On-Time Arrivals',
+      value: 0,
+      target: 90,
+      unit: '%',
+      trend: 'down',
+      trendValue: 40,
+      enabled: true,
+      color: 'red',
+      description: 'Percentage of appointments that arrive within the scheduled time window'
+    },
+    {
+      id: 'turnaround-time',
+      name: 'Average Turnaround Time',
+      value: 0,
+      target: 35,
+      unit: 'min',
+      trend: 'up',
+      trendValue: 25,
+      enabled: true,
+      color: 'red',
+      description: 'Average time from arrival to departure'
+    },
+    {
+      id: 'dwell-accuracy',
+      name: 'Dwell Time Accuracy',
+      value: 0,
+      target: 85,
+      unit: '%',
+      trend: 'up',
+      trendValue: 35,
+      enabled: true,
+      color: 'green',
+      description: 'Accuracy of estimated vs actual dwell times'
+    }
+  ]);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+
+  // Fetch dock utilization data
+  const { data: dockUtilizationData } = useQuery({
+    queryKey: ['/api/analytics/dock-utilization'],
+    queryFn: async () => {
+      const res = await fetch('/api/analytics/dock-utilization', { credentials: 'include' });
+      if (!res.ok) return [];
+      return await res.json();
+    }
+  });
+
+  // Fetch appointment data for on-time and turnaround calculations
+  const { data: appointmentData } = useQuery({
+    queryKey: ['/api/schedules'],
+    queryFn: async () => {
+      const res = await fetch('/api/schedules', { credentials: 'include' });
+      if (!res.ok) return [];
+      return await res.json();
+    }
+  });
+
+  // Calculate real metric values
+  useEffect(() => {
+    if (!appointmentData && !dockUtilizationData) return;
+
+    setConfigMetrics(prev => prev.map(metric => {
+      switch (metric.id) {
+        case 'dock-utilization': {
+          if (dockUtilizationData && dockUtilizationData.length > 0) {
+            const avgUtilization = dockUtilizationData.reduce((sum: number, dock: any) => 
+              sum + (dock.utilization_percentage || 0), 0) / dockUtilizationData.length;
+            return { ...metric, value: Math.round(avgUtilization) };
+          }
+          return metric;
+        }
+        
+        case 'on-time-arrivals': {
+          if (appointmentData && appointmentData.length > 0) {
+            // Calculate on-time arrivals based on check-in times vs scheduled times
+            const appointmentsWithCheckIn = appointmentData.filter((apt: any) => 
+              apt.actualStartTime && apt.startTime
+            );
+            
+            if (appointmentsWithCheckIn.length > 0) {
+              const onTimeCount = appointmentsWithCheckIn.filter((apt: any) => {
+                const scheduled = new Date(apt.startTime);
+                const actual = new Date(apt.actualStartTime);
+                const gracePeriodMinutes = 15; // 15 minute grace period
+                const timeDiffMinutes = (actual.getTime() - scheduled.getTime()) / (1000 * 60);
+                return timeDiffMinutes <= gracePeriodMinutes && timeDiffMinutes >= -30; // Allow 30 min early, 15 min late
+              }).length;
+              
+              const onTimePercentage = Math.round((onTimeCount / appointmentsWithCheckIn.length) * 100);
+              return { ...metric, value: onTimePercentage };
+            }
+          }
+          return metric;
+        }
+        
+        case 'turnaround-time': {
+          if (appointmentData && appointmentData.length > 0) {
+            // Calculate average turnaround time from check-in to check-out
+            const completedAppointments = appointmentData.filter((apt: any) => 
+              apt.actualStartTime && apt.actualEndTime
+            );
+            
+            if (completedAppointments.length > 0) {
+              const totalMinutes = completedAppointments.reduce((sum: number, apt: any) => {
+                const start = new Date(apt.actualStartTime);
+                const end = new Date(apt.actualEndTime);
+                const durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+                return sum + durationMinutes;
+              }, 0);
+              
+              const avgTurnaround = Math.round(totalMinutes / completedAppointments.length);
+              return { ...metric, value: avgTurnaround };
+            }
+          }
+          return metric;
+        }
+        
+        case 'dwell-accuracy': {
+          if (appointmentData && appointmentData.length > 0) {
+            // Calculate dwell time accuracy by comparing estimated vs actual duration
+            const appointmentsWithBothTimes = appointmentData.filter((apt: any) => 
+              apt.startTime && apt.endTime && apt.actualStartTime && apt.actualEndTime
+            );
+            
+            if (appointmentsWithBothTimes.length > 0) {
+              const accurateCount = appointmentsWithBothTimes.filter((apt: any) => {
+                const estimatedStart = new Date(apt.startTime);
+                const estimatedEnd = new Date(apt.endTime);
+                const actualStart = new Date(apt.actualStartTime);
+                const actualEnd = new Date(apt.actualEndTime);
+                
+                const estimatedDuration = (estimatedEnd.getTime() - estimatedStart.getTime()) / (1000 * 60);
+                const actualDuration = (actualEnd.getTime() - actualStart.getTime()) / (1000 * 60);
+                
+                // Consider accurate if within 20% of estimated duration
+                const tolerance = 0.20;
+                const difference = Math.abs(actualDuration - estimatedDuration);
+                return difference <= (estimatedDuration * tolerance);
+              }).length;
+              
+              const accuracyPercentage = Math.round((accurateCount / appointmentsWithBothTimes.length) * 100);
+              return { ...metric, value: accuracyPercentage };
+            }
+          }
+          return metric;
+        }
+        
+        default:
+          return metric;
+      }
+    }));
+  }, [appointmentData, dockUtilizationData]);
 
   const getTrendIcon = (trend: 'up' | 'down' | 'neutral') => {
     switch (trend) {
@@ -116,7 +231,7 @@ export default function PerformanceMetrics({ facilityFilter = "All Facilities", 
   };
 
   const updateMetric = (id: string, updates: Partial<PerformanceMetric>) => {
-    setMetrics(prev => prev.map(metric => 
+    setConfigMetrics(prev => prev.map(metric => 
       metric.id === id ? { ...metric, ...updates } : metric
     ));
   };
@@ -143,7 +258,7 @@ export default function PerformanceMetrics({ facilityFilter = "All Facilities", 
                   <DialogTitle>Configure Performance Metrics</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-6">
-                  {metrics.map((metric) => (
+                  {configMetrics.map((metric) => (
                     <div key={metric.id} className="border rounded-lg p-4 space-y-4">
                       <div className="flex items-center justify-between">
                         <Label className="font-medium">{metric.name}</Label>
@@ -189,7 +304,7 @@ export default function PerformanceMetrics({ facilityFilter = "All Facilities", 
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {metrics.filter(m => m.enabled).map((metric) => {
+          {configMetrics.filter(m => m.enabled).map((metric) => {
             const progressValue = metric.id === 'turnaround-time' 
               ? Math.max(0, 100 - ((metric.value - metric.target) / metric.target) * 100)
               : (metric.value / metric.target) * 100;

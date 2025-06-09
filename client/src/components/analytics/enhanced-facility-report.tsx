@@ -153,14 +153,14 @@ export default function EnhancedFacilityReport({ data, dateRange }: EnhancedFaci
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">
-              {data.reduce((sum, facility) => sum + (facility.appointmentCount || 0), 0)}
+              {data.reduce((sum, facility) => sum + Number(facility.appointmentCount || 0), 0).toLocaleString()}
             </div>
             <div className="text-xs text-muted-foreground">Total Appointments</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">
               {data.length > 0 ? 
-                Math.round(data.reduce((sum, facility) => sum + (facility.appointmentCount || 0), 0) / data.length) : 
+                Math.round(data.reduce((sum, facility) => sum + Number(facility.appointmentCount || 0), 0) / data.length).toLocaleString() : 
                 0
               }
             </div>

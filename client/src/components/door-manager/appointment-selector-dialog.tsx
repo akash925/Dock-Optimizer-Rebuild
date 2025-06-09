@@ -163,11 +163,24 @@ export default function AppointmentSelectorDialog({
                   {filtered.map((schedule) => (
                     <div 
                       key={schedule.id} 
-                      className="p-3 border rounded-lg hover:border-primary cursor-pointer transition-colors"
-                      onClick={() => onSelect(schedule.id)}
+                      className="p-3 border rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-200 group"
+                      onClick={() => {
+                        console.log(`[AppointmentSelector] Selecting appointment ${schedule.id} for assignment to dock ${dockId}`);
+                        onSelect(schedule.id);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onSelect(schedule.id);
+                        }
+                      }}
                     >
                       <div className="flex justify-between items-start mb-1">
-                        <div className="font-medium truncate">{schedule.customerName || "Unknown Customer"}</div>
+                        <div className="font-medium truncate group-hover:text-primary transition-colors">
+                          {schedule.customerName || "Unknown Customer"}
+                        </div>
                         {getStatusBadge(schedule.status)}
                       </div>
                       <div className="text-sm text-muted-foreground flex items-center">
@@ -177,17 +190,15 @@ export default function AppointmentSelectorDialog({
                         <Clock className="h-3.5 w-3.5 mr-1.5" />
                         {format(new Date(schedule.startTime), "h:mm a")} - {format(new Date(schedule.endTime), "h:mm a")}
                       </div>
-                      <div className="mt-1.5 text-sm text-muted-foreground flex items-center">
-                        <Truck className="h-3.5 w-3.5 mr-1.5" />
-                        {schedule.truckNumber || "No truck"}{schedule.trailerNumber ? ` / ${schedule.trailerNumber}` : ""}
-                      </div>
-                      {schedule.type && (
-                        <div className="mt-1 text-xs">
-                          <Badge variant="outline" className="font-normal">
-                            {schedule.type.charAt(0).toUpperCase() + schedule.type.slice(1)}
-                          </Badge>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                          <Truck className="h-3 w-3 mr-1" />
+                          {schedule.truckNumber || "TBD"}
                         </div>
-                      )}
+                        <div className="text-xs text-primary font-medium group-hover:text-primary/80">
+                          Click to Assign
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -210,11 +221,24 @@ export default function AppointmentSelectorDialog({
                   {filtered.map((schedule) => (
                     <div 
                       key={schedule.id} 
-                      className="p-3 border rounded-lg hover:border-primary cursor-pointer transition-colors"
-                      onClick={() => onSelect(schedule.id)}
+                      className="p-3 border rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-200 group"
+                      onClick={() => {
+                        console.log(`[AppointmentSelector] Selecting appointment ${schedule.id} for assignment to dock ${dockId}`);
+                        onSelect(schedule.id);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onSelect(schedule.id);
+                        }
+                      }}
                     >
                       <div className="flex justify-between items-start mb-1">
-                        <div className="font-medium truncate">{schedule.customerName || "Unknown Customer"}</div>
+                        <div className="font-medium truncate group-hover:text-primary transition-colors">
+                          {schedule.customerName || "Unknown Customer"}
+                        </div>
                         {getStatusBadge(schedule.status)}
                       </div>
                       <div className="text-sm text-muted-foreground flex items-center">
@@ -224,17 +248,15 @@ export default function AppointmentSelectorDialog({
                         <Clock className="h-3.5 w-3.5 mr-1.5" />
                         {format(new Date(schedule.startTime), "h:mm a")} - {format(new Date(schedule.endTime), "h:mm a")}
                       </div>
-                      <div className="mt-1.5 text-sm text-muted-foreground flex items-center">
-                        <Truck className="h-3.5 w-3.5 mr-1.5" />
-                        {schedule.truckNumber || "No truck"}{schedule.trailerNumber ? ` / ${schedule.trailerNumber}` : ""}
-                      </div>
-                      {schedule.type && (
-                        <div className="mt-1 text-xs">
-                          <Badge variant="outline" className="font-normal">
-                            {schedule.type.charAt(0).toUpperCase() + schedule.type.slice(1)}
-                          </Badge>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                          <Truck className="h-3 w-3 mr-1" />
+                          {schedule.truckNumber || "TBD"}
                         </div>
-                      )}
+                        <div className="text-xs text-primary font-medium group-hover:text-primary/80">
+                          Click to Assign
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

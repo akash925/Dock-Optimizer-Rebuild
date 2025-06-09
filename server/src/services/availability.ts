@@ -160,11 +160,9 @@ export async function fetchRelevantAppointmentsForDay(
             eq(appointmentTypes.facilityId, facilityId) // Via appointment type
           ),
           
-          // Time range filter
-          and(
-            gte(schedules.startTime, dayStart),
-            lt(schedules.startTime, dayEnd)
-          ),
+          // Time range filters (flattened from nested and())
+          gte(schedules.startTime, dayStart),
+          lt(schedules.startTime, dayEnd),
           
           // Tenant isolation
           eq(schedules.tenantId, effectiveTenantId),

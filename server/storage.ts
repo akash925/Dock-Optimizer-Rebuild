@@ -3638,15 +3638,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAppointmentSettings(facilityId: number, settingsUpdate: Partial<AppointmentSettings>): Promise<AppointmentSettings | undefined> {
-    const [updatedSettings] = await db
-      .update(appointmentSettings)
-      .set({
-        ...settingsUpdate,
+    try {
+      // Only update fields that actually exist in the database
+      // Filter out fields that are in the schema but not in the actual DB table
+      const allowedFields = {
+        timeInterval: settingsUpdate.timeInterval,
+        maxConcurrentInbound: settingsUpdate.maxConcurrentInbound,
+        maxConcurrentOutbound: settingsUpdate.maxConcurrentOutbound,
+        shareAvailabilityInfo: settingsUpdate.shareAvailabilityInfo,
         lastModifiedAt: new Date()
-      })
-      .where(eq(appointmentSettings.facilityId, facilityId))
-      .returning();
-    return updatedSettings;
+      };
+
+      // Remove undefined values to avoid SQL errors
+      const cleanedUpdate = Object.fromEntries(
+        Object.entries(allowedFields).filter(([_, value]) => value !== undefined)
+      );
+
+      console.log(`[updateAppointmentSettings] Updating facility ${facilityId} with:`, cleanedUpdate);
+
+      const [updatedSettings] = await db
+        .update(appointmentSettings)
+        .set(cleanedUpdate)
+        .where(eq(appointmentSettings.facilityId, facilityId))
+        .returning();
+
+      if (!updatedSettings) {
+        // If no existing settings were found, create new ones
+        console.log(`[updateAppointmentSettings] No existing settings found for facility ${facilityId}, creating new ones`);
+        const newSettings = await this.createAppointmentSettings({
+          facilityId,
+          ...cleanedUpdate
+        });
+        return newSettings;
+      }
+
+      console.log(`[updateAppointmentSettings] Successfully updated settings for facility ${facilityId}`);
+      return updatedSettings;
+    } catch (error) {
+      console.error(`[updateAppointmentSettings] Error updating settings for facility ${facilityId}:`, error);
+      throw error;
+    }
   }
 
   // Appointment Type operations

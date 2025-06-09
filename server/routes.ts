@@ -837,11 +837,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Availability API endpoints
   app.get('/api/availability/v2', async (req: any, res) => {
     try {
-      const { date, facilityId, appointmentTypeId, bookingPageSlug } = req.query;
+      const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
       
-      if (!date || !facilityId || !appointmentTypeId) {
+      // Accept both appointmentTypeId and typeId for backward compatibility
+      const effectiveAppointmentTypeId = appointmentTypeId || typeId;
+      
+      if (!date || !facilityId || !effectiveAppointmentTypeId) {
         return res.status(400).json({ 
-          error: 'Missing required parameters: date, facilityId, appointmentTypeId' 
+          error: 'Missing required parameters: date, facilityId, appointmentTypeId (or typeId)' 
         });
       }
       
@@ -872,7 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage,
         date,
         parseInt(facilityId),
-        parseInt(appointmentTypeId),
+        parseInt(effectiveAppointmentTypeId),
         effectiveTenantId
       );
       
@@ -882,7 +885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         availableTimes: slots.filter(slot => slot.available).map(slot => slot.time),
         date: date,
         facilityId: parseInt(facilityId),
-        appointmentTypeId: parseInt(appointmentTypeId)
+        appointmentTypeId: parseInt(effectiveAppointmentTypeId)
       });
     } catch (error) {
       console.error('Error calculating availability:', error);
@@ -896,11 +899,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Legacy availability endpoint for backward compatibility
   app.get('/api/availability', async (req: any, res) => {
     try {
-      const { date, facilityId, appointmentTypeId, bookingPageSlug } = req.query;
+      const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
       
-      if (!date || !facilityId || !appointmentTypeId) {
+      // Accept both appointmentTypeId and typeId for backward compatibility
+      const effectiveAppointmentTypeId = appointmentTypeId || typeId;
+      
+      if (!date || !facilityId || !effectiveAppointmentTypeId) {
         return res.status(400).json({ 
-          error: 'Missing required parameters: date, facilityId, appointmentTypeId' 
+          error: 'Missing required parameters: date, facilityId, appointmentTypeId (or typeId)' 
         });
       }
       
@@ -931,7 +937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         storage,
         date,
         parseInt(facilityId),
-        parseInt(appointmentTypeId),
+        parseInt(effectiveAppointmentTypeId),
         effectiveTenantId
       );
       
