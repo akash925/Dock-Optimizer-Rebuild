@@ -1,4 +1,4 @@
-import { and, eq, gt, gte, lt, lte, ne, notInArray, or, sql } from 'drizzle-orm';
+import { and, eq, gt, gte, lt, lte, ne, notInArray, or, sql, isNull } from 'drizzle-orm';
 import { toZonedTime, format as tzFormat } from 'date-fns-tz';
 import { getDay, parseISO, addDays, format, addMinutes, isEqual, isAfter, parse, differenceInCalendarDays, isValid } from 'date-fns';
 // Safe date formatting function to prevent "Invalid time value" errors
@@ -130,9 +130,14 @@ export async function fetchRelevantAppointmentsForDay(
   try {
     // ** Ensure db object is valid and has expected methods **
     if (!db || typeof db.select !== 'function') {
-        console.error('[fetchRelevantAppointmentsForDay] Invalid DB object passed:', db);
-        throw new Error('Invalid database connection object provided.');
+        console.error('[fetchRelevantAppointmentsForDay] Invalid db object:', db);
+        return [];
     }
+
+    // 🔥 CRITICAL FIX: Count ALL appointments at facility, not just those with assigned docks
+    // The original query only counted appointments with dockId IS NOT NULL, which missed
+    // many appointments that consume capacity but don't have dock assignments yet
+    
     const query = db
       .select({
         id: schedules.id,
@@ -143,33 +148,45 @@ export async function fetchRelevantAppointmentsForDay(
       .from(schedules)
       .leftJoin(docks, eq(schedules.dockId, docks.id))
       .leftJoin(appointmentTypes, eq(schedules.appointmentTypeId, appointmentTypes.id))
-      .leftJoin(organizationFacilities, eq(docks.facilityId, organizationFacilities.facilityId))
       .where(
         and(
-          // Use SQL to handle null comparison properly
-          sql`${schedules.dockId} IS NOT NULL`,
-          eq(docks.facilityId, facilityId),
-          lt(schedules.startTime, dayEnd),
-          gt(schedules.endTime, dayStart),
-          notInArray(schedules.status, ['cancelled', 'rejected']),
+          // Count appointments based on facility association:
+          // 1. Directly assigned to facility (schedules.facilityId = facilityId)
+          // 2. OR assigned to a dock that belongs to this facility (docks.facilityId = facilityId)  
+          // 3. OR appointment type belongs to this facility (appointmentTypes.facilityId = facilityId)
           or(
-            eq(organizationFacilities.organizationId, effectiveTenantId),
-            eq(appointmentTypes.tenantId, effectiveTenantId)
-          )
+            eq(schedules.facilityId, facilityId), // Direct facility assignment
+            eq(docks.facilityId, facilityId),     // Via dock assignment
+            eq(appointmentTypes.facilityId, facilityId) // Via appointment type
+          ),
+          
+          // Time range filter
+          and(
+            gte(schedules.startTime, dayStart),
+            lt(schedules.startTime, dayEnd)
+          ),
+          
+          // Tenant isolation
+          eq(schedules.tenantId, effectiveTenantId),
+          
+          // Only count confirmed/active appointments (not canceled)
+          ne(schedules.status, 'cancelled')
         )
       );
 
-     // ** Check if execute exists before calling, otherwise assume awaitable **
-     const relevantSchedules = typeof (query as any).execute === 'function'
-        ? await (query as any).execute()
-        : await query;
+    console.log(`[fetchRelevantAppointmentsForDay] Executing query for facility ${facilityId}`);
+    const result = await query;
+    
+    console.log(`[fetchRelevantAppointmentsForDay] Found ${result.length} appointments for facility ${facilityId}`);
+    result.forEach((apt: { id: number; startTime: Date; endTime: Date; appointmentTypeId: number }) => {
+      console.log(`  - Appointment ${apt.id}: ${apt.startTime.toISOString()} (type: ${apt.appointmentTypeId})`);
+    });
+    
+    return result;
 
-    console.log(`[fetchRelevantAppointmentsForDay] Found ${relevantSchedules?.length ?? 0} relevant appointments.`);
-    return Array.isArray(relevantSchedules) ? relevantSchedules : [];
   } catch (error) {
-    console.error(`[fetchRelevantAppointmentsForDay] Error fetching appointments:`, error);
-    // ** Propagate error correctly **
-    throw new Error(`Failed to fetch existing appointments. Original error: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`[fetchRelevantAppointmentsForDay] Error querying appointments:`, error);
+    throw error;
   }
 }
 

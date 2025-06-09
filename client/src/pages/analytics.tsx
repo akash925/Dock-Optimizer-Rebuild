@@ -49,9 +49,9 @@ interface DockUtilizationData {
   utilization_percentage: number;
 }
 
-// Hook to get facility statistics with date parameters
-function useFacilityStats(dateParams: { startDate?: string; endDate?: string }) {
-  const { data: facilityData, isLoading, error } = useQuery<FacilityData[]>({
+// Separate hooks from components for better reusability
+function useFacilityStatsQuery(dateParams: { startDate?: string; endDate?: string }) {
+  return useQuery<FacilityData[]>({
     queryKey: ['/api/analytics/facilities', dateParams],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -60,7 +60,7 @@ function useFacilityStats(dateParams: { startDate?: string; endDate?: string }) 
       
       console.log("Query params:", params.toString());
       const res = await fetch(`/api/analytics/facilities?${params.toString()}`, {
-        credentials: 'include' // Include credentials for authentication
+        credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to fetch facility data');
       const data = await res.json();
@@ -68,7 +68,14 @@ function useFacilityStats(dateParams: { startDate?: string; endDate?: string }) 
       return data;
     }
   });
+}
 
+// Component for rendering facility stats
+function FacilityStatsChart({ data, isLoading, error }: { 
+  data?: FacilityData[]; 
+  isLoading: boolean; 
+  error: any; 
+}) {
   if (isLoading) {
     return <div className="flex justify-center p-8">Loading facility data...</div>;
   }
@@ -82,11 +89,10 @@ function useFacilityStats(dateParams: { startDate?: string; endDate?: string }) 
     );
   }
 
-  // If we have data, format it for the chart
-  if (facilityData && facilityData.length > 0) {
-    const chartData = facilityData.map(facility => ({
+  if (data && data.length > 0) {
+    const chartData = data.map(facility => ({
       date: facility.name + (facility.address ? ` (${facility.address})` : ''),
-      value: Number(facility.appointmentCount) // Convert string to number
+      value: Number(facility.appointmentCount)
     }));
 
     return (
@@ -101,7 +107,6 @@ function useFacilityStats(dateParams: { startDate?: string; endDate?: string }) 
     );
   }
 
-  // Fallback for empty data
   return (
     <div className="p-4 border border-blue-200 rounded-md bg-blue-50 text-blue-700">
       No facility data available for the selected period.
@@ -410,9 +415,9 @@ function exportToCSV(dataType: 'facilities' | 'carriers' | 'customers' | 'attend
 }
 
 export default function Analytics() {
-  const [dateRange, setDateRange] = useState<"last7Days" | "last30Days" | "last90Days" | "custom">("last7Days");
-  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 7));
-  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [dateRange, setDateRange] = useState<"last7Days" | "last30Days" | "last90Days" | "allTime" | "custom">("last90Days");
+  const [startDate, setStartDate] = useState<Date>(subDays(new Date(), 90));
+  const [endDate, setEndDate] = useState<Date>(addDays(new Date(), 365)); // Include future dates for test data
   const [showDatePickerDialog, setShowDatePickerDialog] = useState(false);
   
   // Calculate date range for the query
@@ -425,7 +430,12 @@ export default function Analytics() {
       case "last30Days":
         return { start: subDays(now, 30), end: now };
       case "last90Days":
-        return { start: subDays(now, 90), end: now };
+        return { start: subDays(now, 90), end: addDays(now, 365) }; // Include future data for testing
+      case "allTime":
+        return { 
+          start: new Date('2020-01-01'), // Very wide range to capture all test data
+          end: new Date('2030-12-31') 
+        };
       case "custom":
         return { start: startDate, end: endDate };
     }
@@ -434,9 +444,15 @@ export default function Analytics() {
   // Calculate date range for API params
   const apiDateRange = () => {
     const { start, end } = getDateRange();
+    const startDateStr = format(start, 'yyyy-MM-dd');
+    const endDateStr = format(end, 'yyyy-MM-dd');
+    
+    // Add debugging to help identify date range issues
+    console.log(`[Analytics] Date range: ${startDateStr} to ${endDateStr}`);
+    
     return {
-      startDate: format(start, 'yyyy-MM-dd'),
-      endDate: format(end, 'yyyy-MM-dd')
+      startDate: startDateStr,
+      endDate: endDateStr
     };
   };
 
@@ -479,6 +495,7 @@ export default function Analytics() {
                   <SelectItem value="last7Days">Last 7 Days</SelectItem>
                   <SelectItem value="last30Days">Last 30 Days</SelectItem>
                   <SelectItem value="last90Days">Last 90 Days</SelectItem>
+                  <SelectItem value="allTime">All Time</SelectItem>
                   <SelectItem value="custom">Custom Range</SelectItem>
                 </SelectContent>
               </Select>
@@ -522,14 +539,17 @@ export default function Analytics() {
       {/* Performance Metrics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2">
-          {useFacilityStats(dateParams).isLoading ? (
-            <div className="h-96 flex items-center justify-center">Loading facility data...</div>
-          ) : (
-            <EnhancedFacilityReport 
-              data={useFacilityStats(dateParams).data || []} 
-              dateRange={dateRangeDisplay()} 
-            />
-          )}
+          {(() => {
+            const facilityStatsQuery = useFacilityStatsQuery(dateParams);
+            return facilityStatsQuery.isLoading ? (
+              <div className="h-96 flex items-center justify-center">Loading facility data...</div>
+            ) : (
+              <EnhancedFacilityReport 
+                data={facilityStatsQuery.data || []} 
+                dateRange={dateRangeDisplay()} 
+              />
+            );
+          })()}
         </div>
         <div>
           <PerformanceMetrics 

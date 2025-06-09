@@ -956,13 +956,6 @@ export async function sendConfirmationEmail(
         
         <!-- Insert the generated QR code SVG content directly -->
         ${qrCodeSvgContent}
-            
-            <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
-              Confirmation Code: ${confirmationCode}<br>
-              <span style="font-size: 11px;">Scan with your phone to check in</span>
-            </p>
-          </div>
-        </div>
         
         <div style="margin: 30px 0; text-align: center;">
           <p style="margin-bottom: 15px;">Manage Your Appointment:</p>
