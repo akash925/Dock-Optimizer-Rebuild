@@ -138,6 +138,24 @@ export async function fetchRelevantAppointmentsForDay(
     // The original query only counted appointments with dockId IS NOT NULL, which missed
     // many appointments that consume capacity but don't have dock assignments yet
     
+    // Build condition pieces separately to avoid generating invalid SQL
+    const facilityCondition = or(
+      eq(schedules.facilityId, facilityId),
+      eq(docks.facilityId, facilityId),
+      eq(appointmentTypes.facilityId, facilityId)
+    );
+
+    const timeStartCond = gte(schedules.startTime, dayStart);
+    const timeEndCond = lt(schedules.startTime, dayEnd);
+    const tenantCond = eq(schedules.tenantId, effectiveTenantId);
+    const statusCond = ne(schedules.status, 'cancelled');
+
+    // Combine conditions pair-wise so each "and" only has two parameters (Drizzle limitation)
+    let combinedCond = and(facilityCondition, timeStartCond);
+    combinedCond = and(combinedCond, timeEndCond);
+    combinedCond = and(combinedCond, tenantCond);
+    combinedCond = and(combinedCond, statusCond);
+
     const query = db
       .select({
         id: schedules.id,
@@ -148,29 +166,7 @@ export async function fetchRelevantAppointmentsForDay(
       .from(schedules)
       .leftJoin(docks, eq(schedules.dockId, docks.id))
       .leftJoin(appointmentTypes, eq(schedules.appointmentTypeId, appointmentTypes.id))
-      .where(
-        and(
-          // Count appointments based on facility association:
-          // 1. Directly assigned to facility (schedules.facilityId = facilityId)
-          // 2. OR assigned to a dock that belongs to this facility (docks.facilityId = facilityId)  
-          // 3. OR appointment type belongs to this facility (appointmentTypes.facilityId = facilityId)
-          or(
-            eq(schedules.facilityId, facilityId), // Direct facility assignment
-            eq(docks.facilityId, facilityId),     // Via dock assignment
-            eq(appointmentTypes.facilityId, facilityId) // Via appointment type
-          ),
-          
-          // Time range filters (flattened from nested and())
-          gte(schedules.startTime, dayStart),
-          lt(schedules.startTime, dayEnd),
-          
-          // Tenant isolation
-          eq(schedules.tenantId, effectiveTenantId),
-          
-          // Only count confirmed/active appointments (not canceled)
-          ne(schedules.status, 'cancelled')
-        )
-      );
+      .where(combinedCond);
 
     console.log(`[fetchRelevantAppointmentsForDay] Executing query for facility ${facilityId}`);
     const result = await query;
