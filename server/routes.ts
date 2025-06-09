@@ -972,15 +972,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // The user selected a time in the facility's timezone and expects it to stay that way
       console.log(`[Booking] User selected: ${bookingData.date} ${bookingData.time} in ${facilityTimezone}`);
       
-      // Parse date and time components to avoid timezone conversion issues
-      const [year, month, day] = bookingData.date.split('-').map((num: string) => parseInt(num, 10));
-      const [hours, minutes] = bookingData.time.split(':').map((num: string) => parseInt(num, 10));
+            // Use date-fns-tz to convert the facility-local time string to UTC correctly
+      const { fromZonedTime } = await import('date-fns-tz');
+
+      // Compose an ISO string in facility TZ then convert to UTC
+      const localDateTimeStr = `${bookingData.date}T${bookingData.time}:00`;
       
-      // Create the date in UTC but representing the facility's local time
-      // This preserves the exact time the user intended in the facility timezone
-      const utcStartTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+      // Create date in facility timezone and convert to UTC 
+      const localDateTime = new Date(localDateTimeStr);
+      const utcStartTime = fromZonedTime(localDateTime, facilityTimezone);
       
-      console.log(`[Booking] Storing time as: ${utcStartTime.toISOString()} (preserves ${hours}:${minutes.toString().padStart(2, '0')} local time)`);
+      console.log(`[Booking] Storing time as: ${utcStartTime.toISOString()} (preserves ${bookingData.time} local time)`);
       
       // Duration is stored in minutes, calculate end time correctly
       const durationMinutes = appointmentType.duration || 60;
@@ -2017,27 +2019,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log('Core routes registered successfully');
   
   // Add routes for email link management - these handle the links in confirmation emails
-  // Route for viewing appointment details via confirmation code
-  app.get('/view', async (req: any, res) => {
-    const { code } = req.query;
-    if (!code) {
-      return res.status(400).send('Missing confirmation code');
-    }
-    
-    // Redirect to appointment confirmation page with the code
-    res.redirect(`/booking-confirmation?confirmationCode=${encodeURIComponent(code)}`);
-  });
+// Route for viewing appointment details via confirmation code
+app.get('/view', async (req: any, res) => {
+  const { code } = req.query;
+  if (!code) {
+    return res.status(400).send('Missing confirmation code');
+  }
+  
+  // Redirect to appointment confirmation page with the code
+  res.redirect(`/booking-confirmation?confirmationCode=${encodeURIComponent(code)}`);
+});
 
-  // Route for editing appointment via confirmation code  
-  app.get('/edit', async (req: any, res) => {
-    const { code } = req.query;
-    if (!code) {
-      return res.status(400).send('Missing confirmation code');
-    }
-    
-    // Redirect to reschedule page with the code
-    res.redirect(`/reschedule?code=${encodeURIComponent(code)}`);
-  });
+// Route for editing/managing appointment via confirmation code  
+app.get('/edit', async (req: any, res) => {
+  const { code } = req.query;
+  if (!code) {
+    return res.status(400).send('Missing confirmation code');
+  }
+  
+  // Redirect to the appointment management page
+  res.redirect(`/booking-confirmation?confirmationCode=${encodeURIComponent(code)}`);
+});
 
   // Route for cancelling appointment via confirmation code
   app.get('/cancel', async (req: any, res) => {

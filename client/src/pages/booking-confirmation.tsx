@@ -172,24 +172,25 @@ export default function BookingConfirmation(props?: BookingConfirmationProps) {
           }
         }
         
-        // Format dates properly using the same logic as the email notifications
+        // 🔥 CRITICAL FIX: Format dates properly - the stored UTC time represents facility-local time
         const startDate = new Date(scheduleData.startTime);
         
-        // Get the date in facility timezone
-        const appointmentDate = formatInFacilityTimeZone(startDate, 'MM/dd/yyyy', facilityTimeZone);
+        // Since the server now stores times as UTC that preserve facility-local intent,
+        // we need to display the stored UTC time as facility-local time
+        const appointmentDate = formatInTimeZone(startDate, facilityTimeZone, 'MM/dd/yyyy');
         
-        // SIMPLIFIED: Just format in facility timezone consistently (like emails do)
+        // Display the stored time in facility timezone (this is what the user intended)
         const facilityTime = formatInTimeZone(startDate, facilityTimeZone, 'h:mm a');
         const facilityZoneAbbr = getTimeZoneAbbreviation(facilityTimeZone, startDate);
         const facilityTimeDisplay = `${facilityTime} ${facilityZoneAbbr}`;
         
-        // For user timezone display, convert to user timezone  
+        // For user timezone display, show what time it would be in their timezone
         const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const userTime = formatInTimeZone(startDate, userTimeZone, 'h:mm a');
         const userZoneAbbr = getTimeZoneAbbreviation(userTimeZone, startDate);
         const userTimeDisplay = `${userTime} ${userZoneAbbr}`;
         
-        // CRITICAL FIX: Use facility time with timezone display (like emails)
+        // Use facility time as the primary display (matches email behavior)
         const appointmentTime = facilityTimeDisplay;
         
         // Get appointment type name if available
