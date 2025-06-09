@@ -134,49 +134,48 @@ export async function fetchRelevantAppointmentsForDay(
         return [];
     }
 
-    // 🔥 CRITICAL FIX: Count ALL appointments at facility, not just those with assigned docks
-    // The original query only counted appointments with dockId IS NOT NULL, which missed
-    // many appointments that consume capacity but don't have dock assignments yet
+    // 🔥 CRITICAL FIX: Use direct pool query to avoid Drizzle ORM syntax issues
+    // The complex nested conditions were causing SQL syntax errors
+    console.log(`[fetchRelevantAppointmentsForDay] Executing raw SQL query for facility ${facilityId}`);
     
-    // Build condition pieces separately to avoid generating invalid SQL
-    const facilityCondition = or(
-      eq(schedules.facilityId, facilityId),
-      eq(docks.facilityId, facilityId),
-      eq(appointmentTypes.facilityId, facilityId)
-    );
-
-    const timeStartCond = gte(schedules.startTime, dayStart);
-    const timeEndCond = lt(schedules.startTime, dayEnd);
-    const tenantCond = eq(schedules.tenantId, effectiveTenantId);
-    const statusCond = ne(schedules.status, 'cancelled');
-
-    // Combine conditions pair-wise so each "and" only has two parameters (Drizzle limitation)
-    let combinedCond = and(facilityCondition, timeStartCond);
-    combinedCond = and(combinedCond, timeEndCond);
-    combinedCond = and(combinedCond, tenantCond);
-    combinedCond = and(combinedCond, statusCond);
-
-    const query = db
-      .select({
-        id: schedules.id,
-        startTime: schedules.startTime,
-        endTime: schedules.endTime,
-        appointmentTypeId: schedules.appointmentTypeId,
-      })
-      .from(schedules)
-      .leftJoin(docks, eq(schedules.dockId, docks.id))
-      .leftJoin(appointmentTypes, eq(schedules.appointmentTypeId, appointmentTypes.id))
-      .where(combinedCond);
-
-    console.log(`[fetchRelevantAppointmentsForDay] Executing query for facility ${facilityId}`);
-    const result = await query;
+    const { pool } = await import('../db.js');
     
-    console.log(`[fetchRelevantAppointmentsForDay] Found ${result.length} appointments for facility ${facilityId}`);
-    result.forEach((apt: { id: number; startTime: Date; endTime: Date; appointmentTypeId: number }) => {
+    const rawQuery = `
+      SELECT 
+        s.id,
+        s.start_time,
+        s.end_time, 
+        s.appointment_type_id
+      FROM schedules s
+      LEFT JOIN docks d ON s.dock_id = d.id
+      LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+      WHERE (
+        s.facility_id = $1 OR 
+        d.facility_id = $1 OR 
+        at.facility_id = $1
+      )
+      AND s.start_time >= $2
+      AND s.start_time < $3
+      AND s.tenant_id = $4
+      AND s.status != 'cancelled'
+    `;
+    
+    const result = await pool.query(rawQuery, [facilityId, dayStart.toISOString(), dayEnd.toISOString(), effectiveTenantId]);
+    
+    // Convert the raw result to the expected format
+    const appointments = result.rows.map((row: any) => ({
+      id: row.id,
+      startTime: new Date(row.start_time),
+      endTime: new Date(row.end_time),
+      appointmentTypeId: row.appointment_type_id
+    }));
+    
+    console.log(`[fetchRelevantAppointmentsForDay] Found ${appointments.length} appointments for facility ${facilityId}`);
+    appointments.forEach((apt: { id: number; startTime: Date; endTime: Date; appointmentTypeId: number }) => {
       console.log(`  - Appointment ${apt.id}: ${apt.startTime.toISOString()} (type: ${apt.appointmentTypeId})`);
     });
     
-    return result;
+    return appointments;
 
   } catch (error) {
     console.error(`[fetchRelevantAppointmentsForDay] Error querying appointments:`, error);
