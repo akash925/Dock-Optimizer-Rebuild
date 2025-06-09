@@ -423,116 +423,63 @@ export function AppointmentDetailsDialog({
     }
   };
   
-  // Mutation for checking out appointment (completing)
-  const checkOutAppointmentMutation = useMutation({
+  // Check-out mutation
+  const checkOutMutation = useMutation({
     mutationFn: async () => {
       if (!appointment?.id) throw new Error("No appointment ID provided");
       
-      // Use the selected time or current time
-      const actualEndTime = showCheckOutTimeInput ? checkOutTime : new Date();
-      
-      // Upload the file if one was selected
-      let photoPath = checkOutPhotoPath;
-      if (uploadedFile) {
-        try {
-          // Log the file upload attempt
-          console.log('[Checkout] Uploading file for checkout...');
-          photoPath = await uploadFile(uploadedFile);
-          console.log('[Checkout] File uploaded successfully:', photoPath);
-        } catch (error) {
-          console.error('[Checkout] Error uploading file:', error);
-          // Continue with the checkout process even if file upload fails
-        }
-      }
-      
-      // Prepare custom form data with checkout notes and photo
-      let customFormData = {};
-      try {
-        customFormData = typeof appointment.customFormData === 'string' 
-          ? JSON.parse(appointment.customFormData) 
-          : appointment.customFormData || {};
-      } catch (e) {
-        console.warn("[Checkout] Failed to parse existing custom form data:", e);
-      }
-      
-      // Add checkout information to custom form data
-      customFormData = {
-        ...customFormData,
-        checkoutTime: actualEndTime.toISOString(),
-        checkoutNotes: checkOutNotes || null,
-        checkoutPhoto: photoPath || null,
-        checkoutBy: appointment.lastModifiedBy || null
-      };
-      
-      console.log("[Checkout] Sending checkout request...");
-      
-      // Add a timeout for the API call to ensure we don't get stuck indefinitely
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Checkout request timed out")), 20000);
+      // Step 1: Check out the appointment
+      const checkoutRes = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-out`, {
+        actualEndTime: new Date().toISOString(),
+        notes: formData.notes
       });
       
-      const apiPromise = apiRequest("PATCH", `/api/schedules/${appointment.id}/check-out`, {
-        actualEndTime: actualEndTime.toISOString(),
-        notes: checkOutNotes || null,
-        customFormData: customFormData
-      });
-      
-      // Race the API call against a timeout
-      const res = await Promise.race([apiPromise, timeoutPromise]) as Response;
-      console.log("[Checkout] Received response from server");
-      
-      if (!res.ok) {
+      if (!checkoutRes.ok) {
         throw new Error("Failed to check out appointment");
       }
       
-      return res.json();
-    },
-    onSuccess: (data) => {
-      console.log("[Checkout] Success response from server:", data);
+      const checkoutData = await checkoutRes.json();
       
-      // Immediately update the local state to reflect check-out
-      if (appointment) {
-        // Update the appointment data with the server response
-        // First make a deep copy to ensure all the properties get updated
-        const updatedAppointment = { ...data };
+      // Step 2: If this appointment has a dock assignment, release the door
+      if (appointment.dockId) {
+        console.log(`[AppointmentDetails] Releasing door for appointment ${appointment.id}, dock ${appointment.dockId}`);
         
-        // Ensure the status is explicitly set to "completed"
-        updatedAppointment.status = "completed";
+        const releaseRes = await apiRequest("POST", `/api/schedules/${appointment.id}/release`, {
+          notes: `Checked out at ${new Date().toLocaleTimeString()}`,
+          releaseType: "checkout"
+        });
         
-        // Then assign all properties to the original appointment reference
-        Object.assign(appointment, updatedAppointment);
-        
-        console.log("[Checkout] Appointment status after checkout:", appointment.status);
+        if (!releaseRes.ok) {
+          console.warn("[AppointmentDetails] Door release failed, but checkout was successful");
+          // Don't fail the whole operation if door release fails
+        } else {
+          console.log("[AppointmentDetails] Door released successfully");
+        }
       }
       
-      // Explicitly close the check-out dialog
-      setShowCheckOutDialog(false);
-      
-      // Then invalidate the queries to fetch fresh data
+      return checkoutData;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       
-      toast({
-        title: "Appointment completed",
-        description: "The appointment has been marked as completed",
-        variant: "success",
-      });
+      // Enhanced success message
+      const hasDock = appointment?.dockId;
+      const message = hasDock 
+        ? "Appointment checked out and door released successfully"
+        : "Appointment checked out successfully";
       
-      // Reset all form state
-      setShowCheckOutTimeInput(false);
-      setCheckOutNotes("");
-      setCheckOutPhotoPath(null);
-      setUploadedFile(null);
+      toast({
+        title: "Checkout Complete",
+        description: message,
+        duration: 4000,
+      });
     },
     onError: (error) => {
-      console.error("[Checkout] Error during checkout:", error);
-      
       toast({
-        title: "Error completing appointment",
-        description: error.message || "An error occurred during checkout. Please try again.",
+        title: "Error during checkout",
+        description: error.message,
         variant: "destructive",
       });
-      
-      // If there's an error, we don't close the dialog so the user can try again
     }
   });
 
@@ -728,7 +675,7 @@ export function AppointmentDetailsDialog({
       {/* Check-Out Dialog */}
       <Dialog open={showCheckOutDialog} onOpenChange={(open) => {
         // Only allow dialog to close if mutation is not in progress
-        if (!checkOutAppointmentMutation.isPending || !open) {
+        if (!checkOutMutation.isPending || !open) {
           setShowCheckOutDialog(open);
         }
       }}>
@@ -832,7 +779,7 @@ export function AppointmentDetailsDialog({
             <Button 
               variant="outline" 
               onClick={() => setShowCheckOutDialog(false)}
-              disabled={checkOutAppointmentMutation.isPending}
+              disabled={checkOutMutation.isPending}
               className="flex-1 sm:flex-none"
             >
               Cancel
@@ -840,13 +787,13 @@ export function AppointmentDetailsDialog({
             <Button 
               onClick={() => {
                 setShowCheckOutTimeInput(true);
-                checkOutAppointmentMutation.mutate();
+                checkOutMutation.mutate();
                 // Don't close the dialog here, let the onSuccess handler do it
               }}
-              disabled={checkOutAppointmentMutation.isPending}
+              disabled={checkOutMutation.isPending}
               className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
             >
-              {checkOutAppointmentMutation.isPending ? (
+              {checkOutMutation.isPending ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   Processing...

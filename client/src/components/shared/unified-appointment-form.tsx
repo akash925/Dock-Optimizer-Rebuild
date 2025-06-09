@@ -368,35 +368,33 @@ export default function UnifiedAppointmentForm({
         return;
       }
       
-      console.log("Updating facility timezone to", facilityTimezone);
+      console.log("Processing appointment for facility timezone:", facilityTimezone);
+      console.log("Selected date:", appointmentDate);
+      console.log("Selected time:", appointmentTime);
       
-      // Create Date object with explicit timezone handling
-      // This ensures we're creating the appointment in the facility's timezone
-      const dateTimeString = `${appointmentDate}T${appointmentTime}:00`;
+      // 🔥 CRITICAL FIX: Create timezone-aware dates that preserve the intended local time
+      // Parse date components manually to avoid timezone shifts
+      const [year, month, day] = appointmentDate.split('-').map(num => parseInt(num, 10));
+      const [hours, minutes] = appointmentTime.split(':').map(num => parseInt(num, 10));
       
-      // First create the date object as local time
-      const localStartTime = new Date(`${appointmentDate}T${appointmentTime}`);
+      // Create the date object in UTC but representing the facility's local time
+      // This ensures the time stays exactly as the user selected it
+      const startTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
       
-      // Then create a date that's timezone-aware in the facility timezone
-      // This maintains the exact hour/minute selected in the facility's timezone
-      const tzOptions = { timeZone: facilityTimezone };
-      const startTime = localStartTime;
+      // IMPORTANT: For display purposes, we need to create a "local" representation
+      // that will be stored in the database as the exact time the user intended
+      console.log("Created startTime (preserving user selection):", startTime.toISOString());
+      console.log("This represents:", hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0'), "in", facilityTimezone);
       
       if (isNaN(startTime.getTime())) {
         throw new Error("Invalid date/time");
       }
       
-      // Log the time values for debugging
-      console.log("Selected appointment type ID:", appointmentTypeId);
-      console.log("Selected appointment type:", selectedAppointmentType?.name, "Duration:", selectedAppointmentType?.duration, "minutes");
-      
       // Calculate end time based on appointment type duration
       const endTime = getDefaultEndTime(startTime);
       
-      // Add logging for debugging appointment date/time
-      console.log("Date is already in correct format:", appointmentDate);
-      console.log("Sanitized time for submission:", appointmentTime);
-
+      console.log("Calculated endTime:", endTime.toISOString());
+      
       // Get facility name to ensure it's included in the appointment
       let facilityName = "";
       if (selectedFacilityId && facilities && facilities.length > 0) {

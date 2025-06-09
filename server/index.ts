@@ -121,6 +121,9 @@ app.use((req, res, next) => {
   // CRITICAL: Add calendar module to ensure tenant-filtered schedules endpoint is available
   modulesToLoad.push("calendar");
 
+  // CRITICAL: Add analytics module to ensure analytics API endpoints are available
+  modulesToLoad.push("analytics");
+
   // Load modules based on legacy configuration
   for (const moduleName of modulesToLoad) {
     console.log(`Loading ${moduleName} module...`);

@@ -195,6 +195,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Door release endpoint - handles checkout and dock release
+  app.post('/api/schedules/:id/release', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const scheduleId = parseInt(req.params.id);
+      
+      if (isNaN(scheduleId)) {
+        return res.status(400).json({ error: 'Invalid schedule ID' });
+      }
+
+      const schedule = await storage.getSchedule(scheduleId);
+      
+      if (!schedule) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+
+      console.log(`[DoorRelease] Processing release for schedule ${scheduleId}, current dockId: ${schedule.dockId}`);
+
+      // Extract notes from form data
+      const notes = req.body.notes || '';
+      const releaseType = req.body.releaseType || 'normal';
+      
+      // Handle photo upload if present
+      let photoPath = null;
+      if (req.files && req.files.photo) {
+        // Save the photo to the uploads directory
+        const photo = req.files.photo;
+        const timestamp = new Date().getTime();
+        const extension = photo.name.split('.').pop();
+        photoPath = `/uploads/door-release-${scheduleId}-${timestamp}.${extension}`;
+        
+        try {
+          await photo.mv(`./uploads/door-release-${scheduleId}-${timestamp}.${extension}`);
+          console.log(`[DoorRelease] Photo saved: ${photoPath}`);
+        } catch (photoError) {
+          console.error('[DoorRelease] Error saving photo:', photoError);
+          // Continue without photo rather than failing the release
+        }
+      }
+
+      // Create release notes with photo reference
+      let finalNotes = notes;
+      if (photoPath) {
+        finalNotes = notes ? `${notes}\n\nPhoto: ${photoPath}` : `Photo: ${photoPath}`;
+      }
+
+      // Update schedule: complete the appointment and release the dock
+      const updatedSchedule = await storage.updateSchedule(scheduleId, {
+        status: 'completed',
+        dockId: null, // 🔥 CRITICAL: Release the door by setting dockId to null
+        actualEndTime: new Date(),
+        notes: finalNotes,
+        lastModifiedAt: new Date(),
+        lastModifiedBy: req.user.id
+      });
+
+      console.log(`[DoorRelease] Schedule ${scheduleId} updated: status=completed, dockId=null`);
+
+      // Return success response
+      res.json({
+        success: true,
+        message: 'Door released successfully',
+        schedule: updatedSchedule,
+        photoPath: photoPath
+      });
+
+    } catch (error) {
+      console.error('Error releasing door:', error);
+      res.status(500).json({ 
+        error: 'Failed to release door',
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    }
+  });
+
   // Reschedule appointment endpoint
   app.patch('/api/schedules/:id/reschedule', async (req: any, res) => {
     try {
@@ -890,8 +968,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid appointment type' });
       }
       
-      // Parse the selected time correctly without timezone conversion issues
-      const utcStartTime = new Date(`${bookingData.date}T${bookingData.time}:00.000Z`);
+      // 🔥 CRITICAL FIX: Parse the selected time to preserve user's intention
+      // The user selected a time in the facility's timezone and expects it to stay that way
+      console.log(`[Booking] User selected: ${bookingData.date} ${bookingData.time} in ${facilityTimezone}`);
+      
+      // Parse date and time components to avoid timezone conversion issues
+      const [year, month, day] = bookingData.date.split('-').map(num => parseInt(num, 10));
+      const [hours, minutes] = bookingData.time.split(':').map(num => parseInt(num, 10));
+      
+      // Create the date in UTC but representing the facility's local time
+      // This preserves the exact time the user intended
+      const utcStartTime = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+      
+      console.log(`[Booking] Storing time as: ${utcStartTime.toISOString()} (preserves ${hours}:${minutes.toString().padStart(2, '0')} local time)`);
       
       // Duration is stored in minutes, calculate end time correctly
       const durationMinutes = appointmentType.duration || 60;
