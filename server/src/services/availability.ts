@@ -39,7 +39,7 @@ export interface AvailabilitySlot {
 }
 
 export interface AvailabilityOptions {
-  testAppointments?: { id: number; startTime: Date; endTime: Date; }[];
+  testAppointments?: { id: number; startTime: Date; endTime: Date; appointmentTypeId: number; }[];
 }
 
 export interface SchedulingConfig {
@@ -74,7 +74,7 @@ export async function fetchRelevantAppointmentsForDay(
   dayStart: Date, // Start of day in facility TZ (represented as UTC Date obj)
   dayEnd: Date,   // Start of NEXT day in facility TZ (represented as UTC Date obj)
   effectiveTenantId: number
-): Promise<{ id: number; startTime: Date; endTime: Date; }[]> {
+): Promise<{ id: number; startTime: Date; endTime: Date; appointmentTypeId: number; }[]> {
 
   console.log(`[fetchRelevantAppointmentsForDay] Fetching for facility ${facilityId}, tenant ${effectiveTenantId}, between ${dayStart.toISOString()} and ${dayEnd.toISOString()}`);
   try {
@@ -88,6 +88,7 @@ export async function fetchRelevantAppointmentsForDay(
         id: schedules.id,
         startTime: schedules.startTime,
         endTime: schedules.endTime,
+        appointmentTypeId: schedules.appointmentTypeId,
       })
       .from(schedules)
       .leftJoin(docks, eq(schedules.dockId, docks.id))
@@ -241,10 +242,15 @@ export async function calculateAvailabilitySlots(
   // First, parse the date parts
   const [year, month, day] = date.split('-').map(num => parseInt(num, 10));
   
-  // SIMPLIFIED: Use consistent date parsing approach to avoid timezone confusion
-  // Create a date at noon in the facility timezone to avoid DST edge cases
-  // Month is 0-indexed in JavaScript Date constructor
-  const appointmentDate = toZonedTime(new Date(year, month - 1, day, 12, 0, 0), effectiveTimezone);
+  // FIXED: Use more robust date parsing that avoids timezone conversion issues
+  // Start with a simple Date object and then determine day of week
+  const appointmentDate = new Date(year, month - 1, day, 12, 0, 0);
+  
+  // Validate the date was created correctly
+  if (!isValid(appointmentDate)) {
+    throw new Error(`Invalid date provided: ${date}`);
+  }
+  
   const dayOfWeek = getDay(appointmentDate);
   
   // Enhanced debugging for date calculation
@@ -253,8 +259,8 @@ export async function calculateAvailabilitySlots(
   console.log(`- Calculated day of week: ${dayOfWeek} (${dayOfWeek === 1 ? 'Monday' : dayOfWeek === 0 ? 'Sunday' : 'Other Day'})`);
   console.log(`- Appointment date object: ${appointmentDate.toString()}`);
   
-  // Use the appointment date directly for facility timezone date string
-  const facilityTZDateStr = format(appointmentDate, 'yyyy-MM-dd');
+  // Use the original date string since we already validated it above
+  const facilityTZDateStr = date; // This is already in YYYY-MM-DD format
   console.log(`- Facility TZ date string: ${facilityTZDateStr}`);
   
   // Debug logging for final day calculation
@@ -403,7 +409,7 @@ export async function calculateAvailabilitySlots(
   
   console.log(`[AvailabilityService] Day boundaries in ${effectiveTimezone}: start=${dayStart.toISOString()}, end=${dayEnd.toISOString()}`);
 
-  let existingAppointments: { id: number; startTime: Date; endTime: Date; }[] = [];
+  let existingAppointments: { id: number; startTime: Date; endTime: Date; appointmentTypeId: number; }[] = [];
   try {
       if (options?.testAppointments == null) {
           existingAppointments = await fetchRelevantAppointmentsForDay(db, facilityId, dayStart, dayEnd, effectiveTenantId);
@@ -441,7 +447,7 @@ export async function calculateAvailabilitySlots(
   
   // Important: Always interpret facility hours in their local timezone as entered in DB
   // Use parse instead of parseISO with the facility timezone to ensure correct time interpretation
-  const dateInFacilityTZ = parse(`${facilityTZDateStr} 00:00`, 'yyyy-MM-dd HH:mm', new Date());
+  const dateInFacilityTZ = new Date(year, month - 1, day, 0, 0, 0);
   
   // First create the date objects in facility timezone without any conversion
   const operatingStartDateTime = parse(
