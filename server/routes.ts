@@ -2019,52 +2019,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Email management routes - handle links from confirmation emails
+  app.get('/view', (req, res) => {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).send('Missing confirmation code');
+    }
+    res.redirect(`/booking-confirmation?confirmationCode=${encodeURIComponent(code as string)}`);
+  });
+
+  app.get('/reschedule', (req, res) => {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).send('Missing confirmation code');
+    }
+    res.redirect(`/reschedule?code=${encodeURIComponent(code as string)}`);
+  });
+
+  app.get('/cancel', (req, res) => {
+    const { code } = req.query;
+    if (!code) {
+      return res.status(400).send('Missing confirmation code');
+    }
+    res.redirect(`/cancel?code=${encodeURIComponent(code as string)}`);
+  });
+
   console.log('Core routes registered successfully');
-  
-  // Add routes for email link management - these handle the links in confirmation emails
-// Route for viewing appointment details via confirmation code
-app.get('/view', async (req: any, res) => {
-  const { code } = req.query;
-  if (!code) {
-    return res.status(400).send('Missing confirmation code');
-  }
-  
-  // Redirect to appointment confirmation page with the code
-  res.redirect(`/booking-confirmation?confirmationCode=${encodeURIComponent(code)}`);
-});
-
-// Route for editing/managing appointment via confirmation code  
-app.get('/edit', async (req: any, res) => {
-  const { code } = req.query;
-  if (!code) {
-    return res.status(400).send('Missing confirmation code');
-  }
-  
-  // Redirect to the appointment management page
-  res.redirect(`/booking-confirmation?confirmationCode=${encodeURIComponent(code)}`);
-});
-
-  // Route for cancelling appointment via confirmation code
-  app.get('/cancel', async (req: any, res) => {
-    const { code } = req.query;
-    if (!code) {
-      return res.status(400).send('Missing confirmation code');
-    }
-    
-    // Redirect to cancel page with the code
-    res.redirect(`/cancel?code=${encodeURIComponent(code)}`);
-  });
-
-  // Route for rescheduling appointment via confirmation code
-  app.get('/reschedule', async (req: any, res) => {
-    const { code } = req.query;
-    if (!code) {
-      return res.status(400).send('Missing confirmation code');
-    }
-    
-    // Redirect to reschedule page with the code  
-    res.redirect(`/reschedule?code=${encodeURIComponent(code)}`);
-  });
   
   // Debug endpoint to check availability calculations
   app.get('/api/debug/availability/:facilityId/:appointmentTypeId/:date', async (req: any, res) => {

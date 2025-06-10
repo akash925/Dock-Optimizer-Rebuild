@@ -544,23 +544,16 @@ export async function calculateAvailabilitySlots(
   // Use parse instead of parseISO with the facility timezone to ensure correct time interpretation
   const dateInFacilityTZ = new Date(year, month - 1, day, 0, 0, 0);
   
-  // 🔥 TIMEZONE FIX: Parse facility hours as being ALREADY in facility timezone
+  // 🔥 TIMEZONE FIX: Simple correct approach - treat facility hours as local time
   // The facility hours (08:00, 17:00) are stored in the facility's local time
-  // We need to create Date objects that represent 08:00 Eastern, not 08:00 UTC
+  // Parse hour/minute and create dates directly without timezone conversion issues
   
-  // SIMPLE FIX: Create dates by parsing hour/minute and building in facility timezone
   const [startHour, startMinute] = operatingStartTimeStr.split(':').map(Number);
   const [endHour, endMinute] = operatingEndTimeStr.split(':').map(Number);
   
-  // Create base date in facility timezone
-  const baseDate = toZonedTime(parseISO(`${facilityTZDateStr}T00:00:00`), effectiveTimezone);
-  
-  // Set the correct hours/minutes for start and end times
-  const operatingStartDateTime = new Date(baseDate);
-  operatingStartDateTime.setHours(startHour, startMinute, 0, 0);
-  
-  let operatingEndDateTime = new Date(baseDate);
-  operatingEndDateTime.setHours(endHour, endMinute, 0, 0);
+  // Create dates for the specified day at the specified times (no timezone conversion)
+  const operatingStartDateTime = new Date(year, month - 1, day, startHour, startMinute, 0, 0);
+  let operatingEndDateTime = new Date(year, month - 1, day, endHour, endMinute, 0, 0);
   
   // DEBUG: Log time values for debugging
   console.log(`[AvailabilityService] DEBUG TIME VALUES:`);
@@ -593,16 +586,13 @@ export async function calculateAvailabilitySlots(
       breakStartTimeStr.trim() !== "" && breakEndTimeStr.trim() !== "" && 
       breakStartTimeStr.includes(':') && breakEndTimeStr.includes(':')) {
       try {
-          // 🔥 TIMEZONE FIX: Use same approach as operating hours
-          // Parse break times using the same timezone-aware method
+          // 🔥 TIMEZONE FIX: Use same simple approach as operating hours
+          // Parse break times using the same direct method
           const [breakStartHour, breakStartMinute] = breakStartTimeStr.split(':').map(Number);
           const [breakEndHour, breakEndMinute] = breakEndTimeStr.split(':').map(Number);
           
-          breakStartDateTime = new Date(baseDate);
-          breakStartDateTime.setHours(breakStartHour, breakStartMinute, 0, 0);
-          
-          breakEndDateTime = new Date(baseDate);
-          breakEndDateTime.setHours(breakEndHour, breakEndMinute, 0, 0);
+          breakStartDateTime = new Date(year, month - 1, day, breakStartHour, breakStartMinute, 0, 0);
+          breakEndDateTime = new Date(year, month - 1, day, breakEndHour, breakEndMinute, 0, 0);
           
           // Adjust if break spans midnight
           if (breakEndDateTime && breakStartDateTime && breakEndDateTime <= breakStartDateTime) { 
