@@ -544,18 +544,15 @@ export async function calculateAvailabilitySlots(
   // Use parse instead of parseISO with the facility timezone to ensure correct time interpretation
   const dateInFacilityTZ = new Date(year, month - 1, day, 0, 0, 0);
   
-  // First create the date objects in facility timezone without any conversion
-  const operatingStartDateTime = parse(
-    `${facilityTZDateStr} ${operatingStartTimeStr}`, 
-    'yyyy-MM-dd HH:mm', 
-    new Date()
-  );
+  // 🔥 TIMEZONE FIX: Parse facility hours as being ALREADY in facility timezone
+  // The facility hours (08:00, 17:00) are stored in the facility's local time
+  // Instead of parsing as UTC and converting, create ISO strings with timezone and parse
+  const startISOString = `${facilityTZDateStr}T${operatingStartTimeStr}:00`;
+  const endISOString = `${facilityTZDateStr}T${operatingEndTimeStr}:00`;
   
-  let operatingEndDateTime = parse(
-    `${facilityTZDateStr} ${operatingEndTimeStr}`, 
-    'yyyy-MM-dd HH:mm', 
-    new Date()
-  );
+  // Parse these as local facility times, then convert to UTC representation  
+  const operatingStartDateTime = toZonedTime(parseISO(startISOString), effectiveTimezone);
+  let operatingEndDateTime = toZonedTime(parseISO(endISOString), effectiveTimezone);
   
   // DEBUG: Log time values for debugging
   console.log(`[AvailabilityService] DEBUG TIME VALUES:`);
