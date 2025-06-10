@@ -861,13 +861,14 @@ export async function sendConfirmationEmail(
   
   // Generate QR code SVG directly instead of using URLs
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  // 🔥 FIX: Use base64 embedded QR code for maximum email compatibility
-  const qrCodeBase64 = await generateQRCodeBase64(checkInUrl);
+  // 🔥 FIX: Use actual image URL instead of base64 for email compatibility
+  // Email clients block base64 images for security, so use real URLs
+  const qrCodeImageUrl = `${host}/api/qr-code-image/${encodeURIComponent(confirmationCode)}`;
   const qrCodeSvgContent = `
     <div style="text-align: center; margin: 25px 0;">
       <div style="display: inline-block; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
         <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">QR Code for Check-in</h3>
-        <img src="${qrCodeBase64}" alt="QR Code for Check-in" style="width: 200px; height: 200px; display: block; margin: 0 auto;" />
+        <img src="${qrCodeImageUrl}" alt="QR Code for Check-in" style="width: 200px; height: 200px; display: block; margin: 0 auto;" />
         <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
           Confirmation Code: ${confirmationCode}<br>
           <span style="font-size: 11px;">Scan with your phone to check in</span>
@@ -880,7 +881,7 @@ export async function sendConfirmationEmail(
   
   // Additional logging to help debug QR code issues
   console.log(`[EMAIL] Full check-in URL: ${checkInUrl}`);
-  console.log(`[EMAIL] QR code generated as base64 data URL`);
+  console.log(`[EMAIL] QR code image URL: ${qrCodeImageUrl}`);
   console.log(`[EMAIL] Host URL from env or default: ${host}`);
 
   // Generate QR code SVG directly
