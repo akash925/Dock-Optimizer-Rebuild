@@ -3,7 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import AppointmentDetails from "@/components/calendar/appointment-details";
+import { AppointmentDetailsDialog } from "@/components/schedules/appointment-details-dialog";
 import {
   Calendar,
   Loader2,
@@ -892,9 +892,14 @@ export default function AppointmentsPage() {
       </div>
       
       {/* Appointment Details Modal */}
-      <AppointmentDetails 
-        scheduleId={selectedScheduleId} 
-        onClose={() => setSelectedScheduleId(null)}
+      <AppointmentDetailsDialog 
+        appointment={selectedScheduleId ? filteredSchedules.find(s => s.id === selectedScheduleId) as any : null}
+        open={!!selectedScheduleId}
+        onOpenChange={(open) => {
+          if (!open) setSelectedScheduleId(null);
+        }}
+        facilityName={selectedScheduleId ? getFacilityName(filteredSchedules.find(s => s.id === selectedScheduleId)!) : ""}
+        timeFormat="12h"
       />
     </div>
   );

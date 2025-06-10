@@ -44,7 +44,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 export interface RouteConfig {
   path: string;
   component: React.ComponentType<any>;
-  module?: string;
+  module?: string | null;
   roles?: string[];
   isAdmin?: boolean;
 }
@@ -190,7 +190,12 @@ const publicRoutes: RouteConfig[] = [
   { path: "/booking-confirmation", component: BookingConfirmation },
   { path: "/driver-check-in", component: DriverCheckIn },
   { path: "/reschedule", component: Reschedule },
-  { path: "/cancel", component: Cancel }
+  { path: "/cancel", component: Cancel },
+  // Email management routes - these need to be public for email links to work
+  { path: "/email/view/:confirmationCode", component: Appointments },
+  { path: "/email/edit/:confirmationCode", component: Appointments },
+  { path: "/email/reschedule/:confirmationCode", component: Reschedule },
+  { path: "/email/cancel/:confirmationCode", component: Cancel }
 ];
 
 // Router component that filters routes based on modules

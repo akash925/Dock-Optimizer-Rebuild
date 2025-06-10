@@ -63,12 +63,14 @@ interface ExtendedSchedule {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  lastModifiedAt?: string;
   createdBy: number | null;
   lastModifiedBy: number | null;
   truckNumber: string;
   trailerNumber: string | null;
   driverName: string | null;
   customerName?: string;
+  carrierName?: string;
   dockName?: string;
   appointmentTypeName?: string;
   facilityName?: string;
@@ -82,6 +84,8 @@ interface ExtendedSchedule {
   weight?: string | null;
   palletCount?: string | null;
   mcNumber?: string | null;
+  actualStartTime?: string;
+  actualEndTime?: string;
 }
 
 interface AppointmentDetailsDialogProps {
@@ -423,12 +427,18 @@ export function AppointmentDetailsDialog({
     }
   };
   
-  // Check-out mutation
+  // Enhanced check-out mutation with better UX
   const checkOutMutation = useMutation({
     mutationFn: async () => {
       if (!appointment?.id) throw new Error("No appointment ID provided");
       
       // Step 1: Check out the appointment
+      toast({
+        title: "Processing Checkout",
+        description: "Completing appointment checkout...",
+        duration: 2000,
+      });
+      
       const checkoutRes = await apiRequest("PATCH", `/api/schedules/${appointment.id}/check-out`, {
         actualEndTime: new Date().toISOString(),
         notes: formData.notes
@@ -443,6 +453,12 @@ export function AppointmentDetailsDialog({
       // Step 2: If this appointment has a dock assignment, release the door
       if (appointment.dockId) {
         console.log(`[AppointmentDetails] Releasing door for appointment ${appointment.id}, dock ${appointment.dockId}`);
+        
+        toast({
+          title: "Releasing Door",
+          description: `Releasing dock assignment...`,
+          duration: 2000,
+        });
         
         const releaseRes = await apiRequest("POST", `/api/schedules/${appointment.id}/release`, {
           notes: `Checked out at ${new Date().toLocaleTimeString()}`,
@@ -460,25 +476,39 @@ export function AppointmentDetailsDialog({
       return checkoutData;
     },
     onSuccess: () => {
+      // Close the check-out dialog first
+      setShowCheckOutDialog(false);
+      
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       
-      // Enhanced success message
+      // Enhanced success message with emoji
       const hasDock = appointment?.dockId;
       const message = hasDock 
-        ? "Appointment checked out and door released successfully"
-        : "Appointment checked out successfully";
+        ? "✅ Appointment checked out and door released successfully!"
+        : "✅ Appointment checked out successfully!";
       
       toast({
-        title: "Checkout Complete",
+        title: "🎉 Checkout Complete",
         description: message,
-        duration: 4000,
+        duration: 5000,
       });
+      
+      // Update the local appointment status immediately for better UX
+      if (appointment) {
+        appointment.status = 'completed';
+        appointment.actualEndTime = new Date().toISOString();
+      }
     },
     onError: (error) => {
+      // Close the dialog on error too
+      setShowCheckOutDialog(false);
+      
       toast({
-        title: "Error during checkout",
+        title: "❌ Checkout Failed",
         description: error.message,
         variant: "destructive",
+        duration: 5000,
       });
     }
   });

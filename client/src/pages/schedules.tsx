@@ -15,6 +15,7 @@ import ScheduleWeekCalendar from "@/components/schedules/schedule-week-calendar"
 import ScheduleDayCalendar from "@/components/schedules/schedule-day-calendar";
 import ScheduleMonthCalendar from "@/components/schedules/schedule-month-calendar";
 import AppointmentForm from "@/components/schedules/appointment-form";
+import UnifiedAppointmentFlow from "@/components/appointment/unified-appointment-flow";
 import { AppointmentDetailsDialog } from "@/components/schedules/appointment-details-dialog";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
@@ -938,7 +939,8 @@ export default function Schedules() {
         )}
       </div>
       
-      <AppointmentForm 
+      <UnifiedAppointmentFlow 
+        mode="internal"
         isOpen={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
@@ -946,13 +948,44 @@ export default function Schedules() {
           setSelectedDockId(undefined);  // Reset selected dock when closing form
           setSelectedAppointmentTypeId(undefined); // Reset selected appointment type
         }}
-        initialData={scheduleToEdit}
-        mode={editScheduleId ? "edit" : "create"}
-        initialDate={clickedCellDate || selectedDate}
-        initialDockId={selectedDockId}  // Pass the selected dock to the form
-        appointmentTypeId={selectedAppointmentTypeId} // Pass the selected appointment type
-        timezone={timezone} // Pass the selected timezone
-        timeFormat={timeFormat} // Pass the selected time format
+        initialData={scheduleToEdit ? {
+          facilityId: scheduleToEdit.facilityId || undefined,
+          appointmentTypeId: scheduleToEdit.appointmentTypeId || undefined,
+          appointmentDate: scheduleToEdit.startTime ? new Date(scheduleToEdit.startTime) : undefined,
+          companyName: scheduleToEdit.customerName || '',
+          contactName: scheduleToEdit.customerName || '',
+          email: scheduleToEdit.driverEmail || '',
+          phone: scheduleToEdit.driverPhone || '',
+          carrierName: scheduleToEdit.carrierName || '',
+          driverName: scheduleToEdit.driverName || '',
+          driverPhone: scheduleToEdit.driverPhone || '',
+          driverEmail: scheduleToEdit.driverEmail || '',
+          truckNumber: scheduleToEdit.truckNumber || '',
+          trailerNumber: scheduleToEdit.trailerNumber || '',
+          notes: scheduleToEdit.notes || '',
+        } : undefined}
+        editMode={editScheduleId ? "edit" : "create"}
+        appointmentId={editScheduleId || undefined}
+        facilityId={undefined}
+        appointmentTypeId={selectedAppointmentTypeId}
+        selectedDate={clickedCellDate || selectedDate}
+        selectedDockId={selectedDockId}
+        timezone={timezone}
+        allowAllAppointmentTypes={true}
+        onSuccess={(data) => {
+          // Refresh the schedules data
+          setIsFormOpen(false);
+          // Reset form state
+          setClickedCellDate(undefined);
+          setSelectedDockId(undefined);
+          setSelectedAppointmentTypeId(undefined);
+          
+          toast({
+            title: "✅ Success",
+            description: `Appointment ${editScheduleId ? 'updated' : 'created'} successfully!`,
+            duration: 3000,
+          });
+        }}
       />
       
       {/* Appointment Details Dialog */}
