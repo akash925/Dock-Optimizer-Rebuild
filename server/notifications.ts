@@ -851,8 +851,8 @@ export async function sendConfirmationEmail(
   const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
   const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
 
-  // Host URL with potential fallback
-  const host = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
+  // Host URL with potential fallback - use current request host for development
+  const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1l3rlgulg.worf.replit.dev';
 
   // Create management links for the email
   const viewEditLink = `${host}/view?code=${encodeURIComponent(confirmationCode)}`;
@@ -861,13 +861,26 @@ export async function sendConfirmationEmail(
   
   // Generate QR code SVG directly instead of using URLs
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  // Generate QR code SVG content with all HTML styling included
-  const qrCodeSvgContent = await generateQRCodeSVG(confirmationCode, host);
-  console.log(`[EMAIL] Generated QR code SVG for confirmation email to ${to}`);
+  // 🔥 FIX: Use PNG image URL instead of SVG for better email client compatibility
+  const qrCodeImageUrl = `${host}/api/qr-code-image/${encodeURIComponent(confirmationCode)}`;
+  const qrCodeSvgContent = `
+    <div style="text-align: center; margin: 25px 0;">
+      <div style="display: inline-block; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+        <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">QR Code for Check-in</h3>
+        <img src="${qrCodeImageUrl}" alt="QR Code for Check-in" style="width: 200px; height: 200px; display: block; margin: 0 auto;" />
+        <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
+          Confirmation Code: ${confirmationCode}<br>
+          <span style="font-size: 11px;">Scan with your phone to check in</span>
+        </p>
+      </div>
+    </div>
+  `;
+  console.log(`[EMAIL] Generated QR code image URL for confirmation email to ${to}`);
   
   
   // Additional logging to help debug QR code issues
   console.log(`[EMAIL] Full check-in URL: ${checkInUrl}`);
+  console.log(`[EMAIL] QR code image URL: ${qrCodeImageUrl}`);
   console.log(`[EMAIL] Host URL from env or default: ${host}`);
 
   // Generate QR code SVG directly
@@ -1141,8 +1154,8 @@ export async function sendRescheduleEmail(
     oldUserTimeRange = `${oldUserStart} - ${oldUserEnd} ${userTzAbbr}`;
   }
 
-  // Host URL with potential fallback
-  const host = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
+  // Host URL with potential fallback - use current request host for development
+  const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1l3rlgulg.worf.replit.dev';
 
   // Generate QR code URLs
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
@@ -1544,8 +1557,8 @@ export async function sendReminderEmail(
   const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
   const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
 
-  // Host URL with potential fallback
-  const host = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
+  // Host URL with potential fallback - use current request host for development
+  const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1l3rlgulg.worf.replit.dev';
 
   // Create reschedule/cancel links
   const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
