@@ -659,146 +659,176 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   
   // Check if a date is closed based on facility schedule
   const isDateClosed = (date: Date) => {
-    // Don't allow past dates
-    const today = startOfDay(new Date());
-    if (date < today) {
-      return true;
-    }
-    
-    if (!bookingData.facilityId || !facilities.length) return true;
-    
-    const facility = facilities.find((f: any) => f.id === bookingData.facilityId);
-    if (!facility) return true;
-    
-    // Check if the date is a holiday (organization level first, then facility level)
-    if (isHoliday(date)) return true;
-    
-    // Get organization ID from facility or booking page context
-    const organizationId = facility.tenantId || facility.organizationId || bookingPage?.organizationId;
-    
-    console.log(`[isDateClosed] Checking ${date.toDateString()}, facility:`, {
-      id: facility.id,
-      name: facility.name,
-      organizationId,
-      overrideOrganizationHours: facility.overrideOrganizationHours,
-      isFriday: isFriday(date)
-    });
-
-    // HIERARCHY: Organization rules → Facility rules (if overridden)
-    // First get organization default hours, then check if facility overrides them
-    
-    let dayOpen = false;
-    let effectiveHours = null;
-
-    // Get organization default hours for this day
-    if (organizationId && bookingPage?.organization) {
-      const org = bookingPage.organization;
-      const dayName = format(date, 'EEEE').toLowerCase(); // 'friday', 'monday', etc.
+    try {
+      // Don't allow past dates
+      const today = startOfDay(new Date());
+      if (date < today) {
+        return true;
+      }
       
-      // Check organization default hours first
-      const orgDayOpen = org[`${dayName}Open`] || org[`${dayName}_open`];
-      const orgStartTime = org[`${dayName}Start`] || org[`${dayName}_start`];
-      const orgEndTime = org[`${dayName}End`] || org[`${dayName}_end`];
+      if (!bookingData.facilityId || !facilities.length) {
+        console.log('[isDateClosed] No facility selected or no facilities available');
+        return true;
+      }
       
-      console.log(`[isDateClosed] Organization hours for ${dayName}:`, {
-        open: orgDayOpen,
-        start: orgStartTime,
-        end: orgEndTime
+      const facility = facilities.find((f: any) => f.id === bookingData.facilityId);
+      if (!facility) {
+        console.log('[isDateClosed] Facility not found');
+        return true;
+      }
+      
+      // Check if the date is a holiday (organization level first, then facility level)
+      if (isHoliday(date)) {
+        console.log('[isDateClosed] Date is a holiday');
+        return true;
+      }
+      
+      // Get day of week information
+      const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, etc.
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const dayName = dayNames[dayOfWeek];
+      
+      console.log(`[isDateClosed] Checking ${date.toDateString()} (${dayName}) for facility:`, {
+        id: facility.id,
+        name: facility.name,
+        dayOfWeek
       });
 
-      // If facility doesn't override organization hours, use organization defaults
-      if (!facility.overrideOrganizationHours) {
-        dayOpen = orgDayOpen === true;
-        effectiveHours = { start: orgStartTime, end: orgEndTime };
-        
-        console.log(`[isDateClosed] Using organization defaults (no facility override):`, {
-          dayOpen,
-          effectiveHours
-        });
-      } else {
-        // Facility overrides organization hours - use facility hours with fallback to org
-        const facilityDayOpen = facility[`${dayName}Open`] || facility[`${dayName}_open`];
-        const facilityStartTime = facility[`${dayName}Start`] || facility[`${dayName}_start`];
-        const facilityEndTime = facility[`${dayName}End`] || facility[`${dayName}_end`];
-        
-        // Use facility hours if explicitly set, otherwise fall back to organization
-        dayOpen = facilityDayOpen !== null ? facilityDayOpen : (orgDayOpen === true);
-        effectiveHours = {
-          start: facilityStartTime || orgStartTime,
-          end: facilityEndTime || orgEndTime
-        };
-        
-        console.log(`[isDateClosed] Using facility override:`, {
-          facilityDayOpen,
-          facilityStartTime,
-          facilityEndTime,
-          finalDayOpen: dayOpen,
-          effectiveHours
-        });
-      }
-    } else {
-      // Fallback to old logic if no organization context
-      console.log(`[isDateClosed] No organization context, using facility-only logic`);
+      // Check if this day is open - try multiple property name formats
+      let dayOpen = false;
       
-      // Handle null/undefined values - weekdays default to open, weekends to closed
-      if (isSunday(date)) {
-        dayOpen = facility.sunday_open === true;
-      } else if (isMonday(date)) {
-        dayOpen = facility.monday_open !== false; // Default true for weekdays
-      } else if (isTuesday(date)) {
-        dayOpen = facility.tuesday_open !== false;
-      } else if (isWednesday(date)) {
-        dayOpen = facility.wednesday_open !== false;
-      } else if (isThursday(date)) {
-        dayOpen = facility.thursday_open !== false;
-      } else if (isFriday(date)) {
-        dayOpen = facility.friday_open !== false;
-      } else if (isSaturday(date)) {
-        dayOpen = facility.saturday_open === true;
-      }
-    }
-
-    // If not open on this day, it's closed
-    if (!dayOpen) {
-      console.log(`[isDateClosed] Facility closed on this day: dayOpen=${dayOpen}`);
-      return true;
-    }
-
-    // If it's today, check if there's enough buffer time for scheduling
-    const now = new Date();
-    const dateYear = date.getFullYear();
-    const dateMonth = date.getMonth();
-    const dateDay = date.getDate();
-    const todayYear = now.getFullYear();
-    const todayMonth = now.getMonth();
-    const todayDay = now.getDate();
-    const isToday = dateYear === todayYear && dateMonth === todayMonth && dateDay === todayDay;
-
-    if (isToday && effectiveHours) {
-      // Get current time in hours since midnight
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-      const currentTimeInMinutes = currentHour * 60 + currentMinute;
-
-      // Parse closing time (expected format "HH:MM")
-      const closingTime = effectiveHours.end;
-      if (closingTime) {
-        const [closingHour, closingMinute] = closingTime.split(':').map(Number);
-        const closingTimeInMinutes = closingHour * 60 + closingMinute;
-
-        // Default buffer of 60 minutes (adjust if needed)
-        const bufferMinutes = 60;
-
-        // Check if there's enough time left in the day for booking
-        if (currentTimeInMinutes + bufferMinutes >= closingTimeInMinutes) {
-          console.log(`[isDateClosed] Not enough time left today: current=${currentTimeInMinutes}, closing=${closingTimeInMinutes}, buffer=${bufferMinutes}`);
-          return true; // Not enough time left today
+      // Try different property naming conventions
+      const dayOpenProperties = [
+        `${dayName}Open`,
+        `${dayName}_open`, 
+        `${dayName}Open`.replace(dayName, dayName.charAt(0).toUpperCase() + dayName.slice(1))
+      ];
+      
+      // Check facility hours first (most specific)
+      for (const prop of dayOpenProperties) {
+        if (facility.hasOwnProperty(prop) && facility[prop] !== null && facility[prop] !== undefined) {
+          dayOpen = Boolean(facility[prop]);
+          console.log(`[isDateClosed] Found facility property ${prop}:`, dayOpen);
+          break;
         }
       }
-    }
+      
+      // If no specific facility hours found, use organization hours if available
+      if (!dayOpen && bookingPage?.organization) {
+        const org = bookingPage.organization;
+        
+        for (const prop of dayOpenProperties) {
+          if (org.hasOwnProperty(prop) && org[prop] !== null && org[prop] !== undefined) {
+            dayOpen = Boolean(org[prop]);
+            console.log(`[isDateClosed] Found organization property ${prop}:`, dayOpen);
+            break;
+          }
+        }
+      }
+      
+      // Default logic: weekdays are open, weekends are closed (if no explicit configuration)
+      if (!dayOpen && dayOfWeek >= 1 && dayOfWeek <= 5) {
+        dayOpen = true; // Default weekdays to open
+        console.log(`[isDateClosed] Using default weekday logic: dayOpen=${dayOpen}`);
+      }
 
-    console.log(`[isDateClosed] Date is available: ${date.toDateString()}`);
-    return false;
+      if (!dayOpen) {
+        console.log(`[isDateClosed] Facility closed on ${dayName}: dayOpen=${dayOpen}`);
+        return true;
+      }
+
+      // If it's today, check if there's enough buffer time for scheduling
+      const now = new Date();
+      const isToday = date.toDateString() === now.toDateString();
+
+      if (isToday) {
+        // Get facility hours for today
+        const startTimeProperties = [
+          `${dayName}Start`,
+          `${dayName}_start`,
+          `${dayName}Start`.replace(dayName, dayName.charAt(0).toUpperCase() + dayName.slice(1))
+        ];
+        
+        const endTimeProperties = [
+          `${dayName}End`, 
+          `${dayName}_end`,
+          `${dayName}End`.replace(dayName, dayName.charAt(0).toUpperCase() + dayName.slice(1))
+        ];
+        
+        let startTime, endTime;
+        
+        // Get start time
+        for (const prop of startTimeProperties) {
+          if (facility.hasOwnProperty(prop) && facility[prop]) {
+            startTime = facility[prop];
+            break;
+          }
+        }
+        
+        // Get end time  
+        for (const prop of endTimeProperties) {
+          if (facility.hasOwnProperty(prop) && facility[prop]) {
+            endTime = facility[prop];
+            break;
+          }
+        }
+        
+        // If no facility times, try organization times
+        if ((!startTime || !endTime) && bookingPage?.organization) {
+          const org = bookingPage.organization;
+          
+          if (!startTime) {
+            for (const prop of startTimeProperties) {
+              if (org.hasOwnProperty(prop) && org[prop]) {
+                startTime = org[prop];
+                break;
+              }
+            }
+          }
+          
+          if (!endTime) {
+            for (const prop of endTimeProperties) {
+              if (org.hasOwnProperty(prop) && org[prop]) {
+                endTime = org[prop];
+                break;
+              }
+            }
+          }
+        }
+
+        if (endTime) {
+          try {
+            // Parse closing time (expected format "HH:MM")
+            const [closingHour, closingMinute] = endTime.split(':').map(Number);
+            const closingTimeInMinutes = closingHour * 60 + closingMinute;
+
+            // Get current time in minutes
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTimeInMinutes = currentHour * 60 + currentMinute;
+
+            // Default buffer of 60 minutes (adjust if needed)
+            const bufferMinutes = 60;
+
+            // Check if there's enough time left in the day for booking
+            if (currentTimeInMinutes + bufferMinutes >= closingTimeInMinutes) {
+              console.log(`[isDateClosed] Not enough time left today: current=${currentTimeInMinutes}, closing=${closingTimeInMinutes}, buffer=${bufferMinutes}`);
+              return true; // Not enough time left today
+            }
+          } catch (error) {
+            console.warn(`[isDateClosed] Error parsing closing time "${endTime}":`, error);
+          }
+        }
+      }
+
+      console.log(`[isDateClosed] Date is available: ${date.toDateString()}`);
+      return false;
+      
+    } catch (error) {
+      console.error('[isDateClosed] Error checking if date is closed:', error);
+      // On error, assume date is closed for safety
+      return true;
+    }
   };
   
   // Find the next available date based on facility hours

@@ -12,10 +12,15 @@ import UnifiedAppointmentFlow from "@/components/appointment/unified-appointment
 import DoorBoard from "../components/door-manager/door-board";
 import AppointmentSelector from "@/components/door-manager/appointment-selector-dialog";
 import DoorAppointmentForm from "@/components/door-manager/door-appointment-form";
+import { useAssignAppointmentToDoor } from "@/components/door-manager/assign-appointment-service";
 
 export default function DoorManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Import the assignment mutation hook
+  const assignAppointmentMutation = useAssignAppointmentToDoor();
+  
   const [selectedFacilityId, setSelectedFacilityId] = useState<number | null>(null);
   const [filterType, setFilterType] = useState<"all" | "available" | "not_available">("all");
   const [lastUpdated, setLastUpdated] = useState(new Date());
