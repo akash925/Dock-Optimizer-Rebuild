@@ -121,6 +121,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastModifiedBy: req.user.id
       });
 
+      // Send check-out notification email
+      try {
+        const { sendCheckoutEmail } = await import('./notifications');
+        
+        // Build enhanced schedule data for email using existing storage methods
+        if (schedule.driverEmail) {
+          console.log(`[CheckOut] Sending check-out notification to ${schedule.driverEmail}`);
+          
+          // Get additional data for the email (with null checks)
+          const facility = schedule.facilityId ? await storage.getFacility(schedule.facilityId) : null;
+          const carrier = schedule.carrierId ? await storage.getCarrier(schedule.carrierId) : null;
+          const dock = schedule.dockId ? await storage.getDock(schedule.dockId) : null;
+          
+          // Build enhanced schedule object for email
+          const enhancedSchedule = {
+            ...schedule,
+            facilityName: facility?.name || 'Unknown Facility',
+            carrierName: carrier?.name || 'Unknown Carrier',
+            dockName: dock?.name || 'N/A',
+            appointmentTypeName: 'Standard Appointment', // Could fetch from appointment types if needed
+            timezone: 'America/New_York' // Default facility timezone
+          };
+          
+          const confirmationCode = (schedule as any).confirmationCode || `HZL-${scheduleId.toString().padStart(6, '0')}`;
+          
+          await sendCheckoutEmail(
+            schedule.driverEmail,
+            confirmationCode,
+            enhancedSchedule,
+            notes
+          );
+          
+          console.log(`[CheckOut] Check-out notification sent successfully`);
+        } else {
+          console.log(`[CheckOut] No driver email found for schedule ${scheduleId}, skipping email notification`);
+        }
+      } catch (emailError) {
+        console.error('Error sending check-out notification email:', emailError);
+        // Don't fail the checkout if email fails
+      }
+
       res.json(updatedSchedule);
     } catch (error) {
       console.error('Error checking out appointment:', error);
@@ -297,6 +338,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Schedule not found' });
       }
 
+      // Store old times for email notification
+      const oldStartTime = schedule.startTime;
+      const oldEndTime = schedule.endTime;
+
       // Update schedule with new times
       const updatedSchedule = await storage.updateSchedule(scheduleId, {
         startTime: new Date(startTime),
@@ -304,6 +349,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastModifiedAt: new Date(),
         lastModifiedBy: req.user.id
       });
+
+      // Send reschedule notification email
+      try {
+        const { sendRescheduleEmail } = await import('./notifications');
+        
+        // Build enhanced schedule data for email using existing storage methods
+        if (schedule.driverEmail) {
+          console.log(`[Reschedule] Sending reschedule notification to ${schedule.driverEmail}`);
+          
+          // Get additional data for the email (with null checks)
+          const facility = schedule.facilityId ? await storage.getFacility(schedule.facilityId) : null;
+          const carrier = schedule.carrierId ? await storage.getCarrier(schedule.carrierId) : null;
+          const dock = schedule.dockId ? await storage.getDock(schedule.dockId) : null;
+          
+          // Build enhanced schedule object for email
+          const enhancedSchedule = {
+            ...updatedSchedule, // Use updated schedule with new times
+            facilityName: facility?.name || 'Unknown Facility',
+            carrierName: carrier?.name || 'Unknown Carrier',
+            dockName: dock?.name || 'N/A',
+            appointmentTypeName: 'Standard Appointment', // Could fetch from appointment types if needed
+            timezone: 'America/New_York', // Default facility timezone
+            creatorEmail: schedule.creatorEmail || undefined // Convert null to undefined for type compatibility
+          } as any; // Cast to bypass type checking for email function
+          
+          const confirmationCode = (schedule as any).confirmationCode || `HZL-${scheduleId.toString().padStart(6, '0')}`;
+          
+          await sendRescheduleEmail(
+            schedule.driverEmail,
+            confirmationCode,
+            enhancedSchedule,
+            oldStartTime,
+            oldEndTime
+          );
+          
+          console.log(`[Reschedule] Reschedule notification sent successfully`);
+        } else {
+          console.log(`[Reschedule] No driver email found for schedule ${scheduleId}, skipping email notification`);
+        }
+      } catch (emailError) {
+        console.error('Error sending reschedule notification email:', emailError);
+        // Don't fail the reschedule if email fails
+      }
 
       res.json(updatedSchedule);
     } catch (error) {

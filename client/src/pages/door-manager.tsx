@@ -6,13 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, RefreshCw, Calendar, Settings, X } from "lucide-react";
+import { LogOut, RefreshCw, Calendar, Settings, X, QrCode, FileText, Image, MessageSquare } from "lucide-react";
 import ReleaseDoorForm from "@/components/door-manager/release-door-form";
 import UnifiedAppointmentFlow from "@/components/appointment/unified-appointment-flow";
 import DoorBoard from "../components/door-manager/door-board";
 import AppointmentSelector from "@/components/door-manager/appointment-selector-dialog";
 import DoorAppointmentForm from "@/components/door-manager/door-appointment-form";
 import { useAssignAppointmentToDoor } from "@/components/door-manager/assign-appointment-service";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function DoorManager() {
   const { toast } = useToast();
@@ -33,6 +34,10 @@ export default function DoorManager() {
   const [recentlyAssignedDock, setRecentlyAssignedDock] = useState<number | null>(null);
   const [showAppointmentSelector, setShowAppointmentSelector] = useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<{ start: Date; end: Date } | null>(null);
+  
+  // Add QR code dialog state
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [selectedAppointmentForQR, setSelectedAppointmentForQR] = useState<Schedule | null>(null);
   
   // Fetch facilities
   const { data: facilities = [] } = useQuery<Facility[]>({
@@ -260,6 +265,56 @@ export default function DoorManager() {
   const handleReleaseDoor = (scheduleId: number) => {
     setSelectedScheduleId(scheduleId);
     setShowReleaseDoorForm(true);
+  };
+  
+  // Handle QR code viewing
+  const handleViewQRCode = (schedule: Schedule) => {
+    setSelectedAppointmentForQR(schedule);
+    setShowQRCode(true);
+  };
+  
+  // Generate QR code window
+  const openQRCodeWindow = (schedule: Schedule) => {
+    const confirmationCode = (schedule as any).confirmationCode || `HZL-${schedule.id.toString().padStart(6, '0')}`;
+    const baseUrl = window.location.origin;
+    const checkInUrl = `${baseUrl}/driver-check-in?code=${confirmationCode}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkInUrl)}`;
+    
+    // Open QR code in a new window for easy access
+    const qrWindow = window.open('', '_blank', 'width=400,height=600,scrollbars=yes');
+    if (qrWindow) {
+      qrWindow.document.write(`
+        <html>
+          <head><title>Appointment QR Code - ${confirmationCode}</title></head>
+          <body style="text-align: center; font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Door Manager - QR Code Access</h2>
+            <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <div style="font-size: 24px; font-weight: bold; color: #2563eb; margin-bottom: 10px;">
+                ${confirmationCode}
+              </div>
+              <img src="${qrUrl}" alt="QR Code for ${confirmationCode}" style="border: 1px solid #ccc; border-radius: 8px;" />
+              <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                Scan this QR code for check-in
+              </p>
+              <div style="margin-top: 20px; text-align: left; background: white; padding: 15px; border-radius: 5px;">
+                <h3 style="margin-top: 0;">Appointment Details:</h3>
+                <p><strong>Customer:</strong> ${schedule.customerName || 'N/A'}</p>
+                <p><strong>Truck:</strong> ${schedule.truckNumber || 'N/A'}</p>
+                <p><strong>Time:</strong> ${new Date(schedule.startTime).toLocaleString()}</p>
+                ${schedule.notes ? `<p><strong>Notes:</strong> ${schedule.notes}</p>` : ''}
+              </div>
+            </div>
+            <button onclick="window.print()" style="background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+              Print QR Code
+            </button>
+            <button onclick="window.close()" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
+              Close
+            </button>
+          </body>
+        </html>
+      `);
+      qrWindow.document.close();
+    }
   };
   
   // Close the appointment form
@@ -507,6 +562,52 @@ export default function DoorManager() {
                       )}
                     </p>
                     {status === "reserved" && <p className="text-xs text-amber-600 font-medium">Reserved</p>}
+                    
+                    {/* Enhanced appointment details */}
+                    <div className="mt-2 space-y-1">
+                      {currentSchedule.truckNumber && (
+                        <div className="flex items-center text-xs text-gray-600">
+                          <span className="font-medium">Truck:</span>
+                          <span className="ml-1">{currentSchedule.truckNumber}</span>
+                        </div>
+                      )}
+                      
+                      {currentSchedule.notes && (
+                        <div className="flex items-start text-xs text-gray-600">
+                          <MessageSquare className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                          <span className="line-clamp-2">{currentSchedule.notes}</span>
+                        </div>
+                      )}
+                      
+                      {(currentSchedule as any).bolFileUploaded && (
+                        <div className="flex items-center text-xs text-green-600">
+                          <FileText className="h-3 w-3 mr-1" />
+                          <span>BOL Document</span>
+                        </div>
+                      )}
+                      
+                      {/* QR Code Access Button */}
+                      <div className="flex items-center space-x-1 mt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-6 px-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openQRCodeWindow(currentSchedule);
+                          }}
+                        >
+                          <QrCode className="h-3 w-3 mr-1" />
+                          QR Code
+                        </Button>
+                        
+                        {(currentSchedule as any).confirmationCode && (
+                          <span className="text-xs text-gray-500 font-mono">
+                            {(currentSchedule as any).confirmationCode}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
                 
@@ -591,6 +692,38 @@ export default function DoorManager() {
             setSelectedFacilityId(facilityId);
           }}
         />
+      )}
+      
+      {/* QR Code Dialog */}
+      {showQRCode && selectedAppointmentForQR && (
+        <Dialog open={showQRCode} onOpenChange={(open) => !open && setShowQRCode(false)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Appointment QR Code</DialogTitle>
+            </DialogHeader>
+            <div className="text-center space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm font-medium mb-2">Confirmation Code</p>
+                <p className="text-lg font-mono">
+                  {(selectedAppointmentForQR as any).confirmationCode || 
+                   `HZL-${selectedAppointmentForQR.id.toString().padStart(6, '0')}`}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Button
+                  onClick={() => openQRCodeWindow(selectedAppointmentForQR)}
+                  className="w-full"
+                >
+                  <QrCode className="h-4 w-4 mr-2" />
+                  View & Print QR Code
+                </Button>
+                <p className="text-xs text-gray-500">
+                  Opens QR code in new window for printing and sharing
+                </p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

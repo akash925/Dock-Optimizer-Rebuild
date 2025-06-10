@@ -854,20 +854,19 @@ export async function sendConfirmationEmail(
   // Host URL with potential fallback - use current request host for development
   const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1l3rlgulg.worf.replit.dev';
 
-  // Create management links for the email
-  const viewEditLink = `${host}/view?code=${encodeURIComponent(confirmationCode)}`;
-  const rescheduleLink = `${host}/reschedule?code=${encodeURIComponent(confirmationCode)}`;
-  const cancelLink = `${host}/cancel?code=${encodeURIComponent(confirmationCode)}`;
+  // Create management links for the email - FIX: Use correct URL format
+  const viewEditLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
+  const rescheduleLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
+  const cancelLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
   
   // Generate QR code SVG directly instead of using URLs
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  // 🔥 FIX: Use actual image URL instead of base64 for email compatibility
-  // Email clients block base64 images for security, so use real URLs
-  const qrCodeImageUrl = `${host}/api/qr-code-image/${encodeURIComponent(confirmationCode)}`;
+  // 🔥 FIX: Use external QR code service for better email client compatibility
+  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(checkInUrl)}`;
   const qrCodeSvgContent = `
     <div style="text-align: center; margin: 25px 0;">
       <div style="display: inline-block; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
-        <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">QR Code for Check-in</h3>
+        <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">Express Check-in</h3>
         <img src="${qrCodeImageUrl}" alt="QR Code for Check-in" style="width: 200px; height: 200px; display: block; margin: 0 auto;" />
         <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
           Confirmation Code: ${confirmationCode}<br>
@@ -876,12 +875,12 @@ export async function sendConfirmationEmail(
       </div>
     </div>
   `;
-  console.log(`[EMAIL] Generated QR code image URL for confirmation email to ${to}`);
+  console.log(`[EMAIL] Generated QR code for reschedule email to ${to}`);
   
   
   // Additional logging to help debug QR code issues
   console.log(`[EMAIL] Full check-in URL: ${checkInUrl}`);
-  console.log(`[EMAIL] QR code image URL: ${qrCodeImageUrl}`);
+  console.log(`[EMAIL] View/Edit link: ${viewEditLink}`);
   console.log(`[EMAIL] Host URL from env or default: ${host}`);
 
   // Generate QR code SVG directly
@@ -1160,12 +1159,24 @@ export async function sendRescheduleEmail(
 
   // Generate QR code URLs
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
-  // Generate QR code SVG directly
-  const qrCodeSvgContent = await generateQRCodeSVG(confirmationCode, host);
-  console.log(`[EMAIL] Generated QR code SVG for reschedule email to ${to}`);
+  // FIX: Use external QR code service for better email client compatibility
+  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(checkInUrl)}`;
+  const qrCodeSvgContent = `
+    <div style="text-align: center; margin: 25px 0;">
+      <div style="display: inline-block; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+        <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">Express Check-in</h3>
+        <img src="${qrCodeImageUrl}" alt="QR Code for Check-in" style="width: 200px; height: 200px; display: block; margin: 0 auto;" />
+        <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
+          Confirmation Code: ${confirmationCode}<br>
+          <span style="font-size: 11px;">Scan with your phone to check in</span>
+        </p>
+      </div>
+    </div>
+  `;
+  console.log(`[EMAIL] Generated QR code for reschedule email to ${to}`);
   
-  // Create cancel link
-  const cancelLink = `${host}/cancel?code=${confirmationCode}`;
+  // Create cancel link - FIX: Use correct URL format
+  const cancelLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -1562,8 +1573,8 @@ export async function sendReminderEmail(
   const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1l3rlgulg.worf.replit.dev';
 
   // Create reschedule/cancel links
-  const rescheduleLink = `${host}/reschedule?code=${confirmationCode}`;
-  const cancelLink = `${host}/cancel?code=${confirmationCode}`;
+  const rescheduleLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
+  const cancelLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
   
   // Generate QR code and check-in URL
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
@@ -1749,5 +1760,205 @@ export async function sendReminderEmail(
         disposition: 'attachment'
       }
     ]
+  });
+}
+
+/**
+ * Send check-out notification email
+ */
+export async function sendCheckoutEmail(
+  to: string,
+  confirmationCode: string,
+  schedule: EnhancedSchedule,
+  checkoutNotes?: string
+): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
+  // Date parsing utility function
+  const parseDate = (dateInput: Date | string | null): Date => {
+    if (!dateInput) {
+      console.warn('[Email] No date provided, using current date as fallback');
+      return new Date();
+    }
+    
+    if (dateInput instanceof Date) {
+      return dateInput;
+    }
+    
+    // Try parsing the string date
+    const parsed = new Date(dateInput);
+    if (isNaN(parsed.getTime())) {
+      console.warn(`[Email] Invalid date string: ${dateInput}, using current date as fallback`);
+      return new Date();
+    }
+    
+    return parsed;
+  };
+  
+  // Parse dates with better error handling
+  const startDate = parseDate(schedule.startTime);
+  const endDate = parseDate(schedule.endTime);
+  
+  // Get user's timezone (from their appointment data) or default to UTC
+  const userTimezone = schedule.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  
+  // Get facility timezone (assume EST for now, should be stored in facility data)
+  const facilityTimezone = 'America/New_York'; // Default to Eastern Time for facilities
+  
+  // Format times in facility timezone (location where appointment was scheduled)
+  const facilityStart = formatDateForTimezone(
+    startDate, 
+    facilityTimezone, 
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+  const facilityEnd = formatDateForTimezone(
+    endDate, 
+    facilityTimezone, 
+    'h:mm aa'
+  );
+  
+  // Format times in user's local timezone
+  const userStart = formatDateForTimezone(
+    startDate, 
+    userTimezone, 
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+  const userEnd = formatDateForTimezone(
+    endDate, 
+    userTimezone, 
+    'h:mm aa'
+  );
+
+  // Get timezone abbreviations (EDT, PDT, etc.)
+  const facilityTzAbbr = getTimezoneAbbr(facilityTimezone, startDate);
+  const userTzAbbr = getTimezoneAbbr(userTimezone, startDate);
+  
+  // Create the final time strings for the email
+  const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
+  const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
+
+  // Format checkout time
+  const checkoutTime = new Date();
+  const facilityCheckoutTime = formatDateForTimezone(
+    checkoutTime,
+    facilityTimezone,
+    'EEEE, MMMM d, yyyy h:mm aa'
+  );
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background-color: #22c55e; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">Appointment Completed</h1>
+        <p style="margin-top: 5px;">Confirmation #: ${confirmationCode}</p>
+      </div>
+      
+      <div style="padding: 20px;">
+        <p>Your dock appointment has been successfully completed. Thank you for using our facility!</p>
+
+        <div style="background-color: #f0f9ff; border-left: 4px solid #22c55e; padding: 15px; margin: 20px 0;">
+          <h2 style="margin-top: 0; color: #333;">Completed Appointment Details</h2>
+          
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #666; width: 140px;">Facility:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.facilityName || 'Unknown Facility'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Appointment:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.appointmentTypeName || 'Standard Appointment'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Dock:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.dockName || 'N/A'}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Scheduled Time:</td>
+              <td style="padding: 8px 0;"><strong>${facilityTimeRange}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Your Local Time:</td>
+              <td style="padding: 8px 0;"><strong>${userTimeRange}</strong></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Completed:</td>
+              <td style="padding: 8px 0;"><strong>${facilityCheckoutTime} ${facilityTzAbbr}</strong></td>
+            </tr>
+            ${schedule.driverName ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Driver:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.driverName}</strong></td>
+            </tr>` : ''}
+            ${schedule.carrierId ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Carrier:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.carrierName || 'Unknown Carrier'}</strong></td>
+            </tr>` : ''}
+            ${schedule.truckNumber ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Truck #:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.truckNumber}</strong></td>
+            </tr>` : ''}
+            ${schedule.trailerNumber ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Trailer #:</td>
+              <td style="padding: 8px 0;"><strong>${schedule.trailerNumber}</strong></td>
+            </tr>` : ''}
+            ${checkoutNotes ? `
+            <tr>
+              <td style="padding: 8px 0; color: #666;">Check-out Notes:</td>
+              <td style="padding: 8px 0;"><strong>${checkoutNotes}</strong></td>
+            </tr>` : ''}
+          </table>
+        </div>
+        
+        <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #16a34a;">✓ Appointment Successfully Completed</h3>
+          <p style="margin-bottom: 0; color: #666;">
+            Thank you for choosing our facility. We appreciate your business and look forward to serving you again.
+          </p>
+        </div>
+        
+        <p>If you have any questions about this completed appointment, please contact the facility directly.</p>
+      </div>
+      
+      <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+        <p>This is an automated message from Dock Optimizer. Please do not reply to this email.</p>
+      </div>
+    </div>
+  `;
+
+  const text = `
+    APPOINTMENT COMPLETED
+    Confirmation #: ${confirmationCode}
+    
+    Your dock appointment has been successfully completed. Thank you for using our facility!
+    
+    COMPLETED APPOINTMENT DETAILS
+    ------------------
+    Facility: ${schedule.facilityName || 'Unknown Facility'}
+    Appointment: ${schedule.appointmentTypeName || 'Standard Appointment'}
+    Dock: ${schedule.dockName || 'N/A'}
+    Scheduled Time: ${facilityTimeRange}
+    Your Local Time: ${userTimeRange}
+    Completed: ${facilityCheckoutTime} ${facilityTzAbbr}
+    ${schedule.driverName ? `Driver: ${schedule.driverName}` : ''}
+    ${schedule.carrierId ? `Carrier: ${schedule.carrierName || 'Unknown Carrier'}` : ''}
+    ${schedule.truckNumber ? `Truck #: ${schedule.truckNumber}` : ''}
+    ${schedule.trailerNumber ? `Trailer #: ${schedule.trailerNumber}` : ''}
+    ${checkoutNotes ? `Check-out Notes: ${checkoutNotes}` : ''}
+    
+    ✓ Appointment Successfully Completed
+    
+    Thank you for choosing our facility. We appreciate your business and look forward to serving you again.
+    
+    If you have any questions about this completed appointment, please contact the facility directly.
+    
+    This is an automated message from Dock Optimizer. Please do not reply to this email.
+  `;
+
+  // Create email without calendar attachment (appointment is completed)
+  return sendEmail({
+    to,
+    subject: `Appointment Completed #${confirmationCode}`,
+    html,
+    text
   });
 }
