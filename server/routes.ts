@@ -319,8 +319,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   adminRoutes(app);
   
   // 🔥 FIX: Register BOL upload routes that were missing
-  const bolUploadRoutes = require('./routes/bol-upload');
-  app.use('/api/bol-upload', bolUploadRoutes);
+  try {
+    const bolUploadModule = await import('./routes/bol-upload' as any);
+    const bolUploadRoutes = bolUploadModule.default || bolUploadModule;
+    app.use('/api/bol-upload', bolUploadRoutes);
+  } catch (error) {
+    console.error('Failed to load BOL upload routes:', error);
+  }
   
   // BOL document access endpoint
   app.get('/api/schedules/:id/documents', async (req: any, res) => {
