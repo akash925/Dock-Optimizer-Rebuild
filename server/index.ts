@@ -2,7 +2,6 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import bookingPages from "./bookingPages";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -162,15 +161,8 @@ app.use((req, res, next) => {
   // Serve the app on port 5000 (or PORT env var for flexibility)
   // this serves both the API and the client.
   // Port 5000 is the standard for Replit deployment.
-  const port = process.env.PORT || 5000;
-  server.listen(
-    {
-      port,
-      host: process.env.NODE_ENV === "development" ? "localhost" : "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  const port = Number(process.env.PORT) || 5000;
+  server.listen(port, "127.0.0.1", () => {
+    log(`serving on port ${port}`);
+  });
 })();

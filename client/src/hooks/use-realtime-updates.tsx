@@ -105,7 +105,6 @@ export function useRealtimeUpdates() {
             // Also invalidate availability data since schedule changes affect availability
             console.log('[WebSocket] Invalidating availability cache');
             queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
-            queryClient.invalidateQueries({ queryKey: ['/api/availability/v2'] });
             break;
 
           default:

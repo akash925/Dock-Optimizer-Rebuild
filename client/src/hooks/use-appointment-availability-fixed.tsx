@@ -135,9 +135,9 @@ export function useAppointmentAvailability({
         queryParams.append('bookingPageSlug', bookingPageSlug);
       }
       
-      // Use the new v2 endpoint for enhanced availability data
-      const url = `/api/availability/v2?${queryParams.toString()}`;
-      console.log(`[AvailabilityHook] Fetching from v2 endpoint: ${url}`);
+      // Use the consolidated availability endpoint
+      const url = `/api/availability?${queryParams.toString()}`;
+      console.log(`[AvailabilityHook] Fetching from consolidated endpoint: ${url}`);
       
       const response = await apiRequest('GET', url);
       
@@ -146,7 +146,7 @@ export function useAppointmentAvailability({
       }
       
       const data = await response.json();
-      console.log(`[AvailabilityHook] Received ${data.slots?.length || 0} slots from v2 endpoint`);
+      console.log(`[AvailabilityHook] Received ${data.slots?.length || 0} slots from consolidated endpoint`);
       
       // Use slots directly from the API response but ensure they meet the interface requirements
       const slots = (data.slots || []).map((slot: any): TimeSlot => ({

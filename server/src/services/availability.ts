@@ -1,6 +1,11 @@
+import { format, parse, addMinutes, parseISO, addDays, isAfter, isValid, getDay, differenceInCalendarDays } from 'date-fns';
+import { formatInTimeZone as tzFormat, toZonedTime } from 'date-fns-tz';
 import { and, eq, gt, gte, lt, lte, ne, notInArray, or, sql, isNull } from 'drizzle-orm';
-import { toZonedTime, format as tzFormat } from 'date-fns-tz';
-import { getDay, parseISO, addDays, format, addMinutes, isEqual, isAfter, parse, differenceInCalendarDays, isValid } from 'date-fns';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { schedules, docks, facilities, appointmentTypes } from '@shared/schema';
+import type { IStorage } from '../../storage';
+import { pool } from '../../db.js';
+
 // Safe date formatting function to prevent "Invalid time value" errors
 function safeFormat(date: Date | null | undefined, formatStr: string, fallback = 'Invalid Date'): string {
   if (!date || !isValid(date)) {
@@ -73,9 +78,6 @@ async function checkHolidaysAndClosures(
   console.log(`[AvailabilityService] No holidays or closures found for ${date}`);
   return currentHours;
 }
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import type { IStorage } from '../../storage';
-import { schedules, docks, appointmentTypes, organizationFacilities } from '@shared/schema';
 
 // Use your actual Drizzle instance type if available
 type DrizzleDBInstance = PostgresJsDatabase<typeof import("@shared/schema")>;
@@ -137,8 +139,6 @@ export async function fetchRelevantAppointmentsForDay(
     // 🔥 CRITICAL FIX: Use direct pool query to avoid Drizzle ORM syntax issues
     // The complex nested conditions were causing SQL syntax errors
     console.log(`[fetchRelevantAppointmentsForDay] Executing raw SQL query for facility ${facilityId}`);
-    
-    const { pool } = await import('../db.js');
     
     const rawQuery = `
       SELECT 
@@ -221,11 +221,11 @@ export function generateTimeSlots(
   const now = toZonedTime(new Date(), timezone);
   const bufferCutoff = addMinutes(now, config.bookingBufferMinutes);
 
-  console.log(`[generateTimeSlots] Facility hours: ${tzFormat(start, 'HH:mm', { timeZone: timezone })} - ${tzFormat(end, 'HH:mm', { timeZone: timezone })}`);
+  console.log(`[generateTimeSlots] Facility hours: ${tzFormat(start, 'HH:mm', timezone)} - ${tzFormat(end, 'HH:mm', timezone)}`);
   if (breakStart && breakEnd) {
-    console.log(`[generateTimeSlots] Facility break: ${tzFormat(breakStart, 'HH:mm', { timeZone: timezone })} - ${tzFormat(breakEnd, 'HH:mm', { timeZone: timezone })}`);
+    console.log(`[generateTimeSlots] Facility break: ${tzFormat(breakStart, 'HH:mm', timezone)} - ${tzFormat(breakEnd, 'HH:mm', timezone)}`);
   }
-  console.log(`[generateTimeSlots] Current time: ${tzFormat(now, 'HH:mm', { timeZone: timezone })}, Buffer cutoff: ${tzFormat(bufferCutoff, 'HH:mm', { timeZone: timezone })}`);
+  console.log(`[generateTimeSlots] Current time: ${tzFormat(now, 'HH:mm', timezone)}, Buffer cutoff: ${tzFormat(bufferCutoff, 'HH:mm', timezone)}`);
 
   let current = start;
   while (!isAfter(current, end)) {
@@ -238,7 +238,7 @@ export function generateTimeSlots(
     const pastBuffer = !isAfter(bufferCutoff, current);
 
     if (!inBreak && pastBuffer) {
-      slots.push(tzFormat(current, 'HH:mm', { timeZone: timezone }));
+      slots.push(tzFormat(current, 'HH:mm', timezone));
     }
 
     current = addMinutes(current, config.intervalMinutes);

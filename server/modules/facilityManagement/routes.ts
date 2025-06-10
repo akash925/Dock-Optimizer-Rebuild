@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { getStorage } from "../../storage";
 import { isAuthenticated } from "../../middleware/auth";
+import { db } from "../../db.js";
+import { organizationFacilities } from "@shared/schema";
 
 const router = Router();
 
@@ -50,8 +52,6 @@ router.post("/facilities", isAuthenticated, async (req, res) => {
     // Associate facility with user's organization if they have one
     if (user?.tenantId) {
       // Insert into organization_facilities table directly via database
-      const { db } = require("../../db");
-      const { organizationFacilities } = require("@shared/schema");
       await db.insert(organizationFacilities).values({
         organizationId: user.tenantId,
         facilityId: facility.id

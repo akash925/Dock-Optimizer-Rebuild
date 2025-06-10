@@ -110,13 +110,16 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
       const storage = await getStorage();
       
       // Update organization default hours
-      const updatedHours = await storage.updateOrganizationDefaultHours(tenantId, defaultHours);
+      const updateSuccess = await storage.updateOrganizationDefaultHours(tenantId, defaultHours);
       
-      if (!updatedHours) {
+      if (!updateSuccess) {
         return res.status(404).json({ 
           message: "Failed to update organization default hours" 
         });
       }
+      
+      // Fetch and return the updated hours
+      const updatedHours = await storage.getOrganizationDefaultHours(tenantId);
       
       res.json(updatedHours);
     } catch (error) {

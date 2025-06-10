@@ -4,7 +4,7 @@ import { db } from '../../db';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { TenantStatus, AvailableModule } from '@shared/schema';
-import { organizationsRoutes } from './organizations/routes';
+import { organizationsRoutes, registerOrganizationModulesRoutes } from './organizations/routes';
 import usersRoutes from './users/routes';
 import settingsRoutes from './settings/routes';
 
@@ -64,6 +64,9 @@ const isSuperAdmin = async (req: Request, res: Response, next: Function) => {
 export const adminRoutes = (app: Express) => {
   // Register organization-specific routes
   organizationsRoutes(app);
+  
+  // Register organization modules routes (includes default hours endpoints)
+  registerOrganizationModulesRoutes(app);
   
   // Register users routes
   app.use('/api/admin/users', usersRoutes);

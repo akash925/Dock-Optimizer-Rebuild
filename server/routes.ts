@@ -834,69 +834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Availability API endpoints
-  app.get('/api/availability/v2', async (req: any, res) => {
-    try {
-      const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
-      
-      // Accept both appointmentTypeId and typeId for backward compatibility
-      const effectiveAppointmentTypeId = appointmentTypeId || typeId;
-      
-      if (!date || !facilityId || !effectiveAppointmentTypeId) {
-        return res.status(400).json({ 
-          error: 'Missing required parameters: date, facilityId, appointmentTypeId (or typeId)' 
-        });
-      }
-      
-      // Import the availability service
-      const { calculateAvailabilitySlots } = await import('./src/services/availability');
-      
-      // Get tenant context from booking page if available
-      let effectiveTenantId = null;
-      if (bookingPageSlug) {
-        try {
-          const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
-          if (bookingPage) {
-            effectiveTenantId = bookingPage.tenantId;
-          }
-        } catch (error) {
-          console.warn('Could not get tenant from booking page:', error);
-        }
-      }
-      
-      // If no tenant from booking page and user is authenticated, use user's tenant
-      if (!effectiveTenantId && req.isAuthenticated()) {
-        effectiveTenantId = req.user.tenantId;
-      }
-      
-      // Calculate availability slots
-      const slots = await calculateAvailabilitySlots(
-        db,
-        storage,
-        date,
-        parseInt(facilityId),
-        parseInt(effectiveAppointmentTypeId),
-        effectiveTenantId
-      );
-      
-      // Return slots in expected format
-      res.json({
-        slots: slots,
-        availableTimes: slots.filter(slot => slot.available).map(slot => slot.time),
-        date: date,
-        facilityId: parseInt(facilityId),
-        appointmentTypeId: parseInt(effectiveAppointmentTypeId)
-      });
-    } catch (error) {
-      console.error('Error calculating availability:', error);
-      res.status(500).json({ 
-        error: 'Failed to calculate availability',
-        message: error.message 
-      });
-    }
-  });
-  
-  // Legacy availability endpoint for backward compatibility
+  // Single, consolidated Availability API endpoint
   app.get('/api/availability', async (req: any, res) => {
     try {
       const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
@@ -941,8 +879,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         effectiveTenantId
       );
       
-      // Return in legacy format
-      res.json(slots);
+      console.log(`[Availability API] Returning ${slots.length} slots for facility ${facilityId}, type ${effectiveAppointmentTypeId}, date ${date}`);
+      
+      // Return enhanced format with both detailed slots and simple available times for backward compatibility
+      res.json({
+        slots: slots,
+        availableTimes: slots.filter(slot => slot.available).map(slot => slot.time),
+        date: date,
+        facilityId: parseInt(facilityId),
+        appointmentTypeId: parseInt(effectiveAppointmentTypeId),
+        // Additional metadata for debugging
+        totalSlots: slots.length,
+        availableSlots: slots.filter(slot => slot.available).length,
+        timezone: req.query.timezone || 'America/New_York'
+      });
     } catch (error) {
       console.error('Error calculating availability:', error);
       res.status(500).json({ 

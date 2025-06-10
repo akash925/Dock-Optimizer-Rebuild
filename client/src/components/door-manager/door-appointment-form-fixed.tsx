@@ -29,12 +29,22 @@ export default function DoorAppointmentForm({
   
   // Fetch facilities to get the facility name
   const { data: facilities = [] } = useQuery<Facility[]>({
-    queryKey: ["/api/facilities"],
+    queryKey: ['/api/facilities'],
+    queryFn: async () => {
+      const response = await fetch('/api/facilities');
+      if (!response.ok) throw new Error('Failed to fetch facilities');
+      return response.json();
+    }
   });
   
   // Fetch appointment types to pre-select one
   const { data: appointmentTypes = [] } = useQuery<AppointmentType[]>({
-    queryKey: ["/api/appointment-types"],
+    queryKey: ['/api/appointment-types'],
+    queryFn: async () => {
+      const response = await fetch('/api/appointment-types');
+      if (!response.ok) throw new Error('Failed to fetch appointment types');
+      return response.json();
+    }
   });
   
   // Set facility name when component loads or facilityId changes
@@ -113,8 +123,8 @@ export default function DoorAppointmentForm({
         </DialogHeader>
         
         <AppointmentForm
-          mode="internal"
-          isOpen={true}
+          mode="external"
+          isOpen={false}
           initialDockId={dockId}
           facilityId={facilityId}
           facilityName={facilityName}
@@ -122,7 +132,8 @@ export default function DoorAppointmentForm({
           onClose={onClose}
           onSubmitSuccess={handleSuccess}
           editMode="create"
-          initialDate={defaultDate} // Use calculated future date as initial date
+          initialDate={defaultDate}
+          containerClass="p-0"
         />
       </DialogContent>
     </Dialog>

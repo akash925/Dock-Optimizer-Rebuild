@@ -1958,8 +1958,8 @@ function TimeSlotsSelector({
         // First try the v2 endpoint which has better concurrency handling
         let res;
         try {
-          res = await fetch(`/api/availability/v2?date=${date}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${pageSlug}`);
-          console.log("Using enhanced v2 availability endpoint");
+          res = await fetch(`/api/availability?date=${date}&facilityId=${facilityId}&appointmentTypeId=${appointmentTypeId}&bookingPageSlug=${pageSlug}`);
+          console.log("Using consolidated availability endpoint");
         } catch (e) {
           // Fallback to original endpoint if v2 fails
           console.log("Falling back to classic availability endpoint");
