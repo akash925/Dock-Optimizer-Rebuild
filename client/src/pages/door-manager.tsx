@@ -161,10 +161,12 @@ export default function DoorManager() {
     
     // Use only AppointmentSelector to avoid modal stacking
     setShowAppointmentSelector(true);
+    console.log("[DoorManager] AppointmentSelector should now be visible");
   };
   
   // Create a new appointment with the facility pre-selected
   const handleCreateAppointment = () => {
+    console.log("[DoorManager] Create new appointment clicked");
     if (!selectedDockId) {
       console.error("[DoorManager] Cannot create appointment: No dock selected");
       return;
@@ -212,12 +214,14 @@ export default function DoorManager() {
     setSelectedTimeSlot({ start: roundedStart, end: roundedEnd });
     
     // Close selector and open appointment form
+    console.log("[DoorManager] Closing AppointmentSelector and opening DoorAppointmentForm");
     setShowAppointmentSelector(false);
     setShowAppointmentForm(true);
   };
   
   // Assign an existing appointment to a door
   const handleSelectAppointment = (scheduleId: number) => {
+    console.log("[DoorManager] Assigning existing appointment:", scheduleId, "to dock:", selectedDockId);
     if (!selectedDockId) return;
     
     assignAppointmentMutation.mutate({ 
@@ -225,6 +229,7 @@ export default function DoorManager() {
       dockId: selectedDockId 
     }, {
       onSuccess: () => {
+        console.log("[DoorManager] Assignment successful");
         // Set the recently assigned dock for visual feedback
         setRecentlyAssignedDock(selectedDockId);
         
@@ -244,6 +249,9 @@ export default function DoorManager() {
           title: "Appointment assigned",
           description: "The appointment has been successfully assigned to the door",
         });
+      },
+      onError: (error) => {
+        console.error("[DoorManager] Assignment failed:", error);
       }
     });
   };
@@ -540,6 +548,32 @@ export default function DoorManager() {
           onClose={handleCloseReleaseDoorForm}
           scheduleId={selectedScheduleId}
           onSuccess={handleDoorReleaseSuccess}
+        />
+      )}
+      
+      {/* Door Appointment Form Dialog */}
+      {showAppointmentForm && selectedDockId && (
+        <DoorAppointmentForm
+          isOpen={showAppointmentForm}
+          onClose={handleCloseAppointmentForm}
+          dockId={selectedDockId}
+          initialStartTime={selectedTimeSlot?.start || new Date()}
+          initialEndTime={selectedTimeSlot?.end || new Date(Date.now() + 3600000)}
+          carriers={carriers}
+          schedules={schedules}
+          onSuccess={() => {
+            // Refresh data and close form
+            refetchSchedules();
+            refetchDocks();
+            setLastUpdated(new Date());
+            handleCloseAppointmentForm();
+            
+            // Show success message
+            toast({
+              title: "Appointment Created",
+              description: "The appointment has been created and assigned to the door",
+            });
+          }}
         />
       )}
       
