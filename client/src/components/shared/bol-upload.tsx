@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, FileText, CheckCircle, AlertTriangle, Download, FileUp, Clock } from 'lucide-react';
+import { Loader2, FileText, CheckCircle, AlertTriangle, Download, FileUp, Clock, Database, Zap, XCircle } from 'lucide-react';
 import { FormLabel } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { queryClient } from '@/lib/queryClient';
@@ -31,7 +31,10 @@ export default function BolUpload({
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'compressing' | 'processing' | 'analyzing' | 'validating' | 'extracting' | 'completed' | 'error'>('idle');
+  const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'compressing' | 'processing' | 'analyzing' | 'validating' | 'extracting' | 'saved' | 'completed' | 'error'>('idle');
+  const [fileSaved, setFileSaved] = useState(false);
+  const [ocrProcessed, setOcrProcessed] = useState(false);
+  const [ocrSuccess, setOcrSuccess] = useState(false);
 
   const handleFileChange = async (file: File | null) => {
     // Clear previous state
@@ -42,6 +45,9 @@ export default function BolUpload({
     setUploadedFileName(null);
     setUploadProgress(0);
     setUploadStage('idle');
+    setFileSaved(false);
+    setOcrProcessed(false);
+    setOcrSuccess(false);
     
     if (!file) {
       onProcessingStateChange(false);
@@ -60,29 +66,34 @@ export default function BolUpload({
       // 1. Parse the BOL using the enhanced OCR service
       setUploadStage('processing');
       setUploadProgress(20);
+      setOcrProcessed(true);
       
       let parsedData;
+      let ocrSucceeded = false;
       try {
         parsedData = await parseBol(file);
         setBolData(parsedData);
+        setOcrSuccess(true);
+        ocrSucceeded = true;
         console.log('BOL parsed successfully:', parsedData);
       } catch (ocrError) {
         console.warn('OCR parsing failed, using fallback:', ocrError);
-                 // Fallback to basic data structure if OCR fails
-         parsedData = {
-           bolNumber: '',
-           customerName: '',
-           carrierName: '',
-           mcNumber: '',
-           weight: '',
-           palletCount: '',
-           fromAddress: '',
-           toAddress: '',
-           pickupOrDropoff: 'pickup' as const,
-           extractionMethod: 'fallback',
-           extractionConfidence: 0,
-           processingTimestamp: new Date().toISOString()
-         } as ParsedBolData;
+        setOcrSuccess(false);
+        // Fallback to basic data structure if OCR fails
+        parsedData = {
+          bolNumber: '',
+          customerName: '',
+          carrierName: '',
+          mcNumber: '',
+          weight: '',
+          palletCount: '',
+          fromAddress: '',
+          toAddress: '',
+          pickupOrDropoff: 'pickup' as const,
+          extractionMethod: 'fallback',
+          extractionConfidence: 0,
+          processingTimestamp: new Date().toISOString()
+        } as ParsedBolData;
         setBolData(parsedData);
       }
       
@@ -137,11 +148,11 @@ export default function BolUpload({
           method: 'POST',
           body: formData
         });
-             } catch (networkError) {
-         console.error('Network error during upload:', networkError);
-         const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown network error';
-         throw new Error(`Network error: ${errorMessage}. Please check your connection and try again.`);
-       }
+      } catch (networkError) {
+        console.error('Network error during upload:', networkError);
+        const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown network error';
+        throw new Error(`Network error: ${errorMessage}. Please check your connection and try again.`);
+      }
       
       if (!response.ok) {
         let errorText = '';
@@ -155,8 +166,10 @@ export default function BolUpload({
         throw new Error(`Upload failed: ${errorText}`);
       }
       
-      setUploadStage('analyzing');
+      // File has been successfully saved
+      setUploadStage('saved');
       setUploadProgress(85);
+      setFileSaved(true);
       
       let responseData;
       try {
@@ -303,25 +316,74 @@ export default function BolUpload({
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               {uploadStage === 'uploading' && <FileUp className="mr-2 h-5 w-5 text-primary animate-pulse" />}
-              {uploadStage === 'processing' && <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />}
-              {uploadStage === 'analyzing' && <Clock className="mr-2 h-5 w-5 text-primary" />}
+              {uploadStage === 'processing' && <Zap className="mr-2 h-5 w-5 animate-pulse text-yellow-500" />}
+              {uploadStage === 'saved' && <Database className="mr-2 h-5 w-5 text-green-500" />}
+              {uploadStage === 'completed' && <CheckCircle className="mr-2 h-5 w-5 text-green-500" />}
               <span className="font-medium">
                 {uploadStage === 'uploading' && 'Uploading document...'}
-                {uploadStage === 'processing' && 'Processing BOL document...'}
-                {uploadStage === 'analyzing' && 'Analyzing document contents...'}
+                {uploadStage === 'processing' && 'Running OCR analysis...'}
+                {uploadStage === 'saved' && 'File saved successfully!'}
+                {uploadStage === 'completed' && 'Processing complete!'}
               </span>
             </div>
-            <Badge variant={uploadStage === 'analyzing' ? 'outline' : 'secondary'}>
+            <Badge variant={uploadStage === 'completed' ? 'default' : 'secondary'}>
               {uploadProgress}%
             </Badge>
           </div>
           <Progress value={uploadProgress} className="h-2" />
           <p className="text-xs text-muted-foreground">
             {uploadStage === 'uploading' && 'Sending document to server...'}
-            {uploadStage === 'processing' && 'Extracting text and data from document...'}
-            {uploadStage === 'analyzing' && 'Identifying BOL numbers and shipment details...'}
+            {uploadStage === 'processing' && 'Extracting text and data from document using OCR...'}
+            {uploadStage === 'saved' && 'Document has been saved to the database.'}
+            {uploadStage === 'completed' && 'All processing steps completed successfully.'}
           </p>
         </div>
+      )}
+
+      {/* File Saved Success Indicator */}
+      {fileSaved && !isProcessing && (
+        <Alert className="bg-blue-50 border-blue-200">
+          <Database className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">✅ File Saved Successfully</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            <div className="flex items-center justify-between">
+              <span>Your BOL document has been securely saved to our system.</span>
+              <Badge variant="outline" className="text-blue-600 border-blue-300">
+                Saved
+              </Badge>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* OCR Processing Status */}
+      {ocrProcessed && !isProcessing && (
+        <Alert className={ocrSuccess ? "bg-green-50 border-green-200" : "bg-yellow-50 border-yellow-200"}>
+          {ocrSuccess ? (
+            <Zap className="h-4 w-4 text-green-600" />
+          ) : (
+            <XCircle className="h-4 w-4 text-yellow-600" />
+          )}
+          <AlertTitle className={ocrSuccess ? "text-green-800" : "text-yellow-800"}>
+            {ocrSuccess ? "✅ OCR Processing Successful" : "⚠️ OCR Processing Incomplete"}
+          </AlertTitle>
+          <AlertDescription className={ocrSuccess ? "text-green-700" : "text-yellow-700"}>
+            <div className="flex items-center justify-between">
+              <span>
+                {ocrSuccess 
+                  ? "Text extraction and data analysis completed successfully."
+                  : "OCR had difficulty extracting text. You may need to enter information manually."
+                }
+              </span>
+              <Badge variant="outline" className={ocrSuccess 
+                ? "text-green-600 border-green-300" 
+                : "text-yellow-600 border-yellow-300"
+              }>
+                {ocrSuccess ? "OCR Success" : "OCR Partial"}
+              </Badge>
+            </div>
+          </AlertDescription>
+        </Alert>
       )}
       
       {processingError && (

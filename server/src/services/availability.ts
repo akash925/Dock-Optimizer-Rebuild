@@ -136,8 +136,8 @@ export async function fetchRelevantAppointmentsForDay(
         return [];
     }
 
-    // 🔥 CRITICAL FIX: Use direct pool query to avoid Drizzle ORM syntax issues
-    // The complex nested conditions were causing SQL syntax errors
+    // 🔥 CRITICAL FIX: Use corrected SQL query without s.facility_id reference
+    // The schedules table doesn't have a facility_id column directly
     console.log(`[fetchRelevantAppointmentsForDay] Executing raw SQL query for facility ${facilityId}`);
     
     const rawQuery = `
@@ -150,7 +150,6 @@ export async function fetchRelevantAppointmentsForDay(
       LEFT JOIN docks d ON s.dock_id = d.id
       LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
       WHERE (
-        s.facility_id = $1 OR 
         d.facility_id = $1 OR 
         at.facility_id = $1
       )
@@ -221,11 +220,11 @@ export function generateTimeSlots(
   const now = toZonedTime(new Date(), timezone);
   const bufferCutoff = addMinutes(now, config.bookingBufferMinutes);
 
-  console.log(`[generateTimeSlots] Facility hours: ${tzFormat(start, 'HH:mm', timezone)} - ${tzFormat(end, 'HH:mm', timezone)}`);
+  console.log(`[generateTimeSlots] Facility hours: ${tzFormat(start, timezone, 'HH:mm')} - ${tzFormat(end, timezone, 'HH:mm')}`);
   if (breakStart && breakEnd) {
-    console.log(`[generateTimeSlots] Facility break: ${tzFormat(breakStart, 'HH:mm', timezone)} - ${tzFormat(breakEnd, 'HH:mm', timezone)}`);
+    console.log(`[generateTimeSlots] Facility break: ${tzFormat(breakStart, timezone, 'HH:mm')} - ${tzFormat(breakEnd, timezone, 'HH:mm')}`);
   }
-  console.log(`[generateTimeSlots] Current time: ${tzFormat(now, 'HH:mm', timezone)}, Buffer cutoff: ${tzFormat(bufferCutoff, 'HH:mm', timezone)}`);
+  console.log(`[generateTimeSlots] Current time: ${tzFormat(now, timezone, 'HH:mm')}, Buffer cutoff: ${tzFormat(bufferCutoff, timezone, 'HH:mm')}`);
 
   let current = start;
   while (!isAfter(current, end)) {
@@ -238,7 +237,7 @@ export function generateTimeSlots(
     const pastBuffer = !isAfter(bufferCutoff, current);
 
     if (!inBreak && pastBuffer) {
-      slots.push(tzFormat(current, 'HH:mm', timezone));
+      slots.push(tzFormat(current, timezone, 'HH:mm'));
     }
 
     current = addMinutes(current, config.intervalMinutes);
@@ -558,7 +557,7 @@ export async function calculateAvailabilitySlots(
   console.log(`  Original hours from DB: ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
   console.log(`  Parsed time (local): ${safeFormat(operatingStartDateTime, 'HH:mm')} - ${safeFormat(operatingEndDateTime, 'HH:mm')}`);
   console.log(`  Direct parse with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
-  console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(operatingEndDateTime, 'HH:mm', { timeZone: effectiveTimezone })}`);
+  console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, effectiveTimezone, 'HH:mm')} - ${tzFormat(operatingEndDateTime, effectiveTimezone, 'HH:mm')}`);
   
   // Adjust end time for loop comparison
   if (operatingEndTimeStr === "23:59") {
@@ -608,7 +607,7 @@ export async function calculateAvailabilitySlots(
           console.log(`  Original break time from DB: ${breakStartTimeStr} - ${breakEndTimeStr}`);
           console.log(`  Parsed time (local): ${breakStartDateTime ? format(breakStartDateTime, 'HH:mm') : 'null'} - ${breakEndDateTime ? format(breakEndDateTime, 'HH:mm') : 'null'}`);
           console.log(`  Direct parse with TZ: ${breakStartDateTime ? breakStartDateTime.toISOString() : 'null'} - ${breakEndDateTime ? breakEndDateTime.toISOString() : 'null'}`);
-          console.log(`  Formatted in ${effectiveTimezone}: ${breakStartDateTime ? tzFormat(breakStartDateTime, 'HH:mm', { timeZone: effectiveTimezone }) : 'null'} - ${breakEndDateTime ? tzFormat(breakEndDateTime, 'HH:mm', { timeZone: effectiveTimezone }) : 'null'}`);
+          console.log(`  Formatted in ${effectiveTimezone}: ${breakStartDateTime ? tzFormat(breakStartDateTime, effectiveTimezone, 'HH:mm') : 'null'} - ${breakEndDateTime ? tzFormat(breakEndDateTime, effectiveTimezone, 'HH:mm') : 'null'}`);
           
           
           if (breakStartDateTime && breakEndDateTime) {
@@ -634,7 +633,7 @@ export async function calculateAvailabilitySlots(
   const now = toZonedTime(new Date(), effectiveTimezone);
   
   // Log the current time for debugging
-  console.log(`[AvailabilityService] Current time in ${effectiveTimezone}: ${tzFormat(now, 'HH:mm', { timeZone: effectiveTimezone })}`);
+  console.log(`[AvailabilityService] Current time in ${effectiveTimezone}: ${tzFormat(now, effectiveTimezone, 'HH:mm')}`);
   
   // Buffer minutes and cutoff will be calculated during slot generation
   // based on appointment type settings
@@ -648,10 +647,10 @@ export async function calculateAvailabilitySlots(
     if (currentSlotEndTime > operatingEndDateTime) {
         // If this appointment type can override facility hours, allow it
         if (overrideFacilityHours) {
-            console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} ends after hours (${operatingEndTimeStr}) but override is ENABLED.`);
+            console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} ends after hours (${operatingEndTimeStr}) but override is ENABLED.`);
             // Continue with generation since override is allowed
         } else {
-            console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} ends after operating end ${operatingEndTimeStr}. Stopping.`);
+            console.log(`[AvailabilityService] Slot starting at ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} ends after operating end ${operatingEndTimeStr}. Stopping.`);
             break; // Stop generating slots
         }
     }
@@ -683,8 +682,8 @@ export async function calculateAvailabilitySlots(
     // Only apply buffer time check if we're checking today's availability
     if (isToday && currentSlotStartTime < effectiveBufferCutoff) {
         // Format times to display in logs using the effective timezone
-        const slotTimeStr = tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone });
-        const bufferTimeStr = tzFormat(effectiveBufferCutoff, 'HH:mm', { timeZone: effectiveTimezone });
+        const slotTimeStr = tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm');
+        const bufferTimeStr = tzFormat(effectiveBufferCutoff, effectiveTimezone, 'HH:mm');
         console.log(`[AvailabilityService] Slot at ${slotTimeStr} is too soon (before buffer cutoff ${bufferTimeStr}, using ${effectiveBufferMinutes}min buffer from ${appointmentTypeBufferTime > 0 ? 'appointment type' : 'global config'})`);
         isSlotAvailable = false;
         reason = `Too soon (${effectiveBufferMinutes}min buffer)`;
@@ -692,7 +691,7 @@ export async function calculateAvailabilitySlots(
 
     // Enhanced concurrent slot validation with detailed logging
     if (isSlotAvailable && existingAppointments && existingAppointments.length > 0) {
-        console.log(`[AvailabilityService] Checking conflicts for slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} against ${existingAppointments.length} existing appointments`);
+        console.log(`[AvailabilityService] Checking conflicts for slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} against ${existingAppointments.length} existing appointments`);
         console.log(`[AvailabilityService] Appointment type max concurrent: ${maxConcurrent || 'unlimited'}`);
         
         conflictingApptsCount = existingAppointments.filter((appt) => {
@@ -705,7 +704,7 @@ export async function calculateAvailabilitySlots(
             const hasOverlap = (slotStart < apptEnd && slotEnd > apptStart);
             
             if (hasOverlap) {
-                console.log(`[AvailabilityService] Found overlapping appointment: ID ${appt.id}, type: ${appt.appointmentTypeId}, time: ${tzFormat(new Date(apptStart), 'HH:mm', { timeZone: effectiveTimezone })} - ${tzFormat(new Date(apptEnd), 'HH:mm', { timeZone: effectiveTimezone })}`);
+                console.log(`[AvailabilityService] Found overlapping appointment: ID ${appt.id}, type: ${appt.appointmentTypeId}, time: ${tzFormat(new Date(apptStart), effectiveTimezone, 'HH:mm')} - ${tzFormat(new Date(apptEnd), effectiveTimezone, 'HH:mm')}`);
                 
                 // For concurrent slot calculation, only count appointments of the same type
                 if (maxConcurrent !== null && appt.appointmentTypeId === appointmentTypeId) {
@@ -762,17 +761,17 @@ export async function calculateAvailabilitySlots(
             }
         }
     } else if (existingAppointments && existingAppointments.length === 0) {
-        console.log(`[AvailabilityService] No existing appointments for slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} - slot available`);
+        console.log(`[AvailabilityService] No existing appointments for slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} - slot available`);
     }
 
     // Check capacity with detailed logging
     const currentCapacity = maxConcurrent - conflictingApptsCount;
-    console.log(`[AvailabilityService] Capacity calculation for slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })}: maxConcurrent=${maxConcurrent}, conflictingAppts=${conflictingApptsCount}, remainingCapacity=${currentCapacity}`);
+    console.log(`[AvailabilityService] Capacity calculation for slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')}: maxConcurrent=${maxConcurrent}, conflictingAppts=${conflictingApptsCount}, remainingCapacity=${currentCapacity}`);
     
     if (isSlotAvailable && currentCapacity <= 0) {
         isSlotAvailable = false;
         reason = "Capacity full";
-        console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} marked unavailable due to full capacity (${conflictingApptsCount}/${maxConcurrent})`);
+        console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} marked unavailable due to full capacity (${conflictingApptsCount}/${maxConcurrent})`);
     }
 
     // Check break time - only apply if valid break times are configured
@@ -790,7 +789,7 @@ export async function calculateAvailabilitySlots(
                                     currentSlotEndTime.getTime() <= breakEndDateTime.getTime();
         
         // For improved logging
-        const timeStr = tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone });
+        const timeStr = tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm');
         
         if (slotOverlapsBreak) {
             // If slot spans break time and appointments through breaks not allowed
@@ -829,13 +828,13 @@ export async function calculateAvailabilitySlots(
 
     // For debugging our break time reason
     if (reason === "Spans through break time") {
-      console.log(`[AvailabilityService] DEBUG: Adding slot ${tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone })} with reason=${reason}`);
+      console.log(`[AvailabilityService] DEBUG: Adding slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} with reason=${reason}`);
     }
     
     // Create the slot result object with facility-local time in HH:mm format
     // This ensures times are always shown in the facility's timezone regardless of user's timezone
     const slotResult = {
-      time: tzFormat(currentSlotStartTime, 'HH:mm', { timeZone: effectiveTimezone }),
+      time: tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm'),
       available: isSlotAvailable,
       remainingCapacity: remainingCapacity,
       remaining: remainingCapacity,
@@ -846,7 +845,7 @@ export async function calculateAvailabilitySlots(
     console.log(`[AvailabilityService] Generated slot: ${slotResult.time} (${slotResult.available ? 'Available' : 'Unavailable'}) with reason: ${slotResult.reason || 'None'}`);
     
     // Add debug info about interval for traceability
-    const nextSlotTime = tzFormat(addMinutes(currentSlotStartTime, slotIntervalMinutes), 'HH:mm', { timeZone: effectiveTimezone });
+    const nextSlotTime = tzFormat(addMinutes(currentSlotStartTime, slotIntervalMinutes), effectiveTimezone, 'HH:mm');
     console.log(`[AvailabilityService] Next slot will be at ${nextSlotTime} (using ${slotIntervalMinutes}min interval)`);
     
     result.push(slotResult);
