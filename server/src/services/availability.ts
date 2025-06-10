@@ -149,13 +149,18 @@ export async function fetchRelevantAppointmentsForDay(
       FROM schedules s
       LEFT JOIN docks d ON s.dock_id = d.id
       LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+      LEFT JOIN facilities f ON d.facility_id = f.id
+      LEFT JOIN organization_facilities of ON f.id = of.facility_id
       WHERE (
         d.facility_id = $1 OR 
         at.facility_id = $1
       )
       AND s.start_time >= $2
       AND s.start_time < $3
-      AND s.tenant_id = $4
+      AND (
+        of.organization_id = $4 OR 
+        at.tenant_id = $4
+      )
       AND s.status != 'cancelled'
     `;
     
