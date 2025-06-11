@@ -182,7 +182,7 @@ node fix-availability-date-error.js
 ### **For Local Development**
 ```bash
 # Set up environment
-echo "DATABASE_URL=your_neon_url_here" > .env
+echo "postgresql://neondb_owner:npg_fha53NmqtcSl@ep-white-sunset-a5uf7anh-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require" > .env
 echo "NODE_ENV=development" >> .env
 
 # Run fixes

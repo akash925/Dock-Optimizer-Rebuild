@@ -205,6 +205,7 @@ export const schedules = pgTable("schedules", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),
   lastModifiedBy: integer("last_modified_by"),
+  confirmationCode: text("confirmation_code"), // Added confirmation code
 });
 
 // Create a base schema using drizzle-zod

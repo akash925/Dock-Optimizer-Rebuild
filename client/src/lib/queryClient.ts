@@ -34,6 +34,7 @@ export async function apiRequest(
     headers,
     body: body as BodyInit | undefined,
     credentials: "include",
+    redirect: "error",
   });
 
   await throwIfResNotOk(res);

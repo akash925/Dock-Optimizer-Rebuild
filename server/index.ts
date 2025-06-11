@@ -158,11 +158,10 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Serve the app on port 5000 (or PORT env var for flexibility)
+  // Serve the app on port 5001 to avoid conflicts with system services on macOS
   // this serves both the API and the client.
-  // Port 5000 is the standard for Replit deployment.
-  const port = Number(process.env.PORT) || 5000;
-  server.listen(port, "127.0.0.1", () => {
+  const port = Number(process.env.PORT) || 5001;
+  server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
   });
 })();
