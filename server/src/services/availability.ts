@@ -29,6 +29,16 @@ function tzParseISO(dateStr: string, options?: { timeZone?: string }): Date {
   return parsedDate;
 }
 
+// Simplified and more reliable date parsing
+function parseTimeInTimezone(date: string, time: string, timezone: string): Date {
+  // Create a date string that represents the exact time in the given timezone
+  const dateTimeStr = `${date}T${time}:00`;
+  const parsedDate = parseISO(dateTimeStr);
+  
+  // Convert to the specified timezone
+  return toZonedTime(parsedDate, timezone);
+}
+
 // Helper function to check for holidays and special closures
 async function checkHolidaysAndClosures(
   date: string,
@@ -37,55 +47,30 @@ async function checkHolidaysAndClosures(
   facility: any,
   appointmentType: any
 ): Promise<DayHours> {
-  console.log(`[AvailabilityService] Checking holidays and closures for ${date}`);
-  
-  // FIXED: Check organization holidays from metadata.holidays with correct structure
-  const orgHolidays = organization.metadata?.holidays || [];
-  console.log(`[AvailabilityService] Found ${orgHolidays.length} organization holidays to check`);
-  
-  const isOrgHoliday = orgHolidays.some((holiday: any) => {
-    // FIXED: Check only enabled holidays and use correct date field
-    const isHolidayDate = holiday.date === date;
-    const isEnabled = holiday.enabled === true;
+  // Simple holiday check - if organization has holidays configured, check against them
+  if (organization?.settings?.holidays && Array.isArray(organization.settings.holidays)) {
+    const isHoliday = organization.settings.holidays.some((holiday: any) => {
+      return holiday.date === date && holiday.closed === true;
+    });
     
-    if (isHolidayDate && isEnabled) {
-      console.log(`[AvailabilityService] Organization holiday found: ${holiday.name} on ${holiday.date}`);
-      return true;
+    if (isHoliday) {
+      console.log(`[AvailabilityService] ${date} is a holiday - facility closed`);
+      return { ...currentHours, open: false };
     }
-    return false;
-  });
-  
-  if (isOrgHoliday) {
-    console.log(`[AvailabilityService] Organization holiday detected for ${date} - facility closed`);
-    return { ...currentHours, open: false };
   }
   
-  // Check facility-specific closures (stored in facility metadata)
-  const facilityClosures = facility.metadata?.closures || facility.closures || [];
-  const isFacilityClosed = facilityClosures.some((closure: any) => {
-    return closure.date === date || (closure.startDate <= date && closure.endDate >= date);
-  });
-  
-  if (isFacilityClosed) {
-    console.log(`[AvailabilityService] Facility closure detected for ${date}`);
-    return { ...currentHours, open: false };
-  }
-  
-  // Check appointment type specific restrictions
-  const appointmentTypeRestrictions = appointmentType.dateRestrictions || [];
-  const isRestrictedForAppointmentType = appointmentTypeRestrictions.some((restriction: any) => {
-    if (restriction.type === 'blackout') {
-      return restriction.date === date || (restriction.startDate <= date && restriction.endDate >= date);
+  // Check facility-specific closures
+  if (facility?.closures && Array.isArray(facility.closures)) {
+    const isClosed = facility.closures.some((closure: any) => {
+      return closure.date === date && closure.closed === true;
+    });
+    
+    if (isClosed) {
+      console.log(`[AvailabilityService] ${date} is a facility closure day`);
+      return { ...currentHours, open: false };
     }
-    return false;
-  });
-  
-  if (isRestrictedForAppointmentType) {
-    console.log(`[AvailabilityService] Appointment type restriction detected for ${date}`);
-    return { ...currentHours, open: false };
   }
   
-  console.log(`[AvailabilityService] No holidays or closures found for ${date}`);
   return currentHours;
 }
 
@@ -568,97 +553,43 @@ export async function calculateAvailabilitySlots(
     
   console.log(`[AvailabilityService] Using slot interval of ${slotIntervalMinutes} minutes based on appointment type buffer time`);
 
-  // Step 1: Create facility-local date objects that represent the actual intended times
-  // NEW FIX: Create date objects that properly represent the intended times in facility timezone
-  // This approach avoids the timezone conversion issues by working with local time directly
+  // SIMPLIFIED: Create proper timezone-aware dates using the parseTimeInTimezone helper
+  console.log(`[AvailabilityService] Operating hours: ${operatingStartTimeStr} - ${operatingEndTimeStr} in ${effectiveTimezone}`);
   
-  // Start by creating a date-less base time in facility timezone
-  const facilityTZDate = tzParseISO(date, { timeZone: effectiveTimezone });
+  const operatingStartDateTime = parseTimeInTimezone(date, operatingStartTimeStr, effectiveTimezone);
+  let operatingEndDateTime = parseTimeInTimezone(date, operatingEndTimeStr, effectiveTimezone);
   
-  // Important: Always interpret facility hours in their local timezone as entered in DB
-  // Use parse instead of parseISO with the facility timezone to ensure correct time interpretation
-  const dateInFacilityTZ = new Date(year, month - 1, day, 0, 0, 0);
-  
-  // 🔥 PROPER TIMEZONE FIX: Create dates that are actually in facility timezone
-  // The facility hours (08:00, 17:00) are stored in the facility's local time
-  // We need to create Date objects that represent these times IN the facility timezone
-  
-  const [startHour, startMinute] = operatingStartTimeStr.split(':').map(Number);
-  const [endHour, endMinute] = operatingEndTimeStr.split(':').map(Number);
-  
-  // 🔥 ULTIMATE TIMEZONE FIX: Use tzFormat backwards to get UTC times that display correctly
-  // The key insight: We want to create UTC dates that when formatted in facility timezone show the correct times
-  
-  // Instead of complex offset calculations, let's use the format function in reverse
-  // We'll create a date that represents "8 AM Eastern" as a UTC timestamp
-  const operatingStartDateTime = new Date(`${facilityTZDateStr}T${operatingStartTimeStr}:00-04:00`); // Eastern Summer Time offset
-  let operatingEndDateTime = new Date(`${facilityTZDateStr}T${operatingEndTimeStr}:00-04:00`);
-  
-  // DEBUG: Log time values for debugging
-  console.log(`[AvailabilityService] DEBUG TIME VALUES:`);
-  console.log(`  Original hours from DB: ${operatingStartTimeStr} - ${operatingEndTimeStr}`);
-  console.log(`  Parsed time (local): ${safeFormat(operatingStartDateTime, 'HH:mm')} - ${safeFormat(operatingEndDateTime, 'HH:mm')}`);
-  console.log(`  Direct parse with TZ: ${operatingStartDateTime.toISOString()} - ${operatingEndDateTime.toISOString()}`);
-  console.log(`  Formatted in ${effectiveTimezone}: ${tzFormat(operatingStartDateTime, effectiveTimezone, 'HH:mm')} - ${tzFormat(operatingEndDateTime, effectiveTimezone, 'HH:mm')}`);
-  
-  // Adjust end time for loop comparison
-  if (operatingEndTimeStr === "23:59") {
-      operatingEndDateTime = addDays(dateInFacilityTZ, 1); // Use start of next day as exclusive upper bound
-  } else if (operatingEndDateTime <= operatingStartDateTime) {
-      operatingEndDateTime = addDays(operatingEndDateTime, 1);
+  // Adjust end time if it spans midnight
+  if (operatingEndDateTime <= operatingStartDateTime) {
+    operatingEndDateTime = addDays(operatingEndDateTime, 1);
   }
   
-  // IMPORTANT: Let's explicitly use the facility hours as they are stored in the database
-  // These times are in the facility's local time and should be displayed exactly as they appear in the DB
-  // This is most accurate representation of the actual facility operating hours
-  console.log(`[AvailabilityService] Operating hours in ${effectiveTimezone}: ${operatingStartTimeStr} to ${operatingEndTimeStr} (from DB)`);
-  
-  // Additional debugging for UTC time reference
-  console.log(`[AvailabilityService] Operating hours in UTC: ${operatingStartDateTime.toISOString()} to ${operatingEndDateTime.toISOString()}`);
+  console.log(`[AvailabilityService] Operating period: ${operatingStartDateTime.toISOString()} to ${operatingEndDateTime.toISOString()}`);
 
-  // Step 2: Parse break times if they exist
+  // Parse break times if they exist
   let breakStartDateTime: Date | null = null;
   let breakEndDateTime: Date | null = null;
   
-  // Only process break times when both are properly defined with non-empty strings
   if (breakStartTimeStr && breakEndTimeStr && 
       breakStartTimeStr.trim() !== "" && breakEndTimeStr.trim() !== "" && 
       breakStartTimeStr.includes(':') && breakEndTimeStr.includes(':')) {
       try {
-          // 🔥 TIMEZONE FIX: Use same approach as operating hours
-          // Parse break times using the same timezone-aware method  
-          breakStartDateTime = new Date(`${facilityTZDateStr}T${breakStartTimeStr}:00-04:00`);
-          breakEndDateTime = new Date(`${facilityTZDateStr}T${breakEndTimeStr}:00-04:00`);
+          breakStartDateTime = parseTimeInTimezone(date, breakStartTimeStr, effectiveTimezone);
+          breakEndDateTime = parseTimeInTimezone(date, breakEndTimeStr, effectiveTimezone);
           
           // Adjust if break spans midnight
-          if (breakEndDateTime && breakStartDateTime && breakEndDateTime <= breakStartDateTime) { 
+          if (breakEndDateTime <= breakStartDateTime) { 
               breakEndDateTime = addDays(breakEndDateTime, 1); 
           }
           
-          // DEBUG: Log break time details for debugging
-          console.log(`[AvailabilityService] DEBUG BREAK TIME VALUES:`);
-          console.log(`  Original break time from DB: ${breakStartTimeStr} - ${breakEndTimeStr}`);
-          console.log(`  Parsed time (local): ${breakStartDateTime ? format(breakStartDateTime, 'HH:mm') : 'null'} - ${breakEndDateTime ? format(breakEndDateTime, 'HH:mm') : 'null'}`);
-          console.log(`  Direct parse with TZ: ${breakStartDateTime ? breakStartDateTime.toISOString() : 'null'} - ${breakEndDateTime ? breakEndDateTime.toISOString() : 'null'}`);
-          console.log(`  Formatted in ${effectiveTimezone}: ${breakStartDateTime ? tzFormat(breakStartDateTime, effectiveTimezone, 'HH:mm') : 'null'} - ${breakEndDateTime ? tzFormat(breakEndDateTime, effectiveTimezone, 'HH:mm') : 'null'}`);
-          
-          
-          if (breakStartDateTime && breakEndDateTime) {
-            // Just like with operating hours, use the exact break times from the database for accuracy
-            // These times are already in the facility's local timezone
-            console.log(`[AvailabilityService] Break time in ${effectiveTimezone}: ${breakStartTimeStr} to ${breakEndTimeStr} (from DB)`);
-            
-            // Additional debug info for UTC reference
-            console.log(`[AvailabilityService] Break time in UTC: ${breakStartDateTime.toISOString()} to ${breakEndDateTime.toISOString()}`);
-          }
+          console.log(`[AvailabilityService] Break time: ${breakStartTimeStr} to ${breakEndTimeStr} in ${effectiveTimezone}`);
       } catch (e) { 
           console.error(`[AvailabilityService] Error parsing break times: ${breakStartTimeStr} - ${breakEndTimeStr}`, e); 
-          // Reset to null if parsing failed
           breakStartDateTime = null;
           breakEndDateTime = null;
       }
   } else {
-      console.log(`[AvailabilityService] No valid break times configured for ${date}: "${breakStartTimeStr}" - "${breakEndTimeStr}"`);
+      console.log(`[AvailabilityService] No break times configured`);
   }
 
   // Step 3: Set up current time to check against buffer during slot generation
@@ -710,7 +641,7 @@ export async function calculateAvailabilitySlots(
     
     // Check if the requested date is today or a future date
     // If a future date, we don't need to apply the buffer time check
-    const isToday = safeFormat(dateInFacilityTZ, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+    const isToday = date === format(now, 'yyyy-MM-dd');
     
     // Only apply buffer time check if we're checking today's availability
     if (isToday && currentSlotStartTime < effectiveBufferCutoff) {
@@ -807,45 +738,16 @@ export async function calculateAvailabilitySlots(
         console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} marked unavailable due to full capacity (${conflictingApptsCount}/${maxConcurrent})`);
     }
 
-    // Check break time - only apply if valid break times are configured
-    if (breakStartDateTime && breakEndDateTime) {
-        // Calculate if the appointment would overlap with a break
+    // SIMPLIFIED: Check break time - simple overlap check
+    if (breakStartDateTime && breakEndDateTime && !allowAppointmentsThroughBreaks) {
         const slotOverlapsBreak = currentSlotStartTime.getTime() < breakEndDateTime.getTime() && 
                                  currentSlotEndTime.getTime() > breakStartDateTime.getTime();
         
-        // Check if appointment starts within a break
-        const slotStartsDuringBreak = currentSlotStartTime.getTime() >= breakStartDateTime.getTime() && 
-                                      currentSlotStartTime.getTime() < breakEndDateTime.getTime();
-        
-        // Check if appointment ends during a break
-        const slotEndsDuringBreak = currentSlotEndTime.getTime() > breakStartDateTime.getTime() && 
-                                    currentSlotEndTime.getTime() <= breakEndDateTime.getTime();
-        
-        // For improved logging
-        const timeStr = tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm');
-        
         if (slotOverlapsBreak) {
-            // If slot spans break time and appointments through breaks not allowed
-            if (!allowAppointmentsThroughBreaks) {
-                isSlotAvailable = false;
-                reason = "Break Time";
-                console.log(`[AvailabilityService] Slot ${timeStr} overlaps break time and is NOT allowed through breaks.`);
-            } else {
-                // Spans break but is allowed - add helpful reason for UI while keeping availability true
-                if (slotStartsDuringBreak) {
-                    // This is specifically starting within a break time
-                    reason = "Spans through break time";
-                    console.log(`[AvailabilityService] Slot ${timeStr} starts during break time but IS allowed through breaks.`);
-                } else if (slotEndsDuringBreak) {
-                    // This ends within a break time
-                    reason = "Spans through break time";
-                    console.log(`[AvailabilityService] Slot ${timeStr} ends during break time but IS allowed through breaks.`);
-                } else {
-                    // This spans completely over a break time
-                    reason = "Spans through break time";
-                    console.log(`[AvailabilityService] Slot ${timeStr} spans completely over break time but IS allowed through breaks.`);
-                }
-            }
+            const timeStr = tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm');
+            console.log(`[AvailabilityService] Slot at ${timeStr} overlaps with break time - not available`);
+            isSlotAvailable = false;
+            reason = "During break time";
         }
     }
 
@@ -854,14 +756,9 @@ export async function calculateAvailabilitySlots(
     // Final status check
     if (remainingCapacity <= 0 && isSlotAvailable) {
         isSlotAvailable = false;
-        if (reason !== "Break Time") { 
+        if (reason !== "During break time") { 
              reason = "Capacity full";
         }
-    }
-
-    // For debugging our break time reason
-    if (reason === "Spans through break time") {
-      console.log(`[AvailabilityService] DEBUG: Adding slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} with reason=${reason}`);
     }
     
     // Create the slot result object with facility-local time in HH:mm format
@@ -871,7 +768,7 @@ export async function calculateAvailabilitySlots(
       available: isSlotAvailable,
       remainingCapacity: remainingCapacity,
       remaining: remainingCapacity,
-      reason: isSlotAvailable && reason === "Spans through break time" ? reason : (isSlotAvailable ? "" : reason),
+      reason: isSlotAvailable ? "" : reason,
     };
     
     // For debugging time conversions and slot generation

@@ -541,6 +541,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to fetch appointment types' });
     }
   });
+
+  // Create appointment type endpoint
+  app.post('/api/appointment-types', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const currentUser = req.user;
+      const appointmentTypeData = req.body;
+      
+      // Verify facility belongs to tenant
+      const facilities = await storage.getFacilities();
+      const facility = facilities.find(f => f.id === appointmentTypeData.facilityId && f.tenantId === currentUser.tenantId);
+      
+      if (!facility) {
+        return res.status(403).json({ error: 'Access denied to this facility' });
+      }
+      
+      // Set tenant ID for the appointment type
+      const appointmentType = await storage.createAppointmentType({ 
+        ...appointmentTypeData, 
+        tenantId: currentUser.tenantId 
+      });
+      
+      res.status(201).json(appointmentType);
+    } catch (error) {
+      console.error('Error creating appointment type:', error);
+      res.status(500).json({ error: 'Failed to create appointment type' });
+    }
+  });
+
+  // Update appointment type endpoint
+  app.put('/api/appointment-types/:id', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const currentUser = req.user;
+      const appointmentTypeId = parseInt(req.params.id);
+      const updateData = req.body;
+      
+      // Get existing appointment type to verify ownership
+      const existingType = await storage.getAppointmentType(appointmentTypeId);
+      if (!existingType) {
+        return res.status(404).json({ error: 'Appointment type not found' });
+      }
+      
+      // Verify tenant ownership
+      if (existingType.tenantId !== currentUser.tenantId) {
+        return res.status(403).json({ error: 'Access denied to this appointment type' });
+      }
+      
+      // If facility is being changed, verify new facility belongs to tenant
+      if (updateData.facilityId && updateData.facilityId !== existingType.facilityId) {
+        const facilities = await storage.getFacilities();
+        const facility = facilities.find(f => f.id === updateData.facilityId && f.tenantId === currentUser.tenantId);
+        
+        if (!facility) {
+          return res.status(403).json({ error: 'Access denied to the specified facility' });
+        }
+      }
+      
+      // Remove the id from updateData to prevent overwrites
+      const { id, ...cleanUpdateData } = updateData;
+      
+      const updatedType = await storage.updateAppointmentType(appointmentTypeId, cleanUpdateData);
+      
+      if (!updatedType) {
+        return res.status(404).json({ error: 'Appointment type not found' });
+      }
+      
+      res.json(updatedType);
+    } catch (error) {
+      console.error('Error updating appointment type:', error);
+      res.status(500).json({ error: 'Failed to update appointment type' });
+    }
+  });
+
+  // Delete appointment type endpoint
+  app.delete('/api/appointment-types/:id', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const currentUser = req.user;
+      const appointmentTypeId = parseInt(req.params.id);
+      
+      // Get existing appointment type to verify ownership
+      const existingType = await storage.getAppointmentType(appointmentTypeId);
+      if (!existingType) {
+        return res.status(404).json({ error: 'Appointment type not found' });
+      }
+      
+      // Verify tenant ownership
+      if (existingType.tenantId !== currentUser.tenantId) {
+        return res.status(403).json({ error: 'Access denied to this appointment type' });
+      }
+      
+      const deleted = await storage.deleteAppointmentType(appointmentTypeId);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: 'Appointment type not found' });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting appointment type:', error);
+      res.status(500).json({ error: 'Failed to delete appointment type' });
+    }
+  });
   
   // Booking pages endpoint
   app.get('/api/booking-pages', async (req: any, res) => {
