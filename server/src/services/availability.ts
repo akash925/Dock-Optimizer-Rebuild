@@ -39,19 +39,29 @@ async function checkHolidaysAndClosures(
 ): Promise<DayHours> {
   console.log(`[AvailabilityService] Checking holidays and closures for ${date}`);
   
-  // Check organization holidays
-  const orgHolidays = organization.holidays || [];
+  // FIXED: Check organization holidays from metadata.holidays with correct structure
+  const orgHolidays = organization.metadata?.holidays || [];
+  console.log(`[AvailabilityService] Found ${orgHolidays.length} organization holidays to check`);
+  
   const isOrgHoliday = orgHolidays.some((holiday: any) => {
-    return holiday.date === date || (holiday.startDate <= date && holiday.endDate >= date);
+    // FIXED: Check only enabled holidays and use correct date field
+    const isHolidayDate = holiday.date === date;
+    const isEnabled = holiday.enabled === true;
+    
+    if (isHolidayDate && isEnabled) {
+      console.log(`[AvailabilityService] Organization holiday found: ${holiday.name} on ${holiday.date}`);
+      return true;
+    }
+    return false;
   });
   
   if (isOrgHoliday) {
-    console.log(`[AvailabilityService] Organization holiday detected for ${date}`);
+    console.log(`[AvailabilityService] Organization holiday detected for ${date} - facility closed`);
     return { ...currentHours, open: false };
   }
   
-  // Check facility-specific closures
-  const facilityClosures = facility.closures || [];
+  // Check facility-specific closures (stored in facility metadata)
+  const facilityClosures = facility.metadata?.closures || facility.closures || [];
   const isFacilityClosed = facilityClosures.some((closure: any) => {
     return closure.date === date || (closure.startDate <= date && closure.endDate >= date);
   });
@@ -394,25 +404,57 @@ export async function calculateAvailabilitySlots(
     throw new Error('Organization not found for this facility');
   }
   
-  // For now, skip organization holidays check until we implement that feature
-  // TODO: Check organization holidays when getOrganizationHolidays is implemented
+  // ENHANCED: Organization holidays are now properly checked in checkHolidaysAndClosures function
+  // Holiday data is retrieved from organization.metadata.holidays structure
   
-  // STEP 2: Build organization default hours (fully configurable, no hardcoded defaults)
+  // STEP 2: Build organization default hours (supports both nested and flat structures)
   const orgHours: Record<string, DayHours> = {};
   
   for (const day of dayKeys) {
-    const dayOpenField = getObjectField(organization, `${day}Open`, `${day}_open`);
-    const dayStartField = getObjectField(organization, `${day}Start`, `${day}_start`);
-    const dayEndField = getObjectField(organization, `${day}End`, `${day}_end`);
-    const dayBreakStartField = getObjectField(organization, `${day}BreakStart`, `${day}_break_start`);
-    const dayBreakEndField = getObjectField(organization, `${day}BreakEnd`, `${day}_break_end`);
+    // ENHANCED: Check for organization hours in nested structure first (from default hours API)
+    // Organization hours are saved as settings.defaultHours.monday.open, etc.
+    const nestedHours = (organization as any).settings?.defaultHours?.[day];
     
-    // Use configured values, or reasonable fallbacks only if nothing is configured
-    const isOpen = dayOpenField?.value !== undefined ? dayOpenField.value : false;
-    const startTime = dayStartField?.value || "08:00";
-    const endTime = dayEndField?.value || "17:00";
-    const breakStartTime = dayBreakStartField?.value || "";
-    const breakEndTime = dayBreakEndField?.value || "";
+    let isOpen = false;
+    let startTime = "08:00";
+    let endTime = "17:00";
+    let breakStartTime = "";
+    let breakEndTime = "";
+    
+    if (nestedHours) {
+      // Use nested structure (preferred format from organization default hours)
+      isOpen = nestedHours.open || false;
+      startTime = nestedHours.start || "08:00";
+      endTime = nestedHours.end || "17:00";
+      breakStartTime = nestedHours.breakStart || "";
+      breakEndTime = nestedHours.breakEnd || "";
+      
+      console.log(`[AvailabilityService] Organization hours for ${day} (nested):`, {
+        open: isOpen,
+        hours: `${startTime} - ${endTime}`,
+        source: 'settings.defaultHours'
+      });
+    } else {
+      // FALLBACK: Check for flat field structure (legacy support)
+      const dayOpenField = getObjectField(organization, `${day}Open`, `${day}_open`);
+      const dayStartField = getObjectField(organization, `${day}Start`, `${day}_start`);
+      const dayEndField = getObjectField(organization, `${day}End`, `${day}_end`);
+      const dayBreakStartField = getObjectField(organization, `${day}BreakStart`, `${day}_break_start`);
+      const dayBreakEndField = getObjectField(organization, `${day}BreakEnd`, `${day}_break_end`);
+      
+      isOpen = dayOpenField?.value !== undefined ? dayOpenField.value : false;
+      startTime = dayStartField?.value || "08:00";
+      endTime = dayEndField?.value || "17:00";
+      breakStartTime = dayBreakStartField?.value || "";
+      breakEndTime = dayBreakEndField?.value || "";
+      
+      console.log(`[AvailabilityService] Organization hours for ${day} (flat fields):`, {
+        rawField: dayOpenField,
+        computed: isOpen,
+        hours: `${startTime} - ${endTime}`,
+        source: dayOpenField?.source || 'default'
+      });
+    }
     
     orgHours[day] = {
       open: isOpen,
@@ -421,13 +463,6 @@ export async function calculateAvailabilitySlots(
       breakStart: breakStartTime,
       breakEnd: breakEndTime,
     };
-    
-    console.log(`[AvailabilityService] Organization hours for ${day}:`, {
-      rawField: dayOpenField,
-      computed: isOpen,
-      hours: `${startTime} - ${endTime}`,
-      source: dayOpenField?.source || 'default'
-    });
   }
   
   // STEP 3: Check facility hours (facilities can override organization hours)

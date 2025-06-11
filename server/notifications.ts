@@ -847,9 +847,22 @@ export async function sendConfirmationEmail(
   console.log(`[EMAIL] Facility time: ${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`);
   console.log(`[EMAIL] User time: ${userStart} - ${userEnd} ${userTzAbbr}`);
 
-  // Create the final time strings for the email
+  // Create the final time strings for the email - ENHANCED with full timezone names
   const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
   const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
+  
+  // Enhanced timezone description for clarity
+  const facilityTimezoneName = facilityTimezone === 'America/New_York' ? 'Eastern Time' : 
+                              facilityTimezone === 'America/Chicago' ? 'Central Time' :
+                              facilityTimezone === 'America/Denver' ? 'Mountain Time' :
+                              facilityTimezone === 'America/Los_Angeles' ? 'Pacific Time' :
+                              facilityTimezone;
+  
+  const userTimezoneName = userTimezone === 'America/New_York' ? 'Eastern Time' : 
+                          userTimezone === 'America/Chicago' ? 'Central Time' :
+                          userTimezone === 'America/Denver' ? 'Mountain Time' :
+                          userTimezone === 'America/Los_Angeles' ? 'Pacific Time' :
+                          userTimezone;
 
   // Host URL with potential fallback - use current request host for development
   const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1l3rlgulg.worf.replit.dev';
@@ -913,11 +926,11 @@ export async function sendConfirmationEmail(
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #666;">Facility Time:</td>
-              <td style="padding: 8px 0;"><strong>${facilityTimeRange}</strong></td>
+              <td style="padding: 8px 0;"><strong>${facilityTimeRange}</strong><br/><span style="font-size: 12px; color: #666;">(${facilityTimezoneName})</span></td>
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #666;">Your Local Time:</td>
-              <td style="padding: 8px 0;"><strong>${userTimeRange}</strong></td>
+              <td style="padding: 8px 0;"><strong>${userTimeRange}</strong><br/><span style="font-size: 12px; color: #666;">(${userTimezoneName})</span></td>
             </tr>
             ${schedule.driverName ? `
             <tr>
@@ -1000,8 +1013,8 @@ export async function sendConfirmationEmail(
     Appointment: ${schedule.appointmentTypeName || 'Standard Appointment'}
     Dock: ${schedule.dockName || 'Not scheduled yet'}
     
-    Facility Time: ${facilityTimeRange}
-    Your Local Time: ${userTimeRange}
+    Facility Time: ${facilityTimeRange} (${facilityTimezoneName})
+    Your Local Time: ${userTimeRange} (${userTimezoneName})
     ${schedule.driverName ? `Driver: ${schedule.driverName}` : ''}
     ${schedule.driverPhone ? `Driver Phone: ${schedule.driverPhone}` : ''}
     ${schedule.carrierId ? `Carrier: ${schedule.carrierName || 'Unknown Carrier'}` : ''}

@@ -406,11 +406,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register admin routes
   adminRoutes(app);
   
-  // 🔥 FIX: Register BOL upload routes that were missing
+  // 🔥 FIX: Register BOL upload routes (use .mjs for ES module compatibility)
   try {
-    const bolUploadModule = await import('./routes/bol-upload' as any);
+    const bolUploadModule = await import('./routes/bol-upload.mjs' as any);
     const bolUploadRoutes = bolUploadModule.default || bolUploadModule;
     app.use('/api/bol-upload', bolUploadRoutes);
+    console.log('BOL upload routes registered successfully');
   } catch (error) {
     console.error('Failed to load BOL upload routes:', error);
   }

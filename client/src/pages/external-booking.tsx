@@ -657,12 +657,16 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     return false;
   };
   
-  // Check if a date is closed based on facility schedule
+  // Check if a date is closed based on facility schedule - ENHANCED VERSION
   const isDateClosed = (date: Date) => {
     try {
-      // Don't allow past dates
+      // ENHANCED: More robust date comparison that handles timezone edge cases
       const today = startOfDay(new Date());
-      if (date < today) {
+      const checkDate = startOfDay(date);
+      
+      // Don't allow past dates (compare date objects directly)
+      if (checkDate < today) {
+        console.log('[isDateClosed] Date is in the past:', checkDate, '<', today);
         return true;
       }
       
@@ -683,21 +687,23 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         return true;
       }
       
-      // Get day of week information
+      // ENHANCED: Get day of week information with better handling
       const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, etc.
       const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
       const dayName = dayNames[dayOfWeek];
       
-      console.log(`[isDateClosed] Checking ${date.toDateString()} (${dayName}) for facility:`, {
+      console.log(`[isDateClosed] Checking ${date.toDateString()} (${dayName}, day ${dayOfWeek}) for facility:`, {
         id: facility.id,
         name: facility.name,
         dayOfWeek
       });
 
-      // Check if this day is open - try multiple property name formats
+      // ENHANCED: Check if this day is open - improved property lookup with fallbacks
       let dayOpen = false;
+      let dayStart = null;
+      let dayEnd = null;
       
-      // Try different property naming conventions
+      // Try different property naming conventions for opening status
       const dayOpenProperties = [
         `${dayName}Open`,
         `${dayName}_open`, 

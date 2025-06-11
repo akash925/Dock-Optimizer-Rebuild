@@ -70,6 +70,10 @@ export default function FullCalendarView({
     console.log('[Calendar] Forcing Eastern Timezone for consistency');
   }, []);
   
+  // Add state to track calendar readiness
+  const [calendarReady, setCalendarReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
   // Fetch all facilities for lookup purposes
   const { data: facilities } = useQuery({
     queryKey: ['/api/facilities'],
@@ -662,7 +666,7 @@ export default function FullCalendarView({
               events={events}
               selectable={!!onDateSelect}
               selectMirror={true}
-              dayMaxEvents={true}
+              dayMaxEvents={4}
               weekends={true}
               eventClick={handleEventClick}
               select={handleDateSelect}
@@ -674,11 +678,12 @@ export default function FullCalendarView({
               slotMinTime="06:00:00"
               slotMaxTime="20:00:00"
               
-              // Responsive rendering parameters
+              // ENHANCED: Responsive rendering parameters with better stability
               height="auto"
-              aspectRatio={1.5}
+              aspectRatio={1.35}
+              handleWindowResize={true}
               
-              // View settings
+              // ENHANCED: View settings with improved responsiveness
               titleFormat={{
                 year: 'numeric',
                 month: 'short',
@@ -693,35 +698,44 @@ export default function FullCalendarView({
                 timeZone: EASTERN_TIMEZONE
               }}
               
-              // More stable settings
+              // ENHANCED: More stable settings for better month/day view display
               fixedWeekCount={false}
               navLinks={false}
-              handleWindowResize={false}
               moreLinkClick="popover"
               
-              // Event display options
+              // ENHANCED: Event display options with improved stacking
               eventDisplay="block"
               eventTimeFormat={{
                 hour: '2-digit',
                 minute: '2-digit',
-                meridiem: true,
+                meridiem: 'short',
                 hour12: true,
                 timeZone: EASTERN_TIMEZONE
               }}
               
-              // Event sorting - later ones on top
-              eventOrder="start" 
+              // ENHANCED: Event sorting and overlap management for better day view
+              eventOrder="start,-duration,allDay,title" 
+              eventOverlap={true}
+              eventConstraint="businessHours"
               
-              // Disable overlap to avoid stacking issues
-              eventOverlap={false}
-              
-              // Force event duration for better display
+              // ENHANCED: Force event duration for better display
               forceEventDuration={true}
+              defaultTimedEventDuration="00:30:00"
               
-              // Capture view change
-              viewDidMount={handleViewChange}
+              // ENHANCED: Better loading and refresh management
+              loading={(isLoading) => {
+                console.log('[FullCalendar] Loading state changed:', isLoading);
+                setIsLoading(isLoading);
+              }}
               
-              // Simple DOM setup without complex manipulation
+              // ENHANCED: Capture view change with better error handling
+              viewDidMount={(viewInfo) => {
+                console.log('[FullCalendar] View mounted:', viewInfo.view.type);
+                handleViewChange(viewInfo);
+                setCalendarReady(true);
+              }}
+              
+              // ENHANCED: Better resource management for events
               eventDidMount={(eventInfo) => {
                 const extendedProps = eventInfo.event.extendedProps || {};
                 
