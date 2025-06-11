@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
+import { getUserTimeZone } from "@/lib/timezone-utils";
 
 // Unified appointment form schema
 const appointmentSchema = z.object({
@@ -58,9 +59,9 @@ interface UnifiedAppointmentFlowProps {
   mode: 'internal' | 'external';
   
   // Common props
-  isOpen?: boolean;
-  onClose?: () => void;
-  onSuccess?: (appointment: any) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: (appointmentData: any) => void;
   
   // Pre-filled data
   initialData?: Partial<AppointmentFormData>;
@@ -83,9 +84,9 @@ interface UnifiedAppointmentFlowProps {
 
 export default function UnifiedAppointmentFlow({
   mode,
-  isOpen = true,
-  onClose = () => {},
-  onSuccess = () => {},
+  isOpen,
+  onClose,
+  onSuccess,
   initialData,
   editMode = 'create',
   appointmentId,
@@ -94,7 +95,7 @@ export default function UnifiedAppointmentFlow({
   selectedDate,
   selectedDockId,
   bookingPageSlug,
-  timezone = 'America/New_York',
+  timezone,
   allowAllAppointmentTypes = true,
 }: UnifiedAppointmentFlowProps) {
   const { toast } = useToast();
@@ -129,6 +130,45 @@ export default function UnifiedAppointmentFlow({
       endTime: initialData?.endTime || '',
     },
   });
+
+  // ENHANCED: Dynamic timezone resolution
+  const [effectiveTimezone, setEffectiveTimezone] = useState<string>(getUserTimeZone());
+  
+  // Fetch facility data to get timezone
+  const { data: facility } = useQuery({
+    queryKey: [`/api/facilities/${preselectedFacilityId}`],
+    queryFn: async () => {
+      if (!preselectedFacilityId) return null;
+      const response = await fetch(`/api/facilities/${preselectedFacilityId}`);
+      if (!response.ok) throw new Error('Failed to fetch facility');
+      return response.json();
+    },
+    enabled: !!preselectedFacilityId
+  });
+
+  // Set effective timezone based on available data
+  useEffect(() => {
+    let targetTimezone = getUserTimeZone(); // Default to user timezone
+    
+    // Priority 1: Explicitly passed timezone prop
+    if (timezone) {
+      targetTimezone = timezone;
+    }
+    // Priority 2: Facility timezone from facility data
+    else if (facility?.timezone) {
+      targetTimezone = facility.timezone;
+    }
+    
+    setEffectiveTimezone(targetTimezone);
+    
+    console.log('[UnifiedAppointmentFlow] Timezone Resolution:', {
+      userTimezone: getUserTimeZone(),
+      propTimezone: timezone,
+      facilityTimezone: facility?.timezone,
+      effectiveTimezone: targetTimezone,
+      facilityId: preselectedFacilityId
+    });
+  }, [timezone, facility, preselectedFacilityId]);
 
   // Fetch facilities - internal mode gets all, external gets booking page specific
   const { data: facilities = [], isLoading: isLoadingFacilities } = useQuery({

@@ -338,6 +338,64 @@ export default function Settings() {
     logoutMutation.mutate();
   };
 
+  const handleAddHoliday = () => {
+    if (customHolidayName && customHolidayDate) {
+      // Validate the holiday data
+      const holidayName = customHolidayName.trim();
+      const holidayDate = customHolidayDate;
+      
+      if (!holidayName) {
+        toast({
+          title: "Invalid Holiday Name",
+          description: "Please enter a valid holiday name.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check if holiday already exists for this date
+      const existingHoliday = organizationHolidays.find(h => h.date === holidayDate);
+      if (existingHoliday) {
+        toast({
+          title: "Holiday Already Exists",
+          description: `A holiday "${existingHoliday.name}" already exists for ${holidayDate}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Create new holidays array with the new holiday
+      const newHoliday = { 
+        name: holidayName, 
+        date: holidayDate, 
+        enabled: true 
+      };
+      
+      const updatedHolidays = [...organizationHolidays, newHoliday];
+      
+      // Update local state immediately
+      setOrganizationHolidays(updatedHolidays);
+      setCustomHolidayName("");
+      setCustomHolidayDate("");
+      
+      // Save to server
+      if (user?.tenantId) {
+        saveHolidaysMutation.mutate(updatedHolidays);
+      }
+      
+      toast({
+        title: "Holiday Added",
+        description: `"${holidayName}" has been added to organization holidays and will be respected in appointment booking.`,
+      });
+    } else {
+      toast({
+        title: "Missing Information",
+        description: "Please enter both a holiday name and date.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -1267,34 +1325,7 @@ export default function Settings() {
                   
                   <div className="flex justify-end mt-4">
                     <Button
-                      onClick={() => {
-                        if (customHolidayName && customHolidayDate) {
-                          // Create new holidays array with the new holiday
-                          const updatedHolidays = [
-                            ...organizationHolidays,
-                            { 
-                              name: customHolidayName, 
-                              date: customHolidayDate, 
-                              enabled: true 
-                            }
-                          ];
-                          
-                          // Update local state
-                          setOrganizationHolidays(updatedHolidays);
-                          setCustomHolidayName("");
-                          setCustomHolidayDate("");
-                          
-                          // Save to server
-                          if (user?.tenantId) {
-                            saveHolidaysMutation.mutate(updatedHolidays);
-                          }
-                          
-                          toast({
-                            title: "Holiday Added",
-                            description: `${customHolidayName} has been added to organization holidays.`,
-                          });
-                        }
-                      }}
+                      onClick={handleAddHoliday}
                       disabled={!customHolidayName || !customHolidayDate || saveHolidaysMutation.isPending}
                     >
                       {saveHolidaysMutation.isPending ? (

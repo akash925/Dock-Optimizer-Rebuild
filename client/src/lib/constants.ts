@@ -1,6 +1,40 @@
 // Client-side constants to avoid hardcoded values throughout the app
 
-export const DEFAULT_TIMEZONE = 'America/New_York';
+import { getUserTimeZone } from './timezone-utils';
+
+// Function to get default timezone dynamically (avoids SSR issues)
+export const getDefaultTimezone = () => {
+  try {
+    return getUserTimeZone();
+  } catch (error) {
+    // Fallback for server-side rendering or browser compatibility issues
+    return 'UTC';
+  }
+};
+
+// Default timezone for server-side use (will be overridden client-side)
+export const DEFAULT_TIMEZONE = 'UTC';
+
+export const TIMEZONE_OPTIONS = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Phoenix", label: "Mountain Time (MST)" },
+  { value: "UTC", label: "UTC" },
+  { value: "Europe/London", label: "London Time (GMT/BST)" },
+  { value: "Europe/Paris", label: "Central European Time (CET)" },
+  { value: "Asia/Tokyo", label: "Japan Time (JST)" },
+  { value: "Australia/Sydney", label: "Australian Eastern Time (AEST)" }
+];
+
+export const STATUS_OPTIONS = [
+  { value: "scheduled", label: "Scheduled" },
+  { value: "checked-in", label: "Checked In" },
+  { value: "completed", label: "Completed" },
+  { value: "canceled", label: "Canceled" },
+  { value: "no-show", label: "No Show" }
+];
 
 export const US_TIMEZONES = [
   { value: "America/New_York", label: "Eastern Time (ET)" },

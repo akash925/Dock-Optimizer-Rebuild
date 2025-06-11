@@ -19,7 +19,12 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Schedule } from '@shared/schema';
-import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
+import { 
+  getUserTimeZone, 
+  getTimeZoneAbbreviation, 
+  formatForDualTimeZoneDisplay,
+  formatTimeRangeForDualZones 
+} from '@/lib/timezone-utils';
 import { useQuery } from '@tanstack/react-query';
 
 // List of common timezones that we know are supported by FullCalendar
@@ -44,6 +49,7 @@ interface FullCalendarViewProps {
   timezone?: string; // Add timezone prop
   calendarRef?: React.RefObject<FullCalendar>;
   initialView?: string;
+  facilityId?: number; // Add facilityId to fetch facility timezone
 }
 
 // Export a function for the parent component to get the calendar reference
@@ -55,29 +61,70 @@ export default function FullCalendarView({
   onDateSelect,
   timezone,
   calendarRef: externalCalendarRef,
-  initialView: initialViewProp = 'timeGridWeek'
+  initialView: initialViewProp = 'timeGridWeek',
+  facilityId
 }: FullCalendarViewProps) {
-  // Always use Eastern time zone (America/New_York) for facility time
-  const EASTERN_TIMEZONE = 'America/New_York';
-  const [selectedTimezone, setSelectedTimezone] = useState<string>(EASTERN_TIMEZONE);
+  // ENHANCED: Dynamic timezone handling based on facility
+  const [selectedTimezone, setSelectedTimezone] = useState<string | null>(null);
+  const [effectiveTimezone, setEffectiveTimezone] = useState<string>(getUserTimeZone());
   
-  // Always ensure that Eastern timezone is used regardless of user selection
-  useEffect(() => {
-    // Force Eastern Time consistently throughout the application
-    setSelectedTimezone(EASTERN_TIMEZONE);
-    localStorage.setItem('preferredTimezone', EASTERN_TIMEZONE);
-    
-    console.log('[Calendar] Forcing Eastern Timezone for consistency');
-  }, []);
-  
-  // Add state to track calendar readiness
-  const [calendarReady, setCalendarReady] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  
+  // Fetch facility data to get the correct timezone
+  const { data: facility } = useQuery({
+    queryKey: [`/api/facilities/${facilityId}`],
+    queryFn: async () => {
+      if (!facilityId) return null;
+      const response = await fetch(`/api/facilities/${facilityId}`);
+      if (!response.ok) throw new Error('Failed to fetch facility');
+      return response.json();
+    },
+    enabled: !!facilityId
+  });
+
   // Fetch all facilities for lookup purposes
   const { data: facilities } = useQuery({
     queryKey: ['/api/facilities'],
   });
+  
+  // ENHANCED: Set effective timezone based on facility or user preference
+  useEffect(() => {
+    let targetTimezone = getUserTimeZone(); // Default to user timezone
+    
+    // Priority 1: Explicitly passed timezone prop
+    if (timezone) {
+      targetTimezone = timezone;
+    }
+    // Priority 2: Facility timezone from facility data
+    else if (facility?.timezone) {
+      targetTimezone = facility.timezone;
+    }
+    // Priority 3: Selected timezone from user preference
+    else if (selectedTimezone) {
+      targetTimezone = selectedTimezone;
+    }
+    // Priority 4: Try to get facility timezone from schedules
+    else if (schedules.length > 0) {
+      // Look for facility timezone from the schedules
+      const scheduleWithFacility = schedules.find(s => (s as any).facilityTimezone);
+      if (scheduleWithFacility) {
+        targetTimezone = (scheduleWithFacility as any).facilityTimezone;
+      }
+    }
+    
+    setEffectiveTimezone(targetTimezone);
+    
+    console.log('[Calendar] Timezone Resolution:', {
+      userTimezone: getUserTimeZone(),
+      propTimezone: timezone,
+      facilityTimezone: facility?.timezone,
+      selectedTimezone,
+      effectiveTimezone: targetTimezone,
+      facilityId
+    });
+  }, [timezone, facility, selectedTimezone, schedules, facilityId]);
+  
+  // Add state to track calendar readiness
+  const [calendarReady, setCalendarReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Create a global facility name and timezone lookup cache for events
   useEffect(() => {
@@ -101,15 +148,9 @@ export default function FullCalendarView({
       (window as any).facilityNames = facilityNameMap;
       (window as any).facilityTimezones = facilityTimezoneMap;
       console.log('Facility name cache created:', facilityNameMap);
+      console.log('Facility timezone cache created:', facilityTimezoneMap);
     }
   }, [facilities]);
-  
-  // Always use Eastern time (America/New_York) regardless of user's preference
-  useEffect(() => {
-    // Force Eastern Time Zone for all calendar views
-    setSelectedTimezone(EASTERN_TIMEZONE);
-    localStorage.setItem('preferredTimezone', EASTERN_TIMEZONE);
-  }, []);
   
   // Use the external ref if provided, otherwise create a local one
   const calendarRef = externalCalendarRef || useRef<FullCalendar>(null);
@@ -129,47 +170,6 @@ export default function FullCalendarView({
     return aStartTime.getTime() - bStartTime.getTime();
   });
 
-  // Special function to handle Hartford Pru appointments before mapping to calendar events
-  const processSchedulesBeforeMapping = (schedules: Schedule[]): Schedule[] => {
-    return schedules.map(schedule => {
-      // Create a clone of the schedule to avoid mutations
-      const modifiedSchedule = {...schedule};
-      
-      // Check if this is the Hartford Pru appointment
-      const customerName = (modifiedSchedule as any).customerName || '';
-      if (customerName === 'Hartford Pru') {
-        console.log('Pre-processing Hartford Pru appointment');
-        
-        // Parse the original start and end times
-        const originalStart = new Date(modifiedSchedule.startTime);
-        const originalEnd = new Date(modifiedSchedule.endTime);
-        
-        // Only modify if it's at 2:00 PM
-        if (originalStart.getHours() === 14) {
-          console.log('Hartford Pru at 2:00 PM, moving to 10:00 AM');
-          
-          // Create corrected times
-          originalStart.setHours(10, 0, 0);
-          originalEnd.setHours(12, 0, 0); // Assuming 2-hour duration
-          
-          // Update the schedule with corrected times (cast to any to handle type mismatch)
-          (modifiedSchedule as any).startTime = originalStart.toISOString();
-          (modifiedSchedule as any).endTime = originalEnd.toISOString();
-          
-          console.log('Hartford Pru times corrected to:', {
-            start: modifiedSchedule.startTime,
-            end: modifiedSchedule.endTime
-          });
-        }
-      }
-      
-      return modifiedSchedule;
-    });
-  };
-  
-  // Apply pre-processing to schedules
-  const processedSchedules = processSchedulesBeforeMapping(sortedSchedules);
-  
   // Check if an appointment needs attention (soon to start or unchecked-in)
   const needsAttention = (schedule: Schedule): { needsAttention: boolean, isUrgent: boolean, reason: string } => {
     const now = new Date();
@@ -199,7 +199,7 @@ export default function FullCalendarView({
   };
 
   // Now map the processed schedules to events
-  const events: EventInput[] = processedSchedules.map(schedule => {
+  const events: EventInput[] = sortedSchedules.map(schedule => {
     const isInbound = schedule.type === 'inbound';
     
     // Check if this appointment needs attention
@@ -221,12 +221,12 @@ export default function FullCalendarView({
                   (isInbound ? '#1a5fb4' : '#0b7285'); // Deeper blue for inbound, teal for outbound
     }
     
-    // Date utilities - always display times in Eastern Time
+    // Date utilities - use effective timezone for display
     const localStartTime = new Date(schedule.startTime);
     
-    // Convert to Eastern Time for display
-    const easternFormatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: EASTERN_TIMEZONE,
+    // Convert to effective timezone for display
+    const effectiveFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: effectiveTimezone,
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
@@ -298,29 +298,11 @@ export default function FullCalendarView({
     // Format a more detailed title with relevant information
     let title = '';
     
-    // Start with customer name if available (most important info)
+    // Start with customer name if available (most important info) - ENHANCED FOR VISIBILITY
     if (customerName) {
-      title += `👤 ${customerName}\n`;
-    }
-    
-    // Add facility name for context
-    if (extractedFacilityName) {
-      title += `📍 ${extractedFacilityName}\n`;
-    }
-    
-    // Add dock information if available - important for operations
-    if (dockInfo) {
-      title += `🚪 ${dockInfo}\n`;
-    }
-    
-    // Add carrier and truck info
-    title += `🚚 ${schedule.carrierName || 'Carrier'} | ${schedule.truckNumber || 'No Truck #'}`;
-    
-    // Add status badge to title if not scheduled - make status prominent
-    if (schedule.status && schedule.status !== 'scheduled') {
-      title += `\n⚠️ ${schedule.status.toUpperCase()}`;
-    } else if (attention.needsAttention) {
-      title += `\n⚠️ ${attention.reason.toUpperCase()}`;
+      title = customerName; // Simplified title for better display
+    } else {
+      title = 'Unnamed Appointment'; // Fallback when no customer name
     }
     
     // Calculate dynamic z-index based on hour - later hours should be higher
@@ -332,42 +314,9 @@ export default function FullCalendarView({
       ? attention.isUrgent ? 'urgent-attention' : 'needs-attention'
       : '';
     
-    // More aggressive approach to fix timezone issues
-    // Force timezone correction for the Hartford Pru appointment
-    let startTimeUTC = new Date(schedule.startTime);
-    let endTimeUTC = new Date(schedule.endTime);
-    
-    // Check if this is the Hartford Pru appointment at 2:00 PM that should be at 10:00 AM
-    const scheduleExtended = schedule as any;
-    const customerNameValue = scheduleExtended.customerName || '';
-    
-    if (customerNameValue === 'Hartford Pru') {
-      console.log('Found Hartford Pru appointment, forcing time correction');
-      // Convert the time from 2:00 PM to 10:00 AM
-      const originalHour = startTimeUTC.getHours();
-      if (originalHour === 14) { // If it's 2:00 PM
-        // Create new Date objects instead of modifying the existing ones
-        const correctedStartTime = new Date(startTimeUTC);
-        correctedStartTime.setHours(10); // Set to 10:00 AM
-        
-        const correctedEndTime = new Date(endTimeUTC);
-        correctedEndTime.setHours(endTimeUTC.getHours() - 4); // Also adjust end time
-        
-        // Update the time variables
-        startTimeUTC = correctedStartTime;
-        endTimeUTC = correctedEndTime;
-        
-        // Log the correction for debugging
-        console.log('Hartford Pru time corrected:', {
-          original: { start: schedule.startTime, end: schedule.endTime },
-          corrected: { start: startTimeUTC.toISOString(), end: endTimeUTC.toISOString() }
-        });
-      }
-    }
-    
     // Use the potentially adjusted dates
-    const easternStartDate = startTimeUTC;
-    const easternEndDate = endTimeUTC;
+    const easternStartDate = new Date(schedule.startTime);
+    const easternEndDate = new Date(schedule.endTime);
     
     return {
       id: schedule.id.toString(),
@@ -499,54 +448,30 @@ export default function FullCalendarView({
   const handleViewChange = (viewInfo: any) => {
     setCurrentView(viewInfo.view.type);
   };
-  
-  // Simplified approach - no DOM manipulation effects
 
   // Format time for tooltip with timezone support
   const formatAppointmentTime = (date: Date, timezone?: string | null) => {
     if (!date) return '';
     
     // Get user's browser timezone
-    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const userTimezone = getUserTimeZone();
+    const targetTimezone = timezone || effectiveTimezone;
     
-    // Always use Eastern time for facility time display
-    const easternOptions: Intl.DateTimeFormatOptions = {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: EASTERN_TIMEZONE
-    };
+    // Use the dual timezone formatting utility
+    const { userTime, facilityTime, userZone, facilityZone } = formatForDualTimeZoneDisplay(
+      date, 
+      targetTimezone, 
+      'h:mm a'
+    );
     
-    // Format for user's local time if different from Eastern
-    const userOptions: Intl.DateTimeFormatOptions = {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-      timeZone: userTimezone
-    };
-    
-    try {
-      // Always display Eastern time as the primary time
-      const easternTimeStr = new Intl.DateTimeFormat('en-US', easternOptions).format(date);
-      
-      // Only add user time if it's different from Eastern
-      if (userTimezone !== EASTERN_TIMEZONE) {
-        const userTimeStr = new Intl.DateTimeFormat('en-US', userOptions).format(date);
-        return `${easternTimeStr} (${userTimeStr} your time)`;
-      }
-      
-      return easternTimeStr;
-    } catch (error) {
-      // Fallback to basic formatting if any error
-      console.error('Error formatting time with timezone:', error);
-      return new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }).format(date);
+    // Only show user time if it's different from facility time
+    if (userTimezone !== targetTimezone) {
+      return `${facilityTime} (${userTime} your time)`;
     }
+    
+    return facilityTime;
   };
-  
+
   return (
     <div className="space-y-4 h-full">
       {/* Event tooltip */}
@@ -570,14 +495,14 @@ export default function FullCalendarView({
                   : 'No time specified'}
                 <span className="block text-xs bg-blue-50 text-blue-700 rounded-sm px-2 py-1 mt-1 font-medium flex items-center">
                   <Clock className="w-3 h-3 mr-1" />
-                  Eastern Time (ET)
+                  {getTimeZoneAbbreviation(effectiveTimezone)} Time
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="ml-1 cursor-help">(i)</span>
                       </TooltipTrigger>
                       <TooltipContent className="w-60 p-2">
-                        <p className="text-xs">All appointments are displayed in Eastern Time (ET) with your local time shown in parentheses when different.</p>
+                        <p className="text-xs">All appointments are displayed in the facility's timezone with your local time shown in parentheses when different.</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -643,11 +568,11 @@ export default function FullCalendarView({
         <div className="p-1 border-b bg-slate-50 flex items-center justify-between text-xs">
           <div className="text-xs text-muted-foreground">
             <Clock className="w-3 h-3 inline mr-1 text-primary" />
-            <span className="font-medium">Calendar Timezone:</span> Eastern Time (ET)
+            <span className="font-medium">Calendar Timezone:</span> {getTimeZoneAbbreviation(effectiveTimezone)} ({effectiveTimezone.split('/').pop()?.replace('_', ' ')})
           </div>
           <div className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded-sm font-medium flex items-center">
             <Clock className="w-2.5 h-2.5 mr-1" />
-            Times shown in Eastern Time
+            Times shown in {getTimeZoneAbbreviation(effectiveTimezone)}
           </div>
         </div>
         <CardContent className="p-0">
@@ -662,7 +587,7 @@ export default function FullCalendarView({
                 right: ''
               }}
               nowIndicator={true}
-              timeZone={EASTERN_TIMEZONE}
+              timeZone={effectiveTimezone}
               events={events}
               selectable={!!onDateSelect}
               selectMirror={true}
@@ -728,7 +653,7 @@ export default function FullCalendarView({
                 minute: '2-digit',
                 meridiem: 'short',
                 hour12: true,
-                timeZone: EASTERN_TIMEZONE
+                timeZone: effectiveTimezone
               }}
               
               // ENHANCED: Event sorting and overlap management for better day view
@@ -828,30 +753,17 @@ export default function FullCalendarView({
                 // Extract event data from both standard and extended props
                 const eventData = eventInfo.event.extendedProps;
                 
-                // Try multiple ways to get facility name - enhanced to cover more cases
-                const facilityId = eventData?.facilityId;
-                const facilityName = eventData?.facilityName || 
-                                    (eventData?.customFormData?.facilityInfo?.facilityName) || 
-                                    (eventInfo.event as any)._def?.extendedProps?.facilityName ||
-                                    eventData?.locationName ||  // Support legacy location name
-                                    // Try to find facility by ID from facilities list
-                                    (facilityId && facilities && Array.isArray(facilities) ? 
-                                      (facilities as any[]).find((f: any) => f.id === facilityId)?.name : null) ||
-                                    // Try global cache as fallback
-                                    (facilityId ? (window as any).facilityNames?.[facilityId] : '') || 
-                                    // Last resort, try first line of title
-                                    eventInfo.event.title?.split('\n')?.[0] || 
-                                    '';
-                                    
-                // Get other fields from event props
-                // ENHANCEMENT: Try multiple sources for customer name to ensure it's always available
+                // ENHANCED: Priority customer name extraction with multiple fallbacks
                 const customerName = 
                   eventData?.customerName || 
                   (eventData?.customFormData?.customerName) || 
                   (eventInfo.event as any)._def?.extendedProps?.customerName ||
-                  ''; // Fallback for empty customer name
-                  
-                const carrierName = eventData?.carrierName || '';
+                  // Try extracting from title as last resort
+                  eventInfo.event.title?.split('\n')?.[0]?.replace('👤 ', '') ||
+                  'Customer'; // Always provide fallback
+                
+                // Get other fields from event props
+                const carrierName = eventData?.carrierName || 'Carrier';
                 const dockId = eventData?.dockId || '';
                 const status = eventData?.status || '';
                 const needsAttention = eventData?.needsAttention || false;
@@ -865,22 +777,17 @@ export default function FullCalendarView({
                 
                 // Dynamic class names based on event duration
                 const eventContentClass = `event-content w-full h-full flex flex-col justify-start overflow-hidden ${isUltraShortEvent ? 'p-1' : isShortEvent ? 'p-1.5' : 'p-2'}`;
-                const customerNameClass = `customer-name ${isUltraShortEvent ? 'text-xs' : 'text-sm'}`;
                 
-                // For ultra-short events, use a more compact layout
+                // For ultra-short events, show only customer name prominently
                 if (isUltraShortEvent) {
                   return (
                     <div className={eventContentClass}>
-                      {/* Only show customer name and type for ultra-short events */}
-                      <div className="event-header mb-0">
-                        {customerName && (
-                          <div className={customerNameClass}>{customerName}</div>
-                        )}
-                        
-                        {/* Minimal time display */}
-                        <div className="flex items-center justify-between w-full text-[9px] font-medium">
-                          <div className="ultra-compact text-white/95">{eventInfo.timeText}</div>
-                          {eventType && <span className="ml-auto text-xs">{eventType === 'inbound' ? 'IN' : 'OUT'}</span>}
+                      <div className="w-full text-center">
+                        <div className="text-white font-bold text-sm leading-tight overflow-hidden">
+                          {customerName}
+                        </div>
+                        <div className="text-white/80 text-xs mt-0.5">
+                          {eventInfo.timeText}
                         </div>
                       </div>
                     </div>
@@ -891,45 +798,48 @@ export default function FullCalendarView({
                 if (isShortEvent) {
                   return (
                     <div className={`${eventContentClass} short-event`}>
-                      {/* Simple centered layout with just customer name */}
-                      <div className="w-full text-center">
-                        {customerName && (
-                          <div className="customer-name">{customerName}</div>
-                        )}
+                      <div className="w-full">
+                        {/* PROMINENT CUSTOMER NAME - largest text */}
+                        <div className="text-white font-bold text-base leading-tight mb-1 overflow-hidden text-ellipsis">
+                          {customerName}
+                        </div>
                         
-                        {/* Minimal time and type display */}
-                        <div className="text-[9px] text-white/90 flex justify-center items-center">
+                        {/* Secondary info in smaller text */}
+                        <div className="text-white/90 text-xs flex justify-between items-center">
                           <span>{eventInfo.timeText}</span>
                           {eventType && 
-                            <span className="ml-1 font-semibold">
-                              ({eventType === 'inbound' ? 'IN' : 'OUT'})
+                            <span className="font-semibold">
+                              {eventType === 'inbound' ? 'IN' : 'OUT'}
                             </span>
                           }
                         </div>
+                        
+                        {/* Truck info if available */}
+                        {truckNumber && (
+                          <div className="text-white/80 text-xs mt-0.5">
+                            Truck #{truckNumber}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
                 }
                 
-                // For normal events, use the full layout
+                // For normal events, use the full layout with customer name first
                 return (
                   <div className={eventContentClass}>
                     <div className="event-header">
-                      {/* ENHANCED CUSTOMER NAME: Primary information with highest prominence */}
-                      {customerName && (
-                        <div className="customer-name">
-                          {customerName}
-                        </div>
-                      )}
+                      {/* ENHANCED CUSTOMER NAME: Largest, most prominent display */}
+                      <div className="customer-name-primary text-white font-bold text-lg leading-tight mb-2 overflow-hidden text-ellipsis">
+                        {customerName}
+                      </div>
                       
-                      {/* Type badge + Time - critical info */}
-                      <div className="flex items-center justify-between w-full text-[11px] font-medium mb-1">
-                        {/* Time with clean display */}
-                        <div className="time-display">{eventInfo.timeText}</div>
+                      {/* Time and Type - secondary info */}
+                      <div className="flex items-center justify-between w-full text-sm font-medium mb-1">
+                        <div className="time-display text-white/90">{eventInfo.timeText}</div>
                         
-                        {/* Type badge - right aligned with enhanced contrast */}
                         {eventType && 
-                          <span className={`inline-block px-2 py-0.5 rounded ${
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
                             eventType.toLowerCase() === 'inbound' 
                               ? 'bg-blue-200 text-blue-800 border border-blue-300' 
                               : 'bg-emerald-200 text-emerald-800 border border-emerald-300'
@@ -941,44 +851,47 @@ export default function FullCalendarView({
                     </div>
                     
                     {/* Subtle divider for visual separation */}
-                    <div className="event-divider"></div>
+                    <div className="w-full h-px bg-white/20 my-1"></div>
                     
-                    <div className="event-body">
+                    <div className="event-body flex-1">
                       {/* Truck number - important operational info */}
                       {truckNumber && (
-                        <div className="text-[12px] font-medium text-white mb-1">
-                          Truck #{truckNumber}
+                        <div className="text-sm font-medium text-white mb-1">
+                          🚚 Truck #{truckNumber}
                         </div>
                       )}
                       
                       {/* Carrier name when available */}
-                      {carrierName && (
-                        <div className="text-[11px] opacity-95 mb-0.5 text-white/90 font-medium">
+                      {carrierName && carrierName !== 'Carrier' && (
+                        <div className="text-sm text-white/90 mb-1">
                           {carrierName}
+                        </div>
+                      )}
+                      
+                      {/* Dock info */}
+                      {dockId && (
+                        <div className="text-sm text-white/80">
+                          🚪 Dock #{dockId}
                         </div>
                       )}
                     </div>
                     
-                    {/* Bottom row with dock info and status badges */}
-                    <div className="event-footer mt-auto flex items-center justify-between pt-1 text-white/80">
-                      {/* Location info */}
-                      <div className="flex items-center space-x-1">
-                        {dockId && <span className="dock-info">Dock #{dockId}</span>}
-                        {dockId && facilityName && <span>•</span>}
-                        {facilityName && <span className="facility-name">{facilityName}</span>}
-                      </div>
-                      
-                      {/* Status badge - only shown when needed, with improved visibility */}
+                    {/* Status badges at bottom */}
+                    <div className="event-footer mt-auto pt-1">
                       {showStatusBadge && (
-                        <div className={`status-badge status-${status.toLowerCase()}`}>
+                        <div className={`text-xs px-2 py-1 rounded font-bold ${
+                          status === 'completed' ? 'bg-green-200 text-green-800' :
+                          status === 'checked-in' ? 'bg-yellow-200 text-yellow-800' :
+                          status === 'canceled' ? 'bg-red-200 text-red-800' :
+                          'bg-gray-200 text-gray-800'
+                        }`}>
                           {status.toUpperCase()}
                         </div>
                       )}
                       
-                      {/* Attention badge - only shown when needed, with improved visibility */}
                       {showAttentionBadge && (
-                        <div className="status-badge animate-pulse bg-amber-300/30 text-amber-50 border border-amber-500/60">
-                          {attentionReason.toUpperCase()}
+                        <div className="text-xs px-2 py-1 rounded font-bold bg-amber-200 text-amber-800 animate-pulse">
+                          ⚠️ {attentionReason.toUpperCase()}
                         </div>
                       )}
                     </div>
