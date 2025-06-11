@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
-import './calendar-enhanced.css'; // Enhanced CSS for better readability and customer name emphasis
+import './calendar-master.css'; // NEW: Single consolidated CSS file
 import { DateSelectArg, EventClickArg, EventInput, EventHoveringArg } from '@fullcalendar/core';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
@@ -152,9 +152,9 @@ export default function FullCalendarView({
           originalStart.setHours(10, 0, 0);
           originalEnd.setHours(12, 0, 0); // Assuming 2-hour duration
           
-          // Update the schedule with corrected times
-          modifiedSchedule.startTime = originalStart.toISOString();
-          modifiedSchedule.endTime = originalEnd.toISOString();
+          // Update the schedule with corrected times (cast to any to handle type mismatch)
+          (modifiedSchedule as any).startTime = originalStart.toISOString();
+          (modifiedSchedule as any).endTime = originalEnd.toISOString();
           
           console.log('Hartford Pru times corrected to:', {
             start: modifiedSchedule.startTime,
@@ -271,8 +271,8 @@ export default function FullCalendarView({
     }
     
     // If we still don't have a facility name but have a facility ID, check the facilities cache
-    if (!extractedFacilityName && extractedFacilityId && facilities) {
-      const facility = facilities.find((f: any) => f.id === extractedFacilityId);
+    if (!extractedFacilityName && extractedFacilityId && facilities && Array.isArray(facilities)) {
+      const facility = (facilities as any[]).find((f: any) => f.id === extractedFacilityId);
       if (facility && facility.name) {
         extractedFacilityName = facility.name;
         console.log(`Found facility name from facilities cache: ${extractedFacilityName}`);
@@ -678,24 +678,42 @@ export default function FullCalendarView({
               slotMinTime="06:00:00"
               slotMaxTime="20:00:00"
               
-              // ENHANCED: Responsive rendering parameters with better stability
+              // ENHANCED: Responsive rendering parameters optimized for day view
               height="auto"
-              aspectRatio={1.35}
+              aspectRatio={currentView === 'timeGridDay' ? 1.8 : 1.35} // Taller aspect ratio for day view
               handleWindowResize={true}
+              
+              // ENHANCED: View-specific configurations
+              views={{
+                timeGridDay: {
+                  titleFormat: { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' },
+                  slotLabelFormat: { hour: 'numeric', minute: '2-digit', hour12: true },
+                  eventTimeFormat: { hour: 'numeric', minute: '2-digit', hour12: true },
+                  slotDuration: '00:30:00',
+                  slotLabelInterval: '01:00',
+                  snapDuration: '00:15:00', // Snap events to 15-minute intervals
+                  dayMaxEvents: false, // Show all events in day view
+                  dayMaxEventRows: false,
+                  moreLinkClick: 'day'
+                },
+                timeGridWeek: {
+                  slotDuration: '00:30:00',
+                  slotLabelInterval: '01:00',
+                  dayMaxEvents: 3,
+                  moreLinkClick: 'day'
+                },
+                dayGridMonth: {
+                  dayMaxEvents: 2,
+                  moreLinkClick: 'day',
+                  fixedWeekCount: false
+                }
+              }}
               
               // ENHANCED: View settings with improved responsiveness
               titleFormat={{
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric'
-              }}
-              
-              // Column header format using newer API
-              slotLabelFormat={{
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: EASTERN_TIMEZONE
               }}
               
               // ENHANCED: More stable settings for better month/day view display
@@ -754,8 +772,8 @@ export default function FullCalendarView({
                   }
                   
                   // Apply direct styles to ensure visibility
-                  eventInfo.el.style.fontSize = '13px';
-                  eventInfo.el.style.fontWeight = 'bold';
+                  (eventInfo.el as HTMLElement).style.fontSize = '13px';
+                  (eventInfo.el as HTMLElement).style.fontWeight = 'bold';
                   
                   // Add customer name as attribute
                   const customerName = extendedProps.customerName;
@@ -767,7 +785,7 @@ export default function FullCalendarView({
                   const titleElements = eventInfo.el.querySelectorAll('.fc-event-title');
                   if (titleElements.length > 0) {
                     // Get the first title element
-                    const titleElement = titleElements[0];
+                    const titleElement = titleElements[0] as HTMLElement;
                     
                     // Set customer name as title text if available
                     if (customerName) {

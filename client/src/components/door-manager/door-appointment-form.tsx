@@ -139,52 +139,69 @@ export default function DoorAppointmentForm({
   // Create appointment mutation
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: AppointmentValues) => {
-      // ENHANCED: Use consistent appointment creation logic with standard appointment flow
+      // 🔥 ENHANCED: Use CONSISTENT appointment creation logic with external booking flow
       const appointmentData = {
         ...data,
         // If endTime is not provided, set it to 1 hour after startTime by default
         endTime: data.endTime || new Date(data.startTime.getTime() + 60 * 60 * 1000),
-        // CONSISTENT: Create as scheduled status initially (same as external booking)
+        // CONSISTENT: Create as "scheduled" status initially (same as external booking)
         status: ScheduleStatus.SCHEDULED,
-        // DOOR MANAGER SPECIFIC: Assign to dock immediately since this is from door manager context
+        // Auto-assign to this dock since it's from door manager context
         dockId: dockId,
-        createdBy: user?.id || 1,
-        // CONSISTENT: Don't set actualStartTime initially - maintain same flow as external booking
-        // actualStartTime will be set when the appointment is manually checked in later
+        customFormData: {
+          source: 'door-manager',
+          doorContext: `Door ${dockId}`,
+          createdFromDoor: true
+        }
       };
-      
-      // Convert dates to ISO strings for JSON serialization
-      const serializedData = {
-        ...appointmentData,
-        // Force convert to ISO strings
-        startTime: appointmentData.startTime ? appointmentData.startTime.toISOString() : new Date().toISOString(),
-        endTime: appointmentData.endTime ? appointmentData.endTime.toISOString() : new Date(Date.now() + 3600000).toISOString(),
-      };
-      
-      console.log("Sending door appointment data (consistent flow):", JSON.stringify(serializedData, null, 2));
-      
-      const res = await apiRequest("POST", "/api/schedules", serializedData);
-      const createdAppointment = await res.json();
-      
-      // ENHANCED: Door manager appointments are created as "scheduled" and assigned to dock
-      // but NOT automatically checked in - maintains consistent appointment lifecycle
-      console.log("Door appointment created successfully:", createdAppointment.id);
-      return createdAppointment;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
-      toast({
-        title: "Appointment created",
-        description: "The door appointment has been created and assigned to the dock successfully.",
+
+      console.log('[DoorAppointmentForm] Creating appointment with consistent logic:', appointmentData);
+
+      // Step 1: Create the appointment (same API as external booking)
+      const response = await fetch('/api/schedules', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(appointmentData),
       });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`Failed to create appointment: ${errorData}`);
+      }
+
+      const newAppointment = await response.json();
+      console.log('[DoorAppointmentForm] Appointment created successfully:', newAppointment);
+
+      // Step 2: CONSISTENT FLOW - Appointment starts as "scheduled" 
+      // The door manager will handle check-in separately if needed
+      // This maintains audit trail and consistent status progression
+
+      return newAppointment;
+    },
+    onSuccess: (newAppointment) => {
+      console.log('[DoorAppointmentForm] SUCCESS - Appointment created and assigned to door:', newAppointment);
+      
+      // Refresh the schedules to show the new appointment
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['docks'] });
+      
+      // Show success message
+      toast({
+        title: "Appointment Created",
+        description: `New appointment created and assigned to Door ${dockId}. Status: ${newAppointment.status}`,
+      });
+
+      // Reset form and close dialog
       form.reset();
-      onSuccess();
+      onClose();
     },
     onError: (error: Error) => {
-      console.error("Appointment creation error:", error);
+      console.error('[DoorAppointmentForm] ERROR creating appointment:', error);
       toast({
-        title: "Failed to create appointment",
-        description: error.message,
+        title: "Error Creating Appointment",
+        description: error.message || "Failed to create appointment. Please try again.",
         variant: "destructive",
       });
     },

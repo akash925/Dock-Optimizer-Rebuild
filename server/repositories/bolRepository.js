@@ -69,14 +69,45 @@ export class BolRepository {
    */
   async createBolAppointmentLink(linkData) {
     try {
+      // 🔥 FIX: Handle potential column name variations for database compatibility
+      const linkPayload = {
+        bolDocumentId: linkData.bolDocumentId,
+        scheduleId: linkData.scheduleId || linkData.schedule_id, // Handle both snake_case and camelCase
+        createdAt: new Date()
+      };
+
+      console.log('[BOL-Repository] Creating link with payload:', linkPayload);
+
       const [link] = await db
         .insert(appointmentBolLinks)
-        .values(linkData)
+        .values(linkPayload)
         .returning();
       
+      console.log('[BOL-Repository] Successfully created link:', link);
       return link;
     } catch (error) {
       logger.error('BOL-Repository', 'Error creating BOL-appointment link', error);
+      
+      // 🔥 ENHANCED: If column error, try alternative column name
+      if (error.message && error.message.includes('schedule_id')) {
+        logger.warn('BOL-Repository', 'Attempting with alternative column structure');
+        try {
+          // Use raw SQL as fallback if schema mismatch
+          const rawQuery = `
+            INSERT INTO appointment_bol_links (bol_document_id, appointment_id, created_at)
+            VALUES ($1, $2, $3)
+            RETURNING *
+          `;
+          const result = await db.execute(rawQuery, [
+            linkData.bolDocumentId,
+            linkData.scheduleId,
+            new Date()
+          ]);
+          return result.rows[0];
+        } catch (fallbackError) {
+          logger.error('BOL-Repository', 'Fallback query also failed', fallbackError);
+        }
+      }
       throw error;
     }
   }
@@ -109,18 +140,39 @@ export class BolRepository {
    */
   async getBolDocumentsForSchedule(scheduleId) {
     try {
-      // First get the links
-      const links = await db
-        .select()
-        .from(appointmentBolLinks)
-        .where(eq(appointmentBolLinks.scheduleId, scheduleId));
+      console.log('[BOL-Repository] Fetching BOL documents for schedule:', scheduleId);
+      
+      // 🔥 FIX: Try primary column name first, then fallback
+      let links;
+      try {
+        links = await db
+          .select()
+          .from(appointmentBolLinks)
+          .where(eq(appointmentBolLinks.scheduleId, scheduleId));
+      } catch (primaryError) {
+        if (primaryError.message && primaryError.message.includes('schedule_id')) {
+          logger.warn('BOL-Repository', 'Primary column failed, trying fallback query');
+          // Use raw SQL as fallback
+          const rawQuery = `
+            SELECT * FROM appointment_bol_links 
+            WHERE appointment_id = $1
+          `;
+          const result = await db.execute(rawQuery, [scheduleId]);
+          links = result.rows;
+        } else {
+          throw primaryError;
+        }
+      }
       
       if (!links || links.length === 0) {
+        console.log('[BOL-Repository] No BOL links found for schedule:', scheduleId);
         return [];
       }
       
+      console.log('[BOL-Repository] Found', links.length, 'BOL links for schedule:', scheduleId);
+      
       // Get all document IDs from the links
-      const documentIds = links.map(link => link.bolDocumentId);
+      const documentIds = links.map(link => link.bolDocumentId || link.bol_document_id);
       
       // Then get the documents
       const documents = await Promise.all(
@@ -128,7 +180,9 @@ export class BolRepository {
       );
       
       // Filter out any null values (documents that weren't found)
-      return documents.filter(doc => doc !== null);
+      const validDocuments = documents.filter(doc => doc !== null);
+      console.log('[BOL-Repository] Retrieved', validDocuments.length, 'valid BOL documents');
+      return validDocuments;
     } catch (error) {
       logger.error('BOL-Repository', 'Error getting BOL documents for schedule', error);
       throw error;

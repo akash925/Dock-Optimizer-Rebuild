@@ -864,35 +864,38 @@ export async function sendConfirmationEmail(
                           userTimezone === 'America/Los_Angeles' ? 'Pacific Time' :
                           userTimezone;
 
-  // Host URL with potential fallback - use current request host for development
-  const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1l3rlgulg.worf.replit.dev';
+  // 🔥 FIX: Use the correct Replit URL from the user's example
+  const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev';
 
-  // Create management links for the email - FIX: Use correct URL format
+  // 🔥 FIX: Create management links for the email - CORRECTED URL format
   const viewEditLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
   const rescheduleLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
   const cancelLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
   
-  // Generate QR code SVG directly instead of using URLs
-  const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
+  // Generate QR code for appointment details (not check-in)
+  const appointmentDetailsUrl = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
   // 🔥 FIX: Use external QR code service for better email client compatibility
-  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(checkInUrl)}`;
+  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(appointmentDetailsUrl)}`;
   const qrCodeSvgContent = `
     <div style="text-align: center; margin: 25px 0;">
       <div style="display: inline-block; background-color: white; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
-        <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">Express Check-in</h3>
-        <img src="${qrCodeImageUrl}" alt="QR Code for Check-in" style="width: 200px; height: 200px; display: block; margin: 0 auto;" />
+        <h3 style="margin-top: 0; margin-bottom: 10px; color: #333;">View Appointment Details</h3>
+        <img src="${qrCodeImageUrl}" alt="QR Code for Appointment Details" style="width: 200px; height: 200px; display: block; margin: 0 auto;" />
         <p style="margin-top: 10px; margin-bottom: 0; font-size: 12px; color: #666;">
           Confirmation Code: ${confirmationCode}<br>
-          <span style="font-size: 11px;">Scan with your phone to check in</span>
+          <span style="font-size: 11px;">Scan to view appointment details</span>
         </p>
       </div>
     </div>
   `;
-  console.log(`[EMAIL] Generated QR code for reschedule email to ${to}`);
+  console.log(`[EMAIL] Generated QR code for confirmation email to ${to}`);
+  console.log(`[EMAIL] Appointment details URL: ${appointmentDetailsUrl}`);
+  console.log(`[EMAIL] View/Edit link: ${viewEditLink}`);
+  console.log(`[EMAIL] Host URL: ${host}`);
   
   
-  // Additional logging to help debug QR code issues
-  console.log(`[EMAIL] Full check-in URL: ${checkInUrl}`);
+  // Additional logging to help debug QR code issues  
+  console.log(`[EMAIL] Appointment details URL: ${appointmentDetailsUrl}`);
   console.log(`[EMAIL] View/Edit link: ${viewEditLink}`);
   console.log(`[EMAIL] Host URL from env or default: ${host}`);
 
@@ -1028,7 +1031,7 @@ export async function sendConfirmationEmail(
     CHECK-IN INFORMATION
     ------------------
     Confirmation Code: ${confirmationCode}
-    Express Check-in URL: ${checkInUrl}
+    View Appointment Details: ${appointmentDetailsUrl}
     
     MANAGE YOUR APPOINTMENT
     ---------------------
