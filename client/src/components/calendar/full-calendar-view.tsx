@@ -169,7 +169,7 @@ export default function FullCalendarView({
     // For events on different days, sort normally (chronologically)
     return aStartTime.getTime() - bStartTime.getTime();
   });
-
+  
   // Check if an appointment needs attention (soon to start or unchecked-in)
   const needsAttention = (schedule: Schedule): { needsAttention: boolean, isUrgent: boolean, reason: string } => {
     const now = new Date();
@@ -463,15 +463,15 @@ export default function FullCalendarView({
       targetTimezone, 
       'h:mm a'
     );
-    
+      
     // Only show user time if it's different from facility time
     if (userTimezone !== targetTimezone) {
       return `${facilityTime} (${userTime} your time)`;
-    }
-    
+      }
+      
     return facilityTime;
   };
-
+  
   return (
     <div className="space-y-4 h-full">
       {/* Event tooltip */}
@@ -761,7 +761,7 @@ export default function FullCalendarView({
                   // Try extracting from title as last resort
                   eventInfo.event.title?.split('\n')?.[0]?.replace('👤 ', '') ||
                   'Customer'; // Always provide fallback
-                
+                  
                 // Get other fields from event props
                 const carrierName = eventData?.carrierName || 'Carrier';
                 const dockId = eventData?.dockId || '';
@@ -831,8 +831,8 @@ export default function FullCalendarView({
                     <div className="event-header">
                       {/* ENHANCED CUSTOMER NAME: Largest, most prominent display */}
                       <div className="customer-name-primary text-white font-bold text-lg leading-tight mb-2 overflow-hidden text-ellipsis">
-                        {customerName}
-                      </div>
+                          {customerName}
+                        </div>
                       
                       {/* Time and Type - secondary info */}
                       <div className="flex items-center justify-between w-full text-sm font-medium mb-1">
@@ -874,8 +874,8 @@ export default function FullCalendarView({
                           🚪 Dock #{dockId}
                         </div>
                       )}
-                    </div>
-                    
+                      </div>
+                      
                     {/* Status badges at bottom */}
                     <div className="event-footer mt-auto pt-1">
                       {showStatusBadge && (
