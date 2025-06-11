@@ -139,15 +139,17 @@ export default function DoorAppointmentForm({
   // Create appointment mutation
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: AppointmentValues) => {
-      // Add userId and status to the data, calculate endTime if not provided
+      // Use consistent appointment creation logic - create as scheduled, not in-progress
       const appointmentData = {
         ...data,
         // If endTime is not provided, set it to 1 hour after startTime by default
         endTime: data.endTime || new Date(data.startTime.getTime() + 60 * 60 * 1000),
-        // Set status to in-progress by default for door manager appointments
-        status: ScheduleStatus.IN_PROGRESS,
-        actualStartTime: new Date().toISOString(),
+        // Create as scheduled status initially (consistent with standard appointment flow)
+        status: ScheduleStatus.SCHEDULED,
+        // Assign to dock immediately since this is from door manager
+        dockId: dockId,
         createdBy: user?.id || 1,
+        // Don't set actualStartTime yet - will be set when actually checked in
       };
       
       // Convert dates to ISO strings for JSON serialization
@@ -158,16 +160,40 @@ export default function DoorAppointmentForm({
         endTime: appointmentData.endTime ? appointmentData.endTime.toISOString() : new Date(Date.now() + 3600000).toISOString(),
       };
       
-      console.log("Sending appointment data:", JSON.stringify(serializedData, null, 2));
+      console.log("Sending door appointment data:", JSON.stringify(serializedData, null, 2));
       
       const res = await apiRequest("POST", "/api/schedules", serializedData);
-      return await res.json();
+      const createdAppointment = await res.json();
+      
+      // After creating the appointment, immediately check it in since it's being assigned to a door
+      if (createdAppointment.id) {
+        console.log("Auto-checking in door appointment:", createdAppointment.id);
+        try {
+          const checkinRes = await apiRequest("PATCH", `/api/schedules/${createdAppointment.id}/check-in`, {
+            actualStartTime: new Date().toISOString()
+          });
+          
+          if (checkinRes.ok) {
+            const checkedInAppointment = await checkinRes.json();
+            console.log("Door appointment checked in successfully");
+            return checkedInAppointment;
+          } else {
+            console.warn("Failed to auto-check-in appointment, but creation was successful");
+            return createdAppointment;
+          }
+        } catch (checkinError) {
+          console.warn("Auto check-in failed, but appointment was created:", checkinError);
+          return createdAppointment;
+        }
+      }
+      
+      return createdAppointment;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({
         title: "Appointment created",
-        description: "The door appointment has been created successfully.",
+        description: "The door appointment has been created and checked in successfully.",
       });
       form.reset();
       onSuccess();

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, RefreshCw, Calendar, Settings, X, QrCode, FileText, Image, MessageSquare } from "lucide-react";
+import { LogOut, RefreshCw, Calendar, Settings, X, QrCode, FileText, Image, MessageSquare, Scan } from "lucide-react";
 import ReleaseDoorForm from "@/components/door-manager/release-door-form";
 import UnifiedAppointmentFlow from "@/components/appointment/unified-appointment-flow";
 import DoorBoard from "../components/door-manager/door-board";
@@ -14,6 +14,7 @@ import AppointmentSelector from "@/components/door-manager/appointment-selector-
 import DoorAppointmentForm from "@/components/door-manager/door-appointment-form";
 import { useAssignAppointmentToDoor } from "@/components/door-manager/assign-appointment-service";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AppointmentScanner } from "@/components/shared/appointment-scanner";
 
 export default function DoorManager() {
   const { toast } = useToast();
@@ -277,39 +278,72 @@ export default function DoorManager() {
   const openQRCodeWindow = (schedule: Schedule) => {
     const confirmationCode = (schedule as any).confirmationCode || `HZL-${schedule.id.toString().padStart(6, '0')}`;
     const baseUrl = window.location.origin;
-    const checkInUrl = `${baseUrl}/driver-check-in?code=${confirmationCode}`;
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkInUrl)}`;
+    
+    // QR code should link to appointment details for staff use
+    const appointmentDetailsUrl = `${baseUrl}/schedules/${schedule.id}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(appointmentDetailsUrl)}`;
+    
+    // Find carrier info
+    const carrier = carriers.find(c => c.id === schedule.carrierId);
     
     // Open QR code in a new window for easy access
-    const qrWindow = window.open('', '_blank', 'width=400,height=600,scrollbars=yes');
+    const qrWindow = window.open('', '_blank', 'width=450,height=700,scrollbars=yes');
     if (qrWindow) {
       qrWindow.document.write(`
         <html>
-          <head><title>Appointment QR Code - ${confirmationCode}</title></head>
+          <head><title>Appointment Details - ${confirmationCode}</title></head>
           <body style="text-align: center; font-family: Arial, sans-serif; padding: 20px;">
-            <h2>Door Manager - QR Code Access</h2>
+            <h2>Door Manager - Appointment Details</h2>
             <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <div style="font-size: 24px; font-weight: bold; color: #2563eb; margin-bottom: 10px;">
                 ${confirmationCode}
               </div>
               <img src="${qrUrl}" alt="QR Code for ${confirmationCode}" style="border: 1px solid #ccc; border-radius: 8px;" />
               <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                Scan this QR code for check-in
+                Scan to view full appointment details
               </p>
-              <div style="margin-top: 20px; text-align: left; background: white; padding: 15px; border-radius: 5px;">
-                <h3 style="margin-top: 0;">Appointment Details:</h3>
-                <p><strong>Customer:</strong> ${schedule.customerName || 'N/A'}</p>
-                <p><strong>Truck:</strong> ${schedule.truckNumber || 'N/A'}</p>
-                <p><strong>Time:</strong> ${new Date(schedule.startTime).toLocaleString()}</p>
-                ${schedule.notes ? `<p><strong>Notes:</strong> ${schedule.notes}</p>` : ''}
+            </div>
+            
+            <div style="text-align: left; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h3 style="margin-top: 0; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">Appointment Summary</h3>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                  <p style="margin: 5px 0;"><strong>Customer:</strong> ${schedule.customerName || 'N/A'}</p>
+                  <p style="margin: 5px 0;"><strong>Carrier:</strong> ${carrier?.name || 'Unknown'}</p>
+                  <p style="margin: 5px 0;"><strong>Truck:</strong> ${schedule.truckNumber || 'N/A'}</p>
+                </div>
+                <div>
+                  <p style="margin: 5px 0;"><strong>Type:</strong> ${schedule.type || 'N/A'}</p>
+                  <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: #059669;">${schedule.status}</span></p>
+                  <p style="margin: 5px 0;"><strong>Started:</strong> ${schedule.actualStartTime ? new Date(schedule.actualStartTime).toLocaleString() : 'Not started'}</p>
+                </div>
+              </div>
+              
+              <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                <p style="margin: 5px 0;"><strong>Scheduled:</strong> ${new Date(schedule.startTime).toLocaleString()} - ${new Date(schedule.endTime).toLocaleTimeString()}</p>
+                ${schedule.notes ? `<p style="margin: 10px 0 0 0;"><strong>Notes:</strong> ${schedule.notes}</p>` : ''}
+              </div>
+              
+              <div style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-top: 15px;">
+                <p style="font-size: 12px; color: #6b7280; margin: 0;">
+                  <strong>QR Code URL:</strong> ${appointmentDetailsUrl}
+                </p>
               </div>
             </div>
-            <button onclick="window.print()" style="background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-right: 10px;">
-              Print QR Code
-            </button>
-            <button onclick="window.close()" style="background: #6b7280; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
-              Close
-            </button>
+            
+            <div style="margin-top: 20px;">
+              <button onclick="window.print()" style="background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin-right: 10px; font-weight: 500;">
+                Print Details
+              </button>
+              <button onclick="window.close()" style="background: #6b7280; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                Close
+              </button>
+            </div>
+            
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 20px;">
+              Use this QR code to quickly access appointment details from any device
+            </p>
           </body>
         </html>
       `);

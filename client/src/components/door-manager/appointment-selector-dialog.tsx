@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, isPast, isFuture, addHours } from "date-fns";
-import { PlusCircle, Calendar, Clock, Truck, User, Filter } from "lucide-react";
+import { PlusCircle, Calendar, Clock, Truck, User, Filter, Scan } from "lucide-react";
 import { Schedule, Facility } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { AppointmentScanner } from "@/components/shared/appointment-scanner";
 
 interface AppointmentSelectorDialogProps {
   isOpen: boolean;
@@ -102,6 +103,31 @@ export default function AppointmentSelectorDialog({
     }
   };
   
+  // Handle QR code scan results
+  const handleQRScan = (scheduleId: number) => {
+    console.log(`[AppointmentSelector] QR scan detected appointment ${scheduleId}`);
+    
+    // Find the appointment in our filtered list
+    const scannedAppointment = schedules.find(s => s.id === scheduleId);
+    
+    if (scannedAppointment) {
+      // Check if this appointment is available for assignment
+      const isAvailable = !scannedAppointment.dockId && 
+                         (scannedAppointment.status === "scheduled" || scannedAppointment.status === "pending");
+      
+      if (isAvailable) {
+        console.log(`[AppointmentSelector] Auto-assigning scanned appointment ${scheduleId} to dock ${dockId}`);
+        onSelect(scheduleId);
+      } else {
+        console.warn(`[AppointmentSelector] Scanned appointment ${scheduleId} is not available for assignment`);
+        // Could show a toast here if needed
+      }
+    } else {
+      console.warn(`[AppointmentSelector] Scanned appointment ${scheduleId} not found in available appointments`);
+      // Could show a toast here if needed
+    }
+  };
+  
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[650px]">
@@ -112,38 +138,49 @@ export default function AppointmentSelectorDialog({
           </DialogDescription>
         </DialogHeader>
         
-        {/* Facility Filter */}
-        <div className="mb-4 border-b pb-4">
-          <div className="flex items-center gap-2 mb-1">
+        {/* Header Actions */}
+        <div className="flex items-center justify-between mb-4 border-b pb-4">
+          {/* Facility Filter */}
+          <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
             <Label htmlFor="facility-filter" className="text-sm font-medium">Filter by Facility</Label>
+            <Select 
+              value={selectedFacilityId?.toString() || "0"} 
+              onValueChange={(value) => {
+                // If value is "0", it means "All Facilities" (null)
+                const newFacilityId = value === "0" ? null : parseInt(value);
+                setSelectedFacilityId(newFacilityId);
+                // Pass the facility change up to the parent component if provided
+                if (onFacilityChange && newFacilityId) {
+                  onFacilityChange(newFacilityId);
+                }
+              }}
+            >
+              <SelectTrigger id="facility-filter" className="w-[200px]">
+                <SelectValue placeholder="Select a facility">
+                  {getFacilityName(selectedFacilityId)}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">All Facilities</SelectItem>
+                {facilities.map((facility) => (
+                  <SelectItem key={facility.id} value={facility.id.toString()}>
+                    {facility.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <Select 
-            value={selectedFacilityId?.toString() || "0"} 
-            onValueChange={(value) => {
-              // If value is "0", it means "All Facilities" (null)
-              const newFacilityId = value === "0" ? null : parseInt(value);
-              setSelectedFacilityId(newFacilityId);
-              // Pass the facility change up to the parent component if provided
-              if (onFacilityChange && newFacilityId) {
-                onFacilityChange(newFacilityId);
-              }
-            }}
-          >
-            <SelectTrigger id="facility-filter" className="w-full">
-              <SelectValue placeholder="Select a facility">
-                {getFacilityName(selectedFacilityId)}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">All Facilities</SelectItem>
-              {facilities.map((facility) => (
-                <SelectItem key={facility.id} value={facility.id.toString()}>
-                  {facility.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          
+          {/* QR Scanner */}
+          <div className="flex items-center gap-2">
+            <AppointmentScanner
+              onScanComplete={handleQRScan}
+              variant="outline"
+              size="sm"
+              buttonText="Scan QR Code"
+            />
+          </div>
         </div>
         
         <Tabs defaultValue="upcoming" className="w-full" onValueChange={(value) => setTab(value as "upcoming" | "all")}>
