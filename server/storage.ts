@@ -755,7 +755,9 @@ export class DatabaseStorage implements IStorage {
   async updateTenant(id: number, data: any) { return this.memStorage.updateTenant(id, data); }
   async deleteTenant(id: number) { return this.memStorage.deleteTenant(id); }
 
-  // Add missing method for appointment type fields
+  // Add missing delegation methods
+  async getNotificationsByUser(userId: number) { return this.memStorage.getNotificationsByUser(userId); }
+  async getOrganizationModules(organizationId: number) { return this.memStorage.getOrganizationModules(organizationId); }
   async getAppointmentTypeFields(organizationId: number): Promise<Array<{
     fieldKey: string;
     label: string;
@@ -765,7 +767,8 @@ export class DatabaseStorage implements IStorage {
     required: boolean;
     orderPosition: number;
   }>> {
-    return this.memStorage.getAppointmentTypeFields(organizationId);
+    // Return empty array for now
+    return [];
   }
 }
 
