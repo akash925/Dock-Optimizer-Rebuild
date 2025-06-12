@@ -676,50 +676,194 @@ export class MemStorage implements IStorage {
   async getOrganizationHolidays(organizationId: number): Promise<any[]> { return []; }
 }
 
-// Database Storage Implementation (Placeholder for future implementation)
+// Database Storage Implementation using Drizzle ORM
 export class DatabaseStorage implements IStorage {
   sessionStore: any;
-  private memStorage: MemStorage;
 
   constructor() {
-    // Initialize memory store for now
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
+    // Initialize PostgreSQL session store
+    this.sessionStore = new PostgresSessionStore({
+      pool: pool,
+      createTableIfMissing: true,
     });
-    this.memStorage = new MemStorage();
   }
 
-  // Delegate all methods to memory storage for now
-  async getUsers() { return this.memStorage.getUsers(); }
-  async getUserByUsername(username: string) { return this.memStorage.getUserByUsername(username); }
-  async getUserById(id: number) { return this.memStorage.getUserById(id); }
-  async createUser(user: any) { return this.memStorage.createUser(user); }
-  async updateUser(id: number, data: any) { return this.memStorage.updateUser(id, data); }
-  async deleteUser(id: number) { return this.memStorage.deleteUser(id); }
-  async updateUserModules(id: number, modules: string[]) { return this.memStorage.updateUserModules(id, modules); }
+  // Real database operations using Drizzle ORM
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
 
-  async getSchedules() { return this.memStorage.getSchedules(); }
-  async getSchedulesByDateRange(startDate: string, endDate: string) { return this.memStorage.getSchedulesByDateRange(startDate, endDate); }
-  async createSchedule(schedule: any) { return this.memStorage.createSchedule(schedule); }
-  async updateSchedule(id: number, data: any) { return this.memStorage.updateSchedule(id, data); }
-  async deleteSchedule(id: number) { return this.memStorage.deleteSchedule(id); }
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return user;
+  }
 
-  async getFacilities() { return this.memStorage.getFacilities(); }
-  async getFacilitiesByOrganizationId(orgId: number) { return this.memStorage.getFacilitiesByOrganizationId(orgId); }
-  async createFacility(facility: any) { return this.memStorage.createFacility(facility); }
-  async updateFacility(id: number, data: any) { return this.memStorage.updateFacility(id, data); }
-  async deleteFacility(id: number) { return this.memStorage.deleteFacility(id); }
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return user;
+  }
 
-  async getOrganizations() { return this.memStorage.getOrganizations(); }
-  async getOrganizationById(id: number) { return this.memStorage.getOrganizationById(id); }
-  async createOrganization(org: any) { return this.memStorage.createOrganization(org); }
-  async updateOrganization(id: number, data: any) { return this.memStorage.updateOrganization(id, data); }
-  async deleteOrganization(id: number) { return this.memStorage.deleteOrganization(id); }
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const hashedPassword = await hashPassword(insertUser.password);
+    const [newUser] = await db
+      .insert(users)
+      .values({ ...insertUser, password: hashedPassword })
+      .returning();
+    return newUser;
+  }
 
-  async getDocks() { return this.memStorage.getDocks(); }
-  async createDock(dock: any) { return this.memStorage.createDock(dock); }
-  async updateDock(id: number, data: any) { return this.memStorage.updateDock(id, data); }
-  async deleteDock(id: number) { return this.memStorage.deleteDock(id); }
+  async updateUser(id: number, userUpdate: Partial<User>): Promise<User | undefined> {
+    if (userUpdate.password) {
+      userUpdate.password = await hashPassword(userUpdate.password);
+    }
+    const [updatedUser] = await db
+      .update(users)
+      .set(userUpdate)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return result.rowCount > 0;
+  }
+
+  async updateUserModules(id: number, modules: string[]): Promise<boolean> {
+    const result = await db
+      .update(users)
+      .set({ modules: modules as any })
+      .where(eq(users.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Schedule operations with real database queries
+  async getSchedules(): Promise<Schedule[]> {
+    return await db.select().from(schedules);
+  }
+
+  async getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]> {
+    return await db
+      .select()
+      .from(schedules)
+      .where(and(gte(schedules.startTime, startDate), lte(schedules.endTime, endDate)));
+  }
+
+  async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
+    const [newSchedule] = await db.insert(schedules).values(insertSchedule).returning();
+    return newSchedule;
+  }
+
+  async updateSchedule(id: number, scheduleUpdate: Partial<Schedule>): Promise<Schedule | undefined> {
+    const [updatedSchedule] = await db
+      .update(schedules)
+      .set(scheduleUpdate)
+      .where(eq(schedules.id, id))
+      .returning();
+    return updatedSchedule;
+  }
+
+  async deleteSchedule(id: number): Promise<boolean> {
+    const result = await db.delete(schedules).where(eq(schedules.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Facility operations with real database queries
+  async getFacilities(tenantId?: number): Promise<Facility[]> {
+    if (tenantId) {
+      return await db.select().from(facilities).where(eq(facilities.tenantId, tenantId));
+    }
+    return await db.select().from(facilities);
+  }
+
+  async getFacilitiesByOrganizationId(organizationId: number): Promise<Facility[]> {
+    return await db
+      .select()
+      .from(facilities)
+      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
+      .where(eq(organizationFacilities.organizationId, organizationId));
+  }
+
+  async createFacility(insertFacility: InsertFacility): Promise<Facility> {
+    const [newFacility] = await db.insert(facilities).values(insertFacility).returning();
+    return newFacility;
+  }
+
+  async updateFacility(id: number, facilityUpdate: Partial<Facility>): Promise<Facility | undefined> {
+    const [updatedFacility] = await db
+      .update(facilities)
+      .set(facilityUpdate)
+      .where(eq(facilities.id, id))
+      .returning();
+    return updatedFacility;
+  }
+
+  async deleteFacility(id: number): Promise<boolean> {
+    const result = await db.delete(facilities).where(eq(facilities.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Tenant/Organization operations with real database queries
+  async getAllTenants(): Promise<Tenant[]> {
+    return await db.select().from(tenants);
+  }
+
+  async getTenantById(id: number): Promise<Tenant | undefined> {
+    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
+    return tenant;
+  }
+
+  async createTenant(insertTenant: InsertTenant): Promise<Tenant> {
+    const [newTenant] = await db.insert(tenants).values(insertTenant).returning();
+    return newTenant;
+  }
+
+  async updateTenant(id: number, tenantUpdate: Partial<Tenant>): Promise<Tenant | undefined> {
+    const [updatedTenant] = await db
+      .update(tenants)
+      .set(tenantUpdate)
+      .where(eq(tenants.id, id))
+      .returning();
+    return updatedTenant;
+  }
+
+  async deleteTenant(id: number): Promise<boolean> {
+    const result = await db.delete(tenants).where(eq(tenants.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Dock operations with real database queries
+  async getDocks(): Promise<Dock[]> {
+    return await db.select().from(docks);
+  }
+
+  async getDock(id: number): Promise<Dock | undefined> {
+    const [dock] = await db.select().from(docks).where(eq(docks.id, id)).limit(1);
+    return dock;
+  }
+
+  async getDocksByFacility(facilityId: number): Promise<Dock[]> {
+    return await db.select().from(docks).where(eq(docks.facilityId, facilityId));
+  }
+
+  async createDock(insertDock: InsertDock): Promise<Dock> {
+    const [newDock] = await db.insert(docks).values(insertDock).returning();
+    return newDock;
+  }
+
+  async updateDock(id: number, dockUpdate: Partial<Dock>): Promise<Dock | undefined> {
+    const [updatedDock] = await db
+      .update(docks)
+      .set(dockUpdate)
+      .where(eq(docks.id, id))
+      .returning();
+    return updatedDock;
+  }
+
+  async deleteDock(id: number): Promise<boolean> {
+    const result = await db.delete(docks).where(eq(docks.id, id));
+    return result.rowCount > 0;
+  }
 
   async getCarriers() { return this.memStorage.getCarriers(); }
   async createCarrier(carrier: any) { return this.memStorage.createCarrier(carrier); }
@@ -755,9 +899,15 @@ export class DatabaseStorage implements IStorage {
   async updateTenant(id: number, data: any) { return this.memStorage.updateTenant(id, data); }
   async deleteTenant(id: number) { return this.memStorage.deleteTenant(id); }
 
-  // Add missing delegation methods
-  async getNotificationsByUser(userId: number) { return this.memStorage.getNotificationsByUser(userId); }
-  async getOrganizationModules(organizationId: number) { return this.memStorage.getOrganizationModules(organizationId); }
+  // Add missing methods with real database queries
+  async getNotificationsByUser(userId: number): Promise<Notification[]> {
+    return await db.select().from(notifications).where(eq(notifications.userId, userId));
+  }
+
+  async getOrganizationModules(organizationId: number): Promise<OrganizationModule[]> {
+    return await db.select().from(organizationModules).where(eq(organizationModules.organizationId, organizationId));
+  }
+
   async getAppointmentTypeFields(organizationId: number): Promise<Array<{
     fieldKey: string;
     label: string;
@@ -767,7 +917,7 @@ export class DatabaseStorage implements IStorage {
     required: boolean;
     orderPosition: number;
   }>> {
-    // Return empty array for now
+    // Return empty array for now - this would need proper implementation based on your schema
     return [];
   }
 }
