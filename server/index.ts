@@ -158,10 +158,18 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Serve the app on port 5001 to avoid conflicts with system services on macOS
-  // this serves both the API and the client.
+  // Serve the app on the configured port
+  // For Replit: process.env.PORT is automatically set
+  // For local development: defaults to 5001
   const port = Number(process.env.PORT) || 5001;
-  server.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
+  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
+  
+  server.listen(port, host, () => {
+    log(`serving on ${host}:${port}`);
+    if (process.env.NODE_ENV === 'production') {
+      log(`🚀 Production server ready!`);
+    } else {
+      log(`🔧 Development server ready!`);
+    }
   });
 })();

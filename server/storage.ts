@@ -754,6 +754,19 @@ export class DatabaseStorage implements IStorage {
   async createTenant(tenant: any) { return this.memStorage.createTenant(tenant); }
   async updateTenant(id: number, data: any) { return this.memStorage.updateTenant(id, data); }
   async deleteTenant(id: number) { return this.memStorage.deleteTenant(id); }
+
+  // Add missing method for appointment type fields
+  async getAppointmentTypeFields(organizationId: number): Promise<Array<{
+    fieldKey: string;
+    label: string;
+    fieldType: string;
+    appointmentTypeId: number;
+    included: boolean;
+    required: boolean;
+    orderPosition: number;
+  }>> {
+    return this.memStorage.getAppointmentTypeFields(organizationId);
+  }
 }
 
 // Storage instance management
@@ -761,8 +774,14 @@ let storageInstance: IStorage | null = null;
 
 export async function getStorage(): Promise<IStorage> {
   if (!storageInstance) {
-    // Always use memory storage for now to avoid schema conflicts
-    storageInstance = new MemStorage();
+    // Use database storage if DATABASE_URL is provided, otherwise use memory storage
+    if (process.env.DATABASE_URL) {
+      console.log("Using PostgreSQL database storage");
+      storageInstance = new DatabaseStorage();
+    } else {
+      console.log("Using memory storage for development");
+      storageInstance = new MemStorage();
+    }
   }
   return storageInstance;
 }
