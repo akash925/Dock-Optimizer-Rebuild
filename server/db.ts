@@ -5,18 +5,19 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Allow development mode without database for memory storage
+// Create dummy exports to prevent import errors when DATABASE_URL is not set
 let pool: Pool | null = null;
 let db: any = null;
 
-if (!process.env.DATABASE_URL) {
-  console.warn("DATABASE_URL not set. Database operations will fail. Using memory storage is recommended for development.");
-  // Set to null - memory storage will be used instead
-  pool = null;
-  db = null;
+if (process.env.DATABASE_URL) {
+  try {
+    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    db = drizzle(pool, { schema });
+  } catch (error) {
+    console.warn("Failed to connect to database, using memory storage:", error);
+  }
 } else {
-  pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  db = drizzle(pool, { schema });
+  console.warn("DATABASE_URL not set. Using memory storage for development.");
 }
 
 export { pool, db };
