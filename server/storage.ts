@@ -679,6 +679,7 @@ export class MemStorage implements IStorage {
 // Database Storage Implementation using Drizzle ORM
 export class DatabaseStorage implements IStorage {
   sessionStore: any;
+  private memStorage: IStorage; // Add memStorage property
 
   constructor() {
     // Initialize PostgreSQL session store
@@ -686,6 +687,9 @@ export class DatabaseStorage implements IStorage {
       pool: pool,
       createTableIfMissing: true,
     });
+    
+    // Initialize memory storage as fallback for methods not yet implemented with database
+    this.memStorage = new MemStorage();
   }
 
   // Real database operations using Drizzle ORM
@@ -865,40 +869,6 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async getCarriers() { return this.memStorage.getCarriers(); }
-  async createCarrier(carrier: any) { return this.memStorage.createCarrier(carrier); }
-  async updateCarrier(id: number, data: any) { return this.memStorage.updateCarrier(id, data); }
-  async deleteCarrier(id: number) { return this.memStorage.deleteCarrier(id); }
-
-  async getAppointmentTypes() { return this.memStorage.getAppointmentTypes(); }
-  async getAppointmentTypesByFacility(facilityId: number, tenantId?: number) { return this.memStorage.getAppointmentTypesByFacility(facilityId, tenantId); }
-  async createAppointmentType(appointmentType: any) { return this.memStorage.createAppointmentType(appointmentType); }
-  async updateAppointmentType(id: number, data: any) { return this.memStorage.updateAppointmentType(id, data); }
-  async deleteAppointmentType(id: number) { return this.memStorage.deleteAppointmentType(id); }
-
-  // Delegate all other methods
-  async getSystemSettings() { return this.memStorage.getSystemSettings(); }
-  async updateSystemSettings(settings: any) { return this.memStorage.updateSystemSettings(settings); }
-  async getBookingPages() { return this.memStorage.getBookingPages(); }
-  async getBookingPageBySlug(slug: string) { return this.memStorage.getBookingPageBySlug(slug); }
-  async createBookingPage(bookingPage: any) { return this.memStorage.createBookingPage(bookingPage); }
-  async updateBookingPage(id: number, data: any) { return this.memStorage.updateBookingPage(id, data); }
-  async deleteBookingPage(id: number) { return this.memStorage.deleteBookingPage(id); }
-  async getStandardQuestions() { return this.memStorage.getStandardQuestions(); }
-  async createStandardQuestion(question: any) { return this.memStorage.createStandardQuestion(question); }
-  async createStandardQuestionWithId(id: number, question: any) { return this.memStorage.createStandardQuestionWithId(id, question); }
-  async updateStandardQuestion(id: number, data: any) { return this.memStorage.updateStandardQuestion(id, data); }
-  async deleteStandardQuestion(id: number) { return this.memStorage.deleteStandardQuestion(id); }
-  async getCompanyAssets(filters?: any) { return this.memStorage.getCompanyAssets(filters); }
-  async createCompanyAsset(asset: any) { return this.memStorage.createCompanyAsset(asset); }
-  async updateCompanyAsset(id: number, data: any) { return this.memStorage.updateCompanyAsset(id, data); }
-  async deleteCompanyAsset(id: number) { return this.memStorage.deleteCompanyAsset(id); }
-  async getTenants() { return this.memStorage.getTenants(); }
-  async getTenantById(id: number) { return this.memStorage.getTenantById(id); }
-  async createTenant(tenant: any) { return this.memStorage.createTenant(tenant); }
-  async updateTenant(id: number, data: any) { return this.memStorage.updateTenant(id, data); }
-  async deleteTenant(id: number) { return this.memStorage.deleteTenant(id); }
-
   // Add missing methods with real database queries
   async getNotificationsByUser(userId: number): Promise<Notification[]> {
     return await db.select().from(notifications).where(eq(notifications.userId, userId));
@@ -920,6 +890,104 @@ export class DatabaseStorage implements IStorage {
     // Return empty array for now - this would need proper implementation based on your schema
     return [];
   }
+
+  // Delegate methods that aren't yet implemented with database queries to memStorage
+  async getCarriers() { return this.memStorage.getCarriers(); }
+  async createCarrier(carrier: any) { return this.memStorage.createCarrier(carrier); }
+  async updateCarrier(id: number, data: any) { return this.memStorage.updateCarrier(id, data); }
+  async deleteCarrier(id: number) { return this.memStorage.deleteCarrier(id); }
+
+  async getAppointmentTypes() { return this.memStorage.getAppointmentTypes(); }
+  async getAppointmentTypesByFacility(facilityId: number, tenantId?: number) { return this.memStorage.getAppointmentTypesByFacility(facilityId, tenantId); }
+  async createAppointmentType(appointmentType: any) { return this.memStorage.createAppointmentType(appointmentType); }
+  async updateAppointmentType(id: number, data: any) { return this.memStorage.updateAppointmentType(id, data); }
+  async deleteAppointmentType(id: number) { return this.memStorage.deleteAppointmentType(id); }
+
+  async getSystemSettings() { return this.memStorage.getSystemSettings(); }
+  async updateSystemSettings(settings: any) { return this.memStorage.updateSystemSettings(settings); }
+  async getBookingPages() { return this.memStorage.getBookingPages(); }
+  async getBookingPageBySlug(slug: string) { return this.memStorage.getBookingPageBySlug(slug); }
+  async createBookingPage(bookingPage: any) { return this.memStorage.createBookingPage(bookingPage); }
+  async updateBookingPage(id: number, data: any) { return this.memStorage.updateBookingPage(id, data); }
+  async deleteBookingPage(id: number) { return this.memStorage.deleteBookingPage(id); }
+  async getStandardQuestions() { return this.memStorage.getStandardQuestions(); }
+  async createStandardQuestion(question: any) { return this.memStorage.createStandardQuestion(question); }
+  async createStandardQuestionWithId(id: number, question: any) { return this.memStorage.createStandardQuestionWithId(id, question); }
+  async updateStandardQuestion(id: number, data: any) { return this.memStorage.updateStandardQuestion(id, data); }
+  async deleteStandardQuestion(id: number) { return this.memStorage.deleteStandardQuestion(id); }
+  async getCompanyAssets(filters?: any) { return this.memStorage.getCompanyAssets(filters); }
+  async createCompanyAsset(asset: any) { return this.memStorage.createCompanyAsset(asset); }
+  async updateCompanyAsset(id: number, data: any) { return this.memStorage.updateCompanyAsset(id, data); }
+  async deleteCompanyAsset(id: number) { return this.memStorage.deleteCompanyAsset(id); }
+
+  // Add missing interface methods that delegate to memStorage for now
+  async getUser(id: number) { return this.memStorage.getUser(id); }
+  async updateUserPassword(id: number, hashedPassword: string) { return this.memStorage.updateUserPassword(id, hashedPassword); }
+  async getSchedule(id: number) { return this.memStorage.getSchedule(id); }
+  async getSchedulesByDock(dockId: number) { return this.memStorage.getSchedulesByDock(dockId); }
+  async searchSchedules(query: string) { return this.memStorage.searchSchedules(query); }
+  async getScheduleByConfirmationCode(code: string) { return this.memStorage.getScheduleByConfirmationCode(code); }
+  async getCarrier(id: number) { return this.memStorage.getCarrier(id); }
+  async getFacility(id: number, tenantId?: number) { return this.memStorage.getFacility(id, tenantId); }
+  async getOrganizationByFacilityId(facilityId: number) { return this.memStorage.getOrganizationByFacilityId(facilityId); }
+  async getOrganizationByAppointmentTypeId(appointmentTypeId: number) { return this.memStorage.getOrganizationByAppointmentTypeId(appointmentTypeId); }
+  async getFacilityTenantId(facilityId: number) { return this.memStorage.getFacilityTenantId(facilityId); }
+  async getNotification(id: number) { return this.memStorage.getNotification(id); }
+  async createNotification(notification: any) { return this.memStorage.createNotification(notification); }
+  async markNotificationAsRead(id: number) { return this.memStorage.markNotificationAsRead(id); }
+  async getAppointmentSettings(facilityId: number) { return this.memStorage.getAppointmentSettings(facilityId); }
+  async createAppointmentSettings(settings: any) { return this.memStorage.createAppointmentSettings(settings); }
+  async updateAppointmentSettings(facilityId: number, settings: any) { return this.memStorage.updateAppointmentSettings(facilityId, settings); }
+  async getAppointmentType(id: number) { return this.memStorage.getAppointmentType(id); }
+  async getDailyAvailability(id: number) { return this.memStorage.getDailyAvailability(id); }
+  async getDailyAvailabilityByAppointmentType(appointmentTypeId: number) { return this.memStorage.getDailyAvailabilityByAppointmentType(appointmentTypeId); }
+  async createDailyAvailability(dailyAvailability: any) { return this.memStorage.createDailyAvailability(dailyAvailability); }
+  async updateDailyAvailability(id: number, dailyAvailability: any) { return this.memStorage.updateDailyAvailability(id, dailyAvailability); }
+  async deleteDailyAvailability(id: number) { return this.memStorage.deleteDailyAvailability(id); }
+  async getCustomQuestion(id: number) { return this.memStorage.getCustomQuestion(id); }
+  async getCustomQuestionsByAppointmentType(appointmentTypeId: number) { return this.memStorage.getCustomQuestionsByAppointmentType(appointmentTypeId); }
+  async createCustomQuestion(customQuestion: any) { return this.memStorage.createCustomQuestion(customQuestion); }
+  async updateCustomQuestion(id: number, customQuestion: any) { return this.memStorage.updateCustomQuestion(id, customQuestion); }
+  async deleteCustomQuestion(id: number) { return this.memStorage.deleteCustomQuestion(id); }
+  async getStandardQuestion(id: number) { return this.memStorage.getStandardQuestion(id); }
+  async getStandardQuestionsByAppointmentType(appointmentTypeId: number) { return this.memStorage.getStandardQuestionsByAppointmentType(appointmentTypeId); }
+  async getBookingPage(id: number) { return this.memStorage.getBookingPage(id); }
+  async getAsset(id: number) { return this.memStorage.getAsset(id); }
+  async getAssets() { return this.memStorage.getAssets(); }
+  async getAssetsByUser(userId: number) { return this.memStorage.getAssetsByUser(userId); }
+  async createAsset(asset: any) { return this.memStorage.createAsset(asset); }
+  async updateAsset(id: number, asset: any) { return this.memStorage.updateAsset(id, asset); }
+  async deleteAsset(id: number) { return this.memStorage.deleteAsset(id); }
+  async getCompanyAsset(id: number) { return this.memStorage.getCompanyAsset(id); }
+  async getFilteredCompanyAssets(filters: any) { return this.memStorage.getFilteredCompanyAssets(filters); }
+  async deleteCompanyAsset(id: number) { return this.memStorage.deleteCompanyAsset(id); }
+  async getTenantBySubdomain(subdomain: string) { return this.memStorage.getTenantBySubdomain(subdomain); }
+  async getOrganizationDefaultHours(orgId: number) { return this.memStorage.getOrganizationDefaultHours(orgId); }
+  async updateOrganizationDefaultHours(orgId: number, defaultHours: any) { return this.memStorage.updateOrganizationDefaultHours(orgId, defaultHours); }
+  async getRole(id: number) { return this.memStorage.getRole(id); }
+  async getRoleByName(name: string) { return this.memStorage.getRoleByName(name); }
+  async getRoleById(id: number) { return this.memStorage.getRoleById(id); }
+  async getRoles() { return this.memStorage.getRoles(); }
+  async createRole(role: any) { return this.memStorage.createRole(role); }
+  async getUsersByOrganizationId(organizationId: number) { return this.memStorage.getUsersByOrganizationId(organizationId); }
+  async getOrganizationUsers(organizationId: number) { return this.memStorage.getOrganizationUsers(organizationId); }
+  async getOrganizationUsersWithRoles(organizationId: number) { return this.memStorage.getOrganizationUsersWithRoles(organizationId); }
+  async getUserOrganizationRole(userId: number, organizationId: number) { return this.memStorage.getUserOrganizationRole(userId, organizationId); }
+  async addUserToOrganization(orgUser: any) { return this.memStorage.addUserToOrganization(orgUser); }
+  async addUserToOrganizationWithRole(userId: number, organizationId: number, roleId: number) { return this.memStorage.addUserToOrganizationWithRole(userId, organizationId, roleId); }
+  async removeUserFromOrganization(userId: number, organizationId: number) { return this.memStorage.removeUserFromOrganization(userId, organizationId); }
+  async updateOrganizationModules(organizationId: number, modules: any) { return this.memStorage.updateOrganizationModules(organizationId, modules); }
+  async updateOrganizationModule(organizationId: number, moduleName: any, enabled: boolean) { return this.memStorage.updateOrganizationModule(organizationId, moduleName, enabled); }
+  async logOrganizationActivity(data: any) { return this.memStorage.logOrganizationActivity(data); }
+  async getOrganizationLogs(organizationId: number, page?: number, pageSize?: number) { return this.memStorage.getOrganizationLogs(organizationId, page, pageSize); }
+  async getUserPreferences(userId: number, organizationId: number) { return this.memStorage.getUserPreferences(userId, organizationId); }
+  async createUserPreferences(preferences: any) { return this.memStorage.createUserPreferences(preferences); }
+  async updateUserPreferences(userId: number, organizationId: number, preferences: any) { return this.memStorage.updateUserPreferences(userId, organizationId, preferences); }
+  async createFileRecord(fileRecord: any) { return this.memStorage.createFileRecord(fileRecord); }
+  async getFileRecord(fileId: string) { return this.memStorage.getFileRecord(fileId); }
+  async deleteFileRecord(fileId: string) { return this.memStorage.deleteFileRecord(fileId); }
+  async getTempFiles(cutoffDate: Date) { return this.memStorage.getTempFiles(cutoffDate); }
+  async getOrganizationHolidays(organizationId: number) { return this.memStorage.getOrganizationHolidays(organizationId); }
 }
 
 // Storage instance management
