@@ -402,9 +402,13 @@ export class MemStorage implements IStorage {
   async getFacility(id: number, tenantId?: number): Promise<Facility | undefined> { return this.facilities.get(id); }
   async getFacilities(tenantId?: number): Promise<Facility[]> { return Array.from(this.facilities.values()); }
   async getFacilitiesByOrganizationId(organizationId: number): Promise<Facility[]> {
-    const facilityMappings = Array.from(this.organizationFacilities.values()).filter(m => m.organizationId === organizationId);
-    const facilityIds = facilityMappings.map(m => m.facilityId);
-    return Array.from(this.facilities.values()).filter(f => facilityIds.includes(f.id));
+    const results = await db
+      .select()
+      .from(facilities)
+      .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
+      .where(eq(organizationFacilities.organizationId, organizationId));
+    
+    return results.map(r => r.facilities);
   }
   async getOrganizationByFacilityId(facilityId: number): Promise<any> { return null; }
   async getOrganizationByAppointmentTypeId(appointmentTypeId: number): Promise<any> { return null; }
@@ -561,11 +565,11 @@ export class MemStorage implements IStorage {
   async getCompanyAsset(id: number): Promise<CompanyAsset | undefined> { return this.companyAssets.get(id); }
   async getCompanyAssets(): Promise<CompanyAsset[]> { return Array.from(this.companyAssets.values()); }
   async getFilteredCompanyAssets(filters: Record<string, any>): Promise<CompanyAsset[]> { return []; }
-  async createCompanyAsset(insertCompanyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
+  async createCompanyAsset(companyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
     const id = this.companyAssetIdCounter++;
-    const companyAsset: CompanyAsset = { ...insertCompanyAsset, id, createdAt: new Date(), updatedAt: new Date(), department: insertCompanyAsset.department ?? null, barcode: insertCompanyAsset.barcode ?? null, serialNumber: insertCompanyAsset.serialNumber ?? null, description: insertCompanyAsset.description ?? null, purchasePrice: insertCompanyAsset.purchasePrice ?? null, purchaseDate: insertCompanyAsset.purchaseDate ?? null, warrantyExpiration: insertCompanyAsset.warrantyExpiration ?? null, depreciation: insertCompanyAsset.depreciation ?? null, assetValue: insertCompanyAsset.assetValue ?? null, template: insertCompanyAsset.template ?? null, tags: insertCompanyAsset.tags ?? null, model: insertCompanyAsset.model ?? null, assetCondition: insertCompanyAsset.assetCondition ?? null, notes: insertCompanyAsset.notes ?? null, manufacturerPartNumber: insertCompanyAsset.manufacturerPartNumber ?? null, supplierName: insertCompanyAsset.supplierName ?? null, poNumber: insertCompanyAsset.poNumber ?? null, vendorInformation: insertCompanyAsset.vendorInformation ?? null, photoUrl: insertCompanyAsset.photoUrl ?? null, documentUrls: insertCompanyAsset.documentUrls ?? null, lastMaintenanceDate: insertCompanyAsset.lastMaintenanceDate ?? null, nextMaintenanceDate: insertCompanyAsset.nextMaintenanceDate ?? null, maintenanceSchedule: insertCompanyAsset.maintenanceSchedule ?? null, maintenanceContact: insertCompanyAsset.maintenanceContact ?? null, maintenanceNotes: insertCompanyAsset.maintenanceNotes ?? null, implementationDate: insertCompanyAsset.implementationDate ?? null, expectedLifetime: insertCompanyAsset.expectedLifetime ?? null, certificationDate: insertCompanyAsset.certificationDate ?? null, certificationExpiry: insertCompanyAsset.certificationExpiry ?? null, createdBy: insertCompanyAsset.createdBy ?? null, updatedBy: insertCompanyAsset.updatedBy ?? null };
-    this.companyAssets.set(id, companyAsset);
-    return companyAsset;
+    const newCompanyAsset: CompanyAsset = { ...companyAsset, id, createdAt: new Date(), updatedAt: new Date(), department: companyAsset.department ?? null, barcode: companyAsset.barcode ?? null, serialNumber: companyAsset.serialNumber ?? null, description: companyAsset.description ?? null, purchasePrice: companyAsset.purchasePrice ?? null, purchaseDate: companyAsset.purchaseDate ?? null, warrantyExpiration: companyAsset.warrantyExpiration ?? null, depreciation: companyAsset.depreciation ?? null, assetValue: companyAsset.assetValue ?? null, template: companyAsset.template ?? null, tags: companyAsset.tags ?? null, model: companyAsset.model ?? null, assetCondition: companyAsset.assetCondition ?? null, notes: companyAsset.notes ?? null, manufacturerPartNumber: companyAsset.manufacturerPartNumber ?? null, supplierName: companyAsset.supplierName ?? null, poNumber: companyAsset.poNumber ?? null, vendorInformation: companyAsset.vendorInformation ?? null, photoUrl: companyAsset.photoUrl ?? null, documentUrls: companyAsset.documentUrls ?? null, lastMaintenanceDate: companyAsset.lastMaintenanceDate ?? null, nextMaintenanceDate: companyAsset.nextMaintenanceDate ?? null, maintenanceSchedule: companyAsset.maintenanceSchedule ?? null, maintenanceContact: companyAsset.maintenanceContact ?? null, maintenanceNotes: companyAsset.maintenanceNotes ?? null, implementationDate: companyAsset.implementationDate ?? null, expectedLifetime: companyAsset.expectedLifetime ?? null, certificationDate: companyAsset.certificationDate ?? null, certificationExpiry: companyAsset.certificationExpiry ?? null, createdBy: companyAsset.createdBy ?? null, updatedBy: companyAsset.updatedBy ?? null };
+    this.companyAssets.set(id, newCompanyAsset);
+    return newCompanyAsset;
   }
   async updateCompanyAsset(id: number, companyAssetUpdate: UpdateCompanyAsset): Promise<CompanyAsset | undefined> {
     const companyAsset = this.companyAssets.get(id);
@@ -781,11 +785,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFacilitiesByOrganizationId(organizationId: number): Promise<Facility[]> {
-    return await db
+    const results = await db
       .select()
       .from(facilities)
       .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
       .where(eq(organizationFacilities.organizationId, organizationId));
+    
+    return results.map(r => r.facilities);
   }
 
   async createFacility(insertFacility: InsertFacility): Promise<Facility> {
