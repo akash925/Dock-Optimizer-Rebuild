@@ -1064,6 +1064,159 @@ export class DatabaseStorage implements IStorage {
   async getOrganizationByFacilityId(facilityId: number) { return this.memStorage.getOrganizationByFacilityId(facilityId); }
   async getOrganizationByAppointmentTypeId(appointmentTypeId: number) { return this.memStorage.getOrganizationByAppointmentTypeId(appointmentTypeId); }
   async getFacilityTenantId(facilityId: number) { return this.memStorage.getFacilityTenantId(facilityId); }
+
+  // Organization settings methods
+  async getOrganization(tenantId: number): Promise<any> {
+    try {
+      const [org] = await db.select().from(organizations).where(eq(organizations.id, tenantId)).limit(1);
+      return org;
+    } catch (error) {
+      console.error('Error fetching organization:', error);
+      return null;
+    }
+  }
+
+  async updateOrganization(tenantId: number, data: any): Promise<any> {
+    try {
+      const [updated] = await db.update(organizations)
+        .set({
+          ...data,
+          lastModifiedAt: new Date()
+        })
+        .where(eq(organizations.id, tenantId))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error('Error updating organization:', error);
+      return null;
+    }
+  }
+
+  async getOrganizationDefaultHours(tenantId: number): Promise<any[]> {
+    try {
+      const hours = await db.select().from(organizationDefaultHours)
+        .where(eq(organizationDefaultHours.tenantId, tenantId))
+        .orderBy(organizationDefaultHours.dayOfWeek);
+      return hours;
+    } catch (error) {
+      console.error('Error fetching organization default hours:', error);
+      return [];
+    }
+  }
+
+  async updateOrganizationDefaultHours(tenantId: number, data: any): Promise<any> {
+    try {
+      // Check if record exists for this day
+      const [existing] = await db.select().from(organizationDefaultHours)
+        .where(and(
+          eq(organizationDefaultHours.tenantId, tenantId),
+          eq(organizationDefaultHours.dayOfWeek, data.dayOfWeek)
+        ))
+        .limit(1);
+
+      if (existing) {
+        // Update existing record
+        const [updated] = await db.update(organizationDefaultHours)
+          .set({
+            isOpen: data.isOpen,
+            openTime: data.openTime,
+            closeTime: data.closeTime,
+            breakStart: data.breakStart,
+            breakEnd: data.breakEnd,
+            updatedAt: new Date()
+          })
+          .where(and(
+            eq(organizationDefaultHours.tenantId, tenantId),
+            eq(organizationDefaultHours.dayOfWeek, data.dayOfWeek)
+          ))
+          .returning();
+        return updated;
+      } else {
+        // Create new record
+        const [created] = await db.insert(organizationDefaultHours)
+          .values({
+            tenantId,
+            dayOfWeek: data.dayOfWeek,
+            isOpen: data.isOpen,
+            openTime: data.openTime,
+            closeTime: data.closeTime,
+            breakStart: data.breakStart,
+            breakEnd: data.breakEnd,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          })
+          .returning();
+        return created;
+      }
+    } catch (error) {
+      console.error('Error updating organization default hours:', error);
+      return null;
+    }
+  }
+
+  async getOrganizationHolidays(tenantId: number): Promise<any[]> {
+    try {
+      const holidays = await db.select().from(organizationHolidays)
+        .where(eq(organizationHolidays.tenantId, tenantId))
+        .orderBy(organizationHolidays.date);
+      return holidays;
+    } catch (error) {
+      console.error('Error fetching organization holidays:', error);
+      return [];
+    }
+  }
+
+  async createOrganizationHoliday(data: any): Promise<any> {
+    try {
+      const [created] = await db.insert(organizationHolidays)
+        .values({
+          tenantId: data.tenantId,
+          name: data.name,
+          date: data.date,
+          isRecurring: data.isRecurring,
+          description: data.description,
+          createdAt: new Date()
+        })
+        .returning();
+      return created;
+    } catch (error) {
+      console.error('Error creating organization holiday:', error);
+      return null;
+    }
+  }
+
+  async updateOrganizationHoliday(holidayId: number, data: any): Promise<any> {
+    try {
+      const [updated] = await db.update(organizationHolidays)
+        .set({
+          name: data.name,
+          date: data.date,
+          isRecurring: data.isRecurring,
+          description: data.description,
+          updatedAt: new Date()
+        })
+        .where(eq(organizationHolidays.id, holidayId))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error('Error updating organization holiday:', error);
+      return null;
+    }
+  }
+
+  async deleteOrganizationHoliday(holidayId: number, tenantId: number): Promise<boolean> {
+    try {
+      const result = await db.delete(organizationHolidays)
+        .where(and(
+          eq(organizationHolidays.id, holidayId),
+          eq(organizationHolidays.tenantId, tenantId)
+        ));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting organization holiday:', error);
+      return false;
+    }
+  }
   async getNotification(id: number) { return this.memStorage.getNotification(id); }
   async createNotification(notification: any) { return this.memStorage.createNotification(notification); }
   async markNotificationAsRead(id: number) { return this.memStorage.markNotificationAsRead(id); }

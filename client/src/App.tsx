@@ -16,6 +16,7 @@ import Cancel from "@/pages/cancel";
 import Analytics from "@/pages/analytics";
 import Users from "@/pages/users";
 import Settings from "@/pages/settings";
+import OrganizationSettings from "@/pages/organization-settings";
 import FacilityMaster from "@/pages/facility-master";
 import Facilities from "@/pages/facilities";
 import FacilitySettings from "@/pages/facility-settings";
@@ -89,6 +90,7 @@ const protectedRoutes: RouteConfig[] = [
   { path: "/asset-manager/assets/:id/edit", component: AssetEditPage, roles: ["admin", "manager"], module: "assetManager" },
   { path: "/websocket-test", component: WebSocketTestPage, roles: ["admin", "manager"], module: null },
   { path: "/settings", component: Settings, roles: ["admin", "manager"], module: null },
+  { path: "/organization-settings", component: OrganizationSettings, roles: ["admin", "manager"], module: null },
   { 
     path: "/organization-hours", 
     component: () => {

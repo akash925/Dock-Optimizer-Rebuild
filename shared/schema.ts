@@ -940,24 +940,84 @@ export const insertFileStorageSchema = createInsertSchema(fileStorage).omit({
 export type FileStorage = typeof fileStorage.$inferSelect;
 export type InsertFileStorage = z.infer<typeof insertFileStorageSchema>;
 
+// Organization Default Hours Table
+export const organizationDefaultHours = pgTable("organization_default_hours", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 0 = Sunday, 1 = Monday, etc.
+  isOpen: boolean("is_open").default(false).notNull(),
+  openTime: text("open_time").default("09:00"),
+  closeTime: text("close_time").default("17:00"),
+  breakStart: text("break_start"),
+  breakEnd: text("break_end"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueTenantDay: unique().on(table.tenantId, table.dayOfWeek),
+}));
+
+export const organizationDefaultHoursRelations = relations(organizationDefaultHours, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [organizationDefaultHours.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+// Organization Holidays Table
+export const organizationHolidays = pgTable("organization_holidays", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull(),
+  name: text("name").notNull(),
+  date: date("date").notNull(),
+  isRecurring: boolean("is_recurring").default(false).notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const organizationHolidaysRelations = relations(organizationHolidays, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [organizationHolidays.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const insertOrganizationDefaultHoursSchema = createInsertSchema(organizationDefaultHours).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOrganizationHolidaySchema = createInsertSchema(organizationHolidays).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type OrganizationDefaultHours = typeof organizationDefaultHours.$inferSelect;
+export type InsertOrganizationDefaultHours = z.infer<typeof insertOrganizationDefaultHoursSchema>;
+export type OrganizationHoliday = typeof organizationHolidays.$inferSelect;
+export type InsertOrganizationHoliday = z.infer<typeof insertOrganizationHolidaySchema>;
+
 // Default hours type for organization settings
+export type DefaultHours = {
+  id: number;
+  dayOfWeek: number;
+  dayName: string;
+  isOpen: boolean;
+  openTime: string;
+  closeTime: string;
+  breakStart?: string;
+  breakEnd?: string;
+};
+
 export type DayHours = {
   open: boolean;
   start: string;
   end: string;
   breakStart?: string;
   breakEnd?: string;
-}
-
-export type DefaultHours = {
-  monday: DayHours;
-  tuesday: DayHours;
-  wednesday: DayHours;
-  thursday: DayHours;
-  friday: DayHours;
-  saturday: DayHours;
-  sunday: DayHours;
-}
+};
 
 // Multi-tenant support - Tenants table
 export const tenants = pgTable("tenants", {

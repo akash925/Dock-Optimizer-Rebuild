@@ -318,5 +318,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Organization Settings Routes
+  const { 
+    getCurrentOrganization, 
+    updateCurrentOrganization,
+    getDefaultHours,
+    updateDefaultHours,
+    getHolidays,
+    createHoliday,
+    updateHoliday,
+    deleteHoliday,
+    getOrganizationModules,
+    updateOrganizationModule
+  } = require('./modules/organizations/controllers');
+
+  // Organization info routes
+  app.get('/api/organizations/current', getCurrentOrganization);
+  app.patch('/api/organizations/current', updateCurrentOrganization);
+
+  // Default hours routes
+  app.get('/api/organizations/default-hours', getDefaultHours);
+  app.patch('/api/organizations/default-hours', updateDefaultHours);
+
+  // Holidays routes
+  app.get('/api/organizations/holidays', getHolidays);
+  app.post('/api/organizations/holidays', createHoliday);
+  app.patch('/api/organizations/holidays/:id', updateHoliday);
+  app.delete('/api/organizations/holidays/:id', deleteHoliday);
+
+  // Modules routes
+  app.get('/api/organizations/modules', getOrganizationModules);
+  app.patch('/api/organizations/modules', updateOrganizationModule);
+
   return httpServer;
 }
