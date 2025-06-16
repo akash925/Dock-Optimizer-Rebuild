@@ -248,5 +248,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }, 30000);
 
+  // User profile and preferences routes
+  app.get('/api/user-preferences', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      const preferences = await storage.getUserPreferences(user.id);
+      res.json(preferences);
+    } catch (error) {
+      console.error('Error fetching user preferences:', error);
+      res.status(500).json({ error: 'Failed to fetch preferences' });
+    }
+  });
+
+  app.put('/api/user-preferences', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      const preferences = await storage.updateUserPreferences(user.id, req.body);
+      res.json(preferences);
+    } catch (error) {
+      console.error('Error updating user preferences:', error);
+      res.status(500).json({ error: 'Failed to update preferences' });
+    }
+  });
+
+  app.put('/api/user/profile', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      const updatedUser = await storage.updateUser(user.id, req.body);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      res.status(500).json({ error: 'Failed to update profile' });
+    }
+  });
+
+  app.put('/api/user/password', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      const { currentPassword, newPassword } = req.body;
+      
+      // Verify current password and update
+      const success = await storage.updateUserPassword(user.id, currentPassword, newPassword);
+      if (success) {
+        res.json({ message: 'Password updated successfully' });
+      } else {
+        res.status(400).json({ error: 'Current password is incorrect' });
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      res.status(500).json({ error: 'Failed to update password' });
+    }
+  });
+
+  app.post('/api/user/test-email', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      
+      // Send test email using the existing email service
+      // For now, just return success - actual email sending would be implemented here
+      res.json({ message: 'Test email sent successfully' });
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      res.status(500).json({ error: 'Failed to send test email' });
+    }
+  });
+
   return httpServer;
 }

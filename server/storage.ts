@@ -973,8 +973,10 @@ export class DatabaseStorage implements IStorage {
         )}`);
       }
       
+      console.log(`[Storage] Executing company assets query with ${conditions.length} conditions for tenant ${filters.tenantId}`);
       const assets = await query;
       console.log(`[Storage] Found ${assets.length} company assets with filters:`, filters);
+      console.log(`[Storage] Sample asset data:`, assets.slice(0, 2));
       return assets;
     } catch (error) {
       console.error('Error fetching company assets:', error);
