@@ -1052,6 +1052,10 @@ export class DatabaseStorage implements IStorage {
   async getFilteredCompanyAssets(filters: any): Promise<any[]> {
     return this.getCompanyAssets(filters);
   }
+
+  async getFacilityById(id: number, tenantId?: number): Promise<Facility | undefined> {
+    return this.getFacility(id, tenantId);
+  }
   
   async createCompanyAsset(asset: any) { return this.memStorage.createCompanyAsset(asset); }
   async updateCompanyAsset(id: number, data: any) { return this.memStorage.updateCompanyAsset(id, data); }
@@ -1084,30 +1088,30 @@ export class DatabaseStorage implements IStorage {
   async getOrganizationByAppointmentTypeId(appointmentTypeId: number) { return this.memStorage.getOrganizationByAppointmentTypeId(appointmentTypeId); }
   async getFacilityTenantId(facilityId: number) { return this.memStorage.getFacilityTenantId(facilityId); }
 
-  // Organization settings methods
-  async getOrganization(tenantId: number): Promise<any> {
+  // Organization settings methods  
+  async getOrganization(tenantId: number): Promise<Tenant | undefined> {
     try {
-      const [org] = await db.select().from(organizations).where(eq(organizations.id, tenantId)).limit(1);
+      const [org] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
       return org;
     } catch (error) {
       console.error('Error fetching organization:', error);
-      return null;
+      return undefined;
     }
   }
 
-  async updateOrganization(tenantId: number, data: any): Promise<any> {
+  async updateOrganization(tenantId: number, data: Partial<Tenant>): Promise<Tenant | undefined> {
     try {
-      const [updated] = await db.update(organizations)
+      const [updated] = await db.update(tenants)
         .set({
           ...data,
-          lastModifiedAt: new Date()
+          updatedAt: new Date()
         })
-        .where(eq(organizations.id, tenantId))
+        .where(eq(tenants.id, tenantId))
         .returning();
       return updated;
     } catch (error) {
       console.error('Error updating organization:', error);
-      return null;
+      return undefined;
     }
   }
 
@@ -1307,16 +1311,21 @@ export class DatabaseStorage implements IStorage {
   async updateOrganizationModule(organizationId: number, moduleName: any, enabled: boolean) { return this.memStorage.updateOrganizationModule(organizationId, moduleName, enabled); }
   async logOrganizationActivity(data: any) { return this.memStorage.logOrganizationActivity(data); }
   async getOrganizationLogs(organizationId: number, page?: number, pageSize?: number) { return this.memStorage.getOrganizationLogs(organizationId, page, pageSize); }
-  async getUserPreferences(userId: number, organizationId: number) { return this.memStorage.getUserPreferences(userId, organizationId); }
-  async createUserPreferences(preferences: any) { return this.memStorage.createUserPreferences(preferences); }
-  async updateUserPreferences(userId: number, organizationId: number, preferences: any) { return this.memStorage.updateUserPreferences(userId, organizationId, preferences); }
   async createFileRecord(fileRecord: any) { return this.memStorage.createFileRecord(fileRecord); }
   async getFileRecord(fileId: string) { return this.memStorage.getFileRecord(fileId); }
   async deleteFileRecord(fileId: string) { return this.memStorage.deleteFileRecord(fileId); }
   async getTempFiles(cutoffDate: Date) { return this.memStorage.getTempFiles(cutoffDate); }
   async getOrganizationHolidays(organizationId: number) { return this.memStorage.getOrganizationHolidays(organizationId); }
 
-
+  async getUserPreferences(userId: number): Promise<UserPreferences | undefined> {
+    try {
+      const result = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error fetching user preferences:', error);
+      return undefined;
+    }
+  }
 
   async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
     const result = await db.insert(userPreferences).values(preferences).returning();
@@ -1339,14 +1348,15 @@ export class DatabaseStorage implements IStorage {
         // Create new preferences with defaults
         const newPreferences = {
           userId,
-          emailNotifications: true,
-          pushNotifications: true,
-          scheduleChanges: true,
-          truckArrivalAlerts: true,
-          dockAssignments: true,
-          weeklyReports: false,
-          urgentAlertsOnly: false,
-          allUpdates: false,
+          organizationId: preferencesUpdate.organizationId || 1,
+          emailNotificationsEnabled: true,
+          emailScheduleChanges: true,
+          emailTruckArrivals: true,
+          emailDockAssignments: true,
+          emailWeeklyReports: false,
+          pushNotificationsEnabled: true,
+          pushUrgentAlertsOnly: false,
+          pushAllUpdates: false,
           ...preferencesUpdate
         };
         return await this.createUserPreferences(newPreferences);
