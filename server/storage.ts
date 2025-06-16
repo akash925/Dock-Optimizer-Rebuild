@@ -58,8 +58,13 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userUpdate: Partial<User>): Promise<User | undefined>;
-  updateUserPassword(id: number, hashedPassword: string): Promise<boolean>;
+  updateUserPassword(id: number, currentPassword: string, newPassword: string): Promise<boolean>;
   getUsers(): Promise<User[]>;
+  
+  // User Preferences operations
+  getUserPreferences(userId: number): Promise<UserPreferences | undefined>;
+  createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
+  updateUserPreferences(userId: number, preferences: Partial<UserPreferences>): Promise<UserPreferences>;
   
   // Dock operations
   getDock(id: number): Promise<Dock | undefined>;
@@ -678,6 +683,44 @@ export class MemStorage implements IStorage {
   }
   async getOrganizationLogs(organizationId: number, page?: number, pageSize?: number): Promise<any[]> { return []; }
   async getOrganizationHolidays(organizationId: number): Promise<any[]> { return []; }
+
+  async getUserPreferences(userId: number): Promise<UserPreferences | undefined> {
+    return Array.from(this.userPreferences.values()).find(p => p.userId === userId);
+  }
+
+  async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
+    const id = this.userPreferencesIdCounter++;
+    const newPreferences: UserPreferences = {
+      id,
+      userId: preferences.userId,
+      organizationId: preferences.organizationId || 0,
+      emailNotificationsEnabled: preferences.emailNotificationsEnabled ?? true,
+      emailScheduleChanges: preferences.emailScheduleChanges ?? true,
+      emailTruckArrivals: preferences.emailTruckArrivals ?? true,
+      emailDockAssignments: preferences.emailDockAssignments ?? true,
+      emailWeeklyReports: preferences.emailWeeklyReports ?? false,
+      pushNotificationsEnabled: preferences.pushNotificationsEnabled ?? true,
+      createdAt: new Date(),
+      updatedAt: null
+    };
+    this.userPreferences.set(id, newPreferences);
+    return newPreferences;
+  }
+
+  async updateUserPreferences(userId: number, preferencesUpdate: Partial<UserPreferences>): Promise<UserPreferences> {
+    const existing = await this.getUserPreferences(userId);
+    if (existing) {
+      const updated = { 
+        ...existing, 
+        ...preferencesUpdate,
+        updatedAt: new Date()
+      };
+      this.userPreferences.set(existing.id, updated);
+      return updated;
+    } else {
+      return await this.createUserPreferences({ userId, ...preferencesUpdate });
+    }
+  }
 }
 
 // Database Storage Implementation using Drizzle ORM
@@ -1074,6 +1117,74 @@ export class DatabaseStorage implements IStorage {
   async deleteFileRecord(fileId: string) { return this.memStorage.deleteFileRecord(fileId); }
   async getTempFiles(cutoffDate: Date) { return this.memStorage.getTempFiles(cutoffDate); }
   async getOrganizationHolidays(organizationId: number) { return this.memStorage.getOrganizationHolidays(organizationId); }
+
+  async getUserPreferences(userId: number): Promise<UserPreferences | undefined> {
+    try {
+      const result = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error fetching user preferences:', error);
+      return undefined;
+    }
+  }
+
+  async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
+    const result = await db.insert(userPreferences).values(preferences).returning();
+    return result[0];
+  }
+
+  async updateUserPreferences(userId: number, preferencesUpdate: Partial<UserPreferences>): Promise<UserPreferences> {
+    try {
+      // Check if preferences exist
+      const existing = await this.getUserPreferences(userId);
+      
+      if (existing) {
+        // Update existing preferences
+        const result = await db.update(userPreferences)
+          .set({ ...preferencesUpdate, updatedAt: new Date() })
+          .where(eq(userPreferences.userId, userId))
+          .returning();
+        return result[0];
+      } else {
+        // Create new preferences with defaults
+        const newPreferences = {
+          userId,
+          emailNotifications: true,
+          pushNotifications: true,
+          scheduleChanges: true,
+          truckArrivalAlerts: true,
+          dockAssignments: true,
+          weeklyReports: false,
+          urgentAlertsOnly: false,
+          allUpdates: false,
+          ...preferencesUpdate
+        };
+        return await this.createUserPreferences(newPreferences);
+      }
+    } catch (error) {
+      console.error('Error updating user preferences:', error);
+      throw error;
+    }
+  }
+
+  async updateUserPassword(id: number, currentPassword: string, newPassword: string): Promise<boolean> {
+    try {
+      // First verify the current password
+      const user = await db.select().from(users).where(eq(users.id, id)).limit(1);
+      if (!user[0]) return false;
+      
+      const isValidPassword = await comparePasswords(currentPassword, user[0].password);
+      if (!isValidPassword) return false;
+      
+      // Hash the new password and update
+      const hashedNewPassword = await hashPassword(newPassword);
+      await db.update(users).set({ password: hashedNewPassword }).where(eq(users.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error updating user password:', error);
+      return false;
+    }
+  }
 }
 
 // Storage instance management
