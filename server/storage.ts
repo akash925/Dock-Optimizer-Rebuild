@@ -936,18 +936,52 @@ export class DatabaseStorage implements IStorage {
   async getCompanyAssets(filters?: any): Promise<any[]> {
     try {
       let query = db.select().from(companyAssets);
+      const conditions = [];
       
-      // Apply tenant filtering if provided
+      // Apply tenant filtering - always required
       if (filters?.tenantId) {
-        query = query.where(sql`${companyAssets}.tenant_id = ${filters.tenantId}`);
+        conditions.push(sql`${companyAssets}.tenant_id = ${filters.tenantId}`);
+      }
+      
+      // Apply additional filters
+      if (filters?.category) {
+        conditions.push(sql`${companyAssets}.category = ${filters.category}`);
+      }
+      
+      if (filters?.status) {
+        conditions.push(sql`${companyAssets}.status = ${filters.status}`);
+      }
+      
+      if (filters?.location) {
+        conditions.push(sql`${companyAssets}.location ILIKE ${`%${filters.location}%`}`);
+      }
+      
+      if (filters?.q) {
+        conditions.push(sql`(
+          ${companyAssets}.name ILIKE ${`%${filters.q}%`} OR 
+          ${companyAssets}.description ILIKE ${`%${filters.q}%`} OR 
+          ${companyAssets}.barcode ILIKE ${`%${filters.q}%`}
+        )`);
+      }
+      
+      // Apply all conditions
+      if (conditions.length > 0) {
+        query = query.where(sql`${conditions.reduce((acc, condition, index) => 
+          index === 0 ? condition : sql`${acc} AND ${condition}`
+        )}`);
       }
       
       const assets = await query;
+      console.log(`[Storage] Found ${assets.length} company assets with filters:`, filters);
       return assets;
     } catch (error) {
       console.error('Error fetching company assets:', error);
       return [];
     }
+  }
+  
+  async getFilteredCompanyAssets(filters: any): Promise<any[]> {
+    return this.getCompanyAssets(filters);
   }
   
   async createCompanyAsset(asset: any) { return this.memStorage.createCompanyAsset(asset); }
