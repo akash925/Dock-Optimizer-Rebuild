@@ -192,11 +192,19 @@ export const createAsset = uploadAsset;
  */
 export const listCompanyAssets = async (req: Request, res: Response) => {
   try {
+    // Get user's tenant ID for filtering
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ error: 'User tenant not found' });
+    }
+
     // Extract filter parameters from query
     const { q, category, status, location, tags } = req.query;
     
     // Build filter object
-    const filters: Record<string, any> = {};
+    const filters: Record<string, any> = {
+      tenantId: tenantId // Always filter by tenant
+    };
     
     // Add search term if provided
     if (q && typeof q === 'string') {
@@ -230,10 +238,8 @@ export const listCompanyAssets = async (req: Request, res: Response) => {
     // Log all filters being applied
     console.log("Applied filters:", JSON.stringify(filters, null, 2));
     
-    // Apply filters if any were provided
-    const companyAssets = Object.keys(filters).length > 0
-      ? await assetManagerService.listCompanyAssets(filters)
-      : await assetManagerService.listCompanyAssets();
+    // Apply filters - always include tenant filtering
+    const companyAssets = await assetManagerService.listCompanyAssets(filters);
     
     return res.json(companyAssets);
   } catch (error) {

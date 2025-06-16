@@ -903,8 +903,20 @@ export class DatabaseStorage implements IStorage {
   async updateCarrier(id: number, data: any) { return this.memStorage.updateCarrier(id, data); }
   async deleteCarrier(id: number) { return this.memStorage.deleteCarrier(id); }
 
-  async getAppointmentTypes() { return this.memStorage.getAppointmentTypes(); }
-  async getAppointmentTypesByFacility(facilityId: number, tenantId?: number) { return this.memStorage.getAppointmentTypesByFacility(facilityId, tenantId); }
+  async getAppointmentTypes(): Promise<AppointmentType[]> {
+    return await db.select().from(appointmentTypes);
+  }
+  
+  async getAppointmentTypesByFacility(facilityId: number, tenantId?: number): Promise<AppointmentType[]> {
+    let query = db.select().from(appointmentTypes).where(eq(appointmentTypes.facilityId, facilityId));
+    
+    if (tenantId) {
+      query = query.where(and(eq(appointmentTypes.facilityId, facilityId), eq(appointmentTypes.tenantId, tenantId)));
+    }
+    
+    return await query;
+  }
+  
   async createAppointmentType(appointmentType: any) { return this.memStorage.createAppointmentType(appointmentType); }
   async updateAppointmentType(id: number, data: any) { return this.memStorage.updateAppointmentType(id, data); }
   async deleteAppointmentType(id: number) { return this.memStorage.deleteAppointmentType(id); }
@@ -921,7 +933,23 @@ export class DatabaseStorage implements IStorage {
   async createStandardQuestionWithId(id: number, question: any) { return this.memStorage.createStandardQuestionWithId(id, question); }
   async updateStandardQuestion(id: number, data: any) { return this.memStorage.updateStandardQuestion(id, data); }
   async deleteStandardQuestion(id: number) { return this.memStorage.deleteStandardQuestion(id); }
-  async getCompanyAssets(filters?: any) { return this.memStorage.getCompanyAssets(filters); }
+  async getCompanyAssets(filters?: any): Promise<any[]> {
+    try {
+      let query = db.select().from(companyAssets);
+      
+      // Apply tenant filtering if provided
+      if (filters?.tenantId) {
+        query = query.where(sql`${companyAssets}.tenant_id = ${filters.tenantId}`);
+      }
+      
+      const assets = await query;
+      return assets;
+    } catch (error) {
+      console.error('Error fetching company assets:', error);
+      return [];
+    }
+  }
+  
   async createCompanyAsset(asset: any) { return this.memStorage.createCompanyAsset(asset); }
   async updateCompanyAsset(id: number, data: any) { return this.memStorage.updateCompanyAsset(id, data); }
   async deleteCompanyAsset(id: number) { return this.memStorage.deleteCompanyAsset(id); }
