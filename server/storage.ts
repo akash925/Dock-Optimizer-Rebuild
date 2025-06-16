@@ -1008,34 +1008,32 @@ export class DatabaseStorage implements IStorage {
         return [];
       }
       console.log(`DEBUG: [Storage] Filtering by tenantId: ${filters.tenantId}`);
-      conditions.push(sql`${companyAssets}.tenant_id = ${filters.tenantId}`);
+      conditions.push(eq(companyAssets.tenantId, filters.tenantId));
       
       // Apply additional filters
       if (filters?.category) {
-        conditions.push(sql`${companyAssets}.category = ${filters.category}`);
+        conditions.push(eq(companyAssets.category, filters.category));
       }
       
       if (filters?.status) {
-        conditions.push(sql`${companyAssets}.status = ${filters.status}`);
+        conditions.push(eq(companyAssets.status, filters.status));
       }
       
       if (filters?.location) {
-        conditions.push(sql`${companyAssets}.location ILIKE ${`%${filters.location}%`}`);
+        conditions.push(ilike(companyAssets.location, `%${filters.location}%`));
       }
       
       if (filters?.q) {
-        conditions.push(sql`(
-          ${companyAssets}.name ILIKE ${`%${filters.q}%`} OR 
-          ${companyAssets}.description ILIKE ${`%${filters.q}%`} OR 
-          ${companyAssets}.barcode ILIKE ${`%${filters.q}%`}
-        )`);
+        conditions.push(or(
+          ilike(companyAssets.name, `%${filters.q}%`),
+          ilike(companyAssets.description, `%${filters.q}%`),
+          ilike(companyAssets.barcode, `%${filters.q}%`)
+        ));
       }
       
       // Apply all conditions
       if (conditions.length > 0) {
-        query = query.where(sql`${conditions.reduce((acc, condition, index) => 
-          index === 0 ? condition : sql`${acc} AND ${condition}`
-        )}`);
+        query = query.where(and(...conditions));
       }
       
       console.log(`[Storage] Executing company assets query with ${conditions.length} conditions for tenant ${filters.tenantId}`);
