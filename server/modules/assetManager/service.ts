@@ -202,12 +202,22 @@ export class AssetManagerService implements AssetService {
    */
   async listCompanyAssets(filters?: Record<string, any>): Promise<CompanyAsset[]> {
     try {
+      console.log('[AssetService] listCompanyAssets called with filters:', filters);
       const storage = await getStorage();
+      console.log('[AssetService] Storage instance obtained');
+      
       if (typeof storage.getCompanyAssets === 'function') {
+        console.log('[AssetService] getCompanyAssets method exists on storage');
+        
         // If filters provided, use the filtered method
         if (filters && Object.keys(filters).length > 0) {
+          console.log('[AssetService] Filters provided, checking for getFilteredCompanyAssets method');
+          
           if (typeof storage.getFilteredCompanyAssets === 'function') {
-            return await storage.getFilteredCompanyAssets(filters);
+            console.log('[AssetService] Calling storage.getFilteredCompanyAssets with filters:', filters);
+            const result = await storage.getFilteredCompanyAssets(filters);
+            console.log('[AssetService] getFilteredCompanyAssets returned:', result.length, 'assets');
+            return result;
           } else {
             console.warn('Storage does not implement getFilteredCompanyAssets method, fallback to client-side filtering');
             // Fallback: Get all and filter in memory
@@ -216,6 +226,7 @@ export class AssetManagerService implements AssetService {
           }
         }
         // No filters, get all
+        console.log('[AssetService] No filters, calling storage.getCompanyAssets()');
         return await storage.getCompanyAssets();
       } else {
         console.error('Storage does not implement getCompanyAssets method');
