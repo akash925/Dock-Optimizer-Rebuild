@@ -1057,7 +1057,10 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getFilteredCompanyAssets(filters: any): Promise<any[]> {
-    return this.getCompanyAssets(filters);
+    console.log('DEBUG: [DatabaseStorage] getFilteredCompanyAssets called with filters:', filters);
+    const result = await this.getCompanyAssets(filters);
+    console.log('DEBUG: [DatabaseStorage] getFilteredCompanyAssets result count:', result.length);
+    return result;
   }
 
   async getFacilityById(id: number, tenantId?: number): Promise<Facility | undefined> {
