@@ -1063,6 +1063,18 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getCompanyAsset(id: number): Promise<any | undefined> {
+    try {
+      console.log('DEBUG: [DatabaseStorage] getCompanyAsset called with id:', id);
+      const [asset] = await db.select().from(companyAssets).where(eq(companyAssets.id, id)).limit(1);
+      console.log('DEBUG: [DatabaseStorage] getCompanyAsset result:', asset ? 'found' : 'not found');
+      return asset;
+    } catch (error) {
+      console.error('Error fetching company asset by id:', error);
+      return undefined;
+    }
+  }
+
   async getFacilityById(id: number, tenantId?: number): Promise<Facility | undefined> {
     return this.getFacility(id, tenantId);
   }
@@ -1299,7 +1311,7 @@ export class DatabaseStorage implements IStorage {
   async createAsset(asset: any) { return this.memStorage.createAsset(asset); }
   async updateAsset(id: number, asset: any) { return this.memStorage.updateAsset(id, asset); }
   async deleteAsset(id: number) { return this.memStorage.deleteAsset(id); }
-  async getCompanyAsset(id: number) { return this.memStorage.getCompanyAsset(id); }
+  // getCompanyAsset is implemented above in the real database section
   // getFilteredCompanyAssets is implemented above in the real database section
   async deleteCompanyAsset(id: number) { return this.memStorage.deleteCompanyAsset(id); }
   async getTenantBySubdomain(subdomain: string) { return this.memStorage.getTenantBySubdomain(subdomain); }
