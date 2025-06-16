@@ -164,7 +164,7 @@ export interface IStorage {
   
   // Company Asset operations
   getCompanyAsset(id: number): Promise<CompanyAsset | undefined>;
-  getCompanyAssets(): Promise<CompanyAsset[]>;
+  getCompanyAssets(filters?: Record<string, any>): Promise<CompanyAsset[]>;
   getFilteredCompanyAssets(filters: Record<string, any>): Promise<CompanyAsset[]>;
   createCompanyAsset(companyAsset: InsertCompanyAsset): Promise<CompanyAsset>;
   updateCompanyAsset(id: number, companyAsset: UpdateCompanyAsset): Promise<CompanyAsset | undefined>;
@@ -587,7 +587,10 @@ export class MemStorage implements IStorage {
   }
   async deleteAsset(id: number): Promise<boolean> { return this.assets.delete(id); }
   async getCompanyAsset(id: number): Promise<CompanyAsset | undefined> { return this.companyAssets.get(id); }
-  async getCompanyAssets(): Promise<CompanyAsset[]> { return Array.from(this.companyAssets.values()); }
+  async getCompanyAssets(filters?: Record<string, any>): Promise<CompanyAsset[]> { 
+    console.log('[MemStorage] getCompanyAssets called with filters:', filters);
+    return Array.from(this.companyAssets.values()); 
+  }
   async getFilteredCompanyAssets(filters: Record<string, any>): Promise<CompanyAsset[]> { return []; }
   async createCompanyAsset(companyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
     const id = this.companyAssetIdCounter++;
