@@ -938,10 +938,12 @@ export class DatabaseStorage implements IStorage {
       let query = db.select().from(companyAssets);
       const conditions = [];
       
-      // Apply tenant filtering - always required
-      if (filters?.tenantId) {
-        conditions.push(sql`${companyAssets}.tenant_id = ${filters.tenantId}`);
+      // Apply tenant filtering - always required for security
+      if (!filters?.tenantId) {
+        console.error('[Storage] getCompanyAssets called without tenantId - this is a security violation');
+        return [];
       }
+      conditions.push(sql`${companyAssets}.tenant_id = ${filters.tenantId}`);
       
       // Apply additional filters
       if (filters?.category) {
