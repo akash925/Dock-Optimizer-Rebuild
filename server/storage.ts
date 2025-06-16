@@ -406,8 +406,7 @@ export class MemStorage implements IStorage {
     return updatedSchedule;
   }
   async deleteSchedule(id: number): Promise<boolean> { return this.schedules.delete(id); }
-  async getCarrier(id: number): Promise<Carrier | undefined> { return this.carriers.get(id); }
-  async getCarriers(): Promise<Carrier[]> { return Array.from(this.carriers.values()); }
+  // Carrier operations - removed delegations to use DatabaseStorage implementations
   async createCarrier(insertCarrier: InsertCarrier): Promise<Carrier> {
     const id = this.carrierIdCounter++;
     const carrier: Carrier = { ...insertCarrier, id, mcNumber: insertCarrier.mcNumber ?? null, contactName: insertCarrier.contactName ?? null, contactEmail: insertCarrier.contactEmail ?? null, contactPhone: insertCarrier.contactPhone ?? null };
@@ -966,11 +965,31 @@ export class DatabaseStorage implements IStorage {
     return [];
   }
 
-  // Delegate methods that aren't yet implemented with database queries to memStorage
-  async getCarriers() { return this.memStorage.getCarriers(); }
-  async createCarrier(carrier: any) { return this.memStorage.createCarrier(carrier); }
-  async updateCarrier(id: number, data: any) { return this.memStorage.updateCarrier(id, data); }
-  async deleteCarrier(id: number) { return this.memStorage.deleteCarrier(id); }
+  // Carrier database operations
+  async getCarriers(): Promise<Carrier[]> {
+    console.log('DEBUG: [DatabaseStorage] getCarriers called');
+    const result = await db.select().from(carriers);
+    console.log('DEBUG: [DatabaseStorage] getCarriers result count:', result.length);
+    return result;
+  }
+
+  async getCarrier(id: number): Promise<Carrier | undefined> {
+    console.log('DEBUG: [DatabaseStorage] getCarrier called with id:', id);
+    const result = await db.select().from(carriers).where(eq(carriers.id, id));
+    return result[0];
+  }
+
+  async createCarrier(insertCarrier: InsertCarrier): Promise<Carrier> {
+    console.log('DEBUG: [DatabaseStorage] createCarrier called');
+    const result = await db.insert(carriers).values(insertCarrier).returning();
+    return result[0];
+  }
+
+  async updateCarrier(id: number, data: any): Promise<Carrier | undefined> {
+    console.log('DEBUG: [DatabaseStorage] updateCarrier called with id:', id);
+    const result = await db.update(carriers).set(data).where(eq(carriers.id, id)).returning();
+    return result[0];
+  }
 
   async getAppointmentTypes(): Promise<AppointmentType[]> {
     return await db.select().from(appointmentTypes);
@@ -1028,9 +1047,23 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createBookingPage(bookingPage: any) { return this.memStorage.createBookingPage(bookingPage); }
-  async updateBookingPage(id: number, data: any) { return this.memStorage.updateBookingPage(id, data); }
-  async deleteBookingPage(id: number) { return this.memStorage.deleteBookingPage(id); }
+  async createBookingPage(insertBookingPage: InsertBookingPage): Promise<BookingPage> {
+    console.log('DEBUG: [DatabaseStorage] createBookingPage called');
+    const result = await db.insert(bookingPages).values(insertBookingPage).returning();
+    return result[0];
+  }
+
+  async updateBookingPage(id: number, data: any): Promise<BookingPage | undefined> {
+    console.log('DEBUG: [DatabaseStorage] updateBookingPage called with id:', id);
+    const result = await db.update(bookingPages).set(data).where(eq(bookingPages.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteBookingPage(id: number): Promise<boolean> {
+    console.log('DEBUG: [DatabaseStorage] deleteBookingPage called with id:', id);
+    const result = await db.delete(bookingPages).where(eq(bookingPages.id, id));
+    return result.rowCount > 0;
+  }
   async getStandardQuestions() { return this.memStorage.getStandardQuestions(); }
   async createStandardQuestion(question: any) { return this.memStorage.createStandardQuestion(question); }
   async createStandardQuestionWithId(id: number, question: any) { return this.memStorage.createStandardQuestionWithId(id, question); }
@@ -1128,7 +1161,7 @@ export class DatabaseStorage implements IStorage {
   async getSchedulesByDock(dockId: number) { return this.memStorage.getSchedulesByDock(dockId); }
   async searchSchedules(query: string) { return this.memStorage.searchSchedules(query); }
   async getScheduleByConfirmationCode(code: string) { return this.memStorage.getScheduleByConfirmationCode(code); }
-  async getCarrier(id: number) { return this.memStorage.getCarrier(id); }
+  // Carrier operations implemented above in database section
   async getFacility(id: number, tenantId?: number): Promise<Facility | undefined> {
     try {
       let query = db.select().from(facilities).where(eq(facilities.id, id));
