@@ -876,6 +876,9 @@ export const companyAssets = pgTable("company_assets", {
   certificationDate: date("certification_date"),
   certificationExpiry: date("certification_expiry"),
   
+  // Multi-tenant isolation
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   createdBy: integer("created_by"),
