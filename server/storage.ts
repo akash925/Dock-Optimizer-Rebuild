@@ -909,7 +909,15 @@ export class DatabaseStorage implements IStorage {
 
   // Dock operations with real database queries
   async getDocks(): Promise<Dock[]> {
-    return await db.select().from(docks);
+    console.log('DEBUG: [DatabaseStorage] getDocks called');
+    try {
+      const dockList = await db.select().from(docks);
+      console.log('DEBUG: [DatabaseStorage] getDocks result count:', dockList.length);
+      return dockList;
+    } catch (error) {
+      console.error('Error fetching docks:', error);
+      return [];
+    }
   }
 
   async getDock(id: number): Promise<Dock | undefined> {
