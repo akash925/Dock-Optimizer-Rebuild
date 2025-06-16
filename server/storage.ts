@@ -1300,7 +1300,7 @@ export class DatabaseStorage implements IStorage {
   async updateAsset(id: number, asset: any) { return this.memStorage.updateAsset(id, asset); }
   async deleteAsset(id: number) { return this.memStorage.deleteAsset(id); }
   async getCompanyAsset(id: number) { return this.memStorage.getCompanyAsset(id); }
-  async getFilteredCompanyAssets(filters: any) { return this.memStorage.getFilteredCompanyAssets(filters); }
+  // getFilteredCompanyAssets is implemented above in the real database section
   async deleteCompanyAsset(id: number) { return this.memStorage.deleteCompanyAsset(id); }
   async getTenantBySubdomain(subdomain: string) { return this.memStorage.getTenantBySubdomain(subdomain); }
   async getOrganizationDefaultHours(orgId: number) { return this.memStorage.getOrganizationDefaultHours(orgId); }
