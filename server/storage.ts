@@ -988,8 +988,42 @@ export class DatabaseStorage implements IStorage {
 
   async getSystemSettings() { return this.memStorage.getSystemSettings(); }
   async updateSystemSettings(settings: any) { return this.memStorage.updateSystemSettings(settings); }
-  async getBookingPages() { return this.memStorage.getBookingPages(); }
-  async getBookingPageBySlug(slug: string) { return this.memStorage.getBookingPageBySlug(slug); }
+  async getBookingPages(): Promise<BookingPage[]> {
+    console.log('DEBUG: [DatabaseStorage] getBookingPages called');
+    try {
+      const pages = await db.select().from(bookingPages);
+      console.log('DEBUG: [DatabaseStorage] getBookingPages result count:', pages.length);
+      return pages;
+    } catch (error) {
+      console.error('Error fetching booking pages:', error);
+      return [];
+    }
+  }
+
+  async getBookingPageBySlug(slug: string): Promise<BookingPage | undefined> {
+    console.log('DEBUG: [DatabaseStorage] getBookingPageBySlug called with slug:', slug);
+    try {
+      const [page] = await db.select().from(bookingPages).where(eq(bookingPages.slug, slug)).limit(1);
+      console.log('DEBUG: [DatabaseStorage] getBookingPageBySlug result:', page ? 'found' : 'not found');
+      return page;
+    } catch (error) {
+      console.error('Error fetching booking page by slug:', error);
+      return undefined;
+    }
+  }
+
+  async getBookingPage(id: number): Promise<BookingPage | undefined> {
+    console.log('DEBUG: [DatabaseStorage] getBookingPage called with id:', id);
+    try {
+      const [page] = await db.select().from(bookingPages).where(eq(bookingPages.id, id)).limit(1);
+      console.log('DEBUG: [DatabaseStorage] getBookingPage result:', page ? 'found' : 'not found');
+      return page;
+    } catch (error) {
+      console.error('Error fetching booking page by id:', error);
+      return undefined;
+    }
+  }
+
   async createBookingPage(bookingPage: any) { return this.memStorage.createBookingPage(bookingPage); }
   async updateBookingPage(id: number, data: any) { return this.memStorage.updateBookingPage(id, data); }
   async deleteBookingPage(id: number) { return this.memStorage.deleteBookingPage(id); }
@@ -1304,7 +1338,7 @@ export class DatabaseStorage implements IStorage {
   async deleteCustomQuestion(id: number) { return this.memStorage.deleteCustomQuestion(id); }
   async getStandardQuestion(id: number) { return this.memStorage.getStandardQuestion(id); }
   async getStandardQuestionsByAppointmentType(appointmentTypeId: number) { return this.memStorage.getStandardQuestionsByAppointmentType(appointmentTypeId); }
-  async getBookingPage(id: number) { return this.memStorage.getBookingPage(id); }
+  // getBookingPage is implemented above in the real database section
   async getAsset(id: number) { return this.memStorage.getAsset(id); }
   async getAssets() { return this.memStorage.getAssets(); }
   async getAssetsByUser(userId: number) { return this.memStorage.getAssetsByUser(userId); }
