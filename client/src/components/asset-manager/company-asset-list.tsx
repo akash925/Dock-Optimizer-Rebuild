@@ -192,7 +192,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     queryKey: ['/api/asset-manager/company-assets', queryString],
     queryFn: async () => {
       const endpoint = `/api/asset-manager/company-assets${queryString ? `?${queryString}` : ''}`;
-      const response = await fetch(endpoint);
+      const response = await apiRequest('GET', endpoint);
       if (!response.ok) {
         throw new Error('Error fetching assets');
       }
