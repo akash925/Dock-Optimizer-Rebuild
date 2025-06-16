@@ -1037,8 +1037,14 @@ export class DatabaseStorage implements IStorage {
       }
       
       console.log(`[Storage] Executing company assets query with ${conditions.length} conditions for tenant ${filters.tenantId}`);
+      console.log(`[Storage] Generated SQL conditions:`, conditions);
+      
+      // Test with raw SQL first to verify data exists
+      const rawTestResult = await db.execute(sql`SELECT COUNT(*) as count FROM company_assets WHERE tenant_id = ${filters.tenantId}`);
+      console.log(`[Storage] Raw SQL test - found ${rawTestResult.rows[0]?.count} assets for tenant ${filters.tenantId}`);
+      
       const assets = await query;
-      console.log(`[Storage] Found ${assets.length} company assets with filters:`, filters);
+      console.log(`[Storage] Drizzle query returned ${assets.length} company assets with filters:`, filters);
       console.log(`[Storage] Sample asset data:`, assets.slice(0, 2));
       return assets;
     } catch (error) {
