@@ -1,0 +1,808 @@
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { 
+  Clock, 
+  Calendar, 
+  Settings, 
+  Plus, 
+  Trash2, 
+  Edit, 
+  Save,
+  Building2,
+  Users,
+  Shield,
+  Bell,
+  Database,
+  Loader2
+} from 'lucide-react';
+
+// Types for organization settings
+interface OrganizationInfo {
+  id: number;
+  name: string;
+  description?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: string;
+  timezone: string;
+  status: string;
+  createdAt: string;
+}
+
+interface DefaultHours {
+  id: number;
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
+  dayName: string;
+  isOpen: boolean;
+  openTime: string;
+  closeTime: string;
+  breakStart?: string;
+  breakEnd?: string;
+}
+
+interface Holiday {
+  id: number;
+  name: string;
+  date: string;
+  isRecurring: boolean;
+  description?: string;
+  createdAt: string;
+}
+
+interface OrganizationModule {
+  id: number;
+  moduleName: string;
+  enabled: boolean;
+  description?: string;
+}
+
+const DAYS_OF_WEEK = [
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' }
+];
+
+const TIMEZONES = [
+  'America/New_York',
+  'America/Chicago', 
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Phoenix',
+  'Europe/London',
+  'Europe/Paris',
+  'Asia/Tokyo',
+  'Asia/Shanghai',
+  'Australia/Sydney'
+];
+
+export default function OrganizationSettingsPage() {
+  const [activeTab, setActiveTab] = useState('general');
+  const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [isHolidayDialogOpen, setIsHolidayDialogOpen] = useState(false);
+  const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
+  const [newHoliday, setNewHoliday] = useState({
+    name: '',
+    date: '',
+    isRecurring: false,
+    description: ''
+  });
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch organization info
+  const { data: orgInfo, isLoading: orgLoading } = useQuery<OrganizationInfo>({
+    queryKey: ['/api/organizations/current'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/organizations/current');
+      if (!response.ok) throw new Error('Failed to fetch organization info');
+      return response.json();
+    }
+  });
+
+  // Fetch default hours
+  const { data: defaultHours, isLoading: hoursLoading } = useQuery<DefaultHours[]>({
+    queryKey: ['/api/organizations/default-hours'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/organizations/default-hours');
+      if (!response.ok) throw new Error('Failed to fetch default hours');
+      return response.json();
+    }
+  });
+
+  // Fetch holidays
+  const { data: holidays, isLoading: holidaysLoading } = useQuery<Holiday[]>({
+    queryKey: ['/api/organizations/holidays'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/organizations/holidays');
+      if (!response.ok) throw new Error('Failed to fetch holidays');
+      return response.json();
+    }
+  });
+
+  // Fetch organization modules
+  const { data: modules, isLoading: modulesLoading } = useQuery<OrganizationModule[]>({
+    queryKey: ['/api/organizations/modules'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/organizations/modules');
+      if (!response.ok) throw new Error('Failed to fetch organization modules');
+      return response.json();
+    }
+  });
+
+  // Update organization info mutation
+  const updateOrgMutation = useMutation({
+    mutationFn: async (data: Partial<OrganizationInfo>) => {
+      const response = await apiRequest('PATCH', '/api/organizations/current', data);
+      if (!response.ok) throw new Error('Failed to update organization');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Organization information updated successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/organizations/current'] });
+      setIsEditingInfo(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update organization",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update default hours mutation
+  const updateHoursMutation = useMutation({
+    mutationFn: async (data: { dayOfWeek: number; isOpen: boolean; openTime?: string; closeTime?: string; breakStart?: string; breakEnd?: string }) => {
+      const response = await apiRequest('PATCH', '/api/organizations/default-hours', data);
+      if (!response.ok) throw new Error('Failed to update default hours');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Default hours updated successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/organizations/default-hours'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update default hours",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Create/update holiday mutation
+  const saveHolidayMutation = useMutation({
+    mutationFn: async (data: Partial<Holiday>) => {
+      const url = editingHoliday ? `/api/organizations/holidays/${editingHoliday.id}` : '/api/organizations/holidays';
+      const method = editingHoliday ? 'PATCH' : 'POST';
+      const response = await apiRequest(method, url, data);
+      if (!response.ok) throw new Error(`Failed to ${editingHoliday ? 'update' : 'create'} holiday`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: `Holiday ${editingHoliday ? 'updated' : 'created'} successfully`
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/organizations/holidays'] });
+      setIsHolidayDialogOpen(false);
+      setEditingHoliday(null);
+      setNewHoliday({ name: '', date: '', isRecurring: false, description: '' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || `Failed to ${editingHoliday ? 'update' : 'create'} holiday`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete holiday mutation
+  const deleteHolidayMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/organizations/holidays/${id}`);
+      if (!response.ok) throw new Error('Failed to delete holiday');
+      return id;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Holiday deleted successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/organizations/holidays'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete holiday",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Toggle module mutation
+  const toggleModuleMutation = useMutation({
+    mutationFn: async ({ moduleName, enabled }: { moduleName: string; enabled: boolean }) => {
+      const response = await apiRequest('PATCH', '/api/organizations/modules', { moduleName, enabled });
+      if (!response.ok) throw new Error('Failed to update module');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Module settings updated successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/organizations/modules'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update module",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleSaveOrgInfo = (formData: FormData) => {
+    const data = {
+      name: formData.get('name') as string,
+      description: formData.get('description') as string,
+      contactEmail: formData.get('contactEmail') as string,
+      contactPhone: formData.get('contactPhone') as string,
+      address: formData.get('address') as string,
+      timezone: formData.get('timezone') as string,
+    };
+    updateOrgMutation.mutate(data);
+  };
+
+  const handleUpdateHours = (dayOfWeek: number, field: string, value: any) => {
+    const currentHour = defaultHours?.find(h => h.dayOfWeek === dayOfWeek);
+    if (!currentHour) return;
+
+    const updateData: any = { dayOfWeek };
+    
+    if (field === 'isOpen') {
+      updateData.isOpen = value;
+      if (!value) {
+        updateData.openTime = '';
+        updateData.closeTime = '';
+        updateData.breakStart = '';
+        updateData.breakEnd = '';
+      }
+    } else {
+      updateData.isOpen = currentHour.isOpen;
+      updateData[field] = value;
+    }
+
+    updateHoursMutation.mutate(updateData);
+  };
+
+  const handleSaveHoliday = () => {
+    if (!newHoliday.name || !newHoliday.date) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    saveHolidayMutation.mutate(newHoliday);
+  };
+
+  const handleEditHoliday = (holiday: Holiday) => {
+    setEditingHoliday(holiday);
+    setNewHoliday({
+      name: holiday.name,
+      date: holiday.date,
+      isRecurring: holiday.isRecurring,
+      description: holiday.description || ''
+    });
+    setIsHolidayDialogOpen(true);
+  };
+
+  if (orgLoading || hoursLoading || holidaysLoading || modulesLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading organization settings...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <Settings className="h-8 w-8" />
+          Organization Settings
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Manage your organization's information, default hours, holidays, and module settings
+        </p>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-muted p-1 rounded-lg mb-6">
+        {[
+          { id: 'general', label: 'General', icon: Building2 },
+          { id: 'hours', label: 'Default Hours', icon: Clock },
+          { id: 'holidays', label: 'Holidays', icon: Calendar },
+          { id: 'modules', label: 'Modules', icon: Database }
+        ].map((tab) => (
+          <Button
+            key={tab.id}
+            variant={activeTab === tab.id ? 'default' : 'ghost'}
+            onClick={() => setActiveTab(tab.id)}
+            className="flex items-center gap-2"
+          >
+            <tab.icon className="h-4 w-4" />
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* General Tab */}
+      {activeTab === 'general' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Organization Information</span>
+              {!isEditingInfo && (
+                <Button variant="outline" onClick={() => setIsEditingInfo(true)}>
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              )}
+            </CardTitle>
+            <CardDescription>
+              Basic information about your organization
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isEditingInfo ? (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                handleSaveOrgInfo(formData);
+              }} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Organization Name *</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      defaultValue={orgInfo?.name}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="timezone">Timezone</Label>
+                    <Select name="timezone" defaultValue={orgInfo?.timezone}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select timezone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIMEZONES.map((tz) => (
+                          <SelectItem key={tz} value={tz}>
+                            {tz}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="contactEmail">Contact Email</Label>
+                    <Input
+                      id="contactEmail"
+                      name="contactEmail"
+                      type="email"
+                      defaultValue={orgInfo?.contactEmail}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="contactPhone">Contact Phone</Label>
+                    <Input
+                      id="contactPhone"
+                      name="contactPhone"
+                      defaultValue={orgInfo?.contactPhone}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    name="description"
+                    defaultValue={orgInfo?.description}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    defaultValue={orgInfo?.address}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={updateOrgMutation.isPending}>
+                    {updateOrgMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-1" />
+                    )}
+                    Save Changes
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsEditingInfo(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Organization Name</Label>
+                    <p className="mt-1">{orgInfo?.name || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Status</Label>
+                    <p className="mt-1">
+                      <Badge variant={orgInfo?.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                        {orgInfo?.status || 'Unknown'}
+                      </Badge>
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Contact Email</Label>
+                    <p className="mt-1">{orgInfo?.contactEmail || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Contact Phone</Label>
+                    <p className="mt-1">{orgInfo?.contactPhone || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Timezone</Label>
+                    <p className="mt-1">{orgInfo?.timezone || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Created</Label>
+                    <p className="mt-1">
+                      {orgInfo?.createdAt ? new Date(orgInfo.createdAt).toLocaleDateString() : 'Unknown'}
+                    </p>
+                  </div>
+                </div>
+                {orgInfo?.description && (
+                  <div>
+                    <Label className="text-sm font-medium">Description</Label>
+                    <p className="mt-1">{orgInfo.description}</p>
+                  </div>
+                )}
+                {orgInfo?.address && (
+                  <div>
+                    <Label className="text-sm font-medium">Address</Label>
+                    <p className="mt-1">{orgInfo.address}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Default Hours Tab */}
+      {activeTab === 'hours' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Default Operating Hours</CardTitle>
+            <CardDescription>
+              Set your organization's default operating hours. These will be used as the default for new facilities and appointment availability.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {DAYS_OF_WEEK.map((day) => {
+                const dayHours = defaultHours?.find(h => h.dayOfWeek === day.value);
+                const isOpen = dayHours?.isOpen || false;
+                
+                return (
+                  <div key={day.value} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    <div className="w-24">
+                      <Label className="font-medium">{day.label}</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={isOpen}
+                        onCheckedChange={(checked) => handleUpdateHours(day.value, 'isOpen', checked)}
+                        disabled={updateHoursMutation.isPending}
+                      />
+                      <Label className="text-sm">Open</Label>
+                    </div>
+                    {isOpen && (
+                      <>
+                        <div className="flex items-center space-x-2">
+                          <Label className="text-sm">From:</Label>
+                          <Input
+                            type="time"
+                            value={dayHours?.openTime || '09:00'}
+                            onChange={(e) => handleUpdateHours(day.value, 'openTime', e.target.value)}
+                            className="w-24"
+                            disabled={updateHoursMutation.isPending}
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Label className="text-sm">To:</Label>
+                          <Input
+                            type="time"
+                            value={dayHours?.closeTime || '17:00'}
+                            onChange={(e) => handleUpdateHours(day.value, 'closeTime', e.target.value)}
+                            className="w-24"
+                            disabled={updateHoursMutation.isPending}
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Label className="text-sm">Break:</Label>
+                          <Input
+                            type="time"
+                            placeholder="Start"
+                            value={dayHours?.breakStart || ''}
+                            onChange={(e) => handleUpdateHours(day.value, 'breakStart', e.target.value)}
+                            className="w-24"
+                            disabled={updateHoursMutation.isPending}
+                          />
+                          <span className="text-sm">-</span>
+                          <Input
+                            type="time"
+                            placeholder="End"
+                            value={dayHours?.breakEnd || ''}
+                            onChange={(e) => handleUpdateHours(day.value, 'breakEnd', e.target.value)}
+                            className="w-24"
+                            disabled={updateHoursMutation.isPending}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Holidays Tab */}
+      {activeTab === 'holidays' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Organization Holidays</span>
+              <Dialog open={isHolidayDialogOpen} onOpenChange={setIsHolidayDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Holiday
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingHoliday ? 'Edit Holiday' : 'Add New Holiday'}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Add or edit organization holidays that will affect appointment availability.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="holidayName">Holiday Name *</Label>
+                      <Input
+                        id="holidayName"
+                        value={newHoliday.name}
+                        onChange={(e) => setNewHoliday(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g., Christmas Day"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="holidayDate">Date *</Label>
+                      <Input
+                        id="holidayDate"
+                        type="date"
+                        value={newHoliday.date}
+                        onChange={(e) => setNewHoliday(prev => ({ ...prev, date: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={newHoliday.isRecurring}
+                        onCheckedChange={(checked) => setNewHoliday(prev => ({ ...prev, isRecurring: checked }))}
+                      />
+                      <Label>Recurring yearly</Label>
+                    </div>
+                    <div>
+                      <Label htmlFor="holidayDescription">Description</Label>
+                      <Input
+                        id="holidayDescription"
+                        value={newHoliday.description}
+                        onChange={(e) => setNewHoliday(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Optional description"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => {
+                      setIsHolidayDialogOpen(false);
+                      setEditingHoliday(null);
+                      setNewHoliday({ name: '', date: '', isRecurring: false, description: '' });
+                    }}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveHoliday} disabled={saveHolidayMutation.isPending}>
+                      {saveHolidayMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : null}
+                      {editingHoliday ? 'Update' : 'Add'} Holiday
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardTitle>
+            <CardDescription>
+              Manage organization-wide holidays that will affect appointment availability across all facilities.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {holidays && holidays.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Holiday Name</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {holidays.map((holiday) => (
+                    <TableRow key={holiday.id}>
+                      <TableCell className="font-medium">{holiday.name}</TableCell>
+                      <TableCell>{new Date(holiday.date).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Badge variant={holiday.isRecurring ? 'default' : 'secondary'}>
+                          {holiday.isRecurring ? 'Recurring' : 'One-time'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{holiday.description || '-'}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditHoliday(holiday)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteHolidayMutation.mutate(holiday.id)}
+                            disabled={deleteHolidayMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8">
+                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No holidays configured yet.</p>
+                <p className="text-sm text-muted-foreground">Add holidays to manage appointment availability.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modules Tab */}
+      {activeTab === 'modules' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Organization Modules</CardTitle>
+            <CardDescription>
+              Enable or disable specific modules for your organization. Changes will affect all users in your organization.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {modules && modules.length > 0 ? (
+              <div className="space-y-4">
+                {modules.map((module) => (
+                  <div key={module.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">{module.moduleName}</h4>
+                      {module.description && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {module.description}
+                        </p>
+                      )}
+                    </div>
+                    <Switch
+                      checked={module.enabled}
+                      onCheckedChange={(checked) => 
+                        toggleModuleMutation.mutate({ 
+                          moduleName: module.moduleName, 
+                          enabled: checked 
+                        })
+                      }
+                      disabled={toggleModuleMutation.isPending}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Database className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No modules available.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

@@ -978,6 +978,8 @@ export class DatabaseStorage implements IStorage {
   async deleteStandardQuestion(id: number) { return this.memStorage.deleteStandardQuestion(id); }
   async getCompanyAssets(filters?: any): Promise<any[]> {
     try {
+      console.log('DEBUG: [Storage] getCompanyAssets called with filters:', JSON.stringify(filters, null, 2));
+      
       let query = db.select().from(companyAssets);
       const conditions = [];
       
@@ -986,6 +988,7 @@ export class DatabaseStorage implements IStorage {
         console.error('[Storage] getCompanyAssets called without tenantId - this is a security violation');
         return [];
       }
+      console.log(`DEBUG: [Storage] Filtering by tenantId: ${filters.tenantId}`);
       conditions.push(sql`${companyAssets}.tenant_id = ${filters.tenantId}`);
       
       // Apply additional filters

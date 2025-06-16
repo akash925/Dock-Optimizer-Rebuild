@@ -192,9 +192,18 @@ export const createAsset = uploadAsset;
  */
 export const listCompanyAssets = async (req: Request, res: Response) => {
   try {
+    // Debug user authentication
+    console.log('DEBUG: User authentication:', {
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      tenantId: req.user?.tenantId,
+      userExists: !!req.user
+    });
+
     // Get user's tenant ID for filtering
     const tenantId = req.user?.tenantId;
     if (!tenantId) {
+      console.error('ERROR: User tenant not found for company assets request');
       return res.status(400).json({ error: 'User tenant not found' });
     }
 
@@ -236,10 +245,12 @@ export const listCompanyAssets = async (req: Request, res: Response) => {
     }
     
     // Log all filters being applied
-    console.log("Applied filters:", JSON.stringify(filters, null, 2));
+    console.log("DEBUG: Applied filters for company assets:", JSON.stringify(filters, null, 2));
     
     // Apply filters - always include tenant filtering
     const companyAssets = await assetManagerService.listCompanyAssets(filters);
+    
+    console.log(`DEBUG: Company assets result count: ${companyAssets.length}`);
     
     return res.json(companyAssets);
   } catch (error) {
