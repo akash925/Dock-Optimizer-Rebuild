@@ -19,11 +19,14 @@ import {
   OrganizationUser, InsertOrganizationUser,
   OrganizationModule, InsertOrganizationModule, AvailableModule,
   UserPreferences, InsertUserPreferences,
+  OrganizationDefaultHours, InsertOrganizationDefaultHours,
+  OrganizationHoliday, InsertOrganizationHoliday,
   ScheduleStatus, DockStatus, HolidayScope, TimeInterval, AssetCategory,
   DefaultHours,
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
   appointmentTypes, dailyAvailability, customQuestions, standardQuestions, bookingPages, assets, companyAssets,
-  tenants, roles, organizationUsers, organizationModules, organizationFacilities, userPreferences
+  tenants, roles, organizationUsers, organizationModules, organizationFacilities, userPreferences,
+  organizationDefaultHours, organizationHolidays
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -266,6 +269,22 @@ export interface IStorage {
   
   // Organization holiday management
   getOrganizationHolidays(organizationId: number): Promise<any[]>;
+  createOrganizationHoliday(tenantId: number, holiday: InsertOrganizationHoliday): Promise<OrganizationHoliday>;
+  updateOrganizationHoliday(id: number, holiday: Partial<OrganizationHoliday>): Promise<OrganizationHoliday | undefined>;
+  deleteOrganizationHoliday(id: number): Promise<boolean>;
+  
+  // Organization default hours management
+  getOrganizationDefaultHours(tenantId: number): Promise<DefaultHours[] | null>;
+  updateOrganizationDefaultHours(tenantId: number, data: any): Promise<any>;
+  
+  // Organization info management
+  getOrganization(tenantId: number): Promise<Tenant | undefined>;
+  updateOrganization(tenantId: number, data: Partial<Tenant>): Promise<Tenant | undefined>;
+  
+  // Additional missing methods for Asset Manager
+  getUser(id: number): Promise<User | undefined>;
+  getFacilityById(id: number, tenantId?: number): Promise<Facility | undefined>;
+  getFacility(id: number, tenantId?: number): Promise<Facility | undefined>;
 }
 
 // In-Memory Storage Implementation
@@ -1204,17 +1223,40 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async deleteOrganizationHoliday(holidayId: number, tenantId: number): Promise<boolean> {
+  async deleteOrganizationHoliday(holidayId: number): Promise<boolean> {
     try {
       const result = await db.delete(organizationHolidays)
-        .where(and(
-          eq(organizationHolidays.id, holidayId),
-          eq(organizationHolidays.tenantId, tenantId)
-        ));
+        .where(eq(organizationHolidays.id, holidayId));
       return result.rowCount > 0;
     } catch (error) {
       console.error('Error deleting organization holiday:', error);
       return false;
+    }
+  }
+
+  async getOrganization(tenantId: number): Promise<Tenant | undefined> {
+    try {
+      const result = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error fetching organization:', error);
+      return undefined;
+    }
+  }
+
+  async updateOrganization(tenantId: number, data: Partial<Tenant>): Promise<Tenant | undefined> {
+    try {
+      const [updated] = await db.update(tenants)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(tenants.id, tenantId))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error('Error updating organization:', error);
+      return undefined;
     }
   }
   async getNotification(id: number) { return this.memStorage.getNotification(id); }
@@ -1274,15 +1316,7 @@ export class DatabaseStorage implements IStorage {
   async getTempFiles(cutoffDate: Date) { return this.memStorage.getTempFiles(cutoffDate); }
   async getOrganizationHolidays(organizationId: number) { return this.memStorage.getOrganizationHolidays(organizationId); }
 
-  async getUserPreferences(userId: number): Promise<UserPreferences | undefined> {
-    try {
-      const result = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId)).limit(1);
-      return result[0];
-    } catch (error) {
-      console.error('Error fetching user preferences:', error);
-      return undefined;
-    }
-  }
+
 
   async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
     const result = await db.insert(userPreferences).values(preferences).returning();

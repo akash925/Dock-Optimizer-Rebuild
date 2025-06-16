@@ -318,7 +318,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Organization Settings Routes
+  // Organization Settings Routes - Import controllers
+  const organizationControllers = await import('./modules/organizations/controllers.js');
   const { 
     getCurrentOrganization, 
     updateCurrentOrganization,
@@ -330,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     deleteHoliday,
     getOrganizationModules,
     updateOrganizationModule
-  } = require('./modules/organizations/controllers');
+  } = organizationControllers;
 
   // Organization info routes
   app.get('/api/organizations/current', getCurrentOrganization);
