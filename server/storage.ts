@@ -371,9 +371,7 @@ export class MemStorage implements IStorage {
     return true;
   }
   async getUsers(): Promise<User[]> { return Array.from(this.users.values()); }
-  async getDock(id: number): Promise<Dock | undefined> { return this.docks.get(id); }
-  async getDocks(): Promise<Dock[]> { return Array.from(this.docks.values()); }
-  async getDocksByFacility(facilityId: number): Promise<Dock[]> { return Array.from(this.docks.values()).filter(d => d.facilityId === facilityId); }
+  // Dock operations - removed delegations to use DatabaseStorage implementations
   async createDock(insertDock: InsertDock): Promise<Dock> {
     const id = this.dockIdCounter++;
     const dock: Dock = { ...insertDock, id, isActive: insertDock.isActive ?? true, type: insertDock.type as any, customType: insertDock.customType ?? null, constraints: insertDock.constraints ?? null };
@@ -552,9 +550,7 @@ export class MemStorage implements IStorage {
     return updatedStandardQuestion;
   }
   async deleteStandardQuestion(id: number): Promise<boolean> { return this.standardQuestions.delete(id); }
-  async getBookingPage(id: number): Promise<BookingPage | undefined> { return this.bookingPages.get(id); }
-  async getBookingPageBySlug(slug: string): Promise<BookingPage | undefined> { return Array.from(this.bookingPages.values()).find(p => p.slug === slug); }
-  async getBookingPages(): Promise<BookingPage[]> { return Array.from(this.bookingPages.values()); }
+  // Booking Page operations - removed delegations to use DatabaseStorage implementations
   async createBookingPage(insertBookingPage: InsertBookingPage): Promise<BookingPage> {
     const id = this.bookingPageIdCounter++;
     const bookingPage: BookingPage = { ...insertBookingPage, id, createdAt: new Date(), lastModifiedAt: new Date(), lastModifiedBy: insertBookingPage.createdBy, description: insertBookingPage.description ?? null, welcomeMessage: insertBookingPage.welcomeMessage ?? null, confirmationMessage: insertBookingPage.confirmationMessage ?? null, excludedAppointmentTypes: insertBookingPage.excludedAppointmentTypes ?? null, customLogo: insertBookingPage.customLogo ?? null, tenantId: insertBookingPage.tenantId ?? null, isActive: insertBookingPage.isActive ?? true, primaryColor: insertBookingPage.primaryColor ?? '#4CAF50' };

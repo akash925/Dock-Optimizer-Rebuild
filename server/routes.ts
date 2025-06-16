@@ -351,5 +351,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/organizations/modules', getOrganizationModules);
   app.patch('/api/organizations/modules', updateOrganizationModule);
 
+  // Dock routes - needed for Door Manager
+  app.get('/api/docks', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      console.log('DEBUG: /api/docks endpoint called');
+      const docks = await storage.getDocks();
+      console.log('DEBUG: /api/docks returning', docks.length, 'docks');
+      res.json(docks);
+    } catch (error) {
+      console.error('Error fetching docks:', error);
+      res.status(500).json({ error: 'Failed to fetch docks' });
+    }
+  });
+
   return httpServer;
 }

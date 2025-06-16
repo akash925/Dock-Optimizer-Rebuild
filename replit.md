@@ -143,7 +143,8 @@ Dock Optimizer is an enterprise-grade warehouse management system that streamlin
 - **Asset Serving**: Express static middleware for uploaded files
 
 ## Changelog
-- June 16, 2025. Initial setup
+- June 16, 2025: Initial setup
+- June 16, 2025: Fixed Door Manager empty data issue - Added missing `/api/docks` endpoint that frontend components were calling. Database now successfully returns all 36 docks with proper tenant filtering.
 
 ## User Preferences
 
