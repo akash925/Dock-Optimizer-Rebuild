@@ -340,11 +340,12 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
       category: assetCategory || AssetCategory.OTHER, // Default to OTHER if not provided
       description: description || null,
       barcode: barcode || null,
-      status: status || 'inactive', // Default status
+      status: status || 'ACTIVE', // Default status changed to ACTIVE
       location: location || null,
       department: department || null,
       tags: processedTags,
-      photoUrl: null // Will be set by the service if photo is uploaded
+      photoUrl: null, // Will be set by the service if photo is uploaded
+      tenantId: (req.user as any)?.tenantId || 2 // Default to Hanzo organization
     };
     
     // Validate the company asset data
@@ -725,7 +726,7 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
           
           // Location and status
           location: assetData.location || null,
-          status: assetData.status || 'inactive',  // Default to inactive
+          status: assetData.status || 'ACTIVE',  // Default to ACTIVE
           
           // Template and metadata
           template: assetData.template || null,
