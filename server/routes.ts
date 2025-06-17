@@ -150,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ slots });
       
     } catch (error) {
-      console.error('Error fetching availability v2:', error);
+      console.error('Error fetching availability:', error);
       res.status(500).json({ error: 'Failed to fetch availability' });
     }
   });
@@ -493,6 +493,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching carriers:', error);
       res.status(500).json({ error: 'Failed to fetch carriers' });
+    }
+  });
+
+  // MISSING ROUTES: Users and Booking Pages APIs - CRITICAL FOR FRONTEND
+  
+  // Users API - Required for user management components
+  app.get('/api/users', async (req: any, res) => {
+    try {
+      // Require authentication for user data
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Require tenant context for security
+      if (!req.user?.tenantId) {
+        return res.status(403).json({ error: 'Tenant context required' });
+      }
+
+      console.log(`[UsersAPI] Processing request for tenant ${req.user.tenantId}`);
+
+      // Get users for this tenant only
+      const tenantUsers = await storage.getOrganizationUsers(req.user.tenantId);
+      
+      // Enhance with user details
+      const users = await Promise.all(tenantUsers.map(async (orgUser) => {
+        const user = await storage.getUser(orgUser.userId);
+        const role = await storage.getRole(orgUser.roleId);
+        
+        if (!user || !role) {
+          return null;
+        }
+        
+        // Return safe user data (no password)
+        const { password, ...safeUser } = user;
+        return {
+          ...safeUser,
+          firstName: user.firstName ?? null,
+          lastName: user.lastName ?? null,
+          role: role.name,
+          organizationRole: role.name
+        };
+      }));
+
+      // Filter out null entries
+      const validUsers = users.filter(user => user !== null);
+
+      console.log(`[UsersAPI] Returning ${validUsers.length} users for tenant ${req.user.tenantId}`);
+      res.json(validUsers);
+      
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+
+  // Booking Pages API - Required for booking page management
+  app.get('/api/booking-pages', async (req: any, res) => {
+    try {
+      // Require authentication for booking page management
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Require tenant context for security
+      if (!req.user?.tenantId) {
+        return res.status(403).json({ error: 'Tenant context required' });
+      }
+
+      console.log(`[BookingPagesAPI] Processing request for tenant ${req.user.tenantId}`);
+
+      // Get all booking pages for this tenant
+      const allBookingPages = await storage.getBookingPages();
+      
+      // Filter by tenant ID for proper isolation
+      const tenantBookingPages = allBookingPages.filter(page => page.tenantId === req.user.tenantId);
+
+      console.log(`[BookingPagesAPI] Returning ${tenantBookingPages.length} booking pages for tenant ${req.user.tenantId}`);
+      res.json(tenantBookingPages);
+      
+    } catch (error) {
+      console.error('Error fetching booking pages:', error);
+      res.status(500).json({ error: 'Failed to fetch booking pages' });
     }
   });
 
