@@ -821,7 +821,7 @@ export const adminRoutes = (app: Express) => {
           s.confirmation_code,
           s.notes,
           s.created_at,
-          s.updated_at,
+          s.last_modified_at,
           
           -- Organization info
           t.id as organization_id,
