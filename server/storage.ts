@@ -806,8 +806,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Schedule operations with real database queries
-  async getSchedules(): Promise<Schedule[]> {
-    return await db.select().from(schedules);
+  async getSchedules(tenantId?: number): Promise<Schedule[]> {
+    console.log('DEBUG: [DatabaseStorage] getSchedules called with tenantId:', tenantId);
+    
+    if (!tenantId) {
+      console.log('DEBUG: [DatabaseStorage] No tenantId provided, returning all schedules');
+      return await db.select().from(schedules);
+    }
+
+    // Filter schedules by tenant through facility and appointment type relationships
+    const query = `
+      SELECT DISTINCT s.*
+      FROM schedules s
+      LEFT JOIN docks d ON s.dock_id = d.id
+      LEFT JOIN facilities f ON d.facility_id = f.id
+      LEFT JOIN organization_facilities of ON f.id = of.facility_id
+      LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+      WHERE (
+        of.organization_id = $1 OR 
+        at.tenant_id = $1
+      )
+    `;
+    
+    const result = await db.execute(sql.raw(query, [tenantId]));
+    console.log('DEBUG: [DatabaseStorage] getSchedules tenant-filtered result count:', result.rows.length);
+    return result.rows as Schedule[];
   }
 
   async getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]> {

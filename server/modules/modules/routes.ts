@@ -68,23 +68,17 @@ modulesRouter.get('/', isAuthenticated, async (req, res) => {
     const modules = await storage.getOrganizationModules(tenantId);
     console.log(`[ModulesRouter] Fetched ${modules.length} modules for organization ${tenantId}`);
     
-    // If no modules found for this organization, use the complete set of modules
+    // If no modules found for this organization, return empty array
+    // Organizations must explicitly have modules enabled for security
     if (!modules || modules.length === 0) {
-      console.log(`[ModulesRouter] No modules found for organization ${tenantId}, using all available modules`);
-      
-      // Create a full set of available modules with default enabled values
-      // This ensures that the organization has access to all modules
-      const allModules = AVAILABLE_MODULES.map(moduleName => ({
-        moduleName,
-        enabled: true // Enable all modules by default
-      }));
+      console.log(`[ModulesRouter] No modules found for organization ${tenantId} - tenant isolation enforced`);
       
       // Set cache headers to ensure fresh data
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       
-      return res.json(allModules);
+      return res.json([]);
     }
     
     // Set cache headers to ensure fresh data
@@ -121,22 +115,17 @@ modulesRouter.get('/refresh', isAuthenticated, async (req, res) => {
     const storage = await getStorage();
     const modules = await storage.getOrganizationModules(tenantId);
     
-    // If no modules found for this organization, use the complete set of modules
+    // If no modules found for this organization, return empty array
+    // Organizations must explicitly have modules enabled for security
     if (!modules || modules.length === 0) {
-      console.log(`[ModulesRouter] No modules found for organization ${tenantId} during refresh, using all available modules`);
-      
-      // Create a full set of available modules with default enabled values
-      const allModules = AVAILABLE_MODULES.map(moduleName => ({
-        moduleName,
-        enabled: true // Enable all modules by default
-      }));
+      console.log(`[ModulesRouter] No modules found for organization ${tenantId} during refresh - tenant isolation enforced`);
       
       // Set cache headers to ensure fresh data
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       
-      return res.json(allModules);
+      return res.json([]);
     }
     
     // Set cache headers to prevent caching
