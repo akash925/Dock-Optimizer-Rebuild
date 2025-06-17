@@ -1170,7 +1170,15 @@ export function AppointmentDetailsDialog({
                       <>
                         <div className="text-sm font-medium">
                           {appointment.actualStartTime 
-                            ? format(new Date(appointment.actualStartTime), timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a")
+                            ? (() => {
+                                try {
+                                  const date = new Date(appointment.actualStartTime);
+                                  if (isNaN(date.getTime())) return "Invalid date";
+                                  return format(date, timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a");
+                                } catch (e) {
+                                  return "Invalid date";
+                                }
+                              })()
                             : "Date/time not recorded"
                           }
                         </div>
@@ -1211,7 +1219,15 @@ export function AppointmentDetailsDialog({
                     {appointment.actualEndTime ? (
                       <>
                         <div className="text-sm font-medium">
-                          {format(new Date(appointment.actualEndTime), timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a")}
+                          {(() => {
+                            try {
+                              const date = new Date(appointment.actualEndTime);
+                              if (isNaN(date.getTime())) return "Invalid date";
+                              return format(date, timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a");
+                            } catch (e) {
+                              return "Invalid date";
+                            }
+                          })()}
                         </div>
                         <div className="flex flex-col mt-1">
                           <div className="text-xs">
@@ -1295,7 +1311,15 @@ export function AppointmentDetailsDialog({
                           {customData.checkoutTime && customData.checkoutTime !== appointment.actualEndTime && (
                             <div className="text-xs">
                               <span className="font-medium">Recorded checkout time:</span>{" "}
-                              {format(new Date(customData.checkoutTime), timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a")}
+                              {(() => {
+                                try {
+                                  const date = new Date(customData.checkoutTime);
+                                  if (isNaN(date.getTime())) return "Invalid date";
+                                  return format(date, timeFormat === "24h" ? "MM/dd/yyyy, HH:mm" : "MM/dd/yyyy, hh:mm a");
+                                } catch (e) {
+                                  return "Invalid date";
+                                }
+                              })()}
                             </div>
                           )}
                         </div>
@@ -1993,7 +2017,15 @@ export function AppointmentDetailsDialog({
                             {event.type.replace('-', ' ')}
                           </TableCell>
                           <TableCell>
-                            {format(new Date(event.timestamp), timeFormat === "24h" ? "MM/dd/yyyy HH:mm" : "MM/dd/yyyy hh:mm a")}
+                            {(() => {
+                              try {
+                                const date = new Date(event.timestamp);
+                                if (isNaN(date.getTime())) return "Invalid date";
+                                return format(date, timeFormat === "24h" ? "MM/dd/yyyy HH:mm" : "MM/dd/yyyy hh:mm a");
+                              } catch (e) {
+                                return "Invalid date";
+                              }
+                            })()}
                           </TableCell>
                           <TableCell>
                             {typeof event.user === 'number' 
