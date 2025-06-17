@@ -101,13 +101,17 @@ export default function AppointmentsPage() {
         throw new Error("Failed to fetch schedules");
       }
       const data = await response.json() as Schedule[];
-      console.log("[Appointments] First 3 schedules data:", data.slice(0, 3).map(s => ({
+      console.warn("[APPOINTMENTS DEBUG] Total schedules:", data.length);
+      console.warn("[APPOINTMENTS DEBUG] First schedule:", data[0]);
+      console.warn("[APPOINTMENTS DEBUG] Sample date data:", data.slice(0, 3).map(s => ({
         id: s.id,
         startTime: s.startTime,
         endTime: s.endTime,
         status: s.status,
         startTimeType: typeof s.startTime,
-        endTimeType: typeof s.endTime
+        endTimeType: typeof s.endTime,
+        formatDateResult: formatDate(s.startTime),
+        formatTimeResult: formatTime(s.startTime)
       })));
       return data;
     },
