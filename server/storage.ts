@@ -1416,7 +1416,15 @@ export class DatabaseStorage implements IStorage {
   async getAppointmentSettings(facilityId: number) { return this.memStorage.getAppointmentSettings(facilityId); }
   async createAppointmentSettings(settings: any) { return this.memStorage.createAppointmentSettings(settings); }
   async updateAppointmentSettings(facilityId: number, settings: any) { return this.memStorage.updateAppointmentSettings(facilityId, settings); }
-  async getAppointmentType(id: number) { return this.memStorage.getAppointmentType(id); }
+  async getAppointmentType(id: number): Promise<AppointmentType | undefined> {
+    try {
+      const result = await db.select().from(appointmentTypes).where(eq(appointmentTypes.id, id));
+      return result[0] || undefined;
+    } catch (error) {
+      console.error('Error fetching appointment type:', error);
+      return undefined;
+    }
+  }
   async getDailyAvailability(id: number) { return this.memStorage.getDailyAvailability(id); }
   async getDailyAvailabilityByAppointmentType(appointmentTypeId: number) { return this.memStorage.getDailyAvailabilityByAppointmentType(appointmentTypeId); }
   async createDailyAvailability(dailyAvailability: any) { return this.memStorage.createDailyAvailability(dailyAvailability); }

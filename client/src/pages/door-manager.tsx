@@ -161,11 +161,17 @@ export default function DoorManager() {
   });
   
   // Open the unified appointment form
-    const handleUseDoor = (dockId: number) => {
+  const handleUseDoor = (dockId: number) => {
     console.log("[DoorManager] Use door clicked for dock ID:", dockId);
     setSelectedDockId(dockId);
     
-    // Use only AppointmentSelector to avoid modal stacking
+    // CRITICAL FIX: Only use ONE appointment creation method to prevent modal stacking
+    // Close any existing modals first
+    setShowAppointmentForm(false);
+    setShowAppointmentSelector(false);
+    setShowReleaseDoorForm(false);
+    
+    // Use only AppointmentSelector to avoid modal conflicts
     setShowAppointmentSelector(true);
     console.log("[DoorManager] AppointmentSelector should now be visible");
   };

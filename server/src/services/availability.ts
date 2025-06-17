@@ -169,6 +169,11 @@ export async function fetchRelevantAppointmentsForDay(
       AND s.status != 'cancelled'
     `;
     
+    if (!pool) {
+      console.error('[fetchRelevantAppointmentsForDay] Database pool not available');
+      return [];
+    }
+    
     const result = await pool.query(rawQuery, [facilityId, dayStart.toISOString(), dayEnd.toISOString(), effectiveTenantId]);
     
     // Convert the raw result to the expected format
@@ -297,11 +302,24 @@ export async function calculateAvailabilitySlots(
   console.log(`[AvailabilityService] Facility found: ${facility.name}, timezone: ${facility.timezone}`);
 
   const appointmentType = await storage.getAppointmentType(appointmentTypeId);
-  if (!appointmentType) { throw new Error('Appointment type not found or access denied.'); }
-  if (appointmentType.tenantId && appointmentType.tenantId !== effectiveTenantId) {
-       console.log(`[AvailabilityService] Tenant mismatch for appointment type ${appointmentTypeId}`);
-       throw new Error('Appointment type not found or access denied.');
+  if (!appointmentType) { 
+    console.log(`[AvailabilityService] Appointment type ${appointmentTypeId} not found in database`);
+    throw new Error('Appointment type not found or access denied.'); 
   }
+  
+  // CRITICAL: Validate tenant isolation for appointment type
+  if (appointmentType.tenantId && appointmentType.tenantId !== effectiveTenantId) {
+    console.log(`[AvailabilityService] Tenant mismatch: appointment type ${appointmentTypeId} belongs to tenant ${appointmentType.tenantId}, but request is for tenant ${effectiveTenantId}`);
+    throw new Error('Appointment type not found or access denied.');
+  }
+  
+  // Additional validation: Check if appointment type belongs to a facility accessible by this tenant
+  if (appointmentType.facilityId !== facilityId) {
+    console.log(`[AvailabilityService] Facility mismatch: appointment type ${appointmentTypeId} belongs to facility ${appointmentType.facilityId}, but request is for facility ${facilityId}`);
+    throw new Error('Appointment type not found or access denied.');
+  }
+  
+  console.log(`[AvailabilityService] Appointment type validated: ${appointmentType.name} (ID: ${appointmentTypeId}, Tenant: ${appointmentType.tenantId}, Facility: ${appointmentType.facilityId})`);
 
   // Use provided timezone or fall back to facility timezone
   const facilityTimezone = facility.timezone || 'America/New_York';
