@@ -13,6 +13,7 @@ import { registerQrCodeRoutes } from "./endpoints/qr-codes";
 import { adminRoutes } from "./modules/admin/routes";
 import { EnhancedSchedule, sendCheckoutEmail, sendRescheduleEmail } from "./notifications";
 import { User } from "@shared/schema";
+import { calculateAvailabilitySlots } from "./src/services/availability";
 
 interface TenantWebSocket extends WebSocket {
   tenantId?: number;
@@ -43,6 +44,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/uploads', express.static(uploadsDir));
   setupAuth(app);
   registerQrCodeRoutes(app);
+
+  // AVAILABILITY API ROUTES - CRITICAL FOR APPOINTMENT BOOKING
+  app.get('/api/availability', async (req: any, res) => {
+    try {
+      const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
+      
+      // Handle both typeId and appointmentTypeId parameters for compatibility
+      const effectiveAppointmentTypeId = appointmentTypeId || typeId;
+      
+      if (!date || !facilityId || !effectiveAppointmentTypeId) {
+        return res.status(400).json({ 
+          error: 'Missing required parameters: date, facilityId, and appointmentTypeId/typeId are required' 
+        });
+      }
+
+      // Get tenant ID for tenant isolation - NO DEFAULTS for security
+      let effectiveTenantId: number | null = null;
+      
+      if (req.isAuthenticated?.() && req.user?.tenantId) {
+        effectiveTenantId = req.user.tenantId;
+      } else if (bookingPageSlug && typeof bookingPageSlug === 'string') {
+        // For external booking pages, get tenant ID from booking page
+        const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+        if (bookingPage?.tenantId) {
+          effectiveTenantId = bookingPage.tenantId;
+        }
+      }
+
+      // CRITICAL: Reject requests without proper tenant context
+      if (!effectiveTenantId) {
+        return res.status(401).json({ 
+          error: 'Tenant context required. Please log in or provide valid booking page context.' 
+        });
+      }
+
+      console.log(`[AvailabilityAPI] Processing request: date=${date}, facilityId=${facilityId}, appointmentTypeId=${effectiveAppointmentTypeId}, tenantId=${effectiveTenantId}`);
+
+      const slots = await calculateAvailabilitySlots(
+        db,
+        storage,
+        date as string,
+        parseInt(facilityId as string),
+        parseInt(effectiveAppointmentTypeId as string),
+        effectiveTenantId
+      );
+
+      // Return simplified format for backward compatibility
+      const availableTimes = slots.filter(slot => slot.available).map(slot => slot.time);
+      
+      console.log(`[AvailabilityAPI] Returning ${availableTimes.length} available time slots`);
+      res.json({ availableTimes, slots });
+      
+    } catch (error) {
+      console.error('Error fetching availability:', error);
+      res.status(500).json({ error: 'Failed to fetch availability' });
+    }
+  });
+
+  app.get('/api/availability/v2', async (req: any, res) => {
+    try {
+      const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
+      
+      // Handle both typeId and appointmentTypeId parameters for compatibility
+      const effectiveAppointmentTypeId = appointmentTypeId || typeId;
+      
+      if (!date || !facilityId || !effectiveAppointmentTypeId) {
+        return res.status(400).json({ 
+          error: 'Missing required parameters: date, facilityId, and appointmentTypeId/typeId are required' 
+        });
+      }
+
+      // Get tenant ID for tenant isolation - NO DEFAULTS for security
+      let effectiveTenantId: number | null = null;
+      
+      if (req.isAuthenticated?.() && req.user?.tenantId) {
+        effectiveTenantId = req.user.tenantId;
+      } else if (bookingPageSlug && typeof bookingPageSlug === 'string') {
+        // For external booking pages, get tenant ID from booking page
+        const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+        if (bookingPage?.tenantId) {
+          effectiveTenantId = bookingPage.tenantId;
+        }
+      }
+
+      // CRITICAL: Reject requests without proper tenant context
+      if (!effectiveTenantId) {
+        return res.status(401).json({ 
+          error: 'Tenant context required. Please log in or provide valid booking page context.' 
+        });
+      }
+
+      console.log(`[AvailabilityAPI-v2] Processing request: date=${date}, facilityId=${facilityId}, appointmentTypeId=${effectiveAppointmentTypeId}, tenantId=${effectiveTenantId}`);
+
+      const slots = await calculateAvailabilitySlots(
+        db,
+        storage,
+        date as string,
+        parseInt(facilityId as string),
+        parseInt(effectiveAppointmentTypeId as string),
+        effectiveTenantId
+      );
+
+      console.log(`[AvailabilityAPI-v2] Returning ${slots.length} total slots (${slots.filter(s => s.available).length} available)`);
+      res.json({ slots });
+      
+    } catch (error) {
+      console.error('Error fetching availability v2:', error);
+      res.status(500).json({ error: 'Failed to fetch availability' });
+    }
+  });
 
   app.patch('/api/schedules/:id/check-in', async (req: any, res) => {
     try {

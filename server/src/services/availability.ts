@@ -6,6 +6,16 @@ import { schedules, docks, facilities, appointmentTypes } from '@shared/schema';
 import type { IStorage } from '../../storage';
 import { pool } from '../../db.js';
 
+// Add at the top of the file after imports
+const DEBUG_AVAILABILITY = process.env.DEBUG_AVAILABILITY === 'true';
+
+// Helper function for conditional logging
+function debugLog(message: string, ...args: any[]) {
+  if (DEBUG_AVAILABILITY) {
+    console.log(`[AvailabilityService] ${message}`, ...args);
+  }
+}
+
 // Safe date formatting function to prevent "Invalid time value" errors
 function safeFormat(date: Date | null | undefined, formatStr: string, fallback = 'Invalid Date'): string {
   if (!date || !isValid(date)) {
