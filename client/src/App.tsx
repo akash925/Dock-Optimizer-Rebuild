@@ -28,6 +28,7 @@ import AssetEditPage from "@/pages/asset-edit-page";
 import CalendarView from "@/pages/calendar-view";
 import WebSocketTestPage from "@/pages/websocket-test";
 import SeedQuestionsPage from "@/pages/seed-questions";
+import DebugAPI from "@/pages/debug-api";
 import AdminDashboard from "@/pages/admin";
 import AdminOrganizations from "@/pages/admin/orgs";
 import AdminUsers from "@/pages/admin/users";
@@ -89,6 +90,7 @@ const protectedRoutes: RouteConfig[] = [
   { path: "/asset-manager", component: AssetManagerPage, roles: ["admin", "manager"], module: "assetManager" },
   { path: "/asset-manager/assets/:id/edit", component: AssetEditPage, roles: ["admin", "manager"], module: "assetManager" },
   { path: "/websocket-test", component: WebSocketTestPage, roles: ["admin", "manager"], module: null },
+  { path: "/debug-api", component: DebugAPI, roles: ["admin"], module: null },
   { path: "/settings", component: Settings, roles: ["admin", "manager"], module: null },
   { path: "/organization-settings", component: OrganizationSettings, roles: ["admin", "manager"], module: null },
   { 
