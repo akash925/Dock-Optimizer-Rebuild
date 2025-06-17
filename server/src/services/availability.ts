@@ -313,10 +313,30 @@ export async function calculateAvailabilitySlots(
     throw new Error('Appointment type not found or access denied.');
   }
   
-  // Additional validation: Check if appointment type belongs to a facility accessible by this tenant
-  if (appointmentType.facilityId !== facilityId) {
-    console.log(`[AvailabilityService] Facility mismatch: appointment type ${appointmentTypeId} belongs to facility ${appointmentType.facilityId}, but request is for facility ${facilityId}`);
-    throw new Error('Appointment type not found or access denied.');
+  // FLEXIBLE: Check if appointment type and facility belong to the same tenant/organization
+  // This allows appointment types to be shared across facilities within the same organization
+  if (appointmentType.facilityId && appointmentType.facilityId !== facilityId) {
+    console.log(`[AvailabilityService] Appointment type ${appointmentTypeId} belongs to facility ${appointmentType.facilityId}, but request is for facility ${facilityId}. Checking tenant compatibility...`);
+    
+    // Get organization for the appointment type's facility
+    const appointmentTypeFacility = await storage.getFacility(appointmentType.facilityId, effectiveTenantId);
+    if (!appointmentTypeFacility) {
+      console.log(`[AvailabilityService] Appointment type's facility ${appointmentType.facilityId} not found or not accessible to tenant ${effectiveTenantId}`);
+      throw new Error('Appointment type not found or access denied.');
+    }
+    
+    // Check if both facilities belong to the same tenant - if so, allow cross-facility usage
+    const requestedFacilityTenantId = facility.tenantId;
+    const appointmentTypeFacilityTenantId = appointmentTypeFacility.tenantId;
+    
+    if (requestedFacilityTenantId && appointmentTypeFacilityTenantId && 
+        requestedFacilityTenantId === appointmentTypeFacilityTenantId && 
+        requestedFacilityTenantId === effectiveTenantId) {
+      console.log(`[AvailabilityService] Cross-facility usage allowed: both facilities belong to tenant ${effectiveTenantId}`);
+    } else {
+      console.log(`[AvailabilityService] Cross-facility usage denied: tenant mismatch (requested: ${requestedFacilityTenantId}, appointment type: ${appointmentTypeFacilityTenantId}, effective: ${effectiveTenantId})`);
+      throw new Error('Appointment type not found or access denied.');
+    }
   }
   
   console.log(`[AvailabilityService] Appointment type validated: ${appointmentType.name} (ID: ${appointmentTypeId}, Tenant: ${appointmentType.tenantId}, Facility: ${appointmentType.facilityId})`);

@@ -1231,9 +1231,95 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
   }
-  async getOrganizationByFacilityId(facilityId: number) { return this.memStorage.getOrganizationByFacilityId(facilityId); }
-  async getOrganizationByAppointmentTypeId(appointmentTypeId: number) { return this.memStorage.getOrganizationByAppointmentTypeId(appointmentTypeId); }
-  async getFacilityTenantId(facilityId: number) { return this.memStorage.getFacilityTenantId(facilityId); }
+  async getOrganizationByFacilityId(facilityId: number): Promise<Tenant | undefined> {
+    try {
+      console.log(`[DatabaseStorage] getOrganizationByFacilityId called with facilityId: ${facilityId}`);
+      
+      // Query the organization_facilities junction table to find the organization for this facility
+      const result = await db
+        .select({
+          organization: tenants
+        })
+        .from(organizationFacilities)
+        .innerJoin(tenants, eq(organizationFacilities.organizationId, tenants.id))
+        .where(eq(organizationFacilities.facilityId, facilityId))
+        .limit(1);
+      
+      if (result.length > 0) {
+        console.log(`[DatabaseStorage] Found organization ${result[0].organization.id} (${result[0].organization.name}) for facility ${facilityId}`);
+        return result[0].organization;
+      }
+      
+      // Fallback: Check if facility has tenantId directly
+      const facility = await this.getFacility(facilityId);
+      if (facility && facility.tenantId) {
+        console.log(`[DatabaseStorage] Using facility.tenantId (${facility.tenantId}) as fallback for facility ${facilityId}`);
+        const tenant = await this.getTenantById(facility.tenantId);
+        return tenant;
+      }
+      
+      console.log(`[DatabaseStorage] No organization found for facility ${facilityId}`);
+      return undefined;
+    } catch (error) {
+      console.error('Error fetching organization by facility ID:', error);
+      return undefined;
+    }
+  }
+  async getOrganizationByAppointmentTypeId(appointmentTypeId: number): Promise<Tenant | undefined> {
+    try {
+      console.log(`[DatabaseStorage] getOrganizationByAppointmentTypeId called with appointmentTypeId: ${appointmentTypeId}`);
+      
+      // First get the appointment type to find its tenantId
+      const appointmentType = await this.getAppointmentType(appointmentTypeId);
+      if (!appointmentType) {
+        console.log(`[DatabaseStorage] Appointment type ${appointmentTypeId} not found`);
+        return undefined;
+      }
+      
+      if (appointmentType.tenantId) {
+        console.log(`[DatabaseStorage] Found tenantId ${appointmentType.tenantId} for appointment type ${appointmentTypeId}`);
+        const tenant = await this.getTenantById(appointmentType.tenantId);
+        return tenant;
+      }
+      
+      // Fallback: Use the facilityId to find the organization
+      if (appointmentType.facilityId) {
+        console.log(`[DatabaseStorage] Using facilityId ${appointmentType.facilityId} as fallback for appointment type ${appointmentTypeId}`);
+        return await this.getOrganizationByFacilityId(appointmentType.facilityId);
+      }
+      
+      console.log(`[DatabaseStorage] No organization found for appointment type ${appointmentTypeId}`);
+      return undefined;
+    } catch (error) {
+      console.error('Error fetching organization by appointment type ID:', error);
+      return undefined;
+    }
+  }
+  async getFacilityTenantId(facilityId: number): Promise<number> {
+    try {
+      console.log(`[DatabaseStorage] getFacilityTenantId called with facilityId: ${facilityId}`);
+      
+      // First try to get the organization via the organization_facilities junction table
+      const organization = await this.getOrganizationByFacilityId(facilityId);
+      if (organization) {
+        console.log(`[DatabaseStorage] Found tenant ID ${organization.id} for facility ${facilityId} via organization lookup`);
+        return organization.id;
+      }
+      
+      // Fallback: Check if facility has tenantId directly
+      const facility = await this.getFacility(facilityId);
+      if (facility && facility.tenantId) {
+        console.log(`[DatabaseStorage] Found tenant ID ${facility.tenantId} for facility ${facilityId} via facility.tenantId`);
+        return facility.tenantId;
+      }
+      
+      console.log(`[DatabaseStorage] No tenant ID found for facility ${facilityId}, returning default 1`);
+      return 1; // Default fallback
+    } catch (error) {
+      console.error('Error fetching facility tenant ID:', error);
+      return 1; // Default fallback
+    }
+  }
 
   // Organization settings methods  
   async getOrganization(tenantId: number): Promise<Tenant | undefined> {
