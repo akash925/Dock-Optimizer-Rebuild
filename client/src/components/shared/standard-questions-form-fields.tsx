@@ -27,6 +27,8 @@ export interface QuestionFormField {
 }
 
 // This component provides the interface definitions needed by the Appointment Master page
-export default function StandardQuestionsFormFields() {
+export function StandardQuestionsFormFields() {
   return null; // This is just for interface exports
 }
+
+export default StandardQuestionsFormFields;

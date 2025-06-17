@@ -18,9 +18,11 @@ export default function Users() {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
-  // Fetch users
+  // Fetch users with strict cache control for tenant isolation
   const { data: users = [], isLoading } = useQuery<Omit<User, "password">[]>({
     queryKey: ["/api/users"],
+    staleTime: 0,
+    gcTime: 0,
   });
   
   // Role badge variants

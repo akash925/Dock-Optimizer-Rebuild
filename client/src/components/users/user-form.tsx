@@ -2,96 +2,106 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Form validation schema
 const userFormSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  email: z.string().email("Please enter a valid email"),
+  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Valid email is required"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(["admin", "manager", "worker"]),
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 
 interface UserFormProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: UserFormValues) => void;
+  loading?: boolean;
 }
 
-export default function UserForm({ isOpen, onClose }: UserFormProps) {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Form setup
+export default function UserForm({ open, onOpenChange, onSubmit, loading }: UserFormProps) {
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
       username: "",
-      password: "",
       email: "",
       firstName: "",
       lastName: "",
+      password: "",
       role: "worker",
     },
   });
-  
-  // Register mutation
-  const registerMutation = useMutation({
-    mutationFn: async (data: UserFormValues) => {
-      const res = await apiRequest("POST", "/api/register", data);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({
-        title: "User created",
-        description: "The user has been created successfully.",
-      });
-      form.reset();
-      onClose();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to create user",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  // Handle form submission
-  const onSubmit = async (data: UserFormValues) => {
-    setIsSubmitting(true);
-    
-    try {
-      await registerMutation.mutateAsync(data);
-    } finally {
-      setIsSubmitting(false);
-    }
+
+  const handleSubmit = (data: UserFormValues) => {
+    onSubmit(data);
+    form.reset();
   };
-  
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New User</DialogTitle>
           <DialogDescription>
-            Create a new user account with appropriate access permissions.
+            Create a new user account for the system.
           </DialogDescription>
         </DialogHeader>
-        
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -100,7 +110,7 @@ export default function UserForm({ isOpen, onClose }: UserFormProps) {
                   <FormItem>
                     <FormLabel>First Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="John" {...field} />
+                      <Input placeholder="First name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -113,42 +123,13 @@ export default function UserForm({ isOpen, onClose }: UserFormProps) {
                   <FormItem>
                     <FormLabel>Last Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Doe" {...field} />
+                      <Input placeholder="Last name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
-            
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="john.doe@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username</FormLabel>
-                  <FormControl>
-                    <Input placeholder="johndoe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
             <FormField
               control={form.control}
               name="password"
@@ -156,27 +137,26 @@ export default function UserForm({ isOpen, onClose }: UserFormProps) {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder="Enter password" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
             <FormField
               control={form.control}
               name="role"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a role" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="worker">Dock Worker</SelectItem>
+                      <SelectItem value="worker">Worker</SelectItem>
                       <SelectItem value="manager">Manager</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
@@ -185,13 +165,12 @@ export default function UserForm({ isOpen, onClose }: UserFormProps) {
                 </FormItem>
               )}
             />
-            
-            <DialogFooter className="mt-6">
-              <Button type="button" variant="outline" onClick={onClose}>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create User"}
+              <Button type="submit" disabled={loading}>
+                {loading ? "Creating..." : "Create User"}
               </Button>
             </DialogFooter>
           </form>
