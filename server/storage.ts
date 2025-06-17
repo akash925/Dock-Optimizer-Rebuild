@@ -32,7 +32,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 import { eq, and, gte, lte, or, ilike, SQL, sql, inArray } from "drizzle-orm";
-import { db, pool } from "./db";
+import { db, pool, safeQuery } from "./db";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
