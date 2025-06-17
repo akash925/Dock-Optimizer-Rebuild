@@ -1,0 +1,453 @@
+{
+  "name": "dock-optimizer",
+  "version": "2.0.0",
+  "description": "MCP server for Dock Optimizer API - Enterprise dock and appointment management",
+  "author": "Dock Optimizer Team",
+  "license": "Enterprise",
+  "repository": "https://github.com/akash925/Dock-Optimizer-Rebuild",
+  "capabilities": {
+    "tools": true,
+    "resources": true,
+    "prompts": true,
+    "logging": true
+  },
+  "tools": [
+    {
+      "name": "get_availability",
+      "description": "Get available appointment time slots for a specific date, facility, and appointment type",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date in YYYY-MM-DD format",
+            "example": "2025-06-20"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "Facility identifier",
+            "example": 7
+          },
+          "appointmentTypeId": {
+            "type": "number",
+            "description": "Appointment type identifier",
+            "example": 17
+          },
+          "bookingPageSlug": {
+            "type": "string",
+            "description": "Optional booking page slug for external access",
+            "example": "fresh-connect-booking"
+          }
+        },
+        "required": ["date", "facilityId", "appointmentTypeId"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "availableTimes": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Array of available time strings"
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "time": {"type": "string"},
+                "available": {"type": "boolean"},
+                "remainingCapacity": {"type": "number"},
+                "reason": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "get_schedules",
+      "description": "Get all schedules for the authenticated tenant",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Optional start date filter"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Optional end date filter"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "Optional facility filter"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["scheduled", "in_progress", "completed", "cancelled"],
+            "description": "Optional status filter"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "number"},
+            "startTime": {"type": "string", "format": "date-time"},
+            "endTime": {"type": "string", "format": "date-time"},
+            "dockId": {"type": "number"},
+            "appointmentTypeId": {"type": "number"},
+            "status": {"type": "string"},
+            "customerName": {"type": "string"},
+            "carrierName": {"type": "string"},
+            "confirmationCode": {"type": "string"}
+          }
+        }
+      }
+    },
+    {
+      "name": "create_appointment",
+      "description": "Create a new appointment/schedule",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Appointment start time"
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Appointment end time"
+          },
+          "appointmentTypeId": {
+            "type": "number",
+            "description": "Appointment type identifier"
+          },
+          "dockId": {
+            "type": "number",
+            "description": "Dock identifier (optional)"
+          },
+          "customerName": {
+            "type": "string",
+            "description": "Customer/company name"
+          },
+          "carrierName": {
+            "type": "string",
+            "description": "Carrier name (optional)"
+          },
+          "driverName": {
+            "type": "string",
+            "description": "Driver name (optional)"
+          },
+          "driverPhone": {
+            "type": "string",
+            "description": "Driver phone number (optional)"
+          },
+          "truckNumber": {
+            "type": "string",
+            "description": "Truck number (optional)"
+          }
+        },
+        "required": ["startTime", "endTime", "appointmentTypeId", "customerName"]
+      }
+    },
+    {
+      "name": "check_in_appointment",
+      "description": "Check in an appointment",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "scheduleId": {
+            "type": "number",
+            "description": "Schedule/appointment ID"
+          },
+          "actualStartTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Actual check-in time (optional, defaults to now)"
+          }
+        },
+        "required": ["scheduleId"]
+      }
+    },
+    {
+      "name": "check_out_appointment",
+      "description": "Check out an appointment",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "scheduleId": {
+            "type": "number",
+            "description": "Schedule/appointment ID"
+          },
+          "actualEndTime": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Actual check-out time (optional, defaults to now)"
+          }
+        },
+        "required": ["scheduleId"]
+      }
+    },
+    {
+      "name": "get_facilities",
+      "description": "Get all facilities accessible to the authenticated user",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "number"},
+            "name": {"type": "string"},
+            "address": {"type": "string"},
+            "timezone": {"type": "string"},
+            "isActive": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    {
+      "name": "get_docks",
+      "description": "Get all docks accessible to the authenticated user",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "facilityId": {
+            "type": "number",
+            "description": "Optional facility filter"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "number"},
+            "name": {"type": "string"},
+            "facilityId": {"type": "number"},
+            "isActive": {"type": "boolean"},
+            "status": {"type": "string"}
+          }
+        }
+      }
+    },
+    {
+      "name": "get_appointment_types",
+      "description": "Get all appointment types for the authenticated tenant",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "facilityId": {
+            "type": "number",
+            "description": "Optional facility filter"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {"type": "number"},
+            "name": {"type": "string"},
+            "duration": {"type": "number"},
+            "bufferTime": {"type": "number"},
+            "maxConcurrent": {"type": "number"},
+            "facilityId": {"type": "number"},
+            "tenantId": {"type": "number"},
+            "type": {"type": "string", "enum": ["INBOUND", "OUTBOUND"]}
+          }
+        }
+      }
+    },
+    {
+      "name": "get_dock_utilization",
+      "description": "Get dock utilization analytics",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Start date for analytics period"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "description": "End date for analytics period"
+          },
+          "facilityId": {
+            "type": "number",
+            "description": "Optional facility filter"
+          }
+        }
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "dock://schedules",
+      "name": "Schedules",
+      "description": "Current schedules and appointments",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "dock://facilities",
+      "name": "Facilities",
+      "description": "Available facilities",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "dock://docks",
+      "name": "Docks",
+      "description": "Dock status and information",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "dock://availability/{date}/{facilityId}/{appointmentTypeId}",
+      "name": "Availability",
+      "description": "Time slot availability for specific parameters",
+      "mimeType": "application/json"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "schedule_summary",
+      "description": "Generate a summary of current schedules",
+      "arguments": [
+        {
+          "name": "date",
+          "description": "Date to summarize (optional, defaults to today)",
+          "required": false
+        },
+        {
+          "name": "facilityId",
+          "description": "Facility to focus on (optional)",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "availability_report",
+      "description": "Generate an availability report for a date range",
+      "arguments": [
+        {
+          "name": "startDate",
+          "description": "Start date for the report",
+          "required": true
+        },
+        {
+          "name": "endDate",
+          "description": "End date for the report",
+          "required": true
+        },
+        {
+          "name": "facilityId",
+          "description": "Facility to focus on (optional)",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "dock_status_overview",
+      "description": "Generate an overview of current dock statuses",
+      "arguments": [
+        {
+          "name": "facilityId",
+          "description": "Facility to focus on (optional)",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "configuration": {
+    "baseUrl": {
+      "type": "string",
+      "description": "Base URL for the Dock Optimizer API",
+      "default": "http://localhost:5001/api",
+      "required": true
+    },
+    "authentication": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "Username for API authentication",
+          "required": true
+        },
+        "password": {
+          "type": "string",
+          "description": "Password for API authentication",
+          "required": true,
+          "sensitive": true
+        }
+      }
+    },
+    "timeout": {
+      "type": "number",
+      "description": "Request timeout in milliseconds",
+      "default": 30000
+    },
+    "retries": {
+      "type": "number",
+      "description": "Number of retry attempts for failed requests",
+      "default": 3
+    }
+  },
+  "examples": [
+    {
+      "name": "Get Today's Availability",
+      "description": "Get available time slots for today at a specific facility",
+      "tool": "get_availability",
+      "input": {
+        "date": "2025-06-17",
+        "facilityId": 7,
+        "appointmentTypeId": 17
+      }
+    },
+    {
+      "name": "Create New Appointment",
+      "description": "Create a new appointment for a customer",
+      "tool": "create_appointment",
+      "input": {
+        "startTime": "2025-06-17T10:00:00.000Z",
+        "endTime": "2025-06-17T14:00:00.000Z",
+        "appointmentTypeId": 17,
+        "customerName": "Example Corp",
+        "carrierName": "FedEx"
+      }
+    },
+    {
+      "name": "Check In Appointment",
+      "description": "Check in an appointment when the truck arrives",
+      "tool": "check_in_appointment",
+      "input": {
+        "scheduleId": 180
+      }
+    }
+  ],
+  "security": {
+    "authentication": "session",
+    "dataIsolation": "multi-tenant",
+    "encryption": "tls",
+    "rateLimiting": true
+  },
+  "performance": {
+    "responseTime": "< 200ms",
+    "availability": "99.9%",
+    "concurrentUsers": 1000,
+    "requestsPerSecond": 500
+  }
+} 

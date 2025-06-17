@@ -1,0 +1,770 @@
+openapi: 3.0.3
+info:
+  title: Dock Optimizer API
+  description: |
+    Enterprise-grade REST API for multi-tenant dock and appointment management systems.
+    
+    ## Features
+    - **Multi-tenant architecture** with strict data isolation
+    - **Real-time updates** via WebSocket connections
+    - **Comprehensive availability management** with time slot calculations
+    - **Advanced scheduling** with conflict detection and capacity management
+    - **Enterprise security** with role-based access control
+    
+    ## Authentication
+    All endpoints require session-based authentication. Use the `/api/login` endpoint to authenticate.
+    
+  version: "2.0"
+  contact:
+    name: API Support
+    email: api-support@dockoptimizer.com
+  license:
+    name: Enterprise License
+    url: https://dockoptimizer.com/license
+
+servers:
+  - url: https://api.dockoptimizer.com
+    description: Production server
+  - url: http://localhost:5001/api
+    description: Development server
+
+security:
+  - sessionAuth: []
+
+paths:
+  /login:
+    post:
+      summary: Authenticate user
+      description: Authenticate a user and establish a session
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  format: email
+                  example: "admin@company.com"
+                password:
+                  type: string
+                  format: password
+                  example: "password123"
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /logout:
+    post:
+      summary: Logout user
+      description: End the current user session
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged out successfully"
+
+  /user:
+    get:
+      summary: Get current user
+      description: Get information about the currently authenticated user
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /availability:
+    get:
+      summary: Get available time slots
+      description: Get available appointment time slots for a specific date, facility, and appointment type
+      tags:
+        - Availability
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+            example: "2025-06-20"
+          description: Date in YYYY-MM-DD format
+        - name: facilityId
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 7
+          description: Facility identifier
+        - name: appointmentTypeId
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 17
+          description: Appointment type identifier
+      responses:
+        '200':
+          description: Available time slots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  availableTimes:
+                    type: array
+                    items:
+                      type: string
+                    example: ["09:00", "09:30", "10:00", "10:30"]
+                  slots:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TimeSlot'
+
+  /availability/v2:
+    get:
+      summary: Get available time slots (v2)
+      description: Enhanced availability endpoint with detailed slot information
+      tags:
+        - Availability
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: facilityId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: appointmentTypeId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Available time slots with detailed information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  slots:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TimeSlot'
+
+  /schedules:
+    get:
+      summary: Get schedules
+      description: Get all schedules for the authenticated user's tenant
+      tags:
+        - Schedules
+      responses:
+        '200':
+          description: List of schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Schedule'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Tenant context required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /schedules/{id}/check-in:
+    patch:
+      summary: Check in appointment
+      description: Mark an appointment as checked in
+      tags:
+        - Schedules
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Schedule ID
+      responses:
+        '200':
+          description: Check-in successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '404':
+          description: Schedule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /schedules/{id}/check-out:
+    patch:
+      summary: Check out appointment
+      description: Mark an appointment as checked out and completed
+      tags:
+        - Schedules
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Schedule ID
+      responses:
+        '200':
+          description: Check-out successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+
+  /appointment-types:
+    get:
+      summary: Get appointment types
+      description: Get all appointment types for the authenticated user's tenant
+      tags:
+        - Appointment Types
+      responses:
+        '200':
+          description: List of appointment types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppointmentType'
+    post:
+      summary: Create appointment type
+      description: Create a new appointment type
+      tags:
+        - Appointment Types
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAppointmentType'
+      responses:
+        '201':
+          description: Appointment type created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentType'
+
+  /facilities:
+    get:
+      summary: Get facilities
+      description: Get all facilities accessible to the authenticated user
+      tags:
+        - Facilities
+      responses:
+        '200':
+          description: List of facilities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Facility'
+
+  /docks:
+    get:
+      summary: Get docks
+      description: Get all docks accessible to the authenticated user
+      tags:
+        - Docks
+      responses:
+        '200':
+          description: List of docks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dock'
+
+  /docks/{id}:
+    get:
+      summary: Get specific dock
+      description: Get details of a specific dock
+      tags:
+        - Docks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Dock ID
+      responses:
+        '200':
+          description: Dock details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dock'
+        '404':
+          description: Dock not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    get:
+      summary: Get users
+      description: Get all users in the authenticated user's organization
+      tags:
+        - Users
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfile'
+
+  /carriers:
+    get:
+      summary: Get carriers
+      description: Get all available carriers
+      tags:
+        - Carriers
+      responses:
+        '200':
+          description: List of carriers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Carrier'
+
+  /booking-pages:
+    get:
+      summary: Get booking pages
+      description: Get all booking pages for the authenticated user's tenant
+      tags:
+        - Booking Pages
+      responses:
+        '200':
+          description: List of booking pages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookingPage'
+
+  /organizations/current:
+    get:
+      summary: Get current organization
+      description: Get information about the current user's organization
+      tags:
+        - Organizations
+      responses:
+        '200':
+          description: Organization information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+
+  /analytics/dock-utilization:
+    get:
+      summary: Get dock utilization analytics
+      description: Get dock utilization statistics and analytics
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Dock utilization data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DockUtilization'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+      description: Session-based authentication
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 5
+        username:
+          type: string
+          format: email
+          example: "admin@company.com"
+        email:
+          type: string
+          format: email
+          example: "admin@company.com"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        role:
+          type: string
+          enum: [admin, user, super-admin]
+          example: "admin"
+        tenantId:
+          type: integer
+          example: 5
+        modules:
+          type: array
+          items:
+            type: string
+          example: ["appointments", "doorManager", "analytics"]
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        organizationRole:
+          type: string
+
+    Schedule:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 180
+        startTime:
+          type: string
+          format: date-time
+          example: "2025-06-17T09:00:00.000Z"
+        endTime:
+          type: string
+          format: date-time
+          example: "2025-06-17T13:00:00.000Z"
+        dockId:
+          type: integer
+          nullable: true
+          example: 24
+        appointmentTypeId:
+          type: integer
+          example: 17
+        status:
+          type: string
+          enum: [scheduled, in_progress, completed, cancelled]
+          example: "scheduled"
+        customerName:
+          type: string
+          example: "Example Corp"
+        carrierName:
+          type: string
+          example: "FedEx"
+        confirmationCode:
+          type: string
+          example: "HZL-000108"
+        facilityId:
+          type: integer
+          example: 7
+
+    AppointmentType:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 17
+        name:
+          type: string
+          example: "4 Hour Container Appointment"
+        description:
+          type: string
+          nullable: true
+        duration:
+          type: integer
+          description: Duration in minutes
+          example: 240
+        bufferTime:
+          type: integer
+          description: Buffer time in minutes
+          example: 60
+        maxConcurrent:
+          type: integer
+          description: Maximum concurrent appointments
+          example: 2
+        facilityId:
+          type: integer
+          example: 7
+        tenantId:
+          type: integer
+          example: 5
+        type:
+          type: string
+          enum: [INBOUND, OUTBOUND]
+          example: "INBOUND"
+        color:
+          type: string
+          example: "#2196F3"
+
+    CreateAppointmentType:
+      type: object
+      required:
+        - name
+        - duration
+        - facilityId
+        - type
+      properties:
+        name:
+          type: string
+          example: "Express Delivery"
+        description:
+          type: string
+        duration:
+          type: integer
+          example: 60
+        bufferTime:
+          type: integer
+          example: 15
+        maxConcurrent:
+          type: integer
+          example: 1
+        facilityId:
+          type: integer
+          example: 7
+        type:
+          type: string
+          enum: [INBOUND, OUTBOUND]
+          example: "INBOUND"
+        color:
+          type: string
+          example: "#4CAF50"
+
+    Facility:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 7
+        name:
+          type: string
+          example: "Fresh Connect HQ"
+        address:
+          type: string
+          example: "123 Main St, City, State 12345"
+        timezone:
+          type: string
+          example: "America/New_York"
+        isActive:
+          type: boolean
+          example: true
+
+    Dock:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 24
+        name:
+          type: string
+          example: "A-01"
+        facilityId:
+          type: integer
+          example: 7
+        isActive:
+          type: boolean
+          example: true
+        status:
+          type: string
+          enum: [available, occupied, maintenance]
+          example: "available"
+
+    TimeSlot:
+      type: object
+      properties:
+        time:
+          type: string
+          pattern: "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+          example: "09:00"
+        available:
+          type: boolean
+          example: true
+        remainingCapacity:
+          type: integer
+          example: 2
+        remaining:
+          type: integer
+          example: 2
+        reason:
+          type: string
+          description: Reason if not available
+          example: ""
+
+    Carrier:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "FedEx"
+        mcNumber:
+          type: string
+          example: "MC145790"
+
+    BookingPage:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        name:
+          type: string
+          example: "Fresh Connect Central Booking"
+        slug:
+          type: string
+          example: "fresh-connect-booking"
+        tenantId:
+          type: integer
+          example: 5
+
+    Organization:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 5
+        name:
+          type: string
+          example: "Fresh Connect Central"
+        subdomain:
+          type: string
+          example: "fresh-connect"
+
+    DockUtilization:
+      type: object
+      properties:
+        dock_id:
+          type: integer
+          example: 23
+        dock_name:
+          type: string
+          example: "A-01"
+        utilization_percentage:
+          type: number
+          format: float
+          example: 75.5
+        total_appointments:
+          type: integer
+          example: 45
+        date:
+          type: string
+          format: date
+          example: "2025-06-17"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Error message"
+        code:
+          type: string
+          example: "ERROR_CODE"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-06-17T10:00:00.000Z"
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Availability
+    description: Time slot availability management
+  - name: Schedules
+    description: Appointment scheduling and management
+  - name: Appointment Types
+    description: Appointment type configuration
+  - name: Facilities
+    description: Facility management
+  - name: Docks
+    description: Dock management and status
+  - name: Users
+    description: User management
+  - name: Carriers
+    description: Carrier information
+  - name: Booking Pages
+    description: External booking page management
+  - name: Organizations
+    description: Organization settings and information
+  - name: Analytics
+    description: Analytics and reporting 
