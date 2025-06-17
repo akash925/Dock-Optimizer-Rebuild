@@ -1528,6 +1528,47 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
+
+  // User/Organization association queries
+  async getOrganizationUsers(organizationId: number): Promise<OrganizationUser[]> {
+    // Real DB query using organization_users table
+    return await db.select().from(organizationUsers).where(eq(organizationUsers.organizationId, organizationId));
+  }
+
+  async getUsersByOrganizationId(organizationId: number): Promise<User[]> {
+    // Join users and organization_users to fetch users for specific org
+    const results = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        role: users.role,
+        createdAt: users.createdAt
+      })
+      .from(users)
+      .innerJoin(organizationUsers, eq(users.id, organizationUsers.userId))
+      .where(eq(organizationUsers.organizationId, organizationId));
+
+    return results as unknown as User[]; // Cast due to select subset
+  }
+
+  // Override memStorage fallback methods
+  async getOrganizationUsersWithRoles(organizationId: number): Promise<any[]> {
+    const results = await db
+      .select({
+        userId: organizationUsers.userId,
+        username: users.username,
+        email: users.email,
+        roleName: roles.name
+      })
+      .from(organizationUsers)
+      .innerJoin(users, eq(organizationUsers.userId, users.id))
+      .innerJoin(roles, eq(organizationUsers.roleId, roles.id))
+      .where(eq(organizationUsers.organizationId, organizationId));
+    return results;
+  }
 }
 
 // Storage instance management
