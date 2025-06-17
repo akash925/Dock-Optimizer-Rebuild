@@ -1,0 +1,18 @@
+{
+  "id": 10,
+  "username": "limiteduser",
+  "email": "limited@example.com",
+  "firstName": "Limited",
+  "lastName": "User",
+  "role": "user",
+  "tenantId": 2,
+  "modules": [
+    "appointments",
+    "doorManager"
+  ],
+  "permissions": [
+    "read:appointments",
+    "write:appointments",
+    "read:doorManager"
+  ]
+} 

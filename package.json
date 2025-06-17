@@ -14,7 +14,14 @@
     "db:migrate": "node scripts/run-migrations.cjs",
     "test": "vitest",
     "test:watch": "vitest watch",
-    "test:availability": "vitest run server/src/services/availability.test.ts"
+    "test:availability": "vitest run server/src/services/availability.test.ts",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "cypress:debug": "cypress open --env DEBUG_MODE=true,ENABLE_BREAKPOINTS=true",
+    "e2e": "cypress run --spec cypress/e2e/**/*.spec.ts",
+    "e2e:booking": "cypress run --spec cypress/e2e/booking-flow.spec.ts",
+    "e2e:debug": "cypress open --spec cypress/e2e/debugging-breakpoints.spec.ts --env DEBUG_MODE=true",
+    "e2e:modules": "cypress run --spec cypress/e2e/module_toggles.spec.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

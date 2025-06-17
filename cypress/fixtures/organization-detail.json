@@ -1,0 +1,84 @@
+{
+  "id": 2,
+  "name": "Hanzo Logistics",
+  "subdomain": "hanzo",
+  "status": "ACTIVE",
+  "contactEmail": "admin@hanzo.com",
+  "primaryContact": "Hanzo Admin", 
+  "contactPhone": "+1-555-0123",
+  "billingEmail": "billing@hanzo.com",
+  "billingAddress": "123 Logistics Way, Commerce City, CO 80022",
+  "timezone": "America/Denver",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "users": [
+    {
+      "userId": 4,
+      "email": "testadmin@example.com",
+      "firstName": "Test",
+      "lastName": "Admin",
+      "roleName": "admin"
+    }
+  ],
+  "modules": [
+    {
+      "id": 1,
+      "moduleName": "doorManager",
+      "enabled": true,
+      "organizationId": 2,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "moduleName": "appointments", 
+      "enabled": true,
+      "organizationId": 2,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "moduleName": "userManagement",
+      "enabled": false,
+      "organizationId": 2,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "moduleName": "assetManager",
+      "enabled": false,
+      "organizationId": 2,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "moduleName": "analytics",
+      "enabled": true,
+      "organizationId": 2,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "moduleName": "emailNotifications",
+      "enabled": true,
+      "organizationId": 2,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 8,
+      "moduleName": "bookingPages",
+      "enabled": true,
+      "organizationId": 2,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": 9,
+      "moduleName": "facilityManagement",
+      "enabled": true,
+      "organizationId": 2,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "logs": [],
+  "userCount": 1,
+  "moduleCount": 6
+} 

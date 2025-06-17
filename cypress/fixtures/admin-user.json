@@ -1,0 +1,26 @@
+{
+  "id": 4,
+  "username": "testadmin",
+  "email": "testadmin@example.com",
+  "firstName": "Test",
+  "lastName": "Admin",
+  "role": "admin",
+  "tenantId": 2,
+  "modules": [
+    "appointments",
+    "doorManager", 
+    "userManagement",
+    "assetManager",
+    "analytics",
+    "emailNotifications",
+    "bookingPages",
+    "facilityManagement"
+  ],
+  "permissions": [
+    "read:all",
+    "write:all",
+    "admin:organizations",
+    "admin:users",
+    "admin:modules"
+  ]
+} 

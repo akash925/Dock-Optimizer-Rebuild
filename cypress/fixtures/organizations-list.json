@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "name": "Global Admin",
+    "subdomain": "admin",
+    "status": "ACTIVE",
+    "contactEmail": "admin@dockoptimizer.com",
+    "primaryContact": "System Administrator",
+    "contactPhone": "+1-555-0000",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "userCount": 1,
+    "moduleCount": 8
+  },
+  {
+    "id": 2,
+    "name": "Hanzo Logistics",
+    "subdomain": "hanzo",
+    "status": "ACTIVE", 
+    "contactEmail": "admin@hanzo.com",
+    "primaryContact": "Hanzo Admin",
+    "contactPhone": "+1-555-0123",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "userCount": 2,
+    "moduleCount": 6
+  },
+  {
+    "id": 5,
+    "name": "Fresh Connect Central",
+    "subdomain": "fresh-connect-central",
+    "status": "ACTIVE",
+    "contactEmail": "akash@agarwalhome.com", 
+    "primaryContact": "Akash Agarwal",
+    "contactPhone": "+1-317-555-1234",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "userCount": 1,
+    "moduleCount": 4
+  }
+] 
