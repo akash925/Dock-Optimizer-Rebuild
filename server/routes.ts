@@ -496,7 +496,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SCHEDULES API ENDPOINTS - CRITICAL FOR APPOINTMENT MANAGEMENT
+  // GET /api/schedules - Get all schedules for the authenticated user's tenant
+  app.get('/api/schedules', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
 
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: 'Tenant context required' });
+      }
+
+      console.log(`[SchedulesAPI] Processing GET request for tenant ${user.tenantId}`);
+
+      // Get tenant-filtered schedules
+      const schedules = await storage.getSchedules(user.tenantId);
+      
+      console.log(`[SchedulesAPI] Returning ${schedules.length} schedules for tenant ${user.tenantId}`);
+      res.json(schedules);
+      
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+      res.status(500).json({ error: 'Failed to fetch schedules' });
+    }
+  });
+
+  // Additional schedule endpoints will be added by calendar module
 
   return httpServer;
 }

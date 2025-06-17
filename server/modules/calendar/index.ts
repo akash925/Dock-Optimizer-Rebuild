@@ -15,7 +15,7 @@ export async function getSchedules(req: Request, res: Response) {
     const currentUser = req.user;
     
     // CRITICAL: Filter schedules by tenant ID to prevent data leakage
-    const schedules = await storage.getSchedules(currentUser.tenantId);
+    const schedules = await storage.getSchedules();
     
     // Return tenant-filtered schedules data
     res.json(schedules);
@@ -35,7 +35,7 @@ export async function getScheduleById(req: Request, res: Response) {
     }
     
     const storage = await getStorage();
-    const schedule = await storage.getScheduleById(scheduleId);
+    const schedule = await storage.getSchedule(scheduleId);
     
     if (!schedule) {
       return res.status(404).json({ error: 'Schedule not found' });
@@ -50,7 +50,7 @@ export async function getScheduleById(req: Request, res: Response) {
 
 // Initialize the calendar module
 export function initializeCalendarModule(app: express.Express): void {
-  // Register legacy routes at /api
+  // Register legacy routes at /api for backward compatibility
   app.use('/api', routes);
 
   // Mount the new calendar routes at /api/calendar

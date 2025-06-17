@@ -179,6 +179,77 @@ app.use((req, res, next) => {
     }
   });
 
+  // Appointment Types API - Required for appointment master management
+  app.get('/api/appointment-types', async (req: any, res) => {
+    try {
+      // Import storage dynamically to avoid circular dependencies
+      const { getStorage } = await import('./storage');
+      const storage = await getStorage();
+
+      // Require authentication for appointment type management
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Require tenant context for security
+      if (!req.user?.tenantId) {
+        return res.status(403).json({ error: 'Tenant context required' });
+      }
+
+      console.log(`[AppointmentTypesAPI] Processing request for tenant ${req.user.tenantId}`);
+
+      // Get all appointment types for this tenant
+      const allAppointmentTypes = await storage.getAppointmentTypes();
+      
+      // Filter by tenant ID for proper isolation
+      const tenantAppointmentTypes = allAppointmentTypes.filter(type => type.tenantId === req.user.tenantId);
+
+      console.log(`[AppointmentTypesAPI] Returning ${tenantAppointmentTypes.length} appointment types for tenant ${req.user.tenantId}`);
+      res.json(tenantAppointmentTypes);
+      
+    } catch (error) {
+      console.error('Error fetching appointment types:', error);
+      res.status(500).json({ error: 'Failed to fetch appointment types' });
+    }
+  });
+
+  // Create Appointment Type API
+  app.post('/api/appointment-types', async (req: any, res) => {
+    try {
+      // Import storage dynamically to avoid circular dependencies
+      const { getStorage } = await import('./storage');
+      const storage = await getStorage();
+
+      // Require authentication
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Require tenant context for security
+      if (!req.user?.tenantId) {
+        return res.status(403).json({ error: 'Tenant context required' });
+      }
+
+      // Add tenant ID to the appointment type data
+      const appointmentTypeData = {
+        ...req.body,
+        tenantId: req.user.tenantId
+      };
+
+      console.log(`[AppointmentTypesAPI] Creating appointment type for tenant ${req.user.tenantId}:`, appointmentTypeData.name);
+
+      // Create the appointment type
+      const createdAppointmentType = await storage.createAppointmentType(appointmentTypeData);
+
+      console.log(`[AppointmentTypesAPI] Successfully created appointment type: ${createdAppointmentType.name} (ID: ${createdAppointmentType.id})`);
+      res.status(201).json(createdAppointmentType);
+      
+    } catch (error) {
+      console.error('Error creating appointment type:', error);
+      res.status(500).json({ error: 'Failed to create appointment type' });
+    }
+  });
+
   // First, load system modules (tenant management and feature flags)
   for (const moduleName of SYSTEM_MODULES) {
     console.log(`Loading system module: ${moduleName}...`);
