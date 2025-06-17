@@ -213,6 +213,16 @@ app.use((req, res, next) => {
   // CRITICAL: Add analytics module to ensure analytics API endpoints are available
   modulesToLoad.push("analytics");
 
+  // CRITICAL: Add OCR module for document processing
+console.log('Loading OCR module...');
+try {
+  const ocrModule = await import('./routes/bol-ocr.mjs' as string);
+  app.use('/api/ocr', (ocrModule as any).default);
+  console.log('OCR module loaded successfully');
+} catch (error) {
+  console.error('Failed to load OCR module:', error);
+}
+
   // Load modules based on legacy configuration
   for (const moduleName of modulesToLoad) {
     console.log(`Loading ${moduleName} module...`);
