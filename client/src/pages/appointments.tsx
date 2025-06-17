@@ -100,7 +100,16 @@ export default function AppointmentsPage() {
       if (!response.ok) {
         throw new Error("Failed to fetch schedules");
       }
-      return response.json() as Promise<Schedule[]>;
+      const data = await response.json() as Schedule[];
+      console.log("[Appointments] First 3 schedules data:", data.slice(0, 3).map(s => ({
+        id: s.id,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        status: s.status,
+        startTimeType: typeof s.startTime,
+        endTimeType: typeof s.endTime
+      })));
+      return data;
     },
   });
   
