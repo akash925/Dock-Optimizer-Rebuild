@@ -5,28 +5,55 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: Date | string, options: Intl.DateTimeFormatOptions = {}): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return dateObj.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    ...options,
-  });
+export function formatDate(date: Date | string | null | undefined, options: Intl.DateTimeFormatOptions = {}): string {
+  if (!date) return "N/A";
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return "Invalid Date";
+    
+    return dateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      ...options,
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return "Invalid Date";
+  }
 }
 
-export function formatTime(date: Date | string, options: Intl.DateTimeFormatOptions = {}): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return dateObj.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    ...options,
-  });
+export function formatTime(date: Date | string | null | undefined, options: Intl.DateTimeFormatOptions = {}): string {
+  if (!date) return "N/A";
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return "Invalid Time";
+    
+    return dateObj.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      ...options,
+    });
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return "Invalid Time";
+  }
 }
 
-export function formatDateTime(date: Date | string): string {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return `${formatDate(dateObj)} at ${formatTime(dateObj)}`;
+export function formatDateTime(date: Date | string | null | undefined): string {
+  if (!date) return "N/A";
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) return "Invalid DateTime";
+    
+    return `${formatDate(dateObj)} at ${formatTime(dateObj)}`;
+  } catch (error) {
+    console.error('Error formatting datetime:', error);
+    return "Invalid DateTime";
+  }
 }
 
 export function getDockStatus(dockId: number, schedules: any[]): "available" | "occupied" | "reserved" {
