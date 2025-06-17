@@ -393,22 +393,23 @@ export async function calculateAvailabilitySlots(
   
   console.log(`[AvailabilityService] Using day key: ${dayKey} from day of week: ${dayOfWeek}`);
   
-  // STEP 1: Get organization default hours 
+  // STEP 1: Get organization and its default hours 
   const organization = await storage.getOrganizationByFacilityId(facilityId);
   if (!organization) {
     throw new Error('Organization not found for this facility');
   }
   
-  // ENHANCED: Organization holidays are now properly checked in checkHolidaysAndClosures function
-  // Holiday data is retrieved from organization.metadata.holidays structure
+  // STEP 2: Fetch organization default hours from the database
+  const organizationDefaultHours = await storage.getOrganizationDefaultHours(effectiveTenantId);
+  const hourEntries = Array.isArray(organizationDefaultHours) ? organizationDefaultHours : [];
+  console.log(`[AvailabilityService] Retrieved ${hourEntries.length} organization default hour entries`);
   
-  // STEP 2: Build organization default hours (supports both nested and flat structures)
+  // STEP 3: Build organization default hours from database
   const orgHours: Record<string, DayHours> = {};
   
   for (const day of dayKeys) {
-    // ENHANCED: Check for organization hours in nested structure first (from default hours API)
-    // Organization hours are saved as settings.defaultHours.monday.open, etc.
-    const nestedHours = (organization as any).settings?.defaultHours?.[day];
+    const dayIndex = dayKeys.indexOf(day); // 0=Sunday, 1=Monday, etc.
+    const dayHours = hourEntries.find((h: any) => h.dayOfWeek === dayIndex);
     
     let isOpen = false;
     let startTime = "08:00";
@@ -416,38 +417,34 @@ export async function calculateAvailabilitySlots(
     let breakStartTime = "";
     let breakEndTime = "";
     
-    if (nestedHours) {
-      // Use nested structure (preferred format from organization default hours)
-      isOpen = nestedHours.open || false;
-      startTime = nestedHours.start || "08:00";
-      endTime = nestedHours.end || "17:00";
-      breakStartTime = nestedHours.breakStart || "";
-      breakEndTime = nestedHours.breakEnd || "";
+    if (dayHours) {
+      // Use organization default hours from database
+      isOpen = dayHours.isOpen || false;
+      startTime = dayHours.openTime || "08:00";
+      endTime = dayHours.closeTime || "17:00";
+      breakStartTime = dayHours.breakStart || "";
+      breakEndTime = dayHours.breakEnd || "";
       
-      console.log(`[AvailabilityService] Organization hours for ${day} (nested):`, {
+      console.log(`[AvailabilityService] Organization hours for ${day} (database):`, {
+        dayOfWeek: dayIndex,
         open: isOpen,
-        hours: `${startTime} - ${endTime}`,
-        source: 'settings.defaultHours'
+        hours: isOpen ? `${startTime} - ${endTime}` : 'Closed',
+        breaks: (breakStartTime && breakEndTime) ? `${breakStartTime} - ${breakEndTime}` : 'None',
+        source: 'organizationDefaultHours table'
       });
     } else {
-      // FALLBACK: Check for flat field structure (legacy support)
-      const dayOpenField = getObjectField(organization, `${day}Open`, `${day}_open`);
-      const dayStartField = getObjectField(organization, `${day}Start`, `${day}_start`);
-      const dayEndField = getObjectField(organization, `${day}End`, `${day}_end`);
-      const dayBreakStartField = getObjectField(organization, `${day}BreakStart`, `${day}_break_start`);
-      const dayBreakEndField = getObjectField(organization, `${day}BreakEnd`, `${day}_break_end`);
+      // FALLBACK: Use business hours defaults (Monday-Friday 8-5)
+      isOpen = dayIndex >= 1 && dayIndex <= 5; // Monday through Friday
+      startTime = "08:00";
+      endTime = "17:00";
+      breakStartTime = "";
+      breakEndTime = "";
       
-      isOpen = dayOpenField?.value !== undefined ? dayOpenField.value : false;
-      startTime = dayStartField?.value || "08:00";
-      endTime = dayEndField?.value || "17:00";
-      breakStartTime = dayBreakStartField?.value || "";
-      breakEndTime = dayBreakEndField?.value || "";
-      
-      console.log(`[AvailabilityService] Organization hours for ${day} (flat fields):`, {
-        rawField: dayOpenField,
-        computed: isOpen,
-        hours: `${startTime} - ${endTime}`,
-        source: dayOpenField?.source || 'default'
+      console.log(`[AvailabilityService] Organization hours for ${day} (default):`, {
+        dayOfWeek: dayIndex,
+        open: isOpen,
+        hours: isOpen ? `${startTime} - ${endTime}` : 'Closed',
+        source: 'system default (M-F 8-5)'
       });
     }
     
