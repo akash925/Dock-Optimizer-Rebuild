@@ -829,7 +829,40 @@ export class DatabaseStorage implements IStorage {
     `);
     
     console.log('DEBUG: [DatabaseStorage] getSchedules tenant-filtered result count:', result.rows.length);
-    return result.rows as Schedule[];
+    
+    // Transform snake_case fields to camelCase for frontend compatibility
+    const transformedSchedules = result.rows.map((row: any) => ({
+      ...row,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      dockId: row.dock_id,
+      carrierId: row.carrier_id,
+      appointmentTypeId: row.appointment_type_id,
+      truckNumber: row.truck_number,
+      trailerNumber: row.trailer_number,
+      driverName: row.driver_name,
+      driverPhone: row.driver_phone,
+      driverEmail: row.driver_email,
+      customerName: row.customer_name,
+      carrierName: row.carrier_name,
+      mcNumber: row.mc_number,
+      bolNumber: row.bol_number,
+      poNumber: row.po_number,
+      palletCount: row.pallet_count,
+      appointmentMode: row.appointment_mode,
+      actualStartTime: row.actual_start_time,
+      actualEndTime: row.actual_end_time,
+      customFormData: row.custom_form_data,
+      creatorEmail: row.creator_email,
+      createdBy: row.created_by,
+      createdAt: row.created_at,
+      lastModifiedAt: row.last_modified_at,
+      lastModifiedBy: row.last_modified_by,
+      confirmationCode: row.confirmation_code,
+      facilityId: row.facility_id
+    }));
+    
+    return transformedSchedules as Schedule[];
   }
 
   async getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]> {
