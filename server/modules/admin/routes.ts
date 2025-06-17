@@ -809,6 +809,10 @@ export const adminRoutes = (app: Express) => {
       
       const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
       
+      // Store current paramIndex for pagination
+      const limitParamIndex = paramIndex;
+      const offsetParamIndex = paramIndex + 1;
+      
       // Main query to get appointments with organization context
       const appointmentsQuery = `
         SELECT 
@@ -863,13 +867,13 @@ export const adminRoutes = (app: Express) => {
         ${whereClause}
         
         ORDER BY s.start_time DESC
-        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+        LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
       `;
       
       // Add pagination parameters
       queryParams.push(Number(limit), offset);
       
-      // Count query for pagination
+      // Count query for pagination - only use WHERE conditions, no pagination params
       const countQuery = `
         SELECT COUNT(*) as total
         FROM schedules s
@@ -881,9 +885,12 @@ export const adminRoutes = (app: Express) => {
         ${whereClause}
       `;
       
+      // For count query, only use the WHERE condition parameters (exclude pagination)
+      const countQueryParams = queryParams.slice(0, paramIndex - 1);
+      
       // Execute queries using Drizzle SQL syntax
       const appointmentsResult = await db.execute(sql.raw(appointmentsQuery, queryParams));
-      const countResult = await db.execute(sql.raw(countQuery, queryParams.slice(0, -2))); // Remove pagination params for count
+      const countResult = await db.execute(sql.raw(countQuery, countQueryParams));
       
       const appointments = appointmentsResult.rows;
       const total = parseInt(countResult.rows[0]?.total || '0');
