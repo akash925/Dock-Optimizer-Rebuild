@@ -145,6 +145,12 @@ Dock Optimizer is an enterprise-grade warehouse management system that streamlin
 ## Changelog
 - June 16, 2025: Initial setup
 - June 16, 2025: Fixed Door Manager empty data issue - Added missing `/api/docks` endpoint that frontend components were calling. Database now successfully returns all 36 docks with proper tenant filtering.
+- June 17, 2025: **CRITICAL SECURITY FIX** - Implemented strict tenant isolation across entire system:
+  - Fixed cross-tenant data leakage by enforcing INNER JOIN filtering on appointment_types.tenant_id
+  - Applied zero-cache strategy (staleTime: 0, gcTime: 30s) to prevent cached data contamination
+  - Resolved "No facility assigned" issue with proper field name transformation (snake_case to camelCase)
+  - Fixed empty Appointment Master and User Management pages by creating missing components
+  - Enhanced date/time display across appointments with proper null validation
 
 ## User Preferences
 
