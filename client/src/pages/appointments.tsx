@@ -92,11 +92,18 @@ export default function AppointmentsPage() {
   const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
   const [dynamicFilters, setDynamicFilters] = useState<Record<string, string>>({});
   
-  // Fetch all schedules
+  // Fetch all schedules with strict cache control for tenant isolation
   const { data: schedules, isLoading, error } = useQuery({
     queryKey: ["/api/schedules"],
+    staleTime: 0, // Always refetch to prevent cross-tenant data leakage
+    gcTime: 0, // Don't cache to ensure tenant isolation
     queryFn: async () => {
-      const response = await fetch("/api/schedules");
+      const response = await fetch("/api/schedules", {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch schedules");
       }

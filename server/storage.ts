@@ -818,8 +818,9 @@ export class DatabaseStorage implements IStorage {
     const result = await db.execute(sql`
       SELECT DISTINCT s.*
       FROM schedules s
-      LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
+      INNER JOIN appointment_types at ON s.appointment_type_id = at.id
       WHERE at.tenant_id = ${tenantId}
+      ORDER BY s.id DESC
     `);
     
     console.log('DEBUG: [DatabaseStorage] getSchedules tenant-filtered result count:', result.rows.length);
