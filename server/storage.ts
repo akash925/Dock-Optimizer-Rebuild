@@ -815,7 +815,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Filter schedules by tenant through facility and appointment type relationships
-    const query = `
+    const result = await db.execute(sql`
       SELECT DISTINCT s.*
       FROM schedules s
       LEFT JOIN docks d ON s.dock_id = d.id
@@ -823,12 +823,11 @@ export class DatabaseStorage implements IStorage {
       LEFT JOIN organization_facilities of ON f.id = of.facility_id
       LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
       WHERE (
-        of.organization_id = $1 OR 
-        at.tenant_id = $1
+        of.organization_id = ${tenantId} OR 
+        at.tenant_id = ${tenantId}
       )
-    `;
+    `);
     
-    const result = await db.execute(sql.raw(query, [tenantId]));
     console.log('DEBUG: [DatabaseStorage] getSchedules tenant-filtered result count:', result.rows.length);
     return result.rows as Schedule[];
   }
