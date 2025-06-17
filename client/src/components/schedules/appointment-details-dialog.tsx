@@ -167,25 +167,41 @@ export function AppointmentDetailsDialog({
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [isUploadingBol, setIsUploadingBol] = useState(false);
   const [formData, setFormData] = useState<Partial<Schedule>>({});
-  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(
-    appointment ? new Date(appointment.startTime) : undefined
-  );
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>(() => {
+    if (!appointment?.startTime) return undefined;
+    try {
+      const date = new Date(appointment.startTime);
+      return isNaN(date.getTime()) ? undefined : date;
+    } catch (e) {
+      return undefined;
+    }
+  });
   const [rescheduleTime, setRescheduleTime] = useState<string>("");
   const [rescheduleDuration, setRescheduleDuration] = useState<number>(60); // Default 1 hour
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   
   // Initialize reschedule data when appointment changes
   useEffect(() => {
-    if (appointment) {
-      const startDate = new Date(appointment.startTime);
-      setRescheduleDate(startDate);
-      setRescheduleTime(format(startDate, "HH:mm"));
-      
-      // Calculate duration in minutes
-      const startTime = new Date(appointment.startTime).getTime();
-      const endTime = new Date(appointment.endTime).getTime();
-      const durationMs = endTime - startTime;
-      setRescheduleDuration(durationMs / (1000 * 60)); // Convert ms to minutes
+    if (appointment?.startTime && appointment?.endTime) {
+      try {
+        const startDate = new Date(appointment.startTime);
+        const endDate = new Date(appointment.endTime);
+        
+        // Validate dates
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          console.warn("Invalid date values in appointment:", { startTime: appointment.startTime, endTime: appointment.endTime });
+          return;
+        }
+        
+        setRescheduleDate(startDate);
+        setRescheduleTime(format(startDate, "HH:mm"));
+        
+        // Calculate duration in minutes
+        const durationMs = endDate.getTime() - startDate.getTime();
+        setRescheduleDuration(Math.max(60, durationMs / (1000 * 60))); // Convert ms to minutes, minimum 60
+      } catch (e) {
+        console.error("Error processing appointment dates:", e);
+      }
     }
   }, [appointment]);
 

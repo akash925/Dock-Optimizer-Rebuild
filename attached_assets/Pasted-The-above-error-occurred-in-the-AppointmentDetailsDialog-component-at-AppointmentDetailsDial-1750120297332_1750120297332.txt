@@ -1,0 +1,58 @@
+The above error occurred in the <AppointmentDetailsDialog> component:
+
+    at AppointmentDetailsDialog (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/components/schedules/appointment-details-dialog.tsx:121:3)
+    at div
+    at Schedules (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/pages/schedules.tsx:41:21)
+    at main
+    at div
+    at div
+    at Layout (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/components/layout/layout.tsx:19:34)
+    at Route (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8f2e4409:323:16)
+    at ProtectedRoute (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/lib/protected-route.tsx:23:3)
+    at Switch (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8f2e4409:379:17)
+    at AppRouter (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/App.tsx?v=AcK0jx2dqbiKmytFMufrG:320:40)
+    at OrgProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/contexts/OrgContext.tsx:68:31)
+    at ModuleProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/contexts/ModuleContext.tsx:45:34)
+    at AuthProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/hooks/use-auth.tsx:30:32)
+    at ThemeProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/components/ui/theme-provider.tsx:25:3)
+    at App
+    at AuthProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/hooks/use-auth.tsx:30:32)
+    at QueryClientProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=8f2e4409:2805:3)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+
+at AppointmentDetailsDialog (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/components/schedules/appointment-details-dialog.tsx:121:3)
+at div
+at Schedules (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/pages/schedules.tsx:41:21)
+at main
+at div
+at div
+at Layout (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/components/layout/layout.tsx:19:34)
+at Route (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8f2e4409:323:16)
+at ProtectedRoute (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/lib/protected-route.tsx:23:3)
+at Switch (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8f2e4409:379:17)
+at AppRouter (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/App.tsx?v=AcK0jx2dqbiKmytFMufrG:320:40)
+at OrgProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/contexts/OrgContext.tsx:68:31)
+at ModuleProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/contexts/ModuleContext.tsx:45:34)
+at AuthProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/hooks/use-auth.tsx:30:32)
+at ThemeProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/components/ui/theme-provider.tsx:25:3)
+at App
+at AuthProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/src/hooks/use-auth.tsx:30:32)
+at QueryClientProvider (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=8f2e4409:2805:3)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+at t.value (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+Invalid time value
+[WebSocket] Closing connection on cleanup
+[WebSocket] Connection error: 
+Event {isTrusted: true}
+
+[WebSocket] Connection closed: 1006 
+[WebSocket] Connection closed - disabling reconnections to prevent system overload
+[WebSocket] Connection closed: 1005 
+[WebSocket] Connection closed - disabling reconnections to prevent system overload
