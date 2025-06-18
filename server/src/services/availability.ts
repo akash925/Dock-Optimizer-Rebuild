@@ -32,21 +32,31 @@ function safeFormat(date: Date | null | undefined, formatStr: string, fallback =
 
 // Helper function to parse ISO dates with timezone options
 function tzParseISO(dateStr: string, options?: { timeZone?: string }): Date {
-  const parsedDate = parseISO(dateStr);
-  if (options?.timeZone) {
-    return toZonedTime(parsedDate, options.timeZone);
+  try {
+    const parsed = parseISO(dateStr);
+    return options?.timeZone ? toZonedTime(parsed, options.timeZone) : parsed;
+  } catch (error) {
+    console.warn(`[tzParseISO] Error parsing date:`, error);
+    return new Date(NaN);
   }
-  return parsedDate;
 }
 
 // Simplified and more reliable date parsing
 function parseTimeInTimezone(date: string, time: string, timezone: string): Date {
-  // Create a date string that represents the exact time in the given timezone
-  const dateTimeStr = `${date}T${time}:00`;
-  const parsedDate = parseISO(dateTimeStr);
+  // Create a date-time string
+  const dateTimeStr = `${date} ${time}`;
   
-  // Convert to the specified timezone
-  return toZonedTime(parsedDate, timezone);
+  // Parse the datetime string as if it's in the target timezone
+  const parsedDate = parse(dateTimeStr, 'yyyy-MM-dd HH:mm', new Date());
+  
+  // Convert from the timezone to UTC
+  // First, we create a date in the target timezone, then get the equivalent UTC time
+  const localDate = toZonedTime(parsedDate, timezone);
+  
+  // Calculate the timezone offset and adjust to get the correct UTC time
+  const offset = localDate.getTimezoneOffset() - parsedDate.getTimezoneOffset();
+  
+  return new Date(parsedDate.getTime() - (offset * 60000));
 }
 
 // Helper function to check for holidays and special closures
