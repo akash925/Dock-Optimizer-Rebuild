@@ -119,6 +119,41 @@ router.get('/serve/:fileId', async (req, res) => {
   }
 });
 
+// Get BOL documents for a specific appointment
+router.get('/bol/appointment/:appointmentId', async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const storage = await getStorage();
+
+    // Get the appointment first to check for BOL info
+    const appointment = await storage.getSchedule(parseInt(appointmentId));
+    if (!appointment) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    // Check if appointment has BOL file information in customFormData
+    const bolFiles = [];
+    const customData = appointment.customFormData as any;
+    if (customData?.bolFileUploaded) {
+      bolFiles.push({
+        fileId: customData.bolFileId,
+        filename: customData.bolFileName,
+        appointmentId: appointmentId
+      });
+    }
+
+    res.json({
+      success: true,
+      files: bolFiles,
+      bolNumber: appointment.bolNumber
+    });
+
+  } catch (error) {
+    console.error('Error fetching BOL files for appointment:', error);
+    res.status(500).json({ error: 'Failed to fetch BOL files' });
+  }
+});
+
 // Upload BOL document 
 router.post('/upload/bol', bolUpload.single('bolFile'), async (req, res) => {
   try {
@@ -128,6 +163,9 @@ router.post('/upload/bol', bolUpload.single('bolFile'), async (req, res) => {
 
     const { scheduleId, appointmentId } = req.body;
     const storage = await getStorage();
+    
+    // Use scheduleId or appointmentId - they're the same thing
+    const finalAppointmentId = appointmentId || scheduleId;
 
     // Upload file to blob storage
     const uploadedFile = await blobStorageService.uploadFile(
@@ -136,20 +174,38 @@ router.post('/upload/bol', bolUpload.single('bolFile'), async (req, res) => {
       req.file.mimetype,
       {
         folder: 'bol-documents',
-        tenantId: (req as any).user?.tenantId,
-        uploadedBy: (req as any).user?.id,
-        metadata: {
-          scheduleId: scheduleId || null,
-          appointmentId: appointmentId || null,
-          bolNumber: req.body.bolNumber || null,
-          customerName: req.body.customerName || null,
-          carrierName: req.body.carrierName || null
-        }
+        tenantId: (req as any).user?.tenantId || 1,
+        uploadedBy: (req as any).user?.id || 1
       }
     );
 
-    // Store file record in database
-    await storage.createFileRecord(uploadedFile);
+    // Store file record in database - skip for now, just track in appointment
+    // await storage.createFileRecord(fileRecord);
+    
+    // 🔥 CRITICAL FIX: Update the appointment to indicate BOL was uploaded
+    if (finalAppointmentId) {
+      try {
+        const appointment = await storage.getSchedule(parseInt(finalAppointmentId));
+        if (appointment) {
+          // Update appointment with BOL info
+          await storage.updateSchedule(parseInt(finalAppointmentId), {
+            bolNumber: req.body.bolNumber || uploadedFile.originalName,
+            lastModifiedAt: new Date(),
+            // Add custom data to track BOL upload
+            customFormData: {
+              ...(appointment.customFormData || {}),
+              bolFileUploaded: true,
+              bolFileId: uploadedFile.id,
+              bolFileName: uploadedFile.originalName
+            }
+          });
+          console.log(`[BOL Upload] Updated appointment ${finalAppointmentId} with BOL info`);
+        }
+      } catch (updateError) {
+        console.error('[BOL Upload] Error updating appointment:', updateError);
+        // Don't fail the upload if appointment update fails
+      }
+    }
 
     res.json({
       success: true,
@@ -157,7 +213,9 @@ router.post('/upload/bol', bolUpload.single('bolFile'), async (req, res) => {
       fileUrl: uploadedFile.url,
       filename: uploadedFile.originalName,
       size: uploadedFile.size,
-      documentId: uploadedFile.id
+      documentId: uploadedFile.id,
+      appointmentId: finalAppointmentId,
+      message: 'BOL document uploaded successfully'
     });
 
   } catch (error) {

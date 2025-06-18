@@ -157,8 +157,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/schedules/:id/check-in', async (req: any, res) => {
     try {
-      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
-      const user = req.user as User;
+      // CRITICAL FIX: Allow external check-in without authentication for QR code functionality
+      // Check if user is authenticated, but don't require it for external check-ins
+      let userId = null;
+      if (req.isAuthenticated && req.isAuthenticated()) {
+        const user = req.user as User;
+        userId = user.id;
+      }
+      
       const scheduleId = parseInt(req.params.id, 10);
       if (isNaN(scheduleId)) return res.status(400).json({ error: 'Invalid schedule ID' });
 
@@ -169,8 +175,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'in-progress',
         actualStartTime: req.body.actualStartTime ? new Date(req.body.actualStartTime) : new Date(),
         lastModifiedAt: new Date(),
-        lastModifiedBy: user.id
+        lastModifiedBy: userId || 1 // Use system user if not authenticated
       });
+      
+      console.log(`[CheckIn] Appointment ${scheduleId} checked in successfully`);
       res.json(updatedSchedule);
     } catch (error) {
       console.error('Error checking in appointment:', error);
@@ -524,6 +532,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Additional schedule endpoints will be added by calendar module
+
+  // CRITICAL: Add route to get schedule by confirmation code (for external check-in)
+  app.get('/api/schedules/confirmation/:confirmationCode', async (req: any, res) => {
+    try {
+      const { confirmationCode } = req.params;
+      
+      if (!confirmationCode) {
+        return res.status(400).json({ error: 'Confirmation code is required' });
+      }
+      
+      console.log(`[ScheduleByConfirmation] Looking up appointment with confirmation code: ${confirmationCode}`);
+      
+      // Get the schedule by confirmation code
+      const schedule = await storage.getScheduleByConfirmationCode(confirmationCode);
+      
+      if (!schedule) {
+        console.log(`[ScheduleByConfirmation] No appointment found for confirmation code: ${confirmationCode}`);
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+      
+      console.log(`[ScheduleByConfirmation] Found appointment: ${schedule.id} for confirmation code: ${confirmationCode}`);
+      res.json(schedule);
+      
+    } catch (error) {
+      console.error('Error fetching schedule by confirmation code:', error);
+      res.status(500).json({ error: 'Failed to fetch schedule' });
+    }
+  });
 
   return httpServer;
 }

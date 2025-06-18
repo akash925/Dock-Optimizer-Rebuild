@@ -146,6 +146,50 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
     
     console.log('[BookingRoute] Appointment created successfully:', appointment.id);
     
+    // 🔥 CRITICAL FIX: Send confirmation email after appointment creation
+    try {
+      if (extractedEmail) {
+        console.log('[BookingRoute] Sending confirmation email to:', extractedEmail);
+        
+        // Get facility and appointment type details for email
+        const facility = await storage.getFacility(parseInt(facilityId));
+        const appointmentType = await storage.getAppointmentType(parseInt(appointmentTypeId));
+        
+        // Create enhanced schedule object for email
+        const enhancedSchedule = {
+          ...appointment,
+          facilityName: facility?.name || 'Main Facility',
+          appointmentTypeName: appointmentType?.name || 'Standard Appointment',
+          dockName: 'Not assigned',
+          timezone: facility?.timezone || 'America/New_York',
+          confirmationCode: confirmationCode,
+          creatorEmail: extractedEmail,
+          bolFileUploaded: false
+        };
+        
+        // Import email notification function
+        const { sendConfirmationEmail } = require('../../notifications');
+        
+        // Send the confirmation email
+        const emailResult = await sendConfirmationEmail(
+          extractedEmail,
+          confirmationCode,
+          enhancedSchedule
+        );
+        
+        if (emailResult) {
+          console.log('[BookingRoute] Confirmation email sent successfully');
+        } else {
+          console.log('[BookingRoute] Confirmation email failed to send');
+        }
+      } else {
+        console.log('[BookingRoute] No email provided - skipping confirmation email');
+      }
+    } catch (emailError) {
+      console.error('[BookingRoute] Error sending confirmation email:', emailError);
+      // Don't fail the entire request if email fails
+    }
+    
     res.json({
       schedule: appointment,
       confirmationCode,

@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
-import AppointmentForm from '@/components/shared/appointment-form-fixed';
+import AppointmentForm from '@/components/shared/unified-appointment-form';
 import AppointmentDetails from '@/components/calendar/appointment-details';
 import { WebSocketStatus } from '@/components/shared/websocket-status';
 import { useRealtimeUpdates } from '@/hooks/use-realtime-updates';

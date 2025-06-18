@@ -1214,7 +1214,27 @@ export class DatabaseStorage implements IStorage {
   async getSchedule(id: number) { return undefined; }
   async getSchedulesByDock(dockId: number) { return []; }
   async searchSchedules(query: string) { return []; }
-  async getScheduleByConfirmationCode(code: string) { return undefined; }
+  async getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined> {
+    try {
+      // Query the database for schedule with matching confirmation code
+      const result = await safeQuery(async () => {
+        return await db
+          .select()
+          .from(schedules)
+          .where(eq(schedules.confirmationCode, code))
+          .limit(1);
+      });
+      
+      if (!result || result.length === 0) {
+        return undefined;
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error fetching schedule by confirmation code:', error);
+      return undefined;
+    }
+  }
   // Carrier operations implemented above in database section
   async getFacility(id: number, tenantId?: number): Promise<Facility | undefined> {
     try {
