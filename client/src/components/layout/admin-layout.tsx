@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { ChevronLeft, Users, LayoutDashboard, Building2, Settings, BarChart3, Calendar } from "lucide-react";
+import { ChevronLeft, Users, LayoutDashboard, Building2, Settings, BarChart3, Calendar, Package } from "lucide-react";
 import AdminTopNav from "./admin-top-nav";
 
 interface AdminLayoutProps {
@@ -69,6 +69,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           >
             <Calendar className="h-4 w-4" />
             <span>Appointments</span>
+          </Link>
+
+          <Link
+            to="/admin/assets"
+            className={`flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              location.startsWith("/admin/assets")
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
+            <Package className="h-4 w-4" />
+            <span>Assets</span>
           </Link>
           
           <Link

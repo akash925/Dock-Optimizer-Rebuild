@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, ChevronDown, Building, Users, Settings } from "lucide-react";
+import { LogOut, ChevronDown, Building, Users, Settings, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
 import {
@@ -43,6 +43,12 @@ export default function AdminTopNav() {
           <div className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${isActive('/admin/users') ? 'bg-neutral-100 text-primary' : 'hover:bg-neutral-50'}`}>
             <Users className="h-4 w-4" />
             <span className="text-sm font-medium">Users</span>
+          </div>
+        </Link>
+        <Link href="/admin/assets">
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${isActive('/admin/assets') ? 'bg-neutral-100 text-primary' : 'hover:bg-neutral-50'}`}>
+            <Package className="h-4 w-4" />
+            <span className="text-sm font-medium">Assets</span>
           </div>
         </Link>
         <Link href="/admin/settings">

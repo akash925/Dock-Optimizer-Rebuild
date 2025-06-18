@@ -1018,4 +1018,117 @@ export const adminRoutes = (app: Express) => {
     }
   });
 
+  // Assets management routes
+  app.get('/api/admin/assets', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // Only super-admin can access admin assets
+      if (req.user.role !== 'super-admin') {
+        return res.status(403).json({ error: 'Access denied. Super-admin role required.' });
+      }
+
+      console.log('[AdminAPI] Fetching all company assets across organizations');
+
+      // Get all company assets
+      const storage = await getStorage();
+      const assets = await storage.getCompanyAssets();
+
+      console.log(`[AdminAPI] Retrieved ${assets.length} company assets`);
+
+      res.json(assets);
+    } catch (error) {
+      console.error('[AdminAPI] Error fetching admin assets:', error);
+      res.status(500).json({ error: 'Failed to fetch assets' });
+    }
+  });
+
+  // Update asset status
+  app.patch('/api/admin/assets/:id/status', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // Only super-admin can update asset status
+      if (req.user.role !== 'super-admin') {
+        return res.status(403).json({ error: 'Access denied. Super-admin role required.' });
+      }
+
+      const assetId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      if (!status) {
+        return res.status(400).json({ error: 'Status is required' });
+      }
+
+      console.log(`[AdminAPI] Updating asset ${assetId} status to ${status}`);
+
+      // Get the existing asset to check if it exists
+      const storage = await getStorage();
+      const existingAsset = await storage.getCompanyAssetById(assetId);
+      if (!existingAsset) {
+        return res.status(404).json({ error: 'Asset not found' });
+      }
+
+      // Update the asset status
+      const updatedAsset = await storage.updateCompanyAsset(assetId, { 
+        status,
+        updatedAt: new Date()
+      });
+
+      if (!updatedAsset) {
+        return res.status(500).json({ error: 'Failed to update asset status' });
+      }
+
+      console.log(`[AdminAPI] Successfully updated asset ${assetId} status to ${status}`);
+
+      res.json(updatedAsset);
+    } catch (error) {
+      console.error('[AdminAPI] Error updating asset status:', error);
+      res.status(500).json({ error: 'Failed to update asset status' });
+    }
+  });
+
+  // Delete asset
+  app.delete('/api/admin/assets/:id', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      // Only super-admin can delete assets
+      if (req.user.role !== 'super-admin') {
+        return res.status(403).json({ error: 'Access denied. Super-admin role required.' });
+      }
+
+      const assetId = parseInt(req.params.id);
+
+      console.log(`[AdminAPI] Deleting asset ${assetId}`);
+
+      // Check if asset exists
+      const storage = await getStorage();
+      const existingAsset = await storage.getCompanyAssetById(assetId);
+      if (!existingAsset) {
+        return res.status(404).json({ error: 'Asset not found' });
+      }
+
+      // Delete the asset
+      const result = await storage.deleteCompanyAsset(assetId);
+
+      if (!result) {
+        return res.status(500).json({ error: 'Failed to delete asset' });
+      }
+
+      console.log(`[AdminAPI] Successfully deleted asset ${assetId}`);
+
+      res.json({ message: 'Asset deleted successfully' });
+    } catch (error) {
+      console.error('[AdminAPI] Error deleting asset:', error);
+      res.status(500).json({ error: 'Failed to delete asset' });
+    }
+  });
+
 };

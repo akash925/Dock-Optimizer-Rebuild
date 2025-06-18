@@ -57,6 +57,7 @@ const AdminNewOrgPage = lazy(() => import("@/pages/admin/orgs/new"));
 const AdminOrganizationsPage = lazy(() => import("@/pages/admin/organizations"));
 const AdminUsersPage = lazy(() => import("@/pages/admin/users"));
 const AdminUserDetailPage = lazy(() => import("@/pages/admin/users/[id]"));
+const AdminAssetsPage = lazy(() => import("@/pages/admin/assets"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin/settings"));
 // Need to handle the special character in filename
 const AdminOrgDetailPage = lazy(() => {
@@ -161,6 +162,15 @@ const adminRoutes: RouteConfig[] = [
     component: () => (
       <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
         <AdminUserDetailPage />
+      </Suspense>
+    ),
+    isAdmin: true
+  },
+  { 
+    path: "/admin/assets", 
+    component: () => (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <AdminAssetsPage />
       </Suspense>
     ),
     isAdmin: true

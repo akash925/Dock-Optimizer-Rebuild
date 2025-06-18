@@ -332,11 +332,16 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
       }
     }
     
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
     // Create company asset data object
     const companyAssetData = {
       name,
       manufacturer: manufacturer ? String(manufacturer) : 'Unknown',  // Default value if not provided
-      owner: owner ? String(owner) : 'Hanzo Logistics', // Default value if not provided
+      owner: owner ? String(owner) : 'Unknown', // Default value if not provided
       category: assetCategory || AssetCategory.OTHER, // Default to OTHER if not provided
       description: description || null,
       barcode: barcode || null,
@@ -345,7 +350,7 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
       department: department || null,
       tags: processedTags,
       photoUrl: null, // Will be set by the service if photo is uploaded
-      tenantId: (req.user as any)?.tenantId || 2 // Default to Hanzo organization
+      tenantId: (req.user as any).tenantId // User is guaranteed to have tenantId now
     };
     
     // Validate the company asset data
@@ -704,11 +709,16 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
           throw new Error('Asset name is required');
         }
         
+        // Ensure user is authenticated and has tenantId
+        if (!req.user || !(req.user as any)?.tenantId) {
+          throw new Error('User must be authenticated with valid organization');
+        }
+
         // Create the company asset data object
         const companyAssetData = {
           name: assetData.name,
           manufacturer: assetData.manufacturer ? String(assetData.manufacturer) : 'Unknown',  // Default value for required field
-          owner: assetData.owner ? String(assetData.owner) : 'Hanzo Logistics',  // Default value for required field
+          owner: assetData.owner ? String(assetData.owner) : 'Unknown',  // Default value for required field
           department: assetData.department || null,
           category: assetData.category,  // Already defaulted to AssetCategory.OTHER
           description: assetData.description || null,
@@ -754,6 +764,7 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
           
           // System fields
           createdBy: assetData.createdBy || null,
+          tenantId: (req.user as any).tenantId, // User is guaranteed to have tenantId from auth check above
         };
         
         // Create the asset (no photo buffer for bulk import)
