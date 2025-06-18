@@ -26,7 +26,8 @@ import {
   users, docks, schedules, carriers, notifications, facilities, holidays, appointmentSettings,
   appointmentTypes, dailyAvailability, customQuestions, standardQuestions, bookingPages, assets, companyAssets,
   tenants, roles, organizationUsers, organizationModules, organizationFacilities, userPreferences,
-  organizationDefaultHours, organizationHolidays
+  organizationDefaultHours, organizationHolidays, bolDocuments,
+  BolDocument, InsertBolDocument
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -263,6 +264,12 @@ export interface IStorage {
   getFileRecord(fileId: string): Promise<any | null>;
   deleteFileRecord(fileId: string): Promise<boolean>;
   getTempFiles(cutoffDate: Date): Promise<any[]>;
+  
+  // BOL Document operations
+  createBolDocument(bolDocument: InsertBolDocument): Promise<BolDocument>;
+  getBolDocumentById(id: number): Promise<BolDocument | undefined>;
+  getBolDocumentsByScheduleId(scheduleId: number): Promise<BolDocument[]>;
+  deleteBolDocument(id: number): Promise<boolean>;
   
   // Session store
   sessionStore: any; // Type-safe session store
@@ -1652,6 +1659,27 @@ export class DatabaseStorage implements IStorage {
   async getFileRecord(fileId: string) { return null; }
   async deleteFileRecord(fileId: string) { return true; }
   async getTempFiles(cutoffDate: Date) { return []; }
+  
+  // BOL Document operations
+  async createBolDocument(bolDocument: any): Promise<any> {
+    const [newDoc] = await db.insert(bolDocuments).values(bolDocument).returning();
+    return newDoc;
+  }
+  
+  async getBolDocumentById(id: number): Promise<any | undefined> {
+    const [doc] = await db.select().from(bolDocuments).where(eq(bolDocuments.id, id));
+    return doc;
+  }
+  
+  async getBolDocumentsByScheduleId(scheduleId: number): Promise<any[]> {
+    const docs = await db.select().from(bolDocuments).where(eq(bolDocuments.scheduleId, scheduleId));
+    return docs;
+  }
+  
+  async deleteBolDocument(id: number): Promise<boolean> {
+    const result = await db.delete(bolDocuments).where(eq(bolDocuments.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
   // Organization holidays are implemented above with proper database queries
 
   async getUserPreferences(userId: number): Promise<UserPreferences | undefined> {

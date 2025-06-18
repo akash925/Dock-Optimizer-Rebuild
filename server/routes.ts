@@ -341,6 +341,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/files', fileRoutes);
   adminRoutes(app);
 
+  // BOL Documents API Routes
+  const bolController = await import('./modules/appointments/controllers/bolController');
+  app.post('/api/schedules/:id/bol', bolController.bolUploadMiddleware, bolController.uploadBol);
+  app.get('/api/schedules/:id/bol', bolController.listBols);
+  app.delete('/api/bol/:bolId', bolController.deleteBol);
+
   // **UNIFIED QUESTIONS API - SINGLE SOURCE OF TRUTH**
   // Standard Questions Routes
   app.get('/api/standard-questions/appointment-type/:id', async (req: any, res) => {
