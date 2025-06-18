@@ -552,6 +552,18 @@ export async function calculateAvailabilitySlots(
   } else {
     console.log(`[AvailabilityService] Using organization default hours for ${facility.name}`);
   }
+  
+  // **CRITICAL FIX: AUTHORITATIVE WEEKEND ENFORCEMENT AFTER FACILITY HOURS**
+  // Force weekends closed regardless of organization OR facility configuration
+  // This is the business rule: NO appointments on weekends EVER
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+  if (isWeekend && effectiveHours.open) {
+    console.log(`[AvailabilityService] 🚫 WEEKEND ENFORCEMENT: Forcing ${dayKey} closed (was configured as open)`);
+    effectiveHours = {
+      ...effectiveHours,
+      open: false
+    };
+  }
 
   // STEP 4: Check appointment type hours (highest priority - can override facility/org hours)
   const appointmentTypeHoursOverride = getAppTypeField('hoursOverride', 'hours_override', null);

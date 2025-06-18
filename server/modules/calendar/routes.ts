@@ -77,7 +77,7 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
     const extractedPhone = phone || customFields?.phone || driverPhone || customFields?.driverPhone || customFields?.contactPhone || '';
     const extractedCarrierName = carrierName || customFields?.carrierName || 'External Carrier';
     const extractedDriverName = driverName || customFields?.driverName || extractedCustomerName;
-    const extractedTruckNumber = truckNumber || customFields?.truckNumber || 'TRUCK-' + Math.floor(Math.random() * 10000);
+    const extractedTruckNumber = truckNumber || customFields?.truckNumber || ''; // Don't generate fake truck numbers  
     const extractedTrailerNumber = trailerNumber || customFields?.trailerNumber || '';
     const extractedMcNumber = mcNumber || customFields?.mcNumber || '';
     const extractedPoNumber = poNumber || customFields?.poNumber || '';
@@ -167,8 +167,8 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
           bolFileUploaded: false
         };
         
-        // Import email notification function
-        const { sendConfirmationEmail } = require('../../notifications');
+        // Import email notification function dynamically to avoid circular imports
+        const { sendConfirmationEmail } = await import('../../notifications');
         
         // Send the confirmation email
         const emailResult = await sendConfirmationEmail(
@@ -233,7 +233,7 @@ router.post('/schedules/external', async (req: any, res) => {
     
     // Provide defaults for required fields
     const extractedCustomerName = customerName || customFields?.customerName || contactName || 'External Customer';
-    const extractedTruckNumber = truckNumber || customFields?.truckNumber || 'TRUCK-' + Math.floor(Math.random() * 10000);
+    const extractedTruckNumber = truckNumber || customFields?.truckNumber || ''; // Don't generate fake truck numbers
     const extractedDriverName = driverName || customFields?.driverName || extractedCustomerName;
     const extractedCarrierName = carrierName || customFields?.carrierName || 'External Carrier';
     
