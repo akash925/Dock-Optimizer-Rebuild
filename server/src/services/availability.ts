@@ -459,6 +459,11 @@ export async function calculateAvailabilitySlots(
     const dayIndex = dayKeys.indexOf(day); // 0=Sunday, 1=Monday, etc.
     const dayHours = hourEntries.find((h: any) => h.dayOfWeek === dayIndex);
     
+    // **FIXED: AUTHORITATIVE WEEKEND LOGIC**
+    // Force weekends (Sunday=0, Saturday=6) closed by default
+    // Only allow them to be open if EXPLICITLY configured in database
+    const isWeekend = dayIndex === 0 || dayIndex === 6; // Sunday or Saturday
+    
     let isOpen = false;
     let startTime = "08:00";
     let endTime = "17:00";
@@ -467,22 +472,37 @@ export async function calculateAvailabilitySlots(
     
     if (dayHours) {
       // Use organization default hours from database
-      isOpen = dayHours.isOpen || false;
+      isOpen = dayHours.isOpen === true; // Must be explicitly true
       startTime = dayHours.openTime || "08:00";
       endTime = dayHours.closeTime || "17:00";
       breakStartTime = dayHours.breakStart || "";
       breakEndTime = dayHours.breakEnd || "";
+      
+      // **WEEKEND ENFORCEMENT: Even if database says open, check if it's weekend**
+      if (isWeekend && !dayHours.isOpen) {
+        isOpen = false; // Force weekends closed unless explicitly open in DB
+        console.log(`[AvailabilityService] WEEKEND ENFORCEMENT: ${day} forced closed (database shows: ${dayHours.isOpen})`);
+      }
       
       console.log(`[AvailabilityService] Organization hours for ${day} (database):`, {
         dayOfWeek: dayIndex,
         open: isOpen,
         hours: isOpen ? `${startTime} - ${endTime}` : 'Closed',
         breaks: (breakStartTime && breakEndTime) ? `${breakStartTime} - ${breakEndTime}` : 'None',
-        source: 'organizationDefaultHours table'
+        source: 'organizationDefaultHours table',
+        weekendEnforcement: isWeekend ? 'Applied' : 'N/A'
       });
     } else {
-      // FALLBACK: Use business hours defaults (Monday-Friday 8-5)
-      isOpen = dayIndex >= 1 && dayIndex <= 5; // Monday through Friday
+      // **FALLBACK WITH AUTHORITATIVE WEEKEND LOGIC**
+      // ALWAYS close weekends in fallback mode
+      if (isWeekend) {
+        isOpen = false;
+        console.log(`[AvailabilityService] WEEKEND ENFORCEMENT: ${day} forced closed (no database entry, weekend default)`);
+      } else {
+        // Monday through Friday
+        isOpen = dayIndex >= 1 && dayIndex <= 5;
+      }
+      
       startTime = "08:00";
       endTime = "17:00";
       breakStartTime = "";
@@ -492,7 +512,8 @@ export async function calculateAvailabilitySlots(
         dayOfWeek: dayIndex,
         open: isOpen,
         hours: isOpen ? `${startTime} - ${endTime}` : 'Closed',
-        source: 'system default (M-F 8-5)'
+        source: 'system default with weekend enforcement',
+        weekendEnforcement: isWeekend ? 'Applied' : 'N/A'
       });
     }
     
@@ -708,113 +729,67 @@ export async function calculateAvailabilitySlots(
         reason = `Too soon (${effectiveBufferMinutes}min buffer)`;
     }
 
-    // Enhanced concurrent slot validation with detailed logging
+    // **SIMPLIFIED & AUTHORITATIVE CONCURRENT APPOINTMENTS ENFORCEMENT**
     if (isSlotAvailable && existingAppointments && existingAppointments.length > 0) {
         console.log(`[AvailabilityService] Checking conflicts for slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} against ${existingAppointments.length} existing appointments`);
-        console.log(`[AvailabilityService] Appointment type max concurrent: ${maxConcurrent || 'unlimited'}`);
+        console.log(`[AvailabilityService] Appointment type max concurrent: ${maxConcurrent}`);
         
+        // Count ALL overlapping appointments for this specific appointment type
         conflictingApptsCount = existingAppointments.filter((appt) => {
             const apptStart = appt.startTime.getTime();
             const apptEnd = appt.endTime.getTime();
             const slotStart = currentSlotStartTime.getTime();
             const slotEnd = currentSlotEndTime.getTime();
             
-            // Check if there's any time overlap between slot and existing appointment
+            // Check if there's ANY time overlap between slot and existing appointment
             const hasOverlap = (slotStart < apptEnd && slotEnd > apptStart);
             
             if (hasOverlap) {
                 console.log(`[AvailabilityService] Found overlapping appointment: ID ${appt.id}, type: ${appt.appointmentTypeId}, time: ${tzFormat(new Date(apptStart), effectiveTimezone, 'HH:mm')} - ${tzFormat(new Date(apptEnd), effectiveTimezone, 'HH:mm')}`);
                 
-                // For concurrent slot calculation, only count appointments of the same type
-                if (maxConcurrent !== null && appt.appointmentTypeId === appointmentTypeId) {
-                    console.log(`[AvailabilityService] Counting towards concurrent limit (same appointment type: ${appointmentTypeId})`);
+                // **AUTHORITATIVE RULE: Only count appointments of the SAME TYPE for concurrent limits**
+                if (appt.appointmentTypeId === appointmentTypeId) {
+                    console.log(`[AvailabilityService] ✓ Counting towards concurrent limit (same appointment type: ${appointmentTypeId})`);
                     return true;
+                } else {
+                    console.log(`[AvailabilityService] ✗ Different appointment type (${appt.appointmentTypeId}), not counted towards concurrent limit`);
+                    return false;
                 }
-                
-                // For different appointment types or unlimited concurrent, check if it's a true conflict
-                // (i.e., appointments that completely block the time slot)
-                const isCompleteConflict = (slotStart >= apptStart && slotEnd <= apptEnd) || 
-                                         (apptStart >= slotStart && apptEnd <= slotEnd);
-                
-                if (isCompleteConflict) {
-                    console.log(`[AvailabilityService] Found complete time conflict with appointment ID ${appt.id}`);
-                    return true;
-                }
-                
-                console.log(`[AvailabilityService] Partial overlap with appointment ID ${appt.id}, not blocking slot (different types or concurrent allowed)`);
             }
             
             return false;
         }).length;
         
-        console.log(`[AvailabilityService] Total conflicting appointments for slot: ${conflictingApptsCount}`);
+        console.log(`[AvailabilityService] CONCURRENT CHECK: ${conflictingApptsCount} of ${maxConcurrent} slots used for appointment type ${appointmentTypeId}`);
         
-        // Apply concurrent slot limits
-        if (maxConcurrent !== null && conflictingApptsCount >= maxConcurrent) {
-            console.log(`[AvailabilityService] Slot exceeded max concurrent limit: ${conflictingApptsCount} >= ${maxConcurrent}`);
+        // **AUTHORITATIVE ENFORCEMENT: Strict concurrent limit check**
+        if (conflictingApptsCount >= maxConcurrent) {
+            console.log(`[AvailabilityService] ❌ SLOT BLOCKED: Concurrent limit reached (${conflictingApptsCount}/${maxConcurrent})`);
             isSlotAvailable = false;
-        } else if (maxConcurrent !== null) {
-            console.log(`[AvailabilityService] Slot within concurrent limit: ${conflictingApptsCount} < ${maxConcurrent}`);
+            reason = `Capacity full (${conflictingApptsCount}/${maxConcurrent})`;
         } else {
-            console.log(`[AvailabilityService] No concurrent limit set, allowing overlapping appointments`);
+            console.log(`[AvailabilityService] ✅ SLOT AVAILABLE: Within concurrent limit (${conflictingApptsCount}/${maxConcurrent})`);
         }
         
-        // Additional validation: Check for hard conflicts (same exact time, regardless of type)
-        const exactTimeConflicts = existingAppointments.filter((appt) => {
-            const apptStart = appt.startTime.getTime();
-            const apptEnd = appt.endTime.getTime();
-            const slotStart = currentSlotStartTime.getTime();
-            const slotEnd = currentSlotEndTime.getTime();
-            
-            // Exact time match
-            return (apptStart === slotStart && apptEnd === slotEnd);
-        }).length;
-        
-        if (exactTimeConflicts > 0) {
-            console.log(`[AvailabilityService] Found ${exactTimeConflicts} appointments with exact same time slot - checking if this should block availability`);
-            
-            // If max concurrent is 1 or null (meaning exclusive), block the slot
-            if (maxConcurrent === null || maxConcurrent <= 1) {
-                console.log(`[AvailabilityService] Blocking slot due to exact time conflict and exclusive/single concurrent setting`);
-                isSlotAvailable = false;
-            }
-        }
     } else if (existingAppointments && existingAppointments.length === 0) {
-        console.log(`[AvailabilityService] No existing appointments for slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} - slot available`);
+        console.log(`[AvailabilityService] ✅ No existing appointments - slot available`);
     }
 
-    // Check capacity with detailed logging
-    const currentCapacity = maxConcurrent - conflictingApptsCount;
-    console.log(`[AvailabilityService] Capacity calculation for slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')}: maxConcurrent=${maxConcurrent}, conflictingAppts=${conflictingApptsCount}, remainingCapacity=${currentCapacity}`);
-    
-    if (isSlotAvailable && currentCapacity <= 0) {
-        isSlotAvailable = false;
-        reason = "Capacity full";
-        console.log(`[AvailabilityService] Slot ${tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm')} marked unavailable due to full capacity (${conflictingApptsCount}/${maxConcurrent})`);
-    }
-
-    // SIMPLIFIED: Check break time - simple overlap check
+    // **SIMPLIFIED BREAK TIME CHECK**
     if (breakStartDateTime && breakEndDateTime && !allowAppointmentsThroughBreaks) {
         const slotOverlapsBreak = currentSlotStartTime.getTime() < breakEndDateTime.getTime() && 
                                  currentSlotEndTime.getTime() > breakStartDateTime.getTime();
         
         if (slotOverlapsBreak) {
             const timeStr = tzFormat(currentSlotStartTime, effectiveTimezone, 'HH:mm');
-            console.log(`[AvailabilityService] Slot at ${timeStr} overlaps with break time - not available`);
+            console.log(`[AvailabilityService] ❌ SLOT BLOCKED: ${timeStr} overlaps with break time`);
             isSlotAvailable = false;
             reason = "During break time";
         }
     }
 
-    const remainingCapacity = isSlotAvailable ? Math.max(0, currentCapacity) : 0;
-
-    // Final status check
-    if (remainingCapacity <= 0 && isSlotAvailable) {
-        isSlotAvailable = false;
-        if (reason !== "During break time") { 
-             reason = "Capacity full";
-        }
-    }
+    // Calculate remaining capacity for display purposes
+    const remainingCapacity = isSlotAvailable ? Math.max(0, maxConcurrent - conflictingApptsCount) : 0;
     
     // Create the slot result object with facility-local time in HH:mm format
     // This ensures times are always shown in the facility's timezone regardless of user's timezone
@@ -826,12 +801,8 @@ export async function calculateAvailabilitySlots(
       reason: isSlotAvailable ? "" : reason,
     };
     
-    // For debugging time conversions and slot generation
-    console.log(`[AvailabilityService] Generated slot: ${slotResult.time} (${slotResult.available ? 'Available' : 'Unavailable'}) with reason: ${slotResult.reason || 'None'}`);
-    
-    // Add debug info about interval for traceability
-    const nextSlotTime = tzFormat(addMinutes(currentSlotStartTime, slotIntervalMinutes), effectiveTimezone, 'HH:mm');
-    console.log(`[AvailabilityService] Next slot will be at ${nextSlotTime} (using ${slotIntervalMinutes}min interval)`);
+    // Log the final slot result
+    console.log(`[AvailabilityService] ✅ FINAL SLOT: ${slotResult.time} (${slotResult.available ? 'Available' : 'Unavailable'}) - Capacity: ${slotResult.remainingCapacity}/${maxConcurrent} - Reason: ${slotResult.reason || 'None'}`);
     
     result.push(slotResult);
 

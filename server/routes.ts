@@ -341,99 +341,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/files', fileRoutes);
   adminRoutes(app);
 
-  // The rest of the file...
-  // This is a reconstruction of the file with fixes focused on the areas that had linter errors.
-  
-  const httpServer = createServer(app);
-  
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/ws'
-  });
-  
-  wss.on('connection', (ws: TenantWebSocket) => {
-    ws.isAlive = true;
-    ws.on('pong', () => { ws.isAlive = true; });
-    ws.on('message', (message: string) => { console.log(`Received message: ${message}`); });
-    ws.on('close', () => { console.log('WebSocket client disconnected'); });
-  });
-  
-  setInterval(() => {
-    wss.clients.forEach((ws: WebSocket) => {
-      const tenantWs = ws as TenantWebSocket;
-      if (tenantWs.isAlive === false) return tenantWs.terminate();
-      tenantWs.isAlive = false;
-      tenantWs.ping(() => {});
-    });
-  }, 30000);
-
-  // User profile and preferences routes
-  app.get('/api/user-preferences', async (req: any, res) => {
+  // **UNIFIED QUESTIONS API - SINGLE SOURCE OF TRUTH**
+  // Standard Questions Routes
+  app.get('/api/standard-questions/appointment-type/:id', async (req: any, res) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
-      const user = req.user as User;
-      const preferences = await storage.getUserPreferences(user.id);
-      res.json(preferences);
-    } catch (error) {
-      console.error('Error fetching user preferences:', error);
-      res.status(500).json({ error: 'Failed to fetch preferences' });
-    }
-  });
-
-  app.put('/api/user-preferences', async (req: any, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
-      const user = req.user as User;
-      const preferences = await storage.updateUserPreferences(user.id, req.body);
-      res.json(preferences);
-    } catch (error) {
-      console.error('Error updating user preferences:', error);
-      res.status(500).json({ error: 'Failed to update preferences' });
-    }
-  });
-
-  app.put('/api/user/profile', async (req: any, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
-      const user = req.user as User;
-      const updatedUser = await storage.updateUser(user.id, req.body);
-      res.json(updatedUser);
-    } catch (error) {
-      console.error('Error updating user profile:', error);
-      res.status(500).json({ error: 'Failed to update profile' });
-    }
-  });
-
-  app.put('/api/user/password', async (req: any, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
-      const user = req.user as User;
-      const { currentPassword, newPassword } = req.body;
       
-      // Verify current password and update
-      const success = await storage.updateUserPassword(user.id, currentPassword, newPassword);
-      if (success) {
-        res.json({ message: 'Password updated successfully' });
-      } else {
-        res.status(400).json({ error: 'Current password is incorrect' });
+      const appointmentTypeId = parseInt(req.params.id);
+      if (isNaN(appointmentTypeId)) {
+        return res.status(400).json({ error: 'Invalid appointment type ID' });
       }
+      
+      console.log(`[QuestionsAPI] Getting standard questions for appointment type ${appointmentTypeId}`);
+      const questions = await storage.getStandardQuestionsByAppointmentType(appointmentTypeId);
+      
+      console.log(`[QuestionsAPI] Returning ${questions.length} standard questions`);
+      res.json(questions);
     } catch (error) {
-      console.error('Error updating password:', error);
-      res.status(500).json({ error: 'Failed to update password' });
+      console.error('Error fetching standard questions:', error);
+      res.status(500).json({ error: 'Failed to fetch standard questions' });
+    }
+  });
+  
+  app.post('/api/standard-questions', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      
+      console.log(`[QuestionsAPI] Creating standard question:`, req.body);
+      const question = await storage.createStandardQuestion(req.body);
+      
+      console.log(`[QuestionsAPI] Created standard question ${question.id}`);
+      res.json(question);
+    } catch (error) {
+      console.error('Error creating standard question:', error);
+      res.status(500).json({ error: 'Failed to create standard question' });
+    }
+  });
+  
+  app.put('/api/standard-questions/:id', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      
+      const questionId = parseInt(req.params.id);
+      if (isNaN(questionId)) {
+        return res.status(400).json({ error: 'Invalid question ID' });
+      }
+      
+      console.log(`[QuestionsAPI] Updating standard question ${questionId}:`, req.body);
+      const question = await storage.updateStandardQuestion(questionId, req.body);
+      
+      if (!question) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+      
+      console.log(`[QuestionsAPI] Updated standard question ${questionId}`);
+      res.json(question);
+    } catch (error) {
+      console.error('Error updating standard question:', error);
+      res.status(500).json({ error: 'Failed to update standard question' });
     }
   });
 
-  app.post('/api/user/test-email', async (req: any, res) => {
+  // Custom Questions Routes  
+  app.get('/api/custom-questions/:appointmentTypeId', async (req: any, res) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
-      const user = req.user as User;
       
-      // Send test email using the existing email service
-      // For now, just return success - actual email sending would be implemented here
-      res.json({ message: 'Test email sent successfully' });
+      const appointmentTypeId = parseInt(req.params.appointmentTypeId);
+      if (isNaN(appointmentTypeId)) {
+        return res.status(400).json({ error: 'Invalid appointment type ID' });
+      }
+      
+      console.log(`[QuestionsAPI] Getting custom questions for appointment type ${appointmentTypeId}`);
+      const questions = await storage.getCustomQuestionsByAppointmentType(appointmentTypeId);
+      
+      console.log(`[QuestionsAPI] Returning ${questions.length} custom questions`);
+      res.json(questions);
     } catch (error) {
-      console.error('Error sending test email:', error);
-      res.status(500).json({ error: 'Failed to send test email' });
+      console.error('Error fetching custom questions:', error);
+      res.status(500).json({ error: 'Failed to fetch custom questions' });
+    }
+  });
+  
+  app.post('/api/custom-questions', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      
+      console.log(`[QuestionsAPI] Creating custom question:`, req.body);
+      const question = await storage.createCustomQuestion(req.body);
+      
+      console.log(`[QuestionsAPI] Created custom question ${question.id}`);
+      res.json(question);
+    } catch (error) {
+      console.error('Error creating custom question:', error);
+      res.status(500).json({ error: 'Failed to create custom question' });
+    }
+  });
+  
+  app.put('/api/custom-questions/:id', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      
+      const questionId = parseInt(req.params.id);
+      if (isNaN(questionId)) {
+        return res.status(400).json({ error: 'Invalid question ID' });
+      }
+      
+      console.log(`[QuestionsAPI] Updating custom question ${questionId}:`, req.body);
+      const question = await storage.updateCustomQuestion(questionId, req.body);
+      
+      if (!question) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+      
+      console.log(`[QuestionsAPI] Updated custom question ${questionId}`);
+      res.json(question);
+    } catch (error) {
+      console.error('Error updating custom question:', error);
+      res.status(500).json({ error: 'Failed to update custom question' });
+    }
+  });
+
+  app.delete('/api/custom-questions/:id', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      
+      const questionId = parseInt(req.params.id);
+      if (isNaN(questionId)) {
+        return res.status(400).json({ error: 'Invalid question ID' });
+      }
+      
+      console.log(`[QuestionsAPI] Deleting custom question ${questionId}`);
+      const success = await storage.deleteCustomQuestion(questionId);
+      
+      if (!success) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+      
+      console.log(`[QuestionsAPI] Deleted custom question ${questionId}`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting custom question:', error);
+      res.status(500).json({ error: 'Failed to delete custom question' });
     }
   });
 
@@ -558,6 +607,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching schedule by confirmation code:', error);
       res.status(500).json({ error: 'Failed to fetch schedule' });
+    }
+  });
+
+  const httpServer = createServer(app);
+  
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws'
+  });
+  
+  wss.on('connection', (ws: TenantWebSocket) => {
+    ws.isAlive = true;
+    ws.on('pong', () => { ws.isAlive = true; });
+    ws.on('message', (message: string) => { console.log(`Received message: ${message}`); });
+    ws.on('close', () => { console.log('WebSocket client disconnected'); });
+  });
+  
+  setInterval(() => {
+    wss.clients.forEach((ws: WebSocket) => {
+      const tenantWs = ws as TenantWebSocket;
+      if (tenantWs.isAlive === false) return tenantWs.terminate();
+      tenantWs.isAlive = false;
+      tenantWs.ping(() => {});
+    });
+  }, 30000);
+
+  // User profile and preferences routes
+  app.get('/api/user-preferences', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      const preferences = await storage.getUserPreferences(user.id);
+      res.json(preferences);
+    } catch (error) {
+      console.error('Error fetching user preferences:', error);
+      res.status(500).json({ error: 'Failed to fetch preferences' });
+    }
+  });
+
+  app.put('/api/user-preferences', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      const preferences = await storage.updateUserPreferences(user.id, req.body);
+      res.json(preferences);
+    } catch (error) {
+      console.error('Error updating user preferences:', error);
+      res.status(500).json({ error: 'Failed to update preferences' });
+    }
+  });
+
+  app.put('/api/user/profile', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      const updatedUser = await storage.updateUser(user.id, req.body);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      res.status(500).json({ error: 'Failed to update profile' });
+    }
+  });
+
+  app.put('/api/user/password', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      const { currentPassword, newPassword } = req.body;
+      
+      // Verify current password and update
+      const success = await storage.updateUserPassword(user.id, currentPassword, newPassword);
+      if (success) {
+        res.json({ message: 'Password updated successfully' });
+      } else {
+        res.status(400).json({ error: 'Current password is incorrect' });
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      res.status(500).json({ error: 'Failed to update password' });
+    }
+  });
+
+  app.post('/api/user/test-email', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      
+      // Send test email using the existing email service
+      // For now, just return success - actual email sending would be implemented here
+      res.json({ message: 'Test email sent successfully' });
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      res.status(500).json({ error: 'Failed to send test email' });
     }
   });
 
