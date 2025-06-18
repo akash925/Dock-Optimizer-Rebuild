@@ -351,3 +351,109 @@ export const updateOrganizationModule = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to update organization module' });
   }
 };
+
+/**
+ * Get organization settings
+ */
+export const getOrganizationSettings = async (req: Request, res: Response) => {
+  try {
+    const tenantId = req.user?.tenantId;
+    
+    if (!tenantId) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
+
+    console.log(`DEBUG: [Organizations] Getting settings for tenantId: ${tenantId}`);
+
+    const storage = await getStorage();
+    const organization = await storage.getOrganization(tenantId);
+    
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Extract settings or provide defaults
+    const settings = organization.settings || {};
+    const organizationSettings = {
+      confirmationCodePrefix: settings.confirmationCodePrefix || organization.name?.slice(0, 3).toUpperCase() || 'APP',
+      emailNotifications: settings.emailNotifications !== false, // Default to true
+      timezone: organization.timezone || 'America/New_York',
+      logo: organization.logo,
+      ...settings
+    };
+
+    return res.json(organizationSettings);
+  } catch (error) {
+    console.error('Error fetching organization settings:', error);
+    return res.status(500).json({ error: 'Failed to fetch organization settings' });
+  }
+};
+
+/**
+ * Update organization settings
+ */
+export const updateOrganizationSettings = async (req: Request, res: Response) => {
+  try {
+    const tenantId = req.user?.tenantId;
+    const userId = req.user?.id;
+    
+    if (!tenantId || !userId) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
+
+    const { confirmationCodePrefix, emailNotifications, timezone, ...otherSettings } = req.body;
+
+    console.log(`DEBUG: [Organizations] Updating settings for tenantId: ${tenantId}`, {
+      confirmationCodePrefix, emailNotifications, timezone, otherSettings
+    });
+
+    // Validate confirmation code prefix
+    if (confirmationCodePrefix && (confirmationCodePrefix.length < 2 || confirmationCodePrefix.length > 5)) {
+      return res.status(400).json({ error: 'Confirmation code prefix must be 2-5 characters long' });
+    }
+
+    if (confirmationCodePrefix && !/^[A-Z0-9]+$/.test(confirmationCodePrefix)) {
+      return res.status(400).json({ error: 'Confirmation code prefix must contain only uppercase letters and numbers' });
+    }
+
+    const storage = await getStorage();
+    
+    // Get current organization to merge settings
+    const currentOrg = await storage.getOrganization(tenantId);
+    if (!currentOrg) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    // Merge existing settings with new ones
+    const currentSettings = currentOrg.settings || {};
+    const newSettings = {
+      ...currentSettings,
+      ...otherSettings,
+      ...(confirmationCodePrefix && { confirmationCodePrefix: confirmationCodePrefix.toUpperCase() }),
+      ...(emailNotifications !== undefined && { emailNotifications }),
+      ...(timezone && { timezone })
+    };
+
+    // Update organization with new settings
+    const updatedOrganization = await storage.updateOrganization(tenantId, {
+      settings: newSettings,
+      ...(timezone && { timezone }),
+      lastModifiedBy: userId,
+      lastModifiedAt: new Date()
+    });
+
+    if (!updatedOrganization) {
+      return res.status(404).json({ error: 'Organization not found or update failed' });
+    }
+
+    return res.json({
+      confirmationCodePrefix: newSettings.confirmationCodePrefix,
+      emailNotifications: newSettings.emailNotifications,
+      timezone: updatedOrganization.timezone,
+      ...newSettings
+    });
+  } catch (error) {
+    console.error('Error updating organization settings:', error);
+    return res.status(500).json({ error: 'Failed to update organization settings' });
+  }
+};

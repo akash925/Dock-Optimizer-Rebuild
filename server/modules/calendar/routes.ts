@@ -1,14 +1,15 @@
 import express from 'express';
 import * as controllers from './index';
 import { getStorage } from '../../storage';
+import { generateConfirmationCode, getOrganizationConfirmationPrefix } from '../../utils';
 
-// Generate confirmation code function
-function generateConfirmationCode(): string {
-  const prefix = 'HZL';
-  const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  
-  return `${prefix}-${timestamp}${random}`;
+// Generate confirmation code with organization prefix
+async function generateOrgConfirmationCode(tenantId?: number): Promise<string> {
+  if (tenantId) {
+    const prefix = await getOrganizationConfirmationPrefix(tenantId);
+    return generateConfirmationCode(prefix);
+  }
+  return generateConfirmationCode('APP'); // Fallback
 }
 
 // Add authentication middleware
@@ -39,8 +40,8 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
       return res.status(404).json({ message: 'Booking page not found' });
     }
     
-    // Generate confirmation code
-    const confirmationCode = generateConfirmationCode();
+    // Generate organization-specific confirmation code
+    const confirmationCode = await generateOrgConfirmationCode(bookingPage.tenantId || undefined);
     
     console.log('[BookingRoute] Received form data:', JSON.stringify(req.body, null, 2));
     
@@ -210,8 +211,8 @@ router.post('/schedules/external', async (req: any, res) => {
   try {
     const storage = await getStorage();
     
-    // Generate confirmation code
-    const confirmationCode = generateConfirmationCode();
+    // Generate confirmation code (fallback for external bookings without tenant context)
+    const confirmationCode = await generateOrgConfirmationCode();
     
     console.log('[ExternalScheduleRoute] Received form data:', JSON.stringify(req.body, null, 2));
     

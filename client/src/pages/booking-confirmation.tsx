@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2, Loader2, Settings, Scan, MapPin } from "lucide-react";
+import { CalendarCheck, CheckCircle, Printer, Home, Mail, Share2, Loader2, Settings, Scan, MapPin, FileText } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";

@@ -1022,6 +1022,16 @@ export type DayHours = {
   breakEnd?: string;
 };
 
+// Organization Settings Interface for type safety
+export interface OrganizationSettings {
+  confirmationCodePrefix?: string;
+  defaultHours?: DefaultHours[];
+  holidays?: OrganizationHoliday[];
+  emailNotifications?: boolean;
+  timezone?: string;
+  logo?: string;
+}
+
 // Multi-tenant support - Tenants table
 export const tenants = pgTable("tenants", {
   id: serial("id").primaryKey(),

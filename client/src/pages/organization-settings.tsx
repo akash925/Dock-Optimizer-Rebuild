@@ -48,6 +48,7 @@ import {
   Database,
   Loader2
 } from 'lucide-react';
+import { OrganizationSettings } from "@shared/schema";
 
 // Types for organization settings
 interface OrganizationInfo {
@@ -127,6 +128,9 @@ export default function OrganizationSettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const [settings, setSettings] = useState<Partial<OrganizationSettings>>({});
+  const [isDirty, setIsDirty] = useState(false);
+
   // Fetch organization info
   const { data: orgInfo, isLoading: orgLoading } = useQuery<OrganizationInfo>({
     queryKey: ['/api/organizations/current'],
@@ -166,6 +170,27 @@ export default function OrganizationSettingsPage() {
       return response.json();
     }
   });
+
+  // Fetch organization settings
+  const { data: organizationSettings, isLoading: settingsLoading } = useQuery<OrganizationSettings>({
+    queryKey: ['organizationSettings'],
+    queryFn: async () => {
+      const response = await fetch('/api/organizations/settings', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch organization settings');
+      }
+      return response.json();
+    }
+  });
+
+  // Update local state when data is loaded
+  useEffect(() => {
+    if (organizationSettings) {
+      setSettings(organizationSettings);
+    }
+  }, [organizationSettings]);
 
   // Update organization info mutation
   const updateOrgMutation = useMutation({
@@ -288,6 +313,42 @@ export default function OrganizationSettingsPage() {
     }
   });
 
+  // Update settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (newSettings: Partial<OrganizationSettings>) => {
+      const response = await fetch('/api/organizations/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(newSettings)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update settings');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organizationSettings'] });
+      setIsDirty(false);
+      toast({
+        title: "Settings Updated",
+        description: "Organization settings have been saved successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleSaveOrgInfo = (formData: FormData) => {
     const data = {
       name: formData.get('name') as string,
@@ -346,7 +407,16 @@ export default function OrganizationSettingsPage() {
     setIsHolidayDialogOpen(true);
   };
 
-  if (orgLoading || hoursLoading || holidaysLoading || modulesLoading) {
+  const handleInputChange = (key: keyof OrganizationSettings, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+  };
+
+  const handleSave = () => {
+    updateSettingsMutation.mutate(settings);
+  };
+
+  if (orgLoading || hoursLoading || holidaysLoading || modulesLoading || settingsLoading) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
@@ -358,15 +428,32 @@ export default function OrganizationSettingsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Settings className="h-8 w-8" />
-          Organization Settings
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your organization's information, default hours, holidays, and module settings
-        </p>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Settings className="h-6 w-6" />
+            Organization Settings
+          </h1>
+          <p className="text-muted-foreground">
+            Configure your organization's preferences and branding
+          </p>
+        </div>
+        
+        {isDirty && (
+          <Button 
+            onClick={handleSave} 
+            disabled={updateSettingsMutation.isPending}
+            className="flex items-center gap-2"
+          >
+            {updateSettingsMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save Changes
+          </Button>
+        )}
       </div>
 
       {/* Tab Navigation */}
@@ -391,6 +478,8 @@ export default function OrganizationSettingsPage() {
 
       {/* General Tab */}
       {activeTab === 'general' && (
+        <div className="space-y-6">
+        {/* Organization Information Card */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -540,6 +629,54 @@ export default function OrganizationSettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Confirmation Code Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Confirmation Codes</CardTitle>
+            <CardDescription>
+              Customize how appointment confirmation codes are generated for your organization
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="confirmationCodePrefix">Confirmation Code Prefix</Label>
+              <Input
+                id="confirmationCodePrefix"
+                value={settings.confirmationCodePrefix || ''}
+                onChange={(e) => handleInputChange('confirmationCodePrefix', e.target.value.toUpperCase().slice(0, 5))}
+                placeholder="APP"
+                maxLength={5}
+                className="max-w-xs"
+              />
+              <p className="text-sm text-muted-foreground">
+                2-5 characters, letters and numbers only. Example: "FRE" → "FRE-123456"
+              </p>
+              {settings.confirmationCodePrefix && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Preview: </span>
+                  <code className="bg-muted px-2 py-1 rounded">
+                    {settings.confirmationCodePrefix}-123456
+                  </code>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Send confirmation emails</Label>
+                <p className="text-sm text-muted-foreground">
+                  Automatically send confirmation emails for new appointments
+                </p>
+              </div>
+              <Switch
+                checked={settings.emailNotifications !== false}
+                onCheckedChange={(checked) => handleInputChange('emailNotifications', checked)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+        </div>
       )}
 
       {/* Default Hours Tab */}

@@ -1,6 +1,21 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, Express } from 'express';
 import { getOrganizationHolidays, updateOrganizationHolidays, syncOrganizationHolidays } from './holidays';
 import { getStorage } from '../../storage';
+import { 
+  getCurrentOrganization, 
+  updateCurrentOrganization, 
+  getDefaultHours, 
+  updateDefaultHours,
+  getHolidays,
+  createHoliday,
+  updateHoliday,
+  deleteHoliday,
+  getOrganizationModules,
+  updateOrganizationModule,
+  getOrganizationSettings,
+  updateOrganizationSettings
+} from './controllers';
+import { isAuthenticated } from '../../middleware/auth';
 
 /**
  * Get the organization ID for a facility
@@ -50,6 +65,35 @@ export async function getFacilityOrganization(req: Request, res: Response) {
   }
 }
 
+export const registerOrganizationsRoutes = (app: Express) => {
+  // Apply authentication middleware to all organization routes
+  app.use('/api/organizations', isAuthenticated);
+  
+  // Organization info routes
+  app.get('/api/organizations/current', getCurrentOrganization);
+  app.put('/api/organizations/current', updateCurrentOrganization);
+  
+  // Organization settings routes
+  app.get('/api/organizations/settings', getOrganizationSettings);
+  app.put('/api/organizations/settings', updateOrganizationSettings);
+  
+  // Default hours routes
+  app.get('/api/organizations/default-hours', getDefaultHours);
+  app.put('/api/organizations/default-hours/:dayOfWeek', updateDefaultHours);
+  
+  // Holidays routes
+  app.get('/api/organizations/holidays', getHolidays);
+  app.post('/api/organizations/holidays', createHoliday);
+  app.put('/api/organizations/holidays/:id', updateHoliday);
+  app.delete('/api/organizations/holidays/:id', deleteHoliday);
+  
+  // Modules routes
+  app.get('/api/organizations/modules', getOrganizationModules);
+  app.put('/api/organizations/modules', updateOrganizationModule);
+  
+  console.log('✅ Organizations module routes registered');
+};
+
 export default {
   initialize: (app: express.Express) => {
     console.log('Initializing Organizations module...');
@@ -61,6 +105,9 @@ export default {
     
     // Facility organization lookup - used for holiday checking
     app.get('/api/facilities/:facilityId/organization', getFacilityOrganization);
+    
+    // Register additional routes
+    registerOrganizationsRoutes(app);
     
     console.log('Organizations module loaded successfully');
   }
