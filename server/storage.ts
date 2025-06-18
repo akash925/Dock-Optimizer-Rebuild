@@ -1375,6 +1375,11 @@ export class DatabaseStorage implements IStorage {
         .orderBy(organizationDefaultHours.dayOfWeek);
       return hours;
     } catch (error) {
+      // Gracefully handle missing table - this is expected in some deployments
+      if (error.code === '42P01') { // Table does not exist
+        console.log(`[DatabaseStorage] organization_default_hours table does not exist - using defaults for tenant ${tenantId}`);
+        return []; // Return empty array to trigger default hours logic
+      }
       console.error('Error fetching organization default hours:', error);
       return [];
     }

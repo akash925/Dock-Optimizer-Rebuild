@@ -433,23 +433,36 @@ function formatDateForTimezone(date: Date, timezone: string, formatStr: string):
     const safeDate = new Date(date.getTime());
     console.log(`[EMAIL] Using safe date copy: ${safeDate.toISOString()} for timezone: ${timezone}`);
     
-    // Make sure the format string is correct (replace 'yyyy' with actual year format token)
-    // The issue is sometimes 'yyyy' is showing up literally instead of being replaced with the year
+    // Use a simpler, more reliable formatting approach
     if (formatStr.includes('yyyy')) {
       try {
-        // Directly create date components to ensure correct formatting
-        const year = safeDate.getFullYear();
-        const month = formatToTimeZone(safeDate, 'MMMM', { timeZone: timezone });
-        const dayOfWeek = formatToTimeZone(safeDate, 'EEEE', { timeZone: timezone });
-        const dayOfMonth = formatToTimeZone(safeDate, 'd', { timeZone: timezone });
-        const time = formatToTimeZone(safeDate, 'h:mm a', { timeZone: timezone });
+        // Create a formatter for the timezone
+        const dateTimeFormat = new Intl.DateTimeFormat('en-US', {
+          timeZone: timezone,
+          weekday: formatStr.includes('EEEE') ? 'long' : undefined,
+          year: 'numeric',
+          month: 'long', 
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
         
-        // Construct the full date string manually
-        const finalResult = formatStr.includes('EEEE') 
-          ? `${dayOfWeek}, ${month} ${dayOfMonth}, ${year} ${time}`
-          : `${month} ${dayOfMonth}, ${year} ${time}`;
+        const formattedParts = dateTimeFormat.formatToParts(safeDate);
+        const parts: { [key: string]: string } = {};
+        formattedParts.forEach(part => {
+          parts[part.type] = part.value;
+        });
         
-        console.log(`[EMAIL] Formatted with manual date components: ${finalResult}`);
+        // Reconstruct the formatted string manually to match expected format
+        let finalResult: string;
+        if (formatStr.includes('EEEE')) {
+          finalResult = `${parts.weekday}, ${parts.month} ${parts.day}, ${parts.year} ${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
+        } else {
+          finalResult = `${parts.month} ${parts.day}, ${parts.year} ${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
+        }
+        
+        console.log(`[EMAIL] Formatted with Intl.DateTimeFormat: ${finalResult}`);
         return finalResult;
       } catch (tzError) {
         console.error(`[EMAIL] Error with timezone formatting: ${tzError}`);

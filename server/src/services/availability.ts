@@ -43,20 +43,13 @@ function tzParseISO(dateStr: string, options?: { timeZone?: string }): Date {
 
 // Simplified and more reliable date parsing
 function parseTimeInTimezone(date: string, time: string, timezone: string): Date {
-  // Create a date-time string
-  const dateTimeStr = `${date} ${time}`;
+  // Simple approach: create a Date object from the date/time string
+  // Assume the time is already in the correct local time for the timezone
+  const isoString = `${date}T${time}:00`;
   
-  // Parse the datetime string as if it's in the target timezone
-  const parsedDate = parse(dateTimeStr, 'yyyy-MM-dd HH:mm', new Date());
-  
-  // Convert from the timezone to UTC
-  // First, we create a date in the target timezone, then get the equivalent UTC time
-  const localDate = toZonedTime(parsedDate, timezone);
-  
-  // Calculate the timezone offset and adjust to get the correct UTC time
-  const offset = localDate.getTimezoneOffset() - parsedDate.getTimezoneOffset();
-  
-  return new Date(parsedDate.getTime() - (offset * 60000));
+  // Parse as local time and return the UTC equivalent
+  // This assumes the input time is in the facility's local timezone
+  return new Date(isoString);
 }
 
 // Helper function to check for holidays and special closures

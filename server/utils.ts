@@ -1,9 +1,10 @@
 /**
  * Generate a unique confirmation code for appointments
- * Format: HZL-XXXXXX (where XXXXXX is a 6-digit number)
+ * Format: ORG-XXXXXX (where ORG is organization prefix and XXXXXX is a 6-digit number)
  */
-export function generateConfirmationCode(): string {
-  const prefix = 'HZL';
+export function generateConfirmationCode(organizationPrefix?: string): string {
+  // Use organization-specific prefix or default to 'APP'
+  const prefix = organizationPrefix?.toUpperCase().slice(0, 3) || 'APP';
   const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
   const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
   
