@@ -16,7 +16,7 @@ import {
   BookOpen,
   Scan
 } from "lucide-react";
-import { BarcodeScanButton } from "@/components/asset-manager/barcode-scan-button";
+import { BarcodeScanButton } from "@/components/company-assets/barcode-scan-button";
 import { WebSocketStatus } from "@/components/shared/websocket-status";
 import organizationLogo from "@/assets/organization_logo.jpeg";
 import { Button } from "@/components/ui/button";
