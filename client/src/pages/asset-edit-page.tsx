@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useRoute } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
-import { CompanyAssetForm } from '@/components/asset-manager/company-asset-form';
+import { CompanyAssetForm } from '@/components/company-assets/company-asset-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CompanyAsset } from '@shared/schema';
 import { Loader2, ArrowLeft, Barcode, QrCode } from 'lucide-react';
@@ -10,10 +10,10 @@ import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { BarcodeGenerator } from '@/components/asset-manager/barcode-generator';
+import { BarcodeGenerator } from '@/components/company-assets/barcode-generator';
 
 export default function AssetEditPage() {
-  const [, params] = useRoute<{ id: string }>('/asset-manager/assets/:id/edit');
+  const [, params] = useRoute<{ id: string }>('/company-assets/assets/:id/edit');
   const [, navigate] = useLocation();
   const assetId = params?.id;
   const [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false);
@@ -21,9 +21,9 @@ export default function AssetEditPage() {
   const queryClient = useQueryClient();
 
   const { data: asset, isLoading, error } = useQuery<CompanyAsset>({
-    queryKey: [`/api/asset-manager/company-assets/${assetId}`],
+    queryKey: [`/api/company-assets/company-assets/${assetId}`],
     queryFn: async () => {
-      const response = await fetch(`/api/asset-manager/company-assets/${assetId}`);
+      const response = await fetch(`/api/company-assets/company-assets/${assetId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch asset details');
       }
@@ -35,7 +35,7 @@ export default function AssetEditPage() {
   // Mutation for updating the barcode
   const updateBarcodeMutation = useMutation({
     mutationFn: async (barcode: string) => {
-      const response = await apiRequest('PATCH', `/api/asset-manager/company-assets/${assetId}/barcode`, { barcode });
+      const response = await apiRequest('PATCH', `/api/company-assets/company-assets/${assetId}/barcode`, { barcode });
       if (!response.ok) {
         throw new Error('Failed to update barcode');
       }
@@ -43,7 +43,7 @@ export default function AssetEditPage() {
     },
     onSuccess: () => {
       // Invalidate the asset query to refresh the data
-      queryClient.invalidateQueries({ queryKey: [`/api/asset-manager/company-assets/${assetId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/company-assets/company-assets/${assetId}`] });
     },
     onError: (error) => {
       toast({
@@ -89,7 +89,7 @@ export default function AssetEditPage() {
             <div className="text-center py-8">
               <p className="text-red-500 mb-4">Failed to load asset. The asset may have been deleted or you don't have permission to view it.</p>
               <Button 
-                onClick={() => navigate('/asset-manager')}
+                onClick={() => navigate('/company-assets')}
                 variant="secondary"
               >
                 Return to Asset Manager
@@ -110,7 +110,7 @@ export default function AssetEditPage() {
         </div>
         <div className="flex justify-end">
           <Button 
-            onClick={() => navigate('/asset-manager')}
+            onClick={() => navigate('/company-assets')}
             variant="outline"
             className="gap-2"
           >
@@ -169,7 +169,7 @@ export default function AssetEditPage() {
                     });
                     
                     // Upload the image
-                    fetch(`/api/asset-manager/company-assets/${assetId}/photo`, {
+                    fetch(`/api/company-assets/company-assets/${assetId}/photo`, {
                       method: 'POST',
                       body: formData,
                     })
@@ -181,7 +181,7 @@ export default function AssetEditPage() {
                     })
                     .then(() => {
                       // Invalidate the asset query to refresh the data
-                      queryClient.invalidateQueries({ queryKey: [`/api/asset-manager/company-assets/${assetId}`] });
+                      queryClient.invalidateQueries({ queryKey: [`/api/company-assets/company-assets/${assetId}`] });
                       toast({
                         title: 'Image uploaded',
                         description: 'Asset image has been updated successfully',
@@ -269,7 +269,7 @@ export default function AssetEditPage() {
       
       <CompanyAssetForm 
         assetToEdit={asset} 
-        onSuccess={() => navigate('/asset-manager')} 
+        onSuccess={() => navigate('/company-assets')} 
       />
 
       {/* Barcode Generator Dialog */}
