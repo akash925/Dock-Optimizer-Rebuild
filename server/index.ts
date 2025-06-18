@@ -14,7 +14,7 @@ const SYSTEM_MODULES = ["tenants", "featureFlags", "modules", "organizations", "
 
 // Tenant-specific modules (loaded based on tenant configuration)
 const AVAILABLE_MODULES = [
-  "assetManager",
+  "companyAssets",
   "calendar",
   "analytics",
   "bookingPages",
@@ -271,8 +271,8 @@ app.use((req, res, next) => {
   // Load tenant-specific enabled modules
   // For backward compatibility, load modules from environment
   const modulesToLoad = [...ENABLED_MODULES];
-  if ((ENABLE_ASSET_MANAGER || MAKE_ASSET_MANAGER_AVAILABLE) && !modulesToLoad.includes("assetManager")) {
-    modulesToLoad.push("assetManager");
+  if ((ENABLE_ASSET_MANAGER || MAKE_ASSET_MANAGER_AVAILABLE) && !modulesToLoad.includes("companyAssets")) {
+    modulesToLoad.push("companyAssets");
   }
 
   // Add facility management module to ensure API routes are available
@@ -357,15 +357,14 @@ app.use((req, res, next) => {
   // Serve the app on the configured port
   // For Replit: process.env.PORT is automatically set
   // For local development: defaults to 5001
-  const port = Number(process.env.PORT) || 5001;
-  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
+  const PORT = parseInt(process.env.PORT || '5001', 10);
   
-  server.listen(port, host, () => {
-    log(`serving on ${host}:${port}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`[express] 🔧 Server listening on port ${PORT}`);
     if (process.env.NODE_ENV === 'production') {
-      log(`🚀 Production server ready!`);
+      console.log('🚀 Production server ready!');
     } else {
-      log(`🔧 Development server ready!`);
+      console.log('🔧 Development server ready!');
     }
   });
 })();
