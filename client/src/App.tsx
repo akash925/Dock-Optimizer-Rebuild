@@ -23,7 +23,7 @@ import FacilitySettings from "@/pages/facility-settings";
 import Appointments from "@/pages/appointments";
 import AppointmentMaster from "@/pages/appointment-master";
 import BookingPages from "@/pages/booking-pages";
-import AssetManagerPage from "@/pages/asset-manager-page";
+import CompanyAssetsPage from "@/pages/company-assets-page";
 import AssetEditPage from "@/pages/asset-edit-page";
 import CalendarView from "@/pages/calendar-view";
 import WebSocketTestPage from "@/pages/websocket-test";
@@ -88,8 +88,8 @@ const protectedRoutes: RouteConfig[] = [
   { path: "/analytics", component: Analytics, module: "analytics" },
   { path: "/users", component: Users, roles: ["admin"], module: "userManagement" },
   { path: "/booking-pages", component: BookingPages, roles: ["admin", "manager"], module: "bookingPages" },
-  { path: "/asset-manager", component: AssetManagerPage, roles: ["admin", "manager"], module: "assetManager" },
-  { path: "/asset-manager/assets/:id/edit", component: AssetEditPage, roles: ["admin", "manager"], module: "assetManager" },
+      { path: "/company-assets", component: CompanyAssetsPage, roles: ["admin", "manager"], module: "companyAssets" },
+    { path: "/company-assets/assets/:id/edit", component: AssetEditPage, roles: ["admin", "manager"], module: "companyAssets" },
   { path: "/websocket-test", component: WebSocketTestPage, roles: ["admin", "manager"], module: null },
   { path: "/debug-api", component: DebugAPI, roles: ["admin"], module: null },
   { path: "/settings", component: Settings, roles: ["admin", "manager"], module: null },
@@ -249,6 +249,10 @@ function AppRouter() {
           component={route.component} 
         />
       ))}
+      
+      {/* Redirect old asset-manager routes to company-assets for backward compatibility */}
+      <Route path="/asset-manager" component={() => <Redirect to="/company-assets" />} />
+      <Route path="/asset-manager/assets/:id/edit" component={(params: any) => <Redirect to={`/company-assets/assets/${params.id}/edit`} />} />
       
       {/* Not found route */}
       <Route component={NotFound} />
