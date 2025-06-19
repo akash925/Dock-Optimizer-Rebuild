@@ -221,6 +221,25 @@ class BlobStorageService {
   }
 
   /**
+   * Get signed URL for file access
+   */
+  async getSignedUrl(fileId: string): Promise<string> {
+    const fileRecord = await this.storage.getFileRecord(fileId);
+    
+    if (!fileRecord) {
+      throw new Error('File not found');
+    }
+
+    // For filesystem storage, return the direct URL
+    if (this.config.type === 'filesystem') {
+      return fileRecord.url;
+    }
+    
+    // TODO: Implement signed URLs for cloud storage
+    throw new Error('Signed URLs not implemented for this storage type');
+  }
+
+  /**
    * Generate unique file ID
    */
   private generateFileId(): string {

@@ -90,7 +90,53 @@ router.post('/upload/organization-logo', upload.single('logo'), async (req, res)
   }
 });
 
-// Serve uploaded files
+// Serve uploaded files by folder and filename (matches blob storage URLs)
+router.get('/:folder/:filename', async (req, res) => {
+  try {
+    const { folder, filename } = req.params;
+    const storage = await getStorage();
+    
+    // Construct the expected file path
+    const expectedPath = require('path').join(process.cwd(), 'uploads', folder, filename);
+    
+    // Check if file exists
+    if (!require('fs').existsSync(expectedPath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Get file stream
+    const fileStream = blobStorageService.getFileStream(expectedPath);
+    
+    // Determine MIME type from extension
+    const ext = require('path').extname(filename).toLowerCase();
+    const mimeTypes = {
+      '.pdf': 'application/pdf',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.tiff': 'image/tiff',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    };
+    
+    const mimeType = mimeTypes[ext] || 'application/octet-stream';
+    
+    // Set appropriate headers
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    
+    // Pipe file stream to response
+    fileStream.pipe(res);
+
+  } catch (error) {
+    console.error('Error serving file:', error);
+    res.status(500).json({ error: 'Failed to serve file' });
+  }
+});
+
+// Serve uploaded files by file ID (legacy support)
 router.get('/serve/:fileId', async (req, res) => {
   try {
     const { fileId } = req.params;
