@@ -877,8 +877,8 @@ export async function sendConfirmationEmail(
                           userTimezone === 'America/Los_Angeles' ? 'Pacific Time' :
                           userTimezone;
 
-  // 🔥 FIX: Use the correct Replit URL from the user's example
-  const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulq.worf.replit.dev';
+  // Use environment variable or current production URL
+  const host = process.env.HOST_URL || process.env.REPLIT_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulg.worf.replit.dev';
 
   // 🔥 FIX: Create management links for the email - CORRECTED URL format
   const viewEditLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
@@ -1183,8 +1183,8 @@ export async function sendRescheduleEmail(
     oldUserTimeRange = `${oldUserStart} - ${oldUserEnd} ${userTzAbbr}`;
   }
 
-  // Host URL with potential fallback - use current request host for development
-  const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1l3rlgulg.worf.replit.dev';
+  // Use environment variable or current production URL
+  const host = process.env.HOST_URL || process.env.REPLIT_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulg.worf.replit.dev';
 
   // Generate QR code URLs
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;

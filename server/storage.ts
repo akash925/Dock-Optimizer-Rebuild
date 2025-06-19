@@ -1217,10 +1217,55 @@ export class DatabaseStorage implements IStorage {
 
   // Add missing interface methods - getUser is implemented with getUserById below
   // updateUserPassword is implemented below with proper database queries
-  // Schedule methods - TODO: Implement database versions when schedules module is needed
-  async getSchedule(id: number) { return undefined; }
-  async getSchedulesByDock(dockId: number) { return []; }
-  async searchSchedules(query: string) { return []; }
+  // Schedule methods - Implement database versions
+  async getSchedule(id: number): Promise<Schedule | undefined> {
+    try {
+      const [schedule] = await db.select().from(schedules).where(eq(schedules.id, id)).limit(1);
+      return schedule;
+    } catch (error) {
+      console.error('Error fetching schedule:', error);
+      return undefined;
+    }
+  }
+  
+  async updateSchedule(id: number, scheduleUpdate: Partial<Schedule>): Promise<Schedule | undefined> {
+    try {
+      const [updated] = await db.update(schedules)
+        .set({
+          ...scheduleUpdate,
+          lastModifiedAt: new Date()
+        })
+        .where(eq(schedules.id, id))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error('Error updating schedule:', error);
+      return undefined;
+    }
+  }
+  
+  async getSchedulesByDock(dockId: number): Promise<Schedule[]> {
+    try {
+      return await db.select().from(schedules).where(eq(schedules.dockId, dockId));
+    } catch (error) {
+      console.error('Error fetching schedules by dock:', error);
+      return [];
+    }
+  }
+  
+  async searchSchedules(query: string): Promise<Schedule[]> {
+    try {
+      return await db.select().from(schedules)
+        .where(or(
+          ilike(schedules.driverName, `%${query}%`),
+          ilike(schedules.customerName, `%${query}%`),
+          ilike(schedules.confirmationCode, `%${query}%`)
+        ));
+    } catch (error) {
+      console.error('Error searching schedules:', error);
+      return [];
+    }
+  }
   async getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined> {
     try {
       // Query the database for schedule with matching confirmation code

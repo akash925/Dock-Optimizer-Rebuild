@@ -86,7 +86,7 @@ export const managementItems: NavItem[] = [
     roles: ['admin', 'manager']
   },
   { 
-    key: 'companyAssets', 
+    key: 'assetManager', 
     label: 'Assets', 
     path: '/company-assets', 
     icon: Boxes, 
