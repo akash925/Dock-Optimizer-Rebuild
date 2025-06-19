@@ -7,7 +7,8 @@ import {
   Users, 
   Globe, 
   CalendarClock,
-  Settings
+  Settings,
+  Boxes
 } from 'lucide-react';
 
 export interface NavItem {
@@ -45,12 +46,7 @@ export const navItems: NavItem[] = [
     path: '/door-manager', 
     icon: DoorOpen, 
   },
-  { 
-    key: 'companyAssets', 
-    label: 'Company Assets', 
-    path: '/company-assets', 
-    icon: PackageOpen, 
-  },
+
   { 
     key: 'analytics', 
     label: 'Analytics', 
@@ -87,6 +83,13 @@ export const managementItems: NavItem[] = [
     label: 'Booking Pages', 
     path: '/booking-pages', 
     icon: Globe, 
+    roles: ['admin', 'manager']
+  },
+  { 
+    key: 'companyAssets', 
+    label: 'Assets', 
+    path: '/company-assets', 
+    icon: Boxes, 
     roles: ['admin', 'manager']
   },
   { 
