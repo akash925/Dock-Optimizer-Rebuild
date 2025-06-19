@@ -77,6 +77,12 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
           return DEFAULT_MODULES;
         }
         
+        // If organization has no modules configured, use defaults
+        if (data.length === 0) {
+          console.log(`[ModuleContext] Organization has no modules configured, using default modules for user ${user.username} (tenant ${user.tenantId})`);
+          return DEFAULT_MODULES;
+        }
+        
         // Log when modules are successfully fetched
         console.log(`[ModuleContext] Successfully fetched ${data.length} modules for user ${user.username} (tenant ${user.tenantId})`);
         
