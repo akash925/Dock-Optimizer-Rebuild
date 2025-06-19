@@ -26,7 +26,7 @@ const DEFAULT_MODULES: OrgModule[] = [
   { moduleName: 'calendar', enabled: false },
   { moduleName: 'analytics', enabled: false },
   { moduleName: 'bookingPages', enabled: false },
-  { moduleName: 'companyAssets', enabled: false },
+  { moduleName: 'companyAssets', enabled: true },
   { moduleName: 'facilityManagement', enabled: true },
   { moduleName: 'userManagement', enabled: true },
   { moduleName: 'emailNotifications', enabled: false },
