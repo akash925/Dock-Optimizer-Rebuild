@@ -160,7 +160,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         formData.append('photo', photoFile);
       }
       
-      const response = await fetch('/api/asset-manager/company-assets', {
+      const response = await fetch('/api/company-assets/company-assets', {
         method: 'POST',
         body: formData,
       });
@@ -185,7 +185,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       setTagsInput('');
       
       // Invalidate queries to refresh lists
-      queryClient.invalidateQueries({ queryKey: ['/api/asset-manager/company-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/company-assets/company-assets'] });
       
       // Call success callback if provided
       if (onSuccess) onSuccess();
@@ -224,7 +224,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         formData.append('photo', photoFile);
       }
       
-      const response = await fetch(`/api/asset-manager/company-assets/${assetToEdit.id}`, {
+      const response = await fetch(`/api/company-assets/company-assets/${assetToEdit.id}`, {
         method: 'PUT',
         body: formData,
       });
@@ -245,7 +245,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       // Invalidate queries to refresh lists - this will match all query keys that start with this prefix
       // ensuring that searches with different filter parameters are also refreshed
       queryClient.invalidateQueries({
-        queryKey: ['/api/asset-manager/company-assets'],
+        queryKey: ['/api/company-assets/company-assets'],
         exact: false
       });
       

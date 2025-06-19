@@ -76,7 +76,7 @@ describe('Module Toggle Tests', () => {
     
     // Mock feature flags check
     cy.intercept('GET', '/api/feature-flags', {
-      assetManager: false,
+      companyAssets: false,
       calendar: true,
       analytics: true
     }).as('getFeatureFlags');

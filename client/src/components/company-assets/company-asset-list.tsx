@@ -189,9 +189,9 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   
   // Fetch company assets with filters
   const { data: assets, isLoading, error, refetch } = useQuery<CompanyAsset[]>({
-    queryKey: ['/api/asset-manager/company-assets', queryString],
+    queryKey: ['/api/company-assets/company-assets', queryString],
     queryFn: async () => {
-      const endpoint = `/api/asset-manager/company-assets${queryString ? `?${queryString}` : ''}`;
+      const endpoint = `/api/company-assets/company-assets${queryString ? `?${queryString}` : ''}`;
       const response = await apiRequest('GET', endpoint);
       if (!response.ok) {
         throw new Error('Error fetching assets');
@@ -209,7 +209,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest('DELETE', `/api/asset-manager/company-assets/${id}`);
+      const response = await apiRequest('DELETE', `/api/company-assets/company-assets/${id}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to delete company asset');
@@ -224,7 +224,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       
       // Invalidate query to refresh the list with current search parameters
       // Build query key that includes current search/filter context
-      let queryKey = ['/api/asset-manager/company-assets'];
+      let queryKey = ['/api/company-assets/company-assets'];
       // Add the current search term and filters to maintain context
       if (debouncedSearchTerm || Object.values(filters).some(val => val !== null && (Array.isArray(val) ? val.length > 0 : true))) {
         queryKey.push('filtered');
@@ -247,7 +247,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   // Status update mutation
   const statusUpdateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: AssetStatus }) => {
-      const response = await apiRequest('PATCH', `/api/asset-manager/company-assets/${id}/status`, { status });
+      const response = await apiRequest('PATCH', `/api/company-assets/company-assets/${id}/status`, { status });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update asset status');
@@ -262,7 +262,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       
       // Invalidate query to refresh the list with current search parameters
       // Build query key that includes current search/filter context
-      let queryKey = ['/api/asset-manager/company-assets'];
+      let queryKey = ['/api/company-assets/company-assets'];
       // Add the current search term and filters to maintain context
       if (debouncedSearchTerm || Object.values(filters).some(val => val !== null && (Array.isArray(val) ? val.length > 0 : true))) {
         queryKey.push('filtered');
@@ -373,7 +373,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   
   // Navigate to full edit page
   const navigateToFullEditPage = (asset: CompanyAsset) => {
-    navigate(`/asset-manager/assets/${asset.id}/edit`);
+    navigate(`/company-assets/assets/${asset.id}/edit`);
   };
 
   // Format currency
@@ -920,7 +920,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     setIsDialogOpen(false);
                     
                     // Build query key that includes current search/filter context
-                    let queryKey = ['/api/asset-manager/company-assets'];
+                    let queryKey = ['/api/company-assets/company-assets'];
                     // Add the current search term and filters to maintain context
                     if (debouncedSearchTerm || Object.values(filters).some(val => val !== null && (Array.isArray(val) ? val.length > 0 : true))) {
                       queryKey.push('filtered');

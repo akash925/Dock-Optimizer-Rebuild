@@ -941,7 +941,7 @@ export const organizationsRoutes = (app: Express) => {
           { moduleName: "doorManager", enabled: true, id: 1, createdAt: now, organizationId: orgId },
           { moduleName: "appointments", enabled: true, id: 2, createdAt: now, organizationId: orgId },
           { moduleName: "userManagement", enabled: false, id: 3, createdAt: now, organizationId: orgId },
-          { moduleName: "assetManager", enabled: false, id: 4, createdAt: now, organizationId: orgId },
+          { moduleName: "companyAssets", enabled: false, id: 4, createdAt: now, organizationId: orgId },
           { moduleName: "analytics", enabled: false, id: 5, createdAt: now, organizationId: orgId },
           { moduleName: "emailNotifications", enabled: true, id: 6, createdAt: now, organizationId: orgId },
           { moduleName: "bookingPages", enabled: true, id: 8, createdAt: now, organizationId: orgId },

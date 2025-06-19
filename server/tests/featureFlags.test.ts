@@ -23,7 +23,7 @@ describe('Feature Flags Service', () => {
       },
       { 
         organization_id: testOrgId, 
-        module_name: 'assetManager', 
+        module_name: 'companyAssets', 
         enabled: false 
       }
     ]);
@@ -40,7 +40,7 @@ describe('Feature Flags Service', () => {
     });
 
     it('returns false for disabled modules', async () => {
-      const result = await featureFlagService.isModuleEnabled(testOrgId, 'assetManager');
+      const result = await featureFlagService.isModuleEnabled(testOrgId, 'companyAssets');
       expect(result).toBe(false);
     });
 
@@ -59,7 +59,7 @@ describe('Feature Flags Service', () => {
     it('returns only enabled modules', async () => {
       const result = await featureFlagService.getEnabledModules(testOrgId);
       expect(result).toContain('calendar');
-      expect(result).not.toContain('assetManager');
+      expect(result).not.toContain('companyAssets');
     });
 
     it('returns empty array for non-existent organizations', async () => {
@@ -77,23 +77,23 @@ describe('Feature Flags Service', () => {
       expect(calendarModule).toBeDefined();
       expect(calendarModule?.enabled).toBe(true);
       
-      // Find the assetManager module in results
-      const assetManagerModule = result.find(m => m.moduleName === 'assetManager');
-      expect(assetManagerModule).toBeDefined();
-      expect(assetManagerModule?.enabled).toBe(false);
+      // Find the companyAssets module in results
+      const companyAssetsModule = result.find(m => m.moduleName === 'companyAssets');
+      expect(companyAssetsModule).toBeDefined();
+      expect(companyAssetsModule?.enabled).toBe(false);
     });
   });
 
   describe('updateModuleStatus', () => {
     it('can enable a disabled module', async () => {
-      await featureFlagService.updateModuleStatus(testOrgId, 'assetManager', true);
+      await featureFlagService.updateModuleStatus(testOrgId, 'companyAssets', true);
       
       // Verify it's now enabled
       const module = await db.select()
         .from(organizationModules)
         .where(and(
           eq(organizationModules.organization_id, testOrgId),
-          eq(organizationModules.module_name, 'assetManager')
+          eq(organizationModules.module_name, 'companyAssets')
         ))
         .then(result => result[0]);
       

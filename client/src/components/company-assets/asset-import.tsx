@@ -434,7 +434,7 @@ export function AssetImport() {
   // Import mutation
   const importMutation = useMutation({
     mutationFn: async (data: any[]) => {
-      const response = await fetch('/api/asset-manager/company-assets/import', {
+      const response = await fetch('/api/company-assets/company-assets/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -465,7 +465,7 @@ export function AssetImport() {
       if (fileInputRef.current) fileInputRef.current.value = '';
       
       // Invalidate queries to refresh lists
-      queryClient.invalidateQueries({ queryKey: ['/api/asset-manager/company-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/company-assets/company-assets'] });
       
       setImportStats({
         total: data.total,

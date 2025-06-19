@@ -4,8 +4,6 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Import custom schema files
-import { bolDocuments, BolDocument, InsertBolDocument } from "../drizzle/schema/bol";
-import { appointmentBolLinks, AppointmentBolLink, InsertAppointmentBolLink } from "../drizzle/schema/appointment_bol_links";
 import { ocrAnalytics, OcrAnalytics, InsertOcrAnalytics } from "../drizzle/schema/ocr_analytics";
 
 // Tenant status enum
@@ -23,7 +21,7 @@ export type TenantStatus = (typeof TenantStatus)[keyof typeof TenantStatus];
 export const AvailableModule = {
   APPOINTMENTS: "appointments",
   CALENDAR: "calendar",
-  ASSET_MANAGER: "assetManager",
+  ASSET_MANAGER: "companyAssets",
   EMAIL_NOTIFICATIONS: "emailNotifications",
   ANALYTICS: "analytics",
   BOOKING_PAGES: "bookingPages",
@@ -230,6 +228,42 @@ export const insertScheduleSchema = baseInsertScheduleSchema.extend({
     return val;
   }),
 });
+
+// BOL Documents table - for Bills of Lading associated with schedules
+export const bolDocuments = pgTable("bol_documents", {
+  id: serial("id").primaryKey(),
+  scheduleId: integer("schedule_id").notNull().references(() => schedules.id, { onDelete: "cascade" }),
+  fileKey: text("file_key").notNull(),
+  fileName: text("file_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  pageCount: integer("page_count"),
+  uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBolDocumentSchema = createInsertSchema(bolDocuments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type BolDocument = typeof bolDocuments.$inferSelect;
+export type InsertBolDocument = z.infer<typeof insertBolDocumentSchema>;
+
+// Appointment BOL Links table - for linking BOL documents to appointments/schedules
+export const appointmentBolLinks = pgTable('appointment_bol_links', {
+  id: serial('id').primaryKey(),
+  appointmentId: integer('appointment_id').notNull().references(() => schedules.id, { onDelete: 'cascade' }),
+  bolDocumentId: integer('bol_document_id').notNull().references(() => bolDocuments.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const insertAppointmentBolLinkSchema = createInsertSchema(appointmentBolLinks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AppointmentBolLink = typeof appointmentBolLinks.$inferSelect;
+export type InsertAppointmentBolLink = z.infer<typeof insertAppointmentBolLinkSchema>;
 
 // Notification Model
 export const notifications = pgTable("notifications", {

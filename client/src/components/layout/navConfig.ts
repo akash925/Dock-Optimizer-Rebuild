@@ -46,9 +46,9 @@ export const navItems: NavItem[] = [
     icon: DoorOpen, 
   },
   { 
-    key: 'assetManager', 
-    label: 'Asset Manager', 
-    path: '/asset-manager', 
+    key: 'companyAssets', 
+    label: 'Company Assets', 
+    path: '/company-assets', 
     icon: PackageOpen, 
   },
   { 

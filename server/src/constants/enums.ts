@@ -146,7 +146,7 @@ export type CompanyLogo = typeof COMPANY_LOGOS[keyof typeof COMPANY_LOGOS];
 
 // Module Names
 export enum ModuleName {
-  ASSET_MANAGER = 'assetManager',
+  ASSET_MANAGER = 'companyAssets',
   FACILITY_MANAGEMENT = 'facilityManagement',
   CALENDAR = 'calendar',
   ANALYTICS = 'analytics'

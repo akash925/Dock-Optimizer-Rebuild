@@ -20,67 +20,67 @@ const upload = multer({
   },
 });
 
-// Asset Manager routes
+// Company Assets routes
 // ===========================
 
-// API Routes for Asset Manager UI
-// Mount these at /api/asset-manager/...
-const assetManagerRouter = express.Router();
+// API Routes for Company Assets UI
+// Mount these at /api/company-assets/...
+const companyAssetsRouter = express.Router();
 
-// GET /api/asset-manager/assets - Get all assets or filter by userId
-assetManagerRouter.get('/assets', isAuthenticated, controllers.listAssets);
+// GET /api/company-assets/assets - Get all assets or filter by userId
+companyAssetsRouter.get('/assets', isAuthenticated, controllers.listAssets);
 
-// POST /api/asset-manager/assets - Upload a new asset
-assetManagerRouter.post('/assets', 
+// POST /api/company-assets/assets - Upload a new asset
+companyAssetsRouter.post('/assets', 
   isAuthenticated, 
   upload.single('file'), // 'file' is the field name for the uploaded file
   controllers.uploadAsset
 );
 
-// DELETE /api/asset-manager/assets/:id - Delete an asset
-assetManagerRouter.delete('/assets/:id', isAuthenticated, controllers.deleteAsset);
+// DELETE /api/company-assets/assets/:id - Delete an asset
+companyAssetsRouter.delete('/assets/:id', isAuthenticated, controllers.deleteAsset);
 
 // Company Asset routes
-// GET /api/asset-manager/company-assets - List all company assets
-assetManagerRouter.get('/company-assets', isAuthenticated, controllers.listCompanyAssets);
+// GET /api/company-assets/company-assets - List all company assets
+companyAssetsRouter.get('/company-assets', isAuthenticated, controllers.listCompanyAssets);
 
-// GET /api/asset-manager/company-assets/:id - Get company asset by ID
-assetManagerRouter.get('/company-assets/:id', isAuthenticated, controllers.getCompanyAssetById);
+// GET /api/company-assets/company-assets/:id - Get company asset by ID
+companyAssetsRouter.get('/company-assets/:id', isAuthenticated, controllers.getCompanyAssetById);
 
-// POST /api/asset-manager/company-assets - Create a new company asset
-assetManagerRouter.post('/company-assets',
+// POST /api/company-assets/company-assets - Create a new company asset
+companyAssetsRouter.post('/company-assets',
   isAuthenticated,
   upload.single('photo'), // 'photo' is the field name for the uploaded photo
   controllers.createCompanyAsset
 );
 
-// PUT /api/asset-manager/company-assets/:id - Update a company asset
-assetManagerRouter.put('/company-assets/:id',
+// PUT /api/company-assets/company-assets/:id - Update a company asset
+companyAssetsRouter.put('/company-assets/:id',
   isAuthenticated,
   upload.single('photo'), // Optional photo update
   controllers.updateCompanyAsset
 );
 
-// PATCH /api/asset-manager/company-assets/:id/status - Update company asset status
-assetManagerRouter.patch('/company-assets/:id/status',
+// PATCH /api/company-assets/company-assets/:id/status - Update company asset status
+companyAssetsRouter.patch('/company-assets/:id/status',
   isAuthenticated,
   controllers.updateCompanyAssetStatus
 );
 
-// PATCH /api/asset-manager/company-assets/:id/barcode - Update company asset barcode
-assetManagerRouter.patch('/company-assets/:id/barcode',
+// PATCH /api/company-assets/company-assets/:id/barcode - Update company asset barcode
+companyAssetsRouter.patch('/company-assets/:id/barcode',
   isAuthenticated,
   controllers.updateCompanyAssetBarcode
 );
 
-// DELETE /api/asset-manager/company-assets/:id - Delete a company asset
-assetManagerRouter.delete('/company-assets/:id', isAuthenticated, controllers.deleteCompanyAsset);
+// DELETE /api/company-assets/company-assets/:id - Delete a company asset
+companyAssetsRouter.delete('/company-assets/:id', isAuthenticated, controllers.deleteCompanyAsset);
 
-// POST /api/asset-manager/company-assets/import - Bulk import company assets
-assetManagerRouter.post('/company-assets/import', isAuthenticated, controllers.importCompanyAssets);
+// POST /api/company-assets/company-assets/import - Bulk import company assets
+companyAssetsRouter.post('/company-assets/import', isAuthenticated, controllers.importCompanyAssets);
 
-// GET /api/asset-manager/company-assets/barcode/search - Search for company asset by barcode
-assetManagerRouter.get('/company-assets/barcode/search', isAuthenticated, controllers.searchCompanyAssetByBarcode);
+// GET /api/company-assets/company-assets/barcode/search - Search for company asset by barcode
+companyAssetsRouter.get('/company-assets/barcode/search', isAuthenticated, controllers.searchCompanyAssetByBarcode);
 
 // Legacy API routes (keeping for backward compatibility)
 // ===========================
@@ -111,5 +111,5 @@ export function setupStaticFileServing(app: express.Express) {
   app.use('/uploads', express.static('uploads'));
 }
 
-export { assetManagerRouter };
+export { companyAssetsRouter };
 export default router;

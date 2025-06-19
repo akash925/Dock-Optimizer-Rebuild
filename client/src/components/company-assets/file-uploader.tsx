@@ -26,7 +26,7 @@ export function FileUploader() {
       formData.append('description', description);
 
       // Use the new asset-manager endpoint
-      const response = await fetch('/api/asset-manager/assets', {
+      const response = await fetch('/api/company-assets/assets', {
         method: 'POST',
         body: formData,
         // Do not set Content-Type here, it will be set automatically with the correct boundary
@@ -50,7 +50,7 @@ export function FileUploader() {
       
       // Invalidate both asset queries to refresh the list
       queryClient.invalidateQueries({ queryKey: ['/api/assets'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/asset-manager/assets'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/company-assets/assets'] });
     },
     onError: (error: Error) => {
       toast({

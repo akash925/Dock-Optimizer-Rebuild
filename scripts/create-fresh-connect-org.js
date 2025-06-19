@@ -306,15 +306,15 @@ async function main() {
       'calendar', 
       'analytics',
       'bookingPages',
-      'assetManager',
+      'companyAssets',
       'facilityManagement',
       'userManagement',
       'emailNotifications'
     ];
     
-    // Enable all modules except assetManager
+    // Enable all modules except companyAssets
     for (const moduleName of modules) {
-      const enabled = moduleName !== 'assetManager';
+      const enabled = moduleName !== 'companyAssets';
       try {
         await toggleModule(orgId, moduleName, enabled, cookie);
         console.log(`Module ${moduleName} ${enabled ? 'enabled' : 'disabled'} successfully`);

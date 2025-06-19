@@ -18,7 +18,7 @@ import { AssetImport } from './asset-import';
 import { CompanyAsset } from '@shared/schema';
 import { Plus, Upload, FileUp } from 'lucide-react';
 
-export function AssetManager() {
+export function CompanyAssets() {
   const [activeTab, setActiveTab] = useState("assets");
   const [assetToEdit, setAssetToEdit] = useState<CompanyAsset | null>(null);
   const [addAssetMode, setAddAssetMode] = useState<'form' | 'import'>('form');

@@ -45,7 +45,7 @@ WITH org_id AS (
 -- Enable modules for the organization
 INSERT INTO organization_modules (organization_id, module_name, enabled, created_at, updated_at)
 SELECT org.id, m.module_name, 
-       CASE WHEN m.module_name = 'assetManager' THEN FALSE ELSE TRUE END as enabled,
+       CASE WHEN m.module_name = 'companyAssets' THEN FALSE ELSE TRUE END as enabled,
        NOW(), NOW()
 FROM org_id org
 CROSS JOIN (
@@ -54,7 +54,7 @@ CROSS JOIN (
            ('calendar'),
            ('analytics'),
            ('bookingPages'),
-           ('assetManager'),
+           ('companyAssets'),
            ('facilityManagement'),
            ('userManagement'),
            ('emailNotifications')

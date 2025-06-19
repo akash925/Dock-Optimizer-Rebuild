@@ -30,7 +30,7 @@ export interface AssetService {
   deleteCompanyAsset(id: number): Promise<boolean>;
 }
 
-export class AssetManagerService implements AssetService {
+export class CompanyAssetsService implements AssetService {
   /**
    * List all assets
    */
@@ -530,4 +530,4 @@ export class AssetManagerService implements AssetService {
   }
 }
 
-export const assetManagerService = new AssetManagerService();
+export const companyAssetsService = new CompanyAssetsService();

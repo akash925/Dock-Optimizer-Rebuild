@@ -26,7 +26,7 @@ describe('Organization Modules', () => {
         },
         { 
           organizationId: testOrgId, 
-          moduleName: 'assetManager', 
+          moduleName: 'companyAssets', 
           enabled: false 
         }
       ]);
@@ -38,7 +38,7 @@ describe('Organization Modules', () => {
       
       expect(modules.length).toBe(2);
       expect(modules.some(m => m.module_name === 'calendar' && m.enabled === true)).toBe(true);
-      expect(modules.some(m => m.module_name === 'assetManager' && m.enabled === false)).toBe(true);
+      expect(modules.some(m => m.module_name === 'companyAssets' && m.enabled === false)).toBe(true);
     });
 
     it('reads organization module entries', async () => {
@@ -79,7 +79,7 @@ describe('Organization Modules', () => {
       await db.delete(organizationModules)
         .where(and(
           eq(organizationModules.organization_id, testOrgId),
-          eq(organizationModules.module_name, 'assetManager')
+          eq(organizationModules.module_name, 'companyAssets')
         ));
       
       // Verify the deletion
@@ -88,7 +88,7 @@ describe('Organization Modules', () => {
         .where(eq(organizationModules.organization_id, testOrgId));
       
       expect(modules.length).toBe(1);
-      expect(modules.some(m => m.module_name === 'assetManager')).toBe(false);
+      expect(modules.some(m => m.module_name === 'companyAssets')).toBe(false);
     });
   });
 });

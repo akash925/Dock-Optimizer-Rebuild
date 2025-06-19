@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { assetManagerService } from './service';
+import { companyAssetsService } from './service';
 import { insertAssetSchema, insertCompanyAssetSchema, updateCompanyAssetSchema, AssetCategory } from '@shared/schema';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
@@ -13,12 +13,12 @@ export const listAssets = async (req: Request, res: Response) => {
     // If userId query param is present, filter by user
     if (req.query.userId && !isNaN(Number(req.query.userId))) {
       const userId = Number(req.query.userId);
-      const assets = await assetManagerService.getAssetsByUser(userId);
+      const assets = await companyAssetsService.getAssetsByUser(userId);
       return res.json(assets);
     }
     
     // Otherwise return all assets
-    const assets = await assetManagerService.list();
+    const assets = await companyAssetsService.list();
     return res.json(assets);
   } catch (error) {
     console.error('Error fetching assets:', error);
@@ -37,7 +37,7 @@ export const getAssetById = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid asset ID' });
     }
     
-    const asset = await assetManagerService.getById(id);
+    const asset = await companyAssetsService.getById(id);
     if (!asset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
@@ -86,7 +86,7 @@ export const uploadAsset = async (req: Request, res: Response) => {
     }
     
     // Create the asset
-    const asset = await assetManagerService.create(assetData, buffer);
+    const asset = await companyAssetsService.create(assetData, buffer);
     return res.status(201).json(asset);
   } catch (error) {
     console.error('Error creating asset:', error);
@@ -106,7 +106,7 @@ export const updateAsset = async (req: Request, res: Response) => {
     }
     
     // Get the current asset to check ownership
-    const existingAsset = await assetManagerService.getById(id);
+    const existingAsset = await companyAssetsService.getById(id);
     if (!existingAsset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
@@ -134,7 +134,7 @@ export const updateAsset = async (req: Request, res: Response) => {
       updateData.lastAccessedAt = new Date();
     }
     
-    const updatedAsset = await assetManagerService.update(id, updateData);
+    const updatedAsset = await companyAssetsService.update(id, updateData);
     return res.json(updatedAsset);
   } catch (error) {
     console.error('Error updating asset:', error);
@@ -154,7 +154,7 @@ export const deleteAsset = async (req: Request, res: Response) => {
     }
     
     // Get the current asset to check ownership
-    const existingAsset = await assetManagerService.getById(id);
+    const existingAsset = await companyAssetsService.getById(id);
     if (!existingAsset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
@@ -167,7 +167,7 @@ export const deleteAsset = async (req: Request, res: Response) => {
     }
     
     // Delete the asset
-    const success = await assetManagerService.remove(id);
+    const success = await companyAssetsService.remove(id);
     if (!success) {
       return res.status(500).json({ error: 'Failed to delete asset' });
     }
@@ -248,7 +248,7 @@ export const listCompanyAssets = async (req: Request, res: Response) => {
     console.log("DEBUG: Applied filters for company assets:", JSON.stringify(filters, null, 2));
     
     // Apply filters - always include tenant filtering
-    const companyAssets = await assetManagerService.listCompanyAssets(filters);
+    const companyAssets = await companyAssetsService.listCompanyAssets(filters);
     
     console.log(`DEBUG: Company assets result count: ${companyAssets.length}`);
     
@@ -269,7 +269,7 @@ export const getCompanyAssetById = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid company asset ID' });
     }
     
-    const asset = await assetManagerService.getCompanyAssetById(id);
+    const asset = await companyAssetsService.getCompanyAssetById(id);
     if (!asset) {
       return res.status(404).json({ error: 'Company asset not found' });
     }
@@ -368,7 +368,7 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
     const photoBuffer = req.file ? req.file.buffer : undefined;
     
     // Create the company asset
-    const asset = await assetManagerService.createCompanyAsset(companyAssetData, photoBuffer);
+    const asset = await companyAssetsService.createCompanyAsset(companyAssetData, photoBuffer);
     return res.status(201).json(asset);
   } catch (error) {
     console.error('Error creating company asset:', error);
@@ -387,7 +387,7 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
     }
     
     // Get the current asset to check if it exists
-    const existingAsset = await assetManagerService.getCompanyAssetById(id);
+    const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
       return res.status(404).json({ error: 'Company asset not found' });
     }
@@ -510,7 +510,7 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
     }
     
     // Update the company asset
-    const updatedAsset = await assetManagerService.updateCompanyAsset(id, updateData, photoBuffer);
+    const updatedAsset = await companyAssetsService.updateCompanyAsset(id, updateData, photoBuffer);
     
     if (!updatedAsset) {
       return res.status(500).json({ error: 'Failed to update company asset' });
@@ -536,13 +536,13 @@ export const deleteCompanyAsset = async (req: Request, res: Response) => {
     }
     
     // Check if the asset exists
-    const existingAsset = await assetManagerService.getCompanyAssetById(id);
+    const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
       return res.status(404).json({ error: 'Company asset not found' });
     }
     
     // Delete the company asset
-    const success = await assetManagerService.deleteCompanyAsset(id);
+    const success = await companyAssetsService.deleteCompanyAsset(id);
     
     if (!success) {
       return res.status(500).json({ error: 'Failed to delete company asset' });
@@ -568,13 +568,13 @@ export const updateCompanyAssetBarcode = async (req: Request, res: Response) => 
       return res.status(400).json({ error: 'Barcode is required' });
     }
     
-    const asset = await assetManagerService.getCompanyAssetById(id);
+    const asset = await companyAssetsService.getCompanyAssetById(id);
     if (!asset) {
       return res.status(404).json({ error: 'Asset not found' });
     }
     
     // Update just the barcode field
-    const updatedAsset = await assetManagerService.updateCompanyAsset(id, { barcode });
+    const updatedAsset = await companyAssetsService.updateCompanyAsset(id, { barcode });
     
     if (!updatedAsset) {
       return res.status(404).json({ error: 'Asset not found or update failed' });
@@ -605,13 +605,13 @@ export const updateCompanyAssetStatus = async (req: Request, res: Response) => {
     }
     
     // Check if the asset exists
-    const existingAsset = await assetManagerService.getCompanyAssetById(id);
+    const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
       return res.status(404).json({ error: 'Company asset not found' });
     }
     
     // Update status
-    const updatedAsset = await assetManagerService.updateCompanyAssetStatus(id, status);
+    const updatedAsset = await companyAssetsService.updateCompanyAssetStatus(id, status);
     
     return res.json(updatedAsset);
   } catch (error) {
@@ -768,7 +768,7 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
         };
         
         // Create the asset (no photo buffer for bulk import)
-        await assetManagerService.createCompanyAsset(companyAssetData);
+        await companyAssetsService.createCompanyAsset(companyAssetData);
         successful++;
       } catch (error: any) {
         failed++;
@@ -806,7 +806,7 @@ export const searchCompanyAssetByBarcode = async (req: Request, res: Response) =
     
     console.log('Searching for asset with barcode:', barcode);
     
-    const asset = await assetManagerService.findCompanyAssetByBarcode(barcode as string);
+    const asset = await companyAssetsService.findCompanyAssetByBarcode(barcode as string);
     
     if (!asset) {
       return res.status(404).json({ error: 'Asset not found with this barcode' });

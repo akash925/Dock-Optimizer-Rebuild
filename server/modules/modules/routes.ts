@@ -9,7 +9,7 @@ type ModuleName =
   | 'calendar' 
   | 'analytics'
   | 'bookingPages' 
-  | 'assetManager' 
+  | 'companyAssets' 
   | 'facilityManagement'
   | 'userManagement' 
   | 'emailNotifications';
@@ -17,7 +17,7 @@ type ModuleName =
 // Import available modules from constants
 const AVAILABLE_MODULES: ModuleName[] = [
   'appointments', 'doorManager', 'calendar', 'analytics', 
-  'bookingPages', 'assetManager', 'facilityManagement', 
+  'bookingPages', 'companyAssets', 'facilityManagement', 
   'userManagement', 'emailNotifications'
 ];
 
