@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Table, 
   TableBody, 
@@ -117,6 +118,8 @@ export default function OrganizationSettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isHolidayDialogOpen, setIsHolidayDialogOpen] = useState(false);
+  const [isFederalHolidayDialogOpen, setIsFederalHolidayDialogOpen] = useState(false);
+  const [selectedFederalHolidays, setSelectedFederalHolidays] = useState<string[]>([]);
   const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
   const [newHoliday, setNewHoliday] = useState({
     name: '',
@@ -345,6 +348,92 @@ export default function OrganizationSettingsPage() {
         title: "Update Failed",
         description: error.message,
         variant: "destructive",
+      });
+    }
+  });
+
+  // Federal holidays data
+  const getFederalHolidays = (year: number) => [
+    { name: "New Year's Day", date: `${year}-01-01`, key: 'new-years' },
+    { name: "Martin Luther King Jr. Day", date: calculateMLKDay(year), key: 'mlk-day' },
+    { name: "Presidents' Day", date: calculatePresidentsDay(year), key: 'presidents-day' },
+    { name: "Memorial Day", date: calculateMemorialDay(year), key: 'memorial-day' },
+    { name: "Juneteenth", date: `${year}-06-19`, key: 'juneteenth' },
+    { name: "Independence Day", date: `${year}-07-04`, key: 'independence-day' },
+    { name: "Labor Day", date: calculateLaborDay(year), key: 'labor-day' },
+    { name: "Columbus Day", date: calculateColumbusDay(year), key: 'columbus-day' },
+    { name: "Veterans Day", date: `${year}-11-11`, key: 'veterans-day' },
+    { name: "Thanksgiving Day", date: calculateThanksgiving(year), key: 'thanksgiving' },
+    { name: "Christmas Day", date: `${year}-12-25`, key: 'christmas' },
+  ];
+
+  // Helper functions for calculating floating holidays
+  const calculateNthDayOfMonth = (year: number, month: number, dayOfWeek: number, n: number) => {
+    const date = new Date(year, month, 1);
+    while (date.getDay() !== dayOfWeek) {
+      date.setDate(date.getDate() + 1);
+    }
+    date.setDate(date.getDate() + (n - 1) * 7);
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+
+  const calculateLastDayOfMonth = (year: number, month: number, dayOfWeek: number) => {
+    const date = new Date(year, month + 1, 0);
+    while (date.getDay() !== dayOfWeek) {
+      date.setDate(date.getDate() - 1);
+    }
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+
+  const calculateMLKDay = (year: number) => calculateNthDayOfMonth(year, 0, 1, 3); // 3rd Monday in January
+  const calculatePresidentsDay = (year: number) => calculateNthDayOfMonth(year, 1, 1, 3); // 3rd Monday in February
+  const calculateMemorialDay = (year: number) => calculateLastDayOfMonth(year, 4, 1); // Last Monday in May
+  const calculateLaborDay = (year: number) => calculateNthDayOfMonth(year, 8, 1, 1); // 1st Monday in September
+  const calculateColumbusDay = (year: number) => calculateNthDayOfMonth(year, 9, 1, 2); // 2nd Monday in October
+  const calculateThanksgiving = (year: number) => calculateNthDayOfMonth(year, 10, 4, 4); // 4th Thursday in November
+
+  const currentYear = new Date().getFullYear();
+  const nextYear = currentYear + 1;
+  const federalHolidays = [...getFederalHolidays(currentYear), ...getFederalHolidays(nextYear)];
+
+  // Sync federal holidays mutation
+  const syncFederalHolidaysMutation = useMutation({
+    mutationFn: async (selectedHolidays: string[]) => {
+      const holidaysToAdd = federalHolidays.filter(holiday => 
+        selectedHolidays.includes(holiday.key)
+      );
+
+      // Check for existing holidays to avoid duplicates
+      const existingDates = holidays?.map(h => h.date) || [];
+      const newHolidays = holidaysToAdd.filter(h => !existingDates.includes(h.date));
+
+      // Add each new holiday
+      for (const holiday of newHolidays) {
+        const response = await apiRequest('POST', '/api/organizations/holidays', {
+          name: holiday.name,
+          date: holiday.date,
+          isRecurring: true,
+          description: `Federal Holiday - ${holiday.name}`
+        });
+        if (!response.ok) throw new Error(`Failed to add ${holiday.name}`);
+      }
+
+      return { added: newHolidays.length, skipped: holidaysToAdd.length - newHolidays.length };
+    },
+    onSuccess: (result) => {
+      toast({
+        title: "Federal Holidays Synced",
+        description: `Added ${result.added} new holidays. ${result.skipped} holidays were already configured.`
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/organizations/holidays'] });
+      setIsFederalHolidayDialogOpen(false);
+      setSelectedFederalHolidays([]);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sync federal holidays",
+        variant: "destructive"
       });
     }
   });
@@ -765,75 +854,149 @@ export default function OrganizationSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Organization Holidays</span>
-              <Dialog open={isHolidayDialogOpen} onOpenChange={setIsHolidayDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Holiday
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingHoliday ? 'Edit Holiday' : 'Add New Holiday'}
-                    </DialogTitle>
-                    <DialogDescription>
-                      Add or edit organization holidays that will affect appointment availability.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="holidayName">Holiday Name *</Label>
-                      <Input
-                        id="holidayName"
-                        value={newHoliday.name}
-                        onChange={(e) => setNewHoliday(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="e.g., Christmas Day"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="holidayDate">Date *</Label>
-                      <Input
-                        id="holidayDate"
-                        type="date"
-                        value={newHoliday.date}
-                        onChange={(e) => setNewHoliday(prev => ({ ...prev, date: e.target.value }))}
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={newHoliday.isRecurring}
-                        onCheckedChange={(checked) => setNewHoliday(prev => ({ ...prev, isRecurring: checked }))}
-                      />
-                      <Label>Recurring yearly</Label>
-                    </div>
-                    <div>
-                      <Label htmlFor="holidayDescription">Description</Label>
-                      <Input
-                        id="holidayDescription"
-                        value={newHoliday.description}
-                        onChange={(e) => setNewHoliday(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Optional description"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => {
-                      setIsHolidayDialogOpen(false);
-                      setEditingHoliday(null);
-                      setNewHoliday({ name: '', date: '', isRecurring: false, description: '' });
-                    }}>
-                      Cancel
+              <div className="flex gap-2">
+                <Dialog open={isFederalHolidayDialogOpen} onOpenChange={setIsFederalHolidayDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      Add Federal Holidays
                     </Button>
-                    <Button onClick={handleSaveHoliday} disabled={saveHolidayMutation.isPending}>
-                      {saveHolidayMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                      ) : null}
-                      {editingHoliday ? 'Update' : 'Add'} Holiday
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Add Federal Holidays</DialogTitle>
+                      <DialogDescription>
+                        Select which federal holidays you'd like to add to your organization calendar.
+                        These will be added as recurring holidays for {currentYear} and {nextYear}.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-96 overflow-y-auto">
+                      <div className="space-y-3">
+                        {federalHolidays.map((holiday) => {
+                          const isAlreadyAdded = holidays?.some(h => h.date === holiday.date);
+                          return (
+                            <div key={`${holiday.key}-${holiday.date}`} className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50">
+                              <Checkbox
+                                id={`${holiday.key}-${holiday.date}`}
+                                checked={selectedFederalHolidays.includes(holiday.key) || isAlreadyAdded}
+                                disabled={isAlreadyAdded}
+                                onCheckedChange={(checked: boolean) => {
+                                  if (checked) {
+                                    setSelectedFederalHolidays(prev => [...prev, holiday.key]);
+                                  } else {
+                                    setSelectedFederalHolidays(prev => prev.filter(k => k !== holiday.key));
+                                  }
+                                }}
+                              />
+                              <div className="flex-1">
+                                <Label htmlFor={`${holiday.key}-${holiday.date}`} className="flex items-center justify-between cursor-pointer">
+                                  <div>
+                                    <span className={`font-medium ${isAlreadyAdded ? 'text-gray-500' : ''}`}>
+                                      {holiday.name}
+                                    </span>
+                                    {isAlreadyAdded && (
+                                      <Badge variant="secondary" className="ml-2">Already Added</Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-sm text-gray-500">
+                                    {new Date(holiday.date).toLocaleDateString()}
+                                  </span>
+                                </Label>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => {
+                        setIsFederalHolidayDialogOpen(false);
+                        setSelectedFederalHolidays([]);
+                      }}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={() => syncFederalHolidaysMutation.mutate(selectedFederalHolidays)}
+                        disabled={selectedFederalHolidays.length === 0 || syncFederalHolidaysMutation.isPending}
+                      >
+                        {syncFederalHolidaysMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        ) : null}
+                        Add Selected Holidays ({selectedFederalHolidays.length})
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Dialog open={isHolidayDialogOpen} onOpenChange={setIsHolidayDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Custom Holiday
                     </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        {editingHoliday ? 'Edit Holiday' : 'Add New Holiday'}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Add or edit organization holidays that will affect appointment availability.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="holidayName">Holiday Name *</Label>
+                        <Input
+                          id="holidayName"
+                          value={newHoliday.name}
+                          onChange={(e) => setNewHoliday(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="e.g., Christmas Day"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="holidayDate">Date *</Label>
+                        <Input
+                          id="holidayDate"
+                          type="date"
+                          value={newHoliday.date}
+                          onChange={(e) => setNewHoliday(prev => ({ ...prev, date: e.target.value }))}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={newHoliday.isRecurring}
+                          onCheckedChange={(checked) => setNewHoliday(prev => ({ ...prev, isRecurring: checked }))}
+                        />
+                        <Label>Recurring yearly</Label>
+                      </div>
+                      <div>
+                        <Label htmlFor="holidayDescription">Description</Label>
+                        <Input
+                          id="holidayDescription"
+                          value={newHoliday.description}
+                          onChange={(e) => setNewHoliday(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Optional description"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => {
+                        setIsHolidayDialogOpen(false);
+                        setEditingHoliday(null);
+                        setNewHoliday({ name: '', date: '', isRecurring: false, description: '' });
+                      }}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleSaveHoliday} disabled={saveHolidayMutation.isPending}>
+                        {saveHolidayMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        ) : null}
+                        {editingHoliday ? 'Update' : 'Add'} Holiday
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardTitle>
             <CardDescription>
               Manage organization-wide holidays that will affect appointment availability across all facilities.

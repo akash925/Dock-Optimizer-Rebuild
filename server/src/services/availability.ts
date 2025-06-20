@@ -58,33 +58,111 @@ async function checkHolidaysAndClosures(
   currentHours: DayHours,
   organization: any,
   facility: any,
-  appointmentType: any
+  appointmentType: any,
+  storage: IStorage
 ): Promise<DayHours> {
-  // Simple holiday check - if organization has holidays configured, check against them
-  if (organization?.settings?.holidays && Array.isArray(organization.settings.holidays)) {
-    const isHoliday = organization.settings.holidays.some((holiday: any) => {
-      return holiday.date === date && holiday.closed === true;
-    });
-    
-    if (isHoliday) {
-      console.log(`[AvailabilityService] ${date} is a holiday - facility closed`);
-      return { ...currentHours, open: false };
+  try {
+    // STEP 1: Check organization-level holidays from database
+    if (organization?.id) {
+      const orgHolidays = await storage.getOrganizationHolidays(organization.id);
+      
+      if (Array.isArray(orgHolidays)) {
+        const isOrgHoliday = orgHolidays.some((holiday: any) => {
+          // Compare date strings (YYYY-MM-DD format)
+          const holidayDate = holiday.date;
+          const formattedHolidayDate = typeof holidayDate === 'string' 
+            ? holidayDate.split('T')[0] // Remove time part if present
+            : holidayDate?.toISOString?.()?.split('T')[0];
+          
+          return formattedHolidayDate === date;
+        });
+        
+        if (isOrgHoliday) {
+          console.log(`[AvailabilityService] ${date} is an organization holiday - facility closed`);
+          return { ...currentHours, open: false };
+        }
+      }
     }
-  }
-  
-  // Check facility-specific closures
-  if (facility?.closures && Array.isArray(facility.closures)) {
-    const isClosed = facility.closures.some((closure: any) => {
-      return closure.date === date && closure.closed === true;
-    });
     
-    if (isClosed) {
-      console.log(`[AvailabilityService] ${date} is a facility closure day`);
-      return { ...currentHours, open: false };
+    // STEP 2: Check facility-specific holidays (can override organization holidays)
+    // TODO: Implement facility-level holiday overrides here
+    if (facility?.holidays && Array.isArray(facility.holidays)) {
+      const isFacilityHoliday = facility.holidays.some((holiday: any) => {
+        const holidayDate = holiday.date;
+        const formattedHolidayDate = typeof holidayDate === 'string' 
+          ? holidayDate.split('T')[0]
+          : holidayDate?.toISOString?.()?.split('T')[0];
+        
+        return formattedHolidayDate === date && holiday.enabled !== false;
+      });
+      
+      if (isFacilityHoliday) {
+        console.log(`[AvailabilityService] ${date} is a facility-specific holiday`);
+        return { ...currentHours, open: false };
+      }
+      
+      // Check if facility explicitly overrides an org holiday to stay open
+      const facilityOverride = facility.holidays.find((holiday: any) => {
+        const holidayDate = holiday.date;
+        const formattedHolidayDate = typeof holidayDate === 'string' 
+          ? holidayDate.split('T')[0]
+          : holidayDate?.toISOString?.()?.split('T')[0];
+        
+        return formattedHolidayDate === date && holiday.overrideOrgHoliday === true;
+      });
+      
+      if (facilityOverride) {
+        console.log(`[AvailabilityService] ${date} - facility overrides organization holiday, staying open`);
+        return currentHours; // Keep facility open despite org holiday
+      }
     }
+    
+    // STEP 3: Check for other facility closures
+    if (facility?.closures && Array.isArray(facility.closures)) {
+      const isClosed = facility.closures.some((closure: any) => {
+        const closureDate = closure.date;
+        const formattedClosureDate = typeof closureDate === 'string' 
+          ? closureDate.split('T')[0]
+          : closureDate?.toISOString?.()?.split('T')[0];
+        
+        return formattedClosureDate === date && closure.closed === true;
+      });
+      
+      if (isClosed) {
+        console.log(`[AvailabilityService] ${date} is a facility closure day`);
+        return { ...currentHours, open: false };
+      }
+    }
+    
+    // STEP 4: Check appointment-type specific holiday overrides
+    // TODO: Implement appointment-type level overrides here
+    if (appointmentType?.holidayOverrides && Array.isArray(appointmentType.holidayOverrides)) {
+      const appointmentOverride = appointmentType.holidayOverrides.find((override: any) => {
+        const overrideDate = override.date;
+        const formattedOverrideDate = typeof overrideDate === 'string' 
+          ? overrideDate.split('T')[0]
+          : overrideDate?.toISOString?.()?.split('T')[0];
+        
+        return formattedOverrideDate === date;
+      });
+      
+      if (appointmentOverride) {
+        if (appointmentOverride.forceOpen) {
+          console.log(`[AvailabilityService] ${date} - appointment type overrides holiday, staying open`);
+          return currentHours;
+        } else if (appointmentOverride.forceClosed) {
+          console.log(`[AvailabilityService] ${date} - appointment type forces closure`);
+          return { ...currentHours, open: false };
+        }
+      }
+    }
+    
+    return currentHours;
+  } catch (error) {
+    console.error('[AvailabilityService] Error checking holidays and closures:', error);
+    // Return current hours unchanged if there's an error
+    return currentHours;
   }
-  
-  return currentHours;
 }
 
 // Use your actual Drizzle instance type if available
@@ -582,7 +660,7 @@ export async function calculateAvailabilitySlots(
   }
 
   // STEP 5: Check for holidays and special closures
-  effectiveHours = await checkHolidaysAndClosures(date, effectiveHours, organization, facility, appointmentType);
+  effectiveHours = await checkHolidaysAndClosures(date, effectiveHours, organization, facility, appointmentType, storage);
   
   // STEP 6: Check if facility is open on this day
   if (!effectiveHours || !effectiveHours.open) {
