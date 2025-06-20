@@ -14,6 +14,7 @@ import { adminRoutes } from "./modules/admin/routes";
 import { EnhancedSchedule, sendCheckoutEmail, sendRescheduleEmail } from "./notifications";
 import { User } from "@shared/schema";
 import { calculateAvailabilitySlots } from "./src/services/availability";
+import { broadcastScheduleUpdate } from "./websocket/index";
 
 interface TenantWebSocket extends WebSocket {
   tenantId?: number;
@@ -223,6 +224,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             confirmationCode: (schedule as any).confirmationCode,
             bolData: (schedule as any).bolData,
             bolFileUploaded: !!(schedule as any).bolData,
+            // 🔥 FIX: Include checkout notes in the enhanced schedule
+            notes: req.body.notes || schedule.notes,
           };
           
           // Extract checkout photo URL from custom form data
@@ -241,6 +244,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (emailError) {
         console.error('Error sending check-out notification email:', emailError);
+      }
+
+      // 🔥 REAL-TIME: Broadcast schedule update to connected clients
+      try {
+        const clientsNotified = broadcastScheduleUpdate(updatedSchedule);
+        console.log(`✅ Schedule ${scheduleId} checkout broadcast to ${clientsNotified} clients`);
+      } catch (broadcastError) {
+        console.error('Error broadcasting schedule update:', broadcastError);
       }
 
       res.json(updatedSchedule);
@@ -266,6 +277,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastModifiedAt: new Date(),
         lastModifiedBy: user.id
       });
+
+      // 🔥 REAL-TIME: Broadcast dock assignment update to connected clients
+      try {
+        const clientsNotified = broadcastScheduleUpdate(updatedSchedule);
+        console.log(`✅ Schedule ${scheduleId} dock assignment broadcast to ${clientsNotified} clients`);
+      } catch (broadcastError) {
+        console.error('Error broadcasting dock assignment:', broadcastError);
+      }
+
       res.json(updatedSchedule);
     } catch (error) {
       console.error('Error assigning door to appointment:', error);

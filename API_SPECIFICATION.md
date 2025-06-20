@@ -574,4 +574,4 @@ ENABLE_ANALYTICS=true
 
 **Version**: 2.0  
 **Last Updated**: June 17, 2025  
-**License**: Enterprise License 
+**License**: Proprietary License - All Rights Reserved by Conmitto Inc. 

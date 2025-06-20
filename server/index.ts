@@ -8,6 +8,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import fs from "fs";
 import { tenantMiddleware } from "./middleware/tenant";
+import { initializeWebSocket } from "./websocket/index";
 
 // Default system modules (always loaded)
 const SYSTEM_MODULES = ["tenants", "featureFlags", "modules", "organizations", "admin"];
@@ -88,6 +89,16 @@ app.use((req, res, next) => {
 (async () => {
   // Register core routes (includes authentication setup)
   const server = await registerRoutes(app);
+  
+  // 🔥 CRITICAL: Initialize WebSocket for real-time updates
+  try {
+    const { getStorage } = await import('./storage');
+    const storage = await getStorage();
+    const wsHandler = initializeWebSocket(server, storage);
+    console.log('✅ WebSocket real-time updates initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize WebSocket:', error);
+  }
 
   // NOW ADD CRITICAL API ROUTES AFTER AUTHENTICATION IS SET UP
   

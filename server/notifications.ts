@@ -5,6 +5,30 @@ import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone';
 // Use existing QR code generation function from the server
 import { generateQRCodeSVG as generateQRCode } from './endpoints/qr-codes';
 
+/**
+ * Helper function to determine the correct booking page URL for a schedule
+ */
+function getBookingPageUrl(schedule: EnhancedSchedule, host: string): string {
+  // If schedule already has a booking page URL, use it
+  if (schedule.bookingPageUrl) {
+    return schedule.bookingPageUrl;
+  }
+  
+  // For tenant 2 (Hanzo), use hanzo-booking  
+  // For tenant 5 (Fresh Connect), use fresh-connect-booking
+  // Default fallback to fresh-connect-booking
+  let slug = 'fresh-connect-booking'; // Default
+  
+  // Try to determine from facility if available
+  if (schedule.facilityName) {
+    if (schedule.facilityName.toLowerCase().includes('hanzo')) {
+      slug = 'hanzo-booking';
+    }
+  }
+  
+  return `${host}/external/${slug}`;
+}
+
 // Enhanced schedule with UI-specific fields - extends the base Schedule type
 // This type is used for email templates and notifications that need additional context
 export interface EnhancedSchedule {
@@ -881,13 +905,14 @@ export async function sendConfirmationEmail(
   // Use environment variable or current production URL
   const host = process.env.HOST_URL || process.env.REPLIT_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulg.worf.replit.dev';
 
-  // 🔥 FIX: Create management links for the email - CORRECTED URL format
-  const viewEditLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
-  const rescheduleLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
-  const cancelLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
+  // 🔥 FIX: Create management links for the email - DYNAMIC URL format
+  const baseBookingUrl = getBookingPageUrl(schedule, host);
+  const viewEditLink = `${baseBookingUrl}?confirmation=${encodeURIComponent(confirmationCode)}`;
+  const rescheduleLink = `${baseBookingUrl}?confirmation=${encodeURIComponent(confirmationCode)}`;
+  const cancelLink = `${baseBookingUrl}?confirmation=${encodeURIComponent(confirmationCode)}`;
   
   // Generate QR code for appointment details (not check-in)
-  const appointmentDetailsUrl = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
+  const appointmentDetailsUrl = `${baseBookingUrl}?confirmation=${encodeURIComponent(confirmationCode)}`;
   // 🔥 FIX: Use external QR code service for better email client compatibility
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(appointmentDetailsUrl)}`;
   const qrCodeSvgContent = `
@@ -1205,8 +1230,8 @@ export async function sendRescheduleEmail(
   `;
   console.log(`[EMAIL] Generated QR code for reschedule email to ${to}`);
   
-  // Create cancel link - FIX: Use correct URL format
-  const cancelLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
+  // Create cancel link - FIX: Use dynamic URL format
+  const cancelLink = `${getBookingPageUrl(schedule, host)}?confirmation=${encodeURIComponent(confirmationCode)}`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -1603,8 +1628,8 @@ export async function sendReminderEmail(
   const host = process.env.HOST_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1l3rlgulg.worf.replit.dev';
 
   // Create reschedule/cancel links
-  const rescheduleLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
-  const cancelLink = `${host}/external/fresh-connect-booking?confirmation=${encodeURIComponent(confirmationCode)}`;
+  const rescheduleLink = `${getBookingPageUrl(schedule, host)}?confirmation=${encodeURIComponent(confirmationCode)}`;
+  const cancelLink = `${getBookingPageUrl(schedule, host)}?confirmation=${encodeURIComponent(confirmationCode)}`;
   
   // Generate QR code and check-in URL
   const checkInUrl = `${host}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
@@ -1878,8 +1903,8 @@ export async function sendCheckoutEmail(
   const host = process.env.HOST_URL || process.env.REPLIT_URL || 'https://dockoptimizer.com';
   const dockOptimizerUrl = 'https://dockoptimizer.com';
   
-  // Generate booking page link (if available from schedule data)
-  const bookingPageUrl = schedule.bookingPageUrl || `${host}/external/fresh-connect-booking`;
+  // 🔥 FIX: Generate dynamic booking page link based on tenant
+  const bookingPageUrl = getBookingPageUrl(schedule, host);
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

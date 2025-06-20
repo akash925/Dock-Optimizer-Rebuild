@@ -19,8 +19,8 @@ info:
     name: API Support
     email: api-support@dockoptimizer.com
   license:
-    name: Enterprise License
-    url: https://dockoptimizer.com/license
+    name: Proprietary License
+    url: https://conmitto.io/license
 
 servers:
   - url: https://api.dockoptimizer.com
