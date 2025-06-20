@@ -274,7 +274,7 @@ export function AppointmentScanner({
         if (!isOpen) handleClose();
         setOpen(isOpen);
       }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md w-[95vw] max-w-[95vw] sm:w-auto">
           <DialogHeader>
             <DialogTitle>Scan Appointment QR Code</DialogTitle>
             <DialogDescription>
@@ -284,29 +284,18 @@ export function AppointmentScanner({
           
           {scanning && (
             <div className="flex flex-col space-y-4">
-              {permissionDenied ? (
-                <div className="flex flex-col items-center justify-center p-6 space-y-4 text-center">
-                  <div className="bg-red-50 text-red-600 p-4 rounded-lg">
-                    <p className="font-semibold">Camera access denied</p>
-                    <p className="text-sm mt-1">Please allow camera access to scan appointment codes</p>
-                  </div>
-                  <Button onClick={handleRetry} className="flex items-center gap-2">
-                    <RotateCcw className="h-4 w-4" />
-                    Try Again
-                  </Button>
-                </div>
-              ) : (
+              {!permissionDenied && (
                 <>
                   <div 
                     ref={videoRef} 
-                    className={`bg-black rounded-lg w-full h-64 overflow-hidden relative ${loading ? 'flex items-center justify-center' : ''}`}
+                    className="bg-black rounded-lg w-full h-[50vh] sm:h-[400px] overflow-hidden relative flex items-center justify-center"
                   >
-                    {loading && (
-                      <div className="flex flex-col items-center justify-center gap-2 text-white">
-                        <Camera className="h-8 w-8 animate-pulse" />
-                        <p>Activating camera...</p>
+                    {loading ? (
+                      <div className="text-white text-center">
+                        <Camera className="h-8 w-8 mx-auto mb-2 animate-pulse" />
+                        <p>Starting camera...</p>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                   
                   {cameras.length > 1 && (
@@ -331,6 +320,19 @@ export function AppointmentScanner({
                     Position the QR code in the center of the camera view
                   </div>
                 </>
+              )}
+              
+              {permissionDenied && (
+                <div className="flex flex-col items-center justify-center p-6 space-y-4 text-center">
+                  <div className="bg-red-50 text-red-600 p-4 rounded-lg">
+                    <p className="font-semibold">Camera access denied</p>
+                    <p className="text-sm mt-1">Please allow camera access to scan appointment codes</p>
+                  </div>
+                  <Button onClick={handleRetry} className="flex items-center gap-2">
+                    <RotateCcw className="h-4 w-4" />
+                    Try Again
+                  </Button>
+                </div>
               )}
             </div>
           )}

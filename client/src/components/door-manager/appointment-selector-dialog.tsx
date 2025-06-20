@@ -130,7 +130,7 @@ export default function AppointmentSelectorDialog({
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[650px]">
+      <DialogContent className="sm:max-w-[650px] w-[95vw] max-w-[95vw] sm:w-auto max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Select or Create Appointment</DialogTitle>
           <DialogDescription>
@@ -138,12 +138,14 @@ export default function AppointmentSelectorDialog({
           </DialogDescription>
         </DialogHeader>
         
-        {/* Header Actions */}
-        <div className="flex items-center justify-between mb-4 border-b pb-4">
+        {/* Header Actions - Mobile optimized */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b pb-4 space-y-3 sm:space-y-0">
           {/* Facility Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Label htmlFor="facility-filter" className="text-sm font-medium">Filter by Facility</Label>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="facility-filter" className="text-sm font-medium">Filter by Facility</Label>
+            </div>
             <Select 
               value={selectedFacilityId?.toString() || "0"} 
               onValueChange={(value) => {
@@ -156,7 +158,7 @@ export default function AppointmentSelectorDialog({
                 }
               }}
             >
-              <SelectTrigger id="facility-filter" className="w-[200px]">
+              <SelectTrigger id="facility-filter" className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Select a facility">
                   {getFacilityName(selectedFacilityId)}
                 </SelectValue>
@@ -172,8 +174,8 @@ export default function AppointmentSelectorDialog({
             </Select>
           </div>
           
-          {/* QR Scanner */}
-          <div className="flex items-center gap-2">
+          {/* QR Scanner - Mobile optimized */}
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <AppointmentScanner
               onScanComplete={handleQRScan}
               variant="outline"
@@ -183,169 +185,99 @@ export default function AppointmentSelectorDialog({
           </div>
         </div>
         
-        <Tabs defaultValue="upcoming" className="w-full" onValueChange={(value) => setTab(value as "upcoming" | "all")}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="upcoming">Upcoming Appointments</TabsTrigger>
-            <TabsTrigger value="all">All Unassigned</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="upcoming" className="mt-4">
-            {isLoading ? (
-              <div className="flex justify-center p-8">
-                <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent"></div>
-              </div>
-            ) : filtered.length > 0 ? (
-              <ScrollArea className="h-[350px]">
-                <div className="space-y-3">
-                  {filtered.map((schedule) => (
-                    <div 
-                      key={schedule.id} 
-                      className="p-3 border rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-200 group"
-                      onClick={() => {
-                        console.log(`[AppointmentSelector] Selecting appointment ${schedule.id} for assignment to dock ${dockId}`);
-                        onSelect(schedule.id);
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          onSelect(schedule.id);
-                        }
-                      }}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <div className="font-medium truncate group-hover:text-primary transition-colors">
-                          {schedule.customerName || "Unknown Customer"}
-                        </div>
-                        {getStatusBadge(schedule.status)}
-                      </div>
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                        {format(new Date(schedule.startTime), "MMM d, yyyy")}
-                        <span className="mx-1">•</span>
-                        <Clock className="h-3.5 w-3.5 mr-1.5" />
-                        {format(new Date(schedule.startTime), "h:mm a")} - {format(new Date(schedule.endTime), "h:mm a")}
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="text-xs text-muted-foreground flex items-center">
-                          <Truck className="h-3 w-3 mr-1" />
-                          {schedule.truckNumber || "TBD"}
-                        </div>
-                        <div className="text-xs text-primary font-medium group-hover:text-primary/80">
-                          Click to Assign
-                        </div>
-                      </div>
+        <div className="flex-1 overflow-hidden">
+          <Tabs defaultValue="upcoming" className="w-full h-full flex flex-col" onValueChange={(value) => setTab(value as "upcoming" | "all")}>
+            <TabsList className="grid w-full grid-cols-2 mb-2 flex-shrink-0">
+              <TabsTrigger value="upcoming">Upcoming Appointments</TabsTrigger>
+              <TabsTrigger value="all">All Unassigned</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="upcoming" className="mt-4 flex-1 overflow-hidden">
+              {isLoading ? (
+                <div className="flex justify-center p-8">
+                  <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent"></div>
+                </div>
+              ) : (
+                <ScrollArea className="h-[50vh] sm:h-[400px] pr-4">
+                  {filtered.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No upcoming appointments found</p>
+                      <p className="text-sm mt-2">Try adjusting your facility filter or create a new appointment</p>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="space-y-3">
+                      {filtered.map((schedule) => (
+                        <div 
+                          key={schedule.id} 
+                          className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => onSelect(schedule.id)}
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <span className="font-medium truncate">{schedule.customerName || 'Unknown Customer'}</span>
+                                <Badge variant="outline" className="text-xs flex-shrink-0">
+                                  {schedule.status}
+                                </Badge>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span className="truncate">{format(new Date(schedule.startTime), 'MMM dd, HH:mm')}</span>
+                                </div>
+                                {schedule.carrierName && (
+                                  <div className="flex items-center gap-1">
+                                    <Truck className="h-3 w-3" />
+                                    <span className="truncate">{schedule.carrierName}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <Button 
+                              size="sm" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelect(schedule.id);
+                              }}
+                              className="w-full sm:w-auto mt-2 sm:mt-0"
+                            >
+                              Assign to Door
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="all" className="mt-4 flex-1 overflow-hidden">
+              <ScrollArea className="h-[50vh] sm:h-[400px] pr-4">
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>All unassigned appointments</p>
+                  <p className="text-sm mt-2">This view will show all unassigned appointments across all time periods</p>
                 </div>
               </ScrollArea>
-            ) : (
-              <div className="text-center p-8 border rounded-md bg-muted/20">
-                <p className="text-muted-foreground">No upcoming unassigned appointments</p>
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="all" className="mt-4">
-            {isLoading ? (
-              <div className="flex justify-center p-8">
-                <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent"></div>
-              </div>
-            ) : filtered.length > 0 ? (
-              <ScrollArea className="h-[350px]">
-                <div className="space-y-3">
-                  {filtered.map((schedule) => (
-                    <div 
-                      key={schedule.id} 
-                      className="p-3 border rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-200 group"
-                      onClick={() => {
-                        console.log(`[AppointmentSelector] Selecting appointment ${schedule.id} for assignment to dock ${dockId}`);
-                        onSelect(schedule.id);
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          onSelect(schedule.id);
-                        }
-                      }}
-                    >
-                      <div className="flex justify-between items-start mb-1">
-                        <div className="font-medium truncate group-hover:text-primary transition-colors">
-                          {schedule.customerName || "Unknown Customer"}
-                        </div>
-                        {getStatusBadge(schedule.status)}
-                      </div>
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <Calendar className="h-3.5 w-3.5 mr-1.5" />
-                        {format(new Date(schedule.startTime), "MMM d, yyyy")}
-                        <span className="mx-1">•</span>
-                        <Clock className="h-3.5 w-3.5 mr-1.5" />
-                        {format(new Date(schedule.startTime), "h:mm a")} - {format(new Date(schedule.endTime), "h:mm a")}
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="text-xs text-muted-foreground flex items-center">
-                          <Truck className="h-3 w-3 mr-1" />
-                          {schedule.truckNumber || "TBD"}
-                        </div>
-                        <div className="text-xs text-primary font-medium group-hover:text-primary/80">
-                          Click to Assign
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            ) : (
-              <div className="text-center p-8 border rounded-md bg-muted/20">
-                <p className="text-muted-foreground">No unassigned appointments available</p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-        
-        <div className="mt-4 pt-4 border-t">
-          <Button
-            variant="default"
-            className="w-full flex items-center justify-center gap-2"
-            onClick={() => {
-              console.log(`[AppointmentSelector] Creating new appointment - Selected Facility: ${selectedFacilityId}, Original Facility: ${facilityId}`);
-              
-              // Always pass the most current facility ID to parent
-              if (selectedFacilityId) {
-                console.log(`[AppointmentSelector] Propagating facility ID ${selectedFacilityId} to parent`);
-                // Always update the parent's facility ID if we have one selected and a handler function
-                if (onFacilityChange) {
-                  onFacilityChange(selectedFacilityId);
-                }
-              } else if (facilityId) {
-                // If no facility is selected but we had an original facility, use that
-                console.log(`[AppointmentSelector] No facility selected, using original facility ${facilityId}`);
-                // Update the internal state to match the parent
-                setSelectedFacilityId(facilityId);
-              } else {
-                console.log("[AppointmentSelector] Warning: No facility selected for new appointment");
-              }
-              
-              // Create the new appointment after updating facility
-              setTimeout(() => {
-                console.log("[AppointmentSelector] Creating new appointment...");
-                onCreateNew();
-              }, 100);
-            }}
-          >
-            <PlusCircle className="h-4 w-4" />
-            Create New Appointment {selectedFacilityId ? 
-              `at ${getFacilityName(selectedFacilityId)}` : ''}
-          </Button>
+            </TabsContent>
+          </Tabs>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+        <DialogFooter className="flex-shrink-0 pt-4 border-t">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button onClick={onCreateNew} className="w-full sm:w-auto">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Create New Appointment
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
