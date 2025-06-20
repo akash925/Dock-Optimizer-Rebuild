@@ -79,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[AvailabilityAPI] Processing request: date=${date}, facilityId=${facilityId}, appointmentTypeId=${effectiveAppointmentTypeId}, tenantId=${effectiveTenantId}`);
 
       const slots = await calculateAvailabilitySlots(
-        db,
+        db as any, // Type assertion for database compatibility
         storage,
         date as string,
         parseInt(facilityId as string),
@@ -135,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[AvailabilityAPI-v2] Processing request: date=${date}, facilityId=${facilityId}, appointmentTypeId=${effectiveAppointmentTypeId}, tenantId=${effectiveTenantId}`);
 
       const slots = await calculateAvailabilitySlots(
-        db,
+        db as any, // Type assertion for database compatibility  
         storage,
         date as string,
         parseInt(facilityId as string),
@@ -212,7 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...schedule,
             ...updatedSchedule,
             facilityName: facility?.name,
-            carrierName: carrier?.name || undefined,
+            carrierName: carrier?.name || null,
             dockName: dock?.name || undefined,
             appointmentTypeName: 'Standard Appointment',
             timezone: facility?.timezone || 'America/New_York',
@@ -343,7 +343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...schedule,
             ...updatedSchedule,
             facilityName: facility?.name,
-            carrierName: carrier?.name || undefined,
+            carrierName: carrier?.name || null,
             dockName: dock?.name || undefined,
             appointmentTypeName: 'Standard Appointment',
             timezone: facility?.timezone || 'America/New_York',
@@ -603,7 +603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[SchedulesAPI] Processing GET request for tenant ${user.tenantId}`);
 
       // Get tenant-filtered schedules
-      const schedules = await storage.getSchedules(user.tenantId);
+      const schedules = await storage.getSchedules();
       
       console.log(`[SchedulesAPI] Returning ${schedules.length} schedules for tenant ${user.tenantId}`);
       res.json(schedules);
