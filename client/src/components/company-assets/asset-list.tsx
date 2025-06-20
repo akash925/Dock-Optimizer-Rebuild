@@ -20,7 +20,6 @@ import {
   FileText,
   ImageIcon,
   FileSpreadsheet,
-  FilePdf,
   Trash2,
   Eye,
   Download,

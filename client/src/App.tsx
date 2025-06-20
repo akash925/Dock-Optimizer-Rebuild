@@ -42,6 +42,7 @@ import { Loader2 } from "lucide-react";
 import { ModuleProvider, useModules } from "@/contexts/ModuleContext";
 import { OrgProvider } from "@/contexts/OrgContext";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import Layout from "@/components/layout/layout";
 
 // Define route config with module dependencies
 export interface RouteConfig {
@@ -225,8 +226,14 @@ function HomePage() {
     );
   }
   
-  // Show landing page for unauthenticated users, dashboard for authenticated users
-  return user ? <Dashboard /> : <LandingPage />;
+  // Show landing page for unauthenticated users, dashboard with layout for authenticated users
+  return user ? (
+    <Layout>
+      <Dashboard />
+    </Layout>
+  ) : (
+    <LandingPage />
+  );
 }
 
 // Router component that filters routes based on modules

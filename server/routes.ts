@@ -6,7 +6,7 @@ import { setupAuth } from "./auth";
 import path from "path";
 import multer from "multer";
 import fs from "fs";
-import { WebSocket, WebSocketServer } from "ws";
+// WebSocket server is now handled in server/index.ts using the secure handler
 import { db } from "./db";
 import fileRoutes from "./routes/files";
 import { registerQrCodeRoutes } from "./endpoints/qr-codes";
@@ -16,11 +16,7 @@ import { User } from "@shared/schema";
 import { calculateAvailabilitySlots } from "./src/services/availability";
 import { broadcastScheduleUpdate } from "./websocket/index";
 
-interface TenantWebSocket extends WebSocket {
-  tenantId?: number;
-  userId?: number;
-  isAlive?: boolean;
-}
+// TenantWebSocket interface moved to websocket/secure-handler.ts
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -650,26 +646,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/ws'
-  });
-  
-  wss.on('connection', (ws: TenantWebSocket) => {
-    ws.isAlive = true;
-    ws.on('pong', () => { ws.isAlive = true; });
-    ws.on('message', (message: string) => { console.log(`Received message: ${message}`); });
-    ws.on('close', () => { console.log('WebSocket client disconnected'); });
-  });
-  
-  setInterval(() => {
-    wss.clients.forEach((ws: WebSocket) => {
-      const tenantWs = ws as TenantWebSocket;
-      if (tenantWs.isAlive === false) return tenantWs.terminate();
-      tenantWs.isAlive = false;
-      tenantWs.ping(() => {});
-    });
-  }, 30000);
+  // Note: WebSocket server is initialized in server/index.ts using the secure handler
+  // Removing duplicate WebSocket initialization to prevent conflicts
 
   // User profile and preferences routes
   app.get('/api/user-preferences', async (req: any, res) => {

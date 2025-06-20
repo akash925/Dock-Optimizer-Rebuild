@@ -107,8 +107,8 @@ export default function UnifiedAppointmentFlow({
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
-      facilityId: preselectedFacilityId || initialData?.facilityId || 0,
-      appointmentTypeId: preselectedAppointmentTypeId || initialData?.appointmentTypeId || 0,
+      facilityId: preselectedFacilityId || initialData?.facilityId || 1, // Use 1 instead of 0 to avoid validation issues
+      appointmentTypeId: preselectedAppointmentTypeId || initialData?.appointmentTypeId || 1, // Use 1 instead of 0 to avoid validation issues
       appointmentDate: selectedDate || initialData?.appointmentDate || addDays(new Date(), 1),
       pickupOrDropoff: initialData?.pickupOrDropoff || 'dropoff',
       dockId: selectedDockId || initialData?.dockId || null,
@@ -272,7 +272,10 @@ export default function UnifiedAppointmentFlow({
           ? 'The appointment has been successfully updated.' 
           : `Appointment created successfully. ${data.confirmationCode ? `Confirmation: ${data.confirmationCode}` : ''}`,
       });
-      onSuccess(data);
+      // Safely call onSuccess if it exists
+      if (onSuccess) {
+        onSuccess(data);
+      }
       if (mode === 'internal') {
         onClose();
       }
@@ -331,13 +334,13 @@ export default function UnifiedAppointmentFlow({
                           <SelectValue placeholder="Select a facility" />
                         </SelectTrigger>
                       </FormControl>
-                                             <SelectContent>
-                         {(facilities as any[]).map((facility: any) => (
-                           <SelectItem key={facility.id} value={facility.id.toString()}>
-                             {facility.name}
-                           </SelectItem>
-                         ))}
-                       </SelectContent>
+                      <SelectContent>
+                        {Array.isArray(facilities) && facilities.map((facility: any) => (
+                          <SelectItem key={facility.id} value={facility.id.toString()}>
+                            {facility.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
@@ -363,7 +366,7 @@ export default function UnifiedAppointmentFlow({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {appointmentTypes.map((type: any) => (
+                        {Array.isArray(appointmentTypes) && appointmentTypes.map((type: any) => (
                           <SelectItem key={type.id} value={type.id.toString()}>
                             {type.name} ({type.duration} min)
                           </SelectItem>
@@ -465,11 +468,16 @@ export default function UnifiedAppointmentFlow({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {availableTimeSlots.map((slot: any) => (
+                          {Array.isArray(availableTimeSlots) && availableTimeSlots.map((slot: any) => (
                             <SelectItem key={slot.start} value={slot.start}>
                               {slot.start}
                             </SelectItem>
                           ))}
+                          {!Array.isArray(availableTimeSlots) || availableTimeSlots.length === 0 ? (
+                            <SelectItem value="" disabled>
+                              No time slots available
+                            </SelectItem>
+                          ) : null}
                         </SelectContent>
                       </Select>
                       <FormMessage />
