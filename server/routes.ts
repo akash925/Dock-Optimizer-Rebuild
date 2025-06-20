@@ -225,7 +225,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             bolFileUploaded: !!(schedule as any).bolData,
           };
           
-          await sendCheckoutEmail(schedule.driverEmail, enhancedSchedule.confirmationCode!, enhancedSchedule, req.body.notes);
+          // Extract checkout photo URL from custom form data
+          let checkoutPhotoUrl: string | null = null;
+          if (req.body.customFormData && typeof req.body.customFormData === 'object') {
+            checkoutPhotoUrl = req.body.customFormData.checkoutPhoto || req.body.customFormData.checkoutPhotoUrl || null;
+          }
+          
+          await sendCheckoutEmail(
+            schedule.driverEmail, 
+            enhancedSchedule.confirmationCode!, 
+            enhancedSchedule, 
+            req.body.notes,
+            checkoutPhotoUrl
+          );
         }
       } catch (emailError) {
         console.error('Error sending check-out notification email:', emailError);

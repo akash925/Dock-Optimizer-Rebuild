@@ -51,6 +51,7 @@ export interface EnhancedSchedule {
   // BOL-related properties
   bolData?: any; // OCR extracted data from BOL document
   bolFileUploaded?: boolean; // Whether a BOL file was uploaded
+  bookingPageUrl?: string; // URL to the booking page
 }
 
 // Initialize SendGrid if API key is available
@@ -1799,7 +1800,8 @@ export async function sendCheckoutEmail(
   to: string,
   confirmationCode: string,
   schedule: EnhancedSchedule,
-  checkoutNotes?: string
+  checkoutNotes?: string,
+  checkoutPhotoUrl?: string | null
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   // Date parsing utility function
   const parseDate = (dateInput: Date | string | null): Date => {
@@ -1872,6 +1874,13 @@ export async function sendCheckoutEmail(
     'EEEE, MMMM d, yyyy h:mm aa'
   );
 
+  // Use environment variable or default URLs
+  const host = process.env.HOST_URL || process.env.REPLIT_URL || 'https://dockoptimizer.com';
+  const dockOptimizerUrl = 'https://dockoptimizer.com';
+  
+  // Generate booking page link (if available from schedule data)
+  const bookingPageUrl = schedule.bookingPageUrl || `${host}/external/fresh-connect-booking`;
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #22c55e; color: white; padding: 20px; text-align: center;">
@@ -1930,13 +1939,23 @@ export async function sendCheckoutEmail(
               <td style="padding: 8px 0; color: #666;">Trailer #:</td>
               <td style="padding: 8px 0;"><strong>${schedule.trailerNumber}</strong></td>
             </tr>` : ''}
-            ${checkoutNotes ? `
-            <tr>
-              <td style="padding: 8px 0; color: #666;">Check-out Notes:</td>
-              <td style="padding: 8px 0;"><strong>${checkoutNotes}</strong></td>
-            </tr>` : ''}
           </table>
         </div>
+        
+        ${checkoutNotes ? `
+        <div style="background-color: #f8f9fa; border-left: 4px solid #007bff; padding: 15px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #0056b3;">📋 Release Notes</h3>
+          <p style="margin-bottom: 0; color: #333; white-space: pre-wrap;">${checkoutNotes}</p>
+        </div>` : ''}
+        
+        ${checkoutPhotoUrl ? `
+        <div style="background-color: #f8f9fa; border-left: 4px solid #17a2b8; padding: 15px; margin: 20px 0; text-align: center;">
+          <h3 style="margin-top: 0; color: #117a8b;">📸 Delivery/Check-out Photo</h3>
+          <img src="${checkoutPhotoUrl}" alt="Check-out verification photo" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px;" />
+          <p style="margin-top: 10px; font-size: 12px; color: #666;">
+            <a href="${checkoutPhotoUrl}" target="_blank" style="color: #007bff; text-decoration: none;">View full size</a>
+          </p>
+        </div>` : ''}
         
         <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 20px 0;">
           <h3 style="margin-top: 0; color: #16a34a;">✓ Appointment Successfully Completed</h3>
@@ -1945,11 +1964,37 @@ export async function sendCheckoutEmail(
           </p>
         </div>
         
+        <div style="text-align: center; margin: 30px 0; padding: 20px; background-color: #f0f9ff; border-radius: 8px;">
+          <h3 style="margin-top: 0; color: #1e40af;">Need Another Appointment?</h3>
+          <p style="color: #666; margin-bottom: 20px;">Schedule your next dock appointment quickly and easily.</p>
+          
+          <div style="margin: 15px 0;">
+            <a href="${bookingPageUrl}" 
+               style="background-color: #22c55e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; margin: 5px;">
+              📅 Book New Appointment
+            </a>
+          </div>
+          
+          <div style="margin: 15px 0;">
+            <a href="${dockOptimizerUrl}" 
+               style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; margin: 5px;">
+              🌐 Visit Dock Optimizer
+            </a>
+          </div>
+          
+          <p style="font-size: 12px; color: #6b7280; margin-top: 15px;">
+            Powered by <a href="${dockOptimizerUrl}" style="color: #3b82f6;">Dock Optimizer</a> - Streamlining dock operations.
+          </p>
+        </div>
+        
         <p>If you have any questions about this completed appointment, please contact the facility directly.</p>
       </div>
       
       <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
         <p>This is an automated message from Dock Optimizer. Please do not reply to this email.</p>
+        <p>
+          Visit <a href="${dockOptimizerUrl}" style="color: #3b82f6;">dockoptimizer.com</a> for more information about our dock management solutions.
+        </p>
       </div>
     </div>
   `;
@@ -1972,15 +2017,28 @@ export async function sendCheckoutEmail(
     ${schedule.carrierId ? `Carrier: ${schedule.carrierName || 'Unknown Carrier'}` : ''}
     ${schedule.truckNumber ? `Truck #: ${schedule.truckNumber}` : ''}
     ${schedule.trailerNumber ? `Trailer #: ${schedule.trailerNumber}` : ''}
-    ${checkoutNotes ? `Check-out Notes: ${checkoutNotes}` : ''}
+    ${checkoutNotes ? `
+    RELEASE NOTES
+    ------------------
+    ${checkoutNotes}` : ''}
+    ${checkoutPhotoUrl ? `
+    DELIVERY/CHECK-OUT PHOTO
+    ------------------
+    View photo: ${checkoutPhotoUrl}` : ''}
     
     ✓ Appointment Successfully Completed
     
     Thank you for choosing our facility. We appreciate your business and look forward to serving you again.
     
+    QUICK LINKS
+    ------------------
+    Book New Appointment: ${bookingPageUrl}
+    Visit Dock Optimizer: ${dockOptimizerUrl}
+    
     If you have any questions about this completed appointment, please contact the facility directly.
     
     This is an automated message from Dock Optimizer. Please do not reply to this email.
+    Visit dockoptimizer.com for more information about our dock management solutions.
   `;
 
   // Create email without calendar attachment (appointment is completed)

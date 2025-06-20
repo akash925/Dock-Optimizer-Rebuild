@@ -496,19 +496,19 @@ export default function AppointmentsPage() {
     }
     
     const exportData = filteredSchedules.map(schedule => ({
+      "Customer Name": schedule.customerName || "",
+      "Facility": getSafeFacilityName(schedule),
+      "Appointment Type": schedule.type,
       "Event Date": formatDate(schedule.startTime),
       "Event Time": formatTime(schedule.startTime),
-      "Event Type": schedule.type,
-      "Facility": getSafeFacilityName(schedule),
-      "Carrier Name": schedule.carrierId ? getCarrierName(schedule.carrierId) : "No carrier",
+      "Status": schedule.status,
+      "Carrier Name": schedule.carrierId ? getCarrierName(schedule.carrierId) : (schedule.carrierName || "No carrier"),
       "MC #": schedule.mcNumber || "",
       "Truck Number": schedule.truckNumber,
-      "Customer Name": schedule.customerName || "",
-      "Is Cancelled": schedule.status === "cancelled" ? "true" : "false",
-      "Is Rescheduled": "false", // We don't have this info currently
       "BOL Number": schedule.bolNumber || "",
       "PO Number": schedule.poNumber || "",
-      "Status": schedule.status,
+      "Is Cancelled": schedule.status === "cancelled" ? "true" : "false",
+      "Is Rescheduled": "false", // We don't have this info currently
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -537,19 +537,19 @@ export default function AppointmentsPage() {
     }
     
     const exportData = filteredSchedules.map(schedule => ({
+      "Customer Name": schedule.customerName || "",
+      "Facility": getSafeFacilityName(schedule),
+      "Appointment Type": schedule.type,
       "Event Date": formatDate(schedule.startTime),
       "Event Time": formatTime(schedule.startTime),
-      "Event Type": schedule.type,
-      "Facility": getSafeFacilityName(schedule),
-      "Carrier Name": schedule.carrierId ? getCarrierName(schedule.carrierId) : "No carrier",
+      "Status": schedule.status,
+      "Carrier Name": schedule.carrierId ? getCarrierName(schedule.carrierId) : (schedule.carrierName || "No carrier"),
       "MC #": schedule.mcNumber || "",
       "Truck Number": schedule.truckNumber,
-      "Customer Name": schedule.customerName || "",
-      "Is Cancelled": schedule.status === "cancelled" ? "true" : "false",
-      "Is Rescheduled": "false", // We don't have this info currently
       "BOL Number": schedule.bolNumber || "",
       "PO Number": schedule.poNumber || "",
-      "Status": schedule.status,
+      "Is Cancelled": schedule.status === "cancelled" ? "true" : "false",
+      "Is Rescheduled": "false", // We don't have this info currently
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -785,17 +785,16 @@ export default function AppointmentsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Event Date</TableHead>
-                <TableHead>Event Time</TableHead>
+                <TableHead>Customer Name</TableHead>
                 <TableHead>Facility</TableHead>
-                <TableHead>Event Type</TableHead>
+                <TableHead>Appointment Type</TableHead>
+                <TableHead>Date/Time</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Carrier</TableHead>
                 {/* Dynamic columns based on appointment type fields */}
                 {dynamicColumns.map(column => (
                   <TableHead key={column.key}>{column.label}</TableHead>
                 ))}
-                <TableHead>MC #</TableHead>
-                <TableHead>Truck #</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -803,22 +802,22 @@ export default function AppointmentsPage() {
               {filteredSchedules.map((schedule) => (
                 <TableRow key={schedule.id}>
                   <TableCell>
-                    <div className="font-medium">{formatDate(schedule.startTime)}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-muted-foreground">{formatTime(schedule.startTime)}</div>
+                    <div className="font-medium">{schedule.customerName || "-"}</div>
                   </TableCell>
                   <TableCell>{getFacilityName(schedule)}</TableCell>
                   <TableCell>{getAppointmentTypeBadge(schedule.type)}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{formatDate(schedule.startTime)}</div>
+                    <div className="text-muted-foreground text-sm">{formatTime(schedule.startTime)}</div>
+                  </TableCell>
+                  <TableCell>{getAppointmentStatusBadge(schedule.status)}</TableCell>
+                  <TableCell>{schedule.carrierName || getCarrierName(schedule.carrierId) || "-"}</TableCell>
                   {/* Dynamic columns based on appointment type fields */}
                   {dynamicColumns.map(column => (
                     <TableCell key={column.key}>
                       {getCustomFormValue(schedule, column.key) || "-"}
                     </TableCell>
                   ))}
-                  <TableCell>{schedule.mcNumber || "-"}</TableCell>
-                  <TableCell>{schedule.truckNumber || "-"}</TableCell>
-                  <TableCell>{getAppointmentStatusBadge(schedule.status)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => setSelectedScheduleId(schedule.id)}>
                       View
@@ -829,7 +828,7 @@ export default function AppointmentsPage() {
               
               {filteredSchedules.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7 + dynamicColumns.length} className="text-center py-8">
+                  <TableCell colSpan={6 + dynamicColumns.length} className="text-center py-8">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <Calendar className="h-10 w-10 mb-2" />
                       <p>No appointments found</p>

@@ -671,11 +671,38 @@ export function AppointmentDetailsDialog({
           <DialogHeader>
             <DialogTitle>Check In Appointment</DialogTitle>
             <DialogDescription>
-              Select the time when this appointment checked in.
+              Record when this appointment was actually checked in. Defaults to current time.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+              <div className="flex items-center text-blue-800 text-sm">
+                <Clock className="h-4 w-4 mr-2" />
+                <span>Current time: <strong>{format(new Date(), "MMM d, yyyy h:mm a")}</strong></span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="check-in-date" className="text-right">
+                Check-In Date
+              </Label>
+              <Input
+                id="check-in-date"
+                type="date"
+                className="col-span-3"
+                value={format(checkInTime, "yyyy-MM-dd")}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const newDate = new Date(e.target.value);
+                    const updatedTime = new Date(checkInTime);
+                    updatedTime.setFullYear(newDate.getFullYear(), newDate.getMonth(), newDate.getDate());
+                    setCheckInTime(updatedTime);
+                  }
+                }}
+              />
+            </div>
+            
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="check-in-time" className="text-right">
                 Check-In Time
@@ -687,18 +714,25 @@ export function AppointmentDetailsDialog({
                 value={formatTimeForInput(checkInTime)}
                 onChange={(e) => {
                   const [hours, minutes] = e.target.value.split(':').map(Number);
-                  const newTime = new Date();
+                  const newTime = new Date(checkInTime);
                   newTime.setHours(hours, minutes, 0, 0);
                   setCheckInTime(newTime);
                 }}
               />
+            </div>
+            
+            <div className="text-xs text-muted-foreground">
+              <strong>Note:</strong> For early check-ins, the date will be today unless you manually change it.
             </div>
           </div>
           
           <DialogFooter>
             <Button 
               variant="outline" 
-              onClick={() => setShowCheckInDialog(false)}
+              onClick={() => {
+                setCheckInTime(new Date()); // Reset to current time
+                setShowCheckInDialog(false);
+              }}
             >
               Cancel
             </Button>
