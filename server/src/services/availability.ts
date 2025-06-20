@@ -9,6 +9,13 @@ import { pool } from '../../db.js';
 // Add at the top of the file after imports
 const DEBUG_AVAILABILITY = process.env.DEBUG_AVAILABILITY === 'true';
 
+// CONFIGURABLE CONSTANTS - Replace hardcoded values
+const DEFAULT_TIMEZONE = process.env.DEFAULT_FACILITY_TIMEZONE || 'America/New_York';
+const DEFAULT_START_TIME = process.env.DEFAULT_START_TIME || '08:00';
+const DEFAULT_END_TIME = process.env.DEFAULT_END_TIME || '17:00';
+const DEFAULT_BREAK_START = process.env.DEFAULT_BREAK_START || '12:00';
+const DEFAULT_BREAK_END = process.env.DEFAULT_BREAK_END || '13:00';
+
 // Helper function for conditional logging
 function debugLog(message: string, ...args: any[]) {
   if (DEBUG_AVAILABILITY) {
@@ -372,37 +379,37 @@ export async function calculateAvailabilitySlots(
   customTimezone?: string // Allow passing a custom timezone
 ): Promise<AvailabilitySlot[]> {
 
-  console.log(`[AvailabilityService] Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${effectiveTenantId}`);
+  debugLog(`Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${effectiveTenantId}`);
 
   // Apply configuration settings with defaults
   const mergedConfig = { ...defaultConfig, ...config };
-  console.log(`[AvailabilityService] Using config: interval=${mergedConfig.intervalMinutes}min, buffer=${mergedConfig.bookingBufferMinutes}min, maxAdvance=${mergedConfig.maxAdvanceDays} days`);
+  debugLog(`Using config: interval=${mergedConfig.intervalMinutes}min, buffer=${mergedConfig.bookingBufferMinutes}min, maxAdvance=${mergedConfig.maxAdvanceDays} days`);
 
   const facility = await storage.getFacility(facilityId, effectiveTenantId);
   if (!facility) { throw new Error('Facility not found or access denied.'); }
-  console.log(`[AvailabilityService] Facility found: ${facility.name}, timezone: ${facility.timezone}`);
+  debugLog(`Facility found: ${facility.name}, timezone: ${facility.timezone}`);
 
   const appointmentType = await storage.getAppointmentType(appointmentTypeId);
   if (!appointmentType) { 
-    console.log(`[AvailabilityService] Appointment type ${appointmentTypeId} not found in database`);
+    debugLog(`Appointment type ${appointmentTypeId} not found in database`);
     throw new Error('Appointment type not found or access denied.'); 
   }
   
   // CRITICAL: Validate tenant isolation for appointment type
   if (appointmentType.tenantId && appointmentType.tenantId !== effectiveTenantId) {
-    console.log(`[AvailabilityService] Tenant mismatch: appointment type ${appointmentTypeId} belongs to tenant ${appointmentType.tenantId}, but request is for tenant ${effectiveTenantId}`);
+    debugLog(`Tenant mismatch: appointment type ${appointmentTypeId} belongs to tenant ${appointmentType.tenantId}, but request is for tenant ${effectiveTenantId}`);
     throw new Error('Appointment type not found or access denied.');
   }
   
   // FLEXIBLE: Check if appointment type and facility belong to the same tenant/organization
   // This allows appointment types to be shared across facilities within the same organization
   if (appointmentType.facilityId && appointmentType.facilityId !== facilityId) {
-    console.log(`[AvailabilityService] Appointment type ${appointmentTypeId} belongs to facility ${appointmentType.facilityId}, but request is for facility ${facilityId}. Checking tenant compatibility...`);
+    debugLog(`Appointment type ${appointmentTypeId} belongs to facility ${appointmentType.facilityId}, but request is for facility ${facilityId}. Checking tenant compatibility...`);
     
     // Get organization for the appointment type's facility
     const appointmentTypeFacility = await storage.getFacility(appointmentType.facilityId, effectiveTenantId);
     if (!appointmentTypeFacility) {
-      console.log(`[AvailabilityService] Appointment type's facility ${appointmentType.facilityId} not found or not accessible to tenant ${effectiveTenantId}`);
+      debugLog(`Appointment type's facility ${appointmentType.facilityId} not found or not accessible to tenant ${effectiveTenantId}`);
       throw new Error('Appointment type not found or access denied.');
     }
     
@@ -413,19 +420,19 @@ export async function calculateAvailabilitySlots(
     if (requestedFacilityTenantId && appointmentTypeFacilityTenantId && 
         requestedFacilityTenantId === appointmentTypeFacilityTenantId && 
         requestedFacilityTenantId === effectiveTenantId) {
-      console.log(`[AvailabilityService] Cross-facility usage allowed: both facilities belong to tenant ${effectiveTenantId}`);
+      debugLog(`Cross-facility usage allowed: both facilities belong to tenant ${effectiveTenantId}`);
     } else {
-      console.log(`[AvailabilityService] Cross-facility usage denied: tenant mismatch (requested: ${requestedFacilityTenantId}, appointment type: ${appointmentTypeFacilityTenantId}, effective: ${effectiveTenantId})`);
+      debugLog(`Cross-facility usage denied: tenant mismatch (requested: ${requestedFacilityTenantId}, appointment type: ${appointmentTypeFacilityTenantId}, effective: ${effectiveTenantId})`);
       throw new Error('Appointment type not found or access denied.');
     }
   }
   
-  console.log(`[AvailabilityService] Appointment type validated: ${appointmentType.name} (ID: ${appointmentTypeId}, Tenant: ${appointmentType.tenantId}, Facility: ${appointmentType.facilityId})`);
+  debugLog(`Appointment type validated: ${appointmentType.name} (ID: ${appointmentTypeId}, Tenant: ${appointmentType.tenantId}, Facility: ${appointmentType.facilityId})`);
 
   // Use provided timezone or fall back to facility timezone
-  const facilityTimezone = facility.timezone || 'America/New_York';
+  const facilityTimezone = facility.timezone || DEFAULT_TIMEZONE;
   const effectiveTimezone = customTimezone || facilityTimezone;
-  console.log(`[AvailabilityService] Using timezone: ${effectiveTimezone} (facility default: ${facilityTimezone})`);
+  debugLog(`Using timezone: ${effectiveTimezone} (facility default: ${facilityTimezone})`);
   
   // First, parse the date parts
   const [year, month, day] = date.split('-').map(num => parseInt(num, 10));
@@ -442,17 +449,17 @@ export async function calculateAvailabilitySlots(
   const dayOfWeek = getDay(appointmentDate);
   
   // Enhanced debugging for date calculation
-  console.log(`[AvailabilityService] Date calculation for ${date} in ${effectiveTimezone}:`);
-  console.log(`- Date parts: Year=${year}, Month=${month}, Day=${day}`);
-  console.log(`- Calculated day of week: ${dayOfWeek} (${dayOfWeek === 1 ? 'Monday' : dayOfWeek === 0 ? 'Sunday' : 'Other Day'})`);
-  console.log(`- Appointment date object: ${appointmentDate.toString()}`);
+  debugLog(`Date calculation for ${date} in ${effectiveTimezone}:`);
+  debugLog(`- Date parts: Year=${year}, Month=${month}, Day=${day}`);
+  debugLog(`- Calculated day of week: ${dayOfWeek} (${dayOfWeek === 1 ? 'Monday' : dayOfWeek === 0 ? 'Sunday' : 'Other Day'})`);
+  debugLog(`- Appointment date object: ${appointmentDate.toString()}`);
   
   // Use the original date string since we already validated it above
   const facilityTZDateStr = date; // This is already in YYYY-MM-DD format
-  console.log(`- Facility TZ date string: ${facilityTZDateStr}`);
+  debugLog(`- Facility TZ date string: ${facilityTZDateStr}`);
   
   // Debug logging for final day calculation
-  console.log(`[AvailabilityService] Using day of week: ${dayOfWeek} for calculations`);
+  debugLog(`Using day of week: ${dayOfWeek} for calculations`);
 
   const getObjectField = (obj: any, camelCase: string, snakeCase: string, defaultValue: any = undefined): any => {
     // Check both camelCase and snake_case field names
@@ -492,19 +499,19 @@ export async function calculateAvailabilitySlots(
   const maxConcurrent = getAppTypeField('maxConcurrent', 'max_concurrent', 1); // Default to 1 concurrent appointment
   
   // Log the extracted values for debugging
-  console.log(`[AvailabilityService] Appointment type settings: duration=${appointmentTypeDuration}min, buffer=${appointmentTypeBufferTime}min, maxConcurrent=${maxConcurrent}`);
+  debugLog(`Appointment type settings: duration=${appointmentTypeDuration}min, buffer=${appointmentTypeBufferTime}min, maxConcurrent=${maxConcurrent}`);
   
   const allowAppointmentsThroughBreaks = getAppTypeField('allowAppointmentsThroughBreaks', 'allow_appointments_through_breaks', false);
   const overrideFacilityHours = getAppTypeField('overrideFacilityHours', 'override_facility_hours', false);
 
-  console.log(`[AvailabilityService] APPOINTMENT TYPE SETTINGS SUMMARY:`);
-  console.log(`[AvailabilityService] - Type ID: ${appointmentTypeId}`);
-  console.log(`[AvailabilityService] - Name: ${appointmentType.name}`);
-  console.log(`[AvailabilityService] - Duration: ${appointmentTypeDuration} minutes`);
-  console.log(`[AvailabilityService] - Buffer Time: ${appointmentTypeBufferTime} minutes`);
-  console.log(`[AvailabilityService] - Max Concurrent: ${maxConcurrent}`);
-  console.log(`[AvailabilityService] - Override Facility Hours: ${overrideFacilityHours}`);
-  console.log(`[AvailabilityService] - Allow Through Breaks: ${allowAppointmentsThroughBreaks}`);
+  debugLog(`APPOINTMENT TYPE SETTINGS SUMMARY:`);
+  debugLog(`- Type ID: ${appointmentTypeId}`);
+  debugLog(`- Name: ${appointmentType.name}`);
+  debugLog(`- Duration: ${appointmentTypeDuration} minutes`);
+  debugLog(`- Buffer Time: ${appointmentTypeBufferTime} minutes`);
+  debugLog(`- Max Concurrent: ${maxConcurrent}`);
+  debugLog(`- Override Facility Hours: ${overrideFacilityHours}`);
+  debugLog(`- Allow Through Breaks: ${allowAppointmentsThroughBreaks}`);
 
   // Build hours context with proper hierarchy
   const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];

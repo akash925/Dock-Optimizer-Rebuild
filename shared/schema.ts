@@ -416,37 +416,37 @@ export const appointmentSettings = pgTable("appointment_settings", {
   friday: boolean("friday").notNull().default(true),
   saturday: boolean("saturday").notNull().default(false),
   
-  // Daily time windows
-  sundayStartTime: text("sunday_start_time").default("08:00"),
-  sundayEndTime: text("sunday_end_time").default("17:00"),
-  mondayStartTime: text("monday_start_time").default("08:00"),
-  mondayEndTime: text("monday_end_time").default("17:00"),
-  tuesdayStartTime: text("tuesday_start_time").default("08:00"),
-  tuesdayEndTime: text("tuesday_end_time").default("17:00"),
-  wednesdayStartTime: text("wednesday_start_time").default("08:00"),
-  wednesdayEndTime: text("wednesday_end_time").default("17:00"),
-  thursdayStartTime: text("thursday_start_time").default("08:00"),
-  thursdayEndTime: text("thursday_end_time").default("17:00"),
-  fridayStartTime: text("friday_start_time").default("08:00"),
-  fridayEndTime: text("friday_end_time").default("17:00"),
-  saturdayStartTime: text("saturday_start_time").default("08:00"),
-  saturdayEndTime: text("saturday_end_time").default("17:00"),
+  // Daily time windows - using environment variables for defaults
+  sundayStartTime: text("sunday_start_time").default(process.env.DEFAULT_START_TIME || "08:00"),
+  sundayEndTime: text("sunday_end_time").default(process.env.DEFAULT_END_TIME || "17:00"),
+  mondayStartTime: text("monday_start_time").default(process.env.DEFAULT_START_TIME || "08:00"),
+  mondayEndTime: text("monday_end_time").default(process.env.DEFAULT_END_TIME || "17:00"),
+  tuesdayStartTime: text("tuesday_start_time").default(process.env.DEFAULT_START_TIME || "08:00"),
+  tuesdayEndTime: text("tuesday_end_time").default(process.env.DEFAULT_END_TIME || "17:00"),
+  wednesdayStartTime: text("wednesday_start_time").default(process.env.DEFAULT_START_TIME || "08:00"),
+  wednesdayEndTime: text("wednesday_end_time").default(process.env.DEFAULT_END_TIME || "17:00"),
+  thursdayStartTime: text("thursday_start_time").default(process.env.DEFAULT_START_TIME || "08:00"),
+  thursdayEndTime: text("thursday_end_time").default(process.env.DEFAULT_END_TIME || "17:00"),
+  fridayStartTime: text("friday_start_time").default(process.env.DEFAULT_START_TIME || "08:00"),
+  fridayEndTime: text("friday_end_time").default(process.env.DEFAULT_END_TIME || "17:00"),
+  saturdayStartTime: text("saturday_start_time").default(process.env.DEFAULT_START_TIME || "08:00"),
+  saturdayEndTime: text("saturday_end_time").default(process.env.DEFAULT_END_TIME || "17:00"),
   
-  // Lunch/break periods
-  sundayBreakStartTime: text("sunday_break_start_time").default("12:00"),
-  sundayBreakEndTime: text("sunday_break_end_time").default("13:00"),
-  mondayBreakStartTime: text("monday_break_start_time").default("12:00"),
-  mondayBreakEndTime: text("monday_break_end_time").default("13:00"),
-  tuesdayBreakStartTime: text("tuesday_break_start_time").default("12:00"),
-  tuesdayBreakEndTime: text("tuesday_break_end_time").default("13:00"),
-  wednesdayBreakStartTime: text("wednesday_break_start_time").default("12:00"),
-  wednesdayBreakEndTime: text("wednesday_break_end_time").default("13:00"),
-  thursdayBreakStartTime: text("thursday_break_start_time").default("12:00"),
-  thursdayBreakEndTime: text("thursday_break_end_time").default("13:00"),
-  fridayBreakStartTime: text("friday_break_start_time").default("12:00"),
-  fridayBreakEndTime: text("friday_break_end_time").default("13:00"),
-  saturdayBreakStartTime: text("saturday_break_start_time").default("12:00"),
-  saturdayBreakEndTime: text("saturday_break_end_time").default("13:00"),
+  // Lunch/break periods - configurable defaults
+  sundayBreakStartTime: text("sunday_break_start_time").default(process.env.DEFAULT_BREAK_START || "12:00"),
+  sundayBreakEndTime: text("sunday_break_end_time").default(process.env.DEFAULT_BREAK_END || "13:00"),
+  mondayBreakStartTime: text("monday_break_start_time").default(process.env.DEFAULT_BREAK_START || "12:00"),
+  mondayBreakEndTime: text("monday_break_end_time").default(process.env.DEFAULT_BREAK_END || "13:00"),
+  tuesdayBreakStartTime: text("tuesday_break_start_time").default(process.env.DEFAULT_BREAK_START || "12:00"),
+  tuesdayBreakEndTime: text("tuesday_break_end_time").default(process.env.DEFAULT_BREAK_END || "13:00"),
+  wednesdayBreakStartTime: text("wednesday_break_start_time").default(process.env.DEFAULT_BREAK_START || "12:00"),
+  wednesdayBreakEndTime: text("wednesday_break_end_time").default(process.env.DEFAULT_BREAK_END || "13:00"),
+  thursdayBreakStartTime: text("thursday_break_start_time").default(process.env.DEFAULT_BREAK_START || "12:00"),
+  thursdayBreakEndTime: text("thursday_break_end_time").default(process.env.DEFAULT_BREAK_END || "13:00"),
+  fridayBreakStartTime: text("friday_break_start_time").default(process.env.DEFAULT_BREAK_START || "12:00"),
+  fridayBreakEndTime: text("friday_break_end_time").default(process.env.DEFAULT_BREAK_END || "13:00"),
+  saturdayBreakStartTime: text("saturday_break_start_time").default(process.env.DEFAULT_BREAK_START || "12:00"),
+  saturdayBreakEndTime: text("saturday_break_end_time").default(process.env.DEFAULT_BREAK_END || "13:00"),
   
   // Max appointments per day for the entire facility
   sundayMaxAppointments: integer("sunday_max_appointments").default(0), // 0 = unlimited
@@ -457,10 +457,10 @@ export const appointmentSettings = pgTable("appointment_settings", {
   fridayMaxAppointments: integer("friday_max_appointments").default(0),
   saturdayMaxAppointments: integer("saturday_max_appointments").default(0),
   
-  // Default values for new appointment types
-  defaultBufferTime: integer("default_buffer_time").notNull().default(0), // minutes between appointments
-  defaultGracePeriod: integer("default_grace_period").notNull().default(15), // minutes before marked late
-  defaultEmailReminderTime: integer("default_email_reminder_time").notNull().default(24), // hours
+  // Default values for new appointment types - configurable
+  defaultBufferTime: integer("default_buffer_time").notNull().default(parseInt(process.env.DEFAULT_BUFFER_TIME || "0")), // minutes between appointments
+  defaultGracePeriod: integer("default_grace_period").notNull().default(parseInt(process.env.DEFAULT_GRACE_PERIOD || "15")), // minutes before marked late
+  defaultEmailReminderTime: integer("default_email_reminder_time").notNull().default(parseInt(process.env.DEFAULT_EMAIL_REMINDER_HOURS || "24")), // hours
   allowAppointmentsThroughBreaks: boolean("allow_appointments_through_breaks").notNull().default(false),
   allowAppointmentsPastBusinessHours: boolean("allow_appointments_past_business_hours").notNull().default(false),
   
@@ -485,15 +485,15 @@ export const appointmentTypes = pgTable("appointment_types", {
   color: text("color").notNull(),
   type: text("type").notNull().$type<keyof typeof ScheduleType>(), // inbound or outbound
   showRemainingSlots: boolean("show_remaining_slots").notNull().default(true),
-  gracePeriod: integer("grace_period").notNull().default(15), // in minutes - before an appointment is marked late
-  bufferTime: integer("buffer_time").notNull().default(0), // in minutes - gap between appointments
+  gracePeriod: integer("grace_period").notNull().default(parseInt(process.env.DEFAULT_GRACE_PERIOD || "15")), // in minutes - before an appointment is marked late
+  bufferTime: integer("buffer_time").notNull().default(parseInt(process.env.DEFAULT_BUFFER_TIME || "0")), // in minutes - gap between appointments
   maxAppointmentsPerDay: integer("max_appointments_per_day"), // optional limit for total daily appointments
-  maxConcurrent: integer("max_concurrent").notNull().default(1), // maximum parallel appointments of this type
-  emailReminderTime: integer("email_reminder_time").notNull().default(24), // hours before appointment
+  maxConcurrent: integer("max_concurrent").notNull().default(parseInt(process.env.DEFAULT_MAX_CONCURRENT || "1")), // maximum parallel appointments of this type
+  emailReminderTime: integer("email_reminder_time").notNull().default(parseInt(process.env.DEFAULT_EMAIL_REMINDER_HOURS || "24")), // hours before appointment
   allowAppointmentsThroughBreaks: boolean("allow_appointments_through_breaks").notNull().default(false),
   allowAppointmentsPastBusinessHours: boolean("allow_appointments_past_business_hours").notNull().default(false),
   overrideFacilityHours: boolean("override_facility_hours").notNull().default(false), // When true, allow scheduling outside facility hours
-  timezone: text("timezone").default("America/New_York"), // Default to Eastern Time
+  timezone: text("timezone").default(process.env.DEFAULT_FACILITY_TIMEZONE || "America/New_York"), // Configurable default timezone
   tenantId: integer("tenant_id").references(() => tenants.id), // Foreign key to tenants table
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),

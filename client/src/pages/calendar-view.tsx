@@ -179,12 +179,13 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="container mx-auto py-2">
-      <div className="mb-2 flex items-center justify-between">
+    <div className="container mx-auto py-1 px-2">
+      {/* ENHANCED: Compact header for maximum screen usage */}
+      <div className="mb-1 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Calendar</h1>
-          <p className="text-muted-foreground text-sm">
-            View and manage your dock appointments
+          <h1 className="text-xl font-bold">Calendar</h1>
+          <p className="text-muted-foreground text-xs">
+            View and manage dock appointments
           </p>
         </div>
         
@@ -192,20 +193,20 @@ export default function CalendarPage() {
         <WebSocketStatus />
       </div>
 
-      {/* Condensed controls row with minimal spacing */}
-      <div className="view-buttons-container mb-2 sticky top-0 z-[1000] bg-white border rounded-lg shadow-sm" style={{
+      {/* ENHANCED: Ultra-compact controls for maximum calendar space */}
+      <div className="view-buttons-container mb-1 sticky top-0 z-[1000] bg-white/95 backdrop-blur-sm border rounded-lg shadow-sm" style={{
         position: "sticky",
         top: "0",
         zIndex: "10",
-        backgroundColor: "white",
-        padding: "0.75rem",
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        padding: "0.5rem",
         borderRadius: "0.5rem",
-        marginBottom: "0.5rem"
+        marginBottom: "0.25rem"
       }}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Timezone selector */}
           <div className="flex-col space-y-1">
-            <Label htmlFor="timezone-select">Timezone</Label>
+            <Label htmlFor="timezone-select" className="text-xs">Timezone</Label>
             <Select 
               value={selectedTimezone} 
               onValueChange={(timezone) => {
@@ -214,10 +215,10 @@ export default function CalendarPage() {
                 // The FullCalendarView component will handle the timezone change via props
               }}
             >
-              <SelectTrigger id="timezone-select" className="w-full md:w-64 z-10">
+              <SelectTrigger id="timezone-select" className="w-full md:w-56 z-10 h-8 text-xs">
                 <SelectValue placeholder="Select timezone" />
               </SelectTrigger>
-              <SelectContent position="popper" side="bottom" className="z-50 w-[300px]" align="start">
+              <SelectContent position="popper" side="bottom" className="z-50 w-[280px]" align="start">
                 <SelectItem value={getUserTimeZone()}>
                   Local: {getUserTimeZone()} ({getTimeZoneAbbreviation(getUserTimeZone())})
                 </SelectItem>
@@ -231,7 +232,7 @@ export default function CalendarPage() {
           </div>
           
           {/* Today, prev, next buttons */}
-          <div className="flex items-end justify-center space-x-2">
+          <div className="flex items-end justify-center space-x-1">
             <Button 
               variant="outline" 
               size="sm"
@@ -245,6 +246,7 @@ export default function CalendarPage() {
                   }
                 }
               }}
+              className="h-8 px-2 text-xs"
             >
               Today
             </Button>
@@ -261,8 +263,9 @@ export default function CalendarPage() {
                   }
                 }
               }}
+              className="h-8 px-2 text-xs"
             >
-              Previous
+              ←
             </Button>
             <Button 
               variant="outline" 
@@ -277,8 +280,9 @@ export default function CalendarPage() {
                   }
                 }
               }}
+              className="h-8 px-2 text-xs"
             >
-              Next
+              →
             </Button>
           </div>
           
@@ -288,7 +292,7 @@ export default function CalendarPage() {
               <Button
                 variant={currentView === 'dayGridMonth' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-l-md rounded-r-none calendar-view-button"
+                className="rounded-l-md rounded-r-none calendar-view-button h-8 px-2 text-xs"
                 onClick={() => {
                   if (calendarRef.current) {
                     try {
@@ -301,12 +305,12 @@ export default function CalendarPage() {
                   }
                 }}
               >
-                month
+                Month
               </Button>
               <Button
                 variant={currentView === 'timeGridWeek' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-none border-l border-r calendar-view-button"
+                className="rounded-none border-l border-r calendar-view-button h-8 px-2 text-xs"
                 onClick={() => {
                   if (calendarRef.current) {
                     try {
@@ -319,12 +323,12 @@ export default function CalendarPage() {
                   }
                 }}
               >
-                week
+                Week
               </Button>
               <Button
                 variant={currentView === 'timeGridDay' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-none border-r calendar-view-button"
+                className="rounded-none border-r calendar-view-button h-8 px-2 text-xs"
                 onClick={() => {
                   if (calendarRef.current) {
                     try {
@@ -337,12 +341,12 @@ export default function CalendarPage() {
                   }
                 }}
               >
-                day
+                Day
               </Button>
               <Button
                 variant={currentView === 'listWeek' ? 'default' : 'outline'}
                 size="sm"
-                className="rounded-l-none rounded-r-md calendar-view-button"
+                className="rounded-l-none rounded-r-md calendar-view-button h-8 px-2 text-xs"
                 onClick={() => {
                   if (calendarRef.current) {
                     try {
@@ -355,23 +359,23 @@ export default function CalendarPage() {
                   }
                 }}
               >
-                list
+                List
               </Button>
             </div>
           </div>
         </div>
         
-        {/* Additional filters row */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4 pt-4 border-t">
+        {/* ENHANCED: Compact additional filters row */}
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mt-3 pt-3 border-t">
           {/* Facility filter */}
           <div className="flex-col space-y-1">
-            <Label htmlFor="facility-select">Facility</Label>
+            <Label htmlFor="facility-select" className="text-xs">Facility</Label>
             <Select 
               value={selectedFacilityId} 
               onValueChange={setSelectedFacilityId}
             >
-              <SelectTrigger id="facility-select" className="w-full z-10">
-                <SelectValue placeholder="All Facilities" />
+              <SelectTrigger id="facility-select" className="w-full z-10 h-8 text-xs">
+                <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent position="popper" side="bottom" align="start" className="z-50">
                 <SelectItem value="all">All Facilities</SelectItem>
@@ -386,17 +390,16 @@ export default function CalendarPage() {
           
           {/* Dock filter */}
           <div className="flex-col space-y-1">
-            <Label htmlFor="dock-select">Dock</Label>
+            <Label htmlFor="dock-select" className="text-xs">Dock</Label>
             <Select 
               value={selectedDockId}
               onValueChange={setSelectedDockId}
             >
-              <SelectTrigger id="dock-select" className="w-full z-10">
-                <SelectValue placeholder="All Docks" />
+              <SelectTrigger id="dock-select" className="w-full z-10 h-8 text-xs">
+                <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent position="popper" side="bottom" align="start" className="z-50">
                 <SelectItem value="all">All Docks</SelectItem>
-                {/* We would need to fetch docks based on selected facility */}
                 <SelectItem value="1">Dock #1</SelectItem>
                 <SelectItem value="2">Dock #2</SelectItem>
                 <SelectItem value="3">Dock #3</SelectItem>
@@ -406,13 +409,13 @@ export default function CalendarPage() {
           
           {/* Status filter */}
           <div className="flex-col space-y-1">
-            <Label htmlFor="status-select">Status</Label>
+            <Label htmlFor="status-select" className="text-xs">Status</Label>
             <Select 
               value={selectedStatus}
               onValueChange={setSelectedStatus}
             >
-              <SelectTrigger id="status-select" className="w-full z-10">
-                <SelectValue placeholder="All Statuses" />
+              <SelectTrigger id="status-select" className="w-full z-10 h-8 text-xs">
+                <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent position="popper" side="bottom" align="start" className="z-50">
                 <SelectItem value="all">All Statuses</SelectItem>
@@ -426,13 +429,13 @@ export default function CalendarPage() {
           
           {/* Type filter */}
           <div className="flex-col space-y-1">
-            <Label htmlFor="type-select">Appointment Type</Label>
+            <Label htmlFor="type-select" className="text-xs">Type</Label>
             <Select 
               value={selectedType}
               onValueChange={setSelectedType}
             >
-              <SelectTrigger id="type-select" className="w-full z-10">
-                <SelectValue placeholder="All Types" />
+              <SelectTrigger id="type-select" className="w-full z-10 h-8 text-xs">
+                <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent position="popper" side="bottom" align="start" className="z-50">
                 <SelectItem value="all">All Types</SelectItem>
@@ -446,11 +449,11 @@ export default function CalendarPage() {
           </div>
           
           {/* Clear filters button */}
-          <div className="flex items-end justify-end">
+          <div className="flex items-end justify-start md:col-span-2">
             <Button 
               variant="outline" 
               size="sm" 
-              className="mb-0.5"
+              className="h-8 px-3 text-xs"
               onClick={() => {
                 setSelectedFacilityId("all");
                 setSelectedDockId("all");
@@ -464,6 +467,7 @@ export default function CalendarPage() {
         </div>
       </div>
       
+      {/* ENHANCED: Calendar with maximum screen real estate */}
       <FullCalendarView
         schedules={filteredSchedules}
         onEventClick={handleEventClick}

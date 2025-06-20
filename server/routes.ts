@@ -9,6 +9,7 @@ import fs from "fs";
 // WebSocket server is now handled in server/index.ts using the secure handler
 import { db } from "./db";
 import fileRoutes from "./routes/files";
+import { blobStorageService } from "./services/blob-storage";
 import { registerQrCodeRoutes } from "./endpoints/qr-codes";
 import { adminRoutes } from "./modules/admin/routes";
 import { EnhancedSchedule, sendCheckoutEmail, sendRescheduleEmail } from "./notifications";
@@ -31,6 +32,32 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Only PDF and image files are allowed'));
+    }
+  }
+});
+
+// CRITICAL FIX: Add the missing /api/upload-bol endpoint that the frontend calls
+const bolUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit for BOL documents
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow PDFs, images, and document files for BOL
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/tiff',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype) || file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF, image, and document files are allowed for BOL uploads'));
     }
   }
 });
@@ -375,6 +402,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/schedules/:id/bol', bolController.listBols);
   app.delete('/api/bol/:bolId', bolController.deleteBol);
 
+  // CRITICAL FIX: Add the missing /api/upload-bol endpoint that the frontend calls
+  app.post('/api/upload-bol', bolUpload.single('bolFile'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No BOL file uploaded' });
+      }
+
+      const { scheduleId, appointmentId } = req.body;
+      
+      // Use scheduleId or appointmentId - they're the same thing
+      const finalAppointmentId = appointmentId || scheduleId;
+
+      // Upload file to blob storage
+      const uploadedFile = await blobStorageService.uploadFile(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        {
+          folder: 'bol-documents',
+          tenantId: req.user?.tenantId || 1,
+          uploadedBy: req.user?.id || 1
+        }
+      );
+
+      // Update the appointment to indicate BOL was uploaded
+      if (finalAppointmentId) {
+        try {
+          const appointment = await storage.getSchedule(parseInt(finalAppointmentId));
+          if (appointment) {
+            // Update appointment with BOL info and extracted metadata
+            const updateData: any = {
+              bolNumber: req.body.bolNumber || uploadedFile.originalName,
+              lastModifiedAt: new Date(),
+              customFormData: {
+                ...(appointment.customFormData || {}),
+                bolFileUploaded: true,
+                bolFileId: uploadedFile.id,
+                bolFileName: uploadedFile.originalName,
+                bolData: {
+                  fileName: uploadedFile.originalName,
+                  fileUrl: uploadedFile.url,
+                  fileSize: uploadedFile.size,
+                  uploadedAt: new Date().toISOString(),
+                  // Include extracted OCR data if available
+                  bolNumber: req.body.bolNumber,
+                  customerName: req.body.customerName,
+                  carrierName: req.body.carrierName,
+                  mcNumber: req.body.mcNumber,
+                  weight: req.body.weight,
+                  fromAddress: req.body.fromAddress,
+                  toAddress: req.body.toAddress,
+                  pickupOrDropoff: req.body.pickupOrDropoff,
+                  extractionMethod: req.body.extractionMethod,
+                  extractionConfidence: parseInt(req.body.extractionConfidence || '0'),
+                  processingTimestamp: req.body.processingTimestamp
+                }
+              }
+            };
+
+            // Update related fields if they were extracted
+            if (req.body.customerName) updateData.customerName = req.body.customerName;
+            if (req.body.carrierName) updateData.carrierName = req.body.carrierName;
+            if (req.body.mcNumber) updateData.mcNumber = req.body.mcNumber;
+            if (req.body.weight) updateData.weight = req.body.weight;
+
+            await storage.updateSchedule(parseInt(finalAppointmentId), updateData);
+            console.log(`[BOL Upload] Updated appointment ${finalAppointmentId} with BOL info and OCR data`);
+          }
+        } catch (updateError) {
+          console.error('[BOL Upload] Error updating appointment:', updateError);
+          // Don't fail the upload if appointment update fails
+        }
+      }
+
+      res.json({
+        success: true,
+        fileId: uploadedFile.id,
+        fileUrl: uploadedFile.url,
+        filename: uploadedFile.originalName,
+        originalName: uploadedFile.originalName,
+        size: uploadedFile.size,
+        documentId: uploadedFile.id,
+        appointmentId: finalAppointmentId,
+        message: 'BOL document uploaded and processed successfully'
+      });
+
+    } catch (error) {
+      console.error('Error uploading BOL document:', error);
+      res.status(500).json({ error: 'Failed to upload BOL document' });
+    }
+  });
+
   // **UNIFIED QUESTIONS API - SINGLE SOURCE OF TRUTH**
   // Standard Questions Routes
   app.get('/api/standard-questions/appointment-type/:id', async (req: any, res) => {
@@ -641,6 +760,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching schedule by confirmation code:', error);
       res.status(500).json({ error: 'Failed to fetch schedule' });
+    }
+  });
+
+  // Add endpoint for associating BOL files with schedules
+  app.post('/api/schedules/:scheduleId/associate-bol', async (req: any, res) => {
+    try {
+      const scheduleId = parseInt(req.params.scheduleId);
+      const { fileUrl, filename, metadata } = req.body;
+
+      if (isNaN(scheduleId)) {
+        return res.status(400).json({ error: 'Invalid schedule ID' });
+      }
+
+      // Get the existing schedule
+      const appointment = await storage.getSchedule(scheduleId);
+      if (!appointment) {
+        return res.status(404).json({ error: 'Schedule not found' });
+      }
+
+      // Update the schedule with BOL information
+      const updateData: any = {
+        lastModifiedAt: new Date(),
+        customFormData: {
+          ...(appointment.customFormData || {}),
+          bolFileUploaded: true,
+          bolFileName: filename,
+          bolData: {
+            fileName: filename,
+            fileUrl: fileUrl,
+            uploadedAt: new Date().toISOString(),
+            ...metadata
+          }
+        }
+      };
+
+      // Update appointment fields if metadata contains them
+      if (metadata?.bolNumber) updateData.bolNumber = metadata.bolNumber;
+      if (metadata?.customerName) updateData.customerName = metadata.customerName;
+      if (metadata?.carrierName) updateData.carrierName = metadata.carrierName;
+      if (metadata?.mcNumber) updateData.mcNumber = metadata.mcNumber;
+      if (metadata?.weight) updateData.weight = metadata.weight;
+
+      await storage.updateSchedule(scheduleId, updateData);
+
+      res.json({
+        success: true,
+        message: 'BOL file successfully associated with appointment',
+        scheduleId: scheduleId
+      });
+
+    } catch (error) {
+      console.error('Error associating BOL with schedule:', error);
+      res.status(500).json({ error: 'Failed to associate BOL with schedule' });
     }
   });
 

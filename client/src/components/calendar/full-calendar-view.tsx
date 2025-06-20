@@ -112,14 +112,17 @@ export default function FullCalendarView({
     
     setEffectiveTimezone(targetTimezone);
     
-    console.log('[Calendar] Timezone Resolution:', {
-      userTimezone: getUserTimeZone(),
-      propTimezone: timezone,
-      facilityTimezone: facility?.timezone,
-      selectedTimezone,
-      effectiveTimezone: targetTimezone,
-      facilityId
-    });
+    // Reduced logging for stability - only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Calendar] Timezone Resolution:', {
+        userTimezone: getUserTimeZone(),
+        propTimezone: timezone,
+        facilityTimezone: facility?.timezone,
+        selectedTimezone,
+        effectiveTimezone: targetTimezone,
+        facilityId
+      });
+    }
   }, [timezone, facility, selectedTimezone, schedules, facilityId]);
   
   // Add state to track calendar readiness
@@ -147,8 +150,12 @@ export default function FullCalendarView({
       // Add to window for global access by event renderers
       (window as any).facilityNames = facilityNameMap;
       (window as any).facilityTimezones = facilityTimezoneMap;
-      console.log('Facility name cache created:', facilityNameMap);
-      console.log('Facility timezone cache created:', facilityTimezoneMap);
+      
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Facility name cache created:', facilityNameMap);
+        console.log('Facility timezone cache created:', facilityTimezoneMap);
+      }
     }
   }, [facilities]);
   
@@ -266,7 +273,10 @@ export default function FullCalendarView({
           facilityTimezone = customData.facilityInfo.timezone || null;
         }
       } catch (e) {
-        console.error('Error extracting facility info from customFormData', e);
+        // Reduced logging for stability
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error extracting facility info from customFormData', e);
+        }
       }
     }
     
@@ -275,14 +285,18 @@ export default function FullCalendarView({
       const facility = (facilities as any[]).find((f: any) => f.id === extractedFacilityId);
       if (facility && facility.name) {
         extractedFacilityName = facility.name;
-        console.log(`Found facility name from facilities cache: ${extractedFacilityName}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Found facility name from facilities cache: ${extractedFacilityName}`);
+        }
       }
     }
     
     // Last resort - check global facility names cache
     if (!extractedFacilityName && extractedFacilityId && (window as any).facilityNames) {
       extractedFacilityName = (window as any).facilityNames[extractedFacilityId] || '';
-      console.log(`Found facility name from global cache: ${extractedFacilityName}`);
+      if (process.env.NODE_ENV === 'development' && extractedFacilityName) {
+        console.log(`Found facility name from global cache: ${extractedFacilityName}`);
+      }
     }
     
     // If we have a facilityId but no timezone yet, check the facility timezone map
@@ -295,14 +309,22 @@ export default function FullCalendarView({
     // Format dock name from ID if needed
     const dockInfo = schedule.dockId ? `Dock #${schedule.dockId}` : '';
     
-    // Format a more detailed title with relevant information
+    // ENHANCED: Format a more detailed title with Customer and Facility prominently displayed
     let title = '';
     
-    // Start with customer name if available (most important info) - ENHANCED FOR VISIBILITY
+    // Primary: Customer Name (most important)
     if (customerName) {
-      title = customerName; // Simplified title for better display
+      title = customerName;
+      // Add facility name if available and different
+      if (extractedFacilityName && extractedFacilityName !== customerName) {
+        title += ` @ ${extractedFacilityName}`;
+      }
+    } else if (extractedFacilityName) {
+      // Secondary: Facility name if no customer name
+      title = `Appointment @ ${extractedFacilityName}`;
     } else {
-      title = 'Unnamed Appointment'; // Fallback when no customer name
+      // Fallback
+      title = 'Appointment';
     }
     
     // Calculate dynamic z-index based on hour - later hours should be higher
@@ -473,23 +495,37 @@ export default function FullCalendarView({
   };
   
   return (
-    <div className="space-y-4 h-full">
-      {/* Event tooltip */}
+    <div className="space-y-2 h-full">
+      {/* ENHANCED Event tooltip with Customer Name and Facility Name prominently displayed */}
       {activeEvent && (
         <div 
-          className="fixed z-50 bg-white shadow-lg rounded-md border p-3 w-72"
+          className="fixed z-50 bg-white shadow-xl rounded-lg border p-4 w-80 max-w-sm"
           style={{
             top: `${tooltipPosition.y - 10}px`,
             left: `${tooltipPosition.x}px`,
             transform: 'translate(-50%, -100%)',
           }}
         >
-          <div className="text-lg font-bold mb-1">{activeEvent.customerName || 'Appointment'}</div>
+          {/* ENHANCED: Customer Name prominently displayed as header */}
+          <div className="text-xl font-bold mb-2 text-gray-900 border-b pb-2">
+            {activeEvent.customerName || 'Appointment'}
+          </div>
           
-          <div className="space-y-2 text-sm">
+          <div className="space-y-3 text-sm">
+            {/* ENHANCED: Facility Name prominently displayed */}
+            {activeEvent.facilityName && (
+              <div className="flex items-start">
+                <div className="w-20 text-gray-600 font-medium">Facility:</div>
+                <div className="font-semibold text-blue-700 flex-1">
+                  {activeEvent.facilityName}
+                </div>
+              </div>
+            )}
+            
+            {/* Time with enhanced display */}
             <div className="flex items-start">
-              <div className="w-24 text-muted-foreground">Time:</div>
-              <div className="font-medium">
+              <div className="w-20 text-gray-600 font-medium">Time:</div>
+              <div className="font-medium flex-1">
                 {activeEvent.startTime && activeEvent.endTime
                   ? `${formatAppointmentTime(activeEvent.startTime, activeEvent.facilityTimezone)} - ${formatAppointmentTime(activeEvent.endTime, activeEvent.facilityTimezone)}`
                   : 'No time specified'}
@@ -510,73 +546,78 @@ export default function FullCalendarView({
               </div>
             </div>
             
-            {/* Reordered to show Facility first after Time */}
+            {/* Type and Status */}
             <div className="flex items-start">
-              <div className="w-24 text-muted-foreground">Facility:</div>
-              <div className="font-medium">{activeEvent.facilityName || 'Not specified'}</div>
-            </div>
-            
-            {/* Appointment Type moved up in the order */}
-            <div className="flex items-start">
-              <div className="w-24 text-muted-foreground">Type:</div>
-              <div className="font-medium capitalize">
-                {activeEvent.type ? (
-                  <span className={`inline-block px-2 py-0.5 rounded-sm ${
-                    activeEvent.type.toLowerCase() === 'inbound' 
-                      ? 'bg-blue-50 text-blue-700' 
-                      : 'bg-purple-50 text-purple-700'
-                  }`}>
-                    {activeEvent.type}
-                  </span>
-                ) : 'Not specified'}
+              <div className="w-20 text-gray-600 font-medium">Type:</div>
+              <div className="flex-1">
+                <span className="capitalize font-medium">{activeEvent.type}</span>
+                <span className="ml-2 px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 capitalize">
+                  {activeEvent.status}
+                </span>
               </div>
             </div>
             
-            <div className="flex items-start">
-              <div className="w-24 text-muted-foreground">Carrier:</div>
-              <div className="font-medium">{activeEvent.carrierName || 'Not specified'}</div>
-            </div>
-            
-            {activeEvent.truckNumber && (
-              <div className="flex items-start">
-                <div className="w-24 text-muted-foreground">Truck #:</div>
-                <div className="font-medium">{activeEvent.truckNumber}</div>
-              </div>
-            )}
-            
+            {/* Dock Information */}
             {activeEvent.dockId && (
               <div className="flex items-start">
-                <div className="w-24 text-muted-foreground">Dock:</div>
-                <div className="font-medium">#{activeEvent.dockId}</div>
+                <div className="w-20 text-gray-600 font-medium">Dock:</div>
+                <div className="font-medium">Dock #{activeEvent.dockId}</div>
               </div>
             )}
             
-            <div className="flex items-start">
-              <div className="w-24 text-muted-foreground">Status:</div>
-              <div className="font-medium capitalize">{activeEvent.status || 'Scheduled'}</div>
-            </div>
+            {/* Carrier Information */}
+            {activeEvent.carrierName && (
+              <div className="flex items-start">
+                <div className="w-20 text-gray-600 font-medium">Carrier:</div>
+                <div className="font-medium">{activeEvent.carrierName}</div>
+              </div>
+            )}
+            
+            {/* Truck/Driver Information */}
+            {(activeEvent.truckNumber || activeEvent.driverName) && (
+              <div className="flex items-start">
+                <div className="w-20 text-gray-600 font-medium">Vehicle:</div>
+                <div className="font-medium">
+                  {activeEvent.truckNumber && <div>Truck: {activeEvent.truckNumber}</div>}
+                  {activeEvent.driverName && <div>Driver: {activeEvent.driverName}</div>}
+                </div>
+              </div>
+            )}
+            
+            {/* Attention Status */}
+            {activeEvent.needsAttention && (
+              <div className="flex items-start">
+                <div className="w-20 text-gray-600 font-medium">Alert:</div>
+                <div className="font-medium text-red-600">
+                  {activeEvent.attentionReason}
+                </div>
+              </div>
+            )}
           </div>
           
-          <div className="mt-2 text-xs text-center text-muted-foreground">
+          <div className="mt-3 text-xs text-center text-gray-500 border-t pt-2">
             Click for more details
           </div>
         </div>
       )}
-      
-      <Card className="w-full relative border overflow-hidden">
-        {/* Display timezone information at the top of the calendar */}
-        <div className="p-1 border-b bg-slate-50 flex items-center justify-between text-xs">
-          <div className="text-xs text-muted-foreground">
-            <Clock className="w-3 h-3 inline mr-1 text-primary" />
+
+      {/* ENHANCED: Calendar with maximized screen real estate */}
+      <Card className="w-full relative border-0 shadow-sm bg-white/95 backdrop-blur-sm">
+        {/* Compact timezone information header */}
+        <div className="px-3 py-2 border-b bg-slate-50/80 flex items-center justify-between text-xs">
+          <div className="text-xs text-gray-600">
+            <Clock className="w-3 h-3 inline mr-1 text-blue-600" />
             <span className="font-medium">Calendar Timezone:</span> {getTimeZoneAbbreviation(effectiveTimezone)} ({effectiveTimezone.split('/').pop()?.replace('_', ' ')})
           </div>
-          <div className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded-sm font-medium flex items-center">
+          <div className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-sm font-medium flex items-center">
             <Clock className="w-2.5 h-2.5 mr-1" />
-            Times shown in {getTimeZoneAbbreviation(effectiveTimezone)}
+            Times in {getTimeZoneAbbreviation(effectiveTimezone)}
           </div>
         </div>
+        
         <CardContent className="p-0">
-          <div className="calendar-container h-[calc(100vh-12rem)]">
+          {/* ENHANCED: Calendar container with maximum screen real estate */}
+          <div className="calendar-container h-[calc(100vh-8rem)]">
             <FullCalendar
               ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
@@ -591,7 +632,7 @@ export default function FullCalendarView({
               events={events}
               selectable={!!onDateSelect}
               selectMirror={true}
-              dayMaxEvents={4}
+              dayMaxEvents={false} // Show all events for better visibility
               weekends={true}
               eventClick={handleEventClick}
               select={handleDateSelect}
@@ -600,15 +641,15 @@ export default function FullCalendarView({
               allDaySlot={false}
               slotDuration="00:30:00"
               slotLabelInterval="01:00"
-              slotMinTime="06:00:00"
-              slotMaxTime="20:00:00"
+              slotMinTime="05:00:00"
+              slotMaxTime="22:00:00"
               
-              // ENHANCED: Responsive rendering parameters optimized for day view
-              height="auto"
-              aspectRatio={currentView === 'timeGridDay' ? 1.8 : 1.35} // Taller aspect ratio for day view
+              // ENHANCED: Maximized screen usage with optimal aspect ratios
+              height="100%"
+              aspectRatio={currentView === 'timeGridDay' ? 2.2 : currentView === 'timeGridWeek' ? 1.6 : 1.35}
               handleWindowResize={true}
               
-              // ENHANCED: View-specific configurations
+              // ENHANCED: View-specific configurations for optimal display
               views={{
                 timeGridDay: {
                   titleFormat: { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' },
@@ -616,37 +657,39 @@ export default function FullCalendarView({
                   eventTimeFormat: { hour: 'numeric', minute: '2-digit', hour12: true },
                   slotDuration: '00:30:00',
                   slotLabelInterval: '01:00',
-                  snapDuration: '00:15:00', // Snap events to 15-minute intervals
+                  snapDuration: '00:15:00',
                   dayMaxEvents: false, // Show all events in day view
                   dayMaxEventRows: false,
+                  eventMaxStack: 0, // Allow unlimited stacking
                   moreLinkClick: 'day'
                 },
                 timeGridWeek: {
                   slotDuration: '00:30:00',
                   slotLabelInterval: '01:00',
-                  dayMaxEvents: 3,
+                  dayMaxEvents: false, // Show more events
+                  eventMaxStack: 0,
                   moreLinkClick: 'day'
                 },
                 dayGridMonth: {
-                  dayMaxEvents: 2,
+                  dayMaxEvents: 4,
                   moreLinkClick: 'day',
                   fixedWeekCount: false
                 }
               }}
               
-              // ENHANCED: View settings with improved responsiveness
+              // ENHANCED: Improved title format
               titleFormat={{
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric'
               }}
               
-              // ENHANCED: More stable settings for better month/day view display
+              // ENHANCED: Optimized settings for better display
               fixedWeekCount={false}
               navLinks={false}
               moreLinkClick="popover"
               
-              // ENHANCED: Event display options with improved stacking
+              // ENHANCED: Event display with better visibility
               eventDisplay="block"
               eventTimeFormat={{
                 hour: '2-digit',
@@ -656,245 +699,67 @@ export default function FullCalendarView({
                 timeZone: effectiveTimezone
               }}
               
-              // ENHANCED: Event sorting and overlap management for better day view
-              eventOrder="start,-duration,allDay,title" 
+              // ENHANCED: Better event management
+              eventOrder="start,-duration,allDay,title"
               eventOverlap={true}
-              eventConstraint="businessHours"
               
-              // ENHANCED: Force event duration for better display
+              // Force event duration for consistency
               forceEventDuration={true}
               defaultTimedEventDuration="00:30:00"
               
-              // ENHANCED: Better loading and refresh management
+              // Improved loading state management
               loading={(isLoading) => {
-                console.log('[FullCalendar] Loading state changed:', isLoading);
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('[FullCalendar] Loading state changed:', isLoading);
+                }
                 setIsLoading(isLoading);
               }}
               
-              // ENHANCED: Capture view change with better error handling
+              // Enhanced view handling
               viewDidMount={(viewInfo) => {
-                console.log('[FullCalendar] View mounted:', viewInfo.view.type);
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('[FullCalendar] View mounted:', viewInfo.view.type);
+                }
                 handleViewChange(viewInfo);
                 setCalendarReady(true);
               }}
               
-              // ENHANCED: Better resource management for events
-              eventDidMount={(eventInfo) => {
-                const extendedProps = eventInfo.event.extendedProps || {};
-                
-                // Add basic event data attributes for CSS targeting
-                if (eventInfo.el) {
-                  // Add type attribute
-                  const type = extendedProps.type?.toLowerCase();
-                  if (type) {
-                    eventInfo.el.setAttribute('data-type', type);
-                  }
-                  
-                  // Add status attribute for status-specific styling
-                  const status = extendedProps.status?.toLowerCase();
-                  if (status) {
-                    eventInfo.el.setAttribute('data-status', status);
-                  }
-                  
-                  // Apply direct styles to ensure visibility
-                  (eventInfo.el as HTMLElement).style.fontSize = '13px';
-                  (eventInfo.el as HTMLElement).style.fontWeight = 'bold';
-                  
-                  // Add customer name as attribute
-                  const customerName = extendedProps.customerName;
-                  if (customerName) {
-                    eventInfo.el.setAttribute('data-customer', customerName);
-                  }
-                  
-                  // Force customer name to be most prominent element
-                  const titleElements = eventInfo.el.querySelectorAll('.fc-event-title');
-                  if (titleElements.length > 0) {
-                    // Get the first title element
-                    const titleElement = titleElements[0] as HTMLElement;
-                    
-                    // Set customer name as title text if available
-                    if (customerName) {
-                      titleElement.textContent = customerName;
-                    }
-                    
-                    // Apply important inline styles to override FullCalendar
-                    titleElement.style.color = 'white';
-                    titleElement.style.fontSize = '15px';
-                    titleElement.style.fontWeight = 'bold';
-                    titleElement.style.overflow = 'hidden';
-                    titleElement.style.whiteSpace = 'nowrap';
-                    titleElement.style.textOverflow = 'ellipsis';
-                    titleElement.style.display = 'block';
-                    titleElement.style.marginBottom = '4px';
-                  }
-                }
-                
-                // Time-based attributes for priority calculations
-                if (eventInfo.el && eventInfo.event.start) {
-                  const startHour = eventInfo.event.start.getHours();
-                  const hourStr = startHour.toString().padStart(2, '0');
-                  eventInfo.el.setAttribute('data-time', `${hourStr}:00`);
-                }
-              }}
+              // ENHANCED: Custom event rendering for better Customer/Facility display
               eventContent={(eventInfo) => {
-                // Get the start date and end date
-                const startDate = eventInfo.event.start || new Date();
-                const endDate = eventInfo.event.end || new Date();
+                const { event } = eventInfo;
+                const props = event.extendedProps;
                 
-                // Calculate event duration in minutes
-                const durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
-                
-                // Determine if this is a short event (1 hour or less)
-                const isShortEvent = durationMinutes <= 60;
-                
-                // For very short events (30 minutes or less), use ultra-compact layout
-                const isUltraShortEvent = durationMinutes <= 30;
-                
-                // Extract event data from both standard and extended props
-                const eventData = eventInfo.event.extendedProps;
-                
-                // ENHANCED: Priority customer name extraction with multiple fallbacks
-                const customerName = 
-                  eventData?.customerName || 
-                  (eventData?.customFormData?.customerName) || 
-                  (eventInfo.event as any)._def?.extendedProps?.customerName ||
-                  // Try extracting from title as last resort
-                  eventInfo.event.title?.split('\n')?.[0]?.replace('👤 ', '') ||
-                  'Customer'; // Always provide fallback
-                  
-                // Get other fields from event props
-                const carrierName = eventData?.carrierName || 'Carrier';
-                const dockId = eventData?.dockId || '';
-                const status = eventData?.status || '';
-                const needsAttention = eventData?.needsAttention || false;
-                const attentionReason = eventData?.attentionReason || '';
-                const truckNumber = eventData?.truckNumber || '';
-                const eventType = eventData?.type || '';
-                
-                // Determine if we need to show a status badge
-                const showStatusBadge = status && status !== 'scheduled';
-                const showAttentionBadge = !showStatusBadge && needsAttention;
-                
-                // Dynamic class names based on event duration
-                const eventContentClass = `event-content w-full h-full flex flex-col justify-start overflow-hidden ${isUltraShortEvent ? 'p-1' : isShortEvent ? 'p-1.5' : 'p-2'}`;
-                
-                // For ultra-short events, show only customer name prominently
-                if (isUltraShortEvent) {
-                  return (
-                    <div className={eventContentClass}>
-                      <div className="w-full text-center">
-                        <div className="text-white font-bold text-sm leading-tight overflow-hidden">
-                          {customerName}
-                        </div>
-                        <div className="text-white/80 text-xs mt-0.5">
-                          {eventInfo.timeText}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-                
-                // For short events, use simplified layout focused on customer name
-                if (isShortEvent) {
-                  return (
-                    <div className={`${eventContentClass} short-event`}>
-                      <div className="w-full">
-                        {/* PROMINENT CUSTOMER NAME - largest text */}
-                        <div className="text-white font-bold text-base leading-tight mb-1 overflow-hidden text-ellipsis">
-                          {customerName}
-                        </div>
-                        
-                        {/* Secondary info in smaller text */}
-                        <div className="text-white/90 text-xs flex justify-between items-center">
-                          <span>{eventInfo.timeText}</span>
-                          {eventType && 
-                            <span className="font-semibold">
-                              {eventType === 'inbound' ? 'IN' : 'OUT'}
-                            </span>
-                          }
-                        </div>
-                        
-                        {/* Truck info if available */}
-                        {truckNumber && (
-                          <div className="text-white/80 text-xs mt-0.5">
-                            Truck #{truckNumber}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-                
-                // For normal events, use the full layout with customer name first
                 return (
-                  <div className={eventContentClass}>
-                    <div className="event-header">
-                      {/* ENHANCED CUSTOMER NAME: Largest, most prominent display */}
-                      <div className="customer-name-primary text-white font-bold text-lg leading-tight mb-2 overflow-hidden text-ellipsis">
-                          {customerName}
-                        </div>
-                      
-                      {/* Time and Type - secondary info */}
-                      <div className="flex items-center justify-between w-full text-sm font-medium mb-1">
-                        <div className="time-display text-white/90">{eventInfo.timeText}</div>
-                        
-                        {eventType && 
-                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
-                            eventType.toLowerCase() === 'inbound' 
-                              ? 'bg-blue-200 text-blue-800 border border-blue-300' 
-                              : 'bg-emerald-200 text-emerald-800 border border-emerald-300'
-                          }`}>
-                            {eventType === 'inbound' ? 'IN' : 'OUT'}
-                          </span>
-                        }
-                      </div>
+                  <div className="fc-event-content-enhanced p-1 overflow-hidden">
+                    {/* Customer Name prominently displayed */}
+                    <div className="font-semibold text-sm leading-tight mb-1 truncate">
+                      {props.customerName || 'Appointment'}
                     </div>
                     
-                    {/* Subtle divider for visual separation */}
-                    <div className="w-full h-px bg-white/20 my-1"></div>
-                    
-                    <div className="event-body flex-1">
-                      {/* Truck number - important operational info */}
-                      {truckNumber && (
-                        <div className="text-sm font-medium text-white mb-1">
-                          🚚 Truck #{truckNumber}
-                        </div>
-                      )}
-                      
-                      {/* Carrier name when available */}
-                      {carrierName && carrierName !== 'Carrier' && (
-                        <div className="text-sm text-white/90 mb-1">
-                          {carrierName}
-                        </div>
-                      )}
-                      
-                      {/* Dock info */}
-                      {dockId && (
-                        <div className="text-sm text-white/80">
-                          🚪 Dock #{dockId}
-                        </div>
-                      )}
+                    {/* Facility Name */}
+                    {props.facilityName && (
+                      <div className="text-xs opacity-90 leading-tight mb-1 truncate">
+                        📍 {props.facilityName}
                       </div>
-                      
-                    {/* Status badges at bottom */}
-                    <div className="event-footer mt-auto pt-1">
-                      {showStatusBadge && (
-                        <div className={`text-xs px-2 py-1 rounded font-bold ${
-                          status === 'completed' ? 'bg-green-200 text-green-800' :
-                          status === 'checked-in' ? 'bg-yellow-200 text-yellow-800' :
-                          status === 'canceled' ? 'bg-red-200 text-red-800' :
-                          'bg-gray-200 text-gray-800'
-                        }`}>
-                          {status.toUpperCase()}
-                        </div>
-                      )}
-                      
-                      {showAttentionBadge && (
-                        <div className="text-xs px-2 py-1 rounded font-bold bg-amber-200 text-amber-800 animate-pulse">
-                          ⚠️ {attentionReason.toUpperCase()}
-                        </div>
-                      )}
+                    )}
+                    
+                    {/* Time and Dock */}
+                    <div className="text-xs opacity-85 leading-tight truncate">
+                      {event.start && new Intl.DateTimeFormat('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: effectiveTimezone
+                      }).format(event.start)}
+                      {props.dockId && ` • Dock #${props.dockId}`}
                     </div>
+                    
+                    {/* Status indicator */}
+                    {props.needsAttention && (
+                      <div className="text-xs font-bold mt-1 truncate">
+                        ⚠️ {props.attentionReason}
+                      </div>
+                    )}
                   </div>
                 );
               }}

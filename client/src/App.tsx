@@ -26,7 +26,6 @@ import BookingPages from "@/pages/booking-pages";
 import CompanyAssetsPage from "@/pages/company-assets-page";
 import AssetEditPage from "@/pages/asset-edit-page";
 import CalendarView from "@/pages/calendar-view";
-import WebSocketTestPage from "@/pages/websocket-test";
 import SeedQuestionsPage from "@/pages/seed-questions";
 import DebugAPI from "@/pages/debug-api";
 import AdminDashboard from "@/pages/admin";
@@ -43,6 +42,7 @@ import { ModuleProvider, useModules } from "@/contexts/ModuleContext";
 import { OrgProvider } from "@/contexts/OrgContext";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import Layout from "@/components/layout/layout";
+import UserListPage from "@/pages/users";
 
 // Define route config with module dependencies
 export interface RouteConfig {
@@ -92,7 +92,6 @@ const protectedRoutes: RouteConfig[] = [
   { path: "/booking-pages", component: () => <BookingPages />, roles: ["admin", "manager"], module: "bookingPages" },
       { path: "/company-assets", component: () => <CompanyAssetsPage />, roles: ["admin", "manager"], module: "assetManager" },
     { path: "/company-assets/assets/:id/edit", component: () => <AssetEditPage />, roles: ["admin", "manager"], module: "assetManager" },
-  { path: "/websocket-test", component: () => <WebSocketTestPage />, roles: ["admin", "manager"], module: null },
   { path: "/debug-api", component: () => <DebugAPI />, roles: ["admin"], module: null },
   { path: "/settings", component: () => <Settings />, roles: ["admin", "manager"], module: null },
   { path: "/organization-settings", component: () => <OrganizationSettings />, roles: ["admin", "manager"], module: null },

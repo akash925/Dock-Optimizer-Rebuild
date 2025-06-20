@@ -4,8 +4,8 @@ import { validateOcrResult, ValidatedOcrResult } from '../utils/ocrValidator';
 import { InsertBolDocument } from '../../drizzle/schema/bol';
 import { InsertOcrAnalytics } from '../../drizzle/schema/ocr_analytics';
 
-// Define a timeout for OCR processing in milliseconds (5 seconds)
-const OCR_PROCESSING_TIMEOUT = 5000;
+// Define configurable timeout for OCR processing in milliseconds
+const OCR_PROCESSING_TIMEOUT = parseInt(process.env.OCR_TIMEOUT_MS || '30000'); // Default 30 seconds
 
 /**
  * Service for BOL document processing and management

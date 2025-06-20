@@ -4,6 +4,8 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { CompanyAsset, AssetCategory, AssetStatus, AssetLocation } from '@shared/schema';
 import { useLocation } from 'wouter';
+import { formatDate } from '@/lib/date-utils';
+import React from 'react';
 
 // Add type declaration for window.searchTimeout
 declare global {
@@ -43,7 +45,10 @@ import {
   MapPin,
   Tag,
   DollarSign,
-  Clock
+  Clock,
+  Eye,
+  Maximize2,
+  ExternalLink,
 } from 'lucide-react';
 import { 
   AlertDialog, 
@@ -108,7 +113,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<string>('name');
   const [filters, setFilters] = useState<FilterOptions>({
     category: null,
     location: null,
@@ -120,25 +125,17 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
 
-  // Debounce search term to avoid too many requests
+  // Search and filter states
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   
-  // Handle search term change with debounce
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    // Clear any existing timeouts
-    if (window.searchTimeout) {
-      clearTimeout(window.searchTimeout);
-    }
-    // Set a new timeout
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearchTerm(value);
-      console.log("Search term debounced:", value);
-    }, 300); // 300ms debounce
+  // Manual debouncing for search
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
     
-    // TypeScript: explicitly cast setTimeout's return value to any to avoid type errors
-    window.searchTimeout = timeoutId as any;
-  };
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
   
   // Build query params for API request
   const buildQueryParams = () => {
@@ -445,6 +442,88 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
     setCurrentPage(page);
   };
 
+  // ENHANCED: Full-screen image viewer state
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
+  const [currentImageAlt, setCurrentImageAlt] = useState<string>('');
+
+  // ENHANCED: Full-screen image viewer handler
+  const openImageViewer = (imageUrl: string, assetName: string) => {
+    setCurrentImageUrl(imageUrl);
+    setCurrentImageAlt(assetName);
+    setImageViewerOpen(true);
+  };
+
+  const closeImageViewer = () => {
+    setImageViewerOpen(false);
+    setCurrentImageUrl('');
+    setCurrentImageAlt('');
+  };
+
+  // ENHANCED: Fixed image viewing function
+  const viewAssetImage = (asset: CompanyAsset) => {
+    if (!asset.photoUrl) {
+      toast({
+        title: 'No image available',
+        description: 'This asset does not have an image.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check if the URL is accessible
+    const img = new Image();
+    img.onload = () => {
+      openImageViewer(asset.photoUrl!, asset.name);
+    };
+    img.onerror = () => {
+      toast({
+        title: 'Image not found',
+        description: 'The image file could not be loaded. It may have been moved or deleted.',
+        variant: 'destructive',
+      });
+    };
+    img.src = asset.photoUrl!;
+  };
+
+  // ENHANCED: Download image function
+  const downloadAssetImage = async (asset: CompanyAsset) => {
+    if (!asset.photoUrl) {
+      toast({
+        title: 'No image available',
+        description: 'This asset does not have an image to download.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(asset.photoUrl);
+      if (!response.ok) throw new Error('Failed to download image');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${asset.name}_image.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'Download started',
+        description: 'The asset image has been downloaded.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Download failed',
+        description: 'Failed to download the asset image.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <Card className="shadow-sm border-0 w-full">
       <CardContent className="p-4 sm:p-6 w-full">
@@ -457,7 +536,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                 placeholder="Search by name, manufacturer, owner, serial number..."
                 className="pl-8"
                 value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
@@ -757,14 +836,25 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                               ))}
                               <DropdownMenuSeparator />
                               {asset.photoUrl && (
-                                <DropdownMenuItem onClick={() => window.open(asset.photoUrl!, '_blank')}>
-                                  <svg className="w-4 h-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                                    <circle cx="9" cy="9" r="2" />
-                                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                                  </svg>
-                                  View Photo
-                                </DropdownMenuItem>
+                                <>
+                                  <DropdownMenuItem onClick={() => viewAssetImage(asset)}>
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    View Full Image
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openImageViewer(asset.photoUrl!, asset.name)}>
+                                    <Maximize2 className="w-4 h-4 mr-2" />
+                                    Full Screen View
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => downloadAssetImage(asset)}>
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Download Image
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => window.open(asset.photoUrl!, '_blank')}>
+                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                    Open in New Tab
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                </>
                               )}
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -940,6 +1030,55 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
             </DialogContent>
           </Dialog>
         )}
+
+        {/* ENHANCED: Full-Screen Image Viewer Modal */}
+        <Dialog open={imageViewerOpen} onOpenChange={setImageViewerOpen}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-0">
+            <div className="relative w-full h-full flex items-center justify-center">
+              {/* Close button */}
+              <button
+                onClick={closeImageViewer}
+                className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              
+              {/* Download button */}
+              <button
+                onClick={() => downloadAssetImage({ photoUrl: currentImageUrl, name: currentImageAlt } as CompanyAsset)}
+                className="absolute top-4 right-16 z-50 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+              >
+                <Download className="w-6 h-6" />
+              </button>
+              
+              {/* Open in new tab button */}
+              <button
+                onClick={() => window.open(currentImageUrl, '_blank')}
+                className="absolute top-4 right-28 z-50 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+              >
+                <ExternalLink className="w-6 h-6" />
+              </button>
+              
+              {/* Image */}
+              <div className="w-full h-full flex items-center justify-center p-8">
+                <img 
+                  src={currentImageUrl} 
+                  alt={currentImageAlt}
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                  style={{ maxWidth: '100%', maxHeight: '100%' }}
+                />
+              </div>
+              
+              {/* Image title overlay */}
+              <div className="absolute bottom-4 left-4 right-4 z-50">
+                <div className="bg-black/50 backdrop-blur-sm rounded-lg p-3 text-white">
+                  <h3 className="text-lg font-semibold">{currentImageAlt}</h3>
+                  <p className="text-sm text-gray-300">Asset Image</p>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
