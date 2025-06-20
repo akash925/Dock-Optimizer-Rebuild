@@ -34,18 +34,19 @@ import AdminOrganizations from "@/pages/admin/orgs";
 import AdminUsers from "@/pages/admin/users";
 import AdminSettings from "@/pages/admin/settings";
 import AdminAppointments from "@/pages/admin/appointments";
+import LandingPage from "@/pages/landing-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AdminProtectedRoute } from "./lib/admin-protected-route";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Loader2 } from "lucide-react";
 import { ModuleProvider, useModules } from "@/contexts/ModuleContext";
 import { OrgProvider } from "@/contexts/OrgContext";
-import { AuthProvider } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 
 // Define route config with module dependencies
 export interface RouteConfig {
   path: string;
-  component: React.ComponentType<any>;
+  component: () => React.JSX.Element;
   module?: string | null;
   roles?: string[];
   isAdmin?: boolean;
@@ -61,7 +62,7 @@ const AdminAssetsPage = lazy(() => import("@/pages/admin/assets"));
 const AdminSettingsPage = lazy(() => import("@/pages/admin/settings"));
 // Need to handle the special character in filename
 const AdminOrgDetailPage = lazy(() => {
-  return new Promise((resolve) => {
+  return new Promise<{ default: React.ComponentType<any> }>((resolve) => {
     // Dynamically import the module with square brackets in the filename
     import("@/pages/admin/orgs/[id]").then((module) => {
       resolve({ default: module.default });
@@ -71,29 +72,29 @@ const AdminOrgDetailPage = lazy(() => {
 
 // Define all routes with their module dependencies
 const protectedRoutes: RouteConfig[] = [
-  { path: "/", component: Dashboard, module: null },
-  { path: "/schedules", component: Schedules, module: "appointments" },
-  { path: "/schedules/:id", component: Schedules, module: "appointments" },
-  { path: "/appointments", component: Appointments, module: "appointments" },
+  { path: "/dashboard", component: () => <Dashboard />, module: null },
+  { path: "/schedules", component: () => <Schedules />, module: "appointments" },
+  { path: "/schedules/:id", component: () => <Schedules />, module: "appointments" },
+  { path: "/appointments", component: () => <Appointments />, module: "appointments" },
   // Calendar view now redirects to schedules
   { path: "/calendar", component: () => <Redirect to="/schedules" />, module: "calendar" },
-  { path: "/facility-master", component: FacilityMaster, roles: ["admin", "manager"], module: "facilityManagement" },
-  { path: "/facilities", component: Facilities, roles: ["admin", "manager"], module: "facilityManagement" },
-  { path: "/facility-settings/:id", component: FacilitySettings, roles: ["admin", "manager"], module: "facilityManagement" },
-  { path: "/facility-settings", component: FacilitySettings, roles: ["admin", "manager"], module: "facilityManagement" },
-  { path: "/appointment-master", component: AppointmentMaster, roles: ["admin", "manager"], module: "appointments" },
-  { path: "/seed-questions", component: SeedQuestionsPage, roles: ["admin", "manager"], module: "appointments" },
-  { path: "/dock-status", component: DockStatus, module: "doorManager" },
-  { path: "/door-manager", component: DoorManager, module: "doorManager" },
-  { path: "/analytics", component: Analytics, module: "analytics" },
-  { path: "/users", component: Users, roles: ["admin"], module: "userManagement" },
-  { path: "/booking-pages", component: BookingPages, roles: ["admin", "manager"], module: "bookingPages" },
-      { path: "/company-assets", component: CompanyAssetsPage, roles: ["admin", "manager"], module: "assetManager" },
-    { path: "/company-assets/assets/:id/edit", component: AssetEditPage, roles: ["admin", "manager"], module: "assetManager" },
-  { path: "/websocket-test", component: WebSocketTestPage, roles: ["admin", "manager"], module: null },
-  { path: "/debug-api", component: DebugAPI, roles: ["admin"], module: null },
-  { path: "/settings", component: Settings, roles: ["admin", "manager"], module: null },
-  { path: "/organization-settings", component: OrganizationSettings, roles: ["admin", "manager"], module: null },
+  { path: "/facility-master", component: () => <FacilityMaster />, roles: ["admin", "manager"], module: "facilityManagement" },
+  { path: "/facilities", component: () => <Facilities />, roles: ["admin", "manager"], module: "facilityManagement" },
+  { path: "/facility-settings/:id", component: () => <FacilitySettings />, roles: ["admin", "manager"], module: "facilityManagement" },
+  { path: "/facility-settings", component: () => <FacilitySettings />, roles: ["admin", "manager"], module: "facilityManagement" },
+  { path: "/appointment-master", component: () => <AppointmentMaster />, roles: ["admin", "manager"], module: "appointments" },
+  { path: "/seed-questions", component: () => <SeedQuestionsPage />, roles: ["admin", "manager"], module: "appointments" },
+  { path: "/dock-status", component: () => <DockStatus />, module: "doorManager" },
+  { path: "/door-manager", component: () => <DoorManager />, module: "doorManager" },
+  { path: "/analytics", component: () => <Analytics />, module: "analytics" },
+  { path: "/users", component: () => <Users />, roles: ["admin"], module: "userManagement" },
+  { path: "/booking-pages", component: () => <BookingPages />, roles: ["admin", "manager"], module: "bookingPages" },
+      { path: "/company-assets", component: () => <CompanyAssetsPage />, roles: ["admin", "manager"], module: "assetManager" },
+    { path: "/company-assets/assets/:id/edit", component: () => <AssetEditPage />, roles: ["admin", "manager"], module: "assetManager" },
+  { path: "/websocket-test", component: () => <WebSocketTestPage />, roles: ["admin", "manager"], module: null },
+  { path: "/debug-api", component: () => <DebugAPI />, roles: ["admin"], module: null },
+  { path: "/settings", component: () => <Settings />, roles: ["admin", "manager"], module: null },
+  { path: "/organization-settings", component: () => <OrganizationSettings />, roles: ["admin", "manager"], module: null },
   { 
     path: "/organization-hours", 
     component: () => {
@@ -111,7 +112,7 @@ const protectedRoutes: RouteConfig[] = [
 
 // Define admin routes
 const adminRoutes: RouteConfig[] = [
-  { path: "/admin", component: AdminDashboard, isAdmin: true },
+  { path: "/admin", component: () => <AdminDashboard />, isAdmin: true },
   { 
     path: "/admin/orgs", 
     component: () => (
@@ -197,20 +198,36 @@ const adminRoutes: RouteConfig[] = [
 
 // Define public routes that don't require authentication or modules
 const publicRoutes: RouteConfig[] = [
-  { path: "/auth", component: AuthPage },
-  { path: "/door-manager-demo", component: BasicDoorManager },
-  { path: "/external/:slug", component: BookingRouter }, // Both routes handled by our unified router
-  { path: "/booking/:slug", component: BookingRouter }, // Both routes handled by our unified router
-  { path: "/booking-confirmation", component: BookingConfirmation },
-  { path: "/driver-check-in", component: DriverCheckIn },
-  { path: "/reschedule", component: Reschedule },
-  { path: "/cancel", component: Cancel },
+  { path: "/auth", component: () => <AuthPage /> },
+  { path: "/door-manager-demo", component: () => <BasicDoorManager /> },
+  { path: "/external/:slug", component: () => <BookingRouter /> }, // Both routes handled by our unified router
+  { path: "/booking/:slug", component: () => <BookingRouter /> }, // Both routes handled by our unified router
+  { path: "/booking-confirmation", component: () => <BookingConfirmation /> },
+  { path: "/driver-check-in", component: () => <DriverCheckIn /> },
+  { path: "/reschedule", component: () => <Reschedule /> },
+  { path: "/cancel", component: () => <Cancel /> },
   // Email management routes - these need to be public for email links to work
-  { path: "/email/view/:confirmationCode", component: Appointments },
-  { path: "/email/edit/:confirmationCode", component: Appointments },
-  { path: "/email/reschedule/:confirmationCode", component: Reschedule },
-  { path: "/email/cancel/:confirmationCode", component: Cancel }
+  { path: "/email/view/:confirmationCode", component: () => <Appointments /> },
+  { path: "/email/edit/:confirmationCode", component: () => <Appointments /> },
+  { path: "/email/reschedule/:confirmationCode", component: () => <Reschedule /> },
+  { path: "/email/cancel/:confirmationCode", component: () => <Cancel /> }
 ];
+
+// Homepage component that shows landing page or dashboard based on auth status
+function HomePage() {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+  
+  // Show landing page for unauthenticated users, dashboard for authenticated users
+  return user ? <Dashboard /> : <LandingPage />;
+}
 
 // Router component that filters routes based on modules
 function AppRouter() {
@@ -225,6 +242,9 @@ function AppRouter() {
   
   return (
     <Switch>
+      {/* Homepage route - shows landing page or dashboard based on auth */}
+      <Route path="/" component={HomePage} />
+      
       {/* Public routes that don't require authentication */}
       {publicRoutes.map(route => (
         <Route key={route.path} path={route.path} component={route.component} />
