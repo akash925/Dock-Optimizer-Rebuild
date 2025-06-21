@@ -3,15 +3,12 @@ import path from 'path';
 import { promisify } from 'util';
 import { Asset, InsertAsset, CompanyAsset, InsertCompanyAsset, UpdateCompanyAsset } from '@shared/schema';
 import { getStorage } from '../../storage';
+import { blobStorageService } from '../../services/blob-storage';
 
-const UPLOAD_DIR = path.resolve('./uploads');
-const writeFileAsync = promisify(fs.writeFile);
-const unlinkAsync = promisify(fs.unlink);
-
-// Ensure uploads directory exists
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
+// REMOVED: Direct filesystem operations - now using blob storage
+// const UPLOAD_DIR = path.resolve('./uploads');
+// const writeFileAsync = promisify(fs.writeFile);
+// const unlinkAsync = promisify(fs.unlink);
 
 export interface AssetService {
   list(): Promise<Asset[]>;
@@ -90,17 +87,23 @@ export class CompanyAssetsService implements AssetService {
    */
   async create(asset: InsertAsset, fileBuffer: Buffer): Promise<Asset> {
     try {
-      // Generate a unique filename to prevent collisions
-      const uniqueFilename = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}-${asset.filename}`;
-      const filePath = path.join(UPLOAD_DIR, uniqueFilename);
-      
-      // Save the file to disk
-      await writeFileAsync(filePath, fileBuffer);
+      // FIXED: Use blob storage instead of direct filesystem storage
+      const uploadedFile = await blobStorageService.uploadFile(
+        fileBuffer,
+        asset.filename,
+        asset.fileType || 'application/octet-stream',
+        {
+          folder: 'assets',
+          maxSize: 50 * 1024 * 1024, // 50MB limit
+          tenantId: 1, // TODO: Get from context
+          uploadedBy: 1 // TODO: Get from context
+        }
+      );
       
       // Update the file URL in the asset data
       const assetWithUrl = {
         ...asset,
-        url: `/uploads/${uniqueFilename}`
+        url: uploadedFile.url
       };
       
       // Save to database
@@ -142,23 +145,23 @@ export class CompanyAssetsService implements AssetService {
     try {
       const storage = await getStorage();
       
-      // Get the asset first to get the file path
+      // Get the asset first to get the file information
       const asset = await this.getById(id);
       if (!asset) {
         return false;
       }
       
-      // Delete the file from disk if it exists
-      if (asset.url && asset.url.startsWith('/uploads/')) {
-        const filename = asset.url.replace('/uploads/', '');
-        const filePath = path.join(UPLOAD_DIR, filename);
+      // FIXED: Use blob storage for file deletion
+      if (asset.url && asset.url.startsWith('/api/files/')) {
+        // Extract file ID from URL pattern: /api/files/{folder}/{fileId}.ext
+        const urlParts = asset.url.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        const fileId = fileName.split('.')[0]; // Remove extension to get file ID
         
         try {
-          if (fs.existsSync(filePath)) {
-            await unlinkAsync(filePath);
-          }
+          await blobStorageService.deleteFile(fileId);
         } catch (error) {
-          console.error(`Error deleting file ${filePath}:`, error);
+          console.error(`Error deleting file from blob storage ${fileId}:`, error);
           // Continue with deleting the database record even if file deletion fails
         }
       }
@@ -291,7 +294,7 @@ export class CompanyAssetsService implements AssetService {
               : (Array.isArray(asset.tags) ? asset.tags : []);
             
             // Check if any of the filter tags exist in asset tags
-            const hasMatchingTag = tagList.some(tag => 
+            const hasMatchingTag = tagList.some((tag: string) => 
               assetTags.includes(tag)
             );
             
@@ -334,23 +337,22 @@ export class CompanyAssetsService implements AssetService {
     try {
       let photoUrl = null;
 
-      // Handle photo upload if provided
+      // FIXED: Use blob storage for photo upload
       if (photoBuffer) {
-        // Create assets directory if it doesn't exist
-        const assetsDir = path.join(UPLOAD_DIR, 'assets');
-        if (!fs.existsSync(assetsDir)) {
-          fs.mkdirSync(assetsDir, { recursive: true });
-        }
+        const uploadedFile = await blobStorageService.uploadFile(
+          photoBuffer,
+          `asset-photo-${Date.now()}.jpg`,
+          'image/jpeg',
+          {
+            folder: 'asset-photos',
+            maxSize: 5 * 1024 * 1024, // 5MB limit for photos
+            allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+            tenantId: companyAsset.tenantId,
+            uploadedBy: 1 // TODO: Get from context
+          }
+        );
         
-        // Generate a unique filename for the photo
-        const uniqueFilename = `asset-${Date.now()}-${Math.random().toString(36).substring(2, 15)}.jpg`;
-        const filePath = path.join(assetsDir, uniqueFilename);
-        
-        // Save the photo to disk
-        await writeFileAsync(filePath, photoBuffer);
-        
-        // Update the photo URL
-        photoUrl = `/uploads/assets/${uniqueFilename}`;
+        photoUrl = uploadedFile.url;
       }
       
       // Add photoUrl to company asset data
@@ -388,38 +390,39 @@ export class CompanyAssetsService implements AssetService {
 
       let updateData: UpdateCompanyAsset = { ...companyAsset };
       
-      // Handle photo update if provided
+      // FIXED: Use blob storage for photo updates
       if (photoBuffer) {
-        // Delete old photo if one exists
-        if (existingAsset.photoUrl && existingAsset.photoUrl.startsWith('/uploads/')) {
-          const oldFilename = existingAsset.photoUrl.replace('/uploads/', '');
-          const oldFilePath = path.join(UPLOAD_DIR, oldFilename);
+        // Delete old photo from blob storage if one exists
+        if (existingAsset.photoUrl && existingAsset.photoUrl.startsWith('/api/files/')) {
+          // Extract file ID from URL pattern: /api/files/{folder}/{fileId}.ext
+          const urlParts = existingAsset.photoUrl.split('/');
+          const fileName = urlParts[urlParts.length - 1];
+          const fileId = fileName.split('.')[0]; // Remove extension to get file ID
           
           try {
-            if (fs.existsSync(oldFilePath)) {
-              await unlinkAsync(oldFilePath);
-            }
+            await blobStorageService.deleteFile(fileId, existingAsset.tenantId);
           } catch (error) {
-            console.error(`Error deleting old photo ${oldFilePath}:`, error);
+            console.error(`Error deleting old photo from blob storage ${fileId}:`, error);
             // Continue with the update even if old photo deletion fails
           }
         }
 
-        // Create assets directory if it doesn't exist
-        const assetsDir = path.join(UPLOAD_DIR, 'assets');
-        if (!fs.existsSync(assetsDir)) {
-          fs.mkdirSync(assetsDir, { recursive: true });
-        }
-        
-        // Generate a unique filename for the new photo
-        const uniqueFilename = `asset-${Date.now()}-${Math.random().toString(36).substring(2, 15)}.jpg`;
-        const filePath = path.join(assetsDir, uniqueFilename);
-        
-        // Save the new photo to disk
-        await writeFileAsync(filePath, photoBuffer);
+        // Upload new photo to blob storage
+        const uploadedFile = await blobStorageService.uploadFile(
+          photoBuffer,
+          `asset-photo-${Date.now()}.jpg`,
+          'image/jpeg',
+          {
+            folder: 'asset-photos',
+            maxSize: 5 * 1024 * 1024, // 5MB limit for photos
+            allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+            tenantId: existingAsset.tenantId,
+            uploadedBy: 1 // TODO: Get from context
+          }
+        );
         
         // Add the new photo URL to the update data
-        updateData.photoUrl = `/uploads/assets/${uniqueFilename}`;
+        updateData.photoUrl = uploadedFile.url;
       }
       
       // Update the database record
@@ -477,20 +480,18 @@ export class CompanyAssetsService implements AssetService {
         return false;
       }
       
-      // Delete the photo file from disk if it exists
-      if (asset.photoUrl && asset.photoUrl.startsWith('/uploads/')) {
-        const filename = asset.photoUrl.replace('/uploads/', '');
-        const filePath = path.join(UPLOAD_DIR, filename);
+      // FIXED: Use blob storage for photo deletion
+      if (asset.photoUrl && asset.photoUrl.startsWith('/api/files/')) {
+        // Extract file ID from URL pattern: /api/files/{folder}/{fileId}.ext
+        const urlParts = asset.photoUrl.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        const fileId = fileName.split('.')[0]; // Remove extension to get file ID
         
         try {
-          if (fs.existsSync(filePath)) {
-            await unlinkAsync(filePath);
-            console.log(`Successfully deleted asset photo file: ${filePath}`);
-          } else {
-            console.warn(`Asset photo file not found: ${filePath}`);
-          }
+          await blobStorageService.deleteFile(fileId, asset.tenantId);
+          console.log(`Successfully deleted asset photo from blob storage: ${fileId}`);
         } catch (error) {
-          console.error(`Error deleting photo file ${filePath}:`, error);
+          console.error(`Error deleting photo from blob storage ${fileId}:`, error);
           // Continue with deleting the database record even if file deletion fails
         }
       }
@@ -515,8 +516,8 @@ export class CompanyAssetsService implements AssetService {
     try {
       const storage = await getStorage();
       
-      if (typeof storage.findCompanyAssetByBarcode === 'function') {
-        return await storage.findCompanyAssetByBarcode(barcode);
+      if (typeof (storage as any).findCompanyAssetByBarcode === 'function') {
+        return await (storage as any).findCompanyAssetByBarcode(barcode);
       } else {
         // Fallback to searching all assets if method not available
         console.warn('Storage does not implement findCompanyAssetByBarcode method, falling back to search');

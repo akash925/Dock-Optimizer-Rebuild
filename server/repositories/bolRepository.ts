@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { bolDocuments, BolDocument, InsertBolDocument } from '../../drizzle/schema/bol';
-import { appointmentBolLinks, InsertAppointmentBolLink } from '../../drizzle/schema/appointment_bol_links';
+import { appointmentBolLinks, InsertAppointmentBolLink } from '../../shared/schema';
 import { ocrAnalytics, InsertOcrAnalytics } from '../../drizzle/schema/ocr_analytics';
 import { eq } from 'drizzle-orm';
 
@@ -48,7 +48,7 @@ export class BolRepository {
    */
   async recordOcrAnalytics(analytics: InsertOcrAnalytics) {
     const [record] = await db.insert(ocrAnalytics)
-      .values([analytics])
+      .values(analytics)
       .returning();
     
     return record;
@@ -80,7 +80,7 @@ export class BolRepository {
     .leftJoin(bolDocuments, eq(appointmentBolLinks.bolDocumentId, bolDocuments.id))
     .where(eq(appointmentBolLinks.appointmentId, appointmentId));
     
-    return result.map(r => r.bolDocument).filter(Boolean);
+    return result.map(r => r.bolDocument).filter((doc): doc is BolDocument => doc !== null);
   }
 
   /**
@@ -91,7 +91,7 @@ export class BolRepository {
    */
   async updateBolDocumentStatus(id: number, status: string): Promise<BolDocument | null> {
     const [updated] = await db.update(bolDocuments)
-      .set({ processingStatus: status, updatedAt: new Date() })
+      .set({ ocrStatus: status, updatedAt: new Date() })
       .where(eq(bolDocuments.id, id))
       .returning();
     

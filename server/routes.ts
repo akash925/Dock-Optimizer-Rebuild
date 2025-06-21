@@ -476,6 +476,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Store file record in database with proper format
+      await storage.createFileRecord({
+        id: uploadedFile.id,
+        filename: uploadedFile.originalName, // Map originalName to filename
+        originalName: uploadedFile.originalName,
+        mimeType: uploadedFile.mimeType,
+        size: uploadedFile.size,
+        path: uploadedFile.path,
+        uploadedBy: uploadedFile.uploadedBy || 1,
+        uploadedAt: uploadedFile.createdAt
+      });
+
       res.json({
         success: true,
         fileId: uploadedFile.id,
@@ -816,10 +828,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-  
-  // Note: WebSocket server is initialized in server/index.ts using the secure handler
-  // Removing duplicate WebSocket initialization to prevent conflicts
+  // CRITICAL FIX: Add the missing /api/upload/checkout-photo endpoint
+  app.post('/api/upload/checkout-photo', bolUpload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No photo file uploaded' });
+      }
+
+      // Upload file to blob storage
+      const uploadedFile = await blobStorageService.uploadFile(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        {
+          folder: 'checkout-photos',
+          maxSize: 5 * 1024 * 1024, // 5MB limit for checkout photos
+          allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+          tenantId: (req.user as any)?.tenantId,
+          uploadedBy: (req.user as any)?.id
+        }
+      );
+
+      // Store file record in database with proper format
+      await storage.createFileRecord({
+        id: uploadedFile.id,
+        filename: uploadedFile.originalName, // Map originalName to filename
+        originalName: uploadedFile.originalName,
+        mimeType: uploadedFile.mimeType,
+        size: uploadedFile.size,
+        path: uploadedFile.path,
+        uploadedBy: uploadedFile.uploadedBy || 1,
+        uploadedAt: uploadedFile.createdAt
+      });
+
+      res.json({
+        success: true,
+        fileId: uploadedFile.id,
+        filePath: uploadedFile.url, // Frontend expects 'filePath'
+        url: uploadedFile.url,
+        originalName: uploadedFile.originalName,
+        size: uploadedFile.size
+      });
+
+    } catch (error) {
+      console.error('Error uploading checkout photo:', error);
+      res.status(500).json({ error: 'Failed to upload checkout photo' });
+    }
+  });
 
   // User profile and preferences routes
   app.get('/api/user-preferences', async (req: any, res) => {
@@ -890,6 +945,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to send test email' });
     }
   });
+
+  const httpServer = createServer(app);
+  
+  // Note: WebSocket server is initialized in server/index.ts using the secure handler
+  // Removing duplicate WebSocket initialization to prevent conflicts
 
   return httpServer;
 }
