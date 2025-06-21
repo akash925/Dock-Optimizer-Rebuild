@@ -268,14 +268,15 @@ app.use((req, res, next) => {
       const modulePath = `./modules/${moduleName}/index`;
       const module = await import(modulePath);
       if (module.default && typeof module.default.initialize === "function") {
-        module.default.initialize(app);
+        await module.default.initialize(app);
+        console.log(`✅ ${moduleName} module loaded successfully`);
       } else {
-        console.warn(
-          `Module ${moduleName} doesn't have a valid initialize function`,
-        );
+        console.warn(`⚠️  Module ${moduleName} doesn't have a valid initialize function`);
       }
     } catch (error) {
-      console.error(`Failed to load system module ${moduleName}:`, error);
+      console.error(`❌ Failed to load system module ${moduleName}:`, error);
+      // Continue gracefully - some modules may not be critical for basic functionality
+      console.log(`🔧 Continuing without ${moduleName} module...`);
     }
   }
 
@@ -286,14 +287,40 @@ app.use((req, res, next) => {
     modulesToLoad.push("companyAssets");
   }
 
-  // Add facility management module to ensure API routes are available
-  modulesToLoad.push("facilityManagement");
-  
-  // CRITICAL: Add calendar module to ensure tenant-filtered schedules endpoint is available
-  modulesToLoad.push("calendar");
+  // Add essential modules to ensure API routes are available
+  const essentialModules = ["facilityManagement", "calendar", "analytics"];
+  essentialModules.forEach(module => {
+    if (!modulesToLoad.includes(module)) {
+      modulesToLoad.push(module);
+    }
+  });
 
-  // CRITICAL: Add analytics module to ensure analytics API endpoints are available
-  modulesToLoad.push("analytics");
+  // Load modules with graceful error handling
+  let loadedModules = 0;
+  let failedModules = 0;
+  
+  for (const moduleName of modulesToLoad) {
+    console.log(`Loading ${moduleName} module...`);
+    try {
+      const modulePath = `./modules/${moduleName}/index`;
+      const module = await import(modulePath);
+      if (module.default && typeof module.default.initialize === "function") {
+        await module.default.initialize(app);
+        console.log(`✅ ${moduleName} module loaded successfully`);
+        loadedModules++;
+      } else {
+        console.warn(`⚠️  Module ${moduleName} doesn't have a valid initialize function`);
+        failedModules++;
+      }
+    } catch (error) {
+      console.error(`❌ Failed to load ${moduleName} module:`, error);
+      console.log(`🔧 Continuing without ${moduleName} module...`);
+      failedModules++;
+    }
+  }
+  
+  console.log(`📊 Module loading complete: ${loadedModules} loaded, ${failedModules} failed`);
+  console.log(`🚀 Server starting with core functionality available`);
 
   // CRITICAL: Add OCR module for document processing
   console.log('Loading OCR module...');
@@ -328,24 +355,6 @@ app.use((req, res, next) => {
   } catch (error) {
     console.error('❌ Failed to load OCR module:', error);
     console.log('🔧 OCR service will not be available - continuing without it');
-  }
-
-  // Load modules based on legacy configuration
-  for (const moduleName of modulesToLoad) {
-    console.log(`Loading ${moduleName} module...`);
-    try {
-      const modulePath = `./modules/${moduleName}/index`;
-      const module = await import(modulePath);
-      if (module.default && typeof module.default.initialize === "function") {
-        module.default.initialize(app);
-      } else {
-        console.warn(
-          `Module ${moduleName} doesn't have a valid initialize function`,
-        );
-      }
-    } catch (error) {
-      console.error(`Failed to load ${moduleName} module:`, error);
-    }
   }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
