@@ -113,7 +113,7 @@ export default function FullCalendarView({
     setEffectiveTimezone(targetTimezone);
     
     // Reduced logging for stability - only log in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.MODE === 'development') {
       console.log('[Calendar] Timezone Resolution:', {
         userTimezone: getUserTimeZone(),
         propTimezone: timezone,
@@ -152,7 +152,7 @@ export default function FullCalendarView({
       (window as any).facilityTimezones = facilityTimezoneMap;
       
       // Only log in development
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.MODE === 'development') {
         console.log('Facility name cache created:', facilityNameMap);
         console.log('Facility timezone cache created:', facilityTimezoneMap);
       }
@@ -274,7 +274,7 @@ export default function FullCalendarView({
         }
       } catch (e) {
         // Reduced logging for stability
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.MODE === 'development') {
           console.error('Error extracting facility info from customFormData', e);
         }
       }
@@ -285,7 +285,7 @@ export default function FullCalendarView({
       const facility = (facilities as any[]).find((f: any) => f.id === extractedFacilityId);
       if (facility && facility.name) {
         extractedFacilityName = facility.name;
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.MODE === 'development') {
           console.log(`Found facility name from facilities cache: ${extractedFacilityName}`);
         }
       }
@@ -294,7 +294,7 @@ export default function FullCalendarView({
     // Last resort - check global facility names cache
     if (!extractedFacilityName && extractedFacilityId && (window as any).facilityNames) {
       extractedFacilityName = (window as any).facilityNames[extractedFacilityId] || '';
-      if (process.env.NODE_ENV === 'development' && extractedFacilityName) {
+      if (import.meta.env.MODE === 'development' && extractedFacilityName) {
         console.log(`Found facility name from global cache: ${extractedFacilityName}`);
       }
     }
@@ -709,7 +709,7 @@ export default function FullCalendarView({
               
               // Improved loading state management
               loading={(isLoading) => {
-                if (process.env.NODE_ENV === 'development') {
+                if (import.meta.env.MODE === 'development') {
                   console.log('[FullCalendar] Loading state changed:', isLoading);
                 }
                 setIsLoading(isLoading);
@@ -717,7 +717,7 @@ export default function FullCalendarView({
               
               // Enhanced view handling
               viewDidMount={(viewInfo) => {
-                if (process.env.NODE_ENV === 'development') {
+                if (import.meta.env.MODE === 'development') {
                   console.log('[FullCalendar] View mounted:', viewInfo.view.type);
                 }
                 handleViewChange(viewInfo);
