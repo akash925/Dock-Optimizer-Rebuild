@@ -1,5 +1,6 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
+import "@testing-library/jest-dom";
 
 // Configure Neon WebSockets for serverless environments
 neonConfig.webSocketConstructor = ws;
@@ -72,3 +73,6 @@ console.warn = (...args) => {
     originalConsoleWarn(...args);
   }
 };
+
+// Jest globals typing for TS
+export {};

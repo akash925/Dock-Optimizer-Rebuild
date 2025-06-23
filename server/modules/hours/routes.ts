@@ -27,7 +27,7 @@ export const registerHoursRoutes = (app: Express) => {
           console.error(`[OrgHours] Error retrieving booking page ${bookingPageSlug}:`, err);
           return res.status(500).json({ message: "Error retrieving booking page" });
         }
-      } else if (req.isAuthenticated() && req.user?.tenantId) {
+      } else if (req.isAuthenticated?.() && req.user?.tenantId) {
         // Use authenticated user's tenant ID
         tenantId = req.user.tenantId;
         console.log(`[OrgHours] Using authenticated user's tenant ID: ${tenantId}`);
@@ -41,7 +41,11 @@ export const registerHoursRoutes = (app: Express) => {
         console.log(`[OrgHours] Using organization ID from query params: ${tenantId}`);
       } else {
         console.error('[OrgHours] No tenant context provided');
-        return res.status(400).json({ message: "No organization context provided" });
+        return res.status(400).json({ error: "Tenant required" });
+      }
+      
+      if (!tenantId) {
+        return res.status(400).json({ error: "Tenant required" });
       }
       
       const storage = await getStorage();

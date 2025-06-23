@@ -98,7 +98,7 @@ export const getDefaultHours = async (req: Request, res: Response) => {
     ];
 
     const completeHours = daysOfWeek.map(day => {
-      const existingHour = defaultHours.find(h => h.dayOfWeek === day.value);
+      const existingHour = defaultHours?.find((h: any) => h.dayOfWeek === day.value) ?? undefined;
       return existingHour || {
         id: 0,
         dayOfWeek: day.value,
@@ -204,8 +204,7 @@ export const createHoliday = async (req: Request, res: Response) => {
     });
 
     const storage = await getStorage();
-    const holiday = await storage.createOrganizationHoliday({
-      tenantId,
+    const holiday = await storage.createOrganizationHoliday(tenantId, {
       name,
       date,
       isRecurring: isRecurring || false,

@@ -327,6 +327,22 @@ Dock Optimizer is developed by [Conmitto Inc](https://conmitto.io), a leading pr
 - **Privacy Policy**: [conmitto.io/privacy-policy](https://conmitto.io/privacy-policy)
 - **Terms of Service**: [conmitto.io/terms-of-service](https://conmitto.io/terms-of-service)
 
+## Stabilise patch applied (2025-06-23)
+
+The following reliability & DX improvements were implemented:
+
+* **Database resilience** – Added dedicated `pool.on('error')` guard that silently ignores expected Neon termination codes `57P01/02/03` while still surfacing unexpected errors.
+* **Connection tuning** – Pool size raised to **5** with **15 s** idle timeout for smoother burst handling.
+* **Neon driver** – Locked to `@neondatabase/serverless@0.8.x` track for verified stability.
+* **Time-zone accuracy** – Slot labels now always use `formatInTimeZone(..)` ensuring values like `08:00` respect facility TZ.
+* **API consistency** – `PUT /api/appointment-types/:id` now returns the updated record payload.
+* **Seed script** – `scripts/seed-standard-questions.ts` seeds common fields for Tenant 2.
+* **Regression tests** –
+  * `dbCrash.test.ts` guarantees the app does not exit on 57P01 events.
+  * `slotLabel.test.ts` asserts first slot label is "08:00" for ET facilities.
+
+Thanks for helping keep Dock Optimizer sturdy! 🚀
+
 ---
 
 <div align="center">

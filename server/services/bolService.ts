@@ -3,6 +3,7 @@ import { processImageFile } from '../ocr/ocr_connector.mjs';
 import { validateOcrResult, ValidatedOcrResult } from '../utils/ocrValidator';
 import { InsertBolDocument } from '../../drizzle/schema/bol';
 import { InsertOcrAnalytics } from '../../drizzle/schema/ocr_analytics';
+// Type for error logging
 
 // Define configurable timeout for OCR processing in milliseconds
 const OCR_PROCESSING_TIMEOUT = parseInt(process.env.OCR_TIMEOUT_MS || '30000'); // Default 30 seconds

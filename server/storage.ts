@@ -1228,21 +1228,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async updateSchedule(id: number, scheduleUpdate: Partial<Schedule>): Promise<Schedule | undefined> {
-    try {
-      const [updated] = await db.update(schedules)
-        .set({
-          ...scheduleUpdate,
-          lastModifiedAt: new Date()
-        })
-        .where(eq(schedules.id, id))
-        .returning();
-      return updated;
-    } catch (error) {
-      console.error('Error updating schedule:', error);
-      return undefined;
-    }
-  }
+
   
   async getSchedulesByDock(dockId: number): Promise<Schedule[]> {
     try {
@@ -1548,15 +1534,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getOrganization(tenantId: number): Promise<Tenant | undefined> {
-    try {
-      const result = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
-      return result[0];
-    } catch (error) {
-      console.error('Error fetching organization:', error);
-      return undefined;
-    }
-  }
+
 
   async updateOrganization(tenantId: number, data: Partial<Tenant>): Promise<Tenant | undefined> {
     try {

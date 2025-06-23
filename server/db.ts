@@ -13,12 +13,19 @@ if (!connectionString) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
+/* Environment-aware defaults */
+const POOL_MAX =
+  process.env.CI === 'true' || process.env.NEON_TIER === 'free' ? 2 :
+  process.env.NODE_ENV === 'production' ? 5 : 3;
+
+const POOL_IDLE =
+  process.env.CI === 'true' || process.env.NEON_TIER === 'free' ? 10_000 : 15_000;
+
 // CRITICAL: Enhanced Neon Pool configuration to prevent connection issues
 const poolConfig = {
   connectionString,
-  // Conservative limits for Neon serverless stability
-  max: process.env.NODE_ENV === 'production' ? 3 : 2, // Reduced connection pool size
-  idleTimeoutMillis: 30000, // 30 second idle timeout
+  max: POOL_MAX,
+  idleTimeoutMillis: POOL_IDLE,
   connectionTimeoutMillis: 10000, // 10 second connection timeout
   maxUses: 7500, // Limit connection reuse to prevent stale connections
   allowExitOnIdle: false, // Keep pool alive
@@ -43,11 +50,21 @@ function initializeConnection() {
     // Initialize Drizzle with the pool
     db = drizzle(pool, { schema });
     
+    // Resilience: swallow expected Neon admin termination errors so the app keeps running
+    (pool as any).on('error', (err: any) => {
+      const expectedCodes = ['57P01', '57P02', '57P03'];
+      if (err && expectedCodes.includes(err.code)) {
+        console.warn(`[DB] ⚠️  Ignored expected pool error ${err.code}: ${err.message || err}`);
+        return; // Do not crash the process
+      }
+      console.error('[DB] ❌ Unexpected database pool error:', err);
+    });
+    
     console.log('[DB] ✅ Database connection pool created successfully');
     console.log('[DB] 📊 Pool configuration:', {
-      max: poolConfig.max,
-      idleTimeout: poolConfig.idleTimeoutMillis + 'ms',
-      connectionTimeout: poolConfig.connectionTimeoutMillis + 'ms'
+      max: POOL_MAX,
+      idleTimeout: `${POOL_IDLE}ms`,
+      connectionTimeout: '10000ms'
     });
     
     // Test connection

@@ -261,6 +261,45 @@ app.use((req, res, next) => {
     }
   });
 
+  // Update Appointment Type API
+  app.put('/api/appointment-types/:id', async (req: any, res) => {
+    try {
+      const { getStorage } = await import('./storage');
+      const storage = await getStorage();
+
+      // Authentication required
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Tenant context required
+      if (!req.user?.tenantId) {
+        return res.status(403).json({ error: 'Tenant context required' });
+      }
+
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid appointment type id' });
+      }
+
+      // Ensure the appointment type belongs to this tenant
+      const existing = await storage.getAppointmentType(id);
+      if (!existing || existing.tenantId !== req.user.tenantId) {
+        return res.status(404).json({ error: 'Appointment type not found' });
+      }
+
+      const updated = await storage.updateAppointmentType(id, req.body);
+      if (!updated) {
+        return res.status(500).json({ error: 'Failed to update appointment type' });
+      }
+
+      return res.json(updated);
+    } catch (error) {
+      console.error('Error updating appointment type:', error);
+      res.status(500).json({ error: 'Failed to update appointment type' });
+    }
+  });
+
   // First, load system modules (tenant management and feature flags)
   for (const moduleName of SYSTEM_MODULES) {
     console.log(`Loading system module: ${moduleName}...`);

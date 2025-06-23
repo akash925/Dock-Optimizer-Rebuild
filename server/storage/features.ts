@@ -2,6 +2,7 @@
 
 import { db } from "../db";
 import { featureFlags } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 
 export async function isFeatureEnabledForTenant(
   tenantId: number,
@@ -10,11 +11,12 @@ export async function isFeatureEnabledForTenant(
   const [flag] = await db
     .select()
     .from(featureFlags)
-    .where(
-      featureFlags.tenantId.eq(tenantId).and(
-        featureFlags.featureKey.eq(featureKey)
-      )
-    );
+          .where(
+        and(
+          eq(featureFlags.tenantId, tenantId),
+          eq(featureFlags.module, featureKey)
+        )
+      );
 
   return Boolean(flag?.enabled);
 }
