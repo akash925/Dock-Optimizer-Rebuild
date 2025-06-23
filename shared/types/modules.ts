@@ -13,4 +13,11 @@ export const AvailableModule = {
   FEATURE_FLAGS: "featureFlags",
 } as const;
 
-export type AvailableModule = (typeof AvailableModule)[keyof typeof AvailableModule]; 
+export type AvailableModule =
+  | 'calendar'
+  | 'companyAssets'
+  | 'analytics'
+  | 'appointments'
+  | 'bookingPages'
+  | 'hours'
+  | 'featureFlags'; 

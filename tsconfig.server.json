@@ -6,7 +6,9 @@
   },
   "include": [
     "server/**/*",
-    "shared/**/*"
+    "shared/**/*",
+    "server/types/**/*",
+    "server/tests/**/*"
   ],
   "exclude": [
     "client",

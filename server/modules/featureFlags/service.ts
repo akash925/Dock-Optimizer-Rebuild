@@ -1,12 +1,13 @@
 import { db } from '../../db';
-import { tenants, featureFlags, AvailableModule } from '@shared/schema';
+import { tenants, featureFlags } from '@shared/schema';
+import { AvailableModule } from '@shared/types/modules';
 import { eq, and } from 'drizzle-orm';
 
 // In-memory module configuration for when database is not available
-const defaultEnabledModules = [
-  AvailableModule.ASSET_MANAGER,
-  AvailableModule.CALENDAR,
-  AvailableModule.ANALYTICS
+const defaultEnabledModules: AvailableModule[] = [
+  'companyAssets',
+  'calendar',
+  'analytics'
 ];
 
 // Flag to track if we should bypass DB operations when tables don't exist

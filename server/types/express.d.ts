@@ -1,18 +1,9 @@
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: number;
-        username: string;
-        tenantId: number;
-        role: string;
-        firstName?: string;
-        lastName?: string;
-        email?: string;
-      };
-      isAuthenticated?(): boolean;
-    }
-  }
-}
+import type { Request } from "express";
+import type { User }   from "@shared/types";
 
-export {}; 
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: User;
+    isAuthenticated?: () => boolean;
+  }
+} 
