@@ -1011,7 +1011,9 @@ export const organizationHolidays = pgTable("organization_holidays", {
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  uniqueTenantDate: unique().on(table.tenantId, table.date),
+}));
 
 export const organizationHolidaysRelations = relations(organizationHolidays, ({ one }) => ({
   tenant: one(tenants, {

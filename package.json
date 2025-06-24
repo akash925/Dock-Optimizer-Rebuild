@@ -15,6 +15,7 @@
     "lint:fix": "eslint . --ext .js,.mjs,.cjs,.ts,.tsx --fix",
     "db:push": "drizzle-kit push",
     "db:migrate": "node scripts/run-migrations.cjs",
+    "db:seed": "tsx server/seeds/20250623_us_holidays.ts",
     "test": "vitest",
     "test:watch": "vitest watch",
     "test:availability": "vitest run server/src/services/availability.test.ts",

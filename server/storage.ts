@@ -275,7 +275,7 @@ export interface IStorage {
   sessionStore: any; // Type-safe session store
   
   // Organization holiday management
-  getOrganizationHolidays(organizationId: number): Promise<any[]>;
+  getOrganizationHolidays(organizationId?: number): Promise<any[]>;
   createOrganizationHoliday(tenantId: number, holiday: InsertOrganizationHoliday): Promise<OrganizationHoliday>;
   updateOrganizationHoliday(id: number, holiday: Partial<OrganizationHoliday>): Promise<OrganizationHoliday | undefined>;
   deleteOrganizationHoliday(id: number): Promise<boolean>;
@@ -1473,11 +1473,16 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getOrganizationHolidays(tenantId: number): Promise<any[]> {
+  async getOrganizationHolidays(tenantId?: number): Promise<any[]> {
     try {
-      const holidays = await db.select().from(organizationHolidays)
-        .where(eq(organizationHolidays.tenantId, tenantId))
-        .orderBy(organizationHolidays.date);
+      let query = db.select().from(organizationHolidays);
+      
+      // If tenantId is provided, filter by organization, otherwise return all (super-admin view)
+      if (tenantId !== undefined) {
+        query = query.where(eq(organizationHolidays.tenantId, tenantId));
+      }
+      
+      const holidays = await query.orderBy(organizationHolidays.date);
       return holidays;
     } catch (error) {
       console.error('Error fetching organization holidays:', error);
