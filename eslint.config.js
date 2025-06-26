@@ -6,21 +6,23 @@ export default [
   js.configs.recommended,
   {
     files: ['**/*.{js,mjs,cjs,ts,tsx}'],
+    
+    /* runtime environments --------------------------------------- */
+    env: {
+         browser: true,  // window, document, navigator …
+         node: true,     // process, __dirname …
+         jest: true,     // describe, test …
+       },
+    
+       /* syntax / parser -------------------------------------------- */
     languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-        ecmaFeatures: {
-          jsx: true,
-        },
-      },
-      env: {
-        browser: true,   // window, document, navigator, …
-        node: true,      // __dirname, process, global, …
-        jest: true       // describe, test, expect, beforeAll, …
-        },
-      globals: {
+         parser: tsParser,
+         parserOptions: {
+           ecmaVersion: 'latest',
+           sourceType: 'module',
+           ecmaFeatures: { jsx: true },
+         },
+    globals: {
         // Browser globals for client code
         window: 'readonly',
         document: 'readonly',
@@ -52,6 +54,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tseslint,
+      jest: require('eslint-plugin-jest'),
     },
     rules: {
       // Guard rail to prevent process usage in client code
