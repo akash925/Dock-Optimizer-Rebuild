@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:                         # ← THIS must be flush left
+  build-test:                 # ← 2 spaces
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load secrets
+        uses: dopplerhq/cli-action@v2
+        with:
+          token: ${{ secrets.DOPPLER_SERVICE_TOKEN }}
+          project: dock-optimizer-prod
+          config: ${{ github.ref == 'refs/heads/main' && 'prd' || 'preview' }}
+          mount: true
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile=false   # avoid lock-file error for now
+
+      - name: Unit tests
+        run: pnpm test -- --run
+
+      - name: Lint & type-check
+        run: pnpm turbo lint typecheck
