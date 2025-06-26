@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
+import jestPlugin from 'eslint-plugin-jest';
 
 export default [
   js.configs.recommended,
@@ -54,7 +55,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tseslint,
-      jest: require('eslint-plugin-jest'),
+      jest: jestPlugin,
     },
     rules: {
       // Guard rail to prevent process usage in client code
