@@ -5,23 +5,36 @@ on:
     branches: [main]
   pull_request:
 
-jobs:                         # ← THIS must be flush left
-  build-test:                 # ← 2 spaces
+jobs:
+  build-test:
     runs-on: ubuntu-latest
     steps:
+      # 1️⃣  Check out the repo
       - uses: actions/checkout@v4
 
+      # 2️⃣  Pull secrets from Doppler
       - name: Load secrets
         uses: dopplerhq/cli-action@v2
         with:
           token: ${{ secrets.DOPPLER_SERVICE_TOKEN }}
           project: dock-optimizer-prod
+          # PRs -> preview, merges to main -> prd
           config: ${{ github.ref == 'refs/heads/main' && 'prd' || 'preview' }}
           mount: true
 
-      - name: Install deps
-        run: pnpm install --frozen-lockfile=false   # avoid lock-file error for now
+      # 3️⃣  Install Node 20 and enable pnpm via Corepack  ← NEW
+      - name: Set up Node & pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: corepack enable
 
+      # 4️⃣  Install dependencies
+      - name: Install deps
+        run: pnpm install --frozen-lockfile=false   # disable strict lock for now
+
+      # 5️⃣  Run your test & lint scripts
       - name: Unit tests
         run: pnpm test -- --run
 
