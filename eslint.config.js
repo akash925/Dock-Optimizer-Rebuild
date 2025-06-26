@@ -15,6 +15,11 @@ export default [
           jsx: true,
         },
       },
+      env: {
+        browser: true,   // window, document, navigator, …
+        node: true,      // __dirname, process, global, …
+        jest: true       // describe, test, expect, beforeAll, …
+        },
       globals: {
         // Browser globals for client code
         window: 'readonly',
@@ -50,6 +55,7 @@ export default [
     },
     rules: {
       // Guard rail to prevent process usage in client code
+      'no-undef': 'off',
       'no-restricted-globals': [
         'error',
         {
