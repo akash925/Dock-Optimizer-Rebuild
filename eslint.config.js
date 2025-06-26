@@ -1,86 +1,75 @@
-import js from '@eslint/js';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
-import jestPlugin from 'eslint-plugin-jest';
+// eslint.config.js  – Flat-config style
+// -------------------------------------------------
+
+import js             from '@eslint/js';                       // ESLint core rules (recommended)
+import tseslint        from '@typescript-eslint/eslint-plugin'; // TypeScript rules
+import tsParser        from '@typescript-eslint/parser';        // TypeScript parser
+import jestPlugin      from 'eslint-plugin-jest';               // Jest rules
+import globals         from 'globals';                          // map of standard globals
 
 export default [
+  // 1) ESLint recommended (JS only)
   js.configs.recommended,
+
+  // 2) Base rules that apply everywhere (client + server)
   {
     files: ['**/*.{js,mjs,cjs,ts,tsx}'],
-    
-    /* runtime environments --------------------------------------- */
-    env: {
-         browser: true,  // window, document, navigator …
-         node: true,     // process, __dirname …
-         jest: true,     // describe, test …
-       },
-    
-       /* syntax / parser -------------------------------------------- */
+
+    /* syntax / parser ------------------------------------------- */
     languageOptions: {
-         parser: tsParser,
-         parserOptions: {
-           ecmaVersion: 'latest',
-           sourceType: 'module',
-           ecmaFeatures: { jsx: true },
-         },
-    globals: {
-        // Browser globals for client code
-        window: 'readonly',
-        document: 'readonly',
-        console: 'readonly',
-        localStorage: 'readonly',
-        sessionStorage: 'readonly',
-        fetch: 'readonly',
-        URL: 'readonly',
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: { jsx: true },
+      },
+
+      /* globals -------------------------------------------------- */
+      globals: {
+        /* standard envs */
+        ...globals.browser,
+        ...globals.node,
+        ...globals.jest,
+
+        /* extras you referenced explicitly */
         URLSearchParams: 'readonly',
-        FormData: 'readonly',
-        File: 'readonly',
-        Blob: 'readonly',
-        setTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearTimeout: 'readonly',
-        clearInterval: 'readonly',
-        // Test globals
-        describe: 'readonly',
-        it: 'readonly',
-        test: 'readonly',
-        expect: 'readonly',
-        beforeAll: 'readonly',
-        afterAll: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly',
-        vi: 'readonly',
-        jest: 'readonly',
+        FormData:        'readonly',
+        File:            'readonly',
+        Blob:            'readonly',
       },
     },
+
+    /* plugins ---------------------------------------------------- */
     plugins: {
       '@typescript-eslint': tseslint,
-      jest: jestPlugin,
+      jest:                 jestPlugin,
     },
+
+    /* rules ------------------------------------------------------ */
     rules: {
-      // Guard rail to prevent process usage in client code
-      'no-undef': 'off',
+      // “process” guard-rail for client code
       'no-restricted-globals': [
         'error',
         {
-          name: 'process',
-          message:
-            'Do NOT use `process` in client code – use import.meta.env.VITE_* instead. For server-side code, this restriction is overridden.',
+          name:    'process',
+          message: 'Use import.meta.env.VITE_* instead of `process` in client code.',
         },
       ],
-      // Warn about unused variables but don't error
+
+      // TypeScript-specific tweaks
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      // Allow any type temporarily to avoid blocking migration
       '@typescript-eslint/no-explicit-any': 'warn',
-      // Disable some noisy rules temporarily
-      'no-unused-vars': 'warn',
-      'no-redeclare': 'warn',
+
+      // Soften a few noisy JS rules during migration
+      'no-unused-vars':        'warn',
+      'no-redeclare':          'warn',
       'no-dupe-class-members': 'warn',
-      'no-useless-escape': 'warn',
+      'no-useless-escape':     'warn',
     },
   },
+
+  // 3) Server-only overrides (allow unrestricted `process`, etc.)
   {
-    // Override for server-side files - allow process usage
     files: [
       'server/**/*.{js,mjs,cjs,ts,tsx}',
       'scripts/**/*.{js,mjs,cjs,ts,tsx}',
@@ -88,58 +77,33 @@ export default [
       'drizzle.config.ts',
       '*.config.{js,mjs,cjs,ts}',
     ],
+
     languageOptions: {
       globals: {
-        // Node.js globals
-        process: 'readonly',
-        global: 'readonly',
-        Buffer: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        exports: 'readonly',
-        setTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearTimeout: 'readonly',
-        clearInterval: 'readonly',
-        console: 'readonly',
-        // Test globals
-        describe: 'readonly',
-        it: 'readonly',
-        test: 'readonly',
-        expect: 'readonly',
-        beforeAll: 'readonly',
-        afterAll: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly',
-        vi: 'readonly',
-        jest: 'readonly',
-        // TypeScript/Node types
+        ...globals.node,
+        /* TS / Node types */
         NodeJS: 'readonly',
       },
     },
+
     rules: {
-      'no-restricted-globals': 'off',
+      'no-restricted-globals': 'off', // “process” is fine on the server
     },
   },
+
+  // 4) Shared code that runs in both contexts
   {
-    // Override for shared files - allow process usage since they run in both contexts
     files: ['shared/**/*.{js,mjs,cjs,ts,tsx}'],
+
     languageOptions: {
       globals: {
-        // Both browser and Node.js globals since shared code runs in both
-        process: 'readonly',
-        window: 'readonly',
-        console: 'readonly',
-        Buffer: 'readonly',
-        setTimeout: 'readonly',
-        setInterval: 'readonly',
-        URL: 'readonly',
+        ...globals.browser,
+        ...globals.node,
       },
     },
+
     rules: {
       'no-restricted-globals': 'off',
     },
   },
-]; 
+];
