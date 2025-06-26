@@ -8,35 +8,35 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
     steps:
-      # 1️⃣  Check out the repo
+      # ①  Checkout
       - uses: actions/checkout@v4
 
-      # 2️⃣  Pull secrets from Doppler
+      # ②  Mount secrets from Doppler
       - name: Load secrets
         uses: dopplerhq/cli-action@v2
         with:
           token: ${{ secrets.DOPPLER_SERVICE_TOKEN }}
           project: dock-optimizer-prod
-          # PRs -> preview, merges to main -> prd
+          # PRs → preview, merges to main → prd
           config: ${{ github.ref == 'refs/heads/main' && 'prd' || 'preview' }}
           mount: true
 
-      # 3️⃣  Install Node 20 and enable pnpm via Corepack  ← NEW
+      # ③  Install Node 20 + pnpm (via Corepack)
       - name: Set up Node & pnpm
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-      - run: corepack enable
+      - run: corepack enable     # downloads pnpm 10.x declared in packageManager
 
-      # 4️⃣  Install dependencies
+      # ④  Install deps
       - name: Install deps
-        run: pnpm install --frozen-lockfile=false   # disable strict lock for now
+        run: pnpm install --frozen-lockfile=false   # bypass lock mismatch for now
 
-      # 5️⃣  Run your test & lint scripts
+      # ⑤  Run tests + lint
       - name: Unit tests
         run: pnpm test -- --run
-
       - name: Lint & type-check
         run: pnpm turbo lint typecheck
