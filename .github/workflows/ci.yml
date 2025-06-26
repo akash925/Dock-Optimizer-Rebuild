@@ -54,7 +54,7 @@ jobs:
         run: pnpm install --frozen-lockfile=false   # temporary lock-mismatch bypass
 
       - name: Unit tests
-        run: pnpm test -- --run
+        run: pnpm test:ci
 
       - name: Lint & type-check
         run: pnpm turbo lint typecheck

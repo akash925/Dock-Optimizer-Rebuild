@@ -4,6 +4,8 @@
   "type": "module",
   "license": "UNLICENSED",
   "scripts": {
+    "test:ci": "vitest run --exclude '**/*.int.test.ts,**/*.jest.test.ts'",
+    "test:ci:watch": "vitest watch --exclude '**/*.int.test.ts,**/*.jest.test.ts'",
     "dev": "tsx -r dotenv/config server/index.ts",
     "dev:prod": "NODE_ENV=production tsx -r dotenv/config server/index.ts",
     "production": "bash scripts/production-replit.sh",
