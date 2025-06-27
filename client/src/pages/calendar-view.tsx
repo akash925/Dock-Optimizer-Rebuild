@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Loader2, CalendarRange } from 'lucide-react';
-import FullCalendarView from '@/components/calendar/full-calendar-view';
+import EnhancedCalendarView from '@/components/calendar/enhanced-calendar-view';
 import FullCalendar from '@fullcalendar/react';
 import { Schedule } from '@shared/schema';
 import { Button } from '@/components/ui/button';
@@ -468,7 +468,7 @@ export default function CalendarPage() {
       </div>
       
       {/* ENHANCED: Calendar with maximum screen real estate */}
-      <FullCalendarView
+      <EnhancedCalendarView
         schedules={filteredSchedules}
         onEventClick={handleEventClick}
         onDateSelect={handleDateSelect}
