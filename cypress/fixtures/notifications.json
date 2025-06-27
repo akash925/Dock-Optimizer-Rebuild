@@ -1,0 +1,81 @@
+[
+  {
+    "id": 1,
+    "userId": 1,
+    "title": "Appointment Confirmed",
+    "message": "Your appointment #CONF-001 has been confirmed for tomorrow at 9:00 AM",
+    "type": "appointment",
+    "urgency": "info",
+    "isRead": false,
+    "relatedScheduleId": 1,
+    "createdAt": "2025-01-19T12:00:00Z",
+    "metadata": {
+      "confirmationCode": "CONF-001",
+      "truckNumber": "TEST-001",
+      "customerName": "Test Customer 1"
+    }
+  },
+  {
+    "id": 2,
+    "userId": 1,
+    "title": "Truck Arrival",
+    "message": "TEST-002 has arrived early and is waiting at the gate",
+    "type": "arrival",
+    "urgency": "urgent",
+    "isRead": false,
+    "relatedScheduleId": 2,
+    "createdAt": "2025-01-20T13:45:00Z",
+    "metadata": {
+      "truckNumber": "TEST-002",
+      "driverName": "Jane Smith",
+      "timeUntil": "15 minutes early"
+    }
+  },
+  {
+    "id": 3,
+    "userId": 1,
+    "title": "Schedule Change",
+    "message": "Appointment TEST-003 has been rescheduled to 8:30 AM tomorrow",
+    "type": "schedule-change",
+    "urgency": "warning",
+    "isRead": true,
+    "relatedScheduleId": 3,
+    "createdAt": "2025-01-19T16:30:00Z",
+    "metadata": {
+      "truckNumber": "TEST-003",
+      "oldTime": "9:00 AM",
+      "newTime": "8:30 AM"
+    }
+  },
+  {
+    "id": 4,
+    "userId": 1,
+    "title": "System Maintenance",
+    "message": "Scheduled maintenance will occur tonight from 2:00 AM - 4:00 AM EST",
+    "type": "system",
+    "urgency": "normal",
+    "isRead": false,
+    "relatedScheduleId": null,
+    "createdAt": "2025-01-19T18:00:00Z",
+    "metadata": {
+      "maintenanceWindow": "2:00 AM - 4:00 AM EST",
+      "expectedDowntime": "2 hours"
+    }
+  },
+  {
+    "id": 5,
+    "userId": 1,
+    "title": "Critical Alert",
+    "message": "Dock 1 equipment malfunction - all appointments moved to Dock 2",
+    "type": "system",
+    "urgency": "critical",
+    "isRead": false,
+    "relatedScheduleId": null,
+    "createdAt": "2025-01-20T10:15:00Z",
+    "metadata": {
+      "affectedDock": "Dock 1",
+      "alternativeDock": "Dock 2",
+      "actionRequired": true
+    }
+  }
+] 
