@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ①  Checkout
+      - uses: actions/checkout@v4
+
+      # ②  Mount secrets from Doppler
+      - name: Load secrets
+        uses: dopplerhq/cli-action@v2
+        with:
+          token: ${{ secrets.DOPPLER_SERVICE_TOKEN }}
+          project: dock-optimizer-prod
+          config: ${{ github.ref == 'refs/heads/main' && 'prd' || 'preview' }}
+          mount: true
+
+      # ③  Install **pnpm 10** FIRST (so setup-node can find it)
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.12.1
+          run_install: false
+
+      # ④  Install Node 20 and restore pnpm cache
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+      - run: corepack enable   # safe even though pnpm is already there
+
+      # ⑤  Spin up local Postgres for DB-dependent tests
+      - name: Start test Postgres
+        uses: ikalnytskyi/action-setup-postgres@v5
+        with:
+          postgres-version: '15'
+          username: test
+          password: test
+          database: dock_opt_test   # <-- input key is `database`
+
+      - name: Export DATABASE_URL
+        run: echo "DATABASE_URL=postgres://test:test@localhost:5432/dock_opt_test" >> $GITHUB_ENV
+
+      # ⑥  Install deps & run the suite
+      - name: Install deps
+        run: pnpm install --frozen-lockfile=false   # temporary lock-mismatch bypass
+
+      - name: Unit tests
+        run: pnpm test:ci
+
+      - name: Lint & type-check
+        run: pnpm turbo lint typecheck

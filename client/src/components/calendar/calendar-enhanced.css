@@ -493,3 +493,213 @@
   font-size: 8px;
   font-weight: 400;
 }
+
+/* Enhanced Calendar Styles */
+
+.calendar-container.dragging {
+  transition: all 0.2s ease;
+}
+
+.calendar-container.dragging .fc {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* Enhanced event styling */
+.fc-event {
+  border-radius: 4px;
+  border-width: 2px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.fc-event.fc-event-dragging {
+  opacity: 0.8;
+  transform: rotate(2deg) scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+}
+
+.fc-event.fc-event-resizing {
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Time slot highlighting */
+.fc-timegrid-slot {
+  transition: background-color 0.2s ease;
+}
+
+.fc-timegrid-slot:hover {
+  background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+/* Business hours styling */
+.fc-non-business {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Enhanced day headers */
+.fc-col-header-day {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.fc-col-header-day.fc-day-today {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-bottom: 2px solid #3b82f6;
+}
+
+/* Time axis styling */
+.fc-timegrid-axis {
+  background: #f8fafc;
+  border-right: 2px solid #e2e8f0;
+}
+
+/* Now indicator */
+.fc-timegrid-now-indicator-line {
+  border-color: #ef4444;
+  border-width: 2px;
+}
+
+/* Event content styling */
+.fc-event-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.fc-event-time {
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+/* Drag feedback for unscheduled items */
+.unscheduled-item.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+}
+
+/* Drop zone highlighting */
+.calendar-drop-zone {
+  border: 2px dashed #3b82f6;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.05);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Status-based event styling */
+.fc-event[data-status="confirmed"] {
+  border-left: 4px solid #22c55e;
+}
+
+.fc-event[data-status="checked-in"] {
+  border-left: 4px solid #f59e0b;
+}
+
+.fc-event[data-status="in-progress"] {
+  border-left: 4px solid #8b5cf6;
+}
+
+.fc-event[data-status="completed"] {
+  border-left: 4px solid #6b7280;
+  opacity: 0.8;
+}
+
+.fc-event[data-status="cancelled"] {
+  border-left: 4px solid #ef4444;
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+
+.fc-event[data-status="no-show"] {
+  border-left: 4px solid #dc2626;
+  opacity: 0.6;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(220, 38, 38, 0.1) 5px,
+    rgba(220, 38, 38, 0.1) 10px
+  );
+}
+
+/* Priority indicators */
+.fc-event[data-priority="high"]::before {
+  content: '🔴';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+}
+
+.fc-event[data-priority="medium"]::before {
+  content: '🟡';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+}
+
+.fc-event[data-priority="low"]::before {
+  content: '🟢';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .fc-event-title {
+    font-size: 0.75rem;
+  }
+  
+  .fc-event-time {
+    font-size: 0.7rem;
+  }
+}
+
+/* Enhanced selection highlighting */
+.fc-highlight {
+  background: rgba(59, 130, 246, 0.2) !important;
+  border: 2px solid #3b82f6 !important;
+}
+
+/* Loading states */
+.calendar-loading {
+  position: relative;
+  opacity: 0.7;
+}
+
+.calendar-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  border: 3px solid #e2e8f0;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
