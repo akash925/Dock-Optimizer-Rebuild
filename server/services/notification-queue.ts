@@ -9,16 +9,53 @@ import {
   sendCancellationEmail,
   EnhancedSchedule 
 } from '../notifications';
-import logger from '../utils/logger';
+import { logger } from '../utils/logger';
 
 // Redis connection for BullMQ
-const redis = new IORedis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-  maxRetriesPerRequest: 3,
-  retryDelayOnFailover: 100,
-});
+let redis: IORedis | null = null;
+
+// Initialize Redis connection with proper logging
+function initializeRedis(): IORedis | null {
+  if (!process.env.REDIS_URL && !process.env.REDIS_HOST) {
+    console.warn('[BullMQ] Redis disabled – REDIS_URL not set');
+    return null;
+  }
+
+  try {
+    let redisInstance: IORedis;
+    
+    if (process.env.REDIS_URL) {
+      redisInstance = new IORedis(process.env.REDIS_URL, {
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+      });
+    } else {
+      redisInstance = new IORedis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        password: process.env.REDIS_PASSWORD,
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,
+      });
+    }
+
+    redisInstance.on('connect', () => {
+      const redisHost = process.env.REDIS_URL ? 'cloud' : `${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || '6379'}`;
+      console.info(`[BullMQ] Notification queue initialised (host: ${redisHost})`);
+    });
+
+    redisInstance.on('error', (error) => {
+      console.error('[BullMQ] Redis connection error:', error.message);
+    });
+
+    return redisInstance;
+  } catch (error) {
+    console.error('[BullMQ] Failed to initialize Redis:', error);
+    return null;
+  }
+}
+
+redis = initializeRedis();
 
 // Notification job types
 export interface NotificationJobData {
@@ -45,32 +82,37 @@ export interface NotificationJobData {
   };
 }
 
-// Create notification queues with different priorities
-export const notificationQueue = new Queue('notifications', { 
-  connection: redis,
-  defaultJobOptions: {
-    removeOnComplete: 100,
-    removeOnFail: 50,
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
-  },
-});
+// Create notification queues with different priorities (only if Redis is available)
+export let notificationQueue: Queue | null = null;
+export let urgentNotificationQueue: Queue | null = null;
 
-export const urgentNotificationQueue = new Queue('urgent-notifications', { 
-  connection: redis,
-  defaultJobOptions: {
-    removeOnComplete: 50,
-    removeOnFail: 25,
-    attempts: 5,
-    backoff: {
-      type: 'exponential',
-      delay: 1000,
+if (redis) {
+  notificationQueue = new Queue('notifications', { 
+    connection: redis,
+    defaultJobOptions: {
+      removeOnComplete: 100,
+      removeOnFail: 50,
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
     },
-  },
-});
+  });
+
+  urgentNotificationQueue = new Queue('urgent-notifications', { 
+    connection: redis,
+    defaultJobOptions: {
+      removeOnComplete: 50,
+      removeOnFail: 25,
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 1000,
+      },
+    },
+  });
+}
 
 // Create workers to process notification jobs
 const notificationWorker = new Worker('notifications', async (job: Job<NotificationJobData>) => {
