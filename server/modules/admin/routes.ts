@@ -799,12 +799,12 @@ export const adminRoutes = (app: Express) => {
       if (search) {
         whereConditions.push(`(
           s.customer_name ILIKE $${paramIndex} OR 
-          s.confirmation_code ILIKE $${paramIndex} OR 
-          s.driver_name ILIKE $${paramIndex} OR
-          c.name ILIKE $${paramIndex}
+          s.confirmation_code ILIKE $${paramIndex+1} OR 
+          s.driver_name ILIKE $${paramIndex+2} OR
+          c.name ILIKE $${paramIndex+3}
         )`);
-        queryParams.push(`%${search}%`);
-        paramIndex++;
+        queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+        paramIndex += 4;
       }
       
       const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
