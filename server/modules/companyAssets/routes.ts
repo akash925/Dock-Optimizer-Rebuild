@@ -73,6 +73,13 @@ companyAssetsRouter.patch('/company-assets/:id/barcode',
   controllers.updateCompanyAssetBarcode
 );
 
+// PUT /api/company-assets/company-assets/:id/photo - Update company asset photo only
+companyAssetsRouter.put('/company-assets/:id/photo',
+  isAuthenticated,
+  upload.single('photo'), // 'photo' is the field name for the uploaded photo
+  controllers.updateCompanyAssetPhoto
+);
+
 // DELETE /api/company-assets/company-assets/:id - Delete a company asset
 companyAssetsRouter.delete('/company-assets/:id', isAuthenticated, controllers.deleteCompanyAsset);
 

@@ -11,6 +11,7 @@ import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { BarcodeGenerator } from '@/components/company-assets/barcode-generator';
+import AssetPhotoDropzone from '@/components/AssetPhotoDropzone';
 
 export default function AssetEditPage() {
   const [, params] = useRoute<{ id: string }>('/company-assets/assets/:id/edit');
@@ -32,6 +33,36 @@ export default function AssetEditPage() {
     enabled: !!assetId,
   });
   
+  // Mutation for uploading asset photo
+  const uploadPhotoMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('photo', file);
+      
+      const response = await fetch(`/api/company-assets/company-assets/${assetId}/photo`, {
+        method: 'PUT',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload photo');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate the asset query to refresh the data
+      queryClient.invalidateQueries({ queryKey: [`/api/company-assets/company-assets/${assetId}`] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Upload failed',
+        description: error.message || 'Failed to upload photo',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // Mutation for updating the barcode
   const updateBarcodeMutation = useMutation({
     mutationFn: async (barcode: string) => {
@@ -119,88 +150,12 @@ export default function AssetEditPage() {
         </div>
       </div>
       
-      {/* Display asset image prominently */}
-      <div className="mb-6 max-w-md mx-auto">
-        <div className="rounded-md overflow-hidden border shadow-sm relative group">
-          {asset.photoUrl ? (
-            <img 
-              src={asset.photoUrl} 
-              alt={asset.name} 
-              className="w-full h-auto max-h-[300px] object-contain"
-            />
-          ) : (
-            <div className="w-full h-[200px] bg-muted/50 flex items-center justify-center">
-              <div className="text-muted-foreground text-center p-4">
-                <div className="h-8 w-8 mx-auto mb-2 opacity-40">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                    <circle cx="9" cy="9" r="2" />
-                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                  </svg>
-                </div>
-                <p>No image available</p>
-              </div>
-            </div>
-          )}
-          {/* Overlay button for changing image */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <div className="cursor-pointer">
-              <label htmlFor="asset-photo-upload" className="cursor-pointer">
-                <Button variant="outline" className="bg-background" type="button">
-                  Change Display Image
-                </Button>
-              </label>
-              <input 
-                id="asset-photo-upload" 
-                type="file" 
-                className="hidden" 
-                accept="image/*,.pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    console.log("Selected file:", file.name, file.type, file.size);
-                    // Create FormData to upload the image
-                    const formData = new FormData();
-                    formData.append('photo', file);
-                    
-                    toast({
-                      title: 'Uploading...',
-                      description: 'Uploading image, please wait',
-                    });
-                    
-                    // Upload the image
-                    fetch(`/api/company-assets/company-assets/${assetId}/photo`, {
-                      method: 'POST',
-                      body: formData,
-                    })
-                    .then(response => {
-                      if (!response.ok) {
-                        throw new Error('Failed to upload image');
-                      }
-                      return response.json();
-                    })
-                    .then(() => {
-                      // Invalidate the asset query to refresh the data
-                      queryClient.invalidateQueries({ queryKey: [`/api/company-assets/company-assets/${assetId}`] });
-                      toast({
-                        title: 'Image uploaded',
-                        description: 'Asset image has been updated successfully',
-                      });
-                    })
-                    .catch(err => {
-                      console.error("Upload error:", err);
-                      toast({
-                        title: 'Upload failed',
-                        description: err.message || 'Failed to upload image',
-                        variant: 'destructive',
-                      });
-                    });
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
+      {/* Asset Photo Upload */}
+      <div className="mb-6 max-w-2xl mx-auto">
+        <AssetPhotoDropzone 
+          onUpload={uploadPhotoMutation.mutateAsync}
+          existing={asset.photoUrl}
+        />
       </div>
       
       {/* Display barcode information */}
