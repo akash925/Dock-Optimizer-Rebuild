@@ -249,7 +249,7 @@ export class SecureWebSocketHandler {
       if (
         client.readyState === WebSocket.OPEN && 
         clientInfo.isAuthenticated &&
-        (clientInfo.tenantId === tenantId || clientInfo.tenantId === 0)
+        clientInfo.tenantId === tenantId
       ) {
         client.send(payload);
         clientCount++;

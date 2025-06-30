@@ -80,7 +80,7 @@ export interface IStorage {
 
   // Schedule operations
   getSchedule(id: number): Promise<Schedule | undefined>;
-  getSchedules(): Promise<Schedule[]>;
+  getSchedules(tenantId?: number): Promise<Schedule[]>;
   getSchedulesByDock(dockId: number): Promise<Schedule[]>;
   getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]>;
   searchSchedules(query: string): Promise<Schedule[]>;
@@ -394,7 +394,12 @@ export class MemStorage implements IStorage {
   }
   async deleteDock(id: number): Promise<boolean> { return this.docks.delete(id); }
   async getSchedule(id: number): Promise<Schedule | undefined> { return this.schedules.get(id); }
-  async getSchedules(): Promise<Schedule[]> { return Array.from(this.schedules.values()); }
+  async getSchedules(tenantId?: number): Promise<Schedule[]> { 
+    const allSchedules = Array.from(this.schedules.values());
+    if (!tenantId) return allSchedules;
+    // TODO: Add tenant filtering for MemStorage
+    return allSchedules;
+  }
   async getSchedulesByDock(dockId: number): Promise<Schedule[]> { return Array.from(this.schedules.values()).filter(s => s.dockId === dockId); }
   async getSchedulesByDateRange(startDate: Date, endDate: Date): Promise<Schedule[]> { return Array.from(this.schedules.values()).filter(s => new Date(s.startTime) >= startDate && new Date(s.endTime) <= endDate); }
   async searchSchedules(query: string): Promise<Schedule[]> { return []; }

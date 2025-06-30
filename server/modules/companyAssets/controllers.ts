@@ -620,6 +620,56 @@ export const updateCompanyAssetStatus = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Update company asset photo only
+ * PUT /api/company-assets/company-assets/:id/photo
+ */
+export const updateCompanyAssetPhoto = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid company asset ID' });
+    }
+    
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+    
+    const tenantId = (req.user as any).tenantId;
+    
+    // Check if the asset exists and belongs to the user's tenant
+    const existingAsset = await companyAssetsService.getCompanyAssetById(id);
+    if (!existingAsset) {
+      return res.status(404).json({ error: 'Company asset not found' });
+    }
+    
+    // TENANT SAFETY: Ensure asset belongs to the user's tenant
+    if (existingAsset.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+    }
+    
+    // Check if photo was uploaded
+    if (!req.file) {
+      return res.status(400).json({ error: 'Photo file is required' });
+    }
+    
+    console.log('Updating photo for asset:', id, 'tenant:', tenantId);
+    
+    // Update only the photo
+    const updatedAsset = await companyAssetsService.updateCompanyAsset(id, {}, req.file.buffer);
+    
+    if (!updatedAsset) {
+      return res.status(500).json({ error: 'Failed to update asset photo' });
+    }
+    
+    return res.json({ photoUrl: updatedAsset.photoUrl });
+  } catch (error) {
+    console.error('Error updating company asset photo:', error);
+    return res.status(500).json({ error: 'Failed to update asset photo' });
+  }
+};
+
 export const importCompanyAssets = async (req: Request, res: Response) => {
   try {
     // Validate request body

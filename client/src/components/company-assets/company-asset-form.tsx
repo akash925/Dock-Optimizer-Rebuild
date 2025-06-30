@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Loader2, UploadCloud, Tags, Calendar, DollarSign, Map, AlertCircle } from 'lucide-react';
+import AssetPhotoDropzone from '@/components/AssetPhotoDropzone';
 import { format } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -122,20 +123,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
     }
   }, [assetToEdit]);
 
-  // Handle photo file change
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setPhotoFile(file);
-      
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPhotoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+
 
   // Create mutation
   const createMutation = useMutation({
@@ -307,61 +295,20 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                 <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
               </TabsList>
               
-              {/* Photo Upload - Now at the top before tabs */}
+              {/* Asset Photo Upload */}
               <div className="mb-6 pb-6 border-b">
-                <div className="flex flex-col md:flex-row gap-6 items-start">
-                  <div className="space-y-2 flex-1">
-                    <Label htmlFor="photo">Asset Photo</Label>
-                    
-                    {photoPreview ? (
-                      <div className="w-full h-40 relative">
-                        <img 
-                          src={photoPreview} 
-                          alt="Asset preview" 
-                          className="h-full max-w-full object-contain rounded-md border" 
-                        />
-                        <div className="absolute top-2 right-2">
-                          <button
-                            type="button"
-                            className="px-2 py-1 text-xs bg-background border rounded hover:bg-gray-100"
-                            onClick={() => {
-                              setPhotoFile(null);
-                              setPhotoPreview(null);
-                            }}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    ) : assetToEdit?.photoUrl ? (
-                      <div className="w-full h-40 relative">
-                        <img 
-                          src={assetToEdit.photoUrl} 
-                          alt={assetToEdit.name} 
-                          className="h-full max-w-full object-contain rounded-md border" 
-                        />
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-muted rounded-md p-6 flex flex-col items-center justify-center bg-muted/10 h-40">
-                        <UploadCloud className="h-10 w-10 text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground mb-2">Click or drag and drop to upload</p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="w-full md:w-auto flex flex-col space-y-2">
-                    <Input
-                      id="photo"
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={handlePhotoChange}
-                      className="max-w-md"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Upload a photo of the asset (optional). Supported formats: JPG, PNG, PDF
-                    </p>
-                  </div>
-                </div>
+                <Label className="text-base font-medium mb-4 block">Asset Photo</Label>
+                <AssetPhotoDropzone 
+                  onUpload={async (file) => {
+                    // Store the file for form submission
+                    setPhotoFile(file);
+                    // Create local preview
+                    const previewUrl = URL.createObjectURL(file);
+                    setPhotoPreview(previewUrl);
+                  }}
+                  existing={assetToEdit?.photoUrl || photoPreview}
+                  className="max-w-2xl"
+                />
               </div>
               
               {/* Basic Information Tab */}

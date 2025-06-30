@@ -733,8 +733,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[SchedulesAPI] Processing GET request for tenant ${user.tenantId}`);
 
-      // Get tenant-filtered schedules
-      const schedules = await storage.getSchedules();
+      // FIXED: Get tenant-filtered schedules by passing tenantId
+      const schedules = await storage.getSchedules(user.tenantId);
       
       console.log(`[SchedulesAPI] Returning ${schedules.length} schedules for tenant ${user.tenantId}`);
       res.json(schedules);
