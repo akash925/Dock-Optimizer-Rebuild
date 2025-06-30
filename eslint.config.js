@@ -6,6 +6,9 @@ import tseslint        from '@typescript-eslint/eslint-plugin'; // TypeScript ru
 import tsParser        from '@typescript-eslint/parser';        // TypeScript parser
 import jestPlugin      from 'eslint-plugin-jest';               // Jest rules
 import globals         from 'globals';                          // map of standard globals
+import React from 'react';
+import Quagga from '@ericblade/quagga2';
+
 
 export default [
   // 1) ESLint recommended (JS only)
