@@ -22,6 +22,7 @@ import {
   Search,
   Loader2,
 } from 'lucide-react';
+import AssetThumbnail from '@/components/AssetThumbnail';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -77,6 +78,11 @@ export function AssetList() {
     asset.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (asset.description && asset.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const isImageFile = (filename: string): boolean => {
+    const extension = filename.split('.').pop()?.toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension || '');
+  };
 
   const formatFileSize = (bytes?: number | null) => {
     if (!bytes) return 'Unknown';
@@ -144,7 +150,17 @@ export function AssetList() {
               <TableBody>
                 {filteredAssets.map((asset) => (
                   <TableRow key={asset.id}>
-                    <TableCell className="pl-4"><FileIcon className="h-5 w-5 text-blue-500" /></TableCell>
+                    <TableCell className="pl-4">
+                      {isImageFile(asset.filename) ? (
+                        <AssetThumbnail 
+                          id={asset.id} 
+                          filename={asset.filename}
+                          className="h-12 w-12" 
+                        />
+                      ) : (
+                        <FileIcon className="h-5 w-5 text-blue-500" />
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{asset.filename}</TableCell>
                     <TableCell>{asset.description || '-'}</TableCell>
                     <TableCell>{formatFileSize(asset.fileSize)}</TableCell>
