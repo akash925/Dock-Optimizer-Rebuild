@@ -155,6 +155,8 @@ export default function AssetEditPage() {
         <AssetPhotoDropzone 
           onUpload={uploadPhotoMutation.mutateAsync}
           existing={asset.photoUrl}
+          assetId={assetId}
+          tenantId={asset.tenantId}
         />
       </div>
       

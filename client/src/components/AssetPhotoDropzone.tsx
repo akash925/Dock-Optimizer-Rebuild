@@ -4,11 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { UploadCloud, X, Loader2, ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AssetPhotoDropzoneProps {
   onUpload: (file: File) => Promise<void>;
   existing?: string | null;
   className?: string;
+  assetId?: string | number;
+  tenantId?: string | number;
 }
 
 /**
@@ -20,12 +23,15 @@ interface AssetPhotoDropzoneProps {
 export default function AssetPhotoDropzone({ 
   onUpload, 
   existing, 
-  className = "" 
+  className = "",
+  assetId,
+  tenantId
 }: AssetPhotoDropzoneProps) {
   const [preview, setPreview] = useState<string | null>(existing || null);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -62,6 +68,32 @@ export default function AssetPhotoDropzone({
     if (!selectedFile) return;
 
     setUploading(true);
+    
+    // Optimistic update - immediately show the new photo in cache
+    const optimisticUrl = preview; // Use the blob URL temporarily
+    if (assetId && tenantId) {
+      const queryKey = [`/api/company-assets/company-assets/${assetId}`];
+      queryClient.setQueryData(queryKey, (oldData: any) => {
+        if (oldData) {
+          return { ...oldData, photoUrl: optimisticUrl };
+        }
+        return oldData;
+      });
+      
+      // Also update the list cache if it exists
+      const listQueryKey = ['companyAssets', tenantId];
+      queryClient.setQueryData(listQueryKey, (oldData: any) => {
+        if (Array.isArray(oldData)) {
+          return oldData.map((asset: any) => 
+            asset.id === Number(assetId) 
+              ? { ...asset, photoUrl: optimisticUrl }
+              : asset
+          );
+        }
+        return oldData;
+      });
+    }
+    
     try {
       await onUpload(selectedFile);
       
@@ -74,12 +106,45 @@ export default function AssetPhotoDropzone({
         title: 'Photo uploaded',
         description: 'Asset photo has been updated successfully',
       });
+      
+      // Invalidate queries to get the real CDN URL
+      if (assetId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/company-assets/company-assets/${assetId}`] });
+        if (tenantId) {
+          queryClient.invalidateQueries({ queryKey: ['companyAssets', tenantId] });
+        }
+      }
     } catch (error) {
       toast({
         title: 'Upload failed',
         description: error instanceof Error ? error.message : 'Failed to upload photo',
         variant: 'destructive',
       });
+      
+      // Revert optimistic update on failure
+      if (assetId) {
+        const queryKey = [`/api/company-assets/company-assets/${assetId}`];
+        queryClient.setQueryData(queryKey, (oldData: any) => {
+          if (oldData) {
+            return { ...oldData, photoUrl: existing };
+          }
+          return oldData;
+        });
+        
+        if (tenantId) {
+          const listQueryKey = ['companyAssets', tenantId];
+          queryClient.setQueryData(listQueryKey, (oldData: any) => {
+            if (Array.isArray(oldData)) {
+              return oldData.map((asset: any) => 
+                asset.id === Number(assetId) 
+                  ? { ...asset, photoUrl: existing }
+                  : asset
+              );
+            }
+            return oldData;
+          });
+        }
+      }
       
       // Reset preview on failure
       if (preview && preview.startsWith('blob:')) {

@@ -3,6 +3,7 @@ import { companyAssetsService } from './service';
 import { insertAssetSchema, insertCompanyAssetSchema, updateCompanyAssetSchema, AssetCategory } from '@shared/schema';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
+import { serializeCompanyAsset, serializeCompanyAssets } from './serializer';
 
 /**
  * List all assets or filter by user ID
@@ -252,7 +253,10 @@ export const listCompanyAssets = async (req: Request, res: Response) => {
     
     console.log(`DEBUG: Company assets result count: ${companyAssets.length}`);
     
-    return res.json(companyAssets);
+    // Serialize assets to ensure CDN URLs are properly formatted
+    const serializedAssets = serializeCompanyAssets(companyAssets);
+    
+    return res.json(serializedAssets);
   } catch (error) {
     console.error('Error fetching company assets:', error);
     return res.status(500).json({ error: 'Failed to fetch company assets' });
@@ -274,7 +278,10 @@ export const getCompanyAssetById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Company asset not found' });
     }
     
-    return res.json(asset);
+    // Serialize asset to ensure CDN URL is properly formatted
+    const serializedAsset = serializeCompanyAsset(asset);
+    
+    return res.json(serializedAsset);
   } catch (error) {
     console.error('Error fetching company asset:', error);
     return res.status(500).json({ error: 'Failed to fetch company asset' });
@@ -369,7 +376,11 @@ export const createCompanyAsset = async (req: Request, res: Response) => {
     
     // Create the company asset
     const asset = await companyAssetsService.createCompanyAsset(companyAssetData, photoBuffer);
-    return res.status(201).json(asset);
+    
+    // Serialize asset to ensure CDN URL is properly formatted
+    const serializedAsset = serializeCompanyAsset(asset);
+    
+    return res.status(201).json(serializedAsset);
   } catch (error) {
     console.error('Error creating company asset:', error);
     return res.status(500).json({ error: 'Failed to create company asset' });
@@ -512,11 +523,14 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
     // Update the company asset
     const updatedAsset = await companyAssetsService.updateCompanyAsset(id, updateData, photoBuffer);
     
-    if (!updatedAsset) {
+        if (!updatedAsset) {
       return res.status(500).json({ error: 'Failed to update company asset' });
     }
-    
-    return res.json(updatedAsset);
+
+    // Serialize asset to ensure CDN URL is properly formatted
+    const serializedAsset = serializeCompanyAsset(updatedAsset);
+
+    return res.json(serializedAsset);
   } catch (error) {
     console.error('Error updating company asset:', error);
     return res.status(500).json({ error: 'Failed to update company asset' });
@@ -659,11 +673,14 @@ export const updateCompanyAssetPhoto = async (req: Request, res: Response) => {
     // Update only the photo
     const updatedAsset = await companyAssetsService.updateCompanyAsset(id, {}, req.file.buffer);
     
-    if (!updatedAsset) {
+        if (!updatedAsset) {
       return res.status(500).json({ error: 'Failed to update asset photo' });
     }
-    
-    return res.json({ photoUrl: updatedAsset.photoUrl });
+
+    // Serialize asset to ensure CDN URL is properly formatted
+    const serializedAsset = serializeCompanyAsset(updatedAsset);
+
+    return res.json({ photoUrl: serializedAsset.photoUrl });
   } catch (error) {
     console.error('Error updating company asset photo:', error);
     return res.status(500).json({ error: 'Failed to update asset photo' });
