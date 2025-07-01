@@ -72,7 +72,7 @@ export default function AssetPhotoDropzone({
     // Optimistic update - immediately show the new photo in cache
     const optimisticUrl = preview; // Use the blob URL temporarily
     if (assetId && tenantId) {
-      const queryKey = [`/api/company-assets/company-assets/${assetId}`];
+      const queryKey = ['companyAssets', tenantId, String(assetId)];
       queryClient.setQueryData(queryKey, (oldData: any) => {
         if (oldData) {
           return { ...oldData, photoUrl: optimisticUrl };
@@ -108,11 +108,9 @@ export default function AssetPhotoDropzone({
       });
       
       // Invalidate queries to get the real CDN URL
-      if (assetId) {
-        queryClient.invalidateQueries({ queryKey: [`/api/company-assets/company-assets/${assetId}`] });
-        if (tenantId) {
-          queryClient.invalidateQueries({ queryKey: ['companyAssets', tenantId] });
-        }
+      if (assetId && tenantId) {
+        queryClient.invalidateQueries({ queryKey: ['companyAssets', tenantId, String(assetId)] });
+        queryClient.invalidateQueries({ queryKey: ['companyAssets', tenantId] });
       }
     } catch (error) {
       toast({
@@ -122,8 +120,8 @@ export default function AssetPhotoDropzone({
       });
       
       // Revert optimistic update on failure
-      if (assetId) {
-        const queryKey = [`/api/company-assets/company-assets/${assetId}`];
+      if (assetId && tenantId) {
+        const queryKey = ['companyAssets', tenantId, String(assetId)];
         queryClient.setQueryData(queryKey, (oldData: any) => {
           if (oldData) {
             return { ...oldData, photoUrl: existing };
@@ -131,19 +129,17 @@ export default function AssetPhotoDropzone({
           return oldData;
         });
         
-        if (tenantId) {
-          const listQueryKey = ['companyAssets', tenantId];
-          queryClient.setQueryData(listQueryKey, (oldData: any) => {
-            if (Array.isArray(oldData)) {
-              return oldData.map((asset: any) => 
-                asset.id === Number(assetId) 
-                  ? { ...asset, photoUrl: existing }
-                  : asset
-              );
-            }
-            return oldData;
-          });
-        }
+        const listQueryKey = ['companyAssets', tenantId];
+        queryClient.setQueryData(listQueryKey, (oldData: any) => {
+          if (Array.isArray(oldData)) {
+            return oldData.map((asset: any) => 
+              asset.id === Number(assetId) 
+                ? { ...asset, photoUrl: existing }
+                : asset
+            );
+          }
+          return oldData;
+        });
       }
       
       // Reset preview on failure

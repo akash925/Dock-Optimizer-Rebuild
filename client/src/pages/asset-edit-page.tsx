@@ -9,6 +9,7 @@ import { Loader2, ArrowLeft, Barcode, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 import { BarcodeGenerator } from '@/components/company-assets/barcode-generator';
 import AssetPhotoDropzone from '@/components/AssetPhotoDropzone';
@@ -19,10 +20,11 @@ export default function AssetEditPage() {
   const assetId = params?.id;
   const [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: asset, isLoading, error } = useQuery<CompanyAsset>({
-    queryKey: [`/api/company-assets/company-assets/${assetId}`],
+    queryKey: ['companyAssets', user?.tenantId, assetId],
     queryFn: async () => {
       const response = await fetch(`/api/company-assets/company-assets/${assetId}`);
       if (!response.ok) {
@@ -52,7 +54,7 @@ export default function AssetEditPage() {
     },
     onSuccess: () => {
       // Invalidate the asset query to refresh the data
-      queryClient.invalidateQueries({ queryKey: [`/api/company-assets/company-assets/${assetId}`] });
+      queryClient.invalidateQueries({ queryKey: ['companyAssets', user?.tenantId, assetId] });
     },
     onError: (error) => {
       toast({
@@ -74,7 +76,7 @@ export default function AssetEditPage() {
     },
     onSuccess: () => {
       // Invalidate the asset query to refresh the data
-      queryClient.invalidateQueries({ queryKey: [`/api/company-assets/company-assets/${assetId}`] });
+      queryClient.invalidateQueries({ queryKey: ['companyAssets', user?.tenantId, assetId] });
     },
     onError: (error) => {
       toast({

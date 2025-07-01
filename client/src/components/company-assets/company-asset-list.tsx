@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CompanyAsset, AssetCategory, AssetStatus, AssetLocation } from '@shared/schema';
 import { useLocation } from 'wouter';
 import { formatDate } from '@/lib/date-utils';
+import { useAuth } from '@/hooks/use-auth';
 import React from 'react';
 
 // Add type declaration for window.searchTimeout
@@ -124,6 +125,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
+  const { user } = useAuth();
 
   // Search and filter states
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -186,7 +188,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   
   // Fetch company assets with filters
   const { data: assets, isLoading, error, refetch } = useQuery<CompanyAsset[]>({
-    queryKey: ['/api/company-assets/company-assets', queryString],
+    queryKey: ['companyAssets', user?.tenantId, queryString],
     queryFn: async () => {
       const endpoint = `/api/company-assets/company-assets${queryString ? `?${queryString}` : ''}`;
       const response = await apiRequest('GET', endpoint);
@@ -220,8 +222,8 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       });
       
       // Invalidate query to refresh the list with current search parameters
-      // Build query key that includes current search/filter context
-      let queryKey = ['/api/company-assets/company-assets'];
+      // Build tenant-safe query key that includes current search/filter context
+      let queryKey = ['companyAssets', user?.tenantId];
       // Add the current search term and filters to maintain context
       if (debouncedSearchTerm || Object.values(filters).some(val => val !== null && (Array.isArray(val) ? val.length > 0 : true))) {
         queryKey.push('filtered');
@@ -258,8 +260,8 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
       });
       
       // Invalidate query to refresh the list with current search parameters
-      // Build query key that includes current search/filter context
-      let queryKey = ['/api/company-assets/company-assets'];
+      // Build tenant-safe query key that includes current search/filter context
+      let queryKey = ['companyAssets', user?.tenantId];
       // Add the current search term and filters to maintain context
       if (debouncedSearchTerm || Object.values(filters).some(val => val !== null && (Array.isArray(val) ? val.length > 0 : true))) {
         queryKey.push('filtered');
