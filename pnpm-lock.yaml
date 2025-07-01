@@ -263,6 +263,9 @@ importers:
       lucide-react:
         specifier: ^0.453.0
         version: 0.453.0(react@18.3.1)
+      luxon:
+        specifier: ^3.6.1
+        version: 3.6.1
       memorystore:
         specifier: ^1.6.7
         version: 1.6.7
@@ -372,6 +375,9 @@ importers:
       '@types/express-session':
         specifier: ^1.18.0
         version: 1.18.2
+      '@types/luxon':
+        specifier: ^3.6.2
+        version: 3.6.2
       '@types/mime-types':
         specifier: ^3.0.1
         version: 3.0.1
@@ -2669,6 +2675,9 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/luxon@3.6.2':
+    resolution: {integrity: sha512-R/BdP7OxEMc44l2Ex5lSXHoIXTB2JLNa3y2QISIbr58U/YcsffyQrYW//hZSdrfxrjRZj3GcUoxMPGdO8gSYuw==}
 
   '@types/mime-types@3.0.1':
     resolution: {integrity: sha512-xRMsfuQbnRq1Ef+C+RKaENOxXX87Ygl38W1vDfPHRku02TgQr+Qd8iivLtAMcR0KF5/29xlnFihkTlbqFrGOVQ==}
@@ -8885,6 +8894,8 @@ snapshots:
       pretty-format: 29.7.0
 
   '@types/json-schema@7.0.15': {}
+
+  '@types/luxon@3.6.2': {}
 
   '@types/mime-types@3.0.1': {}
 

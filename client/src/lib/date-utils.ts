@@ -1,43 +1,30 @@
+import { DateTime } from 'luxon';
+
 /**
- * Format a date object to a human-readable string
+ * Format a date object to a human-readable string using Luxon
  * @param date The date to format
  * @returns Formatted date string (e.g. "Apr 23, 2025, 8:30 PM")
  */
 export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric', 
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: true
-  }).format(date);
+  return DateTime.fromJSDate(date).toFormat('LLL d, yyyy, h:mm a');
 }
 
 /**
- * Format a date as a short date string
+ * Format a date as a short date string using Luxon
  * @param date The date to format
  * @returns Formatted date string (e.g. "Apr 23, 2025")
  */
 export function formatShortDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  }).format(date);
+  return DateTime.fromJSDate(date).toFormat('LLL d, yyyy');
 }
 
 /**
- * Format a date as a time string
+ * Format a date as a time string using Luxon
  * @param date The date to format
  * @returns Formatted time string (e.g. "8:30 PM")
  */
 export function formatTime(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: true
-  }).format(date);
+  return DateTime.fromJSDate(date).toFormat('h:mm a');
 }
 
 /**
@@ -71,22 +58,15 @@ export function getRelativeTimeString(date: Date): string {
 }
 
 /**
- * Format a date/time string in a specific facility's timezone
+ * Format a date/time string in a specific facility's timezone using Luxon
  * @param dateString The date string to format
  * @param timezone The facility's timezone (e.g. "America/New_York")
  * @returns Formatted time string in facility timezone
  */
 export function formatInFacilityTimeZone(dateString: string, timezone?: string): string {
   try {
-    const date = new Date(dateString);
     const tz = timezone || 'America/New_York';
-    
-    return new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true,
-      timeZone: tz
-    }).format(date);
+    return DateTime.fromISO(dateString).setZone(tz).toFormat('h:mm a');
   } catch (e) {
     return formatTime(new Date(dateString));
   }
@@ -104,7 +84,7 @@ export function formatForDualTimeZoneDisplay(dateString: string, facilityTimezon
     const facilityTime = formatInFacilityTimeZone(dateString, facilityTimezone);
     const userTime = formatTime(date);
     
-    if (facilityTimezone && facilityTimezone !== Intl.DateTimeFormat().resolvedOptions().timeZone) {
+    if (facilityTimezone && facilityTimezone !== DateTime.local().zoneName) {
       return `${facilityTime} (${getTimeZoneAbbreviation(facilityTimezone)})`;
     }
     
@@ -115,21 +95,13 @@ export function formatForDualTimeZoneDisplay(dateString: string, facilityTimezon
 }
 
 /**
- * Get timezone abbreviation from timezone identifier
+ * Get timezone abbreviation from timezone identifier using Luxon
  * @param timezone The timezone identifier (e.g. "America/New_York")
  * @returns Timezone abbreviation (e.g. "EST" or "EDT")
  */
 export function getTimeZoneAbbreviation(timezone: string): string {
   try {
-    const date = new Date();
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      timeZoneName: 'short'
-    });
-    
-    const parts = formatter.formatToParts(date);
-    const timeZonePart = parts.find(part => part.type === 'timeZoneName');
-    return timeZonePart?.value || timezone;
+    return DateTime.now().setZone(timezone).toFormat('ZZZZ');
   } catch (e) {
     return timezone;
   }

@@ -433,6 +433,8 @@ ${msg.text}
 /**
  * Format a date for a specific timezone with enhanced error handling and debugging
  */
+import { formatWithTZ, formatForEmail } from './utils/dateTime';
+
 function formatDateForTimezone(date: Date, timezone: string, formatStr: string): string {
   try {
     console.log(`[EMAIL] Formatting date: ${date} for timezone: ${timezone} with format: ${formatStr}`);
@@ -458,44 +460,28 @@ function formatDateForTimezone(date: Date, timezone: string, formatStr: string):
     const safeDate = new Date(date.getTime());
     console.log(`[EMAIL] Using safe date copy: ${safeDate.toISOString()} for timezone: ${timezone}`);
     
-    // Use a simpler, more reliable formatting approach
-    if (formatStr.includes('yyyy')) {
-      try {
-        // Create a formatter for the timezone
-        const dateTimeFormat = new Intl.DateTimeFormat('en-US', {
-          timeZone: timezone,
-          weekday: formatStr.includes('EEEE') ? 'long' : undefined,
-          year: 'numeric',
-          month: 'long', 
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-        
-        const formattedParts = dateTimeFormat.formatToParts(safeDate);
-        const parts: { [key: string]: string } = {};
-        formattedParts.forEach(part => {
-          parts[part.type] = part.value;
-        });
-        
-        // Reconstruct the formatted string manually to match expected format
-        let finalResult: string;
-        if (formatStr.includes('EEEE')) {
-          finalResult = `${parts.weekday}, ${parts.month} ${parts.day}, ${parts.year} ${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
-        } else {
-          finalResult = `${parts.month} ${parts.day}, ${parts.year} ${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
-        }
-        
-        console.log(`[EMAIL] Formatted with Intl.DateTimeFormat: ${finalResult}`);
-        return finalResult;
-      } catch (tzError) {
-        console.error(`[EMAIL] Error with timezone formatting: ${tzError}`);
-        // Fallback to basic date format without timezone
-        const basicFormatted = format(safeDate, 'EEEE, MMMM d, yyyy h:mm a');
-        console.log(`[EMAIL] Basic formatted result: ${basicFormatted}`);
-        return basicFormatted;
-      }
+    // Use Luxon for proper timezone handling
+    try {
+      // Convert to ISO string for Luxon
+      const isoDate = safeDate.toISOString();
+      
+      // Map date-fns format to Luxon format
+      let luxonFormat = formatStr
+        .replace('yyyy', 'yyyy')
+        .replace('EEEE', 'cccc')  // Full weekday name
+        .replace('MMMM', 'MMMM')  // Full month name
+        .replace('aa', 'a')       // AM/PM
+        .replace('h:mm', 'h:mm'); // Hour:minute
+      
+      const finalResult = formatWithTZ(isoDate, timezone, luxonFormat);
+      console.log(`[EMAIL] Formatted with Luxon: ${finalResult}`);
+      return finalResult;
+    } catch (tzError) {
+      console.error(`[EMAIL] Error with Luxon timezone formatting: ${tzError}`);
+      // Fallback to basic date format without timezone
+      const basicFormatted = format(safeDate, 'EEEE, MMMM d, yyyy h:mm a');
+      console.log(`[EMAIL] Basic formatted result: ${basicFormatted}`);
+      return basicFormatted;
     }
     
     // Standard formatting path without year issues
@@ -554,16 +540,13 @@ function getTimezoneAbbr(timezone: string, date: Date): string {
     // Log input values for debugging
     console.log(`[getTimezoneAbbr] Using timezone: ${timezone}, date: ${date.toISOString()}`);
     
-    // This will return something like "EST" or "EDT" depending on daylight saving time
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      timeZoneName: 'short'
-    }).formatToParts(date)
-      .find(part => part.type === 'timeZoneName');
+    // Use Luxon to get timezone abbreviation 
+    const isoDate = date.toISOString();
+    const luxonResult = formatWithTZ(isoDate, timezone, 'ZZZZ');
     
-    if (parts?.value) {
-      console.log(`[getTimezoneAbbr] Found abbreviation: ${parts.value}`);
-      return parts.value;
+    if (luxonResult && luxonResult !== 'GMT') {
+      console.log(`[getTimezoneAbbr] Found abbreviation with Luxon: ${luxonResult}`);
+      return luxonResult;
     }
     
     // Fall back to common abbreviations or region name
@@ -773,7 +756,7 @@ export async function sendConfirmationEmail(
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   // Safely get timezones with fallbacks
   const facilityTimezone = schedule.timezone || 'America/New_York';
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+  const userTimezone = 'America/New_York'; // Default to Eastern time for server-side operations
 
   // Log the timezones for debugging
   console.log(`[EMAIL] Using timezones: Facility=${facilityTimezone}, User=${userTimezone}`);
@@ -1113,7 +1096,7 @@ export async function sendRescheduleEmail(
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   // Safely get timezones with fallbacks
   const facilityTimezone = schedule.timezone || 'America/New_York';
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+  const userTimezone = 'America/New_York'; // Default to Eastern time for server-side operations
 
   // Safely parse dates
   const parseDate = (dateInput: Date | string | null): Date => {
@@ -1397,7 +1380,7 @@ export async function sendCancellationEmail(
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   // Safely get timezones with fallbacks
   const facilityTimezone = schedule.timezone || 'America/New_York';
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+  const userTimezone = 'America/New_York'; // Default to Eastern time for server-side operations
 
   // Safely parse dates
   const parseDate = (dateInput: Date | string | null): Date => {
@@ -1562,7 +1545,7 @@ export async function sendReminderEmail(
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
   // Safely get timezones with fallbacks
   const facilityTimezone = schedule.timezone || 'America/New_York';
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
+  const userTimezone = 'America/New_York'; // Default to Eastern time for server-side operations
 
   // Safely parse dates
   const parseDate = (dateInput: Date | string | null): Date => {
@@ -1854,7 +1837,7 @@ export async function sendCheckoutEmail(
   const endDate = parseDate(schedule.endTime);
   
   // Get user's timezone (from their appointment data) or default to UTC
-  const userTimezone = schedule.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const userTimezone = schedule.timezone || 'America/New_York';
   
   // Get facility timezone (assume EST for now, should be stored in facility data)
   const facilityTimezone = 'America/New_York'; // Default to Eastern Time for facilities
