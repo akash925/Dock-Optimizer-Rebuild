@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import { Camera, Loader2, RotateCcw, Scan, XCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 
 export type AppointmentScannerProps = {
   onScanComplete?: (scheduleId: number) => void;
@@ -40,7 +41,9 @@ export function AppointmentScanner({
   const [, navigate] = useLocation();
   
   const videoRef = useRef<HTMLDivElement>(null);
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   
   const loadCameras = async () => {
     try {
@@ -63,25 +66,17 @@ export function AppointmentScanner({
       setLoading(true);
       setPermissionDenied(false);
       
+      // Clean up previous scanner
+      if (readerRef.current) {
+        readerRef.current = null;
+      }
+      
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
       
-      const constraints: MediaStreamConstraints = {
-        video: {
-          deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      };
-      
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
-      
       if (videoRef.current) {
         const video = document.createElement('video');
-        video.srcObject = stream;
         video.setAttribute('playsinline', 'true');
         video.style.width = '100%';
         video.style.height = '100%';
@@ -89,59 +84,26 @@ export function AppointmentScanner({
         
         videoRef.current.innerHTML = '';
         videoRef.current.appendChild(video);
+        videoElementRef.current = video;
         
-        await video.play();
-        
-        // Wait for video to start playing
-        await new Promise(resolve => {
-          video.onplaying = resolve;
-        });
+        // Initialize @zxing/browser reader
+        const reader = new BrowserMultiFormatReader();
+        readerRef.current = reader;
         
         setLoading(false);
         
-        // Initialize barcode detection
-        import('quagga').then(({ default: Quagga }) => {
-          const canvas = document.createElement('canvas');
-          canvas.style.position = 'absolute';
-          canvas.style.top = '0';
-          canvas.style.left = '0';
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          
-          if (videoRef.current) {
-            videoRef.current.appendChild(canvas);
+        // Start decoding from video device
+        const result = await reader.decodeFromVideoDevice(selectedCamera, video, (result, error) => {
+          if (result) {
+            console.log('Detected QR/barcode:', result.getText());
+            handleBarcodeDetected(result.getText());
           }
-          
-          const interval = setInterval(() => {
-            if (!open || !scanning) {
-              clearInterval(interval);
-              return;
+          if (error) {
+            // Only log non-trivial errors
+            if (!(error.name === 'NotFoundException')) {
+              console.debug('Scanner error:', error);
             }
-            
-            // Capture frame from video
-            const ctx = canvas.getContext('2d');
-            if (ctx && video.videoWidth > 0) {
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              
-              // Get frame data
-              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-              
-              // Process with Quagga
-              Quagga.decodeSingle({
-                decoder: {
-                  readers: ['code_128_reader', 'ean_reader', 'ean_8_reader', 'code_39_reader', 'code_93_reader', 'qr_code']
-                },
-                locate: true,
-                src: imageData
-              }, (result: any) => {
-                if (result && result.codeResult) {
-                  console.log('Detected barcode:', result.codeResult.code);
-                  handleBarcodeDetected(result.codeResult.code);
-                  clearInterval(interval);
-                }
-              });
-            }
-          }, 500); // Check every 500ms
+          }
         });
       }
     } catch (error) {
@@ -226,11 +188,19 @@ export function AppointmentScanner({
     setScanning(false);
     setSearching(false);
     
+    // Clean up @zxing reader
+    if (readerRef.current) {
+      readerRef.current = null;
+    }
+    
     // Clean up video stream
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    
+    // Navigate to schedules to prevent blank screen
+    navigate('/schedules', { replace: true });
   };
   
   const handleRetry = () => {
@@ -249,6 +219,11 @@ export function AppointmentScanner({
     }
     
     return () => {
+      // Clean up @zxing reader when component unmounts
+      if (readerRef.current) {
+        readerRef.current = null;
+      }
+      
       // Clean up video stream when component unmounts
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
