@@ -44,7 +44,7 @@
     "@fullcalendar/timegrid": "^6.1.17",
     "@hookform/resolvers": "^3.9.1",
     "@jridgewell/trace-mapping": "^0.3.25",
-    "@neondatabase/serverless": "^0.8.0",
+    "@neondatabase/serverless": "^1.0.1",
     "@nivo/bar": "^0.99.0",
     "@nivo/core": "^0.99.0",
     "@nivo/heatmap": "^0.99.0",
