@@ -4,6 +4,8 @@ import { promisify } from 'util';
 import { Asset, InsertAsset, CompanyAsset, InsertCompanyAsset, UpdateCompanyAsset } from '@shared/schema';
 import { getStorage } from '../../storage';
 import { blobStorageService } from '../../services/blob-storage';
+import { assetStorage } from '../../services/assetStorage';
+import mime from 'mime-types';
 
 // REMOVED: Direct filesystem operations - now using blob storage
 // const UPLOAD_DIR = path.resolve('./uploads');
@@ -337,22 +339,15 @@ export class CompanyAssetsService implements AssetService {
     try {
       let photoUrl = null;
 
-      // FIXED: Use blob storage for photo upload
+      // FIXED: Use new assetStorage service for photo upload with buffer streaming
       if (photoBuffer) {
-        const uploadedFile = await blobStorageService.uploadFile(
-          photoBuffer,
-          `asset-photo-${Date.now()}.jpg`,
-          'image/jpeg',
-          {
-            folder: 'asset-photos',
-            maxSize: 5 * 1024 * 1024, // 5MB limit for photos
-            allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-            tenantId: companyAsset.tenantId,
-            uploadedBy: 1 // TODO: Get from context
-          }
-        );
+        // Generate unique ID for the asset (temporary - will be replaced with actual ID after creation)
+        const tempId = `temp-${Date.now()}`;
+        const fileExtension = mime.extension('image/jpeg') || 'jpg';
+        const key = `tenants/${companyAsset.tenantId}/assets/${tempId}.${fileExtension}`;
         
-        photoUrl = uploadedFile.url;
+        // Upload using in-memory buffer streaming
+        photoUrl = await assetStorage.putObject(key, photoBuffer, 'image/jpeg');
       }
       
       // Add photoUrl to company asset data
@@ -364,7 +359,26 @@ export class CompanyAssetsService implements AssetService {
       // Save to database
       const storage = await getStorage();
       if (typeof storage.createCompanyAsset === 'function') {
-        return await storage.createCompanyAsset(assetWithPhoto);
+        const createdAsset = await storage.createCompanyAsset(assetWithPhoto);
+        
+        // If we uploaded a photo with temp ID, rename the file to use the actual asset ID
+        if (photoUrl && photoBuffer) {
+          try {
+            const actualFileExtension = mime.extension('image/jpeg') || 'jpg';
+            const actualKey = `tenants/${companyAsset.tenantId}/assets/${createdAsset.id}.${actualFileExtension}`;
+            const actualPhotoUrl = await assetStorage.putObject(actualKey, photoBuffer, 'image/jpeg');
+            
+            // Update the asset with the correct photo URL
+            await storage.updateCompanyAsset(createdAsset.id, { photoUrl: actualPhotoUrl });
+            return { ...createdAsset, photoUrl: actualPhotoUrl };
+          } catch (renameError) {
+            console.error('Error renaming photo file with actual asset ID:', renameError);
+            // Return the asset with the temp URL if renaming fails
+            return createdAsset;
+          }
+        }
+        
+        return createdAsset;
       } else {
         console.error('Storage does not implement createCompanyAsset method');
         throw new Error('Unable to create company asset: storage method not available');
@@ -390,39 +404,17 @@ export class CompanyAssetsService implements AssetService {
 
       let updateData: UpdateCompanyAsset = { ...companyAsset };
       
-      // FIXED: Use blob storage for photo updates
+      // FIXED: Use new assetStorage service for photo updates with buffer streaming
       if (photoBuffer) {
-        // Delete old photo from blob storage if one exists
-        if (existingAsset.photoUrl && existingAsset.photoUrl.startsWith('/api/files/')) {
-          // Extract file ID from URL pattern: /api/files/{folder}/{fileId}.ext
-          const urlParts = existingAsset.photoUrl.split('/');
-          const fileName = urlParts[urlParts.length - 1];
-          const fileId = fileName.split('.')[0]; // Remove extension to get file ID
-          
-          try {
-            await blobStorageService.deleteFile(fileId, existingAsset.tenantId);
-          } catch (error) {
-            console.error(`Error deleting old photo from blob storage ${fileId}:`, error);
-            // Continue with the update even if old photo deletion fails
-          }
-        }
-
-        // Upload new photo to blob storage
-        const uploadedFile = await blobStorageService.uploadFile(
-          photoBuffer,
-          `asset-photo-${Date.now()}.jpg`,
-          'image/jpeg',
-          {
-            folder: 'asset-photos',
-            maxSize: 5 * 1024 * 1024, // 5MB limit for photos
-            allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-            tenantId: existingAsset.tenantId,
-            uploadedBy: 1 // TODO: Get from context
-          }
-        );
+        // Get file extension from mime type
+        const fileExtension = mime.extension('image/jpeg') || 'jpg';
+        const key = `tenants/${existingAsset.tenantId}/assets/${id}.${fileExtension}`;
+        
+        // Upload using in-memory buffer streaming
+        const photoUrl = await assetStorage.putObject(key, photoBuffer, 'image/jpeg');
         
         // Add the new photo URL to the update data
-        updateData.photoUrl = uploadedFile.url;
+        updateData.photoUrl = photoUrl;
       }
       
       // Update the database record
