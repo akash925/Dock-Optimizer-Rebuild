@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo } from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
+import ErrorBoundary from "@/ErrorBoundary";
 import Dashboard from "@/pages/dashboard";
 import AuthPage from "@/pages/auth-page";
 import Schedules from "@/pages/schedules";
@@ -293,7 +294,9 @@ function App() {
         <ModuleProvider>
           <OrgProvider>
             {/* Order of providers is critical - ModuleProvider must be before OrgProvider which must be before AppRouter */}
-            <AppRouter />
+            <ErrorBoundary>
+              <AppRouter />
+            </ErrorBoundary>
             <Toaster />
           </OrgProvider>
         </ModuleProvider>
