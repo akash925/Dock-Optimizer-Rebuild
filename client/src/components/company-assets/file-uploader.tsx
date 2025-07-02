@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { UploadCloud, Loader2 } from 'lucide-react';
@@ -13,6 +14,7 @@ export function FileUploader() {
   const [file, setFile] = useState<File | null>(null);
   const [description, setDescription] = useState('');
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const uploadMutation = useMutation({
@@ -48,9 +50,8 @@ export function FileUploader() {
       setFile(null);
       setDescription('');
       
-      // Invalidate both asset queries to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/assets'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/company-assets/assets'] });
+      // Invalidate asset queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['companyAssets', user?.tenantId] });
     },
     onError: (error: Error) => {
       toast({

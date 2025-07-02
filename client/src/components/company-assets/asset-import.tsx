@@ -1,6 +1,7 @@
 import { useState, useRef, ChangeEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { 
@@ -122,6 +123,7 @@ export function AssetImport() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Field to column mapping
@@ -465,7 +467,7 @@ export function AssetImport() {
       if (fileInputRef.current) fileInputRef.current.value = '';
       
       // Invalidate queries to refresh lists
-      queryClient.invalidateQueries({ queryKey: ['/api/company-assets/company-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['companyAssets', user?.tenantId] });
       
       setImportStats({
         total: data.total,

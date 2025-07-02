@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { 
   AssetCategory, 
   AssetLocation, 
@@ -42,6 +43,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [tagsInput, setTagsInput] = useState<string>('');
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const isEditing = !!assetToEdit;
 
@@ -173,7 +175,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       setTagsInput('');
       
       // Invalidate queries to refresh lists
-      queryClient.invalidateQueries({ queryKey: ['/api/company-assets/company-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['companyAssets', user?.tenantId] });
       
       // Call success callback if provided
       if (onSuccess) onSuccess();
@@ -233,7 +235,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       // Invalidate queries to refresh lists - this will match all query keys that start with this prefix
       // ensuring that searches with different filter parameters are also refreshed
       queryClient.invalidateQueries({
-        queryKey: ['/api/company-assets/company-assets'],
+        queryKey: ['companyAssets', user?.tenantId],
         exact: false
       });
       

@@ -1490,6 +1490,11 @@ export class DatabaseStorage implements IStorage {
       const holidays = await query.orderBy(organizationHolidays.date);
       return holidays;
     } catch (error) {
+      // Gracefully handle missing holiday table - this is expected in some deployments
+      if ((error as any).code === '42P01') { // Table does not exist
+        console.log(`[DatabaseStorage] organization_holidays table does not exist - returning empty array for tenant ${tenantId}`);
+        return []; // Return empty array to prevent crashes
+      }
       console.error('Error fetching organization holidays:', error);
       return [];
     }
