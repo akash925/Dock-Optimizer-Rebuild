@@ -157,58 +157,120 @@ export default function BolUpload({
         setUploadProgress(45);
       }
       
-      // 3. Upload the file to the server (with enhanced error handling)
+      // 3. Upload the file to S3 using presigned URL
       setUploadStage('uploading');
-      setUploadProgress(70); 
-      const formData = new FormData();
-      formData.append('bolFile', compressedFile);
+      setUploadProgress(50); 
       
-      // Include extracted metadata in the upload for server-side storage
+      console.log('Getting presigned URL for BOL upload...');
+      
+      // Step 3a: Get presigned URL
+      let presignResponse;
       try {
-      if (parsedData.bolNumber) formData.append('bolNumber', parsedData.bolNumber);
-      if (parsedData.customerName) formData.append('customerName', parsedData.customerName);
-      if (parsedData.carrierName) formData.append('carrierName', parsedData.carrierName);
-      if (parsedData.mcNumber) formData.append('mcNumber', parsedData.mcNumber);
-      if (parsedData.weight) formData.append('weight', parsedData.weight);
-      if (parsedData.fromAddress) formData.append('fromAddress', parsedData.fromAddress);
-      if (parsedData.toAddress) formData.append('toAddress', parsedData.toAddress);
-      if (parsedData.pickupOrDropoff) formData.append('pickupOrDropoff', parsedData.pickupOrDropoff);
-      
-      // Add more metadata fields for improved processing
-      formData.append('extractionMethod', parsedData.extractionMethod || 'unknown');
-      formData.append('extractionConfidence', String(parsedData.extractionConfidence || 0));
-      formData.append('processingTimestamp', parsedData.processingTimestamp || new Date().toISOString());
-      formData.append('originalFileName', file.name);
-      } catch (metadataError) {
-        console.warn('Error adding metadata to form data:', metadataError);
-        // Continue without metadata if there's an error
-      }
-      
-      console.log('Uploading BOL file to server...');
-      
-      // Make a fetch request to our BOL upload endpoint with better error handling
-      let response;
-      try {
-        response = await fetch('/api/upload-bol', {
+        presignResponse = await fetch('/api/bol-upload/presign', {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileName: compressedFile.name,
+            fileType: compressedFile.type,
+            fileSize: compressedFile.size,
+            scheduleId: scheduleId,
+            appointmentId: scheduleId,
+          }),
         });
       } catch (networkError) {
-        console.error('Network error during upload:', networkError);
+        console.error('Network error getting presigned URL:', networkError);
         const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown network error';
         throw new Error(`Network error: ${errorMessage}. Please check your connection and try again.`);
       }
       
-      if (!response.ok) {
+      if (!presignResponse.ok) {
         let errorText = '';
         try {
-          const errorData = await response.json();
-          errorText = errorData.message || errorData.error || `Server error: ${response.status} ${response.statusText}`;
+          const errorData = await presignResponse.json();
+          errorText = errorData.error || `Server error: ${presignResponse.status} ${presignResponse.statusText}`;
         } catch (e) {
-          errorText = `Server error: ${response.status} ${response.statusText}`;
+          errorText = `Server error: ${presignResponse.status} ${presignResponse.statusText}`;
         }
-        console.error('Server error during upload:', errorText);
-        throw new Error(`Upload failed: ${errorText}`);
+        console.error('Error getting presigned URL:', errorText);
+        throw new Error(`Failed to get upload URL: ${errorText}`);
+      }
+
+      const presignedData = await presignResponse.json();
+      setUploadProgress(60);
+
+      // Step 3b: Upload directly to S3
+      console.log('Uploading BOL file directly to S3...');
+      
+      let s3Response;
+      try {
+        s3Response = await fetch(presignedData.uploadUrl, {
+          method: 'PUT',
+          body: compressedFile,
+          headers: {
+            'Content-Type': compressedFile.type,
+          },
+        });
+      } catch (networkError) {
+        console.error('Network error during S3 upload:', networkError);
+        const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown network error';
+        throw new Error(`S3 upload error: ${errorMessage}. Please check your connection and try again.`);
+      }
+      
+      if (!s3Response.ok) {
+        console.error('S3 upload failed:', s3Response.status, s3Response.statusText);
+        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}`);
+      }
+
+      setUploadProgress(75);
+
+      // Step 3c: Confirm upload and update database
+      console.log('Confirming BOL upload...');
+      
+      let confirmResponse;
+      try {
+        confirmResponse = await fetch('/api/bol-upload/confirm', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            key: presignedData.key,
+            fileName: compressedFile.name,
+            fileType: compressedFile.type,
+            scheduleId: scheduleId,
+            appointmentId: scheduleId,
+            // Include extracted metadata
+            bolNumber: parsedData.bolNumber,
+            customerName: parsedData.customerName,
+            carrierName: parsedData.carrierName,
+            mcNumber: parsedData.mcNumber,
+            weight: parsedData.weight,
+            fromAddress: parsedData.fromAddress,
+            toAddress: parsedData.toAddress,
+            pickupOrDropoff: parsedData.pickupOrDropoff,
+            extractionMethod: parsedData.extractionMethod || 'unknown',
+            extractionConfidence: parsedData.extractionConfidence || 0,
+            processingTimestamp: parsedData.processingTimestamp || new Date().toISOString(),
+          }),
+        });
+      } catch (networkError) {
+        console.error('Network error confirming upload:', networkError);
+        const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown network error';
+        throw new Error(`Network error: ${errorMessage}. Please check your connection and try again.`);
+      }
+      
+      if (!confirmResponse.ok) {
+        let errorText = '';
+        try {
+          const errorData = await confirmResponse.json();
+          errorText = errorData.error || `Server error: ${confirmResponse.status} ${confirmResponse.statusText}`;
+        } catch (e) {
+          errorText = `Server error: ${confirmResponse.status} ${confirmResponse.statusText}`;
+        }
+        console.error('Error confirming upload:', errorText);
+        throw new Error(`Upload confirmation failed: ${errorText}`);
       }
       
       // File has been successfully saved
@@ -218,10 +280,10 @@ export default function BolUpload({
       
       let responseData;
       try {
-        responseData = await response.json();
-        console.log('File upload successful:', responseData);
+        responseData = await confirmResponse.json();
+        console.log('File upload and confirmation successful:', responseData);
       } catch (jsonError) {
-        console.error('Failed to parse server response:', jsonError);
+        console.error('Failed to parse confirmation response:', jsonError);
         throw new Error('Server returned invalid response. Please try again.');
       }
       
