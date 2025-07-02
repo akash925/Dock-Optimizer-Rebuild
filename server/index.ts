@@ -361,9 +361,19 @@ app.use((req, res, next) => {
   console.log(`📊 Module loading complete: ${loadedModules} loaded, ${failedModules} failed`);
   console.log(`🚀 Server starting with core functionality available`);
 
-  // CRITICAL: Add OCR module for document processing
-  console.log('Loading OCR module...');
+  // CRITICAL: Initialize self-healing OCR service
+  console.log('Initializing OCR service...');
   try {
+    // Import and start the self-healing OCR service
+    const { startOcrService, getOcrStatus } = await import('./services/ocrStarter');
+    await startOcrService();
+    
+    // Add OCR status endpoint
+    app.get('/api/ocr/status', async (_req, res) => {
+      const status = await getOcrStatus();
+      res.json(status);
+    });
+    
     // Import the OCR routes module
     const ocrModule = await import('./routes/bol-ocr.mjs' as string);
     
@@ -372,13 +382,10 @@ app.use((req, res, next) => {
       app.use('/api/ocr', (ocrModule as any).default);
       console.log('✅ OCR module routes registered successfully at /api/ocr');
       
-      // Test OCR service initialization
+      // Test OCR service status
       try {
-        // Make a simple health check to the OCR service
-        console.log('🔍 Testing OCR service initialization...');
-        
-        // The OCR service should be accessible now
-        console.log('✅ OCR service is ready for document processing');
+        const status = await getOcrStatus();
+        console.log(`✅ OCR service ready with backend: ${status.backend}`);
         console.log('📄 OCR endpoints available:');
         console.log('   POST /api/ocr/upload - Upload and process documents');
         console.log('   GET  /api/ocr/status - Check OCR service status');
@@ -392,7 +399,7 @@ app.use((req, res, next) => {
     }
     
   } catch (error) {
-    console.error('❌ Failed to load OCR module:', error);
+    console.error('❌ Failed to initialize OCR service:', error);
     console.log('🔧 OCR service will not be available - continuing without it');
   }
 
