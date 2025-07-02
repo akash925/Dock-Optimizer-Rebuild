@@ -37,6 +37,18 @@ companyAssetsRouter.post('/assets',
   controllers.uploadAsset
 );
 
+// POST /api/company-assets/assets/presign - Generate presigned URL for asset file upload
+companyAssetsRouter.post('/assets/presign',
+  isAuthenticated,
+  controllers.generateAssetFilePresignedUrl
+);
+
+// POST /api/company-assets/assets/confirm - Confirm asset file upload
+companyAssetsRouter.post('/assets/confirm',
+  isAuthenticated,
+  controllers.confirmAssetFileUpload
+);
+
 // DELETE /api/company-assets/assets/:id - Delete an asset
 companyAssetsRouter.delete('/assets/:id', isAuthenticated, controllers.deleteAsset);
 
@@ -78,6 +90,18 @@ companyAssetsRouter.put('/company-assets/:id/photo',
   isAuthenticated,
   upload.single('photo'), // 'photo' is the field name for the uploaded photo
   controllers.updateCompanyAssetPhoto
+);
+
+// POST /api/company-assets/company-assets/:id/photo/presign - Generate presigned URL for photo upload
+companyAssetsRouter.post('/company-assets/:id/photo/presign',
+  isAuthenticated,
+  controllers.generateAssetPhotoPresignedUrl
+);
+
+// POST /api/company-assets/company-assets/:id/photo/confirm - Confirm photo upload
+companyAssetsRouter.post('/company-assets/:id/photo/confirm',
+  isAuthenticated,
+  controllers.confirmAssetPhotoUpload
 );
 
 // DELETE /api/company-assets/company-assets/:id - Delete a company asset

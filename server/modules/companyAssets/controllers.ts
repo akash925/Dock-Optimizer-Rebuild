@@ -4,6 +4,8 @@ import { insertAssetSchema, insertCompanyAssetSchema, updateCompanyAssetSchema, 
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { serializeCompanyAsset, serializeCompanyAssets } from './serializer';
+import multer from 'multer';
+import { mediaService } from '../../services/MediaService';
 
 /**
  * List all assets or filter by user ID
@@ -537,8 +539,6 @@ export const updateCompanyAsset = async (req: Request, res: Response) => {
   }
 };
 
-
-
 /**
  * Delete a company asset
  */
@@ -883,5 +883,264 @@ export const searchCompanyAssetByBarcode = async (req: Request, res: Response) =
   } catch (error) {
     console.error('Error searching for asset by barcode:', error);
     return res.status(500).json({ error: 'Failed to search for asset by barcode' });
+  }
+};
+
+/**
+ * Generate presigned URL for asset photo upload
+ * POST /api/company-assets/company-assets/:id/photo/presign
+ */
+export const generateAssetPhotoPresignedUrl = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid company asset ID' });
+    }
+
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+    const { fileName, fileType, fileSize } = req.body;
+
+    if (!fileName || !fileType) {
+      return res.status(400).json({ error: 'fileName and fileType are required' });
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(fileType)) {
+      return res.status(400).json({ 
+        error: `File type ${fileType} not allowed. Allowed types: ${allowedTypes.join(', ')}` 
+      });
+    }
+
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024;
+    if (fileSize && fileSize > maxSize) {
+      return res.status(400).json({ 
+        error: `File size ${fileSize} exceeds maximum allowed size of ${maxSize} bytes` 
+      });
+    }
+
+    // Check if the asset exists and belongs to the user's tenant
+    const existingAsset = await companyAssetsService.getCompanyAssetById(id);
+    if (!existingAsset) {
+      return res.status(404).json({ error: 'Company asset not found' });
+    }
+
+    // TENANT SAFETY: Ensure asset belongs to the user's tenant
+    if (existingAsset.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+    }
+
+    // Generate presigned URL
+    const presignedResponse = await mediaService.generatePresignedUpload(
+      fileName,
+      fileType,
+      {
+        tenantId,
+        uploadedBy: req.user.id,
+        folder: 'assets',
+        maxSizeBytes: maxSize,
+        allowedMimeTypes: allowedTypes,
+      }
+    );
+
+    return res.json({
+      uploadUrl: presignedResponse.uploadUrl,
+      key: presignedResponse.key,
+      publicUrl: presignedResponse.publicUrl,
+      expiresAt: presignedResponse.expiresAt,
+    });
+
+  } catch (error) {
+    console.error('Error generating presigned URL for asset photo:', error);
+    return res.status(500).json({ error: 'Failed to generate presigned URL' });
+  }
+};
+
+/**
+ * Confirm asset photo upload and update database
+ * POST /api/company-assets/company-assets/:id/photo/confirm
+ */
+export const confirmAssetPhotoUpload = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid company asset ID' });
+    }
+
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+    const { key, fileName, fileType } = req.body;
+
+    if (!key || !fileName || !fileType) {
+      return res.status(400).json({ error: 'key, fileName, and fileType are required' });
+    }
+
+    // Check if the asset exists and belongs to the user's tenant
+    const existingAsset = await companyAssetsService.getCompanyAssetById(id);
+    if (!existingAsset) {
+      return res.status(404).json({ error: 'Company asset not found' });
+    }
+
+    // TENANT SAFETY: Ensure asset belongs to the user's tenant
+    if (existingAsset.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+    }
+
+    // Confirm upload and get file record
+    const fileRecord = await mediaService.confirmUpload(
+      key,
+      fileName,
+      fileType,
+      {
+        tenantId,
+        uploadedBy: req.user.id,
+        folder: 'assets',
+      }
+    );
+
+    // Update the asset with the new photo URL
+    const updatedAsset = await companyAssetsService.updateCompanyAsset(id, {
+      photoUrl: fileRecord.publicUrl,
+    });
+
+    if (!updatedAsset) {
+      return res.status(500).json({ error: 'Failed to update asset with photo URL' });
+    }
+
+    // Serialize asset to ensure CDN URL is properly formatted
+    const serializedAsset = serializeCompanyAsset(updatedAsset);
+
+    return res.json({ 
+      photoUrl: serializedAsset.photoUrl,
+      fileId: fileRecord.id,
+    });
+
+  } catch (error) {
+    console.error('Error confirming asset photo upload:', error);
+    return res.status(500).json({ error: 'Failed to confirm photo upload' });
+  }
+};
+
+/**
+ * Generate presigned URL for general asset file upload  
+ * POST /api/company-assets/assets/presign
+ */
+export const generateAssetFilePresignedUrl = async (req: Request, res: Response) => {
+  try {
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+    const { fileName, fileType, fileSize } = req.body;
+
+    if (!fileName || !fileType) {
+      return res.status(400).json({ error: 'fileName and fileType are required' });
+    }
+
+    // Validate file size (50MB limit for general assets)
+    const maxSize = 50 * 1024 * 1024;
+    if (fileSize && fileSize > maxSize) {
+      return res.status(400).json({ 
+        error: `File size ${fileSize} exceeds maximum allowed size of ${maxSize} bytes` 
+      });
+    }
+
+    // Generate presigned URL
+    const presignedResponse = await mediaService.generatePresignedUpload(
+      fileName,
+      fileType,
+      {
+        tenantId,
+        uploadedBy: req.user.id,
+        folder: 'assets',
+        maxSizeBytes: maxSize,
+      }
+    );
+
+    return res.json({
+      uploadUrl: presignedResponse.uploadUrl,
+      key: presignedResponse.key,
+      publicUrl: presignedResponse.publicUrl,
+      expiresAt: presignedResponse.expiresAt,
+    });
+
+  } catch (error) {
+    console.error('Error generating presigned URL for asset file:', error);
+    return res.status(500).json({ error: 'Failed to generate presigned URL' });
+  }
+};
+
+/**
+ * Confirm general asset file upload
+ * POST /api/company-assets/assets/confirm
+ */
+export const confirmAssetFileUpload = async (req: Request, res: Response) => {
+  try {
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+    const { key, fileName, fileType, description, tags } = req.body;
+
+    if (!key || !fileName || !fileType) {
+      return res.status(400).json({ error: 'key, fileName, and fileType are required' });
+    }
+
+    // Confirm upload and get file record
+    const fileRecord = await mediaService.confirmUpload(
+      key,
+      fileName,
+      fileType,
+      {
+        tenantId,
+        uploadedBy: req.user.id,
+        folder: 'assets',
+      }
+    );
+
+    // Create asset record
+    const assetData = {
+      filename: fileName,
+      fileType: fileType,
+      fileSize: fileRecord.size,
+      description: description || null,
+      tags: tags ? JSON.parse(tags) : null,
+      url: fileRecord.publicUrl,
+      uploadedBy: req.user.id,
+    };
+
+    // Validate the asset data
+    try {
+      insertAssetSchema.parse(assetData);
+    } catch (validationError) {
+      if (validationError instanceof ZodError) {
+        const readableError = fromZodError(validationError);
+        return res.status(400).json({ error: readableError.message });
+      }
+      return res.status(400).json({ error: 'Invalid asset data' });
+    }
+
+    // Create the asset
+    const asset = await companyAssetsService.create(assetData, Buffer.from(''));
+
+    return res.status(201).json(asset);
+
+  } catch (error) {
+    console.error('Error confirming asset file upload:', error);
+    return res.status(500).json({ error: 'Failed to confirm file upload' });
   }
 };
