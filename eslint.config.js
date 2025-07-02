@@ -7,8 +7,6 @@ import tsParser        from '@typescript-eslint/parser';        // TypeScript pa
 import jestPlugin      from 'eslint-plugin-jest';               // Jest rules
 import globals         from 'globals';                          // map of standard globals
 import React from 'react';
-import Quagga from '@ericblade/quagga2';
-
 
 export default [
   // 1) ESLint recommended (JS only)
@@ -40,7 +38,6 @@ export default [
         File:            'readonly',
         Blob:            'readonly',
         React:            'readonly',   // until you migrate to the new JSX transform
-        Quagga:           'readonly',
         Headers:          'readonly',
         HTMLInputElement: 'readonly',
         HTMLElement:      'readonly',
@@ -65,7 +62,7 @@ export default [
 
     /* rules ------------------------------------------------------ */
     rules: {
-      // “process” guard-rail for client code
+      // "process" guard-rail for client code
       'no-restricted-globals': [
         'error',
         {
@@ -105,7 +102,7 @@ export default [
     },
 
     rules: {
-      'no-restricted-globals': 'off', // “process” is fine on the server
+      'no-restricted-globals': 'off', // "process" is fine on the server
     },
   },
 

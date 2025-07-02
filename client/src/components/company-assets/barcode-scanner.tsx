@@ -1,11 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-
-// Type declaration for Quagga to avoid module resolution issues
-declare module 'quagga' {
-  const quagga: any;
-  export default quagga;
-}
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -20,6 +14,7 @@ import {
   Calendar,
   CheckCircle
 } from 'lucide-react';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 
 interface BarcodeScannerProps {
   onDetected: (barcode: string) => void;
@@ -29,6 +24,7 @@ interface BarcodeScannerProps {
 
 export function BarcodeScanner({ onDetected, onClose, mode = 'unified' }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLDivElement>(null);
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [activeCamera, setActiveCamera] = useState<string | null>(null);
   const [scannerActive, setScannerActive] = useState(false);
@@ -40,6 +36,7 @@ export function BarcodeScanner({ onDetected, onClose, mode = 'unified' }: Barcod
   const [detectionType, setDetectionType] = useState<'asset' | 'appointment' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -209,91 +206,76 @@ export function BarcodeScanner({ onDetected, onClose, mode = 'unified' }: Barcod
       localStorage.setItem('lastUsedCameraId', deviceId);
     }
     
-    // Dynamic import to avoid module resolution issues
-    const { default: Quagga } = await import('quagga');
-    
-    Quagga.init(
-      {
-        inputStream: {
-          name: 'Live',
-          type: 'LiveStream',
-          target: videoRef.current,
-          constraints: {
-            deviceId: deviceId,
-            width: { min: 1280 },
-            height: { min: 720 },
-            facingMode: 'environment', // prefer rear camera
-          },
-        },
-        locator: {
-          patchSize: 'medium',
-          halfSample: true,
-        },
-        numOfWorkers: navigator.hardwareConcurrency || 2,
-        frequency: 10, // Increase scan frequency
-        decoder: {
-          readers: [
-            'code_128_reader',
-            'ean_reader',
-            'ean_8_reader',
-            'code_39_reader',
-            'code_39_vin_reader',
-            'codabar_reader',
-            'upc_reader',
-            'upc_e_reader',
-            'i2of5_reader',
-          ],
-          multiple: false,
-        },
-        locate: true,
-      },
-      (err: any) => {
-        if (err) {
-          console.error('Error initializing Quagga:', err);
-          setLoading(false);
-          if (err.name === 'NotAllowedError') {
-            setPermissionDenied(true);
-          }
-          return;
-        }
-        
-        setScannerActive(true);
-        setLoading(false);
-        
-        // Store reference to media stream for torch functionality
-        const videoElem = videoRef.current?.querySelector('video');
-        if (videoElem && videoElem.srcObject instanceof MediaStream) {
-          streamRef.current = videoElem.srcObject;
-        }
-        
-        Quagga.start();
+    try {
+      // Clean up previous scanner
+      if (readerRef.current) {
+        readerRef.current = null;
       }
-    );
-
-    Quagga.onDetected((result: any) => {
-      if (result && result.codeResult && result.codeResult.code) {
-        const code = result.codeResult.code;
-        console.log('Barcode detected:', code);
-        
-        // Confirm detection is valid
-        if (code.length > 4) {
+      
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      
+      // Create video element
+      const video = document.createElement('video');
+      video.setAttribute('playsinline', 'true');
+      video.style.width = '100%';
+      video.style.height = '100%';
+      video.style.objectFit = 'cover';
+      
+      videoRef.current.innerHTML = '';
+      videoRef.current.appendChild(video);
+      videoElementRef.current = video;
+      
+      // Initialize @zxing/browser reader
+      const reader = new BrowserMultiFormatReader();
+      readerRef.current = reader;
+      
+      setLoading(false);
+      setScannerActive(true);
+      
+      // Start decoding from video device
+      await reader.decodeFromVideoDevice(deviceId, video, (result, error) => {
+        if (result) {
+          console.log('Detected barcode:', result.getText());
           // Stop scanning after detection
           stopScanner();
-          
-          // Process the detected barcode with enhanced logic
-          handleDetection(code);
+          handleDetection(result.getText());
         }
+        if (error) {
+          // Only log non-trivial errors
+          if (!(error.name === 'NotFoundException')) {
+            console.debug('Scanner error:', error);
+          }
+        }
+      });
+      
+      // Store reference to media stream for torch functionality
+      if (video.srcObject instanceof MediaStream) {
+        streamRef.current = video.srcObject;
       }
-    });
+      
+    } catch (error) {
+      console.error('Error starting camera:', error);
+      setLoading(false);
+      if (error instanceof DOMException && error.name === 'NotAllowedError') {
+        setPermissionDenied(true);
+      }
+    }
   };
 
   const stopScanner = () => {
+    // Clean up @zxing reader
+    if (readerRef.current) {
+      readerRef.current = null;
+    }
+    
+    // Clean up video stream
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
     
-    Quagga.stop();
     setScannerActive(false);
     setTorch(false);
   };
