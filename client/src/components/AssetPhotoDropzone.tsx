@@ -2,33 +2,46 @@ import { useState, useRef, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { UploadCloud, X, Loader2, ImageIcon } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { UploadCloud, X, Loader2, ImageIcon, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface AssetPhotoDropzoneProps {
-  onUpload: (file: File) => Promise<void>;
+  onUpload?: (file: File) => Promise<void>; // Legacy support, will be deprecated
   existing?: string | null;
   className?: string;
   assetId?: string | number;
   tenantId?: string | number;
+  onUploadComplete?: (photoUrl: string) => void; // New callback for S3 uploads
+}
+
+interface PresignedResponse {
+  uploadUrl: string;
+  key: string;
+  publicUrl: string;
+  expiresAt: string;
 }
 
 /**
- * Unified drag-drop photo uploader with instant preview
+ * S3-enabled drag-drop photo uploader with instant preview
  * - Accepts jpg/png/webp up to 10 MB
  * - Shows local preview immediately before network round-trip
- * - Integrates with existing API via onUpload callback
+ * - Uses S3 presigned URLs for direct uploads
+ * - Falls back to legacy multipart upload if onUpload provided
  */
 export default function AssetPhotoDropzone({ 
   onUpload, 
   existing, 
   className = "",
   assetId,
-  tenantId
+  tenantId,
+  onUploadComplete
 }: AssetPhotoDropzoneProps) {
   const [preview, setPreview] = useState<string | null>(existing || null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState<'idle' | 'presign' | 'upload' | 'confirm' | 'complete'>('idle');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -47,10 +60,23 @@ export default function AssetPhotoDropzone({
       return;
     }
 
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please select a JPG, PNG, or WebP image',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Create instant preview
     const previewUrl = URL.createObjectURL(file);
     setPreview(previewUrl);
     setSelectedFile(file);
+    setUploadStage('idle');
+    setUploadProgress(0);
   }, [toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -63,6 +89,77 @@ export default function AssetPhotoDropzone({
     maxFiles: 1,
     multiple: false
   });
+
+  const handleS3Upload = async (file: File): Promise<string> => {
+    if (!assetId) {
+      throw new Error('Asset ID is required for S3 upload');
+    }
+
+    setUploadStage('presign');
+    setUploadProgress(10);
+
+    // Step 1: Get presigned URL
+    const presignResponse = await fetch(`/api/company-assets/company-assets/${assetId}/photo/presign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      }),
+    });
+
+    if (!presignResponse.ok) {
+      const errorData = await presignResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to get upload URL');
+    }
+
+    const presignedData: PresignedResponse = await presignResponse.json();
+    setUploadProgress(25);
+
+    // Step 2: Upload directly to S3
+    setUploadStage('upload');
+    const uploadResponse = await fetch(presignedData.uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+    }
+
+    setUploadProgress(75);
+
+    // Step 3: Confirm upload and update database
+    setUploadStage('confirm');
+    const confirmResponse = await fetch(`/api/company-assets/company-assets/${assetId}/photo/confirm`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        key: presignedData.key,
+        fileName: file.name,
+        fileType: file.type,
+      }),
+    });
+
+    if (!confirmResponse.ok) {
+      const errorData = await confirmResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to confirm upload');
+    }
+
+    const confirmData = await confirmResponse.json();
+    setUploadProgress(100);
+    setUploadStage('complete');
+
+    return confirmData.photoUrl;
+  };
 
   const handleUpload = async () => {
     if (!selectedFile) return;
@@ -95,17 +192,36 @@ export default function AssetPhotoDropzone({
     }
     
     try {
-      await onUpload(selectedFile);
+      let finalPhotoUrl: string;
+
+      // Use S3 upload if assetId is provided, otherwise fall back to legacy
+      if (assetId && !onUpload) {
+        finalPhotoUrl = await handleS3Upload(selectedFile);
+             } else if (onUpload) {
+         // Legacy multipart upload
+         await onUpload(selectedFile);
+         finalPhotoUrl = optimisticUrl || existing || ''; // Keep the optimistic URL for legacy
+      } else {
+        throw new Error('Either assetId or onUpload callback is required');
+      }
       
       // Clean up object URL after successful upload
       if (preview && preview.startsWith('blob:')) {
         URL.revokeObjectURL(preview);
       }
+
+      // Update preview with final URL
+      setPreview(finalPhotoUrl);
       
       toast({
         title: 'Photo uploaded',
         description: 'Asset photo has been updated successfully',
       });
+      
+             // Call completion callback
+       if (onUploadComplete && finalPhotoUrl) {
+         onUploadComplete(finalPhotoUrl);
+       }
       
       // Invalidate queries to get the real CDN URL
       if (assetId && tenantId) {
@@ -113,6 +229,7 @@ export default function AssetPhotoDropzone({
         queryClient.invalidateQueries({ queryKey: ['companyAssets', tenantId] });
       }
     } catch (error) {
+      console.error('Upload error:', error);
       toast({
         title: 'Upload failed',
         description: error instanceof Error ? error.message : 'Failed to upload photo',
@@ -150,6 +267,8 @@ export default function AssetPhotoDropzone({
     } finally {
       setUploading(false);
       setSelectedFile(null);
+      setUploadStage('idle');
+      setUploadProgress(0);
     }
   };
 
@@ -159,6 +278,18 @@ export default function AssetPhotoDropzone({
     }
     setPreview(null);
     setSelectedFile(null);
+    setUploadStage('idle');
+    setUploadProgress(0);
+  };
+
+  const getUploadStageText = () => {
+    switch (uploadStage) {
+      case 'presign': return 'Getting upload URL...';
+      case 'upload': return 'Uploading to cloud storage...';
+      case 'confirm': return 'Confirming upload...';
+      case 'complete': return 'Upload complete!';
+      default: return 'Uploading...';
+    }
   };
 
   return (
@@ -183,7 +314,7 @@ export default function AssetPhotoDropzone({
           </div>
           
           {selectedFile && (
-            <div className="p-4 border-t">
+            <div className="p-4 border-t space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
                   {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
@@ -196,13 +327,27 @@ export default function AssetPhotoDropzone({
                   {uploading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Uploading...
+                      {getUploadStageText()}
+                    </>
+                  ) : uploadStage === 'complete' ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                      Uploaded
                     </>
                   ) : (
                     'Upload Photo'
                   )}
                 </Button>
               </div>
+              
+              {uploading && (
+                <div className="space-y-2">
+                  <Progress value={uploadProgress} className="w-full" />
+                  <p className="text-xs text-muted-foreground text-center">
+                    {getUploadStageText()}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </Card>
@@ -231,6 +376,11 @@ export default function AssetPhotoDropzone({
                 <p className="text-sm text-muted-foreground">
                   Supports JPG, PNG, WebP • Max 10MB
                 </p>
+                {assetId && (
+                  <p className="text-xs text-primary mt-2">
+                    Using S3 direct upload
+                  </p>
+                )}
               </>
             )}
           </div>

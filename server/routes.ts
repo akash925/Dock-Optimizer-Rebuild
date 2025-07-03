@@ -16,6 +16,7 @@ import { EnhancedSchedule, sendCheckoutEmail, sendRescheduleEmail } from "./noti
 import { User } from "@shared/schema";
 import { calculateAvailabilitySlots } from "./src/services/availability";
 import { broadcastScheduleUpdate } from "./websocket/index";
+import { mediaService } from './services/MediaService';
 
 // TenantWebSocket interface moved to websocket/secure-handler.ts
 
@@ -943,6 +944,184 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error sending test email:', error);
       res.status(500).json({ error: 'Failed to send test email' });
+    }
+  });
+
+  // BOL Presigned URL endpoints
+  app.post('/api/bol-upload/presign', async (req: any, res) => {
+    try {
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const { fileName, fileType, fileSize, scheduleId, appointmentId } = req.body;
+
+      if (!fileName || !fileType) {
+        return res.status(400).json({ error: 'fileName and fileType are required' });
+      }
+
+      const finalAppointmentId = appointmentId || scheduleId;
+
+      // Validate file type for BOL documents
+      const allowedTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/tiff',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
+
+      if (!allowedTypes.includes(fileType) && !fileType.startsWith('image/')) {
+        return res.status(400).json({
+          error: `File type ${fileType} not allowed. Allowed types: ${allowedTypes.join(', ')}`
+        });
+      }
+
+      // Validate file size (10MB limit for BOL documents)
+      const maxSize = 10 * 1024 * 1024;
+      if (fileSize && fileSize > maxSize) {
+        return res.status(400).json({
+          error: `File size ${fileSize} exceeds maximum allowed size of ${maxSize} bytes`
+        });
+      }
+
+      // Generate presigned URL
+      const presignedResponse = await mediaService.generatePresignedUpload(
+        fileName,
+        fileType,
+        {
+          tenantId: req.user.tenantId || 1,
+          uploadedBy: req.user.id,
+          folder: 'bol-documents',
+          maxSizeBytes: maxSize,
+          allowedMimeTypes: allowedTypes,
+        }
+      );
+
+      return res.json({
+        uploadUrl: presignedResponse.uploadUrl,
+        key: presignedResponse.key,
+        publicUrl: presignedResponse.publicUrl,
+        expiresAt: presignedResponse.expiresAt,
+        appointmentId: finalAppointmentId,
+      });
+
+    } catch (error) {
+      console.error('Error generating presigned URL for BOL:', error);
+      res.status(500).json({ error: 'Failed to generate presigned URL for BOL' });
+    }
+  });
+
+  app.post('/api/bol-upload/confirm', async (req: any, res) => {
+    try {
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const {
+        key,
+        fileName,
+        fileType,
+        scheduleId,
+        appointmentId,
+        bolNumber,
+        customerName,
+        carrierName,
+        mcNumber,
+        weight,
+        fromAddress,
+        toAddress,
+        pickupOrDropoff,
+        extractionMethod,
+        extractionConfidence,
+        processingTimestamp
+      } = req.body;
+
+      if (!key || !fileName || !fileType) {
+        return res.status(400).json({ error: 'key, fileName, and fileType are required' });
+      }
+
+      const finalAppointmentId = appointmentId || scheduleId;
+
+      // Confirm upload and get file record
+      const fileRecord = await mediaService.confirmUpload(
+        key,
+        fileName,
+        fileType,
+        {
+          tenantId: req.user.tenantId || 1,
+          uploadedBy: req.user.id,
+          folder: 'bol-documents',
+        }
+      );
+
+      // Update the appointment to indicate BOL was uploaded
+      if (finalAppointmentId) {
+        try {
+          const appointment = await storage.getSchedule(parseInt(finalAppointmentId));
+          if (appointment) {
+            // Update appointment with BOL info and extracted metadata
+            const updateData: any = {
+              bolNumber: bolNumber || fileRecord.originalName,
+              lastModifiedAt: new Date(),
+              customFormData: {
+                ...(appointment.customFormData || {}),
+                bolFileUploaded: true,
+                bolFileId: fileRecord.id,
+                bolFileName: fileRecord.originalName,
+                bolData: {
+                  fileName: fileRecord.originalName,
+                  fileUrl: fileRecord.publicUrl,
+                  fileSize: fileRecord.size,
+                  uploadedAt: new Date().toISOString(),
+                  // Include extracted OCR data if available
+                  bolNumber,
+                  customerName,
+                  carrierName,
+                  mcNumber,
+                  weight,
+                  fromAddress,
+                  toAddress,
+                  pickupOrDropoff,
+                  extractionMethod,
+                  extractionConfidence: parseInt(extractionConfidence || '0'),
+                  processingTimestamp
+                }
+              }
+            };
+
+            // Update related fields if they were extracted
+            if (customerName) updateData.customerName = customerName;
+            if (carrierName) updateData.carrierName = carrierName;
+            if (mcNumber) updateData.mcNumber = mcNumber;
+            if (weight) updateData.weight = weight;
+
+            await storage.updateSchedule(parseInt(finalAppointmentId), updateData);
+            console.log(`[BOL Upload] Updated appointment ${finalAppointmentId} with BOL info and OCR data`);
+          }
+        } catch (updateError) {
+          console.error('[BOL Upload] Error updating appointment:', updateError);
+          // Don't fail the upload if appointment update fails
+        }
+      }
+
+      res.json({
+        success: true,
+        fileId: fileRecord.id,
+        fileUrl: fileRecord.publicUrl,
+        filename: fileRecord.originalName,
+        originalName: fileRecord.originalName,
+        size: fileRecord.size,
+        documentId: fileRecord.id,
+        appointmentId: finalAppointmentId,
+        message: 'BOL document uploaded and processed successfully'
+      });
+
+    } catch (error) {
+      console.error('Error confirming BOL upload:', error);
+      res.status(500).json({ error: 'Failed to confirm BOL upload' });
     }
   });
 

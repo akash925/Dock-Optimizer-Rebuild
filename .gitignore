@@ -8,3 +8,7 @@ vite.config.ts.*
 .env*.local
 *.log
 server_output.log
+
+# Local uploads directory (migrated to S3)
+uploads/
+!uploads/.gitkeep
