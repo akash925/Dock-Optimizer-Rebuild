@@ -12,3 +12,4 @@ server_output.log
 # Local uploads directory (migrated to S3)
 uploads/
 !uploads/.gitkeep
+.env
