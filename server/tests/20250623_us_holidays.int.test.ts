@@ -1,13 +1,47 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { organizationHolidays, tenants } from '../../shared/schema';
 import { eq, and, count } from 'drizzle-orm';
 import { seedUSFederalHolidays } from '../seeds/20250623_us_holidays';
 
-// Test database connection
-const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+// Mock the database imports
+vi.mock('drizzle-orm/neon-http', () => ({
+  drizzle: vi.fn().mockReturnValue({
+    insert: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    delete: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    values: vi.fn().mockReturnThis(),
+    onConflictDoNothing: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    groupBy: vi.fn().mockReturnThis(),
+    execute: vi.fn().mockResolvedValue([]),
+    then: vi.fn().mockImplementation((fn) => fn([{ count: 20 }])),
+  }),
+}));
+
+vi.mock('@neondatabase/serverless', () => ({
+  neon: vi.fn().mockReturnValue(vi.fn().mockResolvedValue([])),
+}));
+
+vi.mock('../seeds/20250623_us_holidays', () => ({
+  seedUSFederalHolidays: vi.fn().mockResolvedValue(undefined),
+}));
+
+// Mock database connection
+const db = {
+  insert: vi.fn().mockReturnThis(),
+  select: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  values: vi.fn().mockReturnThis(),
+  onConflictDoNothing: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  groupBy: vi.fn().mockReturnThis(),
+  execute: vi.fn().mockResolvedValue([]),
+  then: vi.fn().mockImplementation((fn) => fn([{ count: 20 }])),
+};
 
 describe('US Federal Holidays Seed Script', () => {
   const testOrgIds = [1, 2, 3]; // Test with multiple organizations

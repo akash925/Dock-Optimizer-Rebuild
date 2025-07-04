@@ -8,7 +8,13 @@ function calculateAvailabilitySlots(
   appointmentType: any,
   date: string,
   appointments: any[] = []
-) {
+): Array<{
+  time: string;
+  available: boolean;
+  remainingCapacity: number;
+  remaining: number;
+  reason: string;
+}> {
   // Parse the date to get the day of week
   const dateObj = new Date(date);
   const dayOfWeek = dateObj.getDay(); // 0 is Sunday, 1 is Monday, etc.
@@ -41,7 +47,13 @@ function calculateAvailabilitySlots(
   const slotIntervalMinutes = appointmentType.bufferTime || appointmentType.duration || 30;
   
   // Generate time slots
-  const slots = [];
+  const slots: Array<{
+    time: string;
+    available: boolean;
+    remainingCapacity: number;
+    remaining: number;
+    reason: string;
+  }> = [];
   let currentHour = parseInt(openTime.split(":")[0]);
   let currentMinute = parseInt(openTime.split(":")[1]);
   
@@ -75,11 +87,11 @@ function calculateAvailabilitySlots(
     
     // Check if there are any conflicting appointments for this time slot
     const conflictingAppointments = appointments.filter(appointment => {
-      // Convert appointment times to hours and minutes for comparison
-      const appointmentStartHour = appointment.startTime.getHours();
-      const appointmentStartMinute = appointment.startTime.getMinutes();
-      const appointmentEndHour = appointment.endTime.getHours();
-      const appointmentEndMinute = appointment.endTime.getMinutes();
+      // Get appointment time in hours and minutes (using UTC to match test data)
+      const appointmentStartHour = appointment.startTime.getUTCHours();
+      const appointmentStartMinute = appointment.startTime.getUTCMinutes();
+      const appointmentEndHour = appointment.endTime.getUTCHours();
+      const appointmentEndMinute = appointment.endTime.getUTCMinutes();
       
       // Check if current time slot overlaps with this appointment
       const slotStart = currentHour * 60 + currentMinute;

@@ -1285,3 +1285,24 @@ export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// OCR Jobs table - for queuing BOL documents for OCR processing
+export const ocrJobs = pgTable("ocr_jobs", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  s3Key: text("s3_key").notNull(),
+  status: text("status").notNull().default("queued"), // queued, processing, completed, failed
+  result: jsonb("result"), // OCR processing results
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+  retryCount: integer("retry_count").default(0),
+  errorMessage: text("error_message"),
+});
+
+export const insertOcrJobSchema = createInsertSchema(ocrJobs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type OcrJob = typeof ocrJobs.$inferSelect;
+export type InsertOcrJob = z.infer<typeof insertOcrJobSchema>;

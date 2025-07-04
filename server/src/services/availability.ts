@@ -533,13 +533,16 @@ export async function calculateAvailabilitySlots(
   // STEP 3: Build organization default hours from database
   const orgHours: Record<string, DayHours> = {};
   
+  // Get enforceWeekendRule feature flag (defaults to true)
+  const enforceWeekendRule = process.env.ENFORCE_WEEKEND_RULE !== 'false';
+  debugLog(`Weekend rule enforcement: ${enforceWeekendRule ? 'ENABLED' : 'DISABLED'}`);
+  
   for (const day of dayKeys) {
     const dayIndex = dayKeys.indexOf(day); // 0=Sunday, 1=Monday, etc.
     const dayHours = hourEntries.find((h: any) => h.dayOfWeek === dayIndex);
     
-    // **FIXED: AUTHORITATIVE WEEKEND LOGIC**
-    // Force weekends (Sunday=0, Saturday=6) closed by default
-    // Only allow them to be open if EXPLICITLY configured in database
+    // **CONFIGURABLE WEEKEND LOGIC**
+    // Force weekends (Sunday=0, Saturday=6) closed by default only if enforceWeekendRule is true
     const isWeekend = dayIndex === 0 || dayIndex === 6; // Sunday or Saturday
     
     let isOpen = false;
@@ -556,10 +559,13 @@ export async function calculateAvailabilitySlots(
       breakStartTime = dayHours.breakStart || "";
       breakEndTime = dayHours.breakEnd || "";
       
-      // **WEEKEND ENFORCEMENT: Even if database says open, check if it's weekend**
-      if (isWeekend && !dayHours.isOpen) {
-        isOpen = false; // Force weekends closed unless explicitly open in DB
+      // **CONFIGURABLE WEEKEND ENFORCEMENT**
+      if (isWeekend && enforceWeekendRule && !dayHours.isOpen) {
+        isOpen = false; // Force weekends closed only if flag is enabled
         console.log(`[AvailabilityService] WEEKEND ENFORCEMENT: ${day} forced closed (database shows: ${dayHours.isOpen})`);
+      } else if (isWeekend && !enforceWeekendRule) {
+        // Honor facility's weekend hours when flag is disabled
+        console.log(`[AvailabilityService] WEEKEND RULE DISABLED: ${day} honoring facility hours (${dayHours.isOpen ? 'open' : 'closed'})`);
       }
       
       console.log(`[AvailabilityService] Organization hours for ${day} (database):`, {
@@ -568,14 +574,17 @@ export async function calculateAvailabilitySlots(
         hours: isOpen ? `${startTime} - ${endTime}` : 'Closed',
         breaks: (breakStartTime && breakEndTime) ? `${breakStartTime} - ${breakEndTime}` : 'None',
         source: 'organizationDefaultHours table',
-        weekendEnforcement: isWeekend ? 'Applied' : 'N/A'
+        weekendEnforcement: enforceWeekendRule && isWeekend ? 'Applied' : 'N/A'
       });
     } else {
-      // **FALLBACK WITH AUTHORITATIVE WEEKEND LOGIC**
-      // ALWAYS close weekends in fallback mode
-      if (isWeekend) {
+      // **FALLBACK WITH CONFIGURABLE WEEKEND LOGIC**
+      if (isWeekend && enforceWeekendRule) {
         isOpen = false;
         console.log(`[AvailabilityService] WEEKEND ENFORCEMENT: ${day} forced closed (no database entry, weekend default)`);
+      } else if (isWeekend && !enforceWeekendRule) {
+        // When weekend rule is disabled, use default business hours for weekends too
+        isOpen = true; // Default to open when rule is disabled
+        console.log(`[AvailabilityService] WEEKEND RULE DISABLED: ${day} defaulting to open`);
       } else {
         // Monday through Friday
         isOpen = dayIndex >= 1 && dayIndex <= 5;
@@ -590,8 +599,8 @@ export async function calculateAvailabilitySlots(
         dayOfWeek: dayIndex,
         open: isOpen,
         hours: isOpen ? `${startTime} - ${endTime}` : 'Closed',
-        source: 'system default with weekend enforcement',
-        weekendEnforcement: isWeekend ? 'Applied' : 'N/A'
+        source: 'system default with configurable weekend enforcement',
+        weekendEnforcement: enforceWeekendRule && isWeekend ? 'Applied' : 'Disabled'
       });
     }
     
@@ -631,16 +640,18 @@ export async function calculateAvailabilitySlots(
     console.log(`[AvailabilityService] Using organization default hours for ${facility.name}`);
   }
   
-  // **CRITICAL FIX: AUTHORITATIVE WEEKEND ENFORCEMENT AFTER FACILITY HOURS**
-  // Force weekends closed regardless of organization OR facility configuration
-  // This is the business rule: NO appointments on weekends EVER
+  // **CONFIGURABLE WEEKEND ENFORCEMENT AFTER FACILITY HOURS**
+  // Force weekends closed only if enforceWeekendRule is enabled
+  // When disabled, honor facility weekend configuration
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
-  if (isWeekend && effectiveHours.open) {
+  if (isWeekend && enforceWeekendRule && effectiveHours.open) {
     console.log(`[AvailabilityService] 🚫 WEEKEND ENFORCEMENT: Forcing ${dayKey} closed (was configured as open)`);
     effectiveHours = {
       ...effectiveHours,
       open: false
     };
+  } else if (isWeekend && !enforceWeekendRule) {
+    console.log(`[AvailabilityService] ✅ WEEKEND RULE DISABLED: Honoring ${dayKey} facility configuration (${effectiveHours.open ? 'open' : 'closed'})`);
   }
 
   // STEP 4: Check appointment type hours (highest priority - can override facility/org hours)

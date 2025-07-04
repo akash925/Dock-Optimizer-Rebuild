@@ -6,6 +6,7 @@ import { fromZodError } from 'zod-validation-error';
 import { serializeCompanyAsset, serializeCompanyAssets } from './serializer';
 import multer from 'multer';
 import { mediaService } from '../../services/MediaService';
+import crypto from 'crypto';
 
 /**
  * List all assets or filter by user ID
@@ -936,25 +937,64 @@ export const generateAssetPhotoPresignedUrl = async (req: Request, res: Response
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
-    // Generate presigned URL
-    const presignedResponse = await mediaService.generatePresignedUpload(
-      fileName,
-      fileType,
-      {
-        tenantId,
-        uploadedBy: req.user.id,
-        folder: 'assets',
-        maxSizeBytes: maxSize,
-        allowedMimeTypes: allowedTypes,
-      }
-    );
+    // Check feature flag for S3 direct upload
+    const useS3DirectUpload = process.env.VITE_USE_S3_DIRECT_UPLOAD === 'true';
+    
+    if (useS3DirectUpload) {
+      // Use AWS SDK v3 createPresignedPost for direct S3 uploads
+      const { createPresignedPost } = await import('@aws-sdk/s3-presigned-post');
+      const { S3Client } = await import('@aws-sdk/client-s3');
+      
+      const s3Client = new S3Client({
+        region: process.env.AWS_REGION || 'us-east-1',
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+        },
+      });
 
-    return res.json({
-      uploadUrl: presignedResponse.uploadUrl,
-      key: presignedResponse.key,
-      publicUrl: presignedResponse.publicUrl,
-      expiresAt: presignedResponse.expiresAt,
-    });
+      // Generate unique S3 key
+      const key = `photos/${crypto.randomUUID()}.jpg`;
+      
+      // Create presigned POST with AWS PHP-style fields
+      const { url, fields } = await createPresignedPost(s3Client, {
+        Bucket: process.env.AWS_S3_BUCKET!,
+        Key: key,
+        Expires: 60, // 1 minute expiry
+        Conditions: [
+          ["content-length-range", 0, maxSize],
+          ["eq", "$Content-Type", fileType],
+        ],
+        Fields: {
+          'Content-Type': fileType,
+        },
+      });
+
+      // Persist key on the asset NOW so later GETs work even if user closes tab
+      await companyAssetsService.updateCompanyAsset(id, { photoUrl: key });
+
+      return res.json({ url, fields, key });
+    } else {
+      // Fallback to existing MediaService implementation
+      const presignedResponse = await mediaService.generatePresignedUpload(
+        fileName,
+        fileType,
+        {
+          tenantId,
+          uploadedBy: req.user.id,
+          folder: 'assets',
+          maxSizeBytes: maxSize,
+          allowedMimeTypes: allowedTypes,
+        }
+      );
+
+      return res.json({
+        uploadUrl: presignedResponse.uploadUrl,
+        key: presignedResponse.key,
+        publicUrl: presignedResponse.publicUrl,
+        expiresAt: presignedResponse.expiresAt,
+      });
+    }
 
   } catch (error) {
     console.error('Error generating presigned URL for asset photo:', error);

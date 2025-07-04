@@ -1009,8 +1009,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
     } catch (error) {
-      console.error('Error generating presigned URL for BOL:', error);
-      res.status(500).json({ error: 'Failed to generate presigned URL for BOL' });
+      console.error('Error generating presigned URL for BOL upload:', error);
+      res.status(500).json({ error: 'Failed to generate presigned URL' });
+    }
+  });
+
+  // NEW: BOL Upload route with tenant header requirement and S3 streaming
+  app.post('/api/bol-upload/upload', async (req: any, res) => {
+    try {
+      // Require x-tenant-id header
+      const tenantId = Number(req.headers['x-tenant-id']);
+      if (!tenantId || isNaN(tenantId)) {
+        return res.status(400).json({ error: 'x-tenant-id header is required and must be a valid integer' });
+      }
+
+      const Busboy = (await import('busboy')).default;
+      const { PassThrough } = await import('stream');
+      const { pipeline } = await import('stream/promises');
+      const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+
+      // Initialize S3 client
+      const s3Client = new S3Client({
+        region: process.env.AWS_REGION || 'us-east-1',
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+        },
+      });
+
+      const bucket = process.env.AWS_S3_BUCKET!;
+      let uploadCompleted = false;
+      
+      // Configure busboy for streaming uploads
+      const bb = Busboy({ 
+        headers: req.headers, 
+        limits: { 
+          fileSize: 20 * 1024 * 1024 // 20 MiB limit
+        } 
+      });
+
+      bb.on('file', async (name, file, info) => {
+        try {
+          const { filename, mimeType } = info;
+          
+          // Generate S3 key
+          const key = `bols/${tenantId}/${Date.now()}_${filename}`;
+          
+          // Create pass-through stream for S3 upload
+          const passThrough = new PassThrough();
+          
+          // Start S3 upload
+          const uploadCommand = new PutObjectCommand({
+            Bucket: bucket,
+            Key: key,
+            Body: passThrough,
+            ContentType: mimeType,
+            Metadata: {
+              tenantId: tenantId.toString(),
+              uploadedAt: new Date().toISOString(),
+            },
+          });
+
+          // Pipeline file stream to S3
+          const uploadPromise = s3Client.send(uploadCommand);
+          
+          // Pipe file to pass-through stream (which goes to S3)
+          file.pipe(passThrough);
+
+          // Wait for upload to complete
+          await uploadPromise;
+          
+          // Enqueue OCR job
+          await storage.createOcrJob({
+            tenantId,
+            s3Key: key,
+            status: 'queued',
+          });
+
+          uploadCompleted = true;
+          console.log(`[BOL Upload] File uploaded to S3: ${key}, OCR job queued for tenant ${tenantId}`);
+          
+        } catch (error) {
+          console.error('[BOL Upload] Error during file upload:', error);
+          res.status(500).json({ error: 'Failed to upload file to S3' });
+        }
+      });
+
+      bb.on('field', (name, value) => {
+        // Handle form fields if needed
+        console.log(`[BOL Upload] Form field: ${name} = ${value}`);
+      });
+
+      bb.on('filesLimit', () => {
+        console.log('[BOL Upload] File size limit exceeded');
+        res.status(413).json({ error: 'File size exceeds 20 MiB limit' });
+      });
+
+      bb.on('finish', () => {
+        if (uploadCompleted) {
+          res.status(200).json({ 
+            success: true, 
+            message: 'File uploaded successfully and OCR job queued',
+            tenantId: tenantId 
+          });
+        }
+      });
+
+      bb.on('error', (error) => {
+        console.error('[BOL Upload] Busboy error:', error);
+        res.status(500).json({ error: 'Upload processing error' });
+      });
+
+      // Pipe request to busboy
+      req.pipe(bb);
+
+    } catch (error) {
+      console.error('[BOL Upload] Error in upload route:', error);
+      res.status(500).json({ error: 'Failed to process upload' });
     }
   });
 

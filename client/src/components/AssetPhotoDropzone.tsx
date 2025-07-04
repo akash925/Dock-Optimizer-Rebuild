@@ -21,6 +21,8 @@ interface PresignedResponse {
   key: string;
   publicUrl: string;
   expiresAt: string;
+  fields?: Record<string, string>;
+  url?: string;
 }
 
 /**
@@ -116,18 +118,44 @@ export default function AssetPhotoDropzone({
       throw new Error(errorData.error || 'Failed to get upload URL');
     }
 
-    const presignedData: PresignedResponse = await presignResponse.json();
+    const presignedData = await presignResponse.json();
     setUploadProgress(25);
 
     // Step 2: Upload directly to S3
     setUploadStage('upload');
-    const uploadResponse = await fetch(presignedData.uploadUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
-    });
+    
+    // Check if we're using the new S3 direct upload feature
+    const useS3DirectUpload = import.meta.env.VITE_USE_S3_DIRECT_UPLOAD === 'true';
+    
+    let uploadResponse: Response;
+    
+    if (useS3DirectUpload && presignedData.fields) {
+      // New AWS PHP-style fields format (POST with FormData)
+      const formData = new FormData();
+      
+      // Add all the fields from the presigned POST
+      Object.entries(presignedData.fields).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+      
+      // Add the file last (as per AWS documentation)
+      formData.append('file', file);
+      
+      uploadResponse = await fetch(presignedData.url, {
+        method: 'POST',
+        body: formData,
+        // No credentials needed for direct S3 upload
+      });
+    } else {
+      // Legacy PUT-based upload
+      uploadResponse = await fetch(presignedData.uploadUrl || presignedData.url, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+    }
 
     if (!uploadResponse.ok) {
       throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
@@ -135,30 +163,39 @@ export default function AssetPhotoDropzone({
 
     setUploadProgress(75);
 
-    // Step 3: Confirm upload and update database
-    setUploadStage('confirm');
-    const confirmResponse = await fetch(`/api/company-assets/company-assets/${assetId}/photo/confirm`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        key: presignedData.key,
-        fileName: file.name,
-        fileType: file.type,
-      }),
-    });
+    // Step 3: For new S3 direct upload, the key is already persisted on the asset
+    // For legacy upload, we still need to confirm
+    if (useS3DirectUpload && presignedData.key) {
+      // With direct upload, the asset already has the key stored
+      setUploadProgress(100);
+      setUploadStage('complete');
+      return presignedData.key; // Return the S3 key directly
+    } else {
+      // Legacy confirmation step
+      setUploadStage('confirm');
+      const confirmResponse = await fetch(`/api/company-assets/company-assets/${assetId}/photo/confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key: presignedData.key,
+          fileName: file.name,
+          fileType: file.type,
+        }),
+      });
 
-    if (!confirmResponse.ok) {
-      const errorData = await confirmResponse.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to confirm upload');
+      if (!confirmResponse.ok) {
+        const errorData = await confirmResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to confirm upload');
+      }
+
+      const confirmData = await confirmResponse.json();
+      setUploadProgress(100);
+      setUploadStage('complete');
+
+      return confirmData.photoUrl;
     }
-
-    const confirmData = await confirmResponse.json();
-    setUploadProgress(100);
-    setUploadStage('complete');
-
-    return confirmData.photoUrl;
   };
 
   const handleUpload = async () => {
