@@ -27,7 +27,8 @@ import {
   appointmentTypes, dailyAvailability, customQuestions, standardQuestions, bookingPages, assets, companyAssets,
   tenants, roles, organizationUsers, organizationModules, organizationFacilities, userPreferences,
   organizationDefaultHours, organizationHolidays, bolDocuments,
-  BolDocument, InsertBolDocument
+  BolDocument, InsertBolDocument,
+  OcrJob, InsertOcrJob, ocrJobs
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -287,6 +288,12 @@ export interface IStorage {
   // Organization info management
   getOrganization(tenantId: number): Promise<Tenant | undefined>;
   updateOrganization(tenantId: number, data: Partial<Tenant>): Promise<Tenant | undefined>;
+  
+  // OCR Jobs management
+  createOcrJob(ocrJob: InsertOcrJob): Promise<OcrJob>;
+  getOcrJob(id: number): Promise<OcrJob | undefined>;
+  getOcrJobsByStatus(status: string): Promise<OcrJob[]>;
+  updateOcrJob(id: number, ocrJob: Partial<OcrJob>): Promise<OcrJob | undefined>;
   
   // Additional missing methods for Asset Manager
   getUser(id: number): Promise<User | undefined>;
@@ -1549,23 +1556,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-
-
-  async updateOrganization(tenantId: number, data: Partial<Tenant>): Promise<Tenant | undefined> {
-    try {
-      const [updated] = await db.update(tenants)
-        .set({
-          ...data,
-          updatedAt: new Date()
-        })
-        .where(eq(tenants.id, tenantId))
-        .returning();
-      return updated;
-    } catch (error) {
-      console.error('Error updating organization:', error);
-      return undefined;
-    }
-  }
   async getNotification(id: number) { return this.memStorage.getNotification(id); }
   async createNotification(notification: any) { return this.memStorage.createNotification(notification); }
   async markNotificationAsRead(id: number) { return this.memStorage.markNotificationAsRead(id); }
@@ -1602,7 +1592,6 @@ export class DatabaseStorage implements IStorage {
   async deleteAsset(id: number) { return this.memStorage.deleteAsset(id); }
   // getCompanyAsset is implemented above in the real database section
   // getFilteredCompanyAssets is implemented above in the real database section
-  async deleteCompanyAsset(id: number) { return this.memStorage.deleteCompanyAsset(id); }
   async getTenantBySubdomain(subdomain: string): Promise<Tenant | undefined> {
     const [tenant] = await db.select().from(tenants).where(eq(tenants.subdomain, subdomain));
     return tenant;
@@ -1828,6 +1817,30 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(roles, eq(organizationUsers.roleId, roles.id))
       .where(eq(organizationUsers.organizationId, organizationId));
     return results;
+  }
+
+  // OCR Jobs management
+  async createOcrJob(ocrJob: InsertOcrJob): Promise<OcrJob> {
+    const [newOcrJob] = await db.insert(ocrJobs).values(ocrJob).returning();
+    return newOcrJob;
+  }
+
+  async getOcrJob(id: number): Promise<OcrJob | undefined> {
+    const [ocrJob] = await db.select().from(ocrJobs).where(eq(ocrJobs.id, id)).limit(1);
+    return ocrJob;
+  }
+
+  async getOcrJobsByStatus(status: string): Promise<OcrJob[]> {
+    return await db.select().from(ocrJobs).where(eq(ocrJobs.status, status));
+  }
+
+  async updateOcrJob(id: number, ocrJob: Partial<OcrJob>): Promise<OcrJob | undefined> {
+    const [updatedOcrJob] = await db
+      .update(ocrJobs)
+      .set(ocrJob)
+      .where(eq(ocrJobs.id, id))
+      .returning();
+    return updatedOcrJob;
   }
 }
 

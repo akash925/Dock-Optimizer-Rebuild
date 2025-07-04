@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
-import { jest } from '@jest/globals';
+import { vi, describe, it, expect } from 'vitest';
 
 // Mock the Neon Pool before importing the DB module so that no real connection is attempted
-jest.mock('@neondatabase/serverless', () => {
+vi.mock('@neondatabase/serverless', () => {
   class MockPool extends EventEmitter {
     async query() {
       return { rows: [{ ok: true }] };
@@ -14,7 +14,7 @@ jest.mock('@neondatabase/serverless', () => {
 });
 
 // Mock drizzle purely as a noop (not used in this test)
-jest.mock('drizzle-orm/neon-serverless', () => {
+vi.mock('drizzle-orm/neon-serverless', () => {
   return { drizzle: () => ({}) };
 });
 
@@ -23,7 +23,7 @@ import { pool } from '../db';
 
 describe('Database crash resilience', () => {
   it('swallows Neon administrator termination errors (57P01/02/03)', () => {
-    const exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {
       /* noop */
     }) as any);
 
