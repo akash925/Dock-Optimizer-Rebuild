@@ -1225,7 +1225,6 @@ export class DatabaseStorage implements IStorage {
   
   async createCompanyAsset(asset: any) { return this.memStorage.createCompanyAsset(asset); }
   async updateCompanyAsset(id: number, data: any) { return this.memStorage.updateCompanyAsset(id, data); }
-  async deleteCompanyAsset(id: number) { return this.memStorage.deleteCompanyAsset(id); }
 
   // Add missing interface methods - getUser is implemented with getUserById below
   // updateUserPassword is implemented below with proper database queries

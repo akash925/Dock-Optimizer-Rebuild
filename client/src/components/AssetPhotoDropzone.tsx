@@ -8,21 +8,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface AssetPhotoDropzoneProps {
-  onUpload?: (file: File) => Promise<void>; // Legacy support, will be deprecated
+  onUpload?: (file: File) => Promise<void>; // Legacy support, deprecated
   existing?: string | null;
   className?: string;
   assetId?: string | number;
   tenantId?: string | number;
-  onUploadComplete?: (photoUrl: string) => void; // New callback for S3 uploads
-}
-
-interface PresignedResponse {
-  uploadUrl: string;
-  key: string;
-  publicUrl: string;
-  expiresAt: string;
-  fields?: Record<string, string>;
-  url?: string;
+  onUploadComplete?: (photoUrl: string) => void;
 }
 
 /**
@@ -30,7 +21,7 @@ interface PresignedResponse {
  * - Accepts jpg/png/webp up to 10 MB
  * - Shows local preview immediately before network round-trip
  * - Uses S3 presigned URLs for direct uploads
- * - Falls back to legacy multipart upload if onUpload provided
+ * - Uses simplified direct upload flow
  */
 export default function AssetPhotoDropzone({ 
   onUpload, 
@@ -101,7 +92,7 @@ export default function AssetPhotoDropzone({
     setUploadProgress(10);
 
     // Step 1: Get presigned URL
-    const presignResponse = await fetch(`/api/company-assets/company-assets/${assetId}/photo/presign`, {
+    const presignResponse = await fetch(`/api/company-assets/${assetId}/photo/presign`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -124,78 +115,51 @@ export default function AssetPhotoDropzone({
     // Step 2: Upload directly to S3
     setUploadStage('upload');
     
-    // Check if we're using the new S3 direct upload feature
-    const useS3DirectUpload = import.meta.env.VITE_USE_S3_DIRECT_UPLOAD === 'true';
+    // Use S3 direct upload with FormData
+    const formData = new FormData();
     
-    let uploadResponse: Response;
+    // Add all the fields from the presigned POST
+    Object.entries(presignedData.fields).forEach(([key, value]) => {
+      formData.append(key, value as string);
+    });
     
-    if (useS3DirectUpload && presignedData.fields) {
-      // New AWS PHP-style fields format (POST with FormData)
-      const formData = new FormData();
-      
-      // Add all the fields from the presigned POST
-      Object.entries(presignedData.fields).forEach(([key, value]) => {
-        formData.append(key, value as string);
-      });
-      
-      // Add the file last (as per AWS documentation)
-      formData.append('file', file);
-      
-      uploadResponse = await fetch(presignedData.url, {
-        method: 'POST',
-        body: formData,
-        // No credentials needed for direct S3 upload
-      });
-    } else {
-      // Legacy PUT-based upload
-      uploadResponse = await fetch(presignedData.uploadUrl || presignedData.url, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-        },
-      });
-    }
+    // Add the file last (as per AWS documentation)
+    formData.append('file', file);
+    
+    const uploadResponse = await fetch(presignedData.url, {
+      method: 'POST',
+      body: formData,
+      // No credentials needed for direct S3 upload
+    });
 
     if (!uploadResponse.ok) {
       throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
     }
 
-    setUploadProgress(75);
+    setUploadProgress(90);
 
-    // Step 3: For new S3 direct upload, the key is already persisted on the asset
-    // For legacy upload, we still need to confirm
-    if (useS3DirectUpload && presignedData.key) {
-      // With direct upload, the asset already has the key stored
-      setUploadProgress(100);
-      setUploadStage('complete');
-      return presignedData.key; // Return the S3 key directly
-    } else {
-      // Legacy confirmation step
-      setUploadStage('confirm');
-      const confirmResponse = await fetch(`/api/company-assets/company-assets/${assetId}/photo/confirm`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          key: presignedData.key,
-          fileName: file.name,
-          fileType: file.type,
-        }),
-      });
+    // Step 3: Confirm upload with backend
+    setUploadStage('confirm');
+    const confirmResponse = await fetch(`/api/company-assets/${assetId}/photo`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        key: presignedData.key,
+      }),
+    });
 
-      if (!confirmResponse.ok) {
-        const errorData = await confirmResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to confirm upload');
-      }
-
-      const confirmData = await confirmResponse.json();
-      setUploadProgress(100);
-      setUploadStage('complete');
-
-      return confirmData.photoUrl;
+    if (!confirmResponse.ok) {
+      const errorData = await confirmResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to confirm upload');
     }
+
+    const confirmData = await confirmResponse.json();
+    setUploadProgress(100);
+    setUploadStage('complete');
+
+    return confirmData.photoUrl;
   };
 
   const handleUpload = async () => {
@@ -231,15 +195,18 @@ export default function AssetPhotoDropzone({
     try {
       let finalPhotoUrl: string;
 
-      // Use S3 upload if assetId is provided, otherwise fall back to legacy
-      if (assetId && !onUpload) {
+      // Check if S3 direct upload is enabled
+      const useS3DirectUpload = import.meta.env.VITE_USE_S3_DIRECT_UPLOAD === 'true';
+      
+      if (useS3DirectUpload && assetId) {
+        // Use S3 direct upload
         finalPhotoUrl = await handleS3Upload(selectedFile);
-             } else if (onUpload) {
-         // Legacy multipart upload
-         await onUpload(selectedFile);
-         finalPhotoUrl = optimisticUrl || existing || ''; // Keep the optimistic URL for legacy
+      } else if (onUpload) {
+        // Legacy multipart upload
+        await onUpload(selectedFile);
+        finalPhotoUrl = optimisticUrl || existing || '';
       } else {
-        throw new Error('Either assetId or onUpload callback is required');
+        throw new Error('Asset ID is required for photo upload');
       }
       
       // Clean up object URL after successful upload
@@ -255,10 +222,10 @@ export default function AssetPhotoDropzone({
         description: 'Asset photo has been updated successfully',
       });
       
-             // Call completion callback
-       if (onUploadComplete && finalPhotoUrl) {
-         onUploadComplete(finalPhotoUrl);
-       }
+      // Call completion callback
+      if (onUploadComplete && finalPhotoUrl) {
+        onUploadComplete(finalPhotoUrl);
+      }
       
       // Invalidate queries to get the real CDN URL
       if (assetId && tenantId) {
