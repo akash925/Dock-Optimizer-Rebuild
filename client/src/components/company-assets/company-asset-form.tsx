@@ -150,7 +150,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         formData.append('photo', photoFile);
       }
       
-      const response = await fetch('/api/company-assets/company-assets', {
+      const response = await fetch('/api/company-assets', {
         method: 'POST',
         body: formData,
       });
@@ -214,7 +214,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         formData.append('photo', photoFile);
       }
       
-      const response = await fetch(`/api/company-assets/company-assets/${assetToEdit.id}`, {
+      const response = await fetch(`/api/company-assets/${assetToEdit.id}`, {
         method: 'PUT',
         body: formData,
       });

@@ -30,7 +30,7 @@ export function BarcodeScanButton({ variant = 'ghost', size = 'icon' }: BarcodeS
     
     try {
       // Search for an asset with this barcode
-      const response = await apiRequest('GET', `/api/company-assets/company-assets/barcode/search?barcode=${encodeURIComponent(barcode)}`);
+      const response = await apiRequest('GET', `/api/company-assets/barcode/search?barcode=${encodeURIComponent(barcode)}`);
       
       if (response.ok) {
         const asset = await response.json();

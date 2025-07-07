@@ -657,3 +657,147 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to update photo' });
   }
 };
+
+/**
+ * Update company asset status
+ */
+export const updateCompanyAssetStatus = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid company asset ID' });
+    }
+
+    const { status } = req.body;
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
+
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+    
+    // Get the current asset to check if it exists and belongs to user's tenant
+    const existingAsset = await companyAssetsService.getCompanyAssetById(id);
+    if (!existingAsset) {
+      return res.status(404).json({ error: 'Company asset not found' });
+    }
+
+    // TENANT SAFETY: Ensure asset belongs to the user's tenant
+    if (existingAsset.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+    }
+
+    // Update the asset status
+    const updatedAsset = await companyAssetsService.updateCompanyAssetStatus(id, status);
+    if (!updatedAsset) {
+      return res.status(404).json({ error: 'Failed to update asset status' });
+    }
+
+    // Serialize asset to ensure CDN URL is properly formatted
+    const serializedAsset = serializeCompanyAsset(updatedAsset);
+    
+    return res.json(serializedAsset);
+  } catch (error) {
+    console.error('Error updating company asset status:', error);
+    return res.status(500).json({ error: 'Failed to update asset status' });
+  }
+};
+
+/**
+ * Search company asset by barcode
+ */
+export const searchCompanyAssetByBarcode = async (req: Request, res: Response) => {
+  try {
+    const { barcode } = req.query;
+    if (!barcode || typeof barcode !== 'string') {
+      return res.status(400).json({ error: 'Barcode query parameter is required' });
+    }
+
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+
+    // Find the asset by barcode
+    const asset = await companyAssetsService.findCompanyAssetByBarcode(barcode);
+    if (!asset) {
+      return res.status(404).json({ error: 'Asset not found with the provided barcode' });
+    }
+
+    // TENANT SAFETY: Ensure asset belongs to the user's tenant
+    if (asset.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+    }
+
+    // Serialize asset to ensure CDN URL is properly formatted
+    const serializedAsset = serializeCompanyAsset(asset);
+    
+    return res.json(serializedAsset);
+  } catch (error) {
+    console.error('Error searching for asset by barcode:', error);
+    return res.status(500).json({ error: 'Failed to search for asset' });
+  }
+};
+
+/**
+ * Import company assets from bulk data
+ */
+export const importCompanyAssets = async (req: Request, res: Response) => {
+  try {
+    const { assets } = req.body;
+    if (!assets || !Array.isArray(assets)) {
+      return res.status(400).json({ error: 'Assets array is required in the request body' });
+    }
+
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+    const results = {
+      total: assets.length,
+      successful: 0,
+      failed: 0,
+      errors: [] as any[]
+    };
+
+    // Process each asset in the import
+    for (let i = 0; i < assets.length; i++) {
+      const assetData = assets[i];
+      try {
+        // Add tenant ID to each asset
+        const assetWithTenant = {
+          ...assetData,
+          tenantId: tenantId
+        };
+
+        // Validate the asset data
+        insertCompanyAssetSchema.parse(assetWithTenant);
+
+        // Create the asset
+        await companyAssetsService.createCompanyAsset(assetWithTenant);
+        results.successful++;
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          index: i,
+          asset: assetData,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        console.error(`Error importing asset at index ${i}:`, error);
+      }
+    }
+
+    return res.status(201).json(results);
+  } catch (error) {
+    console.error('Error importing company assets:', error);
+    return res.status(500).json({ error: 'Failed to import assets' });
+  }
+};
