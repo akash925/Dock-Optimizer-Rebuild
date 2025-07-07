@@ -190,7 +190,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   const { data: assets, isLoading, error, refetch } = useQuery<CompanyAsset[]>({
     queryKey: ['companyAssets', user?.tenantId, queryString],
     queryFn: async () => {
-      const endpoint = `/api/company-assets/company-assets${queryString ? `?${queryString}` : ''}`;
+      const endpoint = `/api/company-assets${queryString ? `?${queryString}` : ''}`;
       const response = await apiRequest('GET', endpoint);
       if (!response.ok) {
         throw new Error('Error fetching assets');
@@ -208,7 +208,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest('DELETE', `/api/company-assets/company-assets/${id}`);
+      const response = await apiRequest('DELETE', `/api/company-assets/${id}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to delete company asset');
@@ -246,7 +246,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
   // Status update mutation
   const statusUpdateMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number, status: AssetStatus }) => {
-      const response = await apiRequest('PATCH', `/api/company-assets/company-assets/${id}/status`, { status });
+      const response = await apiRequest('PATCH', `/api/company-assets/${id}/status`, { status });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update asset status');

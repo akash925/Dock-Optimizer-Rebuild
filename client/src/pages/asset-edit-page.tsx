@@ -26,7 +26,7 @@ export default function AssetEditPage() {
   const { data: asset, isLoading, error } = useQuery<CompanyAsset>({
     queryKey: ['companyAssets', user?.tenantId, assetId],
     queryFn: async () => {
-      const response = await fetch(`/api/company-assets/company-assets/${assetId}`);
+      const response = await fetch(`/api/company-assets/${assetId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch asset details');
       }
@@ -41,7 +41,7 @@ export default function AssetEditPage() {
       const formData = new FormData();
       formData.append('photo', file);
       
-      const response = await fetch(`/api/company-assets/company-assets/${assetId}/photo`, {
+      const response = await fetch(`/api/company-assets/${assetId}/photo`, {
         method: 'PUT',
         body: formData,
       });
@@ -68,7 +68,7 @@ export default function AssetEditPage() {
   // Mutation for updating the barcode
   const updateBarcodeMutation = useMutation({
     mutationFn: async (barcode: string) => {
-      const response = await apiRequest('PATCH', `/api/company-assets/company-assets/${assetId}/barcode`, { barcode });
+      const response = await apiRequest('PATCH', `/api/company-assets/${assetId}/barcode`, { barcode });
       if (!response.ok) {
         throw new Error('Failed to update barcode');
       }

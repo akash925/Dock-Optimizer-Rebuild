@@ -12,6 +12,9 @@ import {
   createCompanyAsset,
   updateCompanyAsset,
   deleteCompanyAsset,
+  updateCompanyAssetStatus,
+  searchCompanyAssetByBarcode,
+  importCompanyAssets,
   // Photo upload endpoints
   getPresignAssetPhoto, 
   updatePhotoKey 
@@ -19,7 +22,6 @@ import {
 import { isAuthenticated } from "../../middleware/auth";
 import express from "express";
 
-// TODO(fix-asset-routing): ensure companyAssetsRouter is exported correctly
 // Legacy routes for backward compatibility (/api/assets)
 const legacyRouter = Router();
 
@@ -39,6 +41,13 @@ companyAssetsRouter.get("/:id", isAuthenticated, getCompanyAssetById);
 companyAssetsRouter.post("/", isAuthenticated, createCompanyAsset);
 companyAssetsRouter.put("/:id", isAuthenticated, updateCompanyAsset);
 companyAssetsRouter.delete("/:id", isAuthenticated, deleteCompanyAsset);
+
+// Asset status and search operations
+companyAssetsRouter.patch("/:id/status", isAuthenticated, updateCompanyAssetStatus);
+companyAssetsRouter.get("/barcode/search", isAuthenticated, searchCompanyAssetByBarcode);
+
+// Bulk operations
+companyAssetsRouter.post("/import", isAuthenticated, importCompanyAssets);
 
 // Photo upload endpoints
 companyAssetsRouter.post("/:id/photo/presign", isAuthenticated, getPresignAssetPhoto);

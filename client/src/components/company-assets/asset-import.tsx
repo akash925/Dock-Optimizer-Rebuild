@@ -436,7 +436,7 @@ export function AssetImport() {
   // Import mutation
   const importMutation = useMutation({
     mutationFn: async (data: any[]) => {
-      const response = await fetch('/api/company-assets/company-assets/import', {
+      const response = await fetch('/api/company-assets/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
