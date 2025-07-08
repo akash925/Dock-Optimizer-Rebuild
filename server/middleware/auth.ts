@@ -76,3 +76,19 @@ export function isOwnerOrAdmin(getOwnerId: (req: Request) => Promise<number | nu
     return next();
   };
 }
+
+/**
+ * Middleware to validate that the user has a valid tenant ID
+ */
+export function validateTenant(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const user = req.user as any;
+  if (!user.tenantId) {
+    return res.status(400).json({ error: 'User must be associated with a valid organization' });
+  }
+
+  return next();
+}

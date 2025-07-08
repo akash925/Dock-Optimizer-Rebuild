@@ -3,12 +3,14 @@ import {
   PutObjectCommand, 
   DeleteObjectCommand, 
   HeadObjectCommand,
-  GetObjectCommand
+  GetObjectCommand,
+  ListObjectsV2Command
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomBytes } from 'crypto';
 import { extname } from 'path';
 import { getStorage } from '../storage';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface PresignedUploadResponse {
   uploadUrl: string;
@@ -38,85 +40,150 @@ export interface MediaFileRecord {
   createdAt: Date;
 }
 
+export interface MediaUploadOptions {
+  tenantId: number;
+  uploadedBy: number;
+  folder?: string;
+  maxSizeBytes?: number;
+  allowedMimeTypes?: string[];
+}
+
+export interface MediaUploadResult {
+  id: string;
+  key: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  publicUrl: string;
+  tenantId: number;
+  uploadedBy: number;
+  folder?: string;
+  uploadUrl: string;
+  expiresAt: Date;
+  createdAt: Date;
+}
+
+export interface MediaConfirmResult {
+  id: string;
+  key: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  publicUrl: string;
+  tenantId: number;
+  uploadedBy: number;
+  folder?: string;
+  createdAt: Date;
+}
+
 class MediaService {
-  private s3Client: S3Client;
+  private s3Client: S3Client | null = null;
   private bucket: string;
   private region: string;
-  private cdnBase?: string;
+  private accessKeyId: string;
+  private secretAccessKey: string;
+  private cloudFrontDomain?: string;
+  private initialized = false;
 
   constructor() {
+    // Validate environment variables in constructor for immediate feedback
+    this.bucket = process.env.AWS_S3_BUCKET || '';
+    this.region = process.env.AWS_REGION || 'us-east-1';
+    this.accessKeyId = process.env.AWS_ACCESS_KEY_ID || '';
+    this.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || '';
+    this.cloudFrontDomain = process.env.AWS_CLOUDFRONT_DOMAIN;
+
     // Validate required environment variables
-    const bucket = process.env.AWS_S3_BUCKET;
-    const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-    
-    if (!bucket) {
+    if (!this.bucket) {
       throw new Error('AWS_S3_BUCKET environment variable is required');
     }
-    if (!accessKeyId || !secretAccessKey) {
+    if (!this.accessKeyId || !this.secretAccessKey) {
       throw new Error('AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables are required');
     }
+  }
 
-    this.bucket = bucket;
-    this.region = process.env.AWS_REGION || 'us-east-1';
-    this.cdnBase = process.env.AWS_CLOUDFRONT_DOMAIN;
+  private initialize() {
+    if (this.initialized) {
+      return;
+    }
 
-    // Initialize S3 client
     this.s3Client = new S3Client({
       region: this.region,
       credentials: {
-        accessKeyId,
-        secretAccessKey,
+        accessKeyId: this.accessKeyId,
+        secretAccessKey: this.secretAccessKey,
       },
     });
+
+    this.initialized = true;
+  }
+
+  private ensureInitialized() {
+    if (!this.initialized) {
+      this.initialize();
+    }
   }
 
   /**
    * Generate a presigned URL for uploading a file directly to S3
    */
   async generatePresignedUpload(
-    originalFileName: string,
+    fileName: string,
     mimeType: string,
-    options: UploadFileOptions
-  ): Promise<PresignedUploadResponse> {
-    // Validate file size if specified
-    if (options.maxSizeBytes && options.maxSizeBytes > 100 * 1024 * 1024) {
+    options: MediaUploadOptions
+  ): Promise<MediaUploadResult> {
+    this.ensureInitialized();
+    
+    const {
+      tenantId,
+      uploadedBy,
+      folder = 'uploads',
+      maxSizeBytes = 100 * 1024 * 1024, // 100MB default
+      allowedMimeTypes
+    } = options;
+
+    // Validate file size (we can't get exact size for presigned upload, so this is a max limit check)
+    if (maxSizeBytes && maxSizeBytes > 100 * 1024 * 1024) {
       throw new Error('File size cannot exceed 100MB');
     }
 
-    // Validate MIME type if specified
-    if (options.allowedMimeTypes && !options.allowedMimeTypes.includes(mimeType)) {
+    // Validate MIME type
+    if (allowedMimeTypes && !allowedMimeTypes.includes(mimeType)) {
       throw new Error(`File type ${mimeType} is not allowed`);
     }
 
     // Generate unique key
-    const key = this.generateFileKey(originalFileName, options);
+    const timestamp = Date.now();
+    const uuid = uuidv4().split('-')[0];
+    const fileExtension = fileName.split('.').pop();
+    const key = `tenants/${tenantId}/${folder}/${timestamp}-${uuid}.${fileExtension}`;
 
-    // Create presigned URL for PUT operation
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,
       ContentType: mimeType,
-      Metadata: {
-        originalName: originalFileName,
-        tenantId: options.tenantId.toString(),
-        uploadedBy: options.uploadedBy.toString(),
-        folder: options.folder || 'general',
-      },
     });
 
-    const uploadUrl = await getSignedUrl(this.s3Client, command, {
+    const uploadUrl = await getSignedUrl(this.s3Client!, command, {
       expiresIn: 3600, // 1 hour
     });
 
-    const publicUrl = this.getPublicUrl(key);
     const expiresAt = new Date(Date.now() + 3600 * 1000);
+    const publicUrl = this.getPublicUrl(key);
 
     return {
-      uploadUrl,
+      id: uuidv4(),
       key,
+      originalName: fileName,
+      mimeType,
+      size: 0, // Will be updated on confirmation
       publicUrl,
+      tenantId,
+      uploadedBy,
+      folder,
+      uploadUrl,
       expiresAt,
+      createdAt: new Date(),
     };
   }
 
@@ -125,50 +192,55 @@ class MediaService {
    */
   async confirmUpload(
     key: string,
-    originalFileName: string,
+    originalName: string,
     mimeType: string,
-    options: UploadFileOptions
-  ): Promise<MediaFileRecord> {
+    options: MediaUploadOptions
+  ): Promise<MediaConfirmResult> {
+    this.ensureInitialized();
+    
+    const { tenantId, uploadedBy, folder } = options;
+
     try {
-      // Verify the file exists in S3
+      // Verify the file exists and get its size
       const headCommand = new HeadObjectCommand({
         Bucket: this.bucket,
         Key: key,
       });
 
-      const headResult = await this.s3Client.send(headCommand);
-      const fileSize = headResult.ContentLength || 0;
+      const headResult = await this.s3Client!.send(headCommand);
+      const size = headResult.ContentLength || 0;
 
-      // Create database record
-      const fileRecord: MediaFileRecord = {
-        id: this.generateFileId(),
-        key,
-        originalName: originalFileName,
+      // Create file record in storage
+      const storage = await getStorage();
+      const fileRecord = {
+        id: uuidv4(),
+        filename: originalName,
+        originalName,
         mimeType,
-        size: fileSize,
-        publicUrl: this.getPublicUrl(key),
-        tenantId: options.tenantId,
-        uploadedBy: options.uploadedBy,
-        folder: options.folder || 'general',
-        createdAt: new Date(),
+        size,
+        path: key,
+        uploadedBy,
+        uploadedAt: new Date(),
       };
 
-      // Store in database
-      const storage = await getStorage();
-      await storage.createFileRecord({
-        id: fileRecord.id,
-        filename: fileRecord.originalName,
-        originalName: fileRecord.originalName,
-        mimeType: fileRecord.mimeType,
-        size: fileRecord.size,
-        path: fileRecord.key, // Store S3 key as path
-        uploadedBy: fileRecord.uploadedBy,
-        uploadedAt: fileRecord.createdAt,
-      });
+      await storage.createFileRecord(fileRecord);
 
-      return fileRecord;
+      const publicUrl = this.getPublicUrl(key);
+
+      return {
+        id: fileRecord.id,
+        key,
+        originalName,
+        mimeType,
+        size,
+        publicUrl,
+        tenantId,
+        uploadedBy,
+        folder,
+        createdAt: fileRecord.uploadedAt,
+      };
     } catch (error) {
-      console.error('Error confirming upload:', error);
+      console.error('Failed to confirm upload:', error);
       throw new Error('Failed to confirm file upload');
     }
   }
@@ -176,26 +248,24 @@ class MediaService {
   /**
    * Delete a file from S3 and database
    */
-  async deleteFile(key: string, tenantId?: number): Promise<boolean> {
+  async deleteFile(key: string, tenantId: number): Promise<boolean> {
+    this.ensureInitialized();
+    
     try {
-      // Delete from S3
-      const deleteCommand = new DeleteObjectCommand({
+      const command = new DeleteObjectCommand({
         Bucket: this.bucket,
         Key: key,
       });
 
-      await this.s3Client.send(deleteCommand);
+      await this.s3Client!.send(command);
 
-      // Delete from database
-      const storage = await getStorage();
-      // Note: We'll need to find the file record by path since there's no direct method
-      // For now, we'll skip database deletion and just delete from S3
-      // TODO: Add method to find file record by S3 key/path
+      // Also delete from storage
+      // Note: For now we just delete from S3, storage cleanup can be added later
       console.log(`Deleted S3 object with key: ${key}`);
 
       return true;
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error('Failed to delete file:', error);
       return false;
     }
   }
@@ -204,20 +274,22 @@ class MediaService {
    * Generate a presigned URL for downloading/viewing a file
    */
   async generatePresignedDownload(key: string, expiresIn: number = 3600): Promise<string> {
+    this.ensureInitialized();
+    
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
     });
 
-    return getSignedUrl(this.s3Client, command, { expiresIn });
+    return getSignedUrl(this.s3Client!, command, { expiresIn });
   }
 
   /**
    * Get public URL for a file (uses CloudFront if configured)
    */
   getPublicUrl(key: string): string {
-    if (this.cdnBase) {
-      return `${this.cdnBase}/${key}`;
+    if (this.cloudFrontDomain) {
+      return `${this.cloudFrontDomain}/${key}`;
     }
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
   }
@@ -246,18 +318,18 @@ class MediaService {
    * Validate S3 configuration
    */
   async validateConfiguration(): Promise<boolean> {
+    this.ensureInitialized();
+    
     try {
-      // Try to list objects in the bucket (with limit 1)
-      const { ListObjectsV2Command } = await import('@aws-sdk/client-s3');
       const command = new ListObjectsV2Command({
         Bucket: this.bucket,
         MaxKeys: 1,
       });
 
-      await this.s3Client.send(command);
+      await this.s3Client!.send(command);
       return true;
     } catch (error) {
-      console.error('S3 configuration validation failed:', error);
+      console.error('AWS S3 configuration validation failed:', error);
       return false;
     }
   }
@@ -267,61 +339,67 @@ class MediaService {
    */
   async migrateLocalFile(
     localPath: string,
-    buffer: Buffer,
-    originalFileName: string,
+    fileBuffer: Buffer,
+    originalName: string,
     mimeType: string,
-    options: UploadFileOptions
-  ): Promise<MediaFileRecord> {
-    const key = this.generateFileKey(originalFileName, options);
+    options: MediaUploadOptions
+  ): Promise<MediaConfirmResult> {
+    this.ensureInitialized();
+    
+    const { tenantId, uploadedBy, folder = 'migrated' } = options;
 
-    // Upload to S3
-    const putCommand = new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-      Body: buffer,
-      ContentType: mimeType,
-      Metadata: {
-        originalName: originalFileName,
-        tenantId: options.tenantId.toString(),
-        uploadedBy: options.uploadedBy.toString(),
-        folder: options.folder || 'general',
-        migratedFrom: localPath,
-      },
-    });
+    // Generate unique key
+    const timestamp = Date.now();
+    const uuid = uuidv4().split('-')[0];
+    const fileExtension = originalName.split('.').pop();
+    const key = `tenants/${tenantId}/${folder}/${timestamp}-${uuid}.${fileExtension}`;
 
-    await this.s3Client.send(putCommand);
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: mimeType,
+      });
 
-    // Create file record
-    const fileRecord: MediaFileRecord = {
-      id: this.generateFileId(),
-      key,
-      originalName: originalFileName,
-      mimeType,
-      size: buffer.length,
-      publicUrl: this.getPublicUrl(key),
-      tenantId: options.tenantId,
-      uploadedBy: options.uploadedBy,
-      folder: options.folder || 'general',
-      createdAt: new Date(),
-    };
+      await this.s3Client!.send(command);
 
-    // Store in database
-    const storage = await getStorage();
-    await storage.createFileRecord({
-      id: fileRecord.id,
-      filename: fileRecord.originalName,
-      originalName: fileRecord.originalName,
-      mimeType: fileRecord.mimeType,
-      size: fileRecord.size,
-      path: fileRecord.key,
-      uploadedBy: fileRecord.uploadedBy,
-      uploadedAt: fileRecord.createdAt,
-    });
+      // Create file record
+      const storage = await getStorage();
+      const fileRecord = {
+        id: uuidv4(),
+        filename: originalName,
+        originalName,
+        mimeType,
+        size: fileBuffer.length,
+        path: key,
+        uploadedBy,
+        uploadedAt: new Date(),
+      };
 
-    return fileRecord;
+      await storage.createFileRecord(fileRecord);
+
+      const publicUrl = this.getPublicUrl(key);
+
+      return {
+        id: fileRecord.id,
+        key,
+        originalName,
+        mimeType,
+        size: fileBuffer.length,
+        publicUrl,
+        tenantId,
+        uploadedBy,
+        folder,
+        createdAt: fileRecord.uploadedAt,
+      };
+    } catch (error) {
+      console.error('Failed to migrate file:', error);
+      throw new Error(`Failed to migrate file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }
 
-// Export singleton instance
+// Create and export a singleton instance
 export const mediaService = new MediaService();
 export default MediaService; 

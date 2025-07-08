@@ -1,29 +1,37 @@
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
+
+// Set environment variables before importing MediaService
+process.env.AWS_S3_BUCKET = 'test-bucket';
+process.env.AWS_REGION = 'us-east-1';
+process.env.AWS_ACCESS_KEY_ID = 'test-access-key';
+process.env.AWS_SECRET_ACCESS_KEY = 'test-secret-key';
+
 import { mediaService } from '../MediaService';
 import MediaService from '../MediaService';
 import { S3Client, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Mock AWS SDK
-jest.mock('@aws-sdk/client-s3');
-jest.mock('@aws-sdk/s3-request-presigner');
-jest.mock('../storage');
+vi.mock('@aws-sdk/client-s3');
+vi.mock('@aws-sdk/s3-request-presigner');
+vi.mock('../storage');
 
 const mockS3Client = {
-  send: jest.fn(),
+  send: vi.fn(),
 };
 
-const mockGetSignedUrl = getSignedUrl as jest.MockedFunction<typeof getSignedUrl>;
-const MockS3Client = S3Client as jest.MockedClass<typeof S3Client>;
+const mockGetSignedUrl = getSignedUrl as any;
+const MockS3Client = S3Client as any;
 
 // Mock storage
 const mockStorage = {
-  createFileRecord: jest.fn(),
-  getFileRecord: jest.fn(),
-  deleteFileRecord: jest.fn(),
+  createFileRecord: vi.fn(),
+  getFileRecord: vi.fn(),
+  deleteFileRecord: vi.fn(),
 };
 
-jest.mock('../storage', () => ({
-  getStorage: jest.fn().mockResolvedValue(mockStorage),
+vi.mock('../storage', () => ({
+  getStorage: vi.fn().mockResolvedValue(mockStorage),
 }));
 
 describe('MediaService', () => {
@@ -36,7 +44,7 @@ describe('MediaService', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     MockS3Client.mockImplementation(() => mockS3Client as any);
   });
 
@@ -238,9 +246,9 @@ describe('MediaService', () => {
   describe('validateConfiguration', () => {
     it('should return true for valid configuration', async () => {
       // Mock ListObjectsV2Command
-      const MockListObjectsV2Command = jest.fn();
-      jest.doMock('@aws-sdk/client-s3', () => ({
-        ...jest.requireActual('@aws-sdk/client-s3'),
+      const MockListObjectsV2Command = vi.fn();
+      vi.doMock('@aws-sdk/client-s3', () => ({
+        ...vi.importActual('@aws-sdk/client-s3'),
         ListObjectsV2Command: MockListObjectsV2Command,
       }));
 

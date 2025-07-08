@@ -9,6 +9,7 @@ import path from "path";
 import fs from "fs";
 import { tenantMiddleware } from "./middleware/tenant";
 import { initializeWebSocket } from "./websocket/index";
+// Production logging and error handling
 
 // Default system modules (always loaded)
 const SYSTEM_MODULES = ["tenants", "featureFlags", "modules", "organizations", "admin"];
@@ -55,6 +56,14 @@ app.use(tenantMiddleware);
 
 // Serve files from the uploads directory
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+// For tests that need synchronous app import, use test-app.ts instead
+// This export provides the basic app instance but routes are set up asynchronously
+export { app };
+export default app;
+
+// For require() calls from tests (CommonJS style)
+module.exports = app;
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -434,3 +443,19 @@ app.use((req, res, next) => {
     }
   });
 })();
+
+// Early error logging
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+console.log('🚀 Starting Dock Optimizer server...');
+console.log('📊 Environment:', process.env.NODE_ENV || 'development');
+console.log('🗄️ Database URL configured:', !!process.env.DATABASE_URL);
+console.log('☁️ S3 configured:', !!process.env.AWS_S3_BUCKET);

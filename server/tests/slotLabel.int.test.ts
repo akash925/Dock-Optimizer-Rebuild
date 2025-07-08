@@ -1,16 +1,20 @@
-import { vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // Mock the availability service to avoid database dependencies
 vi.mock('../src/services/availability', () => ({
   generateTimeSlots: vi.fn().mockImplementation((hours: any, date: any, timezone: any, config: any) => {
     // Mock implementation that returns time slots based on start time
+    if (!hours || !hours.start || !hours.end) {
+      return [];
+    }
+    
     const slots: string[] = [];
     const startHour = parseInt(hours.start.split(':')[0]);
     const endHour = parseInt(hours.end.split(':')[0]);
     
     for (let hour = startHour; hour < endHour; hour++) {
       slots.push(`${hour.toString().padStart(2, '0')}:00`);
-      if (config.intervalMinutes === 30) {
+      if (config && config.intervalMinutes === 30) {
         slots.push(`${hour.toString().padStart(2, '0')}:30`);
       }
     }
@@ -19,7 +23,15 @@ vi.mock('../src/services/availability', () => ({
   }),
 }));
 
-import { generateTimeSlots, DayHours } from '../src/services/availability';
+const { generateTimeSlots } = await import('../src/services/availability');
+
+export interface DayHours {
+  open: boolean;
+  start: string;
+  end: string;
+  breakStart?: string;
+  breakEnd?: string;
+}
 
 // Simple config to remove booking buffer
 const testConfig = { intervalMinutes: 30, bookingBufferMinutes: 0, maxAdvanceDays: 30 };
