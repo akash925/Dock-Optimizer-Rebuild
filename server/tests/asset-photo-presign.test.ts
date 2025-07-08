@@ -84,6 +84,40 @@ describe('Asset Photo Presigned Upload', () => {
         res.status(500).json({ error: 'Failed to generate presigned URL' });
       }
     });
+
+    // Add the photo update route with both key and photoUrl support
+    app.put('/api/company-assets/:id/photo', async (req: any, res) => {
+      try {
+        const id = Number(req.params.id);
+        if (isNaN(id)) {
+          return res.status(400).json({ error: 'Invalid company asset ID' });
+        }
+
+        const { key, photoUrl } = req.body;
+
+        // Accept either key or photoUrl, resolve to S3 key
+        const resolvedKey = 
+          key ??
+          (photoUrl ? photoUrl.replace(/^https?:\/\/[^/]+\//, '') : null);
+
+        if (!resolvedKey) {
+          return res.status(400).json({ error: 'S3 key is required' });
+        }
+
+        // Check if asset exists (using mocked storage)
+        const asset = await mockStorage.getCompanyAsset(id);
+        if (!asset) {
+          return res.status(404).json({ error: 'Company asset not found' });
+        }
+
+        // Update asset with photo key (mocked)
+        await mockStorage.updateCompanyAsset(id, { photoUrl: resolvedKey });
+
+        res.json({ photoUrl: `https://cdn.example.com/${resolvedKey}` });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to update photo' });
+      }
+    });
   });
 
   afterEach(() => {
@@ -104,6 +138,53 @@ describe('Asset Photo Presigned Upload', () => {
     expect(response.body.fields).toBeDefined();
     expect(response.body.key).toBeDefined();
     expect(mockStorage.updateCompanyAsset).toHaveBeenCalledWith(1, { photoUrl: response.body.key });
+  });
+
+  it('should update photo with raw key', async () => {
+    const response = await request(app)
+      .put('/api/company-assets/1/photo')
+      .send({
+        key: 'photos/test-key.jpg'
+      })
+      .expect(200);
+
+    expect(response.body.photoUrl).toBe('https://cdn.example.com/photos/test-key.jpg');
+    expect(mockStorage.updateCompanyAsset).toHaveBeenCalledWith(1, { photoUrl: 'photos/test-key.jpg' });
+  });
+
+  it('should update photo with full photoUrl', async () => {
+    const response = await request(app)
+      .put('/api/company-assets/1/photo')
+      .send({
+        photoUrl: 'https://cdn.example.com/photos/test-key.jpg'
+      })
+      .expect(200);
+
+    expect(response.body.photoUrl).toBe('https://cdn.example.com/photos/test-key.jpg');
+    expect(mockStorage.updateCompanyAsset).toHaveBeenCalledWith(1, { photoUrl: 'photos/test-key.jpg' });
+  });
+
+  it('should accept both key and photoUrl but prefer key', async () => {
+    const response = await request(app)
+      .put('/api/company-assets/1/photo')
+      .send({
+        key: 'photos/preferred-key.jpg',
+        photoUrl: 'https://cdn.example.com/photos/fallback-key.jpg'
+      })
+      .expect(200);
+
+    expect(response.body.photoUrl).toBe('https://cdn.example.com/photos/preferred-key.jpg');
+    expect(mockStorage.updateCompanyAsset).toHaveBeenCalledWith(1, { photoUrl: 'photos/preferred-key.jpg' });
+  });
+
+  it('should require either key or photoUrl', async () => {
+    const response = await request(app)
+      .put('/api/company-assets/1/photo')
+      .send({})
+      .expect(400);
+
+    expect(response.body.error).toBe('S3 key is required');
+    expect(mockStorage.updateCompanyAsset).not.toHaveBeenCalled();
   });
 
   it('should reject invalid asset ID', async () => {

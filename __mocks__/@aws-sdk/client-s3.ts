@@ -5,24 +5,26 @@
  * to avoid real network calls during testing.
  */
 
-export const mockSend = jest.fn();
-export const mockS3Client = jest.fn().mockImplementation(() => ({
+import { vi } from 'vitest';
+
+export const mockSend = vi.fn();
+export const mockS3Client = vi.fn().mockImplementation(() => ({
   send: mockSend,
 }));
 
 export const S3Client = mockS3Client;
 
-export const PutObjectCommand = jest.fn().mockImplementation((params) => ({
+export const PutObjectCommand = vi.fn().mockImplementation((params) => ({
   input: params,
   middlewareStack: {},
 }));
 
-export const HeadObjectCommand = jest.fn().mockImplementation((params) => ({
+export const HeadObjectCommand = vi.fn().mockImplementation((params) => ({
   input: params,
   middlewareStack: {},
 }));
 
-export const GetObjectCommand = jest.fn().mockImplementation((params) => ({
+export const GetObjectCommand = vi.fn().mockImplementation((params) => ({
   input: params,
   middlewareStack: {},
 }));

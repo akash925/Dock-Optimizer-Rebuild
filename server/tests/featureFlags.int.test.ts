@@ -1,8 +1,14 @@
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { db } from '../db';
 import { FeatureFlagService } from '../modules/featureFlags/service';
-import { organizationModules } from '../schema';
+import { organizationModules } from '../../shared/schema';
 import { eq, and } from 'drizzle-orm';
-import { cleanupTestData } from './test-db';
+import { mockStorage } from './/__mocks__/storage';
+
+// Mock the storage
+vi.mock('../storage', () => ({
+  getStorage: vi.fn().mockResolvedValue(mockStorage),
+}));
 
 describe('Feature Flags Service', () => {
   const testOrgId = 9999;

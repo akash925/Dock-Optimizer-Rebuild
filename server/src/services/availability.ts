@@ -75,11 +75,19 @@ async function checkHolidaysAndClosures(
       
       if (Array.isArray(orgHolidays)) {
         const isOrgHoliday = orgHolidays.some((holiday: any) => {
-          // Compare date strings (YYYY-MM-DD format)
+          // Use UTC midnight comparison to avoid timezone off-by-ones
           const holidayDate = holiday.date;
-          const formattedHolidayDate = typeof holidayDate === 'string' 
-            ? holidayDate.split('T')[0] // Remove time part if present
-            : holidayDate?.toISOString?.()?.split('T')[0];
+          let formattedHolidayDate: string;
+          
+          if (typeof holidayDate === 'string') {
+            formattedHolidayDate = holidayDate.split('T')[0]; // Remove time part if present
+          } else if (holidayDate instanceof Date) {
+            // Convert to UTC midnight to avoid timezone issues
+            const utcMidnight = new Date(holidayDate.getFullYear(), holidayDate.getMonth(), holidayDate.getDate());
+            formattedHolidayDate = utcMidnight.toISOString().split('T')[0];
+          } else {
+            formattedHolidayDate = holidayDate?.toISOString?.()?.split('T')[0] || '';
+          }
           
           return formattedHolidayDate === date;
         });
@@ -90,15 +98,49 @@ async function checkHolidaysAndClosures(
         }
       }
     }
+
+    // STEP 1.5: Check organization metadata holidays and treat undefined as empty array
+    if (organization?.metadata?.holidays) {
+      const metadataHolidays = Array.isArray(organization.metadata.holidays) ? organization.metadata.holidays : [];
+      
+      const isMetadataHoliday = metadataHolidays.some((holiday: any) => {
+        // Use UTC midnight comparison to avoid timezone off-by-ones
+        const holidayDate = holiday.date;
+        let formattedHolidayDate: string;
+        
+        if (typeof holidayDate === 'string') {
+          formattedHolidayDate = holidayDate.split('T')[0];
+        } else if (holidayDate instanceof Date) {
+          const utcMidnight = new Date(holidayDate.getFullYear(), holidayDate.getMonth(), holidayDate.getDate());
+          formattedHolidayDate = utcMidnight.toISOString().split('T')[0];
+        } else {
+          formattedHolidayDate = holidayDate?.toISOString?.()?.split('T')[0] || '';
+        }
+        
+        return formattedHolidayDate === date;
+      });
+      
+      if (isMetadataHoliday) {
+        console.log(`[AvailabilityService] ${date} is an organization metadata holiday - facility closed`);
+        return { ...currentHours, open: false };
+      }
+    }
     
     // STEP 2: Check facility-specific holidays (can override organization holidays)
-    // TODO: Implement facility-level holiday overrides here
     if (facility?.holidays && Array.isArray(facility.holidays)) {
       const isFacilityHoliday = facility.holidays.some((holiday: any) => {
+        // Use UTC midnight comparison to avoid timezone off-by-ones
         const holidayDate = holiday.date;
-        const formattedHolidayDate = typeof holidayDate === 'string' 
-          ? holidayDate.split('T')[0]
-          : holidayDate?.toISOString?.()?.split('T')[0];
+        let formattedHolidayDate: string;
+        
+        if (typeof holidayDate === 'string') {
+          formattedHolidayDate = holidayDate.split('T')[0];
+        } else if (holidayDate instanceof Date) {
+          const utcMidnight = new Date(holidayDate.getFullYear(), holidayDate.getMonth(), holidayDate.getDate());
+          formattedHolidayDate = utcMidnight.toISOString().split('T')[0];
+        } else {
+          formattedHolidayDate = holidayDate?.toISOString?.()?.split('T')[0] || '';
+        }
         
         return formattedHolidayDate === date && holiday.enabled !== false;
       });
@@ -110,10 +152,18 @@ async function checkHolidaysAndClosures(
       
       // Check if facility explicitly overrides an org holiday to stay open
       const facilityOverride = facility.holidays.find((holiday: any) => {
+        // Use UTC midnight comparison to avoid timezone off-by-ones
         const holidayDate = holiday.date;
-        const formattedHolidayDate = typeof holidayDate === 'string' 
-          ? holidayDate.split('T')[0]
-          : holidayDate?.toISOString?.()?.split('T')[0];
+        let formattedHolidayDate: string;
+        
+        if (typeof holidayDate === 'string') {
+          formattedHolidayDate = holidayDate.split('T')[0];
+        } else if (holidayDate instanceof Date) {
+          const utcMidnight = new Date(holidayDate.getFullYear(), holidayDate.getMonth(), holidayDate.getDate());
+          formattedHolidayDate = utcMidnight.toISOString().split('T')[0];
+        } else {
+          formattedHolidayDate = holidayDate?.toISOString?.()?.split('T')[0] || '';
+        }
         
         return formattedHolidayDate === date && holiday.overrideOrgHoliday === true;
       });

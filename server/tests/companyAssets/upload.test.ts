@@ -1,12 +1,13 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { initializeCompanyAssetsModule } from '../../modules/companyAssets';
 import { companyAssetsService } from '../../modules/companyAssets/service';
 
 // Mock the service
-jest.mock('../../modules/companyAssets/service');
+vi.mock('../../modules/companyAssets/service');
 
-const mockCompanyAssetsService = companyAssetsService as jest.Mocked<typeof companyAssetsService>;
+const mockCompanyAssetsService = companyAssetsService as any;
 
 describe('Company Assets Upload Functionality', () => {
   let app: express.Express;
@@ -25,7 +26,7 @@ describe('Company Assets Upload Functionality', () => {
     initializeCompanyAssetsModule(app);
     
     // Reset all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Router Exports and Initialization', () => {

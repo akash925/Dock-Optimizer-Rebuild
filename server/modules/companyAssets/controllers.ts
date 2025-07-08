@@ -624,9 +624,14 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
     }
 
     const tenantId = (req.user as any).tenantId;
-    const { key } = req.body;
+    const { key, photoUrl } = req.body;
 
-    if (!key) {
+    // Accept either key or photoUrl, resolve to S3 key
+    const resolvedKey = 
+      key ??
+      (photoUrl ? photoUrl.replace(/^https?:\/\/[^/]+\//, '') : null);
+
+    if (!resolvedKey) {
       return res.status(400).json({ error: 'S3 key is required' });
     }
 
@@ -642,7 +647,7 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
     }
 
     // Update the asset with the S3 key
-    const updatedAsset = await companyAssetsService.updateCompanyAsset(id, { photoUrl: key });
+    const updatedAsset = await companyAssetsService.updateCompanyAsset(id, { photoUrl: resolvedKey });
 
     if (!updatedAsset) {
       return res.status(500).json({ error: 'Failed to update asset photo' });
