@@ -1,0 +1,8 @@
+project: dock-optimizer-prod
+configs:
+  development:
+    config: dev
+  staging:
+    config: stg
+  production:
+    config: prd 

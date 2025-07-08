@@ -1,6 +1,4 @@
-// CRITICAL: Load environment variables FIRST before any other imports
-import dotenv from "dotenv";
-dotenv.config();
+// Environment variables are loaded by Doppler CLI
 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
@@ -61,9 +59,6 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // This export provides the basic app instance but routes are set up asynchronously
 export { app };
 export default app;
-
-// For require() calls from tests (CommonJS style)
-module.exports = app;
 
 app.use((req, res, next) => {
   const start = Date.now();
