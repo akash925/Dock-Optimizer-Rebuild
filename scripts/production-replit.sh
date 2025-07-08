@@ -1,7 +1,14 @@
 #!/bin/bash
 
-# Enhanced Production Launch Script for Replit
+# Enhanced Production Launch Script for Replit with Doppler
 echo "🚀 Setting up production environment for Replit..."
+
+# Check if Doppler is available
+if ! command -v doppler &> /dev/null; then
+    echo "❌ Doppler CLI not found. Please install it first."
+    echo "💡 Install with: curl -Ls https://cli.doppler.com/install.sh | sh"
+    exit 1
+fi
 
 # Update environment for production
 export NODE_ENV=production
@@ -70,4 +77,11 @@ echo "✅ Health checks passed"
 echo "🌟 Starting in production mode..."
 echo "📍 Application will be available at: $HOST_URL"
 
-npm run start 
+# Use Doppler if available, otherwise use regular environment variables
+if command -v doppler &> /dev/null && [ -n "$DOPPLER_TOKEN" ]; then
+    echo "🔐 Using Doppler for secret management..."
+    doppler run --config prd -- npm run start
+else
+    echo "🔐 Using Replit secrets for environment variables..."
+    npm run start
+fi 
