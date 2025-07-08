@@ -34,6 +34,10 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
     const { slug } = req.params;
     const storage = await getStorage();
     
+    // Get user timezone from headers or use facility timezone as fallback
+    const userTimeZone = req.headers['x-user-timezone'] as string;
+    console.log('[BookingRoute] User timezone from header:', userTimeZone);
+    
     // Get booking page to validate and get tenant context
     const bookingPage = await storage.getBookingPageBySlug(slug);
     if (!bookingPage) {
@@ -96,7 +100,15 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
       // Combine date and time strings
       const dateTimeStr = `${date}T${time}:00`;
       appointmentStartTime = new Date(dateTimeStr);
-      appointmentEndTime = new Date(appointmentStartTime.getTime() + (60 * 60 * 1000)); // Default 1 hour duration
+      
+      // Get the appointment type to determine the correct duration
+      const appointmentType = await storage.getAppointmentType(parseInt(appointmentTypeId));
+      const durationMinutes = appointmentType?.duration || 60; // Default to 60 minutes if not found
+      
+      console.log(`[BookingRoute] Using appointment type "${appointmentType?.name}" with duration ${durationMinutes} minutes`);
+      
+      // Calculate end time based on appointment type duration
+      appointmentEndTime = new Date(appointmentStartTime.getTime() + (durationMinutes * 60 * 1000));
     } else {
       return res.status(400).json({ message: 'Date and time are required' });
     }
@@ -163,6 +175,7 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
           appointmentTypeName: appointmentType?.name || 'Standard Appointment',
           dockName: 'Not assigned',
           timezone: facility?.timezone || 'America/New_York',
+          userTimeZone: userTimeZone || facility?.timezone || 'America/New_York',
           confirmationCode: confirmationCode,
           creatorEmail: extractedEmail,
           bolFileUploaded: false
@@ -211,6 +224,10 @@ router.post('/schedules/external', async (req: any, res) => {
   try {
     const storage = await getStorage();
     
+    // Get user timezone from headers
+    const userTimeZone = req.headers['x-user-timezone'] as string;
+    console.log('[ExternalScheduleRoute] User timezone from header:', userTimeZone);
+    
     // Generate confirmation code (fallback for external bookings without tenant context)
     const confirmationCode = await generateOrgConfirmationCode();
     
@@ -238,6 +255,24 @@ router.post('/schedules/external', async (req: any, res) => {
     const extractedDriverName = driverName || customFields?.driverName || extractedCustomerName;
     const extractedCarrierName = carrierName || customFields?.carrierName || 'External Carrier';
     
+    // Calculate proper end time if not provided
+    let finalEndTime = endTime ? new Date(endTime) : null;
+    const finalStartTime = startTime ? new Date(startTime) : new Date();
+    
+    if (!finalEndTime && appointmentTypeId) {
+      // Get the appointment type to determine the correct duration
+      const appointmentType = await storage.getAppointmentType(parseInt(appointmentTypeId));
+      const durationMinutes = appointmentType?.duration || 60; // Default to 60 minutes if not found
+      
+      console.log(`[ExternalScheduleRoute] Using appointment type "${appointmentType?.name}" with duration ${durationMinutes} minutes`);
+      
+      // Calculate end time based on appointment type duration
+      finalEndTime = new Date(finalStartTime.getTime() + (durationMinutes * 60 * 1000));
+    } else if (!finalEndTime) {
+      // Fallback to 1 hour if no appointment type
+      finalEndTime = new Date(finalStartTime.getTime() + 60 * 60 * 1000);
+    }
+    
     // Create appointment data with required fields
     const appointmentData = {
       ...otherFields,
@@ -253,8 +288,8 @@ router.post('/schedules/external', async (req: any, res) => {
       appointmentMode: 'trailer',
       createdVia: 'external',
       createdBy: 1,
-      startTime: startTime ? new Date(startTime) : new Date(),
-      endTime: endTime ? new Date(endTime) : new Date(Date.now() + 60 * 60 * 1000),
+      startTime: finalStartTime,
+      endTime: finalEndTime,
       customFormData: customFields
     };
     

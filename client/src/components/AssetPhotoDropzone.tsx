@@ -195,14 +195,12 @@ export default function AssetPhotoDropzone({
     try {
       let finalPhotoUrl: string;
 
-      // Check if S3 direct upload is enabled
-      const useS3DirectUpload = import.meta.env.VITE_USE_S3_DIRECT_UPLOAD === 'true';
-      
-      if (useS3DirectUpload && assetId) {
+      // Always use S3 direct upload when assetId is provided
+      if (assetId) {
         // Use S3 direct upload
         finalPhotoUrl = await handleS3Upload(selectedFile);
       } else if (onUpload) {
-        // Legacy multipart upload
+        // Legacy multipart upload for backward compatibility
         await onUpload(selectedFile);
         finalPhotoUrl = optimisticUrl || existing || '';
       } else {

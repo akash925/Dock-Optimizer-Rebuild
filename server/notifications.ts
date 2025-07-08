@@ -4,6 +4,8 @@ import { format } from 'date-fns';
 import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone';
 // Use existing QR code generation function from the server
 import { generateQRCodeSVG as generateQRCode } from './endpoints/qr-codes';
+// Import shared timezone utilities
+import { formatDateInTimeZone, getTimeZoneAbbreviation, getTimeZoneName } from '../shared/timezone-utils';
 
 /**
  * Helper function to determine the correct booking page URL for a schedule
@@ -69,6 +71,7 @@ export interface EnhancedSchedule {
   appointmentTypeName?: string;
   dockName?: string;
   timezone?: string;
+  userTimeZone?: string; // User's actual timezone for personalized emails
   creatorEmail?: string;  // Email of the person who created the appointment
   confirmationCode?: string; // Standardized confirmation code format
   
@@ -754,9 +757,9 @@ export async function sendConfirmationEmail(
   confirmationCode: string,
   schedule: EnhancedSchedule
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
-  // Safely get timezones with fallbacks
+  // Safely get timezones with fallbacks - NOW USES ACTUAL USER TIMEZONE
   const facilityTimezone = schedule.timezone || 'America/New_York';
-  const userTimezone = 'America/New_York'; // Default to Eastern time for server-side operations
+  const userTimezone = schedule.userTimeZone || schedule.timezone || 'America/New_York';
 
   // Log the timezones for debugging
   console.log(`[EMAIL] Using timezones: Facility=${facilityTimezone}, User=${userTimezone}`);
@@ -837,32 +840,32 @@ export async function sendConfirmationEmail(
   console.log(`[EMAIL] Parsed dates: Start=${startDate.toISOString()}, End=${endDate.toISOString()}`);
   
   // Format times in facility timezone (location where appointment is scheduled)
-  const facilityStart = formatDateForTimezone(
+  const facilityStart = formatDateInTimeZone(
     startDate, 
     facilityTimezone, 
     'EEEE, MMMM d, yyyy h:mm aa'
   );
-  const facilityEnd = formatDateForTimezone(
+  const facilityEnd = formatDateInTimeZone(
     endDate, 
     facilityTimezone, 
     'h:mm aa'
   );
   
   // Format times in user's local timezone
-  const userStart = formatDateForTimezone(
+  const userStart = formatDateInTimeZone(
     startDate, 
     userTimezone, 
     'EEEE, MMMM d, yyyy h:mm aa'
   );
-  const userEnd = formatDateForTimezone(
+  const userEnd = formatDateInTimeZone(
     endDate, 
     userTimezone, 
     'h:mm aa'
   );
 
   // Get timezone abbreviations (EDT, PDT, etc.)
-  const facilityTzAbbr = getTimezoneAbbr(facilityTimezone, startDate);
-  const userTzAbbr = getTimezoneAbbr(userTimezone, startDate);
+  const facilityTzAbbr = getTimeZoneAbbreviation(facilityTimezone, startDate);
+  const userTzAbbr = getTimeZoneAbbreviation(userTimezone, startDate);
   
   // Log the formatted times for debugging
   console.log(`[EMAIL] Facility time: ${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`);
@@ -872,18 +875,9 @@ export async function sendConfirmationEmail(
   const facilityTimeRange = `${facilityStart} - ${facilityEnd} ${facilityTzAbbr}`;
   const userTimeRange = `${userStart} - ${userEnd} ${userTzAbbr}`;
   
-  // Enhanced timezone description for clarity
-  const facilityTimezoneName = facilityTimezone === 'America/New_York' ? 'Eastern Time' : 
-                              facilityTimezone === 'America/Chicago' ? 'Central Time' :
-                              facilityTimezone === 'America/Denver' ? 'Mountain Time' :
-                              facilityTimezone === 'America/Los_Angeles' ? 'Pacific Time' :
-                              facilityTimezone;
-  
-  const userTimezoneName = userTimezone === 'America/New_York' ? 'Eastern Time' : 
-                          userTimezone === 'America/Chicago' ? 'Central Time' :
-                          userTimezone === 'America/Denver' ? 'Mountain Time' :
-                          userTimezone === 'America/Los_Angeles' ? 'Pacific Time' :
-                          userTimezone;
+  // Enhanced timezone description for clarity using shared utility
+  const facilityTimezoneName = getTimeZoneName(facilityTimezone);
+  const userTimezoneName = getTimeZoneName(userTimezone);
 
   // Use environment variable or current production URL
   const host = process.env.HOST_URL || process.env.REPLIT_URL || 'https://7ac480e5-c3a6-4b78-b256-c68d212e19fa-00-iao1i3rlgulg.worf.replit.dev';
@@ -1094,9 +1088,9 @@ export async function sendRescheduleEmail(
   oldStartTime?: Date,
   oldEndTime?: Date
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
-  // Safely get timezones with fallbacks
+  // Safely get timezones with fallbacks - NOW USES ACTUAL USER TIMEZONE
   const facilityTimezone = schedule.timezone || 'America/New_York';
-  const userTimezone = 'America/New_York'; // Default to Eastern time for server-side operations
+  const userTimezone = schedule.userTimeZone || schedule.timezone || 'America/New_York';
 
   // Safely parse dates
   const parseDate = (dateInput: Date | string | null): Date => {
@@ -1378,9 +1372,9 @@ export async function sendCancellationEmail(
   confirmationCode: string,
   schedule: EnhancedSchedule
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
-  // Safely get timezones with fallbacks
+  // Safely get timezones with fallbacks - NOW USES ACTUAL USER TIMEZONE
   const facilityTimezone = schedule.timezone || 'America/New_York';
-  const userTimezone = 'America/New_York'; // Default to Eastern time for server-side operations
+  const userTimezone = schedule.userTimeZone || schedule.timezone || 'America/New_York';
 
   // Safely parse dates
   const parseDate = (dateInput: Date | string | null): Date => {
@@ -1543,9 +1537,9 @@ export async function sendReminderEmail(
   schedule: EnhancedSchedule,
   hoursUntilAppointment: number
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
-  // Safely get timezones with fallbacks
+  // Safely get timezones with fallbacks - NOW USES ACTUAL USER TIMEZONE
   const facilityTimezone = schedule.timezone || 'America/New_York';
-  const userTimezone = 'America/New_York'; // Default to Eastern time for server-side operations
+  const userTimezone = schedule.userTimeZone || schedule.timezone || 'America/New_York';
 
   // Safely parse dates
   const parseDate = (dateInput: Date | string | null): Date => {
@@ -1836,8 +1830,8 @@ export async function sendCheckoutEmail(
   const startDate = parseDate(schedule.startTime);
   const endDate = parseDate(schedule.endTime);
   
-  // Get user's timezone (from their appointment data) or default to UTC
-  const userTimezone = schedule.timezone || 'America/New_York';
+  // Get user's timezone (from their appointment data) or default to facility timezone
+  const userTimezone = schedule.userTimeZone || schedule.timezone || 'America/New_York';
   
   // Get facility timezone (assume EST for now, should be stored in facility data)
   const facilityTimezone = 'America/New_York'; // Default to Eastern Time for facilities

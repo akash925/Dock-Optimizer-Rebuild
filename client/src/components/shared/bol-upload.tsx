@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { FileUpload } from '@/components/ui/file-upload';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, FileText, CheckCircle, AlertTriangle, Download, FileUp, Clock, Database, Zap, XCircle } from 'lucide-react';
-import { FormLabel } from '@/components/ui/form';
+import React, { useState, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Loader2, FileText, Upload, FileUp, Zap, CheckCircle, AlertTriangle, XCircle, Database, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { queryClient } from '@/lib/queryClient';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tooltip } from '@/components/ui/tooltip';
-import { TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { FormLabel } from '@/components/ui/form';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { FileUpload } from '@/components/ui/file-upload';
+import { useAuth } from '@/hooks/use-auth';
 
 // ENHANCED: Add defensive imports and fallback handling
 let parseBol: any;
@@ -56,22 +56,26 @@ export default function BolUpload({
   scheduleId,
   className = '' 
 }: BolUploadProps) {
+  const [previewText, setPreviewText] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingError, setProcessingError] = useState<string | null>(null);
-  const [previewText, setPreviewText] = useState<string | null>(null);
-  const [bolData, setBolData] = useState<any | null>(null);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'processing' | 'saved' | 'completed' | 'error'>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStage, setUploadStage] = useState<'idle' | 'uploading' | 'compressing' | 'processing' | 'analyzing' | 'validating' | 'extracting' | 'saved' | 'completed' | 'error'>('idle');
-  const [fileSaved, setFileSaved] = useState(false);
+  const [processingError, setProcessingError] = useState<string | null>(null);
   const [ocrProcessed, setOcrProcessed] = useState(false);
   const [ocrSuccess, setOcrSuccess] = useState(false);
+  const [fileSaved, setFileSaved] = useState(false);
+  const [bolData, setBolData] = useState<any>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  
+  const processingCompleteRef = useRef(false);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const handleFileChange = async (file: File | null) => {
     // Clear previous state
     setProcessingError(null);
-    setPreviewText(null);
+    setPreviewText('');
     setBolData(null);
     setUploadedFileUrl(null);
     setUploadedFileName(null);
@@ -80,81 +84,90 @@ export default function BolUpload({
     setFileSaved(false);
     setOcrProcessed(false);
     setOcrSuccess(false);
+    processingCompleteRef.current = false;
     
     if (!file) {
-      onProcessingStateChange(false);
+      console.log('[BOL Upload] File input cleared');
       return;
     }
 
+    // Check if user is authenticated and has tenant ID
+    if (!user || !user.tenantId) {
+      setProcessingError('Authentication required. Please log in to upload BOL documents.');
+      return;
+    }
+
+    console.log('[BOL Upload] Starting file processing:', file.name, 'Size:', file.size, 'Type:', file.type);
+    
+    setIsProcessing(true);
+    onProcessingStateChange(true);
+    
     try {
-      // Start processing - show uploading state
-      setIsProcessing(true);
+      // 1. Basic file validation
       setUploadStage('uploading');
       setUploadProgress(10);
-      onProcessingStateChange(true);
       
-      console.log(`Starting BOL processing for file: ${file.name} (${file.size} bytes)`);
-
-      // 1. Parse the BOL using the enhanced OCR service (with fallback)
-      setUploadStage('processing');
-      setUploadProgress(20);
-      setOcrProcessed(true);
-      
-      let parsedData;
-      let ocrSucceeded = false;
-      try {
-        if (parseBol && typeof parseBol === 'function') {
-        parsedData = await parseBol(file);
-        setBolData(parsedData);
-        setOcrSuccess(true);
-        ocrSucceeded = true;
-        console.log('BOL parsed successfully:', parsedData);
-        } else {
-          throw new Error('OCR service not available');
-        }
-      } catch (ocrError) {
-        console.warn('OCR parsing failed, using fallback:', ocrError);
-        setOcrSuccess(false);
-        // Enhanced fallback to basic data structure if OCR fails
-        parsedData = {
-          bolNumber: `BOL${Date.now().toString().slice(-6)}`,
-          customerName: '',
-          carrierName: '',
-          mcNumber: '',
-          weight: '',
-          palletCount: '',
-          fromAddress: '',
-          toAddress: '',
-          pickupOrDropoff: 'pickup' as const,
-          extractionMethod: 'fallback',
-          extractionConfidence: 0,
-          processingTimestamp: new Date().toISOString()
-        };
-        setBolData(parsedData);
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('File size exceeds 10MB limit. Please compress or reduce file size.');
       }
       
-      // 2. Compress the file for upload (with fallback)
-      setUploadStage('compressing');
-      setUploadProgress(35);
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/tiff'];
+      if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/')) {
+        throw new Error('File type not supported. Please upload a PDF or image file.');
+      }
+
+      // 2. Optional compression for large images
+      let compressedFile = file;
       
-      let compressedFile;
-      try {
-        if (compressFile && typeof compressFile === 'function') {
-        compressedFile = await compressFile(file);
-        // Update progress based on compression result
-        setUploadProgress(45);
-        if (compressedFile.size < file.size) {
-          console.log(`File compressed: ${file.size} → ${compressedFile.size} bytes (${Math.round((1 - compressedFile.size / file.size) * 100)}% reduction)`);
-        } else {
-          console.log('File not compressed (not an image or already optimized)');
+      if (file.type.startsWith('image/') && file.size > 2 * 1024 * 1024) {
+        console.log('[BOL Upload] Large image detected, compressing...');
+        setUploadProgress(20);
+        
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const img = new Image();
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+          });
+          
+          // Calculate new dimensions (max 1920x1080)
+          const maxWidth = 1920;
+          const maxHeight = 1080;
+          let { width, height } = img;
+          
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width *= ratio;
+            height *= ratio;
           }
-        } else {
-          throw new Error('Compression service not available');
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            const compressedBlob = await new Promise<Blob | null>(resolve => 
+              canvas.toBlob(resolve, 'image/jpeg', 0.8)
+            );
+            
+            if (compressedBlob) {
+              compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, '.jpg'), { 
+                type: 'image/jpeg' 
+              });
+              console.log(`[BOL Upload] Compressed ${file.size} bytes to ${compressedFile.size} bytes`);
+            }
+          }
+          
+          URL.revokeObjectURL(img.src);
+        } catch (compressionError) {
+          console.warn('[BOL Upload] Image compression failed, using original:', compressionError);
+          // Continue with original file if compression fails
         }
-      } catch (compressionError) {
-        console.warn('File compression failed, using original file:', compressionError);
-        compressedFile = file;
-        setUploadProgress(45);
       }
       
       // 3. Upload the file to S3 using presigned URL
@@ -170,6 +183,7 @@ export default function BolUpload({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-tenant-id': user.tenantId.toString(),
           },
           body: JSON.stringify({
             fileName: compressedFile.name,
@@ -228,12 +242,31 @@ export default function BolUpload({
       // Step 3c: Confirm upload and update database
       console.log('Confirming BOL upload...');
       
+      // Since we're not doing OCR parsing on frontend, create basic data structure
+      const parsedData = {
+        bolNumber: `BOL${Date.now().toString().slice(-6)}`,
+        customerName: '',
+        carrierName: '',
+        mcNumber: '',
+        weight: '',
+        palletCount: '',
+        fromAddress: '',
+        toAddress: '',
+        pickupOrDropoff: 'dropoff' as 'pickup' | 'dropoff',
+        extractionMethod: 'upload_only',
+        extractionConfidence: 0,
+        processingTimestamp: new Date().toISOString(),
+        truckId: '',
+        trailerNumber: ''
+      };
+      
       let confirmResponse;
       try {
         confirmResponse = await fetch('/api/bol-upload/confirm', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-tenant-id': user.tenantId.toString(),
           },
           body: JSON.stringify({
             key: presignedData.key,
@@ -347,7 +380,8 @@ export default function BolUpload({
           const associateResponse = await fetch(`/api/schedules/${scheduleId}/associate-bol`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'x-tenant-id': user.tenantId.toString(),
             },
             body: JSON.stringify({
               fileUrl: responseData.fileUrl,

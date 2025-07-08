@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { getUserTimeZone } from "@shared/timezone-utils";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -18,6 +19,14 @@ export async function apiRequest(
   
   // Prepare headers
   const headers: Record<string, string> = {};
+  
+  // Add user timezone header for all requests
+  try {
+    headers["x-user-timezone"] = getUserTimeZone();
+  } catch (e) {
+    console.warn("Failed to get user timezone, using fallback:", e);
+    headers["x-user-timezone"] = "America/New_York";
+  }
   
   // Don't set content-type for FormData as the browser sets it with boundary
   if (!isFormData && data) {
