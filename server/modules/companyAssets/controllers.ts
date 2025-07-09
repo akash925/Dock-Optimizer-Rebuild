@@ -619,6 +619,8 @@ export const getPresignAssetPhoto = async (req: Request, res: Response) => {
     });
 
     console.log(`[Asset Photo] Generated presigned URL for asset ${id}, key: ${key}`);
+    console.log(`[Asset Photo] Presigned URL: ${url}`);
+    console.log(`[Asset Photo] Presigned fields:`, JSON.stringify(fields, null, 2));
 
     // DON'T update the asset with the key yet - wait for successful upload
     // This prevents orphaned keys in the database
@@ -946,5 +948,86 @@ export const uploadAssetPhotoLocal = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error setting up local upload:', error);
     return res.status(500).json({ error: 'Failed to setup local upload' });
+  }
+};
+
+/**
+ * Test AWS S3 connectivity
+ * GET /api/company-assets/test-s3
+ */
+export const testS3Connectivity = async (req: Request, res: Response) => {
+  try {
+    // Check environment variables
+    const awsConfig = {
+      AWS_ACCESS_KEY_ID: !!process.env.AWS_ACCESS_KEY_ID,
+      AWS_SECRET_ACCESS_KEY: !!process.env.AWS_SECRET_ACCESS_KEY,
+      AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
+      AWS_REGION: process.env.AWS_REGION || 'us-east-1'
+    };
+
+    console.log('[S3 Test] AWS Configuration:', {
+      AWS_ACCESS_KEY_ID: awsConfig.AWS_ACCESS_KEY_ID ? 'SET' : 'NOT SET',
+      AWS_SECRET_ACCESS_KEY: awsConfig.AWS_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET',
+      AWS_S3_BUCKET: awsConfig.AWS_S3_BUCKET || 'NOT SET',
+      AWS_REGION: awsConfig.AWS_REGION
+    });
+
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET) {
+      return res.json({
+        success: false,
+        error: 'AWS environment variables not configured',
+        config: awsConfig,
+        message: 'Using local storage fallback'
+      });
+    }
+
+    // Try to create S3 client and test connectivity
+    const s3Client = new S3Client({
+      region: awsConfig.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
+
+    // Test bucket access with a simple head bucket operation
+    const { HeadBucketCommand } = await import('@aws-sdk/client-s3');
+    
+    try {
+      await s3Client.send(new HeadBucketCommand({
+        Bucket: process.env.AWS_S3_BUCKET!,
+      }));
+
+      return res.json({
+        success: true,
+        message: 'S3 connectivity test passed',
+        config: {
+          bucket: process.env.AWS_S3_BUCKET,
+          region: awsConfig.AWS_REGION,
+          credentials: 'VALID'
+        }
+      });
+    } catch (s3Error: any) {
+      console.error('[S3 Test] S3 connectivity error:', s3Error);
+      
+      return res.json({
+        success: false,
+        error: 'S3 connectivity failed',
+        details: s3Error.message,
+        code: s3Error.name,
+        config: {
+          bucket: process.env.AWS_S3_BUCKET,
+          region: awsConfig.AWS_REGION,
+          credentials: 'CHECK FAILED'
+        }
+      });
+    }
+  } catch (error) {
+    console.error('[S3 Test] Error testing S3 connectivity:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to test S3 connectivity',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };

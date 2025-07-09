@@ -140,25 +140,44 @@ export default function AssetPhotoDropzone({
     // Step 2: Upload directly to S3
     setUploadStage('upload');
     
+    console.log('[AssetUpload] Presigned data:', presignedData);
+    
     // Use S3 direct upload with FormData
     const formData = new FormData();
     
     // Add all the fields from the presigned POST
     Object.entries(presignedData.fields).forEach(([key, value]) => {
       formData.append(key, value as string);
+      console.log(`[AssetUpload] Adding field: ${key} = ${value}`);
     });
     
     // Add the file last (as per AWS documentation)
     formData.append('file', file);
+    console.log(`[AssetUpload] Uploading to: ${presignedData.url}`);
     
-    const uploadResponse = await fetch(presignedData.url, {
-      method: 'POST',
-      body: formData,
-      // No credentials needed for direct S3 upload
-    });
+    let uploadResponse;
+    try {
+      uploadResponse = await fetch(presignedData.url, {
+        method: 'POST',
+        body: formData,
+        // No credentials needed for direct S3 upload
+      });
+    } catch (networkError) {
+      console.error('[AssetUpload] Network error during S3 upload:', networkError);
+      throw new Error(`Network error during S3 upload: ${networkError instanceof Error ? networkError.message : 'Unknown error'}. This might be a CORS issue or the S3 bucket might not be accessible.`);
+    }
 
+    console.log(`[AssetUpload] S3 response status: ${uploadResponse.status}`);
+    
     if (!uploadResponse.ok) {
-      throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      let errorText = '';
+      try {
+        errorText = await uploadResponse.text();
+        console.error('[AssetUpload] S3 error response:', errorText);
+      } catch (e) {
+        console.error('[AssetUpload] Could not read S3 error response');
+      }
+      throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}${errorText ? ` - ${errorText}` : ''}`);
     }
 
     setUploadProgress(90);
@@ -185,6 +204,34 @@ export default function AssetPhotoDropzone({
     setUploadStage('complete');
 
     return confirmData.photoUrl;
+  };
+
+  const handleLocalUpload = async (file: File): Promise<string> => {
+    if (!assetId) {
+      throw new Error('Asset ID is required for local upload');
+    }
+
+    setUploadStage('upload');
+    setUploadProgress(50);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const uploadResponse = await fetch(`/api/company-assets/${assetId}/photo/local`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!uploadResponse.ok) {
+      const errorData = await uploadResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Local upload failed: ${uploadResponse.status}`);
+    }
+
+    const uploadData = await uploadResponse.json();
+    setUploadProgress(100);
+    setUploadStage('complete');
+
+    return uploadData.photoUrl;
   };
 
   const handleUpload = async () => {
@@ -220,10 +267,27 @@ export default function AssetPhotoDropzone({
     try {
       let finalPhotoUrl: string;
 
-      // Always use S3 direct upload when assetId is provided
+      // Try S3 upload first, fall back to local upload if it fails
       if (assetId) {
-        // Use S3 direct upload
-        finalPhotoUrl = await handleS3Upload(selectedFile);
+        try {
+          // Attempt S3 direct upload
+          finalPhotoUrl = await handleS3Upload(selectedFile);
+        } catch (s3Error) {
+          console.warn('[AssetUpload] S3 upload failed, falling back to local upload:', s3Error);
+          
+          // Fall back to local upload
+          try {
+            finalPhotoUrl = await handleLocalUpload(selectedFile);
+            toast({
+              title: 'Photo uploaded (local storage)',
+              description: 'S3 upload failed, using local storage as fallback',
+              variant: 'default',
+            });
+          } catch (localError) {
+            // If both S3 and local fail, throw the original S3 error for better debugging
+            throw new Error(`Both S3 and local upload failed. S3 error: ${s3Error instanceof Error ? s3Error.message : 'Unknown S3 error'}. Local error: ${localError instanceof Error ? localError.message : 'Unknown local error'}`);
+          }
+        }
       } else if (onUpload) {
         // Legacy multipart upload for backward compatibility
         await onUpload(selectedFile);

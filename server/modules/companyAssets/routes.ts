@@ -18,7 +18,9 @@ import {
   // Photo upload endpoints
   getPresignAssetPhoto, 
   updatePhotoKey,
-  uploadAssetPhotoLocal 
+  uploadAssetPhotoLocal,
+  // Test endpoints
+  testS3Connectivity
 } from "./controllers";
 import { isAuthenticated } from "../../middleware/auth";
 import express from "express";
@@ -54,6 +56,9 @@ companyAssetsRouter.post("/import", isAuthenticated, importCompanyAssets);
 companyAssetsRouter.post("/:id/photo/presign", isAuthenticated, getPresignAssetPhoto);
 companyAssetsRouter.put("/:id/photo", isAuthenticated, updatePhotoKey);
 companyAssetsRouter.post("/:id/photo/local", isAuthenticated, uploadAssetPhotoLocal);
+
+// Test endpoints
+companyAssetsRouter.get("/test-s3", isAuthenticated, testS3Connectivity);
 
 // Setup static file serving function
 export function setupStaticFileServing(app: express.Express): void {
