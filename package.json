@@ -30,7 +30,8 @@
     "e2e": "cypress run --spec cypress/e2e/**/*.spec.ts",
     "e2e:booking": "cypress run --spec cypress/e2e/booking-flow.spec.ts",
     "e2e:debug": "cypress open --spec cypress/e2e/debugging-breakpoints.spec.ts --env DEBUG_MODE=true",
-    "e2e:modules": "cypress run --spec cypress/e2e/module_toggles.spec.ts"
+    "e2e:modules": "cypress run --spec cypress/e2e/module_toggles.spec.ts",
+    "redis:health": "tsx tools/redisHealth.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.840.0",
