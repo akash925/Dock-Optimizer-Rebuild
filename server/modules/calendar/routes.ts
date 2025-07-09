@@ -194,14 +194,14 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
       // Emit schedule created event
       eventSystem.emit('schedule:created', {
         schedule: enhancedSchedule,
-        tenantId: bookingPage.tenantId || 1
+        tenantId: (appointmentData as any).tenantId || 1
       });
       
       // Also emit appointment confirmed event for notifications
       eventSystem.emit('appointment:confirmed', {
         schedule: enhancedSchedule,
         confirmationCode: confirmationCode,
-        tenantId: bookingPage.tenantId || 1
+        tenantId: (appointmentData as any).tenantId || 1
       });
       
       console.log('[BookingRoute] Real-time events emitted successfully');
@@ -354,6 +354,45 @@ router.post('/schedules/external', async (req: any, res) => {
     
     // Create the appointment
     const appointment = await storage.createSchedule(appointmentData);
+    
+    // 🔥 REAL-TIME: Emit event for real-time notifications
+    try {
+      // Import the event system
+      const { eventSystem } = await import('../../services/enhanced-event-system');
+      
+      // Create enhanced schedule object for the event
+      const facility = await storage.getFacility(parseInt(facilityId) || 1);
+      const appointmentType = await storage.getAppointmentType(parseInt(appointmentTypeId) || 1);
+      
+      const enhancedSchedule = {
+        ...appointment,
+        facilityName: facility?.name || 'Main Facility',
+        appointmentTypeName: appointmentType?.name || 'Standard Appointment',
+        dockName: 'Not assigned',
+        timezone: facility?.timezone || 'America/New_York',
+        userTimeZone: userTimeZone || facility?.timezone || 'America/New_York',
+        confirmationCode: confirmationCode,
+        creatorEmail: email || extractedCustomerName,
+        bolFileUploaded: false
+      };
+      
+      // Emit schedule created event
+      eventSystem.emit('schedule:created', {
+        schedule: enhancedSchedule,
+        tenantId: appointment.tenantId || 1
+      });
+      
+      // Also emit appointment:created event for notifications
+      eventSystem.emit('appointment:created', {
+        schedule: enhancedSchedule,
+        tenantId: appointment.tenantId || 1
+      });
+      
+      console.log('[ExternalScheduleRoute] Real-time events emitted successfully');
+    } catch (eventError) {
+      console.error('[ExternalScheduleRoute] Error emitting real-time events:', eventError);
+      // Don't fail the request if events fail
+    }
     
     res.json({
       schedule: appointment,

@@ -28,5 +28,8 @@ export default defineConfig({
   },
   define: {
     'process.env.VITEST': 'true'
+  },
+  ssr: {
+    external: ['uuid', 'mime-types']
   }
 });

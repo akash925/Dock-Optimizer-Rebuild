@@ -29,6 +29,16 @@ export const GetObjectCommand = vi.fn().mockImplementation((params) => ({
   middlewareStack: {},
 }));
 
+export const DeleteObjectCommand = vi.fn().mockImplementation((params) => ({
+  input: params,
+  middlewareStack: {},
+}));
+
+export const ListObjectsV2Command = vi.fn().mockImplementation((params) => ({
+  input: params,
+  middlewareStack: {},
+}));
+
 // Mock successful responses
 export const mockSuccessfulPutResponse = {
   ETag: '"mock-etag-12345"',
@@ -49,6 +59,8 @@ export const resetMocks = () => {
   PutObjectCommand.mockClear();
   HeadObjectCommand.mockClear();
   GetObjectCommand.mockClear();
+  DeleteObjectCommand.mockClear();
+  ListObjectsV2Command.mockClear();
 };
 
 // Default implementation - returns successful upload

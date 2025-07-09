@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import request from 'supertest';
 import express from 'express';
-import { getStorage } from '../storage';
 
 // Mock AWS SDK
 vi.mock('@aws-sdk/client-s3');
 vi.mock('busboy');
+// Mock getStorage function
+vi.mock('../storage', () => ({
+  getStorage: vi.fn()
+}));
 
 import { mockSend, resetMocks } from '../../__mocks__/@aws-sdk/client-s3';
+import { getStorage } from '../storage';
 
 describe('BOL Upload with Tenant ID', () => {
   let app: express.Application;
@@ -22,7 +26,7 @@ describe('BOL Upload with Tenant ID', () => {
     };
     
     // Mock getStorage
-    vi.mocked(getStorage).mockResolvedValue(mockStorage);
+    (getStorage as any).mockResolvedValue(mockStorage);
     
     // Create test Express app
     app = express();

@@ -155,16 +155,51 @@ export default function AssetPhotoDropzone({
     formData.append('file', file);
     console.log(`[AssetUpload] Uploading to: ${presignedData.url}`);
     
-    let uploadResponse;
-    try {
-      uploadResponse = await fetch(presignedData.url, {
-        method: 'POST',
-        body: formData,
-        // No credentials needed for direct S3 upload
-      });
-    } catch (networkError) {
-      console.error('[AssetUpload] Network error during S3 upload:', networkError);
-      throw new Error(`Network error during S3 upload: ${networkError instanceof Error ? networkError.message : 'Unknown error'}. This might be a CORS issue or the S3 bucket might not be accessible.`);
+    // Retry S3 upload with exponential backoff
+    let uploadResponse: Response | undefined;
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        uploadResponse = await fetch(presignedData.url, {
+          method: 'POST',
+          body: formData,
+          // No credentials needed for direct S3 upload
+        });
+        
+        if (uploadResponse.ok) {
+          break; // Success, exit retry loop
+        }
+        
+        // If not successful, treat as an error for retry logic
+        throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.error(`[AssetUpload] S3 upload attempt ${attempt} failed:`, lastError);
+        
+        if (attempt === 3) {
+          // Final attempt failed, check if it's a network error
+          const isNetworkError = lastError.name === 'TypeError' || 
+                                lastError.message.includes('fetch') ||
+                                lastError.message.includes('network');
+          
+          if (isNetworkError) {
+            throw new Error(`Network error during S3 upload: ${lastError.message}. This might be a CORS issue or the S3 bucket might not be accessible.`);
+          } else {
+            throw new Error(`Upload failed (network/S3). Check file size and try again.`);
+          }
+        }
+        
+        // Exponential backoff: 300ms, 600ms, 1200ms
+        const delay = 300 * Math.pow(2, attempt - 1);
+        console.log(`[AssetUpload] Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    // Ensure uploadResponse is defined after the retry loop
+    if (!uploadResponse) {
+      throw new Error('Upload failed after all retry attempts');
     }
 
     console.log(`[AssetUpload] S3 response status: ${uploadResponse.status}`);

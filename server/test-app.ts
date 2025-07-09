@@ -3,7 +3,7 @@ import path from "path";
 import { vi } from 'vitest';
 
 // Create a test Express app with minimal setup for testing
-export function createTestApp() {
+export function createTestApp(customUser?: any) {
   const app = express();
   
   // Basic middleware setup
@@ -12,10 +12,10 @@ export function createTestApp() {
 
   // Mock authentication middleware for tests
   app.use((req: any, res, next) => {
-    // Default test user - can be overridden by individual tests
-    req.user = {
+    // Use custom user if provided, otherwise default test user
+    req.user = customUser || {
       id: 1,
-      tenantId: 1,
+      tenantId: 2, // Changed to match test asset tenant
       username: 'testuser',
       email: 'test@example.com',
       role: 'admin'
@@ -108,6 +108,96 @@ export function createTestApp() {
       }
       
       res.status(201).json({ total: imported.length, assets: imported });
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Asset photo presign endpoints
+  app.post('/api/company-assets/:id/photo/presign', async (req: any, res) => {
+    try {
+      const { mockStorage } = await import('./__mocks__/storage');
+      const id = parseInt(req.params.id);
+      const { fileName, fileType, fileSize } = req.body;
+
+      if (!fileName || !fileType) {
+        return res.status(400).json({ error: 'fileName and fileType are required' });
+      }
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(fileType)) {
+        return res.status(400).json({ 
+          error: `File type ${fileType} not allowed. Allowed types: ${allowedTypes.join(', ')}` 
+        });
+      }
+
+      // Validate file size (10MB limit)
+      const maxSize = 10 * 1024 * 1024;
+      if (fileSize && fileSize > maxSize) {
+        return res.status(400).json({ 
+          error: `File size ${fileSize} exceeds maximum allowed size of ${maxSize} bytes` 
+        });
+      }
+
+      // Check if the asset exists and belongs to the user's tenant
+      const existingAsset = await mockStorage.getCompanyAsset(id);
+      if (!existingAsset) {
+        return res.status(404).json({ error: 'Company asset not found' });
+      }
+
+      // TENANT SAFETY: Ensure asset belongs to the user's tenant
+      if (existingAsset.tenantId !== req.user.tenantId) {
+        return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+      }
+
+      // Return mock presigned URL response
+      res.json({
+        url: 'https://test-bucket.s3.amazonaws.com',
+        fields: {
+          'Content-Type': fileType,
+          'key': 'photos/test-uuid.jpg',
+          'AWSAccessKeyId': 'test-access-key',
+          'policy': 'test-policy',
+          'signature': 'test-signature'
+        },
+        key: 'photos/test-uuid.jpg'
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.put('/api/company-assets/:id/photo', async (req: any, res) => {
+    try {
+      const { mockStorage } = await import('./__mocks__/storage');
+      const id = parseInt(req.params.id);
+      const { key, photoUrl } = req.body;
+
+      const resolvedKey = key ?? (photoUrl ? photoUrl.replace(/^https?:\/\/[^/]+\//, '') : null);
+
+      if (!resolvedKey) {
+        return res.status(400).json({ error: 'S3 key is required' });
+      }
+
+      // Check if the asset exists and belongs to the user's tenant
+      const existingAsset = await mockStorage.getCompanyAsset(id);
+      if (!existingAsset) {
+        return res.status(404).json({ error: 'Company asset not found' });
+      }
+
+      // TENANT SAFETY: Ensure asset belongs to the user's tenant
+      if (existingAsset.tenantId !== req.user.tenantId) {
+        return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+      }
+
+      const updatedAsset = await mockStorage.updateCompanyAsset(id, { photoUrl: resolvedKey });
+
+      if (!updatedAsset) {
+        return res.status(500).json({ error: 'Failed to update asset photo' });
+      }
+
+      res.json(updatedAsset);
     } catch (error) {
       res.status(500).json({ error: 'Internal server error' });
     }

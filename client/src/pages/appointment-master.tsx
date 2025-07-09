@@ -452,7 +452,18 @@ export default function AppointmentMaster() {
         title: "Appointment Type Updated",
         description: "The appointment type has been successfully updated",
       });
+      
+      // Comprehensive query invalidation for booking form sync
       queryClient.invalidateQueries({ queryKey: ["/api/appointment-types"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/booking-pages"] });
+      
+      // Also invalidate any cached questions for this appointment type
+      if (selectedAppointmentTypeId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/custom-questions", selectedAppointmentTypeId] });
+        queryClient.invalidateQueries({ queryKey: ["/api/standard-questions", selectedAppointmentTypeId] });
+      }
+      
       setShowNewAppointmentTypeDialog(false);
     },
     onError: (error: Error) => {
@@ -632,6 +643,15 @@ export default function AppointmentMaster() {
       
       // Invalidate custom questions data for the selected appointment type
       queryClient.invalidateQueries({ queryKey: ["/api/custom-questions", selectedAppointmentTypeId] });
+      
+      // Invalidate appointment types to ensure booking forms get updated questions
+      queryClient.invalidateQueries({ queryKey: ["/api/appointment-types"] });
+      
+      // Invalidate any cached booking page data that might reference these questions
+      queryClient.invalidateQueries({ queryKey: ["/api/booking-pages"] });
+      
+      // Invalidate facilities and their related data since appointment types affect facility booking
+      queryClient.invalidateQueries({ queryKey: ["/api/facilities"] });
       
       toast({
         title: "Success",

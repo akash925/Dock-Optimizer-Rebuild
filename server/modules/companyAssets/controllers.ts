@@ -603,11 +603,11 @@ export const getPresignAssetPhoto = async (req: Request, res: Response) => {
     // Generate unique S3 key with proper extension
     const key = `photos/${tenantId}/${id}-${crypto.randomUUID()}${fileExtension}`;
     
-    // Create presigned POST with AWS fields - extended expiry time
+    // Create presigned POST with AWS fields - 15 minute expiry
     const { url, fields } = await createPresignedPost(s3Client, {
       Bucket: process.env.AWS_S3_BUCKET!,
       Key: key,
-      Expires: 300, // 5 minutes expiry (was 1 minute)
+      Expires: 900, // 15 minutes expiry as per UP-2 requirements
       Conditions: [
         ["content-length-range", 0, maxSize],
         ["eq", "$Content-Type", fileType],

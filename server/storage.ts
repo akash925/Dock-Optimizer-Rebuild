@@ -1575,13 +1575,76 @@ export class DatabaseStorage implements IStorage {
   async createDailyAvailability(dailyAvailability: any) { return this.memStorage.createDailyAvailability(dailyAvailability); }
   async updateDailyAvailability(id: number, dailyAvailability: any) { return this.memStorage.updateDailyAvailability(id, dailyAvailability); }
   async deleteDailyAvailability(id: number) { return this.memStorage.deleteDailyAvailability(id); }
-  async getCustomQuestion(id: number) { return this.memStorage.getCustomQuestion(id); }
-  async getCustomQuestionsByAppointmentType(appointmentTypeId: number) { return this.memStorage.getCustomQuestionsByAppointmentType(appointmentTypeId); }
-  async createCustomQuestion(customQuestion: any) { return this.memStorage.createCustomQuestion(customQuestion); }
-  async updateCustomQuestion(id: number, customQuestion: any) { return this.memStorage.updateCustomQuestion(id, customQuestion); }
-  async deleteCustomQuestion(id: number) { return this.memStorage.deleteCustomQuestion(id); }
-  async getStandardQuestion(id: number) { return this.memStorage.getStandardQuestion(id); }
-  async getStandardQuestionsByAppointmentType(appointmentTypeId: number) { return this.memStorage.getStandardQuestionsByAppointmentType(appointmentTypeId); }
+  async getCustomQuestion(id: number): Promise<CustomQuestion | undefined> {
+    try {
+      const [customQuestion] = await db.select().from(customQuestions).where(eq(customQuestions.id, id));
+      return customQuestion;
+    } catch (error) {
+      console.error('Error fetching custom question:', error);
+      return undefined;
+    }
+  }
+
+  async getCustomQuestionsByAppointmentType(appointmentTypeId: number): Promise<CustomQuestion[]> {
+    try {
+      const questions = await db.select().from(customQuestions)
+        .where(eq(customQuestions.appointmentTypeId, appointmentTypeId))
+        .orderBy(customQuestions.order);
+      return questions;
+    } catch (error) {
+      console.error('Error fetching custom questions by appointment type:', error);
+      return [];
+    }
+  }
+
+  async createCustomQuestion(customQuestion: InsertCustomQuestion): Promise<CustomQuestion> {
+    try {
+      // Map frontend field names to database field names
+      const dbData = {
+        ...customQuestion,
+        // No need to map isRequired as the schema already handles it
+      };
+      
+      const [newQuestion] = await db.insert(customQuestions).values(dbData).returning();
+      return newQuestion;
+    } catch (error) {
+      console.error('Error creating custom question:', error);
+      throw error;
+    }
+  }
+
+  async updateCustomQuestion(id: number, customQuestion: Partial<CustomQuestion>): Promise<CustomQuestion | undefined> {
+    try {
+      // Map frontend field names to database field names
+      const dbData = {
+        ...customQuestion,
+        lastModifiedAt: new Date(),
+        // No need to map isRequired as the schema already handles it
+      };
+
+      const [updated] = await db.update(customQuestions)
+        .set(dbData)
+        .where(eq(customQuestions.id, id))
+        .returning();
+      
+      return updated;
+    } catch (error) {
+      console.error('Error updating custom question:', error);
+      return undefined;
+    }
+  }
+
+  async deleteCustomQuestion(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(customQuestions).where(eq(customQuestions.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting custom question:', error);
+      return false;
+    }
+  }
+  async getStandardQuestion(id: number): Promise<StandardQuestion | undefined> { return this.memStorage.getStandardQuestion(id); }
+  async getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]> { return this.memStorage.getStandardQuestionsByAppointmentType(appointmentTypeId); }
   // getBookingPage is implemented above in the real database section
   async getAsset(id: number) { return this.memStorage.getAsset(id); }
   async getAssets() { return this.memStorage.getAssets(); }

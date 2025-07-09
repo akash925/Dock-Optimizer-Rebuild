@@ -238,6 +238,75 @@ export class MockStorage {
     return this.organizationHolidays.get(tenantId) || [];
   }
 
+  // Tenant management - for availability tests
+  private tenants: Map<number, any> = new Map();
+
+  async createTenant(tenantData: any): Promise<any> {
+    const tenant = {
+      id: Math.floor(Math.random() * 1000),
+      ...tenantData,
+    };
+    this.tenants.set(tenant.id, tenant);
+    return tenant;
+  }
+
+  async getTenant(id: number): Promise<any | null> {
+    return this.tenants.get(id) || null;
+  }
+
+  // Company Assets management - for testing
+  private companyAssets: Map<number, any> = new Map();
+
+  async createCompanyAsset(assetData: any): Promise<any> {
+    const asset = {
+      id: Math.floor(Math.random() * 1000),
+      ...assetData,
+    };
+    this.companyAssets.set(asset.id, asset);
+    return asset;
+  }
+
+  async getCompanyAssetById(id: number): Promise<any | null> {
+    return this.companyAssets.get(id) || null;
+  }
+
+  async listCompanyAssets(filters: any = {}): Promise<any[]> {
+    let assets = Array.from(this.companyAssets.values());
+    if (filters.tenantId) {
+      assets = assets.filter(asset => asset.tenantId === filters.tenantId);
+    }
+    return assets;
+  }
+
+  async updateCompanyAsset(id: number, updates: any): Promise<any | null> {
+    const asset = this.companyAssets.get(id);
+    if (!asset) return null;
+    const updatedAsset = { ...asset, ...updates };
+    this.companyAssets.set(id, updatedAsset);
+    return updatedAsset;
+  }
+
+  async updateCompanyAssetStatus(id: number, status: string): Promise<any | null> {
+    return this.updateCompanyAsset(id, { status });
+  }
+
+  async searchCompanyAssetByBarcode(barcode: string): Promise<any | null> {
+    return Array.from(this.companyAssets.values()).find(asset => asset.barcode === barcode) || null;
+  }
+
+  async deleteCompanyAsset(id: number): Promise<boolean> {
+    return this.companyAssets.delete(id);
+  }
+
+  async importCompanyAssets(assets: any[]): Promise<{ total: number; created: any[] }> {
+    const created = [];
+    for (const assetData of assets) {
+      const asset = await this.createCompanyAsset(assetData);
+      created.push(asset);
+    }
+    return { total: created.length, created };
+  }
+
   // Utility methods
   reset(): void {
     this.fileRecords.clear();
@@ -249,6 +318,8 @@ export class MockStorage {
     this.appointmentTypes.clear();
     this.organizationDefaultHours.clear();
     this.organizationHolidays.clear();
+    this.tenants.clear();
+    this.companyAssets.clear();
     this.nextBolId = 1;
     this.nextScheduleId = 1;
     this.nextUserId = 1;
