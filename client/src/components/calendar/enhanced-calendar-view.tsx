@@ -215,7 +215,7 @@ function CalendarSettings({
                 showTrailerNumber: false,
                 showAppointmentType: true,
                 showDockInfo: true,
-                showTimeDisplay: true,
+                showTimeDisplay: false, // Disabled by default since calendar grid shows time
                 showStatusBadge: true,
                 showPriorityIndicator: true,
                 compactMode: false,
@@ -270,7 +270,7 @@ export default function EnhancedCalendarView({
       showTrailerNumber: false,
       showAppointmentType: true,
       showDockInfo: true,
-      showTimeDisplay: true,
+      showTimeDisplay: false, // Disabled by default since calendar grid shows time
       showStatusBadge: true,
       showPriorityIndicator: true,
       compactMode: false,

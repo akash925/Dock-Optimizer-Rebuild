@@ -112,6 +112,31 @@ export default function AssetPhotoDropzone({
     const presignedData = await presignResponse.json();
     setUploadProgress(25);
 
+    // Check if this is a local upload fallback
+    if (presignedData.local) {
+      setUploadStage('upload');
+      
+      // Use local upload with FormData
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const uploadResponse = await fetch(presignedData.url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Local upload failed: ${uploadResponse.status}`);
+      }
+
+      const uploadData = await uploadResponse.json();
+      setUploadProgress(100);
+      setUploadStage('complete');
+
+      return uploadData.photoUrl;
+    }
+
     // Step 2: Upload directly to S3
     setUploadStage('upload');
     

@@ -17,7 +17,8 @@ import {
   importCompanyAssets,
   // Photo upload endpoints
   getPresignAssetPhoto, 
-  updatePhotoKey 
+  updatePhotoKey,
+  uploadAssetPhotoLocal 
 } from "./controllers";
 import { isAuthenticated } from "../../middleware/auth";
 import express from "express";
@@ -52,6 +53,7 @@ companyAssetsRouter.post("/import", isAuthenticated, importCompanyAssets);
 // Photo upload endpoints
 companyAssetsRouter.post("/:id/photo/presign", isAuthenticated, getPresignAssetPhoto);
 companyAssetsRouter.put("/:id/photo", isAuthenticated, updatePhotoKey);
+companyAssetsRouter.post("/:id/photo/local", isAuthenticated, uploadAssetPhotoLocal);
 
 // Setup static file serving function
 export function setupStaticFileServing(app: express.Express): void {

@@ -393,15 +393,6 @@ export const formatTimeRangeForDualZones = (
   // Only show both timezones if they're different by offset
   const showBothTimezones = offsetDiff > 0;
   
-  console.log('Timezone Debug Info:', {
-    userTz: userTimeZone,
-    facilityTz: facilityTimeZone,
-    userOffset,
-    facilityOffset,
-    offsetDiff,
-    showBothTimezones
-  });
-  
   // Default return object for error cases
   const defaultReturn = {
     userTimeRange: '—',
@@ -426,32 +417,17 @@ export const formatTimeRangeForDualZones = (
       return defaultReturn;
     }
     
-    // Log original dates for debugging
-    console.log('Original dates:', {
-      startISO: startDate.toISOString(),
-      endISO: endDate.toISOString(),
-      startLocal: startDate.toString(),
-      endLocal: endDate.toString()
-    });
-    
-    // Safe approach for timezone formatting using date-fns-tz
+    // Format times in both timezones
     const timeFormat = 'h:mm a';
     
     try {
-      // Step 1: Create zonedTime objects for proper timezone conversion
+      // Create zonedTime objects for proper timezone conversion
       const startInFacilityTZ = toZonedTime(startDate, facilityTimeZone);
       const endInFacilityTZ = toZonedTime(endDate, facilityTimeZone);
       const startInUserTZ = toZonedTime(startDate, userTimeZone);
       const endInUserTZ = toZonedTime(endDate, userTimeZone);
       
-      console.log('Zoned times:', {
-        facilityStart: startInFacilityTZ.toString(),
-        facilityEnd: endInFacilityTZ.toString(),
-        userStart: startInUserTZ.toString(),
-        userEnd: endInUserTZ.toString()
-      });
-      
-      // Step 2: Format the zoned times
+      // Format the zoned times
       const userStartTime = format(startInUserTZ, timeFormat);
       const userEndTime = format(endInUserTZ, timeFormat);
       const facilityStartTime = format(startInFacilityTZ, timeFormat);
@@ -460,10 +436,6 @@ export const formatTimeRangeForDualZones = (
       // Get timezone abbreviations
       const userZoneAbbr = getTimeZoneAbbreviation(userTimeZone, startDate);
       const facilityZoneAbbr = getTimeZoneAbbreviation(facilityTimeZone, startDate);
-      
-      // Log debug info
-      console.log(`Time range in ${facilityTimeZone} (facility): ${facilityStartTime} - ${facilityEndTime} ${facilityZoneAbbr}`);
-      console.log(`Time range in ${userTimeZone} (user): ${userStartTime} - ${userEndTime} ${userZoneAbbr}`);
       
       return {
         userTimeRange: `${userStartTime} - ${userEndTime}`,
@@ -474,12 +446,10 @@ export const formatTimeRangeForDualZones = (
       };
     } catch (formatError) {
       console.error('Error formatting time in formatTimeRangeForDualZones:', formatError);
-      console.error(formatError.stack);
       return defaultReturn;
     }
   } catch (error) {
     console.error('Error in formatTimeRangeForDualZones:', error);
-    console.error(error.stack);
     return defaultReturn;
   }
 };

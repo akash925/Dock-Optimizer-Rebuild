@@ -5,7 +5,7 @@ import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone';
 // Use existing QR code generation function from the server
 import { generateQRCodeSVG as generateQRCode } from './endpoints/qr-codes';
 // Import shared timezone utilities
-import { formatDateInTimeZone, getTimeZoneAbbreviation, getTimeZoneName } from '../shared/timezone-utils';
+import { getTimeZoneAbbreviation, getTimeZoneName } from '../shared/timezone-utils';
 
 /**
  * Helper function to determine the correct booking page URL for a schedule
@@ -840,24 +840,24 @@ export async function sendConfirmationEmail(
   console.log(`[EMAIL] Parsed dates: Start=${startDate.toISOString()}, End=${endDate.toISOString()}`);
   
   // Format times in facility timezone (location where appointment is scheduled)
-  const facilityStart = formatDateInTimeZone(
+  const facilityStart = formatDateForTimezone(
     startDate, 
     facilityTimezone, 
     'EEEE, MMMM d, yyyy h:mm aa'
   );
-  const facilityEnd = formatDateInTimeZone(
+  const facilityEnd = formatDateForTimezone(
     endDate, 
     facilityTimezone, 
     'h:mm aa'
   );
   
   // Format times in user's local timezone
-  const userStart = formatDateInTimeZone(
+  const userStart = formatDateForTimezone(
     startDate, 
     userTimezone, 
     'EEEE, MMMM d, yyyy h:mm aa'
   );
-  const userEnd = formatDateInTimeZone(
+  const userEnd = formatDateForTimezone(
     endDate, 
     userTimezone, 
     'h:mm aa'

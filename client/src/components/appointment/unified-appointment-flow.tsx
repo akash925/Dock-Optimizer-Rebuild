@@ -161,13 +161,16 @@ export default function UnifiedAppointmentFlow({
     
     setEffectiveTimezone(targetTimezone);
     
-    console.log('[UnifiedAppointmentFlow] Timezone Resolution:', {
-      userTimezone: getUserTimeZone(),
-      propTimezone: timezone,
-      facilityTimezone: facility?.timezone,
-      effectiveTimezone: targetTimezone,
-      facilityId: preselectedFacilityId
-    });
+    // Log timezone resolution only in development
+    if (import.meta.env.MODE === 'development') {
+      console.log('[UnifiedAppointmentFlow] Timezone Resolution:', {
+        userTimezone: getUserTimeZone(),
+        propTimezone: timezone,
+        facilityTimezone: facility?.timezone,
+        effectiveTimezone: targetTimezone,
+        facilityId: preselectedFacilityId
+      });
+    }
   }, [timezone, facility, preselectedFacilityId]);
 
   // Fetch facilities - internal mode gets all, external gets booking page specific

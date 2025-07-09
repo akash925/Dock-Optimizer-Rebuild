@@ -211,6 +211,7 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
     }
     
     // 🔥 CRITICAL FIX: Send confirmation email after appointment creation
+    let emailSent = false;
     try {
       if (extractedEmail) {
         console.log('[BookingRoute] Sending confirmation email to:', extractedEmail);
@@ -244,22 +245,27 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
         
         if (emailResult) {
           console.log('[BookingRoute] Confirmation email sent successfully');
+          emailSent = true;
         } else {
           console.log('[BookingRoute] Confirmation email failed to send');
+          emailSent = false;
         }
       } else {
         console.log('[BookingRoute] No email provided - skipping confirmation email');
+        emailSent = false;
       }
     } catch (emailError) {
       console.error('[BookingRoute] Error sending confirmation email:', emailError);
       // Don't fail the entire request if email fails
+      emailSent = false;
     }
     
     res.json({
       schedule: appointment,
       confirmationCode,
       success: true,
-      message: 'Appointment created successfully'
+      message: 'Appointment created successfully',
+      emailSent: emailSent
     });
   } catch (error) {
     console.error('Error creating booking page appointment:', error);

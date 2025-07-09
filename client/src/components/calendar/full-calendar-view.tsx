@@ -743,16 +743,12 @@ export default function FullCalendarView({
                       </div>
                     )}
                     
-                    {/* Time and Dock */}
-                    <div className="text-xs opacity-85 leading-tight truncate">
-                      {event.start && new Intl.DateTimeFormat('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true,
-                        timeZone: effectiveTimezone
-                      }).format(event.start)}
-                      {props.dockId && ` • Dock #${props.dockId}`}
-                    </div>
+                    {/* Dock info only (time removed since it's redundant with calendar grid) */}
+                    {props.dockId && (
+                      <div className="text-xs opacity-85 leading-tight truncate">
+                        Dock #{props.dockId}
+                      </div>
+                    )}
                     
                     {/* Status indicator */}
                     {props.needsAttention && (

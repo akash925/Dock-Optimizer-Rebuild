@@ -573,8 +573,17 @@ export const getPresignAssetPhoto = async (req: Request, res: Response) => {
 
     // Check for required environment variables
     if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET) {
-      console.error('Missing required AWS environment variables');
-      return res.status(500).json({ error: 'S3 configuration not available' });
+      console.warn('AWS environment variables not configured, falling back to local storage');
+      // Return a mock presigned URL structure for local upload
+      return res.json({
+        url: `/api/company-assets/${id}/photo/local`,
+        fields: {
+          'Content-Type': fileType,
+          method: 'POST'
+        },
+        key: `local-${id}-${Date.now()}`,
+        local: true
+      });
     }
 
     // Create S3 client
@@ -831,5 +840,111 @@ export const importCompanyAssets = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error importing company assets:', error);
     return res.status(500).json({ error: 'Failed to import assets' });
+  }
+};
+
+/**
+ * Local asset photo upload (fallback when S3 is not available)
+ * POST /api/company-assets/:id/photo/local
+ */
+export const uploadAssetPhotoLocal = async (req: Request, res: Response) => {
+  try {
+    const multer = await import('multer');
+    const path = await import('path');
+    const fs = await import('fs');
+    
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid company asset ID' });
+    }
+
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+
+    // Check if the asset exists and belongs to the user's tenant
+    const existingAsset = await companyAssetsService.getCompanyAssetById(id);
+    if (!existingAsset) {
+      return res.status(404).json({ error: 'Company asset not found' });
+    }
+
+    // TENANT SAFETY: Ensure asset belongs to the user's tenant
+    if (existingAsset.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+    }
+
+    // Setup multer for local upload
+    const storage = multer.default.memoryStorage();
+    const upload = multer.default({
+      storage: storage,
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+      },
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type. Only JPG, PNG, and WebP are allowed.'));
+        }
+      },
+    }).single('file');
+
+    // Handle the upload
+    upload(req, res, async (err) => {
+      if (err) {
+        console.error('Multer error:', err);
+        return res.status(400).json({ error: err.message });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      try {
+        // Create uploads directory if it doesn't exist
+        const uploadsDir = path.resolve('uploads', 'photos', tenantId.toString());
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        // Generate unique filename
+        const fileExtension = path.extname(req.file.originalname) || '.jpg';
+        const fileName = `${id}-${Date.now()}${fileExtension}`;
+        const filePath = path.join(uploadsDir, fileName);
+
+        // Save file to local storage
+        fs.writeFileSync(filePath, req.file.buffer);
+
+        // Generate URL for the uploaded file
+        const photoUrl = `/uploads/photos/${tenantId}/${fileName}`;
+
+        // Update the asset with the new photo URL
+        const updatedAsset = await companyAssetsService.updateCompanyAsset(id, { photoUrl });
+
+        if (!updatedAsset) {
+          return res.status(500).json({ error: 'Failed to update asset photo' });
+        }
+
+        // Serialize asset to ensure CDN URL is properly formatted
+        const serializedAsset = serializeCompanyAsset(updatedAsset);
+
+        console.log(`[Asset Photo] Local upload successful for asset ${id}: ${photoUrl}`);
+        return res.json({ 
+          success: true,
+          photoUrl: serializedAsset.photoUrl,
+          message: 'Photo uploaded successfully'
+        });
+      } catch (uploadError) {
+        console.error('Error during local upload:', uploadError);
+        return res.status(500).json({ error: 'Failed to upload photo' });
+      }
+    });
+  } catch (error) {
+    console.error('Error setting up local upload:', error);
+    return res.status(500).json({ error: 'Failed to setup local upload' });
   }
 };

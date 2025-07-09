@@ -35,12 +35,11 @@ export function TimeSlotPicker({
   const { getTzAbbreviation, formatTimeInUserTimezone, getUserTimeZone } = useTimeZoneUtils();
   const userTimezone = getUserTimeZone();
   
-  // Debug timezone info
-  console.log(`TimeSlotPicker - Facility timezone: ${timezone}, User timezone: ${userTimezone}`);
-  console.log(`TimeSlotPicker - Received ${slots.length} slots from API`);
-  
-  // Debug: Log the actual slots received from the backend
-  console.log(`TimeSlotPicker - Slot data from API:`, JSON.stringify(slots, null, 2));
+  // Only log in development mode
+  if (import.meta.env.MODE === 'development') {
+    console.log(`TimeSlotPicker - Facility timezone: ${timezone}, User timezone: ${userTimezone}`);
+    console.log(`TimeSlotPicker - Received ${slots.length} slots from API`);
+  }
   
   // Sort slots chronologically by time - using only what the API provides
   const sortedSlots = [...slots].sort((a, b) => {
@@ -75,16 +74,10 @@ export function TimeSlotPicker({
     // Without applying any automatic browser timezone conversions
     const slotTimeInFacilityTz = new Date(`${slotDateTime}Z`);
     
-    // For logging/debugging
-    console.log(`TimeSlotPicker - Processing time slot: ${slot.time}`, {
-      originalTime: slot.time,
-      constructedDateTime: slotDateTime,
-      slotTimeObj: slotTimeInFacilityTz.toISOString(),
-      facilityTz: timezone,
-      userTz: userTimezone,
-      available: slot.available,
-      remaining: slot.remaining
-    });
+    // Log only in development mode
+    if (import.meta.env.MODE === 'development') {
+      console.log(`TimeSlotPicker - Processing time slot: ${slot.time}`);
+    }
     
     // Format facility time (in facility timezone) - this should simply show the original time
     // rather than trying to convert again

@@ -52,7 +52,14 @@ export default function Schedules() {
   const [selectedDockId, setSelectedDockId] = useState<number | undefined>(undefined);
   const [isAppointmentTypeDialogOpen, setIsAppointmentTypeDialogOpen] = useState(false);
   const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState<number | undefined>(undefined);
-  const [timezone, setTimezone] = useState<string>(getUserTimeZone());
+  const [timezone, setTimezone] = useState<string>(() => {
+    try {
+      return getUserTimeZone();
+    } catch (error) {
+      console.error('Error getting user timezone:', error);
+      return 'America/New_York'; // Fallback timezone
+    }
+  });
   const [timeFormat, setTimeFormat] = useState<"12h" | "24h">("12h");
   
   // Fetch all data first
@@ -81,14 +88,26 @@ export default function Schedules() {
   });
   
   // Transform raw schedules to extend them with additional properties
-  const schedules: Schedule[] = rawSchedules.map(schedule => ({
-    ...schedule,
-    dockName: schedule.dockId ? docks.find(d => d.id === schedule.dockId)?.name : undefined,
-    appointmentTypeName: schedule.appointmentTypeId ? appointmentTypes.find(t => t.id === schedule.appointmentTypeId)?.name : undefined,
-    facilityName: schedule.facilityId 
-      ? facilities.find(f => f.id === schedule.facilityId)?.name 
-      : undefined
-  }));
+  const schedules: Schedule[] = (rawSchedules || []).map(schedule => {
+    try {
+      return {
+        ...schedule,
+        dockName: schedule.dockId && Array.isArray(docks) ? docks.find(d => d.id === schedule.dockId)?.name : undefined,
+        appointmentTypeName: schedule.appointmentTypeId && Array.isArray(appointmentTypes) ? appointmentTypes.find(t => t.id === schedule.appointmentTypeId)?.name : undefined,
+        facilityName: schedule.facilityId && Array.isArray(facilities) 
+          ? facilities.find(f => f.id === schedule.facilityId)?.name 
+          : undefined
+      };
+    } catch (error) {
+      console.error('Error transforming schedule:', schedule, error);
+      return {
+        ...schedule,
+        dockName: undefined,
+        appointmentTypeName: undefined,
+        facilityName: undefined
+      };
+    }
+  });
   
   // Set the most current schedule as selected on first load
   // Check for schedule ID in URL params
@@ -434,8 +453,10 @@ export default function Schedules() {
     },
   ];
   
-  // Filter and search schedules - optimized for faster rendering
-  const filteredSchedules = schedules.filter((schedule: Schedule) => {
+  // Filter and search schedules - optimized for faster rendering with error handling
+  const filteredSchedules = (schedules || []).filter((schedule: Schedule) => {
+    try {
+      if (!schedule) return false;
     // We should disable exact date matching for day/week view to show all appointments
     // Let the calendar component handle date filtering for better performance
     let dateMatches = true;
@@ -497,7 +518,11 @@ export default function Schedules() {
         (carrier?.name.toLowerCase().includes(query) || false);
     }
     
-    return dateMatches && statusMatches && typeMatches && facilityMatches && dockMatches && searchMatches;
+      return dateMatches && statusMatches && typeMatches && facilityMatches && dockMatches && searchMatches;
+    } catch (error) {
+      console.error('Error filtering schedule:', schedule, error);
+      return false; // Exclude problematic schedules from the list
+    }
   });
 
   return (
