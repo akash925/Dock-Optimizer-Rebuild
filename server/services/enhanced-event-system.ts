@@ -17,6 +17,7 @@ export interface DockOptimizerEvents {
   'schedule:status_changed': { schedule: EnhancedSchedule; oldStatus: string; tenantId: number };
   
   // Appointment lifecycle events
+  'appointment:created': { schedule: EnhancedSchedule; tenantId: number };
   'appointment:confirmed': { schedule: EnhancedSchedule; confirmationCode: string; tenantId: number };
   'appointment:checked_in': { schedule: EnhancedSchedule; tenantId: number };
   'appointment:checked_out': { schedule: EnhancedSchedule; tenantId: number };
@@ -197,6 +198,8 @@ class EnhancedEventSystem extends EventEmitter {
 
   private shouldCreateNotification(event: string): boolean {
     const notificationEvents = [
+      'schedule:created',
+      'appointment:created',
       'appointment:confirmed',
       'appointment:checked_in',
       'appointment:rescheduled',
@@ -226,6 +229,18 @@ class EnhancedEventSystem extends EventEmitter {
     let userId = data.userId || data.schedule?.createdBy;
 
     switch (event) {
+      case 'schedule:created':
+        title = 'New Appointment Created';
+        message = `A new appointment has been scheduled for ${new Date(data.schedule.startTime).toLocaleDateString()}`;
+        urgency = 'info';
+        break;
+      
+      case 'appointment:created':
+        title = 'New Appointment Created';
+        message = `A new appointment has been created for ${data.schedule.customerName || 'customer'}`;
+        urgency = 'info';
+        break;
+      
       case 'appointment:confirmed':
         title = 'Appointment Confirmed';
         message = `Appointment #${data.confirmationCode} has been confirmed`;

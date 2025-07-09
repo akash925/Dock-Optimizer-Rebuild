@@ -1602,8 +1602,12 @@ export class DatabaseStorage implements IStorage {
       // Map frontend field names to database field names
       const dbData = {
         ...customQuestion,
-        // No need to map isRequired as the schema already handles it
+        // Map isRequired to is_required for database compatibility
+        is_required: customQuestion.isRequired || false,
       };
+      
+      // Remove the camelCase version to avoid conflicts
+      delete (dbData as any).isRequired;
       
       const [newQuestion] = await db.insert(customQuestions).values(dbData).returning();
       return newQuestion;
@@ -1619,8 +1623,13 @@ export class DatabaseStorage implements IStorage {
       const dbData = {
         ...customQuestion,
         lastModifiedAt: new Date(),
-        // No need to map isRequired as the schema already handles it
       };
+      
+      // Handle isRequired field mapping if present
+      if ('isRequired' in customQuestion) {
+        (dbData as any).is_required = customQuestion.isRequired || false;
+        delete (dbData as any).isRequired;
+      }
 
       const [updated] = await db.update(customQuestions)
         .set(dbData)

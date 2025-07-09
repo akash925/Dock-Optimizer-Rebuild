@@ -118,6 +118,19 @@ export function useRealtimeUpdates() {
             queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
             break;
 
+          case 'appointment:created':
+          case 'appointment_created':
+            // Invalidate schedules and notifications when new appointment is created
+            console.log('[WebSocket] New appointment created, invalidating queries');
+            queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/notifications/enhanced'] });
+            
+            // Also invalidate availability data since new appointments affect availability
+            console.log('[WebSocket] Invalidating availability cache');
+            queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
+            break;
+
           case 'appointment:confirmed':
           case 'appointment_confirmed':
             // Invalidate schedules and notifications when appointment is confirmed
