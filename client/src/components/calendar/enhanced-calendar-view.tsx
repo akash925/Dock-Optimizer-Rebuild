@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
-import { Clock, Calendar, MapPin, User } from 'lucide-react';
+import { Clock, Calendar, MapPin, User, Settings, Eye, EyeOff } from 'lucide-react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -10,12 +10,36 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { 
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Schedule } from '@shared/schema';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
 import './calendar-enhanced.css';
+
+interface CalendarDisplaySettings {
+  showCustomerName: boolean;
+  showDriverName: boolean;
+  showCarrierName: boolean;
+  showTruckNumber: boolean;
+  showTrailerNumber: boolean;
+  showAppointmentType: boolean;
+  showDockInfo: boolean;
+  showTimeDisplay: boolean;
+  showStatusBadge: boolean;
+  showPriorityIndicator: boolean;
+  compactMode: boolean;
+  showBOLInfo: boolean;
+  showNotesPreview: boolean;
+}
 
 interface EnhancedCalendarViewProps {
   schedules: Schedule[];
@@ -39,6 +63,184 @@ interface UnscheduledAppointment {
   metadata: any;
 }
 
+// Calendar Settings Component
+function CalendarSettings({ 
+  settings, 
+  onSettingsChange 
+}: { 
+  settings: CalendarDisplaySettings;
+  onSettingsChange: (settings: CalendarDisplaySettings) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleToggle = (key: keyof CalendarDisplaySettings) => {
+    onSettingsChange({
+      ...settings,
+      [key]: !settings[key]
+    });
+  };
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 px-2">
+          <Settings className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80" align="end">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <h4 className="font-medium leading-none">Calendar Display Settings</h4>
+            <p className="text-sm text-muted-foreground">
+              Choose what information to display in calendar events
+            </p>
+          </div>
+          
+          <Separator />
+          
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="customerName" className="text-sm">Customer Name</Label>
+              <Switch
+                id="customerName"
+                checked={settings.showCustomerName}
+                onCheckedChange={() => handleToggle('showCustomerName')}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="driverName" className="text-sm">Driver Name</Label>
+              <Switch
+                id="driverName"
+                checked={settings.showDriverName}
+                onCheckedChange={() => handleToggle('showDriverName')}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="carrierName" className="text-sm">Carrier Name</Label>
+              <Switch
+                id="carrierName"
+                checked={settings.showCarrierName}
+                onCheckedChange={() => handleToggle('showCarrierName')}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="truckNumber" className="text-sm">Truck Number</Label>
+              <Switch
+                id="truckNumber"
+                checked={settings.showTruckNumber}
+                onCheckedChange={() => handleToggle('showTruckNumber')}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="trailerNumber" className="text-sm">Trailer Number</Label>
+              <Switch
+                id="trailerNumber"
+                checked={settings.showTrailerNumber}
+                onCheckedChange={() => handleToggle('showTrailerNumber')}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="appointmentType" className="text-sm">Appointment Type</Label>
+              <Switch
+                id="appointmentType"
+                checked={settings.showAppointmentType}
+                onCheckedChange={() => handleToggle('showAppointmentType')}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="dockInfo" className="text-sm">Dock Information</Label>
+              <Switch
+                id="dockInfo"
+                checked={settings.showDockInfo}
+                onCheckedChange={() => handleToggle('showDockInfo')}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="timeDisplay" className="text-sm">Time Display</Label>
+              <Switch
+                id="timeDisplay"
+                checked={settings.showTimeDisplay}
+                onCheckedChange={() => handleToggle('showTimeDisplay')}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="statusBadge" className="text-sm">Status Badge</Label>
+              <Switch
+                id="statusBadge"
+                checked={settings.showStatusBadge}
+                onCheckedChange={() => handleToggle('showStatusBadge')}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="bolInfo" className="text-sm">BOL Information</Label>
+              <Switch
+                id="bolInfo"
+                checked={settings.showBOLInfo}
+                onCheckedChange={() => handleToggle('showBOLInfo')}
+              />
+            </div>
+            
+            <Separator />
+            
+            <div className="flex items-center justify-between">
+              <Label htmlFor="compactMode" className="text-sm">Compact Mode</Label>
+              <Switch
+                id="compactMode"
+                checked={settings.compactMode}
+                onCheckedChange={() => handleToggle('compactMode')}
+              />
+            </div>
+          </div>
+          
+          <Separator />
+          
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onSettingsChange({
+                showCustomerName: true,
+                showDriverName: true,
+                showCarrierName: true,
+                showTruckNumber: true,
+                showTrailerNumber: false,
+                showAppointmentType: true,
+                showDockInfo: true,
+                showTimeDisplay: true,
+                showStatusBadge: true,
+                showPriorityIndicator: true,
+                compactMode: false,
+                showBOLInfo: false,
+                showNotesPreview: false
+              })}
+              className="flex-1"
+            >
+              Reset Default
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setIsOpen(false)}
+              className="flex-1"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function EnhancedCalendarView({
   schedules,
   onEventClick,
@@ -56,6 +258,62 @@ export default function EnhancedCalendarView({
   const [effectiveTimezone, setEffectiveTimezone] = useState<string>(getUserTimeZone());
   const [unscheduledAppointments, setUnscheduledAppointments] = useState<UnscheduledAppointment[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Calendar display settings with localStorage persistence
+  const [displaySettings, setDisplaySettings] = useState<CalendarDisplaySettings>(() => {
+    const saved = localStorage.getItem('calendar-display-settings');
+    return saved ? JSON.parse(saved) : {
+      showCustomerName: true,
+      showDriverName: true,
+      showCarrierName: true,
+      showTruckNumber: true,
+      showTrailerNumber: false,
+      showAppointmentType: true,
+      showDockInfo: true,
+      showTimeDisplay: true,
+      showStatusBadge: true,
+      showPriorityIndicator: true,
+      compactMode: false,
+      showBOLInfo: false,
+      showNotesPreview: false
+    };
+  });
+
+  // Save settings to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('calendar-display-settings', JSON.stringify(displaySettings));
+  }, [displaySettings]);
+
+  // Generate event title based on display settings
+  const generateEventTitle = useCallback((schedule: Schedule) => {
+    const parts: string[] = [];
+    
+    if (displaySettings.showTruckNumber && schedule.truckNumber) {
+      parts.push(`🚛 ${schedule.truckNumber}`);
+    }
+    
+    if (displaySettings.showCustomerName && schedule.customerName) {
+      parts.push(`👤 ${schedule.customerName}`);
+    }
+    
+    if (displaySettings.showDriverName && schedule.driverName) {
+      parts.push(`👨‍💼 ${schedule.driverName}`);
+    }
+    
+    if (displaySettings.showCarrierName && schedule.carrierName) {
+      parts.push(`🏢 ${schedule.carrierName}`);
+    }
+    
+    if (displaySettings.showAppointmentType && schedule.appointmentTypeId) {
+      parts.push(`📋 ${schedule.type || 'Standard'}`);
+    }
+    
+    if (displaySettings.showBOLInfo && schedule.bolNumber) {
+      parts.push(`📄 BOL: ${schedule.bolNumber}`);
+    }
+    
+    return parts.length > 0 ? parts.join(' • ') : 'Appointment';
+  }, [displaySettings]);
 
   // Fetch facility data for timezone
   const { data: facility } = useQuery({
@@ -139,7 +397,7 @@ export default function EnhancedCalendarView({
 
       return {
         id: schedule.id.toString(),
-        title: `${schedule.truckNumber || 'N/A'} - ${schedule.customerName || 'Unknown'}`,
+        title: generateEventTitle(schedule),
         start: startTime,
         end: endTime,
         backgroundColor,
@@ -147,7 +405,7 @@ export default function EnhancedCalendarView({
         textColor,
         extendedProps: {
           schedule,
-          confirmationCode: schedule.customFormData?.confirmationCode,
+          confirmationCode: (schedule.customFormData as any)?.confirmationCode || '',
           driverName: schedule.driverName,
           carrierName: schedule.carrierName,
           status: schedule.status,
@@ -158,7 +416,7 @@ export default function EnhancedCalendarView({
         durationEditable: enableDragDrop,
       };
     });
-  }, [schedules, enableDragDrop]);
+  }, [schedules, enableDragDrop, generateEventTitle]);
 
   // Mutation to update appointment time
   const updateAppointmentMutation = useMutation({
@@ -385,7 +643,24 @@ export default function EnhancedCalendarView({
               >
                 <Card className="h-full">
                   <CardContent className="p-0 h-full">
-                    <div className={`h-full calendar-container ${isDragging ? 'dragging' : ''}`}>
+                    {/* Calendar Settings Button */}
+                    <div className="absolute top-2 right-2 z-10 bg-white rounded-lg shadow-sm border">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <CalendarSettings 
+                              settings={displaySettings} 
+                              onSettingsChange={setDisplaySettings}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Configure calendar display options</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    
+                    <div className={`h-full calendar-container ${isDragging ? 'dragging' : ''} ${displaySettings.compactMode ? 'compact-mode' : ''}`}>
                       <FullCalendar
                         ref={calendarRef}
                         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -422,6 +697,13 @@ export default function EnhancedCalendarView({
                         dayMaxEvents={false}
                         eventOrderStrict={true}
                         eventConstraint="businessHours"
+                        eventClassNames={(arg) => {
+                          const classes = ['custom-event'];
+                          if (displaySettings.compactMode) {
+                            classes.push('compact-event');
+                          }
+                          return classes;
+                        }}
                       />
                     </div>
                   </CardContent>
@@ -437,7 +719,24 @@ export default function EnhancedCalendarView({
       {!enableDragDrop && (
         <Card className="w-full">
           <CardContent className="p-0">
-            <div className="h-[calc(100vh-8rem)] calendar-container">
+            {/* Calendar Settings Button */}
+            <div className="absolute top-2 right-2 z-10 bg-white rounded-lg shadow-sm border">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <CalendarSettings 
+                      settings={displaySettings} 
+                      onSettingsChange={setDisplaySettings}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Configure calendar display options</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            <div className={`h-[calc(100vh-8rem)] calendar-container ${displaySettings.compactMode ? 'compact-mode' : ''}`}>
               <FullCalendar
                 ref={calendarRef}
                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -460,6 +759,13 @@ export default function EnhancedCalendarView({
                 slotLabelInterval="01:00"
                 slotMinTime="05:00:00"
                 slotMaxTime="22:00:00"
+                eventClassNames={(arg) => {
+                  const classes = ['custom-event'];
+                  if (displaySettings.compactMode) {
+                    classes.push('compact-event');
+                  }
+                  return classes;
+                }}
               />
             </div>
           </CardContent>

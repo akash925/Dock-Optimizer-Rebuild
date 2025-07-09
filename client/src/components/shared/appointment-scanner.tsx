@@ -118,17 +118,48 @@ export function AppointmentScanner({
     setSearching(true);
     
     try {
-      // Check if this is a confirmation code or URL
+      console.log('[AppointmentScanner] Detected code:', code);
+      
+      // Extract confirmation code from various formats
       let confirmationCode = code;
       
-      // If it's a URL, extract the code parameter
-      if (code.includes('?code=')) {
-        const url = new URL(code);
-        confirmationCode = url.searchParams.get('code') || code;
+      // Handle different URL formats
+      if (code.includes('http') || code.includes('://')) {
+        try {
+          const url = new URL(code);
+          
+          // Try common parameter names
+          confirmationCode = 
+            url.searchParams.get('code') ||
+            url.searchParams.get('confirmation') ||
+            url.searchParams.get('confirmationCode') ||
+            url.searchParams.get('c') ||
+            url.pathname.split('/').pop() || // Extract from path
+            code;
+            
+          console.log('[AppointmentScanner] Extracted confirmation code from URL:', confirmationCode);
+        } catch (urlError) {
+          console.warn('[AppointmentScanner] Failed to parse URL, using original code:', code);
+          confirmationCode = code;
+        }
       }
       
+      // Handle direct confirmation codes (alphanumeric patterns)
+      if (!confirmationCode || confirmationCode === code) {
+        // If it looks like a confirmation code pattern (letters + numbers)
+        if (/^[A-Z0-9]{3,}-[A-Z0-9]{3,}$/.test(code) || /^[A-Z]{2,}[0-9]{2,}$/.test(code)) {
+          confirmationCode = code;
+          console.log('[AppointmentScanner] Direct confirmation code detected:', confirmationCode);
+        }
+      }
+      
+      // Clean up the confirmation code
+      confirmationCode = confirmationCode.trim().toUpperCase();
+      
+      console.log('[AppointmentScanner] Final confirmation code:', confirmationCode);
+      
       // Search for an appointment with this code
-      const response = await apiRequest('GET', `/api/schedules/confirmation/${confirmationCode}`);
+      const response = await apiRequest('GET', `/api/schedules/confirmation/${encodeURIComponent(confirmationCode)}`);
       
       if (response.ok) {
         const schedule = await response.json();
@@ -136,7 +167,8 @@ export function AppointmentScanner({
         if (schedule && schedule.id) {
           toast({
             title: 'Appointment Found',
-            description: `Found appointment for ${schedule.customerName || 'Unknown customer'}`,
+            description: `Found appointment for ${schedule.customerName || 'customer'} (${schedule.truckNumber || 'truck'})`,
+            className: 'border-green-500 bg-green-50',
           });
           
           // Call the callback if provided
@@ -144,34 +176,49 @@ export function AppointmentScanner({
             onScanComplete(schedule.id);
           }
           
-          // Navigate to the appointment details
+          // Close the scanner and navigate to the appointment
           setOpen(false);
-          navigate(`/schedules/${schedule.id}`);
+          
+          // Small delay to allow toast to show
+          setTimeout(() => {
+            navigate(`/schedules/${schedule.id}`);
+          }, 1000);
         } else {
           toast({
             title: 'No Appointment Found',
             description: `No appointment found with code: ${confirmationCode}`,
             variant: 'destructive',
           });
+          
+          // Reset scanner to try again
           setSearching(false);
           setScanning(true);
         }
       } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        
         toast({
-          title: 'Search Failed',
-          description: 'Failed to search for appointment by code',
+          title: 'Appointment Not Found',
+          description: `No appointment found with code: ${confirmationCode}`,
           variant: 'destructive',
         });
+        
+        console.log('[AppointmentScanner] API response:', response.status, errorData);
+        
+        // Reset scanner to try again
         setSearching(false);
         setScanning(true);
       }
     } catch (error) {
-      console.error('Error searching for appointment by code:', error);
+      console.error('[AppointmentScanner] Error processing scanned code:', error);
+      
       toast({
-        title: 'Search Error',
-        description: 'An error occurred while searching for the appointment',
+        title: 'Scan Error',
+        description: 'An error occurred while processing the scanned code. Please try again.',
         variant: 'destructive',
       });
+      
+      // Reset scanner to try again
       setSearching(false);
       setScanning(true);
     }

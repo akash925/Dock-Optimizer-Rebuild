@@ -571,6 +571,12 @@ export const getPresignAssetPhoto = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
+    // Check for required environment variables
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET) {
+      console.error('Missing required AWS environment variables');
+      return res.status(500).json({ error: 'S3 configuration not available' });
+    }
+
     // Create S3 client
     const s3Client = new S3Client({
       region: process.env.AWS_REGION || 'us-east-1',
@@ -580,25 +586,33 @@ export const getPresignAssetPhoto = async (req: Request, res: Response) => {
       },
     });
 
-    // Generate unique S3 key
-    const key = `photos/${crypto.randomUUID()}.jpg`;
+    // Generate file extension from MIME type
+    const fileExtension = fileType === 'image/jpeg' ? '.jpg' : 
+                         fileType === 'image/png' ? '.png' : 
+                         fileType === 'image/webp' ? '.webp' : '.jpg';
+
+    // Generate unique S3 key with proper extension
+    const key = `photos/${tenantId}/${id}-${crypto.randomUUID()}${fileExtension}`;
     
-    // Create presigned POST with AWS fields
+    // Create presigned POST with AWS fields - extended expiry time
     const { url, fields } = await createPresignedPost(s3Client, {
       Bucket: process.env.AWS_S3_BUCKET!,
       Key: key,
-      Expires: 60, // 1 minute expiry
+      Expires: 300, // 5 minutes expiry (was 1 minute)
       Conditions: [
         ["content-length-range", 0, maxSize],
         ["eq", "$Content-Type", fileType],
+        ["starts-with", "$key", `photos/${tenantId}/`], // Ensure tenant isolation
       ],
       Fields: {
         'Content-Type': fileType,
       },
     });
 
-    // Store the S3 key in the asset immediately
-    await companyAssetsService.updateCompanyAsset(id, { photoUrl: key });
+    console.log(`[Asset Photo] Generated presigned URL for asset ${id}, key: ${key}`);
+
+    // DON'T update the asset with the key yet - wait for successful upload
+    // This prevents orphaned keys in the database
 
     return res.json({ url, fields, key });
   } catch (error) {
@@ -635,6 +649,11 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'S3 key is required' });
     }
 
+    // Validate the key format and tenant isolation
+    if (!resolvedKey.startsWith(`photos/${tenantId}/`)) {
+      return res.status(400).json({ error: 'Invalid S3 key format or tenant mismatch' });
+    }
+
     // Check if the asset exists and belongs to the user's tenant
     const existingAsset = await companyAssetsService.getCompanyAssetById(id);
     if (!existingAsset) {
@@ -646,6 +665,8 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
     }
 
+    console.log(`[Asset Photo] Updating photo key for asset ${id}: ${resolvedKey}`);
+
     // Update the asset with the S3 key
     const updatedAsset = await companyAssetsService.updateCompanyAsset(id, { photoUrl: resolvedKey });
 
@@ -656,7 +677,13 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
     // Serialize asset to ensure CDN URL is properly formatted
     const serializedAsset = serializeCompanyAsset(updatedAsset);
 
-    return res.json({ photoUrl: serializedAsset.photoUrl });
+    console.log(`[Asset Photo] Successfully updated photo for asset ${id}`);
+
+    return res.json({ 
+      success: true,
+      photoUrl: serializedAsset.photoUrl,
+      message: 'Photo uploaded successfully'
+    });
   } catch (error) {
     console.error('Error updating photo key:', error);
     return res.status(500).json({ error: 'Failed to update photo' });

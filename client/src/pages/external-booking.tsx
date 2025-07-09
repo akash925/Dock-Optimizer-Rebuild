@@ -400,9 +400,24 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             formData.append('bolFile', bolFile);
             formData.append('scheduleId', String(data.schedule.id));
             
-            const reuploadResponse = await fetch('/api/bol-upload/upload', {
+            // Use the OCR endpoint for external uploads (no tenant ID required)
+            const reuploadResponse = await fetch('/api/bol-ocr/upload', {
               method: 'POST',
               body: formData,
+            }).catch(error => {
+              console.warn('Primary BOL upload endpoint failed:', error);
+              // Fallback to secondary BOL endpoint if primary fails
+              return fetch('/api/bol-ocr/upload', {
+                method: 'POST',
+                body: formData,
+              }).catch(secondError => {
+                console.warn('Secondary BOL endpoint failed:', secondError);
+                // Last resort fallback to generic document processing
+                return fetch('/api/document-processing', {
+                  method: 'POST',
+                  body: formData,
+                });
+              });
             });
             
             console.log("BOL re-upload response status:", reuploadResponse.status);
@@ -534,8 +549,8 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     try {
       console.log('Uploading BOL document...');
       
-      // Try to use the updated BOL upload endpoint first
-      const response = await fetch('/api/bol-upload/upload', {
+      // Use the OCR endpoint for external uploads (no tenant ID required)
+      const response = await fetch('/api/bol-ocr/upload', {
         method: 'POST',
         body: formData,
       }).catch(error => {

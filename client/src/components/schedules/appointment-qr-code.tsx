@@ -15,12 +15,15 @@ interface AppointmentQRCodeProps {
 export default function AppointmentQRCode({ schedule, confirmationCode, isExternal = false }: AppointmentQRCodeProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // Generate confirmation code if not provided (e.g. "ABC123")
-  const code = confirmationCode || `${schedule.id.toString().padStart(6, '0')}`;
+  // Generate a properly formatted confirmation code
+  const code = confirmationCode || `HZL-${schedule.id.toString().padStart(6, '0')}`;
   
-  // Base URL for the check-in page - would be a real URL in production
+  // Create a consistent check-in URL format
   const baseUrl = window.location.origin;
-  const checkInUrl = `${baseUrl}/driver-check-in?code=${code}`;
+  const checkInUrl = `${baseUrl}/driver-check-in?code=${encodeURIComponent(code)}`;
+  
+  console.log('[AppointmentQRCode] Generated QR code URL:', checkInUrl);
+  console.log('[AppointmentQRCode] Confirmation code:', code);
   
   const handlePrint = () => {
     setIsGenerating(true);

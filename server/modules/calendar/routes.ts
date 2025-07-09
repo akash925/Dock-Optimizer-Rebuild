@@ -97,9 +97,18 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
       appointmentStartTime = new Date(startTime);
       appointmentEndTime = new Date(endTime);
     } else if (date && time) {
-      // Combine date and time strings
-      const dateTimeStr = `${date}T${time}:00`;
-      appointmentStartTime = new Date(dateTimeStr);
+      // Get facility timezone for proper time conversion
+      const facility = await storage.getFacility(parseInt(facilityId));
+      const facilityTimezone = facility?.timezone || 'America/New_York';
+      
+      console.log(`[BookingRoute] Converting appointment time from facility timezone: ${facilityTimezone}`);
+      console.log(`[BookingRoute] Original date: ${date}, time: ${time}`);
+      
+      // Import timezone utility for consistent conversion
+      const { convertAppointmentTimeToUTC } = await import('@shared/timezone-utils');
+      
+      // Convert appointment time from facility timezone to UTC for storage
+      appointmentStartTime = convertAppointmentTimeToUTC(date, time, facilityTimezone);
       
       // Get the appointment type to determine the correct duration
       const appointmentType = await storage.getAppointmentType(parseInt(appointmentTypeId));
@@ -109,6 +118,8 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
       
       // Calculate end time based on appointment type duration
       appointmentEndTime = new Date(appointmentStartTime.getTime() + (durationMinutes * 60 * 1000));
+      
+      console.log(`[BookingRoute] Final appointment times: ${appointmentStartTime.toISOString()} to ${appointmentEndTime.toISOString()}`);
     } else {
       return res.status(400).json({ message: 'Date and time are required' });
     }
@@ -158,6 +169,46 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
     const appointment = await storage.createSchedule(appointmentData);
     
     console.log('[BookingRoute] Appointment created successfully:', appointment.id);
+    
+    // 🔥 REAL-TIME: Emit event for real-time notifications
+    try {
+      // Import the event system
+      const { eventSystem } = await import('../../services/enhanced-event-system');
+      
+      // Create enhanced schedule object for the event
+      const facility = await storage.getFacility(parseInt(facilityId));
+      const appointmentType = await storage.getAppointmentType(parseInt(appointmentTypeId));
+      
+      const enhancedSchedule = {
+        ...appointment,
+        facilityName: facility?.name || 'Main Facility',
+        appointmentTypeName: appointmentType?.name || 'Standard Appointment',
+        dockName: 'Not assigned',
+        timezone: facility?.timezone || 'America/New_York',
+        userTimeZone: userTimeZone || facility?.timezone || 'America/New_York',
+        confirmationCode: confirmationCode,
+        creatorEmail: extractedEmail,
+        bolFileUploaded: false
+      };
+      
+      // Emit schedule created event
+      eventSystem.emit('schedule:created', {
+        schedule: enhancedSchedule,
+        tenantId: bookingPage.tenantId || 1
+      });
+      
+      // Also emit appointment confirmed event for notifications
+      eventSystem.emit('appointment:confirmed', {
+        schedule: enhancedSchedule,
+        confirmationCode: confirmationCode,
+        tenantId: bookingPage.tenantId || 1
+      });
+      
+      console.log('[BookingRoute] Real-time events emitted successfully');
+    } catch (eventError) {
+      console.error('[BookingRoute] Error emitting real-time events:', eventError);
+      // Don't fail the request if events fail
+    }
     
     // 🔥 CRITICAL FIX: Send confirmation email after appointment creation
     try {

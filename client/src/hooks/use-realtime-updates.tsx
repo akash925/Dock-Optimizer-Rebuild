@@ -107,6 +107,34 @@ export function useRealtimeUpdates() {
             queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
             break;
 
+          case 'schedule:created':
+          case 'schedule_created':
+            // Invalidate schedules query when a new schedule is created
+            console.log('[WebSocket] New schedule created, invalidating queries');
+            queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+            
+            // Also invalidate availability data since new appointments affect availability
+            console.log('[WebSocket] Invalidating availability cache');
+            queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
+            break;
+
+          case 'appointment:confirmed':
+          case 'appointment_confirmed':
+            // Invalidate schedules and notifications when appointment is confirmed
+            console.log('[WebSocket] Appointment confirmed, invalidating queries');
+            queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/notifications/enhanced'] });
+            break;
+
+          case 'notification:created':
+          case 'notification_created':
+            // Invalidate notifications when new notification is created
+            console.log('[WebSocket] New notification created, invalidating queries');
+            queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/notifications/enhanced'] });
+            break;
+
           default:
             console.log('[WebSocket] Unknown message type:', message.type);
         }

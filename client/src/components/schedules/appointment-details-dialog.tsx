@@ -1506,8 +1506,11 @@ export function AppointmentDetailsDialog({
                   const confirmationCode = appointment.confirmationCode || `HZL-${appointment.id.toString().padStart(6, '0')}`;
                   // Generate QR code URL and open in new window
                   const baseUrl = window.location.origin;
-                  const checkInUrl = `${baseUrl}/driver-check-in?code=${confirmationCode}`;
+                  const checkInUrl = `${baseUrl}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
                   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(checkInUrl)}`;
+                  
+                  console.log('[AppointmentDetails] Generated QR code URL:', checkInUrl);
+                  console.log('[AppointmentDetails] Confirmation code:', confirmationCode);
                   
                   // Open QR code in a new window for easy access
                   const qrWindow = window.open('', '_blank', 'width=400,height=500,scrollbars=yes');
@@ -1524,6 +1527,9 @@ export function AppointmentDetailsDialog({
                             <img src="${qrUrl}" alt="QR Code for ${confirmationCode}" style="border: 1px solid #ccc; border-radius: 8px;" />
                             <p style="margin-top: 15px; color: #666; font-size: 14px;">
                               Scan this QR code or use the confirmation code for check-in
+                            </p>
+                            <p style="margin-top: 10px; color: #888; font-size: 12px;">
+                              Check-in URL: ${checkInUrl}
                             </p>
                           </div>
                           <button onclick="window.print()" style="background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">
