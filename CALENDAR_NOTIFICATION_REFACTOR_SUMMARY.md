@@ -226,10 +226,8 @@ CREATE INDEX CONCURRENTLY idx_notifications_tenant_type ON notifications (user_i
 
 **New Required Variables:**
 ```bash
-# Redis configuration for BullMQ
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=your_redis_password
+# Redis configuration for BullMQ (via Doppler secrets)
+REDIS_URL=redis://your-redis-url
 
 # Performance tuning
 ENABLE_QUERY_OPTIMIZATION=true

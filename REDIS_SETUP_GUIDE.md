@@ -13,6 +13,19 @@ The Dock Optimizer application uses Redis for **optional** job queue processing 
 
 **Redis is currently DISABLED** in this deployment. The application falls back to immediate processing of notifications without queuing.
 
+## Secret Management via Doppler
+
+This application uses **Doppler** for secure secret management. All Redis configuration must be done through Doppler secrets - **no hardcoded values or manual environment variables**.
+
+### Doppler Configuration
+
+The application is configured with these Doppler environments:
+- **Development**: `dev` config
+- **Staging**: `stg` config  
+- **Production**: `prd` config
+
+Redis is configured via the `REDIS_URL` secret in Doppler.
+
 ## Redis Configuration Options
 
 ### Option 1: Cloud Redis (Recommended for Production)
@@ -21,23 +34,26 @@ The Dock Optimizer application uses Redis for **optional** job queue processing 
 1. Go to [upstash.com](https://upstash.com)
 2. Create a free account
 3. Create a new Redis database
-4. Copy the connection URL
-5. Add to your environment variables:
+4. Copy the connection URL (format: `redis://default:password@hostname:port`)
+5. **Add to Doppler secrets** (not environment files):
    ```bash
-   REDIS_URL=redis://default:password@hostname:port
+   # In Doppler dashboard or CLI
+   doppler secrets set REDIS_URL="redis://default:password@hostname:port"
    ```
 
 #### Redis Cloud (RedisLabs)
 1. Go to [redis.com](https://redis.com)
 2. Create a free account
 3. Create a new Redis database
-4. Copy the connection details
-5. Add to your environment variables:
+4. Copy the connection URL
+5. **Add to Doppler secrets**:
    ```bash
-   REDIS_URL=redis://default:password@hostname:port
+   doppler secrets set REDIS_URL="redis://default:password@hostname:port"
    ```
 
-### Option 2: Local Redis (Development)
+### Option 2: Local Redis (Development Only)
+
+For local development, you can set up Redis and configure it in your Doppler `dev` environment:
 
 #### Using Docker (Recommended)
 ```bash
@@ -46,53 +62,41 @@ docker run --name dock-optimizer-redis \
   -p 6379:6379 \
   -d redis:7-alpine
 
-# Set environment variables
-export REDIS_HOST=localhost
-export REDIS_PORT=6379
+# Add to Doppler dev config
+doppler secrets set REDIS_URL="redis://localhost:6379" --config dev
 ```
 
 #### Using Homebrew (macOS)
 ```bash
-# Install Redis
+# Install and start Redis
 brew install redis
-
-# Start Redis
 brew services start redis
 
-# Set environment variables
-export REDIS_HOST=localhost
-export REDIS_PORT=6379
+# Add to Doppler dev config
+doppler secrets set REDIS_URL="redis://localhost:6379" --config dev
 ```
 
-#### Using APT (Ubuntu/Debian)
+## Secret Management Best Practices
+
+### ✅ Correct Approach (Using Doppler)
 ```bash
-# Install Redis
-sudo apt update
-sudo apt install redis-server
+# Set Redis URL in appropriate Doppler config
+doppler secrets set REDIS_URL="redis://your-redis-url" --config prd
 
-# Start Redis
-sudo systemctl start redis-server
-sudo systemctl enable redis-server
-
-# Set environment variables
-export REDIS_HOST=localhost
-export REDIS_PORT=6379
+# The application automatically loads from Doppler
+# No manual environment variable management needed
 ```
 
-## Environment Variables
-
-Add these to your `.env` file or deployment environment:
-
-### Cloud Redis (using URL)
+### ❌ Avoid These Approaches
 ```bash
-REDIS_URL=redis://default:password@hostname:port
-```
+# DON'T set environment variables manually
+export REDIS_URL="redis://..."  # Bypasses secret management
 
-### Local Redis (using host/port)
-```bash
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=your_password_if_any
+# DON'T use hardcoded values in code
+const redis = new IORedis("redis://hardcoded-url")  # Security risk
+
+# DON'T use .env files for production secrets
+REDIS_URL=redis://...  # Not secure for production
 ```
 
 ## Health Check
@@ -115,37 +119,42 @@ Expected outputs:
 - Better reliability and scalability
 - Failed notifications are retried automatically
 - Urgent notifications get priority processing
+- Logs: `[Redis] Connected to Redis (host: your-hostname)`
 
 ### Without Redis (Current State)
 - Notifications are processed immediately
 - No queuing or retry logic
 - Still functional but less reliable under load
 - Simpler deployment (no Redis dependency)
+- Logs: `[Redis] Redis disabled – REDIS_URL not configured in Doppler secrets`
 
 ## Deployment Considerations
 
 ### For Replit Deployment
-1. **Replit Teams**: Use Replit's built-in Redis service
-2. **Replit Core**: Use a cloud Redis service (Upstash recommended)
-3. **Environment Setup**: Add Redis URL to Replit Secrets
+1. **Configure Doppler**: Ensure Doppler integration is set up in Replit
+2. **Add REDIS_URL**: Set in appropriate Doppler config (prd for production)
+3. **Deploy**: Application automatically loads Redis URL from Doppler
 
 ### For Production Deployment
 1. **High Availability**: Use Redis Cluster or Redis Sentinel
 2. **Monitoring**: Monitor Redis memory usage and connection counts
 3. **Backup**: Configure Redis persistence (RDB/AOF)
 4. **Security**: Use Redis AUTH and TLS encryption
+5. **Doppler Security**: Rotate Doppler service tokens regularly
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### "Redis connectivity: DISABLED"
-- **Cause**: No Redis environment variables set
-- **Solution**: Set `REDIS_URL` or `REDIS_HOST` environment variables
+#### "Redis disabled – REDIS_URL not configured in Doppler secrets"
+- **Cause**: `REDIS_URL` not set in Doppler
+- **Solution**: Set `REDIS_URL` in appropriate Doppler config
+- **Check**: Verify Doppler config with `doppler secrets`
 
 #### "Redis connectivity: ERROR"
-- **Cause**: Redis server not running or connection refused
-- **Solution**: Check Redis server status and connection details
+- **Cause**: Invalid Redis URL or Redis server not accessible
+- **Solution**: Verify Redis URL format and server status
+- **Check**: Test Redis URL manually with `redis-cli`
 
 #### "Connection timeout"
 - **Cause**: Network issues or Redis server overloaded
@@ -157,24 +166,17 @@ Expected outputs:
 # Check Redis health
 npm run redis:health
 
-# Test Redis connection manually
-redis-cli ping
+# View Doppler secrets (masked)
+doppler secrets
 
-# Check Redis server status
-redis-cli info server
+# Test specific Doppler config
+doppler run --config dev -- npm run redis:health
+
+# Test Redis connection manually (if Redis CLI available)
+redis-cli -u "your-redis-url" ping
 ```
 
 ## Performance Tuning
-
-### Redis Configuration
-```redis
-# /etc/redis/redis.conf (for local Redis)
-maxmemory 256mb
-maxmemory-policy allkeys-lru
-save 900 1
-save 300 10
-save 60 10000
-```
 
 ### Application Configuration
 The application automatically configures:
@@ -182,22 +184,22 @@ The application automatically configures:
 - **Retry logic**: 3 attempts with exponential backoff
 - **Queue limits**: 100 completed jobs, 50 failed jobs retained
 - **Worker concurrency**: 5 normal workers, 10 urgent workers
+- **Timeouts**: 10s connect, 5s command timeout
 
 ## Migration from No-Redis to Redis
 
-1. **Set environment variables** as described above
-2. **Restart the application** to initialize Redis connections
+1. **Set REDIS_URL in Doppler** for appropriate environment
+2. **Restart the application** to reload Doppler secrets
 3. **Verify health check** using `npm run redis:health`
-4. **Monitor logs** for successful queue initialization
+4. **Monitor logs** for successful Redis connection
 
-The migration is seamless - the application will automatically switch from immediate processing to queued processing when Redis becomes available.
+The migration is seamless - the application automatically switches from immediate processing to queued processing when Redis becomes available via Doppler.
 
 ## Cost Considerations
 
 ### Free Tiers
 - **Upstash**: 10k requests/day, 256MB storage
 - **Redis Cloud**: 30MB storage, limited connections
-- **Local Redis**: No cost, but requires server management
 
 ### Paid Options
 - **Upstash**: $0.20 per 100k requests
@@ -206,11 +208,11 @@ The migration is seamless - the application will automatically switch from immed
 
 ## Security Best Practices
 
-1. **Use TLS**: Enable Redis TLS encryption in production
-2. **Set AUTH**: Use Redis AUTH password protection
-3. **Network isolation**: Use VPC or private networks
-4. **Regular updates**: Keep Redis server updated
-5. **Monitor access**: Enable Redis logs and monitoring
+1. **Use Doppler**: Never bypass Doppler for secret management
+2. **Use TLS**: Enable Redis TLS encryption in production
+3. **Rotate secrets**: Regularly rotate Redis passwords
+4. **Monitor access**: Enable Redis logs and monitoring
+5. **Network isolation**: Use VPC or private networks for cloud Redis
 
 ---
 

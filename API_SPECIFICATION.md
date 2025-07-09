@@ -537,20 +537,25 @@ class DockOptimizerAPI:
 - **CPU**: 2 cores minimum
 
 ### Environment Variables
+
+All sensitive configuration is managed via **Doppler** secret management. Set these in your appropriate Doppler config:
+
 ```bash
-# Database
+# Database (via Doppler)
 DATABASE_URL=postgresql://user:pass@host:port/db
+
+# Redis (via Doppler - optional)
 REDIS_URL=redis://host:port
 
-# Security
+# Security (via Doppler)
 SESSION_SECRET=your-secret-key
 JWT_SECRET=your-jwt-secret
 
-# Email
+# Email (via Doppler)
 SENDGRID_API_KEY=your-sendgrid-key
 EMAIL_FROM=noreply@yourdomain.com
 
-# Features
+# Features (can be set in code or Doppler)
 ENABLE_WEBSOCKETS=true
 ENABLE_ANALYTICS=true
 ```
