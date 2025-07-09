@@ -54,6 +54,13 @@ export class MockStorage {
   private nextScheduleId = 1;
   private nextUserId = 1;
 
+  // Additional storage for availability tests
+  private organizations: Map<number, any> = new Map();
+  private facilities: Map<number, any> = new Map();
+  private appointmentTypes: Map<number, any> = new Map();
+  private organizationDefaultHours: Map<number, any[]> = new Map();
+  private organizationHolidays: Map<number, any[]> = new Map();
+
   // File management
   async createFileRecord(fileData: Omit<FileRecord, 'id'> & { id?: string }): Promise<FileRecord> {
     const fileRecord: FileRecord = {
@@ -163,12 +170,85 @@ export class MockStorage {
     return this.users.delete(id);
   }
 
+  // Organization management - for availability tests
+  setOrganization(id: number, organizationData: any): void {
+    this.organizations.set(id, organizationData);
+  }
+
+  async getOrganizationByFacilityId(facilityId: number): Promise<any | null> {
+    const facility = this.facilities.get(facilityId);
+    if (!facility) return null;
+    return this.organizations.get(facility.tenantId) || null;
+  }
+
+  // Facility management - for availability tests
+  setFacility(id: number, facilityData: any): void {
+    this.facilities.set(id, facilityData);
+  }
+
+  async getFacility(id: number, tenantId?: number): Promise<any | null> {
+    const facility = this.facilities.get(id);
+    if (!facility) return null;
+    if (tenantId && facility.tenantId !== tenantId) return null;
+    return facility;
+  }
+
+  async createFacility(facilityData: any): Promise<any> {
+    const facility = {
+      id: Math.floor(Math.random() * 1000),
+      ...facilityData,
+    };
+    this.facilities.set(facility.id, facility);
+    return facility;
+  }
+
+  // Appointment type management - for availability tests
+  setAppointmentType(id: number, appointmentTypeData: any): void {
+    this.appointmentTypes.set(id, appointmentTypeData);
+  }
+
+  async getAppointmentType(id: number): Promise<any | null> {
+    return this.appointmentTypes.get(id) || null;
+  }
+
+  async createAppointmentType(appointmentTypeData: any): Promise<any> {
+    const appointmentType = {
+      id: Math.floor(Math.random() * 1000),
+      ...appointmentTypeData,
+    };
+    this.appointmentTypes.set(appointmentType.id, appointmentType);
+    return appointmentType;
+  }
+
+  // Organization default hours - for availability tests
+  setOrganizationDefaultHours(tenantId: number, hours: any[]): void {
+    this.organizationDefaultHours.set(tenantId, hours);
+  }
+
+  async getOrganizationDefaultHours(tenantId: number): Promise<any[]> {
+    return this.organizationDefaultHours.get(tenantId) || [];
+  }
+
+  // Organization holidays - for availability tests
+  setOrganizationHolidays(tenantId: number, holidays: any[]): void {
+    this.organizationHolidays.set(tenantId, holidays);
+  }
+
+  async getOrganizationHolidays(tenantId: number): Promise<any[]> {
+    return this.organizationHolidays.get(tenantId) || [];
+  }
+
   // Utility methods
   reset(): void {
     this.fileRecords.clear();
     this.bolDocuments.clear();
     this.schedules.clear();
     this.users.clear();
+    this.organizations.clear();
+    this.facilities.clear();
+    this.appointmentTypes.clear();
+    this.organizationDefaultHours.clear();
+    this.organizationHolidays.clear();
     this.nextBolId = 1;
     this.nextScheduleId = 1;
     this.nextUserId = 1;

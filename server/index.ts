@@ -245,10 +245,12 @@ app.use((req, res, next) => {
         return res.status(403).json({ error: 'Tenant context required' });
       }
 
-      // Add tenant ID to the appointment type data
+      // Add tenant ID to the appointment type data and ensure questions array is present
       const appointmentTypeData = {
         ...req.body,
-        tenantId: req.user.tenantId
+        tenantId: req.user.tenantId,
+        // Ensure questions array is always present, even if empty
+        questions: req.body.questions || []
       };
 
       console.log(`[AppointmentTypesAPI] Creating appointment type for tenant ${req.user.tenantId}:`, appointmentTypeData.name);
@@ -292,7 +294,14 @@ app.use((req, res, next) => {
         return res.status(404).json({ error: 'Appointment type not found' });
       }
 
-      const updated = await storage.updateAppointmentType(id, req.body);
+      // Ensure questions array is present in the update data
+      const updateData = {
+        ...req.body,
+        // Ensure questions array is always present, even if empty
+        questions: req.body.questions || []
+      };
+
+      const updated = await storage.updateAppointmentType(id, updateData);
       if (!updated) {
         return res.status(500).json({ error: 'Failed to update appointment type' });
       }
@@ -301,6 +310,78 @@ app.use((req, res, next) => {
     } catch (error) {
       console.error('Error updating appointment type:', error);
       res.status(500).json({ error: 'Failed to update appointment type' });
+    }
+  });
+
+  // Seed Standard Questions API
+  app.post('/api/appointment-types/:id/seed-standard', async (req: any, res) => {
+    try {
+      const { getStorage } = await import('./storage');
+      const storage = await getStorage();
+
+      // Authentication required
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Tenant context required
+      if (!req.user?.tenantId) {
+        return res.status(403).json({ error: 'Tenant context required' });
+      }
+
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid appointment type id' });
+      }
+
+      // Ensure the appointment type belongs to this tenant
+      const existing = await storage.getAppointmentType(id);
+      if (!existing || existing.tenantId !== req.user.tenantId) {
+        return res.status(404).json({ error: 'Appointment type not found' });
+      }
+
+      // Define standard questions to seed
+      const standardQuestions = [
+        { label: "Customer Name", fieldKey: "customerName", fieldType: "text", required: true, included: true, orderPosition: 1 },
+        { label: "Carrier Name", fieldKey: "carrierName", fieldType: "text", required: true, included: true, orderPosition: 2 },
+        { label: "Carrier MC #", fieldKey: "mcNumber", fieldType: "text", required: true, included: true, orderPosition: 3 },
+        { label: "Driver/Dispatcher Email", fieldKey: "driverEmail", fieldType: "email", required: true, included: true, orderPosition: 4 },
+        { label: "Driver/Dispatcher Phone Number", fieldKey: "driverPhone", fieldType: "text", required: false, included: true, orderPosition: 5 },
+        { label: "Driver's License Number", fieldKey: "driverLicense", fieldType: "text", required: false, included: true, orderPosition: 6 },
+        { label: "BOL Doc", fieldKey: "bolDoc", fieldType: "file", required: false, included: true, orderPosition: 7 },
+        { label: "BOL Number", fieldKey: "bolNumber", fieldType: "text", required: true, included: true, orderPosition: 8 },
+        { label: "Truck Number", fieldKey: "truckNumber", fieldType: "text", required: true, included: true, orderPosition: 9 },
+        { label: "Trailer Number", fieldKey: "trailerNumber", fieldType: "text", required: false, included: true, orderPosition: 10 },
+        { label: "Driver's Name", fieldKey: "driverName", fieldType: "text", required: false, included: true, orderPosition: 11 },
+        { label: "Item Description/Quantity", fieldKey: "itemDescription", fieldType: "textarea", required: false, included: true, orderPosition: 12 }
+      ];
+
+      console.log(`[AppointmentTypesAPI] Seeding ${standardQuestions.length} standard questions for appointment type ${id}`);
+
+      // Create all standard questions for this appointment type
+      const createdQuestions = [];
+      for (const question of standardQuestions) {
+        try {
+          const createdQuestion = await storage.createStandardQuestion({
+            ...question,
+            appointmentTypeId: id
+          });
+          createdQuestions.push(createdQuestion);
+        } catch (error) {
+          console.error(`Error creating standard question "${question.label}":`, error);
+        }
+      }
+
+      console.log(`[AppointmentTypesAPI] Successfully seeded ${createdQuestions.length} standard questions`);
+      res.status(201).json({ 
+        success: true, 
+        message: `Successfully seeded ${createdQuestions.length} standard questions`,
+        questions: createdQuestions
+      });
+      
+    } catch (error) {
+      console.error('Error seeding standard questions:', error);
+      res.status(500).json({ error: 'Failed to seed standard questions' });
     }
   });
 

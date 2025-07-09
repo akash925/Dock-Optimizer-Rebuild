@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUpdateStandardQuestion } from "@/hooks/use-standard-questions";
 import { Facility, AppointmentType, insertAppointmentTypeSchema } from "@shared/schema";
 import SeedAppointmentTypes from "@/components/appointment-master/seed-appointment-types";
+import { SeedQuestionsButton } from "@/components/appointment-master/SeedQuestionsButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -760,7 +761,9 @@ export default function AppointmentMaster() {
   const handleAppointmentTypeSubmit = () => {
     const formData = {
       ...appointmentTypeForm,
-      id: selectedAppointmentTypeId
+      id: selectedAppointmentTypeId,
+      // Ensure questions array is always included, even if empty
+      questions: standardFields ?? []
     };
     
     if (selectedAppointmentTypeId) {
@@ -1622,25 +1625,37 @@ export default function AppointmentMaster() {
                   )}
                   
                   <div className="flex justify-between mt-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {
-                        setSelectedQuestionId(null);
-                        setQuestionForm({
-                          label: "",
-                          type: "text",
-                          required: false,
-                          options: [],
-                          placeholder: "",
-                          appointmentType: "both"
-                        });
-                        setShowQuestionDialog(true);
-                      }}
-                    >
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Add Custom Question
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedQuestionId(null);
+                          setQuestionForm({
+                            label: "",
+                            type: "text",
+                            required: false,
+                            options: [],
+                            placeholder: "",
+                            appointmentType: "both"
+                          });
+                          setShowQuestionDialog(true);
+                        }}
+                      >
+                        <PlusCircle className="h-4 w-4 mr-2" />
+                        Add Custom Question
+                      </Button>
+                      
+                      {selectedAppointmentTypeId && (
+                        <SeedQuestionsButton 
+                          appointmentTypeId={selectedAppointmentTypeId}
+                          onSuccess={() => {
+                            // Reload standard questions after seeding
+                            loadStandardQuestionsForAppointmentType(selectedAppointmentTypeId);
+                          }}
+                        />
+                      )}
+                    </div>
                     
                     <Button 
                       className="bg-green-600 hover:bg-green-700 text-white"

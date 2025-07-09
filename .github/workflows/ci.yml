@@ -26,7 +26,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 10.12.1
+          version: 10.13.1
           run_install: false
 
       # ④  Install Node 20 and restore pnpm cache
@@ -39,19 +39,19 @@ jobs:
 
       # ⑤  Spin up local Postgres for DB-dependent tests
       - name: Start test Postgres
-        uses: ikalnytskyi/action-setup-postgres@v5
+        uses: ikalnytskyi/action-setup-postgres@v7
         with:
           postgres-version: '15'
           username: test
           password: test
-          database: dock_opt_test   # <-- input key is `database`
+          database: dock_opt_test
 
       - name: Export DATABASE_URL
         run: echo "DATABASE_URL=postgres://test:test@localhost:5432/dock_opt_test" >> $GITHUB_ENV
 
       # ⑥  Install deps & run the suite
       - name: Install deps
-        run: pnpm install --frozen-lockfile=false   # temporary lock-mismatch bypass
+        run: pnpm install --frozen-lockfile
 
       - name: Unit tests
         run: pnpm test:ci

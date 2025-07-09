@@ -584,21 +584,23 @@ export default function Schedules() {
         {/* Middle: Filters and New Appointment button in a single line - scrollable on small screens */}
         <div className="flex items-center ml-auto space-x-2 overflow-x-auto pb-2 scrollbar-none sm:justify-end">
           {/* New Appointment Button - moved from bottom to be with filters */}
-          <Button 
-            onClick={() => {
-              setEditScheduleId(null);
-              // Skip appointment type dialog and open form directly
-              // Create date with noon time to prevent timezone date shifts
-              const todayNoon = new Date();
-              todayNoon.setHours(12, 0, 0, 0);
-              setClickedCellDate(todayNoon);
-              setIsFormOpen(true);
-            }}
-            className="bg-primary text-white h-9"
-          >
-            <PlusCircle className="h-4 w-4 mr-2" />
-            New Appointment
-          </Button>
+          {import.meta.env.VITE_ENABLE_INTERNAL_WIZARD === 'true' && (
+            <Button 
+              onClick={() => {
+                setEditScheduleId(null);
+                // Skip appointment type dialog and open form directly
+                // Create date with noon time to prevent timezone date shifts
+                const todayNoon = new Date();
+                todayNoon.setHours(12, 0, 0, 0);
+                setClickedCellDate(todayNoon);
+                setIsFormOpen(true);
+              }}
+              className="bg-primary text-white h-9"
+            >
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Appointment
+            </Button>
+          )}
           
           {/* Facility filter */}
           <DropdownMenu>

@@ -297,22 +297,6 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                 <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
               </TabsList>
               
-              {/* Asset Photo Upload */}
-              <div className="mb-6 pb-6 border-b">
-                <Label className="text-base font-medium mb-4 block">Asset Photo</Label>
-                <AssetPhotoDropzone 
-                  onUpload={async (file) => {
-                    // Store the file for form submission
-                    setPhotoFile(file);
-                    // Create local preview
-                    const previewUrl = URL.createObjectURL(file);
-                    setPhotoPreview(previewUrl);
-                  }}
-                  existing={assetToEdit?.photoUrl || photoPreview}
-                  className="max-w-2xl"
-                />
-              </div>
-              
               {/* Basic Information Tab */}
               <TabsContent value="basic" className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
