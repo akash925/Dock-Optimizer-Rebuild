@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { UploadCloud, X, Loader2, ImageIcon, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { uploadViaS3Post } from '@/lib/upload/postUpload';
 
 interface AssetPhotoDropzoneProps {
   onUpload?: (file: File) => Promise<void>; // Legacy support, deprecated
@@ -137,82 +138,17 @@ export default function AssetPhotoDropzone({
       return uploadData.photoUrl;
     }
 
-    // Step 2: Upload directly to S3
+    // Step 2: Upload directly to S3 using the helper function
     setUploadStage('upload');
+    setUploadProgress(50);
     
-    console.log('[AssetUpload] Presigned data:', presignedData);
+    console.log('[AssetUpload] Using uploadViaS3Post helper for S3 upload');
     
-    // Use S3 direct upload with FormData
-    const formData = new FormData();
-    
-    // Add all the fields from the presigned POST
-    Object.entries(presignedData.fields).forEach(([key, value]) => {
-      formData.append(key, value as string);
-      console.log(`[AssetUpload] Adding field: ${key} = ${value}`);
-    });
-    
-    // Add the file last (as per AWS documentation)
-    formData.append('file', file);
-    console.log(`[AssetUpload] Uploading to: ${presignedData.url}`);
-    
-    // Retry S3 upload with exponential backoff
-    let uploadResponse: Response | undefined;
-    let lastError: Error | null = null;
-    
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        uploadResponse = await fetch(presignedData.url, {
-          method: 'POST',
-          body: formData,
-          // No credentials needed for direct S3 upload
-        });
-        
-        if (uploadResponse.ok) {
-          break; // Success, exit retry loop
-        }
-        
-        // If not successful, treat as an error for retry logic
-        throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Unknown error');
-        console.error(`[AssetUpload] S3 upload attempt ${attempt} failed:`, lastError);
-        
-        if (attempt === 3) {
-          // Final attempt failed, check if it's a network error
-          const isNetworkError = lastError.name === 'TypeError' || 
-                                lastError.message.includes('fetch') ||
-                                lastError.message.includes('network');
-          
-          if (isNetworkError) {
-            throw new Error(`Network error during S3 upload: ${lastError.message}. This might be a CORS issue or the S3 bucket might not be accessible.`);
-          } else {
-            throw new Error(`Upload failed (network/S3). Check file size and try again.`);
-          }
-        }
-        
-        // Exponential backoff: 300ms, 600ms, 1200ms
-        const delay = 300 * Math.pow(2, attempt - 1);
-        console.log(`[AssetUpload] Retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-    
-    // Ensure uploadResponse is defined after the retry loop
-    if (!uploadResponse) {
-      throw new Error('Upload failed after all retry attempts');
-    }
-
-    console.log(`[AssetUpload] S3 response status: ${uploadResponse.status}`);
-    
-    if (!uploadResponse.ok) {
-      let errorText = '';
-      try {
-        errorText = await uploadResponse.text();
-        console.error('[AssetUpload] S3 error response:', errorText);
-      } catch (e) {
-        console.error('[AssetUpload] Could not read S3 error response');
-      }
-      throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}${errorText ? ` - ${errorText}` : ''}`);
+    try {
+      await uploadViaS3Post(presignedData.url, presignedData.fields, file);
+    } catch (error) {
+      console.error('[AssetUpload] S3 upload failed:', error);
+      throw new Error('S3 upload failed – check file type/size and retry');
     }
 
     setUploadProgress(90);
@@ -307,8 +243,20 @@ export default function AssetPhotoDropzone({
         try {
           // Attempt S3 direct upload
           finalPhotoUrl = await handleS3Upload(selectedFile);
+          
+          toast({
+            title: 'Photo uploaded',
+            description: 'Asset photo has been updated successfully',
+          });
         } catch (s3Error) {
           console.warn('[AssetUpload] S3 upload failed, falling back to local upload:', s3Error);
+          
+          // Display the specific S3 error message
+          toast({
+            title: 'Upload failed',
+            description: s3Error instanceof Error ? s3Error.message : 'S3 upload failed – check file type/size and retry',
+            variant: 'destructive',
+          });
           
           // Fall back to local upload
           try {
@@ -327,6 +275,11 @@ export default function AssetPhotoDropzone({
         // Legacy multipart upload for backward compatibility
         await onUpload(selectedFile);
         finalPhotoUrl = optimisticUrl || existing || '';
+        
+        toast({
+          title: 'Photo uploaded',
+          description: 'Asset photo has been updated successfully',
+        });
       } else {
         throw new Error('Asset ID is required for photo upload');
       }
@@ -338,11 +291,6 @@ export default function AssetPhotoDropzone({
 
       // Update preview with final URL
       setPreview(finalPhotoUrl);
-      
-      toast({
-        title: 'Photo uploaded',
-        description: 'Asset photo has been updated successfully',
-      });
       
       // Call completion callback
       if (onUploadComplete && finalPhotoUrl) {
@@ -356,9 +304,16 @@ export default function AssetPhotoDropzone({
       }
     } catch (error) {
       console.error('Upload error:', error);
+      
+      // Show specific error message based on the error
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload photo';
+      const displayMessage = errorMessage.includes('S3 upload failed – check file type/size and retry') 
+        ? errorMessage 
+        : errorMessage;
+      
       toast({
         title: 'Upload failed',
-        description: error instanceof Error ? error.message : 'Failed to upload photo',
+        description: displayMessage,
         variant: 'destructive',
       });
       
@@ -438,42 +393,36 @@ export default function AssetPhotoDropzone({
               <X className="h-4 w-4" />
             </Button>
           </div>
-          
-          {selectedFile && (
-            <div className="p-4 border-t space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
-                  {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-                </div>
-                <Button
-                  onClick={handleUpload}
-                  disabled={uploading}
-                  size="sm"
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {getUploadStageText()}
-                    </>
-                  ) : uploadStage === 'complete' ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                      Uploaded
-                    </>
-                  ) : (
-                    'Upload Photo'
-                  )}
-                </Button>
+          {selectedFile && !uploading && (
+            <div className="p-4 space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Ready to upload: {selectedFile.name}
+              </p>
+              <Button 
+                onClick={handleUpload} 
+                className="w-full"
+                disabled={uploading}
+              >
+                <UploadCloud className="mr-2 h-4 w-4" />
+                Upload Photo
+              </Button>
+            </div>
+          )}
+          {uploading && (
+            <div className="p-4 space-y-2">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">{getUploadStageText()}</span>
               </div>
-              
-              {uploading && (
-                <div className="space-y-2">
-                  <Progress value={uploadProgress} className="w-full" />
-                  <p className="text-xs text-muted-foreground text-center">
-                    {getUploadStageText()}
-                  </p>
-                </div>
-              )}
+              <Progress value={uploadProgress} className="w-full" />
+            </div>
+          )}
+          {uploadStage === 'complete' && (
+            <div className="p-4">
+              <div className="flex items-center space-x-2 text-green-600">
+                <CheckCircle className="h-4 w-4" />
+                <span className="text-sm">Upload successful!</span>
+              </div>
             </div>
           )}
         </Card>

@@ -50,6 +50,36 @@ interface BolUploadProps {
   className?: string;
 }
 
+// Utility function for S3 POST upload with exponential backoff
+export async function uploadViaS3Post(url: string, fields: Record<string,string>, file: File) {
+  const formData = new FormData();
+  Object.entries(fields).forEach(([k,v]) => formData.append(k, v));
+  formData.append('file', file);
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, { method: 'POST', body: formData });
+      if (res.ok) return res;
+      
+      // If not successful, treat as an error for retry logic
+      throw new Error(`S3 upload failed: ${res.status} ${res.statusText}`);
+    } catch (error) {
+      console.error(`[BOL Upload] S3 upload attempt ${attempt} failed:`, error);
+      
+      if (attempt === 3) {
+        // Final attempt failed
+        throw new Error('S3 upload failed after 3 attempts');
+      }
+      
+      // Exponential backoff: 300ms, 600ms, 1200ms
+      const delay = 300 * attempt;
+      console.log(`[BOL Upload] Retrying in ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw new Error('S3 upload failed after 3 attempts');
+}
+
 export default function BolUpload({ 
   onBolProcessed, 
   onProcessingStateChange,
@@ -219,13 +249,24 @@ export default function BolUpload({
       
       let s3Response;
       try {
-        s3Response = await fetch(presignedData.uploadUrl, {
-          method: 'PUT',
-          body: compressedFile,
-          headers: {
-            'Content-Type': compressedFile.type,
-          },
-        });
+        // Check if the presigned data includes fields (POST policy)
+        if (presignedData.fields) {
+          // Use POST with FormData (correct method)
+          s3Response = await uploadViaS3Post(
+            presignedData.uploadUrl || presignedData.url,
+            presignedData.fields,
+            compressedFile
+          );
+        } else {
+          // Fallback to PUT if no fields are provided (legacy support)
+          s3Response = await fetch(presignedData.uploadUrl, {
+            method: 'PUT',
+            body: compressedFile,
+            headers: {
+              'Content-Type': compressedFile.type,
+            },
+          });
+        }
       } catch (networkError) {
         console.error('Network error during S3 upload:', networkError);
         const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown network error';

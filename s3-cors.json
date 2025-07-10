@@ -1,0 +1,12 @@
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["POST", "GET"],
+    "AllowedOrigins": [
+      "${APP_ORIGIN}",
+      "http://localhost:3000",
+      "https://localhost:3000"
+    ],
+    "ExposeHeaders": ["ETag"]
+  }
+] 

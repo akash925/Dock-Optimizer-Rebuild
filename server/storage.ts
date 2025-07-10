@@ -415,6 +415,23 @@ export class MemStorage implements IStorage {
     const id = this.scheduleIdCounter++;
     const schedule: Schedule = { ...insertSchedule, id, createdAt: new Date(), lastModifiedAt: new Date(), createdBy: insertSchedule.createdBy, lastModifiedBy: insertSchedule.createdBy, facilityId: insertSchedule.facilityId ?? null, dockId: insertSchedule.dockId ?? null, carrierId: insertSchedule.carrierId ?? null, appointmentTypeId: insertSchedule.appointmentTypeId ?? null, truckNumber: insertSchedule.truckNumber, trailerNumber: insertSchedule.trailerNumber ?? null, driverName: insertSchedule.driverName ?? null, driverPhone: insertSchedule.driverPhone ?? null, driverEmail: insertSchedule.driverEmail ?? null, customerName: insertSchedule.customerName ?? null, carrierName: insertSchedule.carrierName ?? null, mcNumber: insertSchedule.mcNumber ?? null, bolNumber: insertSchedule.bolNumber ?? null, poNumber: insertSchedule.poNumber ?? null, palletCount: insertSchedule.palletCount ?? null, weight: insertSchedule.weight ?? null, appointmentMode: insertSchedule.appointmentMode ?? 'trailer', notes: insertSchedule.notes ?? null, customFormData: insertSchedule.customFormData ?? null, creatorEmail: insertSchedule.creatorEmail ?? null, actualStartTime: insertSchedule.actualStartTime ? new Date(insertSchedule.actualStartTime) : null, actualEndTime: insertSchedule.actualEndTime ? new Date(insertSchedule.actualEndTime) : null, confirmationCode: insertSchedule.confirmationCode ?? null };
     this.schedules.set(id, schedule);
+    
+    // 🔥 REAL-TIME: Emit appointment:created event after DB insert
+    try {
+      const { eventSystem } = await import('./services/enhanced-event-system');
+      
+      // Emit appointment:created event with id and tenantId
+      eventSystem.emit('appointment:created', {
+        schedule: schedule,
+        tenantId: schedule.tenantId || 1
+      });
+      
+      console.log(`[Storage] appointment:created event emitted for schedule ${schedule.id}`);
+    } catch (eventError) {
+      console.error('[Storage] Error emitting appointment:created event:', eventError);
+      // Don't fail the schedule creation if event fails
+    }
+    
     return schedule;
   }
   async updateSchedule(id: number, scheduleUpdate: Partial<Schedule>): Promise<Schedule | undefined> {
@@ -892,6 +909,23 @@ export class DatabaseStorage implements IStorage {
 
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
     const [newSchedule] = await db.insert(schedules).values(insertSchedule).returning();
+    
+    // 🔥 REAL-TIME: Emit appointment:created event after DB insert
+    try {
+      const { eventSystem } = await import('./services/enhanced-event-system');
+      
+      // Emit appointment:created event with id and tenantId
+      eventSystem.emit('appointment:created', {
+        schedule: newSchedule as any, // Use 'any' to avoid type issues
+        tenantId: insertSchedule.tenantId || 1
+      });
+      
+      console.log(`[Storage] appointment:created event emitted for schedule ${newSchedule.id}`);
+    } catch (eventError) {
+      console.error('[Storage] Error emitting appointment:created event:', eventError);
+      // Don't fail the schedule creation if event fails
+    }
+    
     return newSchedule;
   }
 
@@ -1590,7 +1624,22 @@ export class DatabaseStorage implements IStorage {
       const questions = await db.select().from(customQuestions)
         .where(eq(customQuestions.appointmentTypeId, appointmentTypeId))
         .orderBy(customQuestions.order);
-      return questions;
+      
+      // Map database field names back to frontend field names
+      return questions.map(q => ({
+        id: q.id,
+        label: q.label,
+        type: q.type,
+        isRequired: q.is_required || false,  // Map is_required back to isRequired for frontend
+        placeholder: q.placeholder,
+        options: q.options,
+        defaultValue: q.defaultValue,
+        order: q.order,
+        appointmentTypeId: q.appointmentTypeId,
+        applicableType: q.applicableType,
+        createdAt: q.createdAt,
+        lastModifiedAt: q.lastModifiedAt,
+      }));
     } catch (error) {
       console.error('Error fetching custom questions by appointment type:', error);
       return [];
@@ -1610,7 +1659,22 @@ export class DatabaseStorage implements IStorage {
       delete (dbData as any).isRequired;
       
       const [newQuestion] = await db.insert(customQuestions).values(dbData).returning();
-      return newQuestion;
+      
+      // Map database field names back to frontend field names
+      return {
+        id: newQuestion.id,
+        label: newQuestion.label,
+        type: newQuestion.type,
+        isRequired: newQuestion.is_required || false,  // Map is_required back to isRequired for frontend
+        placeholder: newQuestion.placeholder,
+        options: newQuestion.options,
+        defaultValue: newQuestion.defaultValue,
+        order: newQuestion.order,
+        appointmentTypeId: newQuestion.appointmentTypeId,
+        applicableType: newQuestion.applicableType,
+        createdAt: newQuestion.createdAt,
+        lastModifiedAt: newQuestion.lastModifiedAt,
+      };
     } catch (error) {
       console.error('Error creating custom question:', error);
       throw error;
@@ -1636,7 +1700,25 @@ export class DatabaseStorage implements IStorage {
         .where(eq(customQuestions.id, id))
         .returning();
       
-      return updated;
+      if (updated) {
+        // Map database field names back to frontend field names
+        return {
+          id: updated.id,
+          label: updated.label,
+          type: updated.type,
+          isRequired: updated.is_required || false,  // Map is_required back to isRequired for frontend
+          placeholder: updated.placeholder,
+          options: updated.options,
+          defaultValue: updated.defaultValue,
+          order: updated.order,
+          appointmentTypeId: updated.appointmentTypeId,
+          applicableType: updated.applicableType,
+          createdAt: updated.createdAt,
+          lastModifiedAt: updated.lastModifiedAt,
+        };
+      }
+      
+      return undefined;
     } catch (error) {
       console.error('Error updating custom question:', error);
       return undefined;

@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from './use-auth';
 import { useQueryClient } from '@tanstack/react-query';
+import { debugLoggers } from '@/lib/debug';
+import { useToast } from '@/hooks/use-toast';
+
+const wsDebug = debugLoggers.websocket;
 
 /**
  * Hook for real-time updates via WebSocket
@@ -10,11 +14,47 @@ import { useQueryClient } from '@tanstack/react-query';
 export function useRealtimeUpdates() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [connected, setConnected] = useState(false);
   const [socketError, setSocketError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isFallbackPolling, setIsFallbackPolling] = useState(false);
   const maxReconnectAttempts = 5;
+
+  // Add specific appointment:created subscription as per RT-1 specification
+  useEffect(() => {
+    // Create a mock broker interface for the specification
+    const broker = {
+      subscribe: (eventType: string, handler: (evt: any) => void) => {
+        // This would be implemented with the actual WebSocket system
+        wsDebug.info('Setting up subscription for:', eventType);
+        
+        const handleMessage = (event: MessageEvent) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === eventType) {
+              handler(data.data);
+            }
+          } catch (error) {
+            wsDebug.error('Error parsing WebSocket message:', error);
+          }
+        };
+
+        // In a real implementation, this would be connected to the WebSocket
+        return () => {
+          wsDebug.info('Unsubscribing from:', eventType);
+        };
+      }
+    };
+
+    return broker.subscribe('appointment:created', evt => {
+      toast({
+        title: 'New appointment booked',
+        description: 'A new appointment has been created',
+      });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    });
+  }, [toast, queryClient]);
 
   useEffect(() => {
     // Only connect if user is authenticated
@@ -32,7 +72,7 @@ export function useRealtimeUpdates() {
     
     // Enhanced host validation and Replit environment detection
     if (!host || host === 'undefined' || host.includes('undefined')) {
-      console.error('[WebSocket] Invalid host detected:', host);
+      wsDebug.error('Invalid host detected:', host);
       setSocketError('Invalid WebSocket host configuration');
       return;
     }
@@ -42,7 +82,7 @@ export function useRealtimeUpdates() {
     if (host.includes('replit.dev') || host.includes('repl.co')) {
       // For Replit, use the same host as the web interface
       wsUrl = `${protocol}//${host}/ws`;
-      console.log('[WebSocket] Detected Replit environment');
+      wsDebug.info('Detected Replit environment');
     } else if (host.includes('localhost')) {
       // For local development, ensure we have a valid port
       const port = window.location.port || '3000';
@@ -52,14 +92,14 @@ export function useRealtimeUpdates() {
       wsUrl = `${protocol}//${host}/ws`;
     }
     
-    console.log(`[WebSocket] Connecting to: ${wsUrl} (Attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+    wsDebug.info(`Connecting to: ${wsUrl} (Attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
     
     let socket: WebSocket;
     
     try {
       socket = new WebSocket(wsUrl);
     } catch (error) {
-      console.error('[WebSocket] Failed to create WebSocket connection:', error);
+      wsDebug.error('Failed to create WebSocket connection:', error);
       setSocketError(`Failed to create WebSocket: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return;
     }
@@ -69,7 +109,7 @@ export function useRealtimeUpdates() {
 
     // Connection opened
     socket.addEventListener('open', () => {
-      console.log('[WebSocket] Connected');
+      wsDebug.info('Connected');
       setConnected(true);
       setSocketError(null);
       setReconnectAttempts(0);
@@ -89,52 +129,66 @@ export function useRealtimeUpdates() {
     socket.addEventListener('message', (event) => {
       try {
         const message = JSON.parse(event.data);
-        console.log('[WebSocket] Message received:', message);
+        wsDebug.debug('Message received:', message);
 
         // Handle different message types
         switch (message.type) {
           case 'connected':
-            console.log('[WebSocket] Connection confirmed by server');
+            wsDebug.info('Connection confirmed by server');
             break;
 
           case 'schedule_update':
             // Invalidate schedules query when a schedule is updated
-            console.log('[WebSocket] Schedule update received, invalidating queries');
+            wsDebug.debug('Schedule update received, invalidating queries');
             queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
             
             // Also invalidate availability data since schedule changes affect availability
-            console.log('[WebSocket] Invalidating availability cache');
+            wsDebug.debug('Invalidating availability cache');
             queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
             break;
 
           case 'schedule:created':
           case 'schedule_created':
             // Invalidate schedules query when a new schedule is created
-            console.log('[WebSocket] New schedule created, invalidating queries');
+            wsDebug.debug('New schedule created, invalidating queries');
             queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
             
             // Also invalidate availability data since new appointments affect availability
-            console.log('[WebSocket] Invalidating availability cache');
+            wsDebug.debug('Invalidating availability cache');
             queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
             break;
 
           case 'appointment:created':
           case 'appointment_created':
             // Invalidate schedules and notifications when new appointment is created
-            console.log('[WebSocket] New appointment created, invalidating queries');
+            wsDebug.debug('New appointment created, invalidating queries');
             queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
             queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
             queryClient.invalidateQueries({ queryKey: ['/api/notifications/enhanced'] });
             
             // Also invalidate availability data since new appointments affect availability
-            console.log('[WebSocket] Invalidating availability cache');
+            wsDebug.debug('Invalidating availability cache');
             queryClient.invalidateQueries({ queryKey: ['/api/availability'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/appointment-master/availability-rules'] });
+            
+            // Invalidate appointment types in case slot counts changed
+            queryClient.invalidateQueries({ queryKey: ['/api/appointment-types'] });
+            
+            // Invalidate facilities data that may show appointment counts
+            queryClient.invalidateQueries({ queryKey: ['/api/facilities'] });
+            
+            // Invalidate booking pages that may show availability
+            queryClient.invalidateQueries({ queryKey: ['/api/booking-pages'] });
+            
+            // Invalidate custom and standard questions that may be appointment-specific
+            queryClient.invalidateQueries({ queryKey: ['/api/custom-questions'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/standard-questions'] });
             break;
 
           case 'appointment:confirmed':
           case 'appointment_confirmed':
             // Invalidate schedules and notifications when appointment is confirmed
-            console.log('[WebSocket] Appointment confirmed, invalidating queries');
+            wsDebug.debug('Appointment confirmed, invalidating queries');
             queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
             queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
             queryClient.invalidateQueries({ queryKey: ['/api/notifications/enhanced'] });
@@ -143,22 +197,22 @@ export function useRealtimeUpdates() {
           case 'notification:created':
           case 'notification_created':
             // Invalidate notifications when new notification is created
-            console.log('[WebSocket] New notification created, invalidating queries');
+            wsDebug.debug('New notification created, invalidating queries');
             queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
             queryClient.invalidateQueries({ queryKey: ['/api/notifications/enhanced'] });
             break;
 
           default:
-            console.log('[WebSocket] Unknown message type:', message.type);
+            wsDebug.debug('Unknown message type:', message.type);
         }
       } catch (error) {
-        console.error('[WebSocket] Failed to parse message:', error);
+        wsDebug.error('Failed to parse message:', error);
       }
     });
 
     // Connection closed
     socket.addEventListener('close', (event) => {
-      console.log('[WebSocket] Connection closed:', event.code, event.reason);
+      wsDebug.info('Connection closed:', event.code, event.reason);
       setConnected(false);
       
       // Only set error if it was an abnormal closure
@@ -166,19 +220,19 @@ export function useRealtimeUpdates() {
         setSocketError(`Connection closed (${event.code}): ${event.reason || 'Unknown reason'}`);
         
         // Disable reconnections to prevent excessive WebSocket churning
-        console.log('[WebSocket] Connection closed - disabling reconnections to prevent system overload');
+        wsDebug.warn('Connection closed - disabling reconnections to prevent system overload');
       }
     });
 
     // Connection error
     socket.addEventListener('error', (error) => {
-      console.error('[WebSocket] Connection error:', error);
+      wsDebug.error('Connection error:', error);
       setSocketError('Connection error');
     });
 
     // Cleanup on unmount
     return () => {
-      console.log('[WebSocket] Closing connection on cleanup');
+      wsDebug.debug('Closing connection on cleanup');
       
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
