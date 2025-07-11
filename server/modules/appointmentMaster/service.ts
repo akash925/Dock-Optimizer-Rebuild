@@ -1,7 +1,8 @@
-import { getStorage } from '../../storage';
+import { getStorage, IStorage } from '../../storage';
+import { CustomQuestion } from '../../../shared/schema';
 
 export class AppointmentMasterService {
-  private storage: any;
+  private storage: IStorage | null = null;
 
   constructor() {
     this.init();
@@ -18,14 +19,29 @@ export class AppointmentMasterService {
         this.storage = await getStorage();
       }
 
+      // Handle questions array safely - default to empty array if undefined/null
       const uiQs = payload.questions ?? [];
-      const dbQs = uiQs.map((q: any) => ({ ...q, is_required: q.isRequired }));
+      
+      // Fix DTO mapping: isRequired (frontend) -> is_required (database)
+      const dbQs = uiQs.map((q: any) => {
+        const { isRequired, ...rest } = q; // Remove camelCase version
+        return {
+          ...rest,
+          is_required: Boolean(isRequired), // Explicit boolean conversion
+          appointmentTypeId: typeId // Ensure appointment type ID is set
+        };
+      });
       
       // Replace questions for this appointment type
       await this.replaceQuestionsForType(typeId, dbQs);
       
-      // Return snake_case for FE re-map
-      return { questions: dbQs };
+      // Return camelCase for frontend compatibility
+      const frontendQs = dbQs.map((q: any) => ({
+        ...q,
+        isRequired: q.is_required, // Map back to camelCase for frontend
+      }));
+      
+      return { questions: frontendQs };
     } catch (error) {
       console.error('Error saving appointment type:', error);
       throw error;
@@ -34,6 +50,11 @@ export class AppointmentMasterService {
 
   private async replaceQuestionsForType(typeId: number, questions: any[]) {
     try {
+      // Ensure storage is initialized
+      if (!this.storage) {
+        this.storage = await getStorage();
+      }
+      
       // Get existing questions for this appointment type
       const existingQuestions = await this.storage.getCustomQuestionsByAppointmentType(typeId);
       
@@ -42,12 +63,17 @@ export class AppointmentMasterService {
         await this.storage.deleteCustomQuestion(existingQuestion.id);
       }
       
-      // Create new questions
-      const createdQuestions = [];
+      // Create new questions (only if questions array is not empty)
+      const createdQuestions: CustomQuestion[] = [];
       for (const question of questions) {
-        const newQuestion = await this.storage.createCustomQuestion({
+        const newQuestion: CustomQuestion = await this.storage.createCustomQuestion({
           ...question,
           appointmentTypeId: typeId,
+          // Ensure required fields have defaults
+          label: question.label || 'Untitled Question',
+          type: question.type || 'TEXT',
+          is_required: Boolean(question.is_required),
+          order: question.order || createdQuestions.length + 1,
         });
         createdQuestions.push(newQuestion);
       }
