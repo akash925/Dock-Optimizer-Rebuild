@@ -59,32 +59,59 @@ export function formatDateTime(date: Date | string | null | undefined): string {
 export function getDockStatus(dockId: number, schedules: any[]): "available" | "occupied" | "reserved" {
   const now = new Date();
   
-  // Check if any schedule is currently active for this dock
-  const activeSchedule = schedules.find(schedule => 
-    schedule.dockId === dockId && 
-    new Date(schedule.startTime) <= now && 
-    new Date(schedule.endTime) >= now &&
-    schedule.status !== "completed" &&
-    schedule.status !== "cancelled"
+  // Debug logging to identify field mapping issues
+  const dockSchedules = schedules.filter(schedule => {
+    // Handle both dockId and dock_id field naming
+    const scheduleDockId = schedule.dockId || schedule.dock_id;
+    return scheduleDockId === dockId;
+  });
+  
+  console.log(`[DockStatus] Checking dock ${dockId}, found ${dockSchedules.length} schedules:`, 
+    dockSchedules.map(s => ({
+      id: s.id,
+      dockId: s.dockId || s.dock_id,
+      start: s.startTime || s.start_time,
+      end: s.endTime || s.end_time,
+      status: s.status
+    }))
   );
   
+  // Check if any schedule is currently active for this dock
+  const activeSchedule = schedules.find(schedule => {
+    const scheduleDockId = schedule.dockId || schedule.dock_id;
+    const startTime = schedule.startTime || schedule.start_time;
+    const endTime = schedule.endTime || schedule.end_time;
+    
+    return scheduleDockId === dockId && 
+      new Date(startTime) <= now && 
+      new Date(endTime) >= now &&
+      schedule.status !== "completed" &&
+      schedule.status !== "cancelled";
+  });
+  
   if (activeSchedule) {
+    console.log(`[DockStatus] Dock ${dockId} is OCCUPIED by schedule:`, activeSchedule);
     return "occupied";
   }
   
   // Check if there's an upcoming schedule within the next hour
-  const upcomingSchedule = schedules.find(schedule => 
-    schedule.dockId === dockId && 
-    new Date(schedule.startTime) > now && 
-    new Date(schedule.startTime) <= new Date(now.getTime() + 60 * 60 * 1000) &&
-    schedule.status !== "completed" &&
-    schedule.status !== "cancelled"
-  );
+  const upcomingSchedule = schedules.find(schedule => {
+    const scheduleDockId = schedule.dockId || schedule.dock_id;
+    const startTime = schedule.startTime || schedule.start_time;
+    
+    return scheduleDockId === dockId && 
+      new Date(startTime) > now && 
+      new Date(startTime) <= new Date(now.getTime() + 60 * 60 * 1000) &&
+      schedule.status !== "completed" &&
+      schedule.status !== "cancelled";
+  });
   
   if (upcomingSchedule) {
+    console.log(`[DockStatus] Dock ${dockId} is RESERVED by upcoming schedule:`, upcomingSchedule);
     return "reserved";
   }
   
+  console.log(`[DockStatus] Dock ${dockId} is AVAILABLE`);
   return "available";
 }
 

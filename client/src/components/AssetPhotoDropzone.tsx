@@ -361,40 +361,17 @@ export default function AssetPhotoDropzone({
   return (
     <div className={`space-y-4 ${className}`}>
       {preview ? (
-        <Card className="relative">
-          <div className="aspect-video w-full max-w-md mx-auto p-4">
-            <Dialog>
-              <DialogTrigger asChild>
-                <img
-                  src={preview}
-                  alt="Asset preview"
-                  className="w-full h-full object-contain rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
-                  title="Click to view full size"
-                />
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl w-full h-[80vh]">
-                <DialogHeader>
-                  <DialogTitle>Asset Image</DialogTitle>
-                </DialogHeader>
-                <div className="flex-1 flex items-center justify-center p-4">
-                  <img
-                    src={preview}
-                    alt="Asset full size"
-                    className="max-w-full max-h-full object-contain rounded-lg"
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
-            
+        <Card className="relative overflow-visible">
+          <div className="relative">
             {!uploading && (
-              <div className="absolute top-2 right-2">
+              <div className="absolute top-2 right-2 z-10">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white">
+                    <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white shadow-md">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem onClick={removePhoto}>
                       <Edit className="h-4 w-4 mr-2" />
                       Replace Image
@@ -407,6 +384,31 @@ export default function AssetPhotoDropzone({
                 </DropdownMenu>
               </div>
             )}
+            
+            <div className="aspect-video w-full max-w-md mx-auto p-4">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <img
+                    src={preview}
+                    alt="Asset preview"
+                    className="w-full h-full object-contain rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                    title="Click to view full size"
+                  />
+                </DialogTrigger>
+                <DialogContent className="max-w-6xl w-full h-[90vh]">
+                  <DialogHeader>
+                    <DialogTitle>Asset Image - Full Size</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+                    <img
+                      src={preview}
+                      alt="Asset full size"
+                      className="max-w-full max-h-full object-contain rounded-lg"
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
           {selectedFile && !uploading && (
             <div className="p-4 space-y-2">

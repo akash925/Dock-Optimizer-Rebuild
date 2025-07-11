@@ -6,6 +6,8 @@ import { formatToTimeZone, parseFromTimeZone } from 'date-fns-timezone';
 import { generateQRCodeSVG as generateQRCode } from './endpoints/qr-codes';
 // Import shared timezone utilities
 import { getTimeZoneAbbreviation, getTimeZoneName } from '../shared/timezone-utils';
+// Import storage to get organization settings
+import { getStorage } from './storage';
 
 /**
  * Helper function to determine the correct booking page URL for a schedule
@@ -29,6 +31,39 @@ function getBookingPageUrl(schedule: EnhancedSchedule, host: string): string {
   }
   
   return `${host}/external/${slug}`;
+}
+
+/**
+ * Helper function to get organization email templates
+ */
+async function getOrganizationEmailTemplates(tenantId: number): Promise<any> {
+  try {
+    const storage = await getStorage();
+    const organization = await storage.getOrganization(tenantId);
+    
+    if (!organization) {
+      console.warn(`[EmailTemplate] Organization not found for tenant ${tenantId}, using defaults`);
+      return null;
+    }
+    
+    const settings = (organization.settings as any) || {};
+    return settings.emailTemplates || null;
+  } catch (error) {
+    console.error(`[EmailTemplate] Error fetching templates for tenant ${tenantId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Helper function to replace template variables in text
+ */
+function replaceTemplateVariables(text: string, variables: Record<string, any>): string {
+  let result = text;
+  for (const [key, value] of Object.entries(variables)) {
+    const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    result = result.replace(regex, String(value || ''));
+  }
+  return result;
 }
 
 // Enhanced schedule with UI-specific fields - extends the base Schedule type
@@ -1805,6 +1840,23 @@ export async function sendCheckoutEmail(
   checkoutNotes?: string,
   checkoutPhotoUrl?: string | null
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
+  // Get organization email templates
+  const facilityId = schedule.facilityId;
+  let tenantId: number | null = null;
+  
+  if (facilityId) {
+    try {
+      const storage = await getStorage();
+      tenantId = await storage.getFacilityTenantId(facilityId);
+    } catch (error) {
+      console.error('[CheckoutEmail] Error getting tenant ID:', error);
+    }
+  }
+  
+  // Fetch custom email templates
+  const emailTemplates = tenantId ? await getOrganizationEmailTemplates(tenantId) : null;
+  const checkoutTemplate = emailTemplates?.checkout || {};
+  
   // Date parsing utility function
   const parseDate = (dateInput: Date | string | null): Date => {
     if (!dateInput) {
@@ -1883,6 +1935,35 @@ export async function sendCheckoutEmail(
   // 🔥 FIX: Generate dynamic booking page link based on tenant
   const bookingPageUrl = getBookingPageUrl(schedule, host);
 
+  // Template variables for replacement
+  const templateVars = {
+    confirmationCode,
+    facilityName: schedule.facilityName || 'Unknown Facility',
+    customerName: schedule.customerName || 'Unknown Customer',
+    driverName: schedule.driverName || 'Unknown Driver',
+    appointmentDate: facilityStart.split(' ')[0], // Just the date part
+    appointmentTime: facilityTimeRange,
+    dockName: schedule.dockName || 'Not assigned',
+    carrierName: schedule.carrierName || 'Unknown Carrier',
+    truckNumber: schedule.truckNumber || 'Not provided'
+  };
+
+  // Get customized text with fallbacks
+  const customSubject = checkoutTemplate.subject || `Dock Appointment Completed #{{confirmationCode}}`;
+  const customHeaderText = checkoutTemplate.headerText || `Your dock appointment has been successfully completed. Thank you for using our facility, {{facilityName}}.`;
+  const customFooterText = checkoutTemplate.footerText || `We appreciate your business and look forward to serving you again.`;
+  
+  // Replace template variables
+  const emailSubject = replaceTemplateVariables(customSubject, templateVars);
+  const headerText = replaceTemplateVariables(customHeaderText, templateVars);
+  const footerText = replaceTemplateVariables(customFooterText, templateVars);
+  
+  console.log(`[CheckoutEmail] Using custom templates for tenant ${tenantId}:`, {
+    subject: emailSubject,
+    headerText: headerText.substring(0, 100) + '...',
+    footerText: footerText.substring(0, 100) + '...'
+  });
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #22c55e; color: white; padding: 20px; text-align: center;">
@@ -1891,7 +1972,7 @@ export async function sendCheckoutEmail(
       </div>
       
       <div style="padding: 20px;">
-        <p>Your dock appointment has been successfully completed. Thank you for using our facility!</p>
+        <p>${headerText}</p>
 
         <div style="background-color: #f0f9ff; border-left: 4px solid #22c55e; padding: 15px; margin: 20px 0;">
           <h2 style="margin-top: 0; color: #333;">Completed Appointment Details</h2>
@@ -1989,7 +2070,7 @@ export async function sendCheckoutEmail(
           </p>
         </div>
         
-        <p>If you have any questions about this completed appointment, please contact the facility directly.</p>
+        <p>${footerText}</p>
       </div>
       
       <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666;">
@@ -2005,7 +2086,7 @@ export async function sendCheckoutEmail(
     APPOINTMENT COMPLETED
     Confirmation #: ${confirmationCode}
     
-    Your dock appointment has been successfully completed. Thank you for using our facility!
+    ${headerText}
     
     COMPLETED APPOINTMENT DETAILS
     ------------------
@@ -2030,14 +2111,12 @@ export async function sendCheckoutEmail(
     
     ✓ Appointment Successfully Completed
     
-    Thank you for choosing our facility. We appreciate your business and look forward to serving you again.
+    ${footerText}
     
     QUICK LINKS
     ------------------
     Book New Appointment: ${bookingPageUrl}
     Visit Dock Optimizer: ${dockOptimizerUrl}
-    
-    If you have any questions about this completed appointment, please contact the facility directly.
     
     This is an automated message from Dock Optimizer. Please do not reply to this email.
     Visit dockoptimizer.com for more information about our dock management solutions.
@@ -2046,7 +2125,7 @@ export async function sendCheckoutEmail(
   // Create email without calendar attachment (appointment is completed)
   return sendEmail({
     to,
-    subject: `Appointment Completed #${confirmationCode}`,
+    subject: emailSubject,
     html,
     text
   });
