@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
-import './calendar-master.css'; // NEW: Single consolidated CSS file
+import './responsive-calendar.css'; // NEW: Responsive CSS that fixes label overflow
 import { DateSelectArg, EventClickArg, EventInput, EventHoveringArg } from '@fullcalendar/core';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
@@ -20,27 +20,16 @@ import {
 import { Label } from '@/components/ui/label';
 import { Schedule } from '@shared/schema';
 import { 
+  timezoneService,
   getUserTimeZone, 
   getTimeZoneAbbreviation, 
   formatForDualTimeZoneDisplay,
-  formatTimeRangeForDualZones 
-} from '@/lib/timezone-utils';
+  getCommonTimezones 
+} from '@shared/timezone-service';
 import { useQuery } from '@tanstack/react-query';
 
-// List of common timezones that we know are supported by FullCalendar
-const COMMON_TIMEZONES = [
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'America/Phoenix',
-  'UTC',
-  'Europe/London',
-  'Europe/Paris',
-  'Europe/Berlin',
-  'Asia/Tokyo',
-  'Australia/Sydney'
-];
+// Get common timezones from the centralized timezone service
+const COMMON_TIMEZONES = getCommonTimezones().map(tz => tz.value);
 
 interface FullCalendarViewProps {
   schedules: Schedule[];

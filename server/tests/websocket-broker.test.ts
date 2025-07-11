@@ -38,7 +38,47 @@ describe('WebSocket Broker - Real-time Appointment Notifications', () => {
   let mockQueueWebSocketNotification: any;
   let mockCreateAndQueueNotification: any;
 
-  beforeEach(() => {
+  // Helper function to create base EnhancedSchedule object
+  const createMockSchedule = (overrides: Partial<EnhancedSchedule> = {}): EnhancedSchedule => ({
+    id: 123,
+    customerName: 'Test Customer',
+    truckNumber: 'TR-001',
+    startTime: new Date('2024-01-15T10:00:00Z'),
+    endTime: new Date('2024-01-15T11:00:00Z'),
+    status: 'scheduled',
+    type: 'inbound',
+    facilityId: 1,
+    appointmentTypeId: 1,
+    createdBy: 1,
+    createdAt: new Date(),
+    facilityName: 'Test Facility',
+    appointmentTypeName: 'Standard Appointment',
+    timezone: 'America/New_York',
+    confirmationCode: 'ABC123',
+    // Required fields for EnhancedSchedule
+    dockId: null,
+    carrierId: null,
+    trailerNumber: null,
+    driverName: null,
+    driverPhone: null,
+    driverEmail: null,
+    carrierName: null,
+    mcNumber: null,
+    bolNumber: null,
+    poNumber: null,
+    palletCount: null,
+    weight: null,
+    appointmentMode: null,
+    actualStartTime: null,
+    actualEndTime: null,
+    notes: null,
+    customFormData: null,
+    lastModifiedAt: null,
+    lastModifiedBy: null,
+    ...overrides,
+  });
+
+  beforeEach(async () => {
     // Get the mocked functions
     mockBroadcastToTenant = vi.mocked(await import('../websocket')).broadcastToTenant;
     mockQueueWebSocketNotification = vi.mocked(await import('../services/notification-queue')).queueWebSocketNotification;
@@ -55,24 +95,7 @@ describe('WebSocket Broker - Real-time Appointment Notifications', () => {
 
   describe('appointment:created event broadcasting', () => {
     it('should emit appointment:created event with correct payload', async () => {
-      const mockSchedule: EnhancedSchedule = {
-        id: 123,
-        customerName: 'Test Customer',
-        truckNumber: 'TR-001',
-        startTime: new Date('2024-01-15T10:00:00Z'),
-        endTime: new Date('2024-01-15T11:00:00Z'),
-        status: 'scheduled',
-        type: 'inbound',
-        facilityId: 1,
-        appointmentTypeId: 1,
-        createdBy: 1,
-        createdAt: new Date(),
-        facilityName: 'Test Facility',
-        appointmentTypeName: 'Standard Appointment',
-        timezone: 'America/New_York',
-        confirmationCode: 'ABC123',
-        tenantId: 1,
-      };
+      const mockSchedule = createMockSchedule();
 
       const tenantId = 1;
       let eventData: any = null;
@@ -96,24 +119,14 @@ describe('WebSocket Broker - Real-time Appointment Notifications', () => {
     });
 
     it('should queue WebSocket notification for appointment:created event', async () => {
-      const mockSchedule: EnhancedSchedule = {
+      const mockSchedule = createMockSchedule({
         id: 124,
         customerName: 'Another Customer',
         truckNumber: 'TR-002',
         startTime: new Date('2024-01-15T14:00:00Z'),
         endTime: new Date('2024-01-15T15:00:00Z'),
-        status: 'scheduled',
-        type: 'inbound',
-        facilityId: 1,
-        appointmentTypeId: 1,
-        createdBy: 1,
-        createdAt: new Date(),
-        facilityName: 'Test Facility',
-        appointmentTypeName: 'Standard Appointment',
-        timezone: 'America/New_York',
         confirmationCode: 'XYZ789',
-        tenantId: 2,
-      };
+      });
 
       const tenantId = 2;
 

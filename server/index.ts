@@ -231,8 +231,9 @@ app.use((req, res, next) => {
   // Create Appointment Type API
   app.post('/api/appointment-types', async (req: any, res) => {
     try {
-      // Import storage dynamically to avoid circular dependencies
+      // Import storage and service dynamically to avoid circular dependencies
       const { getStorage } = await import('./storage');
+      const { appointmentMasterService } = await import('./modules/appointmentMaster/service');
       const storage = await getStorage();
 
       // Require authentication
@@ -258,6 +259,17 @@ app.use((req, res, next) => {
       // Create the appointment type
       const createdAppointmentType = await storage.createAppointmentType(appointmentTypeData);
 
+      // If there are questions, use the appointment master service to properly save them with correct field mapping
+      if (appointmentTypeData.questions && appointmentTypeData.questions.length > 0) {
+        console.log(`[AppointmentTypesAPI] Processing ${appointmentTypeData.questions.length} questions with proper field mapping`);
+        try {
+          await appointmentMasterService.saveAppointmentType(createdAppointmentType.id, appointmentTypeData);
+        } catch (questionError) {
+          console.error('Error saving questions for appointment type:', questionError);
+          // Don't fail the entire request if questions fail to save
+        }
+      }
+
       console.log(`[AppointmentTypesAPI] Successfully created appointment type: ${createdAppointmentType.name} (ID: ${createdAppointmentType.id})`);
       res.status(201).json(createdAppointmentType);
       
@@ -271,6 +283,7 @@ app.use((req, res, next) => {
   app.put('/api/appointment-types/:id', async (req: any, res) => {
     try {
       const { getStorage } = await import('./storage');
+      const { appointmentMasterService } = await import('./modules/appointmentMaster/service');
       const storage = await getStorage();
 
       // Authentication required
@@ -301,9 +314,21 @@ app.use((req, res, next) => {
         questions: req.body.questions || []
       };
 
+      // Update the appointment type
       const updated = await storage.updateAppointmentType(id, updateData);
       if (!updated) {
         return res.status(500).json({ error: 'Failed to update appointment type' });
+      }
+
+      // Use the appointment master service to properly save questions with correct field mapping
+      if (updateData.questions) {
+        console.log(`[AppointmentTypesAPI] Processing ${updateData.questions.length} questions with proper field mapping`);
+        try {
+          await appointmentMasterService.saveAppointmentType(id, updateData);
+        } catch (questionError) {
+          console.error('Error saving questions for appointment type:', questionError);
+          // Don't fail the entire request if questions fail to save
+        }
       }
 
       return res.json(updated);

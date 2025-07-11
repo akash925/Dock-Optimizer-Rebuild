@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from './use-auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { debugLoggers } from '@/lib/debug';
@@ -20,6 +20,33 @@ export function useRealtimeUpdates() {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isFallbackPolling, setIsFallbackPolling] = useState(false);
   const maxReconnectAttempts = 5;
+
+  // Mutex for preventing redundant notifications (2s window)
+  const notificationMutex = useRef<Map<string, number>>(new Map());
+  const MUTEX_WINDOW_MS = 2000; // 2 seconds
+
+  const checkMutex = (appointmentId: string | number, eventType: string): boolean => {
+    const key = `${eventType}:${appointmentId}`;
+    const now = Date.now();
+    const lastEmission = notificationMutex.current.get(key);
+    
+    if (lastEmission && (now - lastEmission) < MUTEX_WINDOW_MS) {
+      wsDebug.debug(`Mutex blocked duplicate ${eventType} for appointment ${appointmentId}`);
+      return false; // Block duplicate
+    }
+    
+    // Update mutex timestamp
+    notificationMutex.current.set(key, now);
+    
+    // Clean up old entries (older than 5 seconds)
+    for (const [mutexKey, timestamp] of Array.from(notificationMutex.current.entries())) {
+      if (now - timestamp > 5000) {
+        notificationMutex.current.delete(mutexKey);
+      }
+    }
+    
+    return true; // Allow notification
+  };
 
   // Add specific appointment:created subscription as per RT-1 specification
   useEffect(() => {
@@ -48,6 +75,13 @@ export function useRealtimeUpdates() {
     };
 
     return broker.subscribe('appointment:created', evt => {
+      const appointmentId = evt?.schedule?.id || 'unknown';
+      
+      // Check mutex before showing notification
+      if (!checkMutex(appointmentId, 'appointment:created')) {
+        return;
+      }
+
       toast({
         title: 'New appointment booked',
         description: 'A new appointment has been created',
@@ -160,6 +194,16 @@ export function useRealtimeUpdates() {
 
           case 'appointment:created':
           case 'appointment_created':
+            // Extract appointment data for notification
+            const appointmentData = message.data || message.payload;
+            const appointmentId = appointmentData?.schedule?.id || 'unknown';
+            
+            // 🔔 RT-1: Mutex check to prevent redundant notifications
+            if (!checkMutex(appointmentId, 'appointment:created')) {
+              wsDebug.debug('Duplicate appointment:created notification blocked by mutex');
+              break;
+            }
+
             // Invalidate schedules and notifications when new appointment is created
             wsDebug.debug('New appointment created, invalidating queries');
             queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
@@ -184,27 +228,38 @@ export function useRealtimeUpdates() {
             queryClient.invalidateQueries({ queryKey: ['/api/custom-questions'] });
             queryClient.invalidateQueries({ queryKey: ['/api/standard-questions'] });
             
-            // 🔔 RT-1-2: Show toast notification for new appointments
-            const appointmentData = message.data || message.payload;
+            // 🔔 RT-1: Show toast notification for new appointments (optimized for <500ms display)
             const customerName = appointmentData?.schedule?.customerName || 'Unknown';
             const appointmentTime = appointmentData?.schedule?.startTime 
               ? new Date(appointmentData.schedule.startTime).toLocaleString()
               : 'Unknown time';
             
-            toast({
-              title: '🚛 New Appointment Created',
-              description: `${customerName} has booked an appointment for ${appointmentTime}`,
-              duration: 5000,
-            });
+            // Use setTimeout to ensure immediate UI update (<500ms requirement)
+            setTimeout(() => {
+              toast({
+                title: '🚛 New Appointment Created',
+                description: `${customerName} has booked an appointment for ${appointmentTime}`,
+                duration: 5000,
+              });
+            }, 0);
             
-            // 🔔 RT-1-2: Update bell badge notification count
+            // 🔔 RT-1: Update bell badge notification count
             // Note: The query invalidation above will trigger the notifications query to refetch,
             // which will update the bell badge count automatically
-            wsDebug.info('New appointment toast notification shown');
+            wsDebug.info(`New appointment toast notification shown for ${customerName} (ID: ${appointmentId})`);
             break;
 
           case 'appointment:confirmed':
           case 'appointment_confirmed':
+            const confirmedAppointmentData = message.data || message.payload;
+            const confirmedAppointmentId = confirmedAppointmentData?.schedule?.id || 'unknown';
+            
+            // Apply mutex for confirmation events too
+            if (!checkMutex(confirmedAppointmentId, 'appointment:confirmed')) {
+              wsDebug.debug('Duplicate appointment:confirmed notification blocked by mutex');
+              break;
+            }
+
             // Invalidate schedules and notifications when appointment is confirmed
             wsDebug.debug('Appointment confirmed, invalidating queries');
             queryClient.invalidateQueries({ queryKey: ['/api/schedules'] });
@@ -259,6 +314,9 @@ export function useRealtimeUpdates() {
       if (pollingInterval) {
         clearInterval(pollingInterval);
       }
+      
+      // Clear mutex on cleanup
+      notificationMutex.current.clear();
       
       socket.close();
     };
