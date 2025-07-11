@@ -15,6 +15,8 @@ export {
   getTimeZoneName,
   formatInFacilityTimeZone,
   formatForDualTimeZoneDisplay,
+  formatInUserTimeZone,
+  formatDateRangeInTimeZone,
   convertAppointmentTimeToUTC,
   parseTimeInTimezone,
   getCommonTimezones,

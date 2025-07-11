@@ -278,6 +278,58 @@ export class TimezoneService {
   }
 
   /**
+   * Format date in user's timezone
+   */
+  public formatInUserTimeZone(date: Date, formatStr: string): string {
+    if (!date || isNaN(date.getTime())) {
+      return '—';
+    }
+    
+    try {
+      return formatInTimeZone(date, this.userTimezone, formatStr);
+    } catch (error) {
+      console.error('Error formatting date in user timezone:', error);
+      return '—';
+    }
+  }
+
+  /**
+   * Format date range in timezone
+   */
+  public formatDateRangeInTimeZone(
+    startDate: Date, 
+    endDate: Date, 
+    timezone: string, 
+    dateFormat: string, 
+    timeFormat: string
+  ): string {
+    if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return '—';
+    }
+    
+    try {
+      const startFormatted = formatInTimeZone(startDate, timezone, `${dateFormat} ${timeFormat}`);
+      const endFormatted = formatInTimeZone(endDate, timezone, timeFormat);
+      
+      // If same date, show date once: "Dec 25, 2024 9:00 AM - 5:00 PM"
+      const startDateOnly = formatInTimeZone(startDate, timezone, dateFormat);
+      const endDateOnly = formatInTimeZone(endDate, timezone, dateFormat);
+      
+      if (startDateOnly === endDateOnly) {
+        const startTimeOnly = formatInTimeZone(startDate, timezone, timeFormat);
+        const endTimeOnly = formatInTimeZone(endDate, timezone, timeFormat);
+        return `${startDateOnly} ${startTimeOnly} - ${endTimeOnly}`;
+      } else {
+        // Different dates: "Dec 25, 2024 9:00 AM - Dec 26, 2024 5:00 PM"
+        return `${startFormatted} - ${endFormatted}`;
+      }
+    } catch (error) {
+      console.error('Error formatting date range:', error);
+      return '—';
+    }
+  }
+
+  /**
    * Format for email notifications
    */
   public formatForEmail(date: Date | string, timezone: string): string {
@@ -323,7 +375,24 @@ export const getCurrentTimeInTimeZone = (timezone?: string) =>
 // Server-side functions
 export const formatWithTZ = (iso: string, tz: string, fmt: string) => 
   timezoneService.formatWithLuxon(iso, tz, fmt);
-export const formatForEmail = (date: Date | string, timezone: string) => 
-  timezoneService.formatForEmail(date, timezone);
-export const formatForCalendar = (date: Date | string, timezone: string) => 
-  timezoneService.formatForCalendar(date, timezone); 
+
+export const formatInUserTimeZone = (date: Date, formatStr: string) =>
+  timezoneService.formatInUserTimeZone(date, formatStr);
+
+export const formatDateRangeInTimeZone = (
+  startDate: Date, 
+  endDate: Date, 
+  timezone: string, 
+  dateFormat: string, 
+  timeFormat: string
+) => timezoneService.formatDateRangeInTimeZone(startDate, endDate, timezone, dateFormat, timeFormat);
+
+export const formatForEmail = (date: Date | string, timezone: string) => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return timezoneService.formatWithLuxon(dateObj.toISOString(), timezone, 'MMMM d, yyyy \'at\' h:mm a ZZZZ');
+};
+
+export const formatForCalendar = (date: Date | string, timezone: string) => {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return timezoneService.formatWithLuxon(dateObj.toISOString(), timezone, 'MMM d, h:mm a');
+}; 
