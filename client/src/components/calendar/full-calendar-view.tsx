@@ -175,25 +175,70 @@ export default function FullCalendarView({
     
     // Define a consistent color palette for facilities
     const facilityColors = [
-      { bg: '#3b82f6', border: '#2563eb' }, // Blue
-      { bg: '#10b981', border: '#059669' }, // Emerald
-      { bg: '#f59e0b', border: '#d97706' }, // Amber
-      { bg: '#ef4444', border: '#dc2626' }, // Red
-      { bg: '#8b5cf6', border: '#7c3aed' }, // Violet
-      { bg: '#06b6d4', border: '#0891b2' }, // Cyan
-      { bg: '#84cc16', border: '#65a30d' }, // Lime
-      { bg: '#f97316', border: '#ea580c' }, // Orange
-      { bg: '#ec4899', border: '#db2777' }, // Pink
-      { bg: '#14b8a6', border: '#0d9488' }, // Teal
-      { bg: '#6366f1', border: '#4f46e5' }, // Indigo
-      { bg: '#a855f7', border: '#9333ea' }, // Purple
+      { backgroundColor: '#3b82f6', borderColor: '#2563eb' }, // Blue
+      { backgroundColor: '#10b981', borderColor: '#059669' }, // Emerald
+      { backgroundColor: '#f59e0b', borderColor: '#d97706' }, // Amber
+      { backgroundColor: '#ef4444', borderColor: '#dc2626' }, // Red
+      { backgroundColor: '#8b5cf6', borderColor: '#7c3aed' }, // Violet
+      { backgroundColor: '#06b6d4', borderColor: '#0891b2' }, // Cyan
+      { backgroundColor: '#84cc16', borderColor: '#65a30d' }, // Lime
+      { backgroundColor: '#f97316', borderColor: '#ea580c' }, // Orange
+      { backgroundColor: '#ec4899', borderColor: '#db2777' }, // Pink
+      { backgroundColor: '#6366f1', borderColor: '#4f46e5' }, // Indigo
+      { backgroundColor: '#14b8a6', borderColor: '#0d9488' }, // Teal
+      { backgroundColor: '#a855f7', borderColor: '#9333ea' }, // Purple
     ];
     
     // Use facility ID to consistently assign colors
     const colorIndex = facilityId % facilityColors.length;
     const color = facilityColors[colorIndex];
     
-    return { backgroundColor: color.bg, borderColor: color.border };
+    return { backgroundColor: color.backgroundColor, borderColor: color.borderColor };
+  };
+
+  // NEW: Alternative color assignment for better visual variety
+  const getVisualColor = (facilityId: number | null, customerName?: string | null, facilityName?: string): { backgroundColor: string, borderColor: string } => {
+    // Define an expanded color palette for better visual distinction
+    const colorPalette = [
+      { backgroundColor: '#3b82f6', borderColor: '#2563eb' }, // Blue
+      { backgroundColor: '#10b981', borderColor: '#059669' }, // Emerald  
+      { backgroundColor: '#f59e0b', borderColor: '#d97706' }, // Amber
+      { backgroundColor: '#ef4444', borderColor: '#dc2626' }, // Red
+      { backgroundColor: '#8b5cf6', borderColor: '#7c3aed' }, // Violet
+      { backgroundColor: '#06b6d4', borderColor: '#0891b2' }, // Cyan
+      { backgroundColor: '#84cc16', borderColor: '#65a30d' }, // Lime
+      { backgroundColor: '#f97316', borderColor: '#ea580c' }, // Orange
+      { backgroundColor: '#ec4899', borderColor: '#db2777' }, // Pink
+      { backgroundColor: '#6366f1', borderColor: '#4f46e5' }, // Indigo
+      { backgroundColor: '#14b8a6', borderColor: '#0d9488' }, // Teal
+      { backgroundColor: '#a855f7', borderColor: '#9333ea' }, // Purple
+      { backgroundColor: '#f59e0b', borderColor: '#d97706' }, // Amber variant
+      { backgroundColor: '#22c55e', borderColor: '#16a34a' }, // Green
+      { backgroundColor: '#3b82f6', borderColor: '#1d4ed8' }, // Blue variant
+      { backgroundColor: '#ef4444', borderColor: '#b91c1c' }, // Red variant
+    ];
+    
+    // Create a hash from customer name or facility name for consistent color assignment
+    let hashSource = '';
+    if (customerName) {
+      hashSource = customerName.toLowerCase();
+    } else if (facilityName) {
+      hashSource = facilityName.toLowerCase();
+    } else if (facilityId) {
+      hashSource = facilityId.toString();
+    }
+    
+    // Simple hash function for consistent color assignment
+    let hash = 0;
+    for (let i = 0; i < hashSource.length; i++) {
+      const char = hashSource.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Use absolute value and modulo to get color index
+    const colorIndex = Math.abs(hash) % colorPalette.length;
+    return colorPalette[colorIndex];
   };
 
   // Check if appointment needs urgent attention
@@ -282,12 +327,25 @@ export default function FullCalendarView({
       facilityTimezone = (window as any).facilityTimezones[extractedFacilityId] || null;
     }
 
-    // NEW: Get facility-based colors instead of status-based colors
-    const facilityColors = getFacilityColor(extractedFacilityId, extractedFacilityName);
+    // NEW: Get facility-based colors with customer name variety
+    const facilityColors = getVisualColor(extractedFacilityId, schedule.customerName, extractedFacilityName);
     let backgroundColor = facilityColors.backgroundColor;
     let borderColor = facilityColors.borderColor;
     
-    // Override facility colors for urgent attention or completed appointments
+    // Debug logging for facility color assignment (development only)
+    if (import.meta.env.MODE === 'development') {
+      console.log(`[Calendar] Facility color for appointment ${schedule.id}:`, {
+        extractedFacilityId,
+        extractedFacilityName,
+        customerName: schedule.customerName,
+        backgroundColor,
+        borderColor,
+        status: schedule.status
+      });
+    }
+    
+    // IMPROVED: Only override facility colors for specific critical status conditions
+    // Preserve facility colors for normal scheduled appointments
     if (attention.needsAttention) {
       if (attention.isUrgent) {
         backgroundColor = '#dc2626'; // Red for urgent
@@ -303,6 +361,7 @@ export default function FullCalendarView({
       backgroundColor = '#6b7280'; // Gray for cancelled
       borderColor = '#4b5563';
     }
+    // REMOVED: status === 'scheduled' override - let facility colors show for normal appointments
 
     // Date utilities - use effective timezone for display
     const localStartTime = new Date(schedule.startTime);
