@@ -20,6 +20,7 @@ import {
   updatePhotoKey,
   uploadAssetPhotoLocal,
   uploadCompressedPhoto,
+  getCompressedImage,
   // Test endpoints
   testS3Connectivity
 } from "./controllers";
@@ -58,6 +59,7 @@ companyAssetsRouter.post("/:id/photo/presign", isAuthenticated, getPresignAssetP
 companyAssetsRouter.put("/:id/photo", isAuthenticated, updatePhotoKey);
 companyAssetsRouter.post("/:id/photo/local", isAuthenticated, uploadAssetPhotoLocal);
 companyAssetsRouter.put("/:id/compressed-photo", isAuthenticated, uploadCompressedPhoto);
+companyAssetsRouter.get("/:id/image", isAuthenticated, getCompressedImage);
 
 // Test endpoints
 companyAssetsRouter.get("/test-s3", isAuthenticated, testS3Connectivity);

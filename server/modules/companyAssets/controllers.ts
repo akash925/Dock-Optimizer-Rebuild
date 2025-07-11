@@ -748,7 +748,7 @@ export const uploadCompressedPhoto = async (req: Request, res: Response) => {
       compressedImage,
       imageMetadata: imageMetadata || {},
       // Set photoUrl to indicate this asset has a compressed image
-      photoUrl: `compressed:${id}`
+      photoUrl: `/api/company-assets/${id}/image`
     });
 
     if (!updatedAsset) {
@@ -759,13 +759,69 @@ export const uploadCompressedPhoto = async (req: Request, res: Response) => {
 
     return res.json({ 
       success: true,
-      photoUrl: `compressed:${id}`,
+      photoUrl: `/api/company-assets/${id}/image`,
       message: 'Compressed image uploaded successfully',
       compressionRatio: imageMetadata?.compressionRatio || 0
     });
   } catch (error) {
     console.error('Error uploading compressed image:', error);
     return res.status(500).json({ error: 'Failed to upload compressed image' });
+  }
+};
+
+/**
+ * Serve compressed image from database
+ */
+export const getCompressedImage = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid company asset ID' });
+    }
+
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+
+    // Get the asset with compressed image
+    const asset = await companyAssetsService.getCompanyAssetById(id);
+    if (!asset) {
+      return res.status(404).json({ error: 'Company asset not found' });
+    }
+
+    // TENANT SAFETY: Ensure asset belongs to the user's tenant
+    if (asset.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+    }
+
+    // Check if asset has compressed image
+    if (!asset.compressedImage) {
+      return res.status(404).json({ error: 'No compressed image found for this asset' });
+    }
+
+    // Parse the base64 data URL
+    const matches = asset.compressedImage.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
+    if (!matches) {
+      return res.status(500).json({ error: 'Invalid image data format' });
+    }
+
+    const [, mimeType, base64Data] = matches;
+    const imageBuffer = Buffer.from(base64Data, 'base64');
+
+    // Set proper headers
+    res.setHeader('Content-Type', `image/${mimeType}`);
+    res.setHeader('Content-Length', imageBuffer.length);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    res.setHeader('ETag', `"${id}-${asset.updatedAt || asset.createdAt}"`);
+
+    // Send the image
+    res.send(imageBuffer);
+  } catch (error) {
+    console.error('Error serving compressed image:', error);
+    return res.status(500).json({ error: 'Failed to serve compressed image' });
   }
 };
 
