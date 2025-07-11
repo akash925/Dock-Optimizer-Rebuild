@@ -737,7 +737,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
           <>
             <div className="w-full rounded-md border">
               {/* Responsive table with horizontal scroll */}
-              <div className="w-full overflow-x-auto">
+              <div className="w-full overflow-x-auto relative">
                 <Table className="w-full border-collapse">
                   <TableHeader>
                     <TableRow>
@@ -766,7 +766,17 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => navigateToFullEditPage(asset)}
                     >
-                      <TableCell className="pl-4" onClick={(e) => e.stopPropagation()}>{getCategoryIcon(asset.category)}</TableCell>
+                      <TableCell className="pl-4" onClick={(e) => {
+                        e.stopPropagation();
+                        if (asset.photoUrl) {
+                          console.log('Image icon clicked for asset:', asset.name);
+                          openImageViewer(asset.photoUrl, asset.name);
+                        }
+                      }}>
+                        <div className="cursor-pointer hover:text-primary" title={asset.photoUrl ? "Click to view full image" : "No image available"}>
+                          {getCategoryIcon(asset.category)}
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{asset.name}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCategory(asset.category)}</TableCell>
                       <TableCell className="whitespace-nowrap">{asset.manufacturer || '-'}</TableCell>
@@ -810,11 +820,11 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" className="relative z-10">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="z-50 min-w-[200px]">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuGroup>
@@ -843,7 +853,10 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                                     <Eye className="w-4 h-4 mr-2" />
                                     View Full Image
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => openImageViewer(asset.photoUrl!, asset.name)}>
+                                  <DropdownMenuItem onClick={() => {
+                                    console.log('Fullscreen clicked for asset:', asset.name, asset.photoUrl);
+                                    openImageViewer(asset.photoUrl!, asset.name);
+                                  }}>
                                     <Maximize2 className="w-4 h-4 mr-2" />
                                     Full Screen View
                                   </DropdownMenuItem>
