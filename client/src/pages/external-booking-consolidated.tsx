@@ -482,7 +482,17 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   }}
                   disabledDays={(date) => {
                     const today = startOfDay(new Date());
-                    return date < today;
+                    if (date < today) return true;
+                    
+                    // Check if this date has availability
+                    const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+                    
+                    // Block Sundays (0) and Saturdays (6) by default since most facilities are closed
+                    if (dayOfWeek === 0 || dayOfWeek === 6) {
+                      return true;
+                    }
+                    
+                    return false;
                   }}
                   disablePastDates={true}
                 />
@@ -530,13 +540,39 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             <Form {...form}>
               <form 
                 onSubmit={form.handleSubmit((data) => handleSubmitBooking(data.customFields))}
-                className="space-y-4"
+                className="space-y-6"
               >
                 <StandardQuestionsFormFields
                   questions={standardQuestions || []}
                   form={form}
                   fieldNamePrefix="customFields"
                 />
+                
+                {/* BOL Upload Section */}
+                <div className="space-y-4">
+                  <div className="border-t pt-4">
+                    <h3 className="font-semibold mb-3 flex items-center">
+                      <Upload className="h-5 w-5 mr-2" />
+                      Bill of Lading Upload (Optional)
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Upload your Bill of Lading document to speed up the check-in process
+                    </p>
+                    <BOLUploadWizard
+                      bookingPageSlug={slug}
+                      onUploadSuccess={(result) => {
+                        console.log('BOL upload successful:', result);
+                        toast({
+                          title: "Success",
+                          description: "Bill of Lading uploaded successfully",
+                        });
+                      }}
+                      onExtractedDataChange={(data) => {
+                        console.log('BOL data extracted:', data);
+                      }}
+                    />
+                  </div>
+                </div>
                 
                 <div className="flex justify-between">
                   <Button type="button" variant="outline" onClick={() => setStep(2)}>

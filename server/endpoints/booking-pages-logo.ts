@@ -69,13 +69,9 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
         console.log(`[Booking Page Logo] Using default Dock Optimizer logo`);
       }
       
-      // Decode base64 and serve as image
-      const [mimeType, base64Data] = fallbackLogoPath.split(',');
-      const contentType = mimeType.split(':')[1].split(';')[0];
-      const buffer = Buffer.from(base64Data, 'base64');
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=86400');
-      return res.send(buffer);
+      // Return the logo as JSON with data URL
+      console.log(`[Booking Page Logo] Using organization-specific logo path for ${organization.name}`);
+      return res.json({ logo: fallbackLogoPath });
     } catch (error) {
       console.error('[Booking Page Logo] Error fetching logo by tenant ID:', error);
       return res.status(500).json({ message: 'Error fetching organization logo' });
