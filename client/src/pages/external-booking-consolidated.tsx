@@ -239,13 +239,13 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     }
   }, [confirmationParam, toast]);
 
-  // Fetch standard questions based on appointment type
+  // Fetch standard questions based on appointment type using public API
   const { data: standardQuestions, isLoading: loadingQuestions } = useQuery({
-    queryKey: [`/api/standard-questions/appointment-type/${bookingData.appointmentTypeId}`],
+    queryKey: [`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`],
     queryFn: async () => {
       if (!bookingData.appointmentTypeId) return [];
       
-      const res = await fetch(`/api/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
+      const res = await fetch(`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
       if (!res.ok) return [];
       
       const data = await res.json();

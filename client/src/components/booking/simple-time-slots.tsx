@@ -57,7 +57,7 @@ export function SimpleTimeSlots({
   return (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground text-center">
-        <p>Times shown in facility time zone (Pacific Time)</p>
+        <p>Times shown in facility time zone (Eastern Time)</p>
         <p>Your local time zone: {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">

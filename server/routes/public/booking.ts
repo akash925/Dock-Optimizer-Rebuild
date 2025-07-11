@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../../db";
 import { eq, inArray } from "drizzle-orm";
-import { bookingPages, facilities, appointmentTypes } from "@shared/schema";
+import { bookingPages, facilities, appointmentTypes, standardQuestions } from "@shared/schema";
 import { safeToString } from "@/lib/utils"; 
 
 const router = Router();
@@ -105,6 +105,46 @@ router.get("/booking-pages/slug/:slug", async (req, res) => {
     res.json(sanitized);
   } catch (err) {
     console.error("Error fetching booking page by slug:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/booking-pages/standard-questions/appointment-type/:appointmentTypeId
+router.get("/booking-pages/standard-questions/appointment-type/:appointmentTypeId", async (req, res) => {
+  const { appointmentTypeId } = req.params;
+  
+  try {
+    const appointmentTypeIdNum = parseInt(appointmentTypeId, 10);
+    
+    if (isNaN(appointmentTypeIdNum)) {
+      return res.status(400).json({ message: "Invalid appointment type ID" });
+    }
+    
+    // Query the standard questions for the appointment type using Drizzle
+    const questions = await db
+      .select()
+      .from(standardQuestions)
+      .where(eq(standardQuestions.appointmentTypeId, appointmentTypeIdNum))
+      .orderBy(standardQuestions.orderPosition, standardQuestions.id);
+    
+    // Process the results to ensure consistent format
+    const processedQuestions = questions.map((row: any) => ({
+      id: row.id,
+      label: row.label || '',
+      fieldKey: row.fieldKey || `field_${row.id}`,
+      fieldType: row.fieldType || 'TEXT',
+      required: row.required || false,
+      included: row.included || false,
+      orderPosition: row.orderPosition || 0,
+      appointmentTypeId: row.appointmentTypeId,
+      options: row.options || []
+    }));
+    
+    console.log(`Found ${processedQuestions.length} standard questions for appointment type ${appointmentTypeIdNum}`);
+    
+    res.json(processedQuestions);
+  } catch (err) {
+    console.error("Error fetching standard questions:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
