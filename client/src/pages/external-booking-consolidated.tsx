@@ -413,7 +413,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 <Label htmlFor="facility">Facility</Label>
                 <Select 
                   value={bookingData.facilityId?.toString()} 
-                  onValueChange={(value) => setBookingData(prev => ({ ...prev, facilityId: parseInt(value) }))}
+                  onValueChange={(value) => setBookingData(prev => ({ 
+                    ...prev, 
+                    facilityId: parseInt(value),
+                    appointmentTypeId: undefined // Reset appointment type when facility changes
+                  }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a facility" />
@@ -438,13 +442,41 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     <SelectValue placeholder="Select appointment type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {bookingPage.appointmentTypes?.map((type: any) => (
+                    {bookingPage.appointmentTypes?.filter((type: any) => 
+                      !bookingData.facilityId || type.facilityId === bookingData.facilityId
+                    ).map((type: any) => (
                       <SelectItem key={type.id} value={type.id.toString()}>
                         {type.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            
+            {/* BOL Upload Section - Added to Step 1 */}
+            <div className="space-y-4">
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-3 flex items-center">
+                  <Upload className="h-5 w-5 mr-2" />
+                  Bill of Lading Upload (Optional)
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Upload your Bill of Lading document to speed up the check-in process
+                </p>
+                <BOLUploadWizard
+                  bookingPageSlug={slug}
+                  onUploadSuccess={(result) => {
+                    console.log('BOL upload successful:', result);
+                    toast({
+                      title: "Success",
+                      description: "Bill of Lading uploaded successfully",
+                    });
+                  }}
+                  onExtractedDataChange={(data) => {
+                    console.log('BOL data extracted:', data);
+                  }}
+                />
               </div>
             </div>
             
@@ -548,31 +580,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   fieldNamePrefix="customFields"
                 />
                 
-                {/* BOL Upload Section */}
-                <div className="space-y-4">
-                  <div className="border-t pt-4">
-                    <h3 className="font-semibold mb-3 flex items-center">
-                      <Upload className="h-5 w-5 mr-2" />
-                      Bill of Lading Upload (Optional)
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Upload your Bill of Lading document to speed up the check-in process
-                    </p>
-                    <BOLUploadWizard
-                      bookingPageSlug={slug}
-                      onUploadSuccess={(result) => {
-                        console.log('BOL upload successful:', result);
-                        toast({
-                          title: "Success",
-                          description: "Bill of Lading uploaded successfully",
-                        });
-                      }}
-                      onExtractedDataChange={(data) => {
-                        console.log('BOL data extracted:', data);
-                      }}
-                    />
-                  </div>
-                </div>
+
                 
                 <div className="flex justify-between">
                   <Button type="button" variant="outline" onClick={() => setStep(2)}>

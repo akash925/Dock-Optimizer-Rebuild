@@ -30,25 +30,13 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       console.log(`[Booking Page Logo] Found organization '${organization.name}' for tenant ID: ${tenantIdNum}`);
       
       // Return the logo URL or data
-      const logoData = organization.logo ? organization.logo : null;
+      const logoData = organization.logoUrl ? organization.logoUrl : null;
       
       // First, check if we have actual logo data in the organization record
       if (logoData) {
         console.log(`[Booking Page Logo] Using logo from organization record for tenant ID ${tenantIdNum}`);
-        
-        // If it's a data URL, decode and serve it directly
-        if (logoData.startsWith('data:')) {
-          const [mimeType, base64Data] = logoData.split(',');
-          const contentType = mimeType.split(':')[1].split(';')[0];
-          const buffer = Buffer.from(base64Data, 'base64');
-          
-          res.setHeader('Content-Type', contentType);
-          res.setHeader('Cache-Control', 'public, max-age=86400');
-          return res.send(buffer);
-        }
-        
-        // If it's a URL, redirect to it
-        return res.redirect(logoData);
+        // Return JSON with the logo data URL
+        return res.json({ logo: logoData });
       }
       
       // For organizations without a logo in the database, use organization-specific logos
@@ -118,7 +106,7 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       console.log(`[Booking Page Logo] Found organization '${organization.name}' for booking page`);
       
       // Return the logo URL or data
-      const logoData = organization.logo ? organization.logo : null;
+      const logoData = organization.logoUrl ? organization.logoUrl : null;
       
       // First, check if we have actual logo data in the organization record
       if (logoData) {

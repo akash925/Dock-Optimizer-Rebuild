@@ -150,7 +150,7 @@ export default function LandingPage() {
                 alt="Dock Optimizer" 
                 className="h-12 w-auto"
               />
-              <span className="ml-3 text-2xl font-bold text-gray-900">Dock Optimizer</span>
+
             </div>
             <nav className="hidden md:flex space-x-8">
               <a href="#why-dock-optimizer" className="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors">Why Dock Optimizer</a>
