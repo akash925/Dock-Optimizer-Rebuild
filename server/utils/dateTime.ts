@@ -1,45 +1,11 @@
 import { DateTime } from 'luxon';
 
-/**
- * Format an ISO date string with proper timezone handling using Luxon
- * @param iso - ISO 8601 date string
- * @param tz - Timezone (e.g., 'America/New_York', 'UTC')
- * @param fmt - Luxon format string (e.g., 'yyyy-MM-dd HH:mm:ss', 'h:mm a')
- * @returns Formatted date string
- */
-export const formatWithTZ = (iso: string, tz: string, fmt: string): string => {
-  return DateTime.fromISO(iso, { zone: 'utc' }).setZone(tz).toFormat(fmt);
-};
-
-/**
- * Format a date for email display with timezone information
- * @param iso - ISO 8601 date string
- * @param tz - Timezone (e.g., 'America/New_York')
- * @returns Formatted string like "8:00 AM EDT / 12:00 UTC"
- */
-export const formatForEmail = (iso: string, tz: string): string => {
-  const dt = DateTime.fromISO(iso, { zone: 'utc' });
-  const local = dt.setZone(tz);
-  const utc = dt.setZone('utc');
-  
-  const localTime = local.toFormat('h:mm a');
-  const localZone = local.toFormat('ZZZZ'); // e.g., "EDT"
-  const utcTime = utc.toFormat('h:mm a');
-  
-  return `${localTime} ${localZone} / ${utcTime} UTC`;
-};
-
-/**
- * Format a date for calendar display
- * @param iso - ISO 8601 date string  
- * @param tz - Timezone
- * @returns Formatted string like "January 15, 2024 at 8:00 AM"
- */
-export const formatForCalendar = (iso: string, tz: string): string => {
-  return DateTime.fromISO(iso, { zone: 'utc' })
-    .setZone(tz)
-    .toFormat('MMMM d, yyyy \'at\' h:mm a');
-};
+// Re-export from centralized timezone service
+export { 
+  formatWithTZ, 
+  formatForEmail, 
+  formatForCalendar 
+} from '@shared/timezone-service';
 
 /**
  * Get the current time in a specific timezone
