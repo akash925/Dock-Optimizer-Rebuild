@@ -1112,9 +1112,43 @@ export class DatabaseStorage implements IStorage {
     return await query;
   }
   
-  async createAppointmentType(appointmentType: any) { return this.memStorage.createAppointmentType(appointmentType); }
-  async updateAppointmentType(id: number, data: any) { return this.memStorage.updateAppointmentType(id, data); }
-  async deleteAppointmentType(id: number) { return this.memStorage.deleteAppointmentType(id); }
+  async createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType> {
+    try {
+      console.log('DEBUG: [DatabaseStorage] createAppointmentType called with:', appointmentType);
+      const [newAppointmentType] = await db.insert(appointmentTypes).values(appointmentType).returning();
+      console.log('DEBUG: [DatabaseStorage] createAppointmentType created:', newAppointmentType);
+      return newAppointmentType;
+    } catch (error) {
+      console.error('Error creating appointment type:', error);
+      throw error;
+    }
+  }
+  
+  async updateAppointmentType(id: number, data: Partial<AppointmentType>): Promise<AppointmentType | undefined> {
+    try {
+      console.log('DEBUG: [DatabaseStorage] updateAppointmentType called with id:', id, 'data:', data);
+      const [updatedAppointmentType] = await db
+        .update(appointmentTypes)
+        .set({ ...data, lastModifiedAt: new Date() })
+        .where(eq(appointmentTypes.id, id))
+        .returning();
+      console.log('DEBUG: [DatabaseStorage] updateAppointmentType result:', updatedAppointmentType);
+      return updatedAppointmentType;
+    } catch (error) {
+      console.error('Error updating appointment type:', error);
+      throw error;
+    }
+  }
+  
+  async deleteAppointmentType(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(appointmentTypes).where(eq(appointmentTypes.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting appointment type:', error);
+      return false;
+    }
+  }
 
   async getSystemSettings() { return this.memStorage.getSystemSettings(); }
   async updateSystemSettings(settings: any) { return this.memStorage.updateSystemSettings(settings); }
