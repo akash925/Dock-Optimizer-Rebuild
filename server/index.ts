@@ -410,6 +410,274 @@ app.use((req, res, next) => {
     }
   });
 
+  // NOTIFICATIONS API - Required for notification bell functionality
+  app.get('/api/notifications/enhanced', async (req: any, res) => {
+    try {
+      const { getStorage } = await import('./storage');
+      const storage = await getStorage();
+
+      // Authentication required
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Get current user ID
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(403).json({ error: 'User context required' });
+      }
+
+      console.log(`[NotificationsAPI] Fetching notifications for user ${userId}`);
+
+      // Get notifications for the current user
+      const userNotifications = await storage.getNotificationsByUser(userId);
+      
+      // Transform notifications to enhanced format expected by the client
+      const enhancedNotifications = userNotifications.map(notification => {
+        // Determine urgency based on notification type
+        let urgency = 'normal';
+        if (notification.type === 'urgent' || notification.type === 'delay') {
+          urgency = 'urgent';
+        } else if (notification.type === 'critical') {
+          urgency = 'critical';
+        } else if (notification.type === 'warning') {
+          urgency = 'warning';
+        } else if (notification.type === 'info') {
+          urgency = 'info';
+        }
+
+        return {
+          id: notification.id,
+          userId: notification.userId,
+          title: notification.title,
+          message: notification.message,
+          isRead: notification.isRead,
+          type: notification.type,
+          urgency: urgency,
+          relatedScheduleId: notification.relatedScheduleId,
+          createdAt: notification.createdAt,
+          metadata: {
+            // Add any additional metadata that might be useful
+            actionRequired: urgency === 'urgent' || urgency === 'critical',
+            category: notification.type
+          }
+        };
+      });
+
+      console.log(`[NotificationsAPI] Returning ${enhancedNotifications.length} notifications for user ${userId}`);
+      res.json(enhancedNotifications);
+      
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ error: 'Failed to fetch notifications' });
+    }
+  });
+
+  // Mark notifications as read
+  app.put('/api/notifications/mark-read', async (req: any, res) => {
+    try {
+      const { getStorage } = await import('./storage');
+      const storage = await getStorage();
+
+      // Authentication required
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(403).json({ error: 'User context required' });
+      }
+
+      const { notificationIds } = req.body;
+      if (!notificationIds || !Array.isArray(notificationIds)) {
+        return res.status(400).json({ error: 'notificationIds array is required' });
+      }
+
+      console.log(`[NotificationsAPI] Marking ${notificationIds.length} notifications as read for user ${userId}`);
+
+      // Mark each notification as read (with security check)
+      const results = [];
+      for (const notificationId of notificationIds) {
+        try {
+          const notification = await storage.getNotification(notificationId);
+          if (notification && notification.userId === userId) {
+            const updated = await storage.markNotificationAsRead(notificationId);
+            results.push(updated);
+          }
+        } catch (error) {
+          console.error(`Error marking notification ${notificationId} as read:`, error);
+        }
+      }
+
+      console.log(`[NotificationsAPI] Successfully marked ${results.length} notifications as read`);
+      res.json({ success: true, updatedCount: results.length });
+      
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+      res.status(500).json({ error: 'Failed to mark notifications as read' });
+    }
+  });
+
+  // Mark all notifications as read
+  app.put('/api/notifications/mark-all-read', async (req: any, res) => {
+    try {
+      const { getStorage } = await import('./storage');
+      const storage = await getStorage();
+
+      // Authentication required
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(403).json({ error: 'User context required' });
+      }
+
+      console.log(`[NotificationsAPI] Marking all notifications as read for user ${userId}`);
+
+      // Get all unread notifications for the user
+      const userNotifications = await storage.getNotificationsByUser(userId);
+      const unreadNotifications = userNotifications.filter(n => !n.isRead);
+
+      // Mark each unread notification as read
+      const results = [];
+      for (const notification of unreadNotifications) {
+        try {
+          const updated = await storage.markNotificationAsRead(notification.id);
+          results.push(updated);
+        } catch (error) {
+          console.error(`Error marking notification ${notification.id} as read:`, error);
+        }
+      }
+
+      console.log(`[NotificationsAPI] Successfully marked ${results.length} notifications as read`);
+      res.json({ success: true, updatedCount: results.length });
+      
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      res.status(500).json({ error: 'Failed to mark all notifications as read' });
+    }
+  });
+
+  // Delete notifications - For now, just mark as read since delete is not implemented
+  app.delete('/api/notifications', async (req: any, res) => {
+    try {
+      const { getStorage } = await import('./storage');
+      const storage = await getStorage();
+
+      // Authentication required
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(403).json({ error: 'User context required' });
+      }
+
+      const { notificationIds } = req.body;
+      if (!notificationIds || !Array.isArray(notificationIds)) {
+        return res.status(400).json({ error: 'notificationIds array is required' });
+      }
+
+      console.log(`[NotificationsAPI] Marking ${notificationIds.length} notifications as read (delete not implemented) for user ${userId}`);
+
+      // Mark each notification as read (since delete is not implemented)
+      const results = [];
+      for (const notificationId of notificationIds) {
+        try {
+          const notification = await storage.getNotification(notificationId);
+          if (notification && notification.userId === userId) {
+            const updated = await storage.markNotificationAsRead(notificationId);
+            results.push(notificationId);
+          }
+        } catch (error) {
+          console.error(`Error marking notification ${notificationId} as read:`, error);
+        }
+      }
+
+      console.log(`[NotificationsAPI] Successfully marked ${results.length} notifications as read`);
+      res.json({ success: true, deletedCount: results.length });
+      
+    } catch (error) {
+      console.error('Error deleting notifications:', error);
+      res.status(500).json({ error: 'Failed to delete notifications' });
+    }
+  });
+
+  // Create sample notifications for testing (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    app.post('/api/notifications/create-sample', async (req: any, res) => {
+      try {
+        const { getStorage } = await import('./storage');
+        const storage = await getStorage();
+
+        // Authentication required
+        if (!req.isAuthenticated || !req.isAuthenticated()) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const userId = req.user?.id;
+        if (!userId) {
+          return res.status(403).json({ error: 'User context required' });
+        }
+
+        console.log(`[NotificationsAPI] Creating sample notifications for user ${userId}`);
+
+        // Create sample notifications
+        const sampleNotifications = [
+          {
+            userId: userId,
+            title: 'New Appointment Created',
+            message: 'Fresh Connect Logistics has scheduled a new inbound appointment for tomorrow at 2:00 PM',
+            type: 'appointment',
+            isRead: false
+          },
+          {
+            userId: userId,
+            title: 'Dock Assignment Updated',
+            message: 'Appointment #12345 has been assigned to Dock A-3',
+            type: 'info',
+            isRead: false
+          },
+          {
+            userId: userId,
+            title: 'Urgent: Delivery Delay',
+            message: 'Truck #TR-456 is running 30 minutes behind schedule',
+            type: 'urgent',
+            isRead: false
+          },
+          {
+            userId: userId,
+            title: 'Vehicle Checked In',
+            message: 'Driver John Smith has checked in at the front gate',
+            type: 'info',
+            isRead: false
+          }
+        ];
+
+        const createdNotifications = [];
+        for (const notification of sampleNotifications) {
+          try {
+            const created = await storage.createNotification(notification);
+            createdNotifications.push(created);
+          } catch (error) {
+            console.error('Error creating sample notification:', error);
+          }
+        }
+
+        console.log(`[NotificationsAPI] Created ${createdNotifications.length} sample notifications`);
+        res.json({ success: true, created: createdNotifications.length });
+        
+      } catch (error) {
+        console.error('Error creating sample notifications:', error);
+        res.status(500).json({ error: 'Failed to create sample notifications' });
+      }
+    });
+  }
+
   // First, load system modules (tenant management and feature flags)
   for (const moduleName of SYSTEM_MODULES) {
     console.log(`Loading system module: ${moduleName}...`);

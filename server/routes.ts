@@ -958,6 +958,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
+      // Check if S3 is configured
+      if (!mediaService.isConfigured()) {
+        return res.status(503).json({ 
+          error: 'File upload service is not configured. Please contact system administrator.' 
+        });
+      }
+
       const { fileName, fileType, fileSize, scheduleId, appointmentId } = req.body;
 
       if (!fileName || !fileType) {
@@ -1024,6 +1031,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.user || !req.user.id) {
         return res.status(401).json({ error: 'Authentication required' });
+      }
+
+      // Check if S3 is configured
+      if (!mediaService.isConfigured()) {
+        return res.status(503).json({ 
+          error: 'File upload service is not configured. Please contact system administrator.' 
+        });
       }
 
       const {

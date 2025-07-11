@@ -84,21 +84,21 @@ class MediaService {
   private secretAccessKey: string;
   private cloudFrontDomain?: string;
   private initialized = false;
+  private configurationValid = false;
 
   constructor() {
-    // Validate environment variables in constructor for immediate feedback
+    // Load environment variables but don't validate in constructor
     this.bucket = process.env.AWS_S3_BUCKET || '';
     this.region = process.env.AWS_REGION || 'us-east-1';
     this.accessKeyId = process.env.AWS_ACCESS_KEY_ID || '';
     this.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || '';
     this.cloudFrontDomain = process.env.AWS_CLOUDFRONT_DOMAIN;
 
-    // Validate required environment variables
-    if (!this.bucket) {
-      throw new Error('AWS_S3_BUCKET environment variable is required');
-    }
-    if (!this.accessKeyId || !this.secretAccessKey) {
-      throw new Error('AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables are required');
+    // Check if configuration is valid
+    this.configurationValid = !!(this.bucket && this.accessKeyId && this.secretAccessKey);
+    
+    if (!this.configurationValid) {
+      console.warn('[MediaService] S3 configuration not found - S3 features will be disabled');
     }
   }
 
@@ -119,9 +119,19 @@ class MediaService {
   }
 
   private ensureInitialized() {
+    if (!this.configurationValid) {
+      throw new Error('S3 configuration is not valid. Please check AWS environment variables.');
+    }
     if (!this.initialized) {
       this.initialize();
     }
+  }
+
+  /**
+   * Check if S3 is configured and available
+   */
+  isConfigured(): boolean {
+    return this.configurationValid;
   }
 
   /**

@@ -1630,7 +1630,7 @@ export class DatabaseStorage implements IStorage {
         id: q.id,
         label: q.label,
         type: q.type,
-        isRequired: q.is_required || false,  // Map is_required back to isRequired for frontend
+        isRequired: q.isRequired || false,  // Map isRequired back to frontend (field is already correctly named in schema)
         placeholder: q.placeholder,
         options: q.options,
         defaultValue: q.defaultValue,

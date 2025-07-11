@@ -13,6 +13,13 @@ interface AuthenticatedRequest extends Request {
  */
 export const presignBolUpload = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // Check if S3 is configured
+    if (!mediaService.isConfigured()) {
+      return res.status(503).json({ 
+        error: 'File upload service is not configured. Please contact system administrator.' 
+      });
+    }
+
     const { fileName, fileType, fileSize, scheduleId, appointmentId } = req.body;
 
     if (!fileName || !fileType) {
@@ -112,7 +119,7 @@ export const uploadBol = async (req: AuthenticatedRequest, res: Response) => {
     });
 
     const bucket = process.env.AWS_S3_BUCKET!;
-    const tenantId = req.user.tenantId;
+    const tenantId = req.user.tenantId || 1; // Default to tenant 1 if null
     let uploadCompleted = false;
     
     // Configure busboy for streaming uploads
@@ -211,6 +218,13 @@ export const uploadBol = async (req: AuthenticatedRequest, res: Response) => {
  */
 export const confirmBolUpload = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // Check if S3 is configured (skip check if linkOnly mode)
+    if (!req.body.linkOnly && !mediaService.isConfigured()) {
+      return res.status(503).json({ 
+        error: 'File upload service is not configured. Please contact system administrator.' 
+      });
+    }
+
     const {
       key,
       fileName,
@@ -253,7 +267,7 @@ export const confirmBolUpload = async (req: AuthenticatedRequest, res: Response)
         fileName,
         fileType,
         {
-          tenantId: req.user.tenantId,
+          tenantId: req.user.tenantId || 1, // Default to tenant 1 if null
           uploadedBy: req.user.id,
           folder: 'bol-documents',
         }
@@ -269,9 +283,12 @@ export const confirmBolUpload = async (req: AuthenticatedRequest, res: Response)
         return res.status(404).json({ error: 'Appointment not found' });
       }
       
-      // TENANT VALIDATION: Ensure appointment belongs to user's tenant
-      if (appointment.tenantId !== req.user.tenantId) {
-        return res.status(403).json({ error: 'Forbidden - Appointment does not belong to your organization' });
+      // TENANT VALIDATION: Ensure appointment belongs to user's tenant (through facility relationship)
+      if (appointment.facilityId && req.user.tenantId) {
+        const facility = await storage.getFacility(appointment.facilityId);
+        if (facility && facility.tenantId !== req.user.tenantId) {
+          return res.status(403).json({ error: 'Forbidden - Appointment does not belong to your organization' });
+        }
       }
 
       // Update appointment with BOL info and extracted metadata

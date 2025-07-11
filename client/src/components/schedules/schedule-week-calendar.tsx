@@ -558,7 +558,14 @@ export default function ScheduleWeekCalendar({
                 
                 // Calculate height using rounded minutes (clamp to minimum height for visibility)
                 const durationHours = Math.max(0.5, (endHour - startHour) + ((roundedEndMinute - roundedStartMinute) / 60));
-                const height = Math.max(25, durationHours * 50); // Each hour is 50px, min height 25px
+                const baseHeight = Math.max(25, durationHours * 50); // Each hour is 50px, min height 25px
+                
+                // Calculate dynamic height based on customer name length to ensure text is visible
+                const customerNameLength = (schedule.customerName || "").length;
+                const nameBasedHeight = customerNameLength > 20 ? 75 : customerNameLength > 15 ? 65 : 55;
+                
+                // Final height is the maximum of duration-based height and name-based height
+                const height = Math.max(baseHeight, nameBasedHeight);
                 
                 // Calculate width and left position for each event
                 const leftPosition = `${dayIndex * (100 / 7)}%`;  
@@ -596,7 +603,7 @@ export default function ScheduleWeekCalendar({
                       <TooltipTrigger asChild>
                         <div 
                           className={cn(
-                            "absolute rounded-sm p-1 text-xs cursor-pointer border overflow-hidden flex flex-col",
+                            "absolute rounded-sm p-1 text-xs cursor-pointer border flex flex-col",
                             statusColor
                           )}
                           style={{
@@ -617,7 +624,9 @@ export default function ScheduleWeekCalendar({
                             opacity: isOverlapping ? 0.95 : 1, // Slight transparency for overlapping appointments
                             display: 'flex',
                             flexDirection: 'column',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)'
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+                            overflow: 'visible', // Allow content to be visible
+                            position: 'relative'
                           }}
                           onClick={() => onScheduleClick(schedule.id)}
                         >
@@ -627,19 +636,22 @@ export default function ScheduleWeekCalendar({
                               isInbound ? 'bg-blue-50' : 'bg-purple-50'
                             }`}
                             style={{ 
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
+                              overflow: "visible",
+                              textOverflow: "clip",
+                              whiteSpace: "normal",
+                              wordWrap: "break-word",
                               maxWidth: "100%",
                               fontWeight: 600,
-                              borderBottom: isInbound ? '2px solid #60a5fa' : '2px solid #c084fc'
+                              borderBottom: isInbound ? '2px solid #60a5fa' : '2px solid #c084fc',
+                              minHeight: "auto",
+                              paddingBottom: "2px"
                             }}
                           >
                             {schedule.customerName || "(No customer)"}
                           </div>
                           
                           {/* Type badge + Status inline */}
-                          <div className="flex items-center gap-1 truncate mt-1">
+                          <div className="flex items-center gap-1 flex-wrap mt-1">
                             <span className={`text-[10px] px-1 py-0.5 rounded-sm font-bold uppercase ${
                               isInbound ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
                             }`}>
@@ -661,10 +673,10 @@ export default function ScheduleWeekCalendar({
                           </div>
                           
                           {/* Facility name and time */}
-                          <div className="flex justify-between items-center text-[10px] mt-1">
-                            <span className="font-medium truncate">{startTimeStr}-{endTimeStr}</span>
+                          <div className="flex justify-between items-start text-[10px] mt-1 flex-wrap">
+                            <span className="font-medium">{startTimeStr}-{endTimeStr}</span>
                             {(schedule as any).facilityName && (
-                              <span className="truncate text-blue-800 font-semibold ml-1">
+                              <span className="text-blue-800 font-semibold ml-1 break-words">
                                 {(schedule as any).facilityName}
                               </span>
                             )}
@@ -672,7 +684,7 @@ export default function ScheduleWeekCalendar({
                           
                           {/* Carrier info if space permits */}
                           {carrier?.name && (
-                            <div className="text-[9px] truncate text-gray-700 mt-0.5 font-medium">
+                            <div className="text-[9px] text-gray-700 mt-0.5 font-medium break-words">
                               {carrier.name}
                             </div>
                           )}
