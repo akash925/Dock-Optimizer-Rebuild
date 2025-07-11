@@ -22,7 +22,7 @@ import { Schedule } from '@shared/schema';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { getUserTimeZone, getTimeZoneAbbreviation } from '@/lib/timezone-utils';
+import { getUserTimeZone, getTimeZoneAbbreviation } from '@shared/timezone-service';
 import './calendar-enhanced.css';
 
 interface CalendarDisplaySettings {

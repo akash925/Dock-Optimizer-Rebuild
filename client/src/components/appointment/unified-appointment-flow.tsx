@@ -16,7 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
-import { getUserTimeZone } from "@/lib/timezone-utils";
+import { getUserTimeZone } from "@shared/timezone-service";
 
 // Unified appointment form schema
 const appointmentSchema = z.object({
