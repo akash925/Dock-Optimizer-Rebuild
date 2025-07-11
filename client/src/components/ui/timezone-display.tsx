@@ -1,6 +1,6 @@
 import { Clock } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
-import { getUserTimeZone, getTimeZoneAbbreviation } from "@/lib/timezone-utils";
+import { getUserTimeZone, getTimeZoneAbbreviation } from "@shared/timezone-service";
 
 interface TimezoneDisplayProps {
   startTime: Date | string;

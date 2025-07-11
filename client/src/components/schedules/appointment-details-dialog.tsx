@@ -28,12 +28,11 @@ import { format, differenceInMinutes } from "date-fns";
 import { 
   getUserTimeZone,
   getTimeZoneAbbreviation,
-  formatInUserTimeZone,
   formatInFacilityTimeZone,
-  formatDateRangeInTimeZone,
+  formatForDualTimeZoneDisplay,
   utcToUserTime,
   utcToFacilityTime
-} from "@/lib/timezone-utils";
+} from "@shared/timezone-service";
 import { 
   Popover,
   PopoverContent,

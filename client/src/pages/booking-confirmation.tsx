@@ -10,7 +10,7 @@ import {
   formatInFacilityTimeZone, 
   formatForDualTimeZoneDisplay, 
   getTimeZoneAbbreviation 
-} from "@/lib/timezone-utils";
+} from "@shared/timezone-service";
 import { 
   Dialog,
   DialogContent,

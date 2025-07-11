@@ -5,7 +5,7 @@ import { Loader2, Calendar, ArrowLeft, CheckCircle, AlertCircle } from "lucide-r
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
-import { useTimeZoneUtils } from "@/hooks/use-timezone-utils";
+import { getUserTimeZone, getTimeZoneAbbreviation, formatInFacilityTimeZone, formatForDualTimeZoneDisplay } from "@shared/timezone-service";
 import { Schedule } from "@shared/schema";
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +27,7 @@ export default function CancelPage() {
   const [, navigate] = useLocation();
   const [match, params] = useRoute("/cancel"); // Just to check if we're on the right route
   const { toast } = useToast();
-  const { formatTimeRangeForDualZones } = useTimeZoneUtils();
+  // Removed useTimeZoneUtils hook - using direct imports from timezone service
   
   // Get the confirmation code from URL query parameters
   const searchParams = new URLSearchParams(window.location.search);
@@ -140,8 +140,12 @@ export default function CancelPage() {
     const dateStr = format(start, "EEEE, MMMM d, yyyy");
     
     // Get the time ranges in both user and facility timezones
-    const { userTimeRange, facilityTimeRange, userZoneAbbr, facilityZoneAbbr } = 
-      formatTimeRangeForDualZones(start, end, facilityTimezone);
+    const startTimeDisplay = formatForDualTimeZoneDisplay(start, facilityTimezone, 'h:mm a');
+    const endTimeDisplay = formatForDualTimeZoneDisplay(end, facilityTimezone, 'h:mm a');
+    const userTimeRange = `${startTimeDisplay.userTime} - ${endTimeDisplay.userTime}`;
+    const facilityTimeRange = `${startTimeDisplay.facilityTime} - ${endTimeDisplay.facilityTime}`;
+    const userZoneAbbr = getTimeZoneAbbreviation(getUserTimeZone());
+    const facilityZoneAbbr = getTimeZoneAbbreviation(facilityTimezone);
     
     return (
       <div className="space-y-1">

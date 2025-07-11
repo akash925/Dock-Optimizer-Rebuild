@@ -1,7 +1,7 @@
 import React from "react";
 import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useTimeZoneUtils } from "@/hooks/use-timezone-utils";
+import { getUserTimeZone, getTimeZoneAbbreviation } from "@shared/timezone-service";
 import { formatInTimeZone } from "date-fns-tz";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 

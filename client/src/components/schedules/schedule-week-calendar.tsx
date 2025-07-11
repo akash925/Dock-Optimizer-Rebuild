@@ -19,7 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { utcToUserTime, formatInUserTimeZone, getUserTimeZone, getCurrentTimeInTimeZone } from "@/lib/timezone-utils";
+import { utcToUserTime, formatInFacilityTimeZone, getUserTimeZone, getCurrentTimeInTimeZone } from "@shared/timezone-service";
 
 interface ScheduleWeekCalendarProps {
   schedules: Schedule[];

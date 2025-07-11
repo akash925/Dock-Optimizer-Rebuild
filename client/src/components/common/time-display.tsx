@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatInFacilityTimeZone, getTimeZoneAbbreviation } from '@/lib/date-utils';
-import { useTimeZoneUtils } from '@/hooks/use-timezone-utils';
+import { getUserTimeZone, formatInFacilityTimeZone } from '@shared/timezone-service';
 import { DEFAULT_TIMEZONE } from '@/lib/constants';
 
 interface TimeDisplayProps {

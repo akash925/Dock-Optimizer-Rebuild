@@ -5,7 +5,7 @@ import { Loader2, Calendar, ArrowLeft, CalendarClock, CheckCircle } from "lucide
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
-import { useTimeZoneUtils } from "@/hooks/use-timezone-utils";
+import { getUserTimeZone, getTimeZoneAbbreviation, formatForDualTimeZoneDisplay } from "@shared/timezone-service";
 import { Schedule } from "@shared/schema";
 import { EnhancedSchedule, canReschedule } from "@/lib/schedule-helpers";
 import { 
