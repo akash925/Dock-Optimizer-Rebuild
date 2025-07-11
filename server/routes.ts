@@ -317,6 +317,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // POST /api/schedules/:id/release - Release a door (set dockId to null)
+  app.post('/api/schedules/:id/release', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      const user = req.user as User;
+      const scheduleId = parseInt(req.params.id, 10);
+      if (isNaN(scheduleId)) return res.status(400).json({ error: 'Invalid schedule ID' });
+
+      const schedule = await storage.getSchedule(scheduleId);
+      if (!schedule) return res.status(404).json({ error: 'Schedule not found' });
+
+      // Get release data from request body or form data
+      const { notes, releaseType } = req.body;
+      
+      console.log(`[ReleaseDoor] Releasing door for schedule ${scheduleId}, releaseType: ${releaseType}`);
+
+      // Update schedule to release the door and add release notes
+      const updateData: any = {
+        dockId: null, // Release the door
+        lastModifiedAt: new Date(),
+        lastModifiedBy: user.id
+      };
+
+      // Add release notes to existing notes
+      if (notes) {
+        const existingNotes = schedule.notes || '';
+        const releaseNote = `[Door Released ${new Date().toISOString()}]: ${notes}`;
+        updateData.notes = existingNotes ? `${existingNotes}\n\n${releaseNote}` : releaseNote;
+      }
+
+      // Update customFormData to include release information
+      const customFormData = schedule.customFormData || {};
+      updateData.customFormData = {
+        ...customFormData,
+        doorReleased: true,
+        doorReleasedAt: new Date().toISOString(),
+        releaseType: releaseType || 'manual',
+        releaseNotes: notes || '',
+        releasedBy: user.id
+      };
+
+      const updatedSchedule = await storage.updateSchedule(scheduleId, updateData);
+
+      console.log(`[ReleaseDoor] Door released successfully for schedule ${scheduleId}`);
+
+      // 🔥 REAL-TIME: Broadcast door release update to connected clients
+      try {
+        const clientsNotified = broadcastScheduleUpdate(updatedSchedule);
+        console.log(`✅ Schedule ${scheduleId} door release broadcast to ${clientsNotified} clients`);
+      } catch (broadcastError) {
+        console.error('Error broadcasting door release:', broadcastError);
+      }
+
+      // Send checkout email if configured
+      try {
+        if (schedule.driverEmail && updatedSchedule) {
+          // Import email notification function dynamically
+          const { sendCheckoutEmail } = await import('./notifications');
+          
+          // Get facility and appointment details for email
+          const facility = schedule.facilityId ? await storage.getFacility(schedule.facilityId) : null;
+          const carrier = schedule.carrierId ? await storage.getCarrier(schedule.carrierId) : null;
+          const dock = schedule.dockId ? await storage.getDock(schedule.dockId) : null;
+
+          const enhancedSchedule = {
+            ...schedule,
+            ...updatedSchedule,
+            facilityName: facility?.name,
+            carrierName: carrier?.name || null,
+            dockName: dock?.name || undefined,
+            appointmentTypeName: 'Standard Appointment',
+            timezone: facility?.timezone || 'America/New_York',
+            creatorEmail: schedule.creatorEmail || undefined,
+            confirmationCode: (schedule as any).confirmationCode,
+            bolData: (schedule as any).bolData,
+            bolFileUploaded: !!(schedule as any).bolData,
+          };
+          
+          console.log(`[ReleaseDoor] Sending checkout email to ${schedule.driverEmail}`);
+          await sendCheckoutEmail(
+            schedule.driverEmail, 
+            enhancedSchedule.confirmationCode!, 
+            enhancedSchedule,
+            notes // Include release notes in email
+          );
+        }
+      } catch (emailError) {
+        console.error('[ReleaseDoor] Error sending checkout email:', emailError);
+        // Don't fail the request if email fails
+      }
+
+      res.json(updatedSchedule);
+    } catch (error) {
+      console.error('Error releasing door:', error);
+      res.status(500).json({ error: 'Failed to release door' });
+    }
+  });
+
   app.patch('/api/schedules/:id/cancel', async (req: any, res) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });

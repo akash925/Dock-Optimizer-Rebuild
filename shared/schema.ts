@@ -198,6 +198,8 @@ export const schedules = pgTable("schedules", {
   type: text("type").notNull(), // inbound or outbound
   status: text("status").notNull(), // scheduled, in-progress, completed, cancelled
   notes: text("notes"),
+  releaseImage: text("release_image"), // Base64 encoded release/checkout photo
+  releaseImageMetadata: jsonb("release_image_metadata"), // Release image metadata
   customFormData: jsonb("custom_form_data"), // Stores responses to custom questions
   creatorEmail: text("creator_email"), // Email of the person who created the appointment (for external bookings)
   createdBy: integer("created_by").notNull(), // User ID who created the schedule
@@ -238,6 +240,8 @@ export const bolDocuments = pgTable("bol_documents", {
   fileName: text("file_name").notNull(),
   mimeType: text("mime_type").notNull(),
   pageCount: integer("page_count"),
+  compressedImage: text("compressed_image"), // Base64 encoded BOL document image
+  imageMetadata: jsonb("image_metadata"), // BOL document image metadata
   uploadedBy: integer("uploaded_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -898,6 +902,8 @@ export const companyAssets = pgTable("company_assets", {
   
   // Media
   photoUrl: text("photo_url"),
+  compressedImage: text("compressed_image"), // Base64 encoded compressed image
+  imageMetadata: jsonb("image_metadata"), // Compression metadata
   documentUrls: jsonb("document_urls"),  // Array of document URLs (manuals, receipts, etc.)
   
   // Maintenance and tracking
@@ -1067,6 +1073,39 @@ export interface OrganizationSettings {
   emailNotifications?: boolean;
   timezone?: string;
   logo?: string;
+  // Email template customization
+  emailTemplates?: {
+    confirmation?: {
+      subject?: string;
+      headerText?: string;
+      footerText?: string;
+      includeQrCode?: boolean;
+      includeCalendarAttachment?: boolean;
+    };
+    reminder?: {
+      subject?: string;
+      headerText?: string;
+      footerText?: string;
+      hoursBeforeReminder?: number;
+    };
+    reschedule?: {
+      subject?: string;
+      headerText?: string;
+      footerText?: string;
+    };
+    cancellation?: {
+      subject?: string;
+      headerText?: string;
+      footerText?: string;
+    };
+    checkout?: {
+      subject?: string;
+      headerText?: string;
+      footerText?: string;
+      includeReleaseNotes?: boolean;
+      includeReleaseImages?: boolean;
+    };
+  };
 }
 
 // Multi-tenant support - Tenants table

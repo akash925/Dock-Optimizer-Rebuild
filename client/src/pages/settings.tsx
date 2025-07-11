@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -519,11 +519,12 @@ export default function Settings() {
         <TabsContent value="organization">
           <Card>
             <CardHeader>
-              <CardTitle>Organization</CardTitle>
-              <CardDescription>Manage organization-wide settings and preferences</CardDescription>
+              <CardTitle>Organization Settings</CardTitle>
+              <CardDescription>Manage organization-wide settings and email templates</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Organization settings coming soon...</p>
+            <CardContent className="space-y-6">
+              {/* Organization Email Templates */}
+              <OrganizationEmailTemplates />
             </CardContent>
           </Card>
         </TabsContent>
@@ -540,6 +541,261 @@ export default function Settings() {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Add new component for organization email templates
+function OrganizationEmailTemplates() {
+  const [settings, setSettings] = useState<any>(null);
+  const [activeTemplate, setActiveTemplate] = useState('confirmation');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch organization settings
+  const { data: orgSettings, isLoading: settingsLoading } = useQuery({
+    queryKey: ['/api/organizations/settings'],
+  });
+
+  // Update organization settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('PUT', '/api/organizations/settings', data);
+      if (!response.ok) {
+        throw new Error('Failed to update organization settings');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Settings updated',
+        description: 'Organization email templates have been updated successfully.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/organizations/settings'] });
+    },
+    onError: () => {
+      toast({
+        title: 'Update failed',
+        description: 'Failed to update organization settings. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Initialize settings when data loads
+  useEffect(() => {
+    if (orgSettings && !settings) {
+      setSettings(orgSettings);
+    }
+  }, [orgSettings, settings]);
+
+  const handleTemplateUpdate = (templateType: string, field: string, value: any) => {
+    setSettings((prev: any) => ({
+      ...prev,
+      emailTemplates: {
+        ...prev.emailTemplates,
+        [templateType]: {
+          ...prev.emailTemplates[templateType],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const handleSaveSettings = () => {
+    if (settings) {
+      updateSettingsMutation.mutate(settings);
+    }
+  };
+
+  if (settingsLoading || !settings) {
+    return (
+      <div className="space-y-4">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+          <div className="h-20 bg-gray-200 rounded mb-4"></div>
+        </div>
+      </div>
+    );
+  }
+
+  const templateTypes = [
+    { key: 'confirmation', label: 'Confirmation Emails', description: 'Sent when appointments are confirmed' },
+    { key: 'reminder', label: 'Reminder Emails', description: 'Sent before appointments' },
+    { key: 'reschedule', label: 'Reschedule Emails', description: 'Sent when appointments are rescheduled' },
+    { key: 'cancellation', label: 'Cancellation Emails', description: 'Sent when appointments are cancelled' },
+    { key: 'checkout', label: 'Checkout Emails', description: 'Sent when appointments are completed' }
+  ];
+
+  const currentTemplate = settings.emailTemplates[activeTemplate] || {};
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium mb-4">Email Template Customization</h3>
+        <p className="text-sm text-muted-foreground mb-6">
+          Customize the email templates sent to drivers and customers. You can use variables like {`{{confirmationCode}}`}, {`{{facilityName}}`}, and {`{{customerName}}`} in your templates.
+        </p>
+        
+        {/* Template Type Selector */}
+        <div className="mb-6">
+          <Label className="text-sm font-medium">Select Template Type</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+            {templateTypes.map((type) => (
+              <Button
+                key={type.key}
+                variant={activeTemplate === type.key ? "default" : "outline"}
+                onClick={() => setActiveTemplate(type.key)}
+                className="h-auto p-3 text-left justify-start"
+              >
+                <div>
+                  <div className="font-medium">{type.label}</div>
+                  <div className="text-xs text-muted-foreground">{type.description}</div>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Template Editor */}
+        <div className="space-y-4 border rounded-lg p-4">
+          <h4 className="font-medium">{templateTypes.find(t => t.key === activeTemplate)?.label} Template</h4>
+          
+          {/* Subject Line */}
+          <div className="space-y-2">
+            <Label htmlFor={`${activeTemplate}-subject`}>Email Subject</Label>
+            <Input
+              id={`${activeTemplate}-subject`}
+              value={currentTemplate.subject || ''}
+              onChange={(e) => handleTemplateUpdate(activeTemplate, 'subject', e.target.value)}
+              placeholder="Enter email subject line..."
+              className="w-full"
+            />
+                         <p className="text-xs text-muted-foreground">
+               Use {`{{confirmationCode}}`} for confirmation codes, {`{{facilityName}}`} for facility names
+             </p>
+          </div>
+
+          {/* Header Text */}
+          <div className="space-y-2">
+            <Label htmlFor={`${activeTemplate}-header`}>Header Message</Label>
+            <textarea
+              id={`${activeTemplate}-header`}
+              value={currentTemplate.headerText || ''}
+              onChange={(e) => handleTemplateUpdate(activeTemplate, 'headerText', e.target.value)}
+              placeholder="Enter the main message that appears at the top of the email..."
+              className="w-full h-20 px-3 py-2 border border-input bg-background text-sm ring-offset-background resize-none rounded-md"
+            />
+          </div>
+
+          {/* Footer Text */}
+          <div className="space-y-2">
+            <Label htmlFor={`${activeTemplate}-footer`}>Footer Message</Label>
+            <textarea
+              id={`${activeTemplate}-footer`}
+              value={currentTemplate.footerText || ''}
+              onChange={(e) => handleTemplateUpdate(activeTemplate, 'footerText', e.target.value)}
+              placeholder="Enter text that appears at the bottom of the email..."
+              className="w-full h-16 px-3 py-2 border border-input bg-background text-sm ring-offset-background resize-none rounded-md"
+            />
+          </div>
+
+          {/* Template-specific options */}
+          {activeTemplate === 'confirmation' && (
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="includeQrCode"
+                    checked={currentTemplate.includeQrCode !== false}
+                    onCheckedChange={(checked) => handleTemplateUpdate(activeTemplate, 'includeQrCode', checked)}
+                  />
+                  <Label htmlFor="includeQrCode">Include QR Code for check-in</Label>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="includeCalendarAttachment"
+                    checked={currentTemplate.includeCalendarAttachment !== false}
+                    onCheckedChange={(checked) => handleTemplateUpdate(activeTemplate, 'includeCalendarAttachment', checked)}
+                  />
+                  <Label htmlFor="includeCalendarAttachment">Include calendar attachment (.ics file)</Label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTemplate === 'reminder' && (
+            <div className="space-y-3 pt-2 border-t">
+              <div className="space-y-2">
+                <Label htmlFor="hoursBeforeReminder">Send reminder (hours before appointment)</Label>
+                <Input
+                  id="hoursBeforeReminder"
+                  type="number"
+                  min="1"
+                  max="168"
+                  value={currentTemplate.hoursBeforeReminder || 24}
+                  onChange={(e) => handleTemplateUpdate(activeTemplate, 'hoursBeforeReminder', parseInt(e.target.value))}
+                  className="w-32"
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTemplate === 'checkout' && (
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="includeReleaseNotes"
+                    checked={currentTemplate.includeReleaseNotes !== false}
+                    onCheckedChange={(checked) => handleTemplateUpdate(activeTemplate, 'includeReleaseNotes', checked)}
+                  />
+                  <Label htmlFor="includeReleaseNotes">Include release notes in email</Label>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="includeReleaseImages"
+                    checked={currentTemplate.includeReleaseImages !== false}
+                    onCheckedChange={(checked) => handleTemplateUpdate(activeTemplate, 'includeReleaseImages', checked)}
+                  />
+                  <Label htmlFor="includeReleaseImages">Include release images in email</Label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+                 {/* Available Variables Reference */}
+         <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+           <h5 className="font-medium mb-2">Available Template Variables</h5>
+           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+             <code>{`{{confirmationCode}}`}</code>
+             <code>{`{{facilityName}}`}</code>
+             <code>{`{{customerName}}`}</code>
+             <code>{`{{driverName}}`}</code>
+             <code>{`{{appointmentDate}}`}</code>
+             <code>{`{{appointmentTime}}`}</code>
+             <code>{`{{dockName}}`}</code>
+             <code>{`{{carrierName}}`}</code>
+             <code>{`{{truckNumber}}`}</code>
+           </div>
+         </div>
+
+        {/* Save Button */}
+        <div className="flex justify-end pt-4">
+          <Button 
+            onClick={handleSaveSettings}
+            disabled={updateSettingsMutation.isPending}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {updateSettingsMutation.isPending ? 'Saving...' : 'Save Email Templates'}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -372,12 +372,51 @@ export const getOrganizationSettings = async (req: Request, res: Response) => {
     }
 
     // Extract settings or provide defaults
-    const settings = organization.settings || {};
+    const settings = (organization.settings as any) || {};
     const organizationSettings = {
       confirmationCodePrefix: settings.confirmationCodePrefix || organization.name?.slice(0, 3).toUpperCase() || 'APP',
       emailNotifications: settings.emailNotifications !== false, // Default to true
       timezone: organization.timezone || 'America/New_York',
       logo: organization.logo,
+      // Email template defaults
+      emailTemplates: {
+        confirmation: {
+          subject: settings.emailTemplates?.confirmation?.subject || `Dock Appointment Confirmation #{{confirmationCode}}`,
+          headerText: settings.emailTemplates?.confirmation?.headerText || `Your dock appointment has been confirmed. Please arrive 15 minutes before your scheduled time.`,
+          footerText: settings.emailTemplates?.confirmation?.footerText || `If you have any questions, please contact the facility directly.`,
+          includeQrCode: settings.emailTemplates?.confirmation?.includeQrCode !== false,
+          includeCalendarAttachment: settings.emailTemplates?.confirmation?.includeCalendarAttachment !== false,
+          ...settings.emailTemplates?.confirmation
+        },
+        reminder: {
+          subject: settings.emailTemplates?.reminder?.subject || `Reminder: Upcoming Dock Appointment #{{confirmationCode}}`,
+          headerText: settings.emailTemplates?.reminder?.headerText || `Your appointment is coming up soon. Please review your appointment details below.`,
+          footerText: settings.emailTemplates?.reminder?.footerText || `Please arrive 15 minutes before your scheduled time.`,
+          hoursBeforeReminder: settings.emailTemplates?.reminder?.hoursBeforeReminder || 24,
+          ...settings.emailTemplates?.reminder
+        },
+        reschedule: {
+          subject: settings.emailTemplates?.reschedule?.subject || `Dock Appointment Rescheduled #{{confirmationCode}}`,
+          headerText: settings.emailTemplates?.reschedule?.headerText || `Your dock appointment has been rescheduled. Please note the new time below.`,
+          footerText: settings.emailTemplates?.reschedule?.footerText || `If you have any questions about this change, please contact the facility.`,
+          ...settings.emailTemplates?.reschedule
+        },
+        cancellation: {
+          subject: settings.emailTemplates?.cancellation?.subject || `Dock Appointment Cancelled #{{confirmationCode}}`,
+          headerText: settings.emailTemplates?.cancellation?.headerText || `Your dock appointment has been cancelled.`,
+          footerText: settings.emailTemplates?.cancellation?.footerText || `If you need to schedule a new appointment, please contact the facility.`,
+          ...settings.emailTemplates?.cancellation
+        },
+        checkout: {
+          subject: settings.emailTemplates?.checkout?.subject || `Dock Appointment Completed #{{confirmationCode}}`,
+          headerText: settings.emailTemplates?.checkout?.headerText || `Your dock appointment has been completed. Thank you for using our facility.`,
+          footerText: settings.emailTemplates?.checkout?.footerText || `We appreciate your business and look forward to serving you again.`,
+          includeReleaseNotes: settings.emailTemplates?.checkout?.includeReleaseNotes !== false,
+          includeReleaseImages: settings.emailTemplates?.checkout?.includeReleaseImages !== false,
+          ...settings.emailTemplates?.checkout
+        },
+        ...settings.emailTemplates
+      },
       ...settings
     };
 
@@ -400,10 +439,10 @@ export const updateOrganizationSettings = async (req: Request, res: Response) =>
       return res.status(401).json({ error: 'User authentication required' });
     }
 
-    const { confirmationCodePrefix, emailNotifications, timezone, ...otherSettings } = req.body;
+    const { confirmationCodePrefix, emailNotifications, timezone, emailTemplates, ...otherSettings } = req.body;
 
     console.log(`DEBUG: [Organizations] Updating settings for tenantId: ${tenantId}`, {
-      confirmationCodePrefix, emailNotifications, timezone, otherSettings
+      confirmationCodePrefix, emailNotifications, timezone, emailTemplates: !!emailTemplates, otherSettings
     });
 
     // Validate confirmation code prefix
@@ -415,6 +454,18 @@ export const updateOrganizationSettings = async (req: Request, res: Response) =>
       return res.status(400).json({ error: 'Confirmation code prefix must contain only uppercase letters and numbers' });
     }
 
+    // Validate email template subjects (basic validation)
+    if (emailTemplates && typeof emailTemplates === 'object') {
+      for (const [templateType, template] of Object.entries(emailTemplates)) {
+        if (template && typeof template === 'object' && 'subject' in template) {
+          const templateObj = template as any;
+          if (templateObj.subject && typeof templateObj.subject === 'string' && templateObj.subject.length > 200) {
+            return res.status(400).json({ error: `${templateType} email subject must be 200 characters or less` });
+          }
+        }
+      }
+    }
+
     const storage = await getStorage();
     
     // Get current organization to merge settings
@@ -424,13 +475,19 @@ export const updateOrganizationSettings = async (req: Request, res: Response) =>
     }
 
     // Merge existing settings with new ones
-    const currentSettings = currentOrg.settings || {};
+    const currentSettings = (currentOrg.settings as any) || {};
     const newSettings = {
       ...currentSettings,
       ...otherSettings,
       ...(confirmationCodePrefix && { confirmationCodePrefix: confirmationCodePrefix.toUpperCase() }),
       ...(emailNotifications !== undefined && { emailNotifications }),
-      ...(timezone && { timezone })
+      ...(timezone && { timezone }),
+      ...(emailTemplates && { 
+        emailTemplates: {
+          ...(currentSettings.emailTemplates || {}),
+          ...emailTemplates
+        }
+      })
     };
 
     // Update organization with new settings
@@ -449,6 +506,7 @@ export const updateOrganizationSettings = async (req: Request, res: Response) =>
       confirmationCodePrefix: newSettings.confirmationCodePrefix,
       emailNotifications: newSettings.emailNotifications,
       timezone: updatedOrganization.timezone,
+      emailTemplates: newSettings.emailTemplates,
       ...newSettings
     });
   } catch (error) {

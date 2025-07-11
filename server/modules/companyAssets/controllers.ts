@@ -702,6 +702,74 @@ export const updatePhotoKey = async (req: Request, res: Response) => {
 };
 
 /**
+ * Upload compressed image to database
+ * PUT /api/company-assets/:id/compressed-photo
+ */
+export const uploadCompressedPhoto = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid company asset ID' });
+    }
+
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+    const { compressedImage, imageMetadata } = req.body;
+
+    if (!compressedImage) {
+      return res.status(400).json({ error: 'Compressed image data is required' });
+    }
+
+    // Validate base64 format
+    if (!compressedImage.startsWith('data:image/')) {
+      return res.status(400).json({ error: 'Invalid image format. Expected base64 data URL' });
+    }
+
+    // Check if the asset exists and belongs to the user's tenant
+    const existingAsset = await companyAssetsService.getCompanyAssetById(id);
+    if (!existingAsset) {
+      return res.status(404).json({ error: 'Company asset not found' });
+    }
+
+    // TENANT SAFETY: Ensure asset belongs to the user's tenant
+    if (existingAsset.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+    }
+
+    console.log(`[Compressed Photo] Uploading compressed image for asset ${id}`);
+    console.log(`[Compressed Photo] Image metadata:`, imageMetadata);
+
+    // Update the asset with compressed image data
+    const updatedAsset = await companyAssetsService.updateCompanyAsset(id, { 
+      compressedImage,
+      imageMetadata: imageMetadata || {},
+      // Set photoUrl to indicate this asset has a compressed image
+      photoUrl: `compressed:${id}`
+    });
+
+    if (!updatedAsset) {
+      return res.status(500).json({ error: 'Failed to update asset with compressed image' });
+    }
+
+    console.log(`[Compressed Photo] Successfully uploaded compressed image for asset ${id}`);
+
+    return res.json({ 
+      success: true,
+      photoUrl: `compressed:${id}`,
+      message: 'Compressed image uploaded successfully',
+      compressionRatio: imageMetadata?.compressionRatio || 0
+    });
+  } catch (error) {
+    console.error('Error uploading compressed image:', error);
+    return res.status(500).json({ error: 'Failed to upload compressed image' });
+  }
+};
+
+/**
  * Update company asset status
  */
 export const updateCompanyAssetStatus = async (req: Request, res: Response) => {

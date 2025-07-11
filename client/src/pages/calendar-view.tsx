@@ -35,6 +35,33 @@ const COMMON_TIMEZONES = [
   'Australia/Sydney'
 ];
 
+// Generate a consistent color for a facility based on its ID
+const getFacilityColor = (facilityId: number | null): string => {
+  if (!facilityId) {
+    return '#6b7280'; // Gray for no facility
+  }
+  
+  // Define a consistent color palette for facilities
+  const facilityColors = [
+    '#3b82f6', // Blue
+    '#10b981', // Emerald
+    '#f59e0b', // Amber
+    '#ef4444', // Red
+    '#8b5cf6', // Violet
+    '#06b6d4', // Cyan
+    '#84cc16', // Lime
+    '#f97316', // Orange
+    '#ec4899', // Pink
+    '#14b8a6', // Teal
+    '#6366f1', // Indigo
+    '#a855f7', // Purple
+  ];
+  
+  // Use facility ID to consistently assign colors
+  const colorIndex = facilityId % facilityColors.length;
+  return facilityColors[colorIndex];
+};
+
 export default function CalendarPage() {
   const [, navigate] = useLocation();
   const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
@@ -381,7 +408,13 @@ export default function CalendarPage() {
                 <SelectItem value="all">All Facilities</SelectItem>
                 {Array.isArray(facilities) && facilities.map((facility: any) => (
                   <SelectItem key={facility.id} value={facility.id.toString()}>
-                    {facility.name}
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
+                        style={{ backgroundColor: getFacilityColor(facility.id) }}
+                      />
+                      <span>{facility.name}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

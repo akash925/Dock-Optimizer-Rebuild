@@ -3,10 +3,11 @@ import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { UploadCloud, X, Loader2, ImageIcon, CheckCircle } from 'lucide-react';
+import { UploadCloud, X, Loader2, ImageIcon, CheckCircle, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadViaS3Post } from '@/lib/upload/postUpload';
+import { compressImageForDb, validateImageFile, type CompressedImage } from '@/lib/image-compression';
 
 interface AssetPhotoDropzoneProps {
   onUpload?: (file: File) => Promise<void>; // Legacy support, deprecated
@@ -44,22 +45,12 @@ export default function AssetPhotoDropzone({
     const file = acceptedFiles[0];
     if (!file) return;
 
-    // Validate file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
+    // Use the new validation utility
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
       toast({
-        title: 'File too large',
-        description: 'Please select an image under 10MB',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please select a JPG, PNG, or WebP image',
+        title: 'Invalid file',
+        description: validation.error,
         variant: 'destructive',
       });
       return;
@@ -84,97 +75,57 @@ export default function AssetPhotoDropzone({
     multiple: false
   });
 
-  const handleS3Upload = async (file: File): Promise<string> => {
+  const handleCompressedImageUpload = async (file: File): Promise<string> => {
     if (!assetId) {
-      throw new Error('Asset ID is required for S3 upload');
+      throw new Error('Asset ID is required for compressed image upload');
     }
 
     setUploadStage('presign');
     setUploadProgress(10);
 
-    // Step 1: Get presigned URL
-    const presignResponse = await fetch(`/api/company-assets/${assetId}/photo/presign`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-      }),
+    // Step 1: Compress the image
+    console.log('[CompressedUpload] Compressing image...');
+    const compressedImage = await compressImageForDb(file, {
+      maxWidth: 1024,
+      maxHeight: 1024,
+      quality: 0.8,
+      format: 'image/jpeg'
     });
 
-    if (!presignResponse.ok) {
-      const errorData = await presignResponse.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to get upload URL');
-    }
-
-    const presignedData = await presignResponse.json();
-    setUploadProgress(25);
-
-    // Check if this is a local upload fallback
-    if (presignedData.local) {
-      setUploadStage('upload');
-      
-      // Use local upload with FormData
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const uploadResponse = await fetch(presignedData.url, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Local upload failed: ${uploadResponse.status}`);
-      }
-
-      const uploadData = await uploadResponse.json();
-      setUploadProgress(100);
-      setUploadStage('complete');
-
-      return uploadData.photoUrl;
-    }
-
-    // Step 2: Upload directly to S3 using the helper function
-    setUploadStage('upload');
     setUploadProgress(50);
-    
-    console.log('[AssetUpload] Using uploadViaS3Post helper for S3 upload');
-    
-    try {
-      await uploadViaS3Post(presignedData.url, presignedData.fields, file);
-    } catch (error) {
-      console.error('[AssetUpload] S3 upload failed:', error);
-      throw new Error('S3 upload failed – check file type/size and retry');
-    }
+    setUploadStage('upload');
 
-    setUploadProgress(90);
+    console.log(`[CompressedUpload] Compression complete - Original: ${compressedImage.originalSize} bytes, Compressed: ${compressedImage.compressedSize} bytes, Ratio: ${compressedImage.compressionRatio}%`);
 
-    // Step 3: Confirm upload with backend
-    setUploadStage('confirm');
-    const confirmResponse = await fetch(`/api/company-assets/${assetId}/photo`, {
+    // Step 2: Upload compressed image to database
+    const uploadResponse = await fetch(`/api/company-assets/${assetId}/compressed-photo`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        key: presignedData.key,
+        compressedImage: compressedImage.base64,
+        imageMetadata: {
+          originalSize: compressedImage.originalSize,
+          compressedSize: compressedImage.compressedSize,
+          compressionRatio: compressedImage.compressionRatio,
+          mimeType: compressedImage.mimeType,
+          originalName: file.name,
+          uploadedAt: new Date().toISOString()
+        }
       }),
     });
 
-    if (!confirmResponse.ok) {
-      const errorData = await confirmResponse.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to confirm upload');
+    if (!uploadResponse.ok) {
+      const errorData = await uploadResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to upload compressed image');
     }
 
-    const confirmData = await confirmResponse.json();
+    const uploadData = await uploadResponse.json();
     setUploadProgress(100);
     setUploadStage('complete');
 
-    return confirmData.photoUrl;
+    return uploadData.photoUrl;
   };
 
   const handleLocalUpload = async (file: File): Promise<string> => {
@@ -238,37 +189,30 @@ export default function AssetPhotoDropzone({
     try {
       let finalPhotoUrl: string;
 
-      // Try S3 upload first, fall back to local upload if it fails
+      // Use compressed image upload to database
       if (assetId) {
         try {
-          // Attempt S3 direct upload
-          finalPhotoUrl = await handleS3Upload(selectedFile);
+          // Upload compressed image to database
+          finalPhotoUrl = await handleCompressedImageUpload(selectedFile);
           
           toast({
             title: 'Photo uploaded',
-            description: 'Asset photo has been updated successfully',
+            description: 'Asset photo has been compressed and uploaded successfully',
           });
-        } catch (s3Error) {
-          console.warn('[AssetUpload] S3 upload failed, falling back to local upload:', s3Error);
+        } catch (compressionError) {
+          console.warn('[AssetUpload] Compressed upload failed, falling back to local upload:', compressionError);
           
-          // Display the specific S3 error message
-          toast({
-            title: 'Upload failed',
-            description: s3Error instanceof Error ? s3Error.message : 'S3 upload failed – check file type/size and retry',
-            variant: 'destructive',
-          });
-          
-          // Fall back to local upload
+          // Fall back to local upload if compression fails
           try {
             finalPhotoUrl = await handleLocalUpload(selectedFile);
             toast({
               title: 'Photo uploaded (local storage)',
-              description: 'S3 upload failed, using local storage as fallback',
+              description: 'Compression failed, using local storage as fallback',
               variant: 'default',
             });
           } catch (localError) {
-            // If both S3 and local fail, throw the original S3 error for better debugging
-            throw new Error(`Both S3 and local upload failed. S3 error: ${s3Error instanceof Error ? s3Error.message : 'Unknown S3 error'}. Local error: ${localError instanceof Error ? localError.message : 'Unknown local error'}`);
+            // If both compression and local fail, throw the original compression error
+            throw new Error(`Both compressed and local upload failed. Compression error: ${compressionError instanceof Error ? compressionError.message : 'Unknown compression error'}. Local error: ${localError instanceof Error ? localError.message : 'Unknown local error'}`);
           }
         }
       } else if (onUpload) {
@@ -365,11 +309,11 @@ export default function AssetPhotoDropzone({
 
   const getUploadStageText = () => {
     switch (uploadStage) {
-      case 'presign': return 'Getting upload URL...';
-      case 'upload': return 'Uploading to cloud storage...';
-      case 'confirm': return 'Confirming upload...';
+      case 'presign': return 'Compressing image...';
+      case 'upload': return 'Uploading compressed image...';
+      case 'confirm': return 'Finalizing upload...';
       case 'complete': return 'Upload complete!';
-      default: return 'Uploading...';
+      default: return 'Processing...';
     }
   };
 
@@ -452,8 +396,9 @@ export default function AssetPhotoDropzone({
                   Supports JPG, PNG, WebP • Max 10MB
                 </p>
                 {assetId && (
-                  <p className="text-xs text-primary mt-2">
-                    Using S3 direct upload
+                  <p className="text-xs text-primary mt-2 flex items-center gap-1">
+                    <Zap className="h-3 w-3" />
+                    Auto-compressed for fast loading
                   </p>
                 )}
               </>

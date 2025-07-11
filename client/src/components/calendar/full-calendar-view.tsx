@@ -166,27 +166,56 @@ export default function FullCalendarView({
     return aStartTime.getTime() - bStartTime.getTime();
   });
   
-  // Check if an appointment needs attention (soon to start or unchecked-in)
+  // Generate a consistent color for a facility based on its ID
+  const getFacilityColor = (facilityId: number | null, facilityName?: string): { backgroundColor: string, borderColor: string } => {
+    if (!facilityId) {
+      // Default color for appointments without facility
+      return { backgroundColor: '#6b7280', borderColor: '#4b5563' };
+    }
+    
+    // Define a consistent color palette for facilities
+    const facilityColors = [
+      { bg: '#3b82f6', border: '#2563eb' }, // Blue
+      { bg: '#10b981', border: '#059669' }, // Emerald
+      { bg: '#f59e0b', border: '#d97706' }, // Amber
+      { bg: '#ef4444', border: '#dc2626' }, // Red
+      { bg: '#8b5cf6', border: '#7c3aed' }, // Violet
+      { bg: '#06b6d4', border: '#0891b2' }, // Cyan
+      { bg: '#84cc16', border: '#65a30d' }, // Lime
+      { bg: '#f97316', border: '#ea580c' }, // Orange
+      { bg: '#ec4899', border: '#db2777' }, // Pink
+      { bg: '#14b8a6', border: '#0d9488' }, // Teal
+      { bg: '#6366f1', border: '#4f46e5' }, // Indigo
+      { bg: '#a855f7', border: '#9333ea' }, // Purple
+    ];
+    
+    // Use facility ID to consistently assign colors
+    const colorIndex = facilityId % facilityColors.length;
+    const color = facilityColors[colorIndex];
+    
+    return { backgroundColor: color.bg, borderColor: color.border };
+  };
+
+  // Check if appointment needs urgent attention
   const needsAttention = (schedule: Schedule): { needsAttention: boolean, isUrgent: boolean, reason: string } => {
     const now = new Date();
     const startTime = new Date(schedule.startTime);
-    const timeDiff = startTime.getTime() - now.getTime();
-    const minutesUntilStart = Math.floor(timeDiff / (1000 * 60));
+    const minutesUntilStart = Math.round((startTime.getTime() - now.getTime()) / (1000 * 60));
     
-    // If appointment already started but not checked in
-    if (startTime < now && schedule.status === 'scheduled') {
+    // Urgent: Starting in 15 minutes or less
+    if (minutesUntilStart <= 15 && minutesUntilStart > 0 && schedule.status === 'scheduled') {
       return { 
         needsAttention: true, 
-        isUrgent: true,
-        reason: 'Unchecked-in appointment' 
+        isUrgent: true, 
+        reason: `Starting in ${minutesUntilStart} minutes` 
       };
     }
     
-    // If appointment is starting within 30 minutes
-    if (minutesUntilStart >= 0 && minutesUntilStart <= 30 && schedule.status === 'scheduled') {
+    // Attention: Starting in 30 minutes or less
+    if (minutesUntilStart <= 30 && minutesUntilStart > 0 && schedule.status === 'scheduled') {
       return { 
         needsAttention: true, 
-        isUrgent: minutesUntilStart <= 15,
+        isUrgent: false, 
         reason: `Starting in ${minutesUntilStart} minutes` 
       };
     }
@@ -201,45 +230,7 @@ export default function FullCalendarView({
     // Check if this appointment needs attention
     const attention = needsAttention(schedule);
     
-    // Determine color based on status and attention needed
-    let statusColor = '';
-    
-    // Enhanced color scheme with better contrast for text readability
-    if (attention.needsAttention) {
-      // Higher saturation for attention states
-      statusColor = attention.isUrgent ? '#d00000' : '#e85d04'; // Deeper red for urgent, stronger orange for warning
-    } else {
-      // Richer, deeper colors for all states to ensure text readability
-      statusColor = schedule.status === 'completed' ? '#2b9348' : // Deeper green 
-                  schedule.status === 'checked-in' ? '#e09f3e' : // Rich amber
-                  schedule.status === 'canceled' ? '#c1121f' : // Deeper red
-                  schedule.status === 'no-show' ? '#495057' : // Darker gray
-                  (isInbound ? '#1a5fb4' : '#0b7285'); // Deeper blue for inbound, teal for outbound
-    }
-    
-    // Date utilities - use effective timezone for display
-    const localStartTime = new Date(schedule.startTime);
-    
-    // Convert to effective timezone for display
-    const effectiveFormatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: effectiveTimezone,
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-    
-    // Still need the original hour/minutes for z-index calculation 
-    const hour = localStartTime.getHours();
-    const mins = localStartTime.getMinutes();
-    
-    // Calculate and store the event hour for z-index calculation
-    const eventHour = hour.toString().padStart(2, '0');
-    const eventMinute = mins.toString().padStart(2, '0');
-    const timeKey = `${eventHour}:${eventMinute}`;
-    
     // Extract facility information
-    // Since facilityId and facilityName may be added at runtime and not part of the Schedule type,
-    // use type assertion to access those properties
     const scheduleCasted = schedule as any;
     const facilityId = scheduleCasted.facilityId;
     let facilityName = scheduleCasted.facilityName || scheduleCasted.locationName || '';
@@ -258,11 +249,9 @@ export default function FullCalendarView({
             typeof customData.facilityInfo === 'object') {
           extractedFacilityName = customData.facilityInfo.facilityName || '';
           extractedFacilityId = customData.facilityInfo.facilityId || null;
-          // Try to get timezone from customFormData
           facilityTimezone = customData.facilityInfo.timezone || null;
         }
       } catch (e) {
-        // Reduced logging for stability
         if (import.meta.env.MODE === 'development') {
           console.error('Error extracting facility info from customFormData', e);
         }
@@ -292,11 +281,43 @@ export default function FullCalendarView({
     if (extractedFacilityId && !facilityTimezone && (window as any).facilityTimezones) {
       facilityTimezone = (window as any).facilityTimezones[extractedFacilityId] || null;
     }
+
+    // NEW: Get facility-based colors instead of status-based colors
+    const facilityColors = getFacilityColor(extractedFacilityId, extractedFacilityName);
+    let backgroundColor = facilityColors.backgroundColor;
+    let borderColor = facilityColors.borderColor;
+    
+    // Override facility colors for urgent attention or completed appointments
+    if (attention.needsAttention) {
+      if (attention.isUrgent) {
+        backgroundColor = '#dc2626'; // Red for urgent
+        borderColor = '#991b1b';
+      } else {
+        backgroundColor = '#f59e0b'; // Amber for attention
+        borderColor = '#d97706';
+      }
+    } else if (schedule.status === 'completed') {
+      backgroundColor = '#16a34a'; // Green for completed
+      borderColor = '#15803d';
+    } else if (schedule.status === 'cancelled') {
+      backgroundColor = '#6b7280'; // Gray for cancelled
+      borderColor = '#4b5563';
+    }
+
+    // Date utilities - use effective timezone for display
+    const localStartTime = new Date(schedule.startTime);
+    
+    // Still need the original hour/minutes for z-index calculation 
+    const hour = localStartTime.getHours();
+    const mins = localStartTime.getMinutes();
+    
+    // Calculate and store the event hour for z-index calculation
+    const eventHour = hour.toString().padStart(2, '0');
+    const eventMinute = mins.toString().padStart(2, '0');
+    const timeKey = `${eventHour}:${eventMinute}`;
     
     // Get customer and location info if available
     const customerName = schedule.customerName || '';
-    // Format dock name from ID if needed
-    const dockInfo = schedule.dockId ? `Dock #${schedule.dockId}` : '';
     
     // ENHANCED: Format a more detailed title with Customer and Facility prominently displayed
     let title = '';
@@ -317,7 +338,6 @@ export default function FullCalendarView({
     }
     
     // Calculate dynamic z-index based on hour - later hours should be higher
-    // This is critical for proper event stacking
     const zIndex = 100 + (hour * 100); // 100-2300 range based on 24 hour time
     
     // Determine additional classes based on attention needed
@@ -334,10 +354,10 @@ export default function FullCalendarView({
       title: title,
       start: easternStartDate,
       end: easternEndDate,
-      backgroundColor: statusColor,
-      borderColor: statusColor,
+      backgroundColor: backgroundColor,
+      borderColor: borderColor,
       textColor: '#FFFFFF',
-      classNames: [`time-${timeKey.replace(':', '-')}`, attentionClass],
+      classNames: [`time-${timeKey.replace(':', '-')}`, attentionClass, `facility-${extractedFacilityId || 'none'}`],
       // The critical part: assign z-index directly to the event
       zIndex: zIndex,
       extendedProps: {
@@ -351,7 +371,7 @@ export default function FullCalendarView({
         // Additional data for improved display
         facilityId: extractedFacilityId,
         facilityName: extractedFacilityName,
-        facilityTimezone: facilityTimezone,  // Include facility timezone when available
+        facilityTimezone: facilityTimezone,
         customerName: schedule.customerName || '',
         carrierName: schedule.carrierName || (schedule as any).carrier || '',
         appointmentType: (schedule as any).appointmentType || '',
@@ -359,7 +379,9 @@ export default function FullCalendarView({
         driverName: schedule.driverName || '',
         needsAttention: attention.needsAttention,
         attentionReason: attention.reason,
-        customFormData: schedule.customFormData // Include full customFormData for advanced lookups
+        customFormData: schedule.customFormData,
+        // Add IN/OUT indicator
+        isInbound: isInbound
       }
     };
   });
@@ -720,6 +742,23 @@ export default function FullCalendarView({
                 
                 return (
                   <div className="fc-event-content-enhanced p-1 overflow-hidden">
+                    {/* IN/OUT indicator and Status */}
+                    <div className="flex items-center gap-1 mb-1">
+                      <span className={`text-xs px-1 py-0.5 rounded-sm font-bold uppercase ${
+                        props.isInbound ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                      }`}>
+                        {props.isInbound ? 'IN' : 'OUT'}
+                      </span>
+                      <span className={`text-xs px-1 py-0.5 rounded-sm font-bold uppercase ${
+                        props.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        props.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
+                        props.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {props.status?.substring(0,3).toUpperCase() || 'SCH'}
+                      </span>
+                    </div>
+                    
                     {/* Customer Name prominently displayed */}
                     <div className="font-semibold text-sm leading-tight mb-1 truncate">
                       {props.customerName || 'Appointment'}
@@ -732,14 +771,21 @@ export default function FullCalendarView({
                       </div>
                     )}
                     
-                    {/* Dock info only (time removed since it's redundant with calendar grid) */}
+                    {/* Dock info */}
                     {props.dockId && (
                       <div className="text-xs opacity-85 leading-tight truncate">
                         Dock #{props.dockId}
                       </div>
                     )}
                     
-                    {/* Status indicator */}
+                    {/* Truck number if available */}
+                    {props.truckNumber && (
+                      <div className="text-xs opacity-85 leading-tight truncate">
+                        🚛 {props.truckNumber}
+                      </div>
+                    )}
+                    
+                    {/* Attention indicator */}
                     {props.needsAttention && (
                       <div className="text-xs font-bold mt-1 truncate">
                         ⚠️ {props.attentionReason}
