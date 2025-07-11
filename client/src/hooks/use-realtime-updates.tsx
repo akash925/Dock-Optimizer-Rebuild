@@ -183,6 +183,24 @@ export function useRealtimeUpdates() {
             // Invalidate custom and standard questions that may be appointment-specific
             queryClient.invalidateQueries({ queryKey: ['/api/custom-questions'] });
             queryClient.invalidateQueries({ queryKey: ['/api/standard-questions'] });
+            
+            // 🔔 RT-1-2: Show toast notification for new appointments
+            const appointmentData = message.data || message.payload;
+            const customerName = appointmentData?.schedule?.customerName || 'Unknown';
+            const appointmentTime = appointmentData?.schedule?.startTime 
+              ? new Date(appointmentData.schedule.startTime).toLocaleString()
+              : 'Unknown time';
+            
+            toast({
+              title: '🚛 New Appointment Created',
+              description: `${customerName} has booked an appointment for ${appointmentTime}`,
+              duration: 5000,
+            });
+            
+            // 🔔 RT-1-2: Update bell badge notification count
+            // Note: The query invalidation above will trigger the notifications query to refetch,
+            // which will update the bell badge count automatically
+            wsDebug.info('New appointment toast notification shown');
             break;
 
           case 'appointment:confirmed':
