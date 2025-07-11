@@ -21,6 +21,7 @@ import {
   uploadAssetPhotoLocal,
   uploadCompressedPhoto,
   getCompressedImage,
+  deleteAssetPhoto,
   // Test endpoints
   testS3Connectivity
 } from "./controllers";
@@ -59,6 +60,7 @@ companyAssetsRouter.post("/:id/photo/presign", isAuthenticated, getPresignAssetP
 companyAssetsRouter.put("/:id/photo", isAuthenticated, updatePhotoKey);
 companyAssetsRouter.post("/:id/photo/local", isAuthenticated, uploadAssetPhotoLocal);
 companyAssetsRouter.put("/:id/compressed-photo", isAuthenticated, uploadCompressedPhoto);
+companyAssetsRouter.delete("/:id/photo", isAuthenticated, deleteAssetPhoto);
 companyAssetsRouter.get("/:id/image", isAuthenticated, getCompressedImage);
 
 // Test endpoints

@@ -3,7 +3,9 @@ import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { UploadCloud, X, Loader2, ImageIcon, CheckCircle, Zap } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { UploadCloud, X, Loader2, ImageIcon, CheckCircle, Zap, Maximize2, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { uploadViaS3Post } from '@/lib/upload/postUpload';
@@ -307,6 +309,45 @@ export default function AssetPhotoDropzone({
     setUploadProgress(0);
   };
 
+  const deletePhoto = async () => {
+    if (!assetId) return;
+    
+    try {
+      // Call API to delete the photo
+      const response = await fetch(`/api/company-assets/${assetId}/photo`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete photo');
+      }
+      
+      // Update local state
+      setPreview(null);
+      setSelectedFile(null);
+      setUploadStage('idle');
+      setUploadProgress(0);
+      
+      // Invalidate queries to refresh data
+      if (tenantId) {
+        queryClient.invalidateQueries({ queryKey: ['companyAssets', tenantId, String(assetId)] });
+        queryClient.invalidateQueries({ queryKey: ['companyAssets', tenantId] });
+      }
+      
+      toast({
+        title: 'Photo deleted',
+        description: 'Asset photo has been removed successfully',
+      });
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+      toast({
+        title: 'Delete failed',
+        description: 'Failed to delete the asset photo',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getUploadStageText = () => {
     switch (uploadStage) {
       case 'presign': return 'Compressing image...';
@@ -322,20 +363,50 @@ export default function AssetPhotoDropzone({
       {preview ? (
         <Card className="relative">
           <div className="aspect-video w-full max-w-md mx-auto p-4">
-            <img
-              src={preview}
-              alt="Asset preview"
-              className="w-full h-full object-contain rounded-lg border"
-            />
-            <Button
-              variant="destructive"
-              size="sm"
-              className="absolute top-2 right-2"
-              onClick={removePhoto}
-              disabled={uploading}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <img
+                  src={preview}
+                  alt="Asset preview"
+                  className="w-full h-full object-contain rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                  title="Click to view full size"
+                />
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl w-full h-[80vh]">
+                <DialogHeader>
+                  <DialogTitle>Asset Image</DialogTitle>
+                </DialogHeader>
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <img
+                    src={preview}
+                    alt="Asset full size"
+                    className="max-w-full max-h-full object-contain rounded-lg"
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            {!uploading && (
+              <div className="absolute top-2 right-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={removePhoto}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Replace Image
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={deletePhoto} className="text-red-600">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Image
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
           {selectedFile && !uploading && (
             <div className="p-4 space-y-2">

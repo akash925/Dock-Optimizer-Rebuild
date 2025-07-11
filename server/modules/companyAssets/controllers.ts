@@ -826,6 +826,60 @@ export const getCompressedImage = async (req: Request, res: Response) => {
 };
 
 /**
+ * Delete asset photo
+ * DELETE /api/company-assets/:id/photo
+ */
+export const deleteAssetPhoto = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid company asset ID' });
+    }
+
+    // Ensure user is authenticated and has tenantId
+    if (!req.user || !(req.user as any)?.tenantId) {
+      return res.status(401).json({ error: 'User must be authenticated with valid organization' });
+    }
+
+    const tenantId = (req.user as any).tenantId;
+
+    // Check if the asset exists and belongs to the user's tenant
+    const existingAsset = await companyAssetsService.getCompanyAssetById(id);
+    if (!existingAsset) {
+      return res.status(404).json({ error: 'Company asset not found' });
+    }
+
+    // TENANT SAFETY: Ensure asset belongs to the user's tenant
+    if (existingAsset.tenantId !== tenantId) {
+      return res.status(403).json({ error: 'Forbidden - Asset does not belong to your organization' });
+    }
+
+    console.log(`[Asset Photo] Deleting photo for asset ${id}`);
+
+    // Update the asset to remove photo data
+    const updatedAsset = await companyAssetsService.updateCompanyAsset(id, { 
+      compressedImage: null,
+      imageMetadata: null,
+      photoUrl: null
+    });
+
+    if (!updatedAsset) {
+      return res.status(500).json({ error: 'Failed to delete asset photo' });
+    }
+
+    console.log(`[Asset Photo] Successfully deleted photo for asset ${id}`);
+
+    return res.json({ 
+      success: true,
+      message: 'Asset photo deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting asset photo:', error);
+    return res.status(500).json({ error: 'Failed to delete asset photo' });
+  }
+};
+
+/**
  * Update company asset status
  */
 export const updateCompanyAssetStatus = async (req: Request, res: Response) => {
