@@ -1,88 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { IStorage } from '../storage';
 import { getStorage } from '../storage';
+import { MockStorage } from './__mocks__/storage';
 
 // Mock the storage module
 vi.mock('../storage', () => ({
-  getStorage: vi.fn().mockResolvedValue({
-    createTenant: vi.fn().mockImplementation(async (data) => ({
-      id: Math.floor(Math.random() * 1000),
-      name: data.name,
-      subdomain: data.subdomain,
-      contactEmail: data.contactEmail,
-      status: 'ACTIVE',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })),
-    createUser: vi.fn().mockImplementation(async (data) => ({
-      id: Math.floor(Math.random() * 1000),
-      username: data.username,
-      email: data.email,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      tenantId: data.tenantId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })),
-    createFacility: vi.fn().mockImplementation(async (data) => ({
-      id: Math.floor(Math.random() * 1000),
-      name: data.name,
-      address1: data.address1,
-      city: data.city,
-      state: data.state,
-      pincode: data.pincode,
-      tenantId: data.tenantId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })),
-    createDock: vi.fn().mockImplementation(async (data) => ({
-      id: Math.floor(Math.random() * 1000),
-      name: data.name,
-      facilityId: data.facilityId,
-      isActive: data.isActive,
-      type: data.type,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })),
-    createSchedule: vi.fn().mockImplementation(async (data) => ({
-      id: Math.floor(Math.random() * 1000),
-      startTime: data.startTime,
-      endTime: data.endTime,
-      status: data.status,
-      dockId: data.dockId,
-      truckNumber: data.truckNumber,
-      createdBy: data.createdBy,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })),
-    createCompanyAsset: vi.fn().mockImplementation(async (data) => ({
-      id: Math.floor(Math.random() * 1000),
-      name: data.name,
-      manufacturer: data.manufacturer,
-      owner: data.owner,
-      category: data.category,
-      tenantId: data.tenantId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })),
-    getSchedules: vi.fn().mockImplementation(async (tenantId) => {
-      if (tenantId === 1) {
-        return [{ id: 1, truckNumber: 'TRUCK-A-001' }];
-      } else if (tenantId === 2) {
-        return [{ id: 2, truckNumber: 'TRUCK-B-001' }];
-      }
-      return [{ id: 1, truckNumber: 'TRUCK-A-001' }, { id: 2, truckNumber: 'TRUCK-B-001' }];
-    }),
-    getCompanyAssets: vi.fn().mockImplementation(async (filters) => {
-      if (filters?.tenantId === 1) {
-        return [{ name: 'Asset A', tenantId: 1 }];
-      } else if (filters?.tenantId === 2) {
-        return [{ name: 'Asset B', tenantId: 2 }];
-      }
-      return [];
-    }),
-    deleteTenant: vi.fn().mockResolvedValue(undefined),
-  }),
+  getStorage: vi.fn().mockResolvedValue(new MockStorage()),
 }));
 
 describe('Tenant Isolation Tests', () => {

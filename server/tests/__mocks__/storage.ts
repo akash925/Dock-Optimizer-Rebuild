@@ -32,6 +32,8 @@ export interface Schedule {
   status: string;
   createdBy: number;
   createdAt: Date;
+  tenantId?: number;
+  dockId?: number;
 }
 
 export interface User {
@@ -43,6 +45,7 @@ export interface User {
   role: string;
   tenantId: number;
   createdAt: Date;
+  password?: string;
 }
 
 export class MockStorage {
@@ -129,10 +132,23 @@ export class MockStorage {
   }
 
   // Schedule management
-  async createSchedule(scheduleData: Omit<Schedule, 'id' | 'createdAt'>): Promise<Schedule> {
+  async createSchedule(scheduleData: any): Promise<Schedule> {
+    // Determine tenantId from dockId if not provided
+    let tenantId = scheduleData.tenantId;
+    if (!tenantId && scheduleData.dockId) {
+      const dock = this.docks.get(scheduleData.dockId);
+      if (dock) {
+        const facility = this.facilities.get(dock.facilityId);
+        if (facility) {
+          tenantId = facility.tenantId;
+        }
+      }
+    }
+
     const schedule: Schedule = {
       id: this.nextScheduleId++,
       ...scheduleData,
+      tenantId,
       createdAt: new Date(),
     };
     this.schedules.set(schedule.id, schedule);
@@ -189,7 +205,7 @@ export class MockStorage {
   }
 
   // User management
-  async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+  async createUser(userData: any): Promise<User> {
     const user: User = {
       id: this.nextUserId++,
       ...userData,
@@ -250,6 +266,7 @@ export class MockStorage {
     const dock = {
       id: Math.floor(Math.random() * 1000),
       ...dockData,
+      createdAt: new Date(),
     };
     this.docks.set(dock.id, dock);
     return dock;

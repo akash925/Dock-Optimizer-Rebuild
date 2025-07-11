@@ -20,7 +20,7 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        ecmaVersion: 'latest',
+        ecmaVersion: 2020,
         sourceType: 'module',
         ecmaFeatures: { jsx: true },
       },
@@ -31,6 +31,7 @@ export default [
         ...globals.browser,
         ...globals.node,
         ...globals.jest,
+        ...globals.es2020,
 
         /* extras you referenced explicitly */
         URLSearchParams: 'readonly',
@@ -51,6 +52,7 @@ export default [
         Image:            'readonly',
         navigator:        'readonly',
         btoa:             'readonly',
+        JSX:              'readonly',
       },
     },
 
@@ -72,11 +74,18 @@ export default [
       ],
 
       // TypeScript-specific tweaks
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
 
       // Soften a few noisy JS rules during migration
-      'no-unused-vars':        'warn',
+      'no-unused-vars': 'off', // Use TypeScript version instead
       'no-redeclare':          'warn',
       'no-dupe-class-members': 'warn',
       'no-useless-escape':     'warn',
@@ -86,11 +95,14 @@ export default [
   // 3) Server-only overrides (allow unrestricted `process`, etc.)
   {
     files: [
-      'server/**/*.{js,mjs,cjs,ts,tsx}',
-      'scripts/**/*.{js,mjs,cjs,ts,tsx}',
-      'vite.config.ts',
-      'drizzle.config.ts',
-      '*.config.{js,mjs,cjs,ts}',
+      'server/**/*',
+      'scripts/**/*',
+      'tools/**/*',
+      'vitest.setup.ts',
+      'vitest.config.ts',
+      'cypress.config.ts',
+      '**/*.config.*',
+      '**/*.setup.*',
     ],
 
     languageOptions: {
@@ -102,7 +114,16 @@ export default [
     },
 
     rules: {
-      'no-restricted-globals': 'off', // "process" is fine on the server
+      'no-restricted-globals': 'off', // Allow process.env in server code
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
 

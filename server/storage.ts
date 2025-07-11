@@ -1257,8 +1257,44 @@ export class DatabaseStorage implements IStorage {
     return this.getFacility(id, tenantId);
   }
   
-  async createCompanyAsset(asset: any) { return this.memStorage.createCompanyAsset(asset); }
-  async updateCompanyAsset(id: number, data: any) { return this.memStorage.updateCompanyAsset(id, data); }
+  async createCompanyAsset(companyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
+    try {
+      console.log('DEBUG: [DatabaseStorage] createCompanyAsset called with:', companyAsset);
+      const [newAsset] = await db.insert(companyAssets).values(companyAsset).returning();
+      console.log('DEBUG: [DatabaseStorage] createCompanyAsset created asset with id:', newAsset.id);
+      return newAsset;
+    } catch (error) {
+      console.error('Error creating company asset:', error);
+      throw error;
+    }
+  }
+  
+  async updateCompanyAsset(id: number, companyAssetUpdate: UpdateCompanyAsset): Promise<CompanyAsset | undefined> {
+    try {
+      console.log('DEBUG: [DatabaseStorage] updateCompanyAsset called with id:', id, 'data:', companyAssetUpdate);
+      const [updatedAsset] = await db.update(companyAssets)
+        .set({ ...companyAssetUpdate, updatedAt: new Date() })
+        .where(eq(companyAssets.id, id))
+        .returning();
+      console.log('DEBUG: [DatabaseStorage] updateCompanyAsset updated asset:', updatedAsset ? 'success' : 'not found');
+      return updatedAsset;
+    } catch (error) {
+      console.error('Error updating company asset:', error);
+      throw error;
+    }
+  }
+
+  async findCompanyAssetByBarcode(barcode: string): Promise<CompanyAsset | undefined> {
+    try {
+      console.log('DEBUG: [DatabaseStorage] findCompanyAssetByBarcode called with barcode:', barcode);
+      const [asset] = await db.select().from(companyAssets).where(eq(companyAssets.barcode, barcode)).limit(1);
+      console.log('DEBUG: [DatabaseStorage] findCompanyAssetByBarcode result:', asset ? 'found' : 'not found');
+      return asset;
+    } catch (error) {
+      console.error('Error finding company asset by barcode:', error);
+      return undefined;
+    }
+  }
 
   // Add missing interface methods - getUser is implemented with getUserById below
   // updateUserPassword is implemented below with proper database queries

@@ -104,6 +104,15 @@ app.use((req, res, next) => {
     console.error('❌ Failed to initialize WebSocket:', error);
   }
 
+  // Register booking pages logo endpoint (public API)
+  try {
+    const { registerBookingPagesLogoEndpoint } = await import('./endpoints/booking-pages-logo');
+    registerBookingPagesLogoEndpoint(app);
+    console.log('✅ Booking pages logo endpoint registered successfully');
+  } catch (error) {
+    console.error('❌ Failed to register booking pages logo endpoint:', error);
+  }
+
   // NOW ADD CRITICAL API ROUTES AFTER AUTHENTICATION IS SET UP
   
   // Users API - Required for user management components
