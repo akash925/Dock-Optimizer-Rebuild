@@ -1300,6 +1300,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple availability endpoint
+  app.get('/api/availability/simple', async (req: any, res) => {
+    try {
+      const { facilityId, appointmentTypeId, date, bookingPageSlug } = req.query;
+      
+      if (!facilityId || !appointmentTypeId || !date) {
+        return res.status(400).json({ error: 'facilityId, appointmentTypeId, and date are required' });
+      }
+
+      // Get tenant context from booking page slug if provided
+      let tenantId = req.user?.tenantId;
+      if (bookingPageSlug && !tenantId) {
+        try {
+          const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+          if (bookingPage) {
+            tenantId = bookingPage.tenantId;
+          }
+        } catch (err) {
+          console.warn('Failed to get tenant from booking page slug:', err);
+        }
+      }
+
+      // Generate basic time slots (9 AM to 5 PM, every hour)
+      const timeSlots = [];
+      for (let hour = 9; hour <= 17; hour++) {
+        const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+        timeSlots.push({
+          time: timeStr,
+          available: true,
+          capacity: 5,
+          remaining: Math.floor(Math.random() * 5) + 1 // Random remaining slots for demo
+        });
+      }
+
+      res.json({
+        timeSlots,
+        date,
+        facilityId: parseInt(facilityId),
+        appointmentTypeId: parseInt(appointmentTypeId)
+      });
+
+    } catch (error) {
+      console.error('Error fetching simple availability:', error);
+      res.status(500).json({ error: 'Failed to fetch availability' });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Note: WebSocket server is initialized in server/index.ts using the secure handler

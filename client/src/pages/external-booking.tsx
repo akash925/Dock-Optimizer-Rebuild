@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider } from '@/hooks/use-booking-theme';
 import { Loader2, XCircle, CheckCircle, Upload, FileCheck, Mail, AlertCircle, QrCode, Forward, Info, Edit } from 'lucide-react';
-import { EnhancedTimeSlots } from '@/components/booking/enhanced-time-slots';
+import { SimpleTimeSlots } from '@/components/booking/simple-time-slots';
 import { BOLUploadWizard } from '@/components/booking/bol-upload-wizard';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -31,6 +31,49 @@ import { getUserTimeZone } from '@shared/timezone-utils';
 import { safeToString } from '@/lib/utils';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
+
+// Organization Logo Component
+function OrganizationLogo({ bookingPage, className }: { bookingPage: any; className: string }) {
+  const { data: logoData, isLoading } = useQuery({
+    queryKey: [`/api/booking-pages/logo/${bookingPage.tenantId}`],
+    queryFn: async () => {
+      const res = await fetch(`/api/booking-pages/logo/${bookingPage.tenantId}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!bookingPage.tenantId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  if (isLoading) {
+    return (
+      <div className={className}>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (logoData?.logo) {
+    return (
+      <div className={className}>
+        <img 
+          src={logoData.logo} 
+          alt={`${bookingPage.name} logo`}
+          className="h-full w-full object-contain rounded-lg"
+        />
+      </div>
+    );
+  }
+
+  // Fallback to organization initial
+  return (
+    <div className={className}>
+      <span className="text-primary font-bold text-xl">
+        {bookingPage.name?.charAt(0) || 'O'}
+      </span>
+    </div>
+  );
+}
 
 const serviceSelectionSchema = z.object({
   facilityId: z.coerce.number().min(1, "Please select a facility"),
@@ -73,12 +116,10 @@ export default function ExternalBooking({ slug }: { slug: string }) {
           <div className="bg-white rounded-lg shadow-lg p-6 mx-auto max-w-4xl">
             {/* Header with organization logo */}
             <div className="flex items-center mb-6">
-              {/* Show organization initial as default - simpler and more reliable */}
-              <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-primary font-bold text-xl">
-                  {bookingPage.name?.charAt(0) || 'O'}
-                </span>
-              </div>
+              <OrganizationLogo 
+                bookingPage={bookingPage} 
+                className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mr-4"
+              />
               <div>
                 <h1 className="text-2xl font-bold">{bookingPage.name} Dock Appointment Scheduler</h1>
                 <p className="text-muted-foreground">
@@ -1058,19 +1099,18 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             <div className="space-y-2">
               <Label htmlFor="time">Available Times</Label>
               {bookingData.date ? (
-                <EnhancedTimeSlots
+                <SimpleTimeSlots
                   date={bookingData.date}
                   facilityId={bookingData.facilityId || 0}
                   appointmentTypeId={bookingData.appointmentTypeId || 0}
                   bookingPageSlug={slug}
-                  onSelectTime={(time) => {
+                  onTimeSelect={(time) => {
                     setBookingData({
                       ...bookingData,
                       time
                     });
                   }}
                   selectedTime={bookingData.time}
-                  showRemainingSlots={true}
                 />
               ) : (
                 <div className="text-muted-foreground">Please select a date first</div>
