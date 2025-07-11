@@ -9,6 +9,8 @@
     "dev:server": "tsx -r dotenv/config server/index.ts",
     "dev:client": "vite",
     "dev": "concurrently -k -n server,client -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "server": "tsx -r dotenv/config server/index.ts",
+    "client": "vite",
     "dev:prod": "NODE_ENV=production doppler run -- tsx server/index.ts",
     "production": "bash scripts/production-replit.sh",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
