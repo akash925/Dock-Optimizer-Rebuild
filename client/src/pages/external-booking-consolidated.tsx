@@ -16,7 +16,52 @@ import { format, addDays, startOfDay, isAfter } from 'date-fns';
 import { getUserTimeZone } from '@shared/timezone-utils';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
+import { SimpleTimeSlots } from '@/components/booking/simple-time-slots';
+import { BOLUploadWizard } from '@/components/booking/bol-upload-wizard';
 import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
+
+// Organization Logo Component
+function OrganizationLogo({ bookingPage, className }: { bookingPage: any; className: string }) {
+  const { data: logoData, isLoading } = useQuery({
+    queryKey: [`/api/booking-pages/logo/${bookingPage.tenantId}`],
+    queryFn: async () => {
+      const res = await fetch(`/api/booking-pages/logo/${bookingPage.tenantId}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!bookingPage.tenantId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  if (isLoading) {
+    return (
+      <div className={className}>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (logoData?.logo) {
+    return (
+      <div className={className}>
+        <img 
+          src={logoData.logo} 
+          alt={`${bookingPage.name} logo`}
+          className="h-full w-full object-contain rounded-lg"
+        />
+      </div>
+    );
+  }
+
+  // Fallback to organization initial
+  return (
+    <div className={className}>
+      <span className="text-primary font-bold text-xl">
+        {bookingPage.name?.charAt(0) || 'O'}
+      </span>
+    </div>
+  );
+}
 
 interface BookingData {
   facilityId?: number;
@@ -87,11 +132,10 @@ export default function ExternalBookingConsolidated({ slug }: { slug: string }) 
           <div className="bg-white rounded-lg shadow-lg p-6 mx-auto max-w-4xl">
             {/* Header with organization logo */}
             <div className="flex items-center mb-6">
-              <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-primary font-bold text-xl">
-                  {bookingPage.name?.charAt(0) || 'O'}
-                </span>
-              </div>
+              <OrganizationLogo 
+                bookingPage={bookingPage} 
+                className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mr-4"
+              />
               <div>
                 <h1 className="text-2xl font-bold">{bookingPage.name} Dock Appointment Scheduler</h1>
                 <p className="text-muted-foreground">
@@ -132,8 +176,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   });
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
   const [bookingDetails, setBookingDetails] = useState<BookingDetails>({});
-  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
-  const [isLoadingTimes, setIsLoadingTimes] = useState(false);
+  // Remove unused state - SimpleTimeSlots handles this internally
 
   // Form setup for standard questions
   const bookingFormSchema = z.object({
@@ -448,28 +491,14 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
               {bookingData.date && (
                 <div className="space-y-2">
                   <Label htmlFor="time">Time</Label>
-                  {isLoadingTimes ? (
-                    <div className="flex justify-center py-4">
-                      <Loader2 className="animate-spin h-6 w-6" />
-                    </div>
-                  ) : availableTimes.length > 0 ? (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                      {availableTimes.map((time) => (
-                        <Button
-                          key={time}
-                          variant={bookingData.time === time ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setBookingData(prev => ({ ...prev, time }))}
-                        >
-                          {time}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-4">
-                      No available times for this date
-                    </p>
-                  )}
+                  <SimpleTimeSlots
+                    date={bookingData.date}
+                    facilityId={bookingData.facilityId || 0}
+                    appointmentTypeId={bookingData.appointmentTypeId || 0}
+                    bookingPageSlug={slug}
+                    onTimeSelect={(time) => setBookingData(prev => ({ ...prev, time }))}
+                    selectedTime={bookingData.time}
+                  />
                 </div>
               )}
             </div>
