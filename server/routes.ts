@@ -1300,7 +1300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple availability endpoint
+  // Simple availability endpoint - uses real availability calculation
   app.get('/api/availability/simple', async (req: any, res) => {
     try {
       const { facilityId, appointmentTypeId, date, bookingPageSlug } = req.query;
@@ -1309,36 +1309,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'facilityId, appointmentTypeId, and date are required' });
       }
 
-      // Get tenant context from booking page slug if provided
-      let tenantId = req.user?.tenantId;
-      if (bookingPageSlug && !tenantId) {
-        try {
-          const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
-          if (bookingPage) {
-            tenantId = bookingPage.tenantId;
-          }
-        } catch (err) {
-          console.warn('Failed to get tenant from booking page slug:', err);
+      // Get tenant ID for tenant isolation - NO DEFAULTS for security
+      let effectiveTenantId: number | null = null;
+      
+      if (req.isAuthenticated?.() && req.user?.tenantId) {
+        effectiveTenantId = req.user.tenantId;
+      } else if (bookingPageSlug && typeof bookingPageSlug === 'string') {
+        // For external booking pages, get tenant ID from booking page
+        const bookingPage = await storage.getBookingPageBySlug(bookingPageSlug);
+        if (bookingPage?.tenantId) {
+          effectiveTenantId = bookingPage.tenantId;
         }
       }
 
-      // Generate basic time slots (9 AM to 5 PM, every hour)
-      const timeSlots = [];
-      for (let hour = 9; hour <= 17; hour++) {
-        const timeStr = `${hour.toString().padStart(2, '0')}:00`;
-        timeSlots.push({
-          time: timeStr,
-          available: true,
-          capacity: 5,
-          remaining: Math.floor(Math.random() * 5) + 1 // Random remaining slots for demo
+      // CRITICAL: Reject requests without proper tenant context
+      if (!effectiveTenantId) {
+        return res.status(401).json({ 
+          error: 'Tenant context required. Please log in or provide valid booking page context.' 
         });
       }
 
+      console.log(`[AvailabilityAPI-Simple] Processing request: date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${effectiveTenantId}`);
+
+      // Use the real availability calculation system
+      const slots = await calculateAvailabilitySlots(
+        db as any, // Type assertion for database compatibility  
+        storage,
+        date as string,
+        parseInt(facilityId as string),
+        parseInt(appointmentTypeId as string),
+        effectiveTenantId
+      );
+
+      // Convert to simple format
+      const timeSlots = slots.map(slot => ({
+        time: slot.time,
+        available: slot.available,
+        capacity: slot.capacity || 1,
+        remaining: slot.remainingCapacity || (slot.available ? 1 : 0)
+      }));
+
+      console.log(`[AvailabilityAPI-Simple] Returning ${timeSlots.length} time slots (${timeSlots.filter(s => s.available).length} available)`);
+      
       res.json({
         timeSlots,
         date,
-        facilityId: parseInt(facilityId),
-        appointmentTypeId: parseInt(appointmentTypeId)
+        facilityId: parseInt(facilityId as string),
+        appointmentTypeId: parseInt(appointmentTypeId as string)
       });
 
     } catch (error) {
