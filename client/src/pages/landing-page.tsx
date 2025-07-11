@@ -140,28 +140,29 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      {/* Header - Enhanced with better styling */}
+      <header className="bg-white/95 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-20">
             <div className="flex items-center">
               <img 
                 src={dockOptimizerLogo} 
                 alt="Dock Optimizer" 
-                className="h-10 w-auto"
+                className="h-12 w-auto"
               />
+              <span className="ml-3 text-2xl font-bold text-gray-900">Dock Optimizer</span>
             </div>
             <nav className="hidden md:flex space-x-8">
-              <a href="#why-dock-optimizer" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">Why Dock Optimizer</a>
-              <a href="#benefits" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">Benefits</a>
-              <a href="#features" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">Features</a>
-              <a href="#testimonials" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">Testimonials</a>
+              <a href="#why-dock-optimizer" className="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors">Why Dock Optimizer</a>
+              <a href="#benefits" className="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors">Our Benefits</a>
+              <a href="#features" className="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors">Features</a>
+              <a href="#testimonials" className="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors">Testimonials</a>
             </nav>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={handleLogin}>
+              <Button variant="ghost" onClick={handleLogin} className="font-semibold">
                 Login
               </Button>
-              <Button onClick={handleSignUp}>
+              <Button onClick={handleSignUp} className="bg-blue-600 hover:bg-blue-700 font-semibold shadow-lg">
                 Sign Up
               </Button>
             </div>
@@ -169,34 +170,57 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      {/* Hero Section - Enhanced with better design */}
+      <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Effortless Scheduling for Superior Supply Chain Management
+            <div className="mb-8">
+              <Badge className="bg-blue-500/20 text-blue-100 border-blue-400/30 mb-6">
+                Trusted by 50+ Warehouses
+              </Badge>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-extrabold mb-8 tracking-tight">
+              Effortless <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">Scheduling</span> for
+              <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-300 to-blue-200">Superior</span> Supply Chain Management
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl mb-12 max-w-4xl mx-auto text-blue-100 leading-relaxed">
               Take control of your warehouse schedule and streamline your dock scheduling with Dock Optimizer.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
               <Button 
                 size="lg" 
-                className="bg-white text-blue-600 hover:bg-gray-100"
+                className="bg-white text-blue-600 hover:bg-blue-50 font-bold text-lg px-8 py-4 rounded-xl shadow-2xl transform hover:scale-105 transition-all"
                 onClick={handleBookDemo}
               >
-                <PlayCircleIcon className="mr-2 h-5 w-5" />
+                <PlayCircleIcon className="mr-3 h-6 w-6" />
                 Book a Demo
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="border-white text-white hover:bg-white hover:text-blue-600"
+                className="border-2 border-white text-white hover:bg-white hover:text-blue-600 font-bold text-lg px-8 py-4 rounded-xl backdrop-blur-sm transform hover:scale-105 transition-all"
                 onClick={handleSignUp}
               >
                 Get Started Free
-                <ArrowRightIcon className="ml-2 h-5 w-5" />
+                <ArrowRightIcon className="ml-3 h-6 w-6" />
               </Button>
+            </div>
+            
+            {/* Trust indicators */}
+            <div className="mt-16 flex flex-col items-center">
+              <p className="text-blue-200 text-sm mb-4">Trusted by industry leaders</p>
+              <div className="flex items-center space-x-8 opacity-70">
+                <span className="text-2xl font-bold">1M+</span>
+                <span className="text-sm">Loads Scheduled</span>
+                <span className="text-2xl font-bold">50+</span>
+                <span className="text-sm">Warehouses</span>
+                <span className="text-2xl font-bold">20%</span>
+                <span className="text-sm">Average Savings</span>
+              </div>
             </div>
           </div>
         </div>

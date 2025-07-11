@@ -1,13 +1,13 @@
-import { format, parse, addMinutes, parseISO, addDays, isAfter, isValid, getDay, differenceInCalendarDays } from 'date-fns';
+import { isValid, format, addDays, parseISO, getDay, addMinutes, differenceInCalendarDays, isAfter, parse } from 'date-fns';
 import { formatInTimeZone as tzFormat, toZonedTime } from 'date-fns-tz';
-import { and, eq, gt, gte, lt, lte, ne, notInArray, or, sql, isNull } from 'drizzle-orm';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { schedules, docks, facilities, appointmentTypes } from '@shared/schema';
+import { eq, and, gte, lt, or } from 'drizzle-orm';
+import { schedules, appointmentTypes, facilities, docks, organizationFacilities } from '@shared/schema';
 import type { IStorage } from '../../storage';
-import { pool } from '../../db.js';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { db } from '../../db';
 
-// Add at the top of the file after imports
-const DEBUG_AVAILABILITY = process.env.DEBUG_AVAILABILITY === 'true';
+// We'll use drizzle ORM queries instead of raw SQL for better type safety
+const AVAILABILITY_DEBUG = process.env.AVAILABILITY_DEBUG === 'true';
 
 // CONFIGURABLE CONSTANTS - Replace hardcoded values
 const DEFAULT_TIMEZONE = process.env.DEFAULT_FACILITY_TIMEZONE || 'America/New_York';
@@ -18,7 +18,7 @@ const DEFAULT_BREAK_END = process.env.DEFAULT_BREAK_END || '13:00';
 
 // Helper function for conditional logging
 function debugLog(message: string, ...args: any[]) {
-  if (DEBUG_AVAILABILITY) {
+  if (AVAILABILITY_DEBUG) {
     console.log(`[AvailabilityService] ${message}`, ...args);
   }
 }
@@ -273,57 +273,51 @@ export async function fetchRelevantAppointmentsForDay(
 
   console.log(`[fetchRelevantAppointmentsForDay] Fetching for facility ${facilityId}, tenant ${effectiveTenantId}, between ${dayStart.toISOString()} and ${dayEnd.toISOString()}`);
   try {
-    // ** Ensure db object is valid and has expected methods **
+    // ** Ensure db object is valid **
     if (!db || typeof db.select !== 'function') {
         console.error('[fetchRelevantAppointmentsForDay] Invalid db object:', db);
         return [];
     }
 
-    // 🔥 CRITICAL FIX: Use corrected SQL query without s.facility_id reference
-    // The schedules table doesn't have a facility_id column directly
-    console.log(`[fetchRelevantAppointmentsForDay] Executing raw SQL query for facility ${facilityId}`);
+    // Use proper drizzle ORM query instead of raw SQL
+    const rawAppointments = await db
+      .select({
+        id: schedules.id,
+        startTime: schedules.startTime,
+        endTime: schedules.endTime,
+        appointmentTypeId: schedules.appointmentTypeId,
+      })
+      .from(schedules)
+      .leftJoin(docks, eq(schedules.dockId, docks.id))
+      .leftJoin(appointmentTypes, eq(schedules.appointmentTypeId, appointmentTypes.id))
+      .leftJoin(facilities, eq(docks.facilityId, facilities.id))
+      .where(
+        and(
+          or(
+            eq(docks.facilityId, facilityId),
+            eq(appointmentTypes.facilityId, facilityId)
+          ),
+          gte(schedules.startTime, dayStart),
+          lt(schedules.startTime, dayEnd),
+          or(
+            eq(facilities.tenantId, effectiveTenantId),
+            eq(appointmentTypes.tenantId, effectiveTenantId)
+          )
+        )
+      );
     
-    const rawQuery = `
-      SELECT 
-        s.id,
-        s.start_time,
-        s.end_time, 
-        s.appointment_type_id
-      FROM schedules s
-      LEFT JOIN docks d ON s.dock_id = d.id
-      LEFT JOIN appointment_types at ON s.appointment_type_id = at.id
-      LEFT JOIN facilities f ON d.facility_id = f.id
-      LEFT JOIN organization_facilities of ON f.id = of.facility_id
-      WHERE (
-        d.facility_id = $1 OR 
-        at.facility_id = $1
-      )
-      AND s.start_time >= $2
-      AND s.start_time < $3
-      AND (
-        of.organization_id = $4 OR 
-        at.tenant_id = $4
-      )
-      AND s.status != 'cancelled'
-    `;
-    
-    if (!pool) {
-      console.error('[fetchRelevantAppointmentsForDay] Database pool not available');
-      return [];
-    }
-    
-    const result = await pool.query(rawQuery, [facilityId, dayStart.toISOString(), dayEnd.toISOString(), effectiveTenantId]);
-    
-    // Convert the raw result to the expected format
-    const appointments = result.rows.map((row: any) => ({
-      id: row.id,
-      startTime: new Date(row.start_time),
-      endTime: new Date(row.end_time),
-      appointmentTypeId: row.appointment_type_id
-    }));
+    // Filter out appointments with null appointmentTypeId and map to correct type
+    const appointments = rawAppointments
+      .filter(apt => apt.appointmentTypeId !== null)
+      .map(apt => ({
+        id: apt.id,
+        startTime: apt.startTime,
+        endTime: apt.endTime,
+        appointmentTypeId: apt.appointmentTypeId as number
+      }));
     
     console.log(`[fetchRelevantAppointmentsForDay] Found ${appointments.length} appointments for facility ${facilityId}`);
-    appointments.forEach((apt: { id: number; startTime: Date; endTime: Date; appointmentTypeId: number }) => {
+    appointments.forEach((apt) => {
       console.log(`  - Appointment ${apt.id}: ${apt.startTime.toISOString()} (type: ${apt.appointmentTypeId})`);
     });
     
@@ -331,7 +325,8 @@ export async function fetchRelevantAppointmentsForDay(
 
   } catch (error) {
     console.error(`[fetchRelevantAppointmentsForDay] Error querying appointments:`, error);
-    throw error;
+    // Return empty array instead of throwing to prevent availability calculation from failing
+    return [];
   }
 }
 

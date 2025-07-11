@@ -144,8 +144,54 @@ export default function ScheduleWeekCalendar({
     }
   };
   
+  // Function to calculate the top position of a schedule in the grid
+  const getScheduleTopPosition = (schedule: Schedule, hours: { value: number; display: string }[]) => {
+    const startHour = new Date(schedule.startTime).getHours();
+    const startMinute = new Date(schedule.startTime).getMinutes();
+    const endHour = new Date(schedule.endTime).getHours();
+    const endMinute = new Date(schedule.endTime).getMinutes();
 
-  
+    // Round startMinute to nearest 15-min slot (0, 15, 30, 45)
+    const roundedStartMinute = Math.floor(startMinute / 15) * 15;
+
+    // For end time, round up to nearest 15-min slot
+    const roundedEndMinute = Math.ceil(endMinute / 15) * 15;
+
+    // Calculate position relative to hours (starting from 12am)
+    const hourOffset = startHour; // Hours since 12am
+    const minuteOffset = roundedStartMinute / 60; // Percentage of hour
+
+    // Calculate position
+    const topPosition = (hourOffset + minuteOffset) * 50; // Each hour is 50px
+    return topPosition;
+  };
+
+  // Function to calculate the height of a schedule in the grid
+  const getScheduleHeight = (schedule: Schedule, hours: { value: number; display: string }[]) => {
+    const startHour = new Date(schedule.startTime).getHours();
+    const startMinute = new Date(schedule.startTime).getMinutes();
+    const endHour = new Date(schedule.endTime).getHours();
+    const endMinute = new Date(schedule.endTime).getMinutes();
+
+    // Round startMinute to nearest 15-min slot (0, 15, 30, 45)
+    const roundedStartMinute = Math.floor(startMinute / 15) * 15;
+
+    // For end time, round up to nearest 15-min slot
+    const roundedEndMinute = Math.ceil(endMinute / 15) * 15;
+
+    // Calculate duration in hours
+    const durationHours = Math.max(0.5, (endHour - startHour) + ((roundedEndMinute - roundedStartMinute) / 60));
+    const baseHeight = Math.max(25, durationHours * 50); // Each hour is 50px, min height 25px
+
+    // Calculate dynamic height based on customer name length to ensure text is visible
+    const customerNameLength = (schedule.customerName || "").length;
+    const nameBasedHeight = customerNameLength > 20 ? 75 : customerNameLength > 15 ? 65 : 55;
+
+    // Final height is the maximum of duration-based height and name-based height
+    const height = Math.max(baseHeight, nameBasedHeight);
+    return height;
+  };
+
   // Move to previous/next week with loading indicators
   const goToPreviousWeek = () => {
     setIsLoading(true);
@@ -389,342 +435,161 @@ export default function ScheduleWeekCalendar({
 
       {/* View mode buttons removed - now using view switcher in the header */}
       
-      {/* Week Calendar Grid - With sticky headers - Improved spacing */}
-      <div className="border rounded relative">
+      {/* Week Calendar Grid - With sticky headers - Fixed responsive layout */}
+      <div className="border rounded relative overflow-x-auto">
         {/* Sticky day headers */}
         <div 
           ref={dayHeadersRef}
-          className="grid grid-cols-8 min-w-max sticky top-0 z-20 shadow-sm" 
-          style={{ width: '100%' }}
+          className="grid grid-cols-8 sticky top-0 z-20 shadow-sm bg-white min-w-full" 
+          style={{ minWidth: '800px' }}
         >
           {/* Empty top-left cell */}
-          <div className="border-b border-r h-10 w-16 bg-gray-50"></div>
+          <div className="border-b border-r h-10 w-20 bg-gray-50 flex-shrink-0"></div>
           
-          {/* Day headers - Improved sizing with no gaps */}
-          {weekDays.map((day, i) => (
-            <div 
-              key={i} 
-              className={cn(
-                "border-b border-r h-10 px-0 w-[calc((100%-4rem)/7)] min-w-[6rem] text-center flex flex-col justify-center",
-                day.getDate() === new Date().getDate() && 
-                day.getMonth() === new Date().getMonth() && 
-                day.getFullYear() === new Date().getFullYear() 
-                  ? "bg-blue-50" 
-                  : "bg-gray-50"
-              )}
-              style={{ padding: '0', margin: '0' }}
-            >
-              <div className="font-medium text-sm">{format(day, 'EEE M/d')}</div>
-            </div>
-          ))}
-        </div>
-        
-        <div className="flex">
-          {/* Sticky time labels */}
-          <div 
-            ref={timeHeadersRef}
-            className="w-16 flex-shrink-0 overflow-hidden z-10"
-            style={{ height: 'calc(100vh - 210px)' }}
-          >
-            {hours.map((hour, i) => (
+          {/* Day headers - Fixed width for consistency */}
+          {weekDays.map((day, i) => {
+            const isToday = day.getDate() === new Date().getDate() && 
+                           day.getMonth() === new Date().getMonth() && 
+                           day.getFullYear() === new Date().getFullYear();
+            
+            return (
               <div 
                 key={i} 
-                className="border-b border-r py-1 px-1 w-16 text-xs text-gray-500 h-[50px] bg-gray-50 flex items-center justify-center"
+                className={cn(
+                  "border-b border-r h-10 text-center flex flex-col justify-center",
+                  "min-w-24 flex-1", // Fixed minimum width
+                  isToday && "bg-primary/5 text-primary font-medium"
+                )}
               >
-                {hour.display}
+                <div className="text-xs font-medium">{format(day, 'EEE')}</div>
+                <div className="text-xs text-muted-foreground">{format(day, 'M/d')}</div>
               </div>
+            );
+          })}
+        </div>
+        
+        {/* Time slots and appointments - Fixed responsive grid */}
+        <div className="relative" style={{ minWidth: '800px' }}>
+          {/* Time Grid Background */}
+          <div 
+            className="grid grid-cols-8 absolute inset-0 z-0"
+            style={{
+              gridTemplateRows: `repeat(${hours.length}, 1fr)`,
+              height: `${hours.length * 50}px`
+            }}
+          >
+            {/* Generate grid cells */}
+            {hours.map((hour, hourIndex) => (
+              <React.Fragment key={hourIndex}>
+                {/* Time label cell */}
+                <div 
+                  className="border-b border-r text-xs text-muted-foreground bg-gray-50 p-2 flex items-center justify-center"
+                  style={{ height: '50px' }}
+                >
+                  {hour.display}
+                </div>
+                
+                {/* Day cells */}
+                {weekDays.map((day, dayIndex) => (
+                  <div 
+                    key={`${hourIndex}-${dayIndex}`}
+                    className={cn(
+                      "border-b border-r relative cursor-pointer hover:bg-gray-50 transition-colors",
+                      "min-w-24" // Fixed minimum width
+                    )}
+                    style={{ height: '50px' }}
+                    onClick={() => {
+                      if (onCellClick) {
+                        const cellDate = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+                        cellDate.setHours(hour.value);
+                        cellDate.setMinutes(0);
+                        onCellClick(cellDate, undefined);
+                      }
+                    }}
+                  >
+                    {/* Empty slot - can be clicked to create new appointment */}
+                  </div>
+                ))}
+              </React.Fragment>
             ))}
           </div>
           
-          {/* Main calendar grid */}
+          {/* Appointment overlays */}
           <div 
-            ref={calendarGridRef}
-            className="overflow-auto relative flex-grow"
-            style={{ height: 'clamp(300px, calc(100vh - 210px), 700px)' }}
+            className="relative z-10"
+            style={{ 
+              height: `${hours.length * 50}px`,
+              minWidth: '800px'
+            }}
           >
-            <div 
-              ref={calendarContentRef}
-              className="grid grid-cols-7 min-w-max w-full relative"
-            >
-              {/* Day columns with cells */}
-              {weekDays.map((day, dayIndex) => (
-                <div key={dayIndex} className="contents">
-                  {hours.map((hour, hourIndex) => {
-                    // Create date object for the current cell (day + time)
-                    // Create a fresh copy of the date to prevent any reference issues
-                    const cellDate = new Date(day.getFullYear(), day.getMonth(), day.getDate());
-                    cellDate.setHours(hour.value);
-                    cellDate.setMinutes(0);
-                    
-                    // Verify that this is a valid date object
-                    if (isNaN(cellDate.getTime())) {
-                      console.error("Invalid cellDate created:", { day, hour });
-                    }
-
-                    return (
-                      <div 
-                        key={`${dayIndex}-${hourIndex}`} 
-                        className={cn(
-                          "border-b border-r w-full min-w-[6rem] h-[50px] relative cursor-pointer hover:bg-gray-100 transition-colors",
-                          day.getDate() === new Date().getDate() && 
-                          day.getMonth() === new Date().getMonth() && 
-                          day.getFullYear() === new Date().getFullYear() 
-                            ? "bg-blue-50/30" 
-                            : hour.value % 2 === 0 ? "bg-gray-50/30" : ""
-                        )}
-                        onClick={() => {
-                          if (onCellClick) {
-                            // Set time to noon to prevent timezone date shifts
-                            const noonDate = new Date(cellDate);
-                            noonDate.setHours(12, 0, 0, 0);
-                            onCellClick(noonDate, undefined);
-                          }
-                        }}
-                      ></div>
-                    );
-                  })}
-                </div>
-              ))}
+            {weekSchedules.map(schedule => {
+              const dayIndex = getScheduleDayIndex(schedule);
+              if (dayIndex === -1) return null;
               
-              {/* Current time indicator - only show for today's date */}
-              {weekDays.some(day => 
-                day.getDate() === new Date().getDate() && 
-                day.getMonth() === new Date().getMonth() && 
-                day.getFullYear() === new Date().getFullYear()
-              ) && (
-                <div className="absolute left-0 right-0 flex items-center z-50 pointer-events-none" 
-                     style={{ top: `${currentTimePosition}px` }}>
-                  <div className="w-16 flex items-center justify-end pr-1">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex items-center">
-                            <Clock className="h-3 w-3 text-red-500 mr-1" />
-                            <span className="text-xs font-medium text-red-500">
-                              {formatTimeWithFormat(currentTime)}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" align="start" className="text-xs">
-                          <p>Current time</p>
-                          <p className="text-muted-foreground">Timezone: {timezone || getUserTimeZone()}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <div className="flex-1 border-t border-red-500 relative">
-                    <div className="absolute -right-1 -top-1.5 w-0 h-0 border-t-4 border-r-4 border-b-4 border-transparent border-r-red-500 border-b-transparent" />
+              const startTime = new Date(schedule.startTime);
+              const endTime = new Date(schedule.endTime);
+              
+              // Calculate position based on time
+              const topPosition = getScheduleTopPosition(schedule, hours);
+              const height = getScheduleHeight(schedule, hours);
+              
+              return (
+                <div 
+                  key={schedule.id}
+                  className="absolute cursor-pointer"
+                  style={{
+                    left: `${(dayIndex + 1) * 12.5}%`,
+                    width: '12.5%',
+                    top: `${topPosition}px`,
+                    height: `${height}px`,
+                    padding: '2px',
+                    zIndex: 20
+                  }}
+                  onClick={() => onScheduleClick?.(schedule.id)}
+                >
+                  <div className="bg-primary/10 border border-primary/20 rounded p-1 h-full overflow-hidden">
+                    <div className="text-xs font-medium text-primary truncate">
+                      {schedule.customerName || 'Unnamed'}
+                    </div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
+                    </div>
                   </div>
                 </div>
-              )}
-              
-              {/* Schedule events - positioned absolutely over the grid */}
-              {weekSchedules.map(schedule => {
-                const dayIndex = getScheduleDayIndex(schedule);
-                if (dayIndex === -1) return null;
-                
-                const isInbound = schedule.type === "inbound";
-                const carrier = carriers.find(c => c.id === schedule.carrierId);
-                
-                // Get the facility timezone from the appointment type, facility, or default to America/New_York
-                const facilityTimeZone = "America/New_York";
-                
-                // Convert UTC times to user's timezone for display
-                const startDate = utcToUserTime(schedule.startTime);
-                const endDate = utcToUserTime(schedule.endTime);
-                
-                // Format times for display based on selected time format
-                const startTimeStr = formatTimeWithFormat(startDate);
-                const endTimeStr = formatTimeWithFormat(endDate);
-                
-                // Calculate precise position based on hours and cell size
-                const startHour = startDate.getHours();
-                const startMinute = startDate.getMinutes();
-                const endHour = endDate.getHours();
-                const endMinute = endDate.getMinutes();
-                
-                // Round startMinute to nearest 15-min slot (0, 15, 30, 45)
-                const roundedStartMinute = Math.floor(startMinute / 15) * 15;
-                
-                // For end time, round up to nearest 15-min slot
-                const roundedEndMinute = Math.ceil(endMinute / 15) * 15;
-                
-                // Calculate position relative to hours (starting from 12am)
-                const hourOffset = startHour; // Hours since 12am
-                const minuteOffset = roundedStartMinute / 60; // Percentage of hour
-                
-                // Calculate position
-                const topPosition = (hourOffset + minuteOffset) * 50; // Each hour is 50px
-                
-                // Calculate height using rounded minutes (clamp to minimum height for visibility)
-                const durationHours = Math.max(0.5, (endHour - startHour) + ((roundedEndMinute - roundedStartMinute) / 60));
-                const baseHeight = Math.max(25, durationHours * 50); // Each hour is 50px, min height 25px
-                
-                // Calculate dynamic height based on customer name length to ensure text is visible
-                const customerNameLength = (schedule.customerName || "").length;
-                const nameBasedHeight = customerNameLength > 20 ? 75 : customerNameLength > 15 ? 65 : 55;
-                
-                // Final height is the maximum of duration-based height and name-based height
-                const height = Math.max(baseHeight, nameBasedHeight);
-                
-                // Calculate width and left position for each event
-                const leftPosition = `${dayIndex * (100 / 7)}%`;  
-                const width = `calc(${100/7}% - 4px)`;
-                
-                // Check for overlapping appointments at the same time slot
-                const overlappingSchedules = weekSchedules.filter(s => 
-                  s.id !== schedule.id && 
-                  getScheduleDayIndex(s) === dayIndex &&
-                  areIntervalsOverlapping(
-                    { start: new Date(s.startTime), end: new Date(s.endTime) },
-                    { start: startDate, end: endDate }
-                  )
-                );
-                
-                // Calculate offset for stacked appointments
-                const isOverlapping = overlappingSchedules.length > 0;
-                const overlapCount = overlappingSchedules.length + 1; // +1 for current schedule
-                const overlapIndex = overlappingSchedules.filter(s => s.id < schedule.id).length;
-                
-                // Status-based styling
-                const statusColor = schedule.status === "completed" 
-                  ? "bg-green-100 border-green-300"
-                  : schedule.status === "cancelled" 
-                    ? "bg-gray-100 border-gray-300"
-                    : schedule.status === "in-progress"
-                      ? "bg-yellow-100 border-yellow-300"
-                      : isInbound 
-                        ? "bg-blue-100 border-blue-300" 
-                        : "bg-purple-100 border-purple-300";
-                
-                return (
-                  <TooltipProvider key={schedule.id}>
+              );
+            })}
+            
+            {/* Current time indicator - only show for today's date */}
+            {weekDays.some(day => 
+              day.getDate() === new Date().getDate() && 
+              day.getMonth() === new Date().getMonth() && 
+              day.getFullYear() === new Date().getFullYear()
+            ) && (
+              <div className="absolute left-0 right-0 flex items-center z-50 pointer-events-none" 
+                   style={{ top: `${currentTimePosition}px` }}>
+                <div className="w-20 flex items-center justify-end pr-1">
+                  <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div 
-                          className={cn(
-                            "absolute rounded-sm p-1 text-xs cursor-pointer border flex flex-col",
-                            statusColor
-                          )}
-                          style={{
-                            top: `${topPosition}px`,
-                            height: `${height}px`,
-                            left: isOverlapping 
-                              ? `calc(${leftPosition} + ${(overlapIndex * 5)}px)` // Offset stacked appointments
-                              : leftPosition,
-                            width: isOverlapping 
-                              ? `calc(${width} - ${(overlapCount - 1) * 5}px)` // Make room for other appointments
-                              : width,
-                            minWidth: isOverlapping 
-                              ? 'calc(8rem - 4px)' 
-                              : 'calc(9rem - 4px)',
-                            zIndex: isOverlapping ? 10 + overlapIndex : 10, // Stack newer appointments on top
-                            minHeight: '50px', // Increased minimum height for better content visibility
-                            maxHeight: `${Math.max(height, 100)}px`, // Increased maximum height for content
-                            opacity: isOverlapping ? 0.95 : 1, // Slight transparency for overlapping appointments
-                            display: 'flex',
-                            flexDirection: 'column',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
-                            overflow: 'visible', // Allow content to be visible
-                            position: 'relative'
-                          }}
-                          onClick={() => onScheduleClick(schedule.id)}
-                        >
-                          {/* ULTRA-PROMINENT CUSTOMER NAME - Guaranteed to be visible with background */}
-                          <div 
-                            className={`font-semibold text-[10px] lg:text-[11px] mb-0.5 pt-1 leading-tight text-gray-900 px-1 -mx-1 -mt-1 rounded-t-sm ${
-                              isInbound ? 'bg-blue-50' : 'bg-purple-50'
-                            }`}
-                            style={{ 
-                              overflow: "visible",
-                              textOverflow: "clip",
-                              whiteSpace: "normal",
-                              wordWrap: "break-word",
-                              maxWidth: "100%",
-                              fontWeight: 600,
-                              borderBottom: isInbound ? '2px solid #60a5fa' : '2px solid #c084fc',
-                              minHeight: "auto",
-                              paddingBottom: "2px"
-                            }}
-                          >
-                            {schedule.customerName || "(No customer)"}
-                          </div>
-                          
-                          {/* Type badge + Status inline */}
-                          <div className="flex items-center gap-1 flex-wrap mt-1">
-                            <span className={`text-[10px] px-1 py-0.5 rounded-sm font-bold uppercase ${
-                              isInbound ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                            }`}>
-                              {isInbound ? "IN" : "OUT"}
-                            </span>
-                            <span className={`text-[10px] px-1 py-0.5 rounded-sm font-bold uppercase ${
-                              schedule.status === "completed" ? 'bg-green-100 text-green-800' :
-                              schedule.status === "in-progress" ? 'bg-yellow-100 text-yellow-800' :
-                              schedule.status === "cancelled" ? 'bg-red-100 text-red-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
-                              {schedule.status?.substring(0,3).toUpperCase() || "SCH"}
-                            </span>
-                            {schedule.truckNumber && 
-                              <span className="text-[10px] px-1 py-0.5 bg-gray-100 rounded-sm font-bold">
-                                #{schedule.truckNumber}
-                              </span>
-                            }
-                          </div>
-                          
-                          {/* Facility name and time */}
-                          <div className="flex justify-between items-start text-[10px] mt-1 flex-wrap">
-                            <span className="font-medium">{startTimeStr}-{endTimeStr}</span>
-                            {(schedule as any).facilityName && (
-                              <span className="text-blue-800 font-semibold ml-1 break-words">
-                                {(schedule as any).facilityName}
-                              </span>
-                            )}
-                          </div>
-                          
-                          {/* Carrier info if space permits */}
-                          {carrier?.name && (
-                            <div className="text-[9px] text-gray-700 mt-0.5 font-medium break-words">
-                              {carrier.name}
-                            </div>
-                          )}
+                        <div className="flex items-center">
+                          <Clock className="h-3 w-3 text-red-500 mr-1" />
+                          <span className="text-xs font-medium text-red-500">
+                            {formatTimeWithFormat(currentTime)}
+                          </span>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <div className="space-y-1 text-xs">
-                          <div className="font-extrabold text-base text-gray-800 border-b border-gray-200 pb-1 mb-1">{schedule.customerName || "Unnamed Appointment"}</div>
-                          <div>
-                            <span className="font-medium">Time:</span> {startTimeStr}-{endTimeStr}
-                          </div>
-                          <div>
-                            <span className="font-medium">Facility:</span> {(schedule as any).facilityName || "Not specified"}
-                          </div>
-                          <div>
-                            <span className="font-medium">Type:</span> 
-                            <span className={`ml-1 px-1.5 py-0.5 rounded-sm ${
-                              isInbound ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
-                            }`}>
-                              {isInbound ? "Inbound" : "Outbound"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium">Carrier:</span> {carrier?.name || (schedule as any).carrierName || "Unknown"}
-                          </div>
-                          {schedule.truckNumber && (
-                            <div>
-                              <span className="font-medium">Truck #:</span> {schedule.truckNumber}
-                            </div>
-                          )}
-                          <div>
-                            <span className="font-medium">Status:</span> {schedule.status?.charAt(0).toUpperCase() + schedule.status?.slice(1) || "Unknown"}
-                          </div>
-                        </div>
+                      <TooltipContent side="right" align="start" className="text-xs">
+                        <p>Current time</p>
+                        <p className="text-muted-foreground">Timezone: {timezone || getUserTimeZone()}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                );
-              })}
-            </div>
+                </div>
+                <div className="flex-1 border-t border-red-500 relative">
+                  <div className="absolute -right-1 -top-1.5 w-0 h-0 border-t-4 border-r-4 border-b-4 border-transparent border-r-red-500 border-b-transparent" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

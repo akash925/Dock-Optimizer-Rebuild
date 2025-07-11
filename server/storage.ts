@@ -1648,24 +1648,35 @@ export class DatabaseStorage implements IStorage {
 
   async createCustomQuestion(customQuestion: InsertCustomQuestion): Promise<CustomQuestion> {
     try {
-      // Map frontend field names to database field names
+      console.log('[DatabaseStorage] Creating custom question:', customQuestion);
+      
+      // Ensure proper field mapping for database insertion
       const dbData = {
-        ...customQuestion,
-        // Map isRequired to is_required for database compatibility
-        is_required: customQuestion.isRequired || false,
+        label: customQuestion.label || "Untitled Question",
+        type: customQuestion.type || "text",
+        isRequired: Boolean(customQuestion.isRequired || false), // Use the correct field name for schema
+        placeholder: customQuestion.placeholder || null,
+        options: customQuestion.options || null,
+        defaultValue: customQuestion.defaultValue || null,
+        order: customQuestion.order || 1,
+        appointmentTypeId: customQuestion.appointmentTypeId,
+        applicableType: customQuestion.applicableType || "both",
+        createdAt: new Date(),
+        lastModifiedAt: new Date()
       };
       
-      // Remove the camelCase version to avoid conflicts
-      delete (dbData as any).isRequired;
+      console.log('[DatabaseStorage] Inserting with data:', dbData);
       
       const [newQuestion] = await db.insert(customQuestions).values(dbData).returning();
       
-      // Map database field names back to frontend field names
+      console.log('[DatabaseStorage] Created question:', newQuestion);
+      
+      // Return the question with proper field mapping
       return {
         id: newQuestion.id,
         label: newQuestion.label,
         type: newQuestion.type,
-        isRequired: newQuestion.is_required || false,  // Map is_required back to isRequired for frontend
+        isRequired: newQuestion.isRequired || false,
         placeholder: newQuestion.placeholder,
         options: newQuestion.options,
         defaultValue: newQuestion.defaultValue,
@@ -1676,7 +1687,7 @@ export class DatabaseStorage implements IStorage {
         lastModifiedAt: newQuestion.lastModifiedAt,
       };
     } catch (error) {
-      console.error('Error creating custom question:', error);
+      console.error('[DatabaseStorage] Error creating custom question:', error);
       throw error;
     }
   }

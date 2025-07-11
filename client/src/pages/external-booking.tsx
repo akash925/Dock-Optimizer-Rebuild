@@ -635,12 +635,24 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   
   // Get appointment types from the booking page, filtered by the selected facility
   const appointmentTypes = useMemo(() => {
-    if (!bookingPage?.appointmentTypes || !bookingData.facilityId) return [];
+    if (!bookingPage?.appointmentTypes || !bookingData.facilityId) {
+      console.log('[ExternalBooking] No appointment types or facility selected:', {
+        hasTypes: !!bookingPage?.appointmentTypes,
+        facilityId: bookingData.facilityId,
+        typesCount: bookingPage?.appointmentTypes?.length || 0
+      });
+      return [];
+    }
     
-    return bookingPage.appointmentTypes.filter((type: any) => 
-      type.facilityId === bookingData.facilityId
-    );
-  }, [bookingPage, bookingData.facilityId]);
+    const filteredTypes = bookingPage.appointmentTypes.filter((type: any) => {
+      const matches = type.facilityId === bookingData.facilityId;
+      console.log(`[ExternalBooking] Appointment type "${type.name}" (ID: ${type.id}) - Facility: ${type.facilityId}, Selected: ${bookingData.facilityId}, Match: ${matches}`);
+      return matches;
+    });
+    
+    console.log(`[ExternalBooking] Filtered ${filteredTypes.length} appointment types for facility ${bookingData.facilityId}`);
+    return filteredTypes;
+  }, [bookingPage?.appointmentTypes, bookingData.facilityId]);
   
   // Check if a date is a holiday
   const isHoliday = (date: Date) => {
