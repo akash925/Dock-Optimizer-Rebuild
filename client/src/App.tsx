@@ -203,6 +203,7 @@ const publicRoutes: RouteConfig[] = [
   { path: "/door-manager-demo", component: () => <BasicDoorManager /> },
   { path: "/external/:slug", component: () => <BookingRouter /> }, // Both routes handled by our unified router
   { path: "/booking/:slug", component: () => <BookingRouter /> }, // Both routes handled by our unified router
+  { path: "/book/:slug", component: () => <BookingRouter /> }, // Both routes handled by our unified router
   { path: "/booking-confirmation", component: () => <BookingConfirmation /> },
   { path: "/driver-check-in", component: () => <DriverCheckIn /> },
   { path: "/reschedule", component: () => <Reschedule /> },

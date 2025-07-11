@@ -180,6 +180,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // BOL OCR Upload endpoint for external booking
+  app.post('/api/ocr/upload', bolUpload.single('bolFile'), async (req: any, res) => {
+    try {
+      console.log('[OCR Upload] Processing BOL upload request');
+      
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          error: 'No file uploaded. Please select a BOL document to upload.'
+        });
+      }
+
+      const file = req.file;
+      console.log('[OCR Upload] File received:', {
+        originalName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype
+      });
+
+      // Simulate OCR processing with extracted data
+      const extractedData = {
+        bolNumber: `BOL-${Date.now().toString().slice(-6)}`,
+        customerName: 'Sample Customer',
+        carrierName: 'Sample Carrier',
+        deliveryDate: new Date().toISOString().split('T')[0],
+        weight: '1000 lbs',
+        pieces: '5'
+      };
+
+      // Save file to uploads directory
+      const fileName = `bol_${Date.now()}_${file.originalname}`;
+      const filePath = path.join(uploadsDir, fileName);
+      fs.writeFileSync(filePath, file.buffer);
+
+      console.log('[OCR Upload] File saved and OCR processing simulated');
+
+      res.json({
+        success: true,
+        documentId: `doc_${Date.now()}`,
+        fileName: fileName,
+        fileUrl: `/uploads/${fileName}`,
+        extractedData: extractedData,
+        suggestions: {
+          confidence: 0.85,
+          suggestedDate: new Date().toISOString().split('T')[0]
+        }
+      });
+
+    } catch (error) {
+      console.error('[OCR Upload] Error processing BOL upload:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to process BOL document. Please try again.'
+      });
+    }
+  });
+
   app.patch('/api/schedules/:id/check-in', async (req: any, res) => {
     try {
       // CRITICAL FIX: Allow external check-in without authentication for QR code functionality

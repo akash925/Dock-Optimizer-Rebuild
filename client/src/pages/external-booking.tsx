@@ -3,6 +3,8 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { BookingWizardProvider, useBookingWizard } from '@/contexts/BookingWizardContext';
 import { BookingThemeProvider } from '@/hooks/use-booking-theme';
 import { Loader2, XCircle, CheckCircle, Upload, FileCheck, Mail, AlertCircle, QrCode, Forward, Info, Edit } from 'lucide-react';
+import { EnhancedTimeSlots } from '@/components/booking/enhanced-time-slots';
+import { BOLUploadWizard } from '@/components/booking/bol-upload-wizard';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Dialog,
@@ -924,45 +926,25 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
           <h2 className="text-lg font-bold">Select Service Type</h2>
           
           {/* BOL Upload Section */}
-          <div className="bg-blue-50 p-4 rounded-md border border-blue-200 mb-4">
-            <h3 className="text-md font-semibold mb-2 flex items-center">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload BOL Document (Optional)
-            </h3>
-            <p className="text-sm text-muted-foreground mb-2">
-              Upload your Bill of Lading to automatically fill in appointment details.
-            </p>
-            <div className="flex items-center space-x-2">
-              <Input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleBolUpload(file);
-                }}
-                disabled={isProcessingBol}
-              />
-              {isProcessingBol && <Loader2 className="animate-spin h-4 w-4" />}
-            </div>
-            {bolFile && (
-              <div className="mt-2 text-sm text-green-600">
-                <CheckCircle className="inline-block h-4 w-4 mr-1" />
-                {bolFile.name} uploaded successfully
-              </div>
-            )}
-            {bolData && (
-              <div className="mt-2 text-sm p-2 bg-blue-100 rounded">
-                <p className="font-medium">Extracted information:</p>
-                <ul className="list-disc pl-5 mt-1">
-                  {Object.entries(bolData.extractedFields || {}).map(([key, value]) => (
-                    <li key={key}>
-                      {key}: {String(value)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <BOLUploadWizard
+            bookingPageSlug={slug}
+            onUploadSuccess={(result) => {
+              setBolData(result);
+              if (result.extractedData) {
+                setBookingDetails(prev => ({
+                  ...prev,
+                  ...result.extractedData
+                }));
+              }
+            }}
+            onExtractedDataChange={(data) => {
+              setBookingDetails(prev => ({
+                ...prev,
+                ...data
+              }));
+            }}
+            className="mb-4"
+          />
           
           <div className="space-y-4">
             <div className="space-y-2">
@@ -1076,10 +1058,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             <div className="space-y-2">
               <Label htmlFor="time">Available Times</Label>
               {bookingData.date ? (
-                <TimeSlotsSelector
+                <EnhancedTimeSlots
                   date={bookingData.date}
-                  facilityId={bookingData.facilityId}
-                  appointmentTypeId={bookingData.appointmentTypeId}
+                  facilityId={bookingData.facilityId || 0}
+                  appointmentTypeId={bookingData.appointmentTypeId || 0}
+                  bookingPageSlug={slug}
                   onSelectTime={(time) => {
                     setBookingData({
                       ...bookingData,
@@ -1087,6 +1070,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                     });
                   }}
                   selectedTime={bookingData.time}
+                  showRemainingSlots={true}
                 />
               ) : (
                 <div className="text-muted-foreground">Please select a date first</div>
