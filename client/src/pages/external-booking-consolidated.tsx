@@ -243,15 +243,26 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   const { data: standardQuestions, isLoading: loadingQuestions } = useQuery({
     queryKey: [`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`],
     queryFn: async () => {
-      if (!bookingData.appointmentTypeId) return [];
+      if (!bookingData.appointmentTypeId) {
+        console.log("[StandardQuestions] No appointment type ID, returning empty array");
+        return [];
+      }
       
+      console.log(`[StandardQuestions] Fetching questions for appointment type ${bookingData.appointmentTypeId}`);
       const res = await fetch(`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
-      if (!res.ok) return [];
+      if (!res.ok) {
+        console.error(`[StandardQuestions] Failed to fetch questions: ${res.status} ${res.statusText}`);
+        return [];
+      }
       
       const data = await res.json();
-      if (!Array.isArray(data)) return [];
+      console.log(`[StandardQuestions] Received data:`, data);
+      if (!Array.isArray(data)) {
+        console.error(`[StandardQuestions] Data is not an array:`, typeof data);
+        return [];
+      }
       
-      return data.map((q: any) => ({
+      const mappedQuestions = data.map((q: any) => ({
         id: q.id,
         label: q.label || '',
         fieldKey: q.fieldKey || `field_${q.id}`,
@@ -262,6 +273,9 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         appointmentTypeId: q.appointmentTypeId || bookingData.appointmentTypeId,
         options: q.options || []
       }));
+      
+      console.log(`[StandardQuestions] Mapped ${mappedQuestions.length} questions:`, mappedQuestions);
+      return mappedQuestions;
     },
     enabled: !!bookingData.appointmentTypeId && step === 3,
     staleTime: 60000,
@@ -574,10 +588,19 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 onSubmit={form.handleSubmit((data) => handleSubmitBooking(data.customFields))}
                 className="space-y-6"
               >
+                {/* Debug info */}
+                <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+                  <p>Debug: Appointment Type ID: {bookingData.appointmentTypeId}</p>
+                  <p>Debug: Standard Questions Count: {standardQuestions?.length || 0}</p>
+                  <p>Debug: Loading Questions: {loadingQuestions ? 'Yes' : 'No'}</p>
+                  <p>Debug: Current Step: {step}</p>
+                </div>
+                
                 <StandardQuestionsFormFields
                   questions={standardQuestions || []}
                   form={form}
                   fieldNamePrefix="customFields"
+                  isLoading={loadingQuestions}
                 />
                 
 
