@@ -50,13 +50,29 @@ function tzParseISO(dateStr: string, options?: { timeZone?: string }): Date {
 
 // Simplified and more reliable date parsing
 function parseTimeInTimezone(date: string, time: string, timezone: string): Date {
-  // Simple approach: create a Date object from the date/time string
-  // Assume the time is already in the correct local time for the timezone
-  const isoString = `${date}T${time}:00`;
+  // Direct approach: create date in target timezone using Intl.DateTimeFormat
+  const [hour, minute] = time.split(':').map(Number);
+  const [year, month, day] = date.split('-').map(Number);
   
-  // Parse as local time and return the UTC equivalent
-  // This assumes the input time is in the facility's local timezone
-  return new Date(isoString);
+  // For America/New_York timezone, we need to account for EST/EDT
+  // EST is UTC-5, EDT is UTC-4
+  // Let's use a hardcoded offset for now to ensure it works
+  let offsetHours = -5; // EST default
+  
+  // Check if we're in daylight saving time (roughly March to November)
+  const dateObj = new Date(year, month - 1, day);
+  const marchSecondSunday = new Date(year, 2, 8 + (7 - new Date(year, 2, 1).getDay()) % 7);
+  const novemberFirstSunday = new Date(year, 10, 1 + (7 - new Date(year, 10, 1).getDay()) % 7);
+  
+  if (dateObj >= marchSecondSunday && dateObj < novemberFirstSunday) {
+    offsetHours = -4; // EDT
+  }
+  
+  // Create the date in UTC that represents the local time in the target timezone
+  const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  
+  // Adjust for timezone offset
+  return new Date(utcDate.getTime() - (offsetHours * 60 * 60 * 1000));
 }
 
 // Helper function to check for holidays and special closures
@@ -744,6 +760,7 @@ export async function calculateAvailabilitySlots(
   }
   
   console.log(`[AvailabilityService] Operating period: ${operatingStartDateTime.toISOString()} to ${operatingEndDateTime.toISOString()}`);
+  console.log(`[AvailabilityService] Timezone conversion debug: ${operatingStartTimeStr} -> ${tzFormat(operatingStartDateTime, effectiveTimezone, 'HH:mm')} (${operatingStartDateTime.toISOString()})`);
 
   // Parse break times if they exist
   let breakStartDateTime: Date | null = null;

@@ -240,7 +240,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   }, [confirmationParam, toast]);
 
   // Fetch standard questions based on appointment type using public API
-  const { data: standardQuestions, isLoading: loadingQuestions } = useQuery({
+  const { data: standardQuestions, isLoading: loadingQuestions, error: questionsError } = useQuery({
     queryKey: [`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`],
     queryFn: async () => {
       if (!bookingData.appointmentTypeId) {
@@ -252,14 +252,14 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       const res = await fetch(`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
       if (!res.ok) {
         console.error(`[StandardQuestions] Failed to fetch questions: ${res.status} ${res.statusText}`);
-        return [];
+        throw new Error(`Failed to fetch questions: ${res.status} ${res.statusText}`);
       }
       
       const data = await res.json();
       console.log(`[StandardQuestions] Received data:`, data);
       if (!Array.isArray(data)) {
         console.error(`[StandardQuestions] Data is not an array:`, typeof data);
-        return [];
+        throw new Error(`Invalid response format: expected array, got ${typeof data}`);
       }
       
       const mappedQuestions = data.map((q: any) => ({
@@ -277,7 +277,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       console.log(`[StandardQuestions] Mapped ${mappedQuestions.length} questions:`, mappedQuestions);
       return mappedQuestions;
     },
-    enabled: !!bookingData.appointmentTypeId && step === 3,
+    enabled: !!bookingData.appointmentTypeId,
     staleTime: 60000,
     retry: 1
   });
@@ -594,6 +594,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   <p>Debug: Standard Questions Count: {standardQuestions?.length || 0}</p>
                   <p>Debug: Loading Questions: {loadingQuestions ? 'Yes' : 'No'}</p>
                   <p>Debug: Current Step: {step}</p>
+                  {questionsError && <p className="text-red-600">Debug: Error: {questionsError.message}</p>}
                 </div>
                 
                 <StandardQuestionsFormFields
