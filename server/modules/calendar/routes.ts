@@ -163,7 +163,8 @@ router.post('/booking-pages/book/:slug', async (req: any, res) => {
       customFormData: customFields
     };
     
-    console.log('[BookingRoute] Creating appointment with data:', JSON.stringify(appointmentData, null, 2));
+    console.log('🔍 [BookingRoute] Creating appointment with data:', JSON.stringify(appointmentData, null, 2));
+    console.log('🔍 [BookingRoute] Standard Questions Data in customFormData:', JSON.stringify(customFields, null, 2));
     
     // Create the appointment
     const appointment = await storage.createSchedule(appointmentData);

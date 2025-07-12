@@ -112,6 +112,7 @@ router.post('/upload', upload.single('bolImage'), async (req, res) => {
     
     try {
       // Process the uploaded file with OCR using the service with timeout and retry
+      console.log('🔍 [BOL-OCR] Processing file with OCR:', req.file.path);
       ocrResult = await bolService.processImageWithTimeout(req.file.path);
       
       // If we got here, OCR was successful
@@ -122,6 +123,8 @@ router.post('/upload', upload.single('bolImage'), async (req, res) => {
       if (ocrResult && typeof ocrResult === 'object') {
         ocrResult.processingTime = processingTime;
       }
+      
+      console.log('🔍 [BOL-OCR] OCR processing successful! Result:', JSON.stringify(ocrResult, null, 2));
       
       logger.info('BOL-OCR', 'OCR processing successful', {
         processingTime,

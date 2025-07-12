@@ -1,5 +1,6 @@
 import { BolRepository } from '../repositories/bolRepository';
 import { processImageFile } from '../ocr/ocr_connector.mjs';
+import { processImageWithTesseract } from '../ocr/tesseract-processor.mjs';
 import { validateOcrResult, ValidatedOcrResult } from '../utils/ocrValidator';
 import { InsertBolDocument } from '../../drizzle/schema/bol';
 import { InsertOcrAnalytics } from '../../drizzle/schema/ocr_analytics';
@@ -30,18 +31,34 @@ export class BolService {
       setTimeout(() => reject(new Error('OCR processing timed out')), OCR_PROCESSING_TIMEOUT);
     });
     
-    // Function to process the image
+    // Function to process the image with fallback
     const processWithRetry = async (retryCount = 0): Promise<ValidatedOcrResult> => {
       try {
-        // First attempt
-        const result = await Promise.race([
-          processImageFile(filePath),
-          timeoutPromise
-        ]);
+        let result;
+        
+        // Try PaddleOCR first, fall back to Tesseract.js if it fails
+        try {
+          console.log(`[BolService] Attempting PaddleOCR processing (attempt ${retryCount + 1})`);
+          result = await Promise.race([
+            processImageFile(filePath),
+            timeoutPromise
+          ]);
+          console.log(`[BolService] PaddleOCR result:`, result);
+        } catch (paddleError) {
+          console.log(`[BolService] PaddleOCR failed, falling back to Tesseract.js: ${paddleError.message}`);
+          
+          // Fallback to Tesseract.js
+          result = await Promise.race([
+            processImageWithTesseract(filePath),
+            timeoutPromise
+          ]);
+          console.log(`[BolService] Tesseract.js result:`, result);
+        }
         
         // Validate the result
         const validatedResult = validateOcrResult(result);
         if (validatedResult.isValid && validatedResult.data) {
+          console.log(`[BolService] ✅ OCR processing successful with ${validatedResult.data.ocrEngine || 'unknown engine'}`);
           return validatedResult.data;
         } else {
           throw new Error(`OCR validation failed: ${JSON.stringify(validatedResult.errors)}`);
@@ -49,11 +66,12 @@ export class BolService {
       } catch (error) {
         // Retry once if the first attempt failed
         if (retryCount < 1) {
-          console.log(`OCR processing attempt failed, retrying: ${error.message}`);
+          console.log(`[BolService] OCR processing attempt failed, retrying: ${error.message}`);
           return processWithRetry(retryCount + 1);
         }
         
         // Both attempts failed, return a failure result
+        console.log(`[BolService] ❌ OCR processing failed after retry: ${error.message}`);
         return {
           success: false,
           error: error.message || 'OCR processing failed after retry',
@@ -96,6 +114,9 @@ export class BolService {
     
     // Save document to database
     const savedDocument = await this.repository.createBolDocument(documentData);
+    
+    console.log('🔍 [BolService] Saved BOL document to database:', JSON.stringify(savedDocument, null, 2));
+    console.log('🔍 [BolService] OCR data stored:', JSON.stringify(ocrResult, null, 2));
     
     // Save analytics data if available
     if (ocrResult.success && (ocrResult.processingTime || ocrResult.confidenceScore)) {

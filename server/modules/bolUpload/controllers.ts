@@ -320,6 +320,9 @@ export const confirmBolUpload = async (req: AuthenticatedRequest, res: Response)
           }
         }
       };
+      
+      console.log('🔍 [BOL Upload] Updating appointment with BOL data:', JSON.stringify(updateData, null, 2));
+      console.log('🔍 [BOL Upload] Merged customFormData:', JSON.stringify(updateData.customFormData, null, 2));
 
       // Update related fields if they were extracted
       if (customerName) updateData.customerName = customerName;
