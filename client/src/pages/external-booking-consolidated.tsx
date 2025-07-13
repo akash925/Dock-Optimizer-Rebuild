@@ -40,6 +40,14 @@ function OrganizationLogo({ bookingPage, className }: { bookingPage: any; classN
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  console.log('OrganizationLogo render:', {
+    isLoading,
+    hasLogoData: !!logoData,
+    hasLogo: !!logoData?.logo,
+    tenantId: bookingPage.tenantId,
+    bookingPageName: bookingPage.name
+  });
+
   if (isLoading) {
     return (
       <div className={className}>
@@ -68,6 +76,7 @@ function OrganizationLogo({ bookingPage, className }: { bookingPage: any; classN
   }
 
   // Fallback to organization initial
+  console.log('Using fallback logo for:', bookingPage.name);
   return (
     <div className={className}>
       <div className="bg-blue-500 text-white rounded-lg w-full h-full flex items-center justify-center">
