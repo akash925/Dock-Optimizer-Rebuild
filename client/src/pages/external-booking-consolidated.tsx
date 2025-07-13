@@ -738,8 +738,35 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   };
 
   return (
-    <div className="mt-8">
-      {renderStep()}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header with organization logo */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <OrganizationLogo 
+                bookingPage={bookingPage} 
+                className="h-12 w-12 flex items-center justify-center bg-gray-100 rounded-lg"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">
+                  {bookingPage.name}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  Dock Appointment Scheduler
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Main content */}
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          {renderStep()}
+        </div>
+      </div>
     </div>
   );
 } 
