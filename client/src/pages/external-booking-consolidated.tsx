@@ -27,7 +27,14 @@ function OrganizationLogo({ bookingPage, className }: { bookingPage: any; classN
     queryFn: async () => {
       const res = await fetch(`/api/booking-pages/logo/${bookingPage.tenantId}`);
       if (!res.ok) return null;
-      return res.json();
+      const data = await res.json();
+      console.log('Logo data received:', {
+        tenantId: bookingPage.tenantId,
+        hasLogo: !!data.logo,
+        logoLength: data.logo?.length || 0,
+        logoPrefix: data.logo?.substring(0, 50) || 'No logo'
+      });
+      return data;
     },
     enabled: !!bookingPage.tenantId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -48,6 +55,13 @@ function OrganizationLogo({ bookingPage, className }: { bookingPage: any; classN
           src={logoData.logo} 
           alt={`${bookingPage.name} logo`}
           className="h-full w-full object-contain rounded-lg"
+          onError={(e) => {
+            console.error('Logo failed to load:', e);
+            e.currentTarget.style.display = 'none';
+          }}
+          onLoad={() => {
+            console.log('Logo loaded successfully for:', bookingPage.name);
+          }}
         />
       </div>
     );
@@ -56,9 +70,11 @@ function OrganizationLogo({ bookingPage, className }: { bookingPage: any; classN
   // Fallback to organization initial
   return (
     <div className={className}>
-      <span className="text-primary font-bold text-xl">
-        {bookingPage.name?.charAt(0) || 'O'}
-      </span>
+      <div className="bg-blue-500 text-white rounded-lg w-full h-full flex items-center justify-center">
+        <span className="font-bold text-xl">
+          {bookingPage.name?.charAt(0) || 'O'}
+        </span>
+      </div>
     </div>
   );
 }
@@ -746,7 +762,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             <div className="flex items-center space-x-4">
               <OrganizationLogo 
                 bookingPage={bookingPage} 
-                className="h-12 w-12 flex items-center justify-center bg-gray-100 rounded-lg"
+                className="h-16 w-16 flex items-center justify-center bg-gray-100 rounded-lg border-2 border-gray-200"
               />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
