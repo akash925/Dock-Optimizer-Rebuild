@@ -22,7 +22,7 @@ import {
   AlertTriangle, Edit, Save, Info, FileUp, Download, ExternalLink, FileCheck,
   Image as ImageIcon
 } from "lucide-react";
-import BolUpload from "@/components/shared/bol-upload";
+import SimpleBolUpload from "@/components/shared/simple-bol-upload";
 import { ParsedBolData } from "@/lib/ocr-service";
 import { format, differenceInMinutes } from "date-fns";
 import { 
@@ -1912,7 +1912,7 @@ export function AppointmentDetailsDialog({
                       </Button>
                     ) : (
                       <div className="space-y-4 max-w-md mx-auto">
-                        <BolUpload 
+                        <SimpleBolUpload 
                           scheduleId={appointment.id}
                           onBolProcessed={(data, fileUrl) => {
                             // This will be called after BOL processing is complete
