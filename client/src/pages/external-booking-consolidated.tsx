@@ -397,7 +397,16 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
 
   // Handle form submission
   const handleSubmitBooking = async (formData: any) => {
+    console.log('handleSubmitBooking called with formData:', formData);
+    console.log('Current bookingData:', bookingData);
+    
     if (!bookingData.facilityId || !bookingData.appointmentTypeId || !bookingData.date || !bookingData.time) {
+      console.error('Missing required booking data:', {
+        facilityId: bookingData.facilityId,
+        appointmentTypeId: bookingData.appointmentTypeId,
+        date: bookingData.date,
+        time: bookingData.time
+      });
       toast({
         title: "Missing Information",
         description: "Please complete all required fields",
@@ -442,6 +451,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     };
 
     console.log("Submitting booking with payload:", bookingPayload);
+    console.log("bookingMutation.mutate about to be called");
     bookingMutation.mutate(bookingPayload);
   };
 
@@ -623,7 +633,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
               <form 
                 onSubmit={form.handleSubmit((data) => {
                   console.log('Form data being submitted:', data);
-                  handleSubmitBooking(data.customFields);
+                  console.log('Form validation state:', form.formState.errors);
+                  console.log('Current booking data:', bookingData);
+                  // Handle both nested and flat form data structures
+                  const formData = data.customFields || data;
+                  handleSubmitBooking(formData);
                 })}
                 className="space-y-6"
               >
