@@ -253,7 +253,10 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
 
   // Handle form submission
   const onSubmit = (data: InsertCompanyAsset) => {
+    console.log("=== ASSET FORM SUBMISSION ===");
     console.log("Form submission data:", data);
+    console.log("Is editing:", isEditing);
+    console.log("Asset to edit:", assetToEdit);
     
     // Make sure all data that's in a Select component is properly included
     if (isEditing) {
@@ -265,8 +268,10 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         location: data.location || assetToEdit?.location,
       };
       console.log("Updated form data for edit:", formData);
+      console.log("Calling updateMutation.mutate...");
       updateMutation.mutate(formData);
     } else {
+      console.log("Calling createMutation.mutate...");
       createMutation.mutate(data);
     }
   };

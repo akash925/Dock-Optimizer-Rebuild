@@ -1682,9 +1682,19 @@ export default function AppointmentMaster() {
                       onClick={async () => {
                         if (!selectedAppointmentTypeId) return;
                         
+                        console.log("=== SAVING APPOINTMENT MASTER QUESTIONS ===");
+                        console.log("Selected appointment type ID:", selectedAppointmentTypeId);
+                        console.log("Standard fields to save:", standardFields);
+                        
                         try {
                           // Save each standard question individually
                           const updatePromises = standardFields.map(field => {
+                            console.log(`Updating question ID ${field.id}:`, {
+                              included: field.included,
+                              required: field.required,
+                              orderPosition: field.order
+                            });
+                            
                             return updateStandardQuestionMutation.mutateAsync({
                               id: field.id,
                               data: {
@@ -1697,6 +1707,7 @@ export default function AppointmentMaster() {
                           
                           await Promise.all(updatePromises);
                           
+                          console.log("All questions saved successfully");
                           toast({
                             title: "Questions saved",
                             description: "Your form questions have been updated successfully",

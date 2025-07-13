@@ -132,36 +132,7 @@ export default function ExternalBookingConsolidated({ slug }: { slug: string }) 
       <div className="min-h-screen bg-gradient-to-b from-primary/20 to-background">
         <div className="container mx-auto py-8 px-4">
           <div className="bg-white rounded-lg shadow-lg p-6 mx-auto max-w-4xl">
-            {/* Header with organization logo */}
-            <div className="flex items-center mb-6">
-              <OrganizationLogo 
-                bookingPage={bookingPage} 
-                className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mr-4"
-              />
-              <div>
-                <h1 className="text-2xl font-bold">{bookingPage.name} Dock Appointment Scheduler</h1>
-                <p className="text-muted-foreground">
-                  Please use this form to schedule your dock appointment with {bookingPage.name}.
-                </p>
-              </div>
-            </div>
-            
-            {/* Main booking wizard */}
             <BookingWizardContent bookingPage={bookingPage} slug={slug} />
-            
-            {/* Dock Optimizer footer */}
-            <div className="flex justify-center items-center mt-8 pt-6 border-t border-gray-200">
-              <div className="flex items-center space-x-2 opacity-60 hover:opacity-100 transition-opacity">
-                <img 
-                  src={dockOptimizerLogo} 
-                  alt="Powered by Dock Optimizer" 
-                  className="h-8" 
-                />
-                <span className="text-sm text-gray-600">
-                  Powered by Dock Optimizer
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -399,6 +370,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
 
   // Handle form submission
   const handleSubmitBooking = async (formData: any) => {
+    console.log('=== EXTERNAL BOOKING SUBMISSION ===');
     console.log('handleSubmitBooking called with formData:', formData);
     console.log('Current bookingData:', bookingData);
     
@@ -740,33 +712,23 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="space-y-6">
       {/* Header with organization logo */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <OrganizationLogo 
-              bookingPage={bookingPage} 
-              className="h-16 w-16 flex items-center justify-center bg-gray-100 rounded-lg border-2 border-gray-200"
-            />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {bookingPage.name} Dock Appointment Scheduler
-              </h1>
-              <p className="text-sm text-gray-600">
-                Please use this form to schedule your dock appointment with {bookingPage.name}.
-              </p>
-            </div>
-          </div>
+      <div className="flex items-center mb-6">
+        <OrganizationLogo 
+          bookingPage={bookingPage} 
+          className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center mr-4"
+        />
+        <div>
+          <h1 className="text-2xl font-bold">{bookingPage.name} Dock Appointment Scheduler</h1>
+          <p className="text-muted-foreground">
+            Please use this form to schedule your dock appointment with {bookingPage.name}.
+          </p>
         </div>
       </div>
       
       {/* Main content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          {renderStep()}
-        </div>
-      </div>
+      {renderStep()}
     </div>
   );
 } 
