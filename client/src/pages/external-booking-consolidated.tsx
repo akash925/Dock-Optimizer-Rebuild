@@ -399,8 +399,8 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     const bookingPayload = {
       facilityId: bookingData.facilityId,
       appointmentTypeId: bookingData.appointmentTypeId,
-      startTime,
-      endTime,
+      date: bookingData.date,
+      time: bookingData.time,
       timezone: bookingData.timezone,
       pickupOrDropoff: "pickup",
       
@@ -610,14 +610,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 onSubmit={form.handleSubmit((data) => handleSubmitBooking(data.customFields))}
                 className="space-y-6"
               >
-                {/* Debug info */}
-                <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
-                  <p>Debug: Appointment Type ID: {bookingData.appointmentTypeId}</p>
-                  <p>Debug: Standard Questions Count: {standardQuestions?.length || 0}</p>
-                  <p>Debug: Loading Questions: {loadingQuestions ? 'Yes' : 'No'}</p>
-                  <p>Debug: Current Step: {step}</p>
-                  {questionsError && <p className="text-red-600">Debug: Error: {questionsError.message}</p>}
-                </div>
+
                 
                 <StandardQuestionsFormFields
                   questions={standardQuestions || []}
