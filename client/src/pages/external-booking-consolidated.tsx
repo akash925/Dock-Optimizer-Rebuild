@@ -392,20 +392,42 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       return;
     }
 
+    // Create proper start and end times
+    const startTime = new Date(`${bookingData.date}T${bookingData.time}`).toISOString();
+    const endTime = new Date(new Date(startTime).getTime() + 60 * 60 * 1000).toISOString(); // 1 hour later
+
     const bookingPayload = {
       facilityId: bookingData.facilityId,
       appointmentTypeId: bookingData.appointmentTypeId,
-      date: bookingData.date,
-      time: bookingData.time,
+      startTime,
+      endTime,
       timezone: bookingData.timezone,
       pickupOrDropoff: "pickup",
+      
+      // Extract contact information from form data
+      customerName: formData.customerName || '',
+      contactName: formData.customerName || '',
+      email: formData.email || '',
+      phone: formData.phone || '',
+      driverName: formData.driverName || formData.customerName || '',
+      driverPhone: formData.driverPhone || formData.phone || '',
+      driverEmail: formData.driverEmail || formData.email || '',
+      
+      // Additional fields
+      carrierName: formData.carrierName || 'External Carrier',
+      truckNumber: formData.truckNumber || '',
+      trailerNumber: formData.trailerNumber || '',
+      bolNumber: formData.bolNumber || '',
+      mcNumber: formData.mcNumber || '',
+      notes: formData.notes || '',
+      
+      // Custom fields for standard questions
       customFields: {
-        customerName: formData.customerName || '',
-        email: formData.email || '',
         ...formData
       }
     };
 
+    console.log("Submitting booking with payload:", bookingPayload);
     bookingMutation.mutate(bookingPayload);
   };
 
