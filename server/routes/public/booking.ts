@@ -174,32 +174,53 @@ router.post("/booking-pages/:slug/book", async (req, res) => {
     const { getStorage } = await import("../../storage");
     const storage = await getStorage();
     
-    // Create the appointment using the booking data
+    // Create the appointment using the booking data with proper type and appointment settings
     const appointment = await storage.createSchedule({
       facilityId: bookingData.facilityId,
       appointmentTypeId: bookingData.appointmentTypeId,
       startTime: new Date(`${bookingData.date}T${bookingData.time}`),
       endTime: new Date(`${bookingData.date}T${bookingData.time}`), // Will be calculated based on duration
       status: 'scheduled',
+      type: 'inbound', // Set proper appointment type
       driverName: bookingData.driverName,
       driverPhone: bookingData.driverPhone,
       driverEmail: bookingData.driverEmail,
-      truckNumber: bookingData.truckNumber,
-      trailerNumber: bookingData.trailerNumber,
-      bolNumber: bookingData.bolNumber,
+      truckNumber: bookingData.truckNumber || null,
+      trailerNumber: bookingData.trailerNumber || null,
+      bolNumber: bookingData.bolNumber || null,
       palletCount: bookingData.palletCount ? parseInt(bookingData.palletCount) : null,
-      weight: bookingData.weight,
-      notes: bookingData.notes,
-      carrierName: bookingData.carrierName,
-      customerName: bookingData.customerName,
+      weight: bookingData.weight || null,
+      notes: bookingData.notes || null,
+      carrierName: bookingData.carrierName || null,
+      customerName: bookingData.customerName || null,
       tenantId: bookingPage.tenantId,
       customFormData: JSON.stringify(bookingData),
-      bolDocumentPath: bookingData.bolDocumentPath,
-      parsedOcrText: bookingData.parsedOcrText,
+      bolDocumentPath: bookingData.bolDocumentPath || null,
+      parsedOcrText: bookingData.parsedOcrText || null,
       confirmationCode: `${bookingPage.slug.toUpperCase()}-${Date.now().toString().slice(-6)}`
     });
     
     console.log(`[BookingSubmission] Created appointment ${appointment.id} with confirmation code ${appointment.confirmationCode}`);
+    
+    // Send real-time notification to all connected clients
+    try {
+      const { broadcastToTenant } = await import("../../lib/secure-websocket");
+      await broadcastToTenant(bookingPage.tenantId, {
+        type: 'appointment_created',
+        data: {
+          id: appointment.id,
+          confirmationCode: appointment.confirmationCode,
+          startTime: appointment.startTime,
+          facilityId: appointment.facilityId,
+          appointmentTypeId: appointment.appointmentTypeId,
+          driverName: appointment.driverName,
+          message: `New appointment scheduled: ${appointment.confirmationCode}`
+        }
+      });
+      console.log(`[BookingSubmission] Real-time notification sent for appointment ${appointment.id}`);
+    } catch (wsError) {
+      console.error("[BookingSubmission] WebSocket notification failed:", wsError);
+    }
     
     // Return the booking confirmation
     res.json({

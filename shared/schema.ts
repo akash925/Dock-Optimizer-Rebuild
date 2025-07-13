@@ -178,7 +178,7 @@ export const schedules = pgTable("schedules", {
   dockId: integer("dock_id"),
   carrierId: integer("carrier_id"), // Removing .notNull() to allow null carriers
   appointmentTypeId: integer("appointment_type_id"),
-  truckNumber: text("truck_number").notNull(),
+  truckNumber: text("truck_number"),
   trailerNumber: text("trailer_number"),
   driverName: text("driver_name"),
   driverPhone: text("driver_phone"),
@@ -202,7 +202,7 @@ export const schedules = pgTable("schedules", {
   releaseImageMetadata: jsonb("release_image_metadata"), // Release image metadata
   customFormData: jsonb("custom_form_data"), // Stores responses to custom questions
   creatorEmail: text("creator_email"), // Email of the person who created the appointment (for external bookings)
-  createdBy: integer("created_by").notNull(), // User ID who created the schedule
+  createdBy: integer("created_by"), // User ID who created the schedule
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastModifiedAt: timestamp("last_modified_at"),
   lastModifiedBy: integer("last_modified_by"),

@@ -343,9 +343,9 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     onSuccess: (data) => {
       console.log("Booking created successfully:", data);
       
-      const confirmationCode = data.confirmationCode || 
-                              (data.schedule && data.schedule.confirmationCode) || 
-                              `DO-${data.schedule?.id || Math.floor(Date.now() / 1000)}`;
+      const confirmationCode = data.appointment?.confirmationCode || 
+                              data.confirmationCode ||
+                              `${slug.toUpperCase()}-${Math.floor(Date.now() / 1000)}`;
       
       setConfirmationCode(confirmationCode);
       
@@ -365,6 +365,23 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         appointmentTypeId: appointment.appointmentTypeId,
         appointmentTypeName: bookingPage.appointmentTypes?.find((t: any) => t.id === appointment.appointmentTypeId)?.name,
       });
+      
+      // Trigger real-time notification update
+      try {
+        fetch('/api/notifications/trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'new_appointment',
+            appointmentId: appointment.id,
+            message: `New appointment scheduled: ${confirmationCode}`
+          })
+        }).catch(notificationError => {
+          console.log('Could not trigger notification update:', notificationError);
+        });
+      } catch (notificationError) {
+        console.log('Could not trigger notification update:', notificationError);
+      }
       
       setStep(4);
     },
