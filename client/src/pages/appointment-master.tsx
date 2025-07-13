@@ -1679,12 +1679,37 @@ export default function AppointmentMaster() {
                     
                     <Button 
                       className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => {
-                        toast({
-                          title: "Questions saved",
-                          description: "Your form questions have been updated successfully",
-                          variant: "default",
-                        });
+                      onClick={async () => {
+                        if (!selectedAppointmentTypeId) return;
+                        
+                        try {
+                          // Save each standard question individually
+                          const updatePromises = standardFields.map(field => {
+                            return updateStandardQuestionMutation.mutateAsync({
+                              id: field.id,
+                              data: {
+                                included: field.included,
+                                required: field.required,
+                                orderPosition: field.order
+                              }
+                            });
+                          });
+                          
+                          await Promise.all(updatePromises);
+                          
+                          toast({
+                            title: "Questions saved",
+                            description: "Your form questions have been updated successfully",
+                            variant: "default",
+                          });
+                        } catch (error) {
+                          console.error('Error saving questions:', error);
+                          toast({
+                            title: "Error saving questions",
+                            description: "Failed to save questions. Please try again.",
+                            variant: "destructive",
+                          });
+                        }
                       }}
                     >
                       <Save className="h-4 w-4 mr-2" />

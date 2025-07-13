@@ -27,25 +27,10 @@ function OrganizationLogo({ bookingPage, className }: { bookingPage: any; classN
     queryFn: async () => {
       const res = await fetch(`/api/booking-pages/logo/${bookingPage.tenantId}`);
       if (!res.ok) return null;
-      const data = await res.json();
-      console.log('Logo data received:', {
-        tenantId: bookingPage.tenantId,
-        hasLogo: !!data.logo,
-        logoLength: data.logo?.length || 0,
-        logoPrefix: data.logo?.substring(0, 50) || 'No logo'
-      });
-      return data;
+      return res.json();
     },
     enabled: !!bookingPage.tenantId,
     staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  console.log('OrganizationLogo render:', {
-    isLoading,
-    hasLogoData: !!logoData,
-    hasLogo: !!logoData?.logo,
-    tenantId: bookingPage.tenantId,
-    bookingPageName: bookingPage.name
   });
 
   if (isLoading) {
@@ -63,23 +48,15 @@ function OrganizationLogo({ bookingPage, className }: { bookingPage: any; classN
           src={logoData.logo} 
           alt={`${bookingPage.name} logo`}
           className="h-full w-full object-contain rounded-lg"
-          onError={(e) => {
-            console.error('Logo failed to load:', e);
-            e.currentTarget.style.display = 'none';
-          }}
-          onLoad={() => {
-            console.log('Logo loaded successfully for:', bookingPage.name);
-          }}
         />
       </div>
     );
   }
 
   // Fallback to organization initial
-  console.log('Using fallback logo for:', bookingPage.name);
   return (
     <div className={className}>
-      <div className="bg-blue-500 text-white rounded-lg w-full h-full flex items-center justify-center">
+      <div className="bg-primary text-primary-foreground rounded-lg w-full h-full flex items-center justify-center">
         <span className="font-bold text-xl">
           {bookingPage.name?.charAt(0) || 'O'}
         </span>
@@ -767,20 +744,18 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       {/* Header with organization logo */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <OrganizationLogo 
-                bookingPage={bookingPage} 
-                className="h-16 w-16 flex items-center justify-center bg-gray-100 rounded-lg border-2 border-gray-200"
-              />
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  {bookingPage.name}
-                </h1>
-                <p className="text-sm text-gray-600">
-                  Dock Appointment Scheduler
-                </p>
-              </div>
+          <div className="flex items-center space-x-4">
+            <OrganizationLogo 
+              bookingPage={bookingPage} 
+              className="h-16 w-16 flex items-center justify-center bg-gray-100 rounded-lg border-2 border-gray-200"
+            />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {bookingPage.name} Dock Appointment Scheduler
+              </h1>
+              <p className="text-sm text-gray-600">
+                Please use this form to schedule your dock appointment with {bookingPage.name}.
+              </p>
             </div>
           </div>
         </div>
