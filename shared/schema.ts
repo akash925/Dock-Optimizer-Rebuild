@@ -403,6 +403,8 @@ export const insertHolidaySchema = createInsertSchema(holidays).omit({
   lastModifiedAt: true,
 });
 
+
+
 // Appointment Settings Model
 export const appointmentSettings = pgTable("appointment_settings", {
   id: serial("id").primaryKey(),

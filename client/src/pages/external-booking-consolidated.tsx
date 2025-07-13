@@ -607,7 +607,10 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             
             <Form {...form}>
               <form 
-                onSubmit={form.handleSubmit((data) => handleSubmitBooking(data.customFields))}
+                onSubmit={form.handleSubmit((data) => {
+                  console.log('Form data being submitted:', data);
+                  handleSubmitBooking(data.customFields);
+                })}
                 className="space-y-6"
               >
 

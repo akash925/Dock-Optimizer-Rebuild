@@ -223,6 +223,12 @@ export interface IStorage {
   getOrganizationByFacilityId(facilityId: number): Promise<Tenant | undefined>;
   getOrganizationByAppointmentTypeId(appointmentTypeId: number): Promise<Tenant | undefined>;
   
+  // Organization holidays operations
+  getOrganizationHolidays(tenantId: number): Promise<OrganizationHoliday[]>;
+  createOrganizationHoliday(holiday: InsertOrganizationHoliday): Promise<OrganizationHoliday>;
+  updateOrganizationHoliday(id: number, holiday: Partial<OrganizationHoliday>): Promise<OrganizationHoliday | undefined>;
+  deleteOrganizationHoliday(id: number): Promise<boolean>;
+  
   // Standard Questions operations
   createStandardQuestionWithId(question: InsertStandardQuestion & { id: number }): Promise<StandardQuestion>;
   
