@@ -11,7 +11,9 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       const { tenantId } = req.params;
       const tenantIdNum = parseInt(tenantId, 10);
       
-      console.log(`[Booking Page Logo] Fetching logo directly for tenant ID: ${tenantIdNum}`);
+      console.log(`[Booking Page Logo] DIRECT CALL - Fetching logo for tenant ID: ${tenantIdNum}`);
+      console.log(`[Booking Page Logo] Request URL: ${req.originalUrl}`);
+      console.log(`[Booking Page Logo] Request headers: ${JSON.stringify(req.headers, null, 2)}`);
       
       if (isNaN(tenantIdNum)) {
         // If it's not a number, treat it as a slug
@@ -27,7 +29,7 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
         return res.status(404).json({ message: 'Organization not found' });
       }
       
-      console.log(`[Booking Page Logo] Found organization '${organization.name}' for tenant ID: ${tenantIdNum}`);
+      console.log(`[Booking Page Logo] ✅ Found organization '${organization.name}' for tenant ID: ${tenantIdNum}`);
       
       // Return the logo URL or data
       const logoData = organization.logoUrl ? organization.logoUrl : null;
