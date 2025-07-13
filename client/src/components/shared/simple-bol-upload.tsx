@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileUp, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileUp, Upload, CheckCircle, AlertCircle, FileText, X, Download, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 interface SimpleBolUploadProps {
   onBolProcessed: (data: any, fileUrl: string) => void;
@@ -22,6 +23,7 @@ export default function SimpleBolUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [processedFiles, setProcessedFiles] = useState<any[]>([]);
   const { toast } = useToast();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,7 +62,26 @@ export default function SimpleBolUpload({
       
       if (result.success) {
         setUploadSuccess(true);
+        
+        // Add to processed files list for email-like display
+        const processedFile = {
+          id: Date.now(),
+          name: selectedFile.name,
+          size: selectedFile.size,
+          type: selectedFile.type,
+          uploadedAt: new Date().toISOString(),
+          fileUrl: result.fileUrl,
+          extractedData: result.extractedData,
+          processingStatus: 'completed',
+          confidence: result.extractedData?.confidence || 85
+        };
+        
+        setProcessedFiles(prev => [...prev, processedFile]);
         onBolProcessed(result.extractedData, result.fileUrl);
+        
+        // Reset file input
+        setSelectedFile(null);
+        
         toast({
           title: "BOL Upload Success",
           description: "Document processed successfully",
@@ -82,8 +103,79 @@ export default function SimpleBolUpload({
     }
   };
 
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileIcon = (type: string) => {
+    if (type.includes('pdf')) return <FileText className="h-5 w-5 text-red-500" />;
+    if (type.includes('image')) return <Eye className="h-5 w-5 text-blue-500" />;
+    return <FileText className="h-5 w-5 text-gray-500" />;
+  };
+
+  const removeFile = (id: number) => {
+    setProcessedFiles(prev => prev.filter(f => f.id !== id));
+  };
+
   return (
     <div className={`space-y-4 ${className}`}>
+      {/* Processed Files Display (Email-like attachments) */}
+      {processedFiles.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-gray-700">Processed Documents</Label>
+          <div className="space-y-2">
+            {processedFiles.map((file) => (
+              <div
+                key={file.id}
+                className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  {getFileIcon(file.type)}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {file.name}
+                      </p>
+                      <Badge variant="secondary" className="text-xs">
+                        {file.confidence}% confidence
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(file.size)} • Uploaded {new Date(file.uploadedAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {file.fileUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => window.open(file.fileUrl, '_blank')}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFile(file.id)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* File Input */}
       <div className="space-y-2">
         <Label htmlFor="bol-file">Upload BOL Document</Label>
         <div className="flex items-center gap-2">
@@ -132,7 +224,7 @@ export default function SimpleBolUpload({
 
       {selectedFile && (
         <div className="text-sm text-gray-600">
-          Selected: {selectedFile.name}
+          Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
         </div>
       )}
     </div>

@@ -318,7 +318,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     mutationFn: async (data: any) => {
       console.log("Creating booking with data:", data);
       
-      const res = await fetch(`/api/booking-pages/book/${slug}`, {
+      const res = await fetch(`/api/booking-pages/${slug}/book`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -350,23 +350,20 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       setConfirmationCode(confirmationCode);
       
       // Set booking details for confirmation page
-      const schedule = data.schedule || {};
-      const facility = data.facility || {};
-      const appointmentType = data.appointmentType || {};
+      const appointment = data.appointment || {};
       
       setBookingDetails({
         confirmationCode,
-        id: schedule.id,
-        scheduleId: schedule.id,
+        id: appointment.id,
+        scheduleId: appointment.id,
         emailSent: data.emailSent || false,
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-        timezone: data.timezone || bookingData.timezone,
-        facilityId: schedule.facilityId,
-        facilityName: facility.name || data.facilityName,
-        facilityAddress: facility.address || data.facilityAddress,
-        appointmentTypeId: schedule.appointmentTypeId,
-        appointmentTypeName: appointmentType.name || data.appointmentTypeName,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        timezone: bookingData.timezone,
+        facilityId: appointment.facilityId,
+        facilityName: bookingPage.facilities?.find((f: any) => f.id === appointment.facilityId)?.name,
+        appointmentTypeId: appointment.appointmentTypeId,
+        appointmentTypeName: bookingPage.appointmentTypes?.find((t: any) => t.id === appointment.appointmentTypeId)?.name,
       });
       
       setStep(4);

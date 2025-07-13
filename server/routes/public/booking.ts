@@ -149,4 +149,76 @@ router.get("/booking-pages/standard-questions/appointment-type/:appointmentTypeI
   }
 });
 
+// POST /api/booking-pages/:slug/book - Create a new booking
+router.post("/booking-pages/:slug/book", async (req, res) => {
+  const { slug } = req.params;
+  const bookingData = req.body;
+  
+  try {
+    console.log(`[BookingSubmission] Processing booking for page ${slug}:`, bookingData);
+    
+    // Get the booking page to verify it exists and is active
+    const bookingPage = await db.query.bookingPages.findFirst({
+      where: eq(bookingPages.slug, slug),
+    });
+    
+    if (!bookingPage) {
+      return res.status(404).json({ error: "Booking page not found" });
+    }
+    
+    if (!bookingPage.isActive) {
+      return res.status(400).json({ error: "Booking page is not active" });
+    }
+    
+    // Import storage to create the appointment
+    const { getStorage } = await import("../../storage");
+    const storage = await getStorage();
+    
+    // Create the appointment using the booking data
+    const appointment = await storage.createSchedule({
+      facilityId: bookingData.facilityId,
+      appointmentTypeId: bookingData.appointmentTypeId,
+      startTime: new Date(`${bookingData.date}T${bookingData.time}`),
+      endTime: new Date(`${bookingData.date}T${bookingData.time}`), // Will be calculated based on duration
+      status: 'scheduled',
+      driverName: bookingData.driverName,
+      driverPhone: bookingData.driverPhone,
+      driverEmail: bookingData.driverEmail,
+      truckNumber: bookingData.truckNumber,
+      trailerNumber: bookingData.trailerNumber,
+      bolNumber: bookingData.bolNumber,
+      palletCount: bookingData.palletCount ? parseInt(bookingData.palletCount) : null,
+      weight: bookingData.weight,
+      notes: bookingData.notes,
+      carrierName: bookingData.carrierName,
+      customerName: bookingData.customerName,
+      tenantId: bookingPage.tenantId,
+      customFormData: JSON.stringify(bookingData),
+      bolDocumentPath: bookingData.bolDocumentPath,
+      parsedOcrText: bookingData.parsedOcrText,
+      confirmationCode: `${bookingPage.slug.toUpperCase()}-${Date.now().toString().slice(-6)}`
+    });
+    
+    console.log(`[BookingSubmission] Created appointment ${appointment.id} with confirmation code ${appointment.confirmationCode}`);
+    
+    // Return the booking confirmation
+    res.json({
+      success: true,
+      appointment: {
+        id: appointment.id,
+        confirmationCode: appointment.confirmationCode,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        status: appointment.status,
+        facilityId: appointment.facilityId,
+        appointmentTypeId: appointment.appointmentTypeId
+      }
+    });
+    
+  } catch (error) {
+    console.error("[BookingSubmission] Error creating booking:", error);
+    res.status(500).json({ error: "Failed to create booking" });
+  }
+});
+
 export default router;
