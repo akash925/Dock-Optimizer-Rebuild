@@ -1,7 +1,15 @@
 import { Request, Response } from 'express';
-import { getStorage } from '../../storage';
-import { mediaService } from '../../services/MediaService';
+import { getStorage, IStorage } from '../../storage';
+import MediaService from '../../services/MediaService';
 import { User } from '@shared/types/user';
+
+let mediaService: MediaService;
+
+(async () => {
+  const storage = await getStorage();
+  mediaService = new MediaService(storage);
+})();
+
 
 interface AuthenticatedRequest extends Request {
   user: User;
@@ -286,7 +294,10 @@ export const confirmBolUpload = async (req: AuthenticatedRequest, res: Response)
       // TENANT VALIDATION: Ensure appointment belongs to user's tenant (through facility relationship)
       if (appointment.facilityId && req.user.tenantId) {
         const facility = await storage.getFacility(appointment.facilityId);
-        if (facility && facility.tenantId !== req.user.tenantId) {
+        if (!facility) {
+          return res.status(404).json({ error: 'Facility associated with appointment not found' });
+        }
+        if (facility.tenantId !== req.user.tenantId) {
           return res.status(403).json({ error: 'Forbidden - Appointment does not belong to your organization' });
         }
       }

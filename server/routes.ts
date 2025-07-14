@@ -217,6 +217,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastModifiedBy: userId || 1 // Use system user if not authenticated
       });
       
+      // Create a notification for the check-in event
+      if (updatedSchedule) {
+        await storage.createNotification({
+          userId: userId || 1,
+          title: 'Appointment Checked In',
+          message: `Appointment for ${schedule.customerName} has been checked in.`,
+          type: 'appointment_checked_in',
+          relatedScheduleId: scheduleId,
+        });
+      }
+      
       console.log(`[CheckIn] Appointment ${scheduleId} checked in successfully`);
       res.json(updatedSchedule);
     } catch (error) {

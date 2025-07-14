@@ -223,10 +223,7 @@ app.use((req, res, next) => {
       console.log(`[AppointmentTypesAPI] Processing request for tenant ${req.user.tenantId}`);
 
       // Get all appointment types for this tenant
-      const allAppointmentTypes = await storage.getAppointmentTypes();
-      
-      // Filter by tenant ID for proper isolation
-      const tenantAppointmentTypes = allAppointmentTypes.filter(type => type.tenantId === req.user.tenantId);
+      const tenantAppointmentTypes = await storage.getAppointmentTypes(req.user.tenantId);
 
       console.log(`[AppointmentTypesAPI] Returning ${tenantAppointmentTypes.length} appointment types for tenant ${req.user.tenantId}`);
       res.json(tenantAppointmentTypes);

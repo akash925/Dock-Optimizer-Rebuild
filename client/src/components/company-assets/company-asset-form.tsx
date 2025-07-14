@@ -251,7 +251,6 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
     if (isEditing) {
       updateMutation.mutate(data);
     } else {
-      console.log("Calling createMutation.mutate...");
       createMutation.mutate(data);
     }
   };

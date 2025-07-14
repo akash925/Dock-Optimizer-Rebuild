@@ -134,7 +134,7 @@ export interface IStorage {
   
   // Appointment Type operations
   getAppointmentType(id: number): Promise<AppointmentType | undefined>;
-  getAppointmentTypes(): Promise<AppointmentType[]>;
+  getAppointmentTypes(tenantId?: number): Promise<AppointmentType[]>;
   getAppointmentTypesByFacility(facilityId: number): Promise<AppointmentType[]>;
   createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType>;
   updateAppointmentType(id: number, appointmentType: Partial<AppointmentType>): Promise<AppointmentType | undefined>;
@@ -546,7 +546,12 @@ export class MemStorage implements IStorage {
     return updatedSettings;
   }
   async getAppointmentType(id: number): Promise<AppointmentType | undefined> { return this.appointmentTypes.get(id); }
-  async getAppointmentTypes(): Promise<AppointmentType[]> { return Array.from(this.appointmentTypes.values()); }
+  async getAppointmentTypes(tenantId?: number): Promise<AppointmentType[]> {
+    if (tenantId) {
+      return Array.from(this.appointmentTypes.values()).filter(t => t.tenantId === tenantId);
+    }
+    return Array.from(this.appointmentTypes.values());
+  }
   async getAppointmentTypesByFacility(facilityId: number): Promise<AppointmentType[]> { return Array.from(this.appointmentTypes.values()).filter(t => t.facilityId === facilityId); }
   async createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType> {
     const id = this.appointmentTypeIdCounter++;

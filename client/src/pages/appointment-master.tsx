@@ -277,7 +277,8 @@ export default function AppointmentMaster() {
       ...appointmentType,
       facilityName: facility?.name || "Unknown Facility",
       // Format the date for display
-      createdDate: appointmentType.createdAt ? new Date(appointmentType.createdAt).toLocaleDateString() : "N/A"
+      createdDate: appointmentType.createdAt ? new Date(appointmentType.createdAt).toLocaleDateString() : "N/A",
+      lastUpdatedDate: appointmentType.lastModifiedAt ? new Date(appointmentType.lastModifiedAt).toLocaleString() : "N/A",
     };
   });
   
@@ -956,6 +957,7 @@ export default function AppointmentMaster() {
                           <TableHead>Facility</TableHead>
                           <TableHead>Type</TableHead>
                           <TableHead>Created</TableHead>
+                          <TableHead>Last Updated</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -966,6 +968,7 @@ export default function AppointmentMaster() {
                             <TableCell>{appointmentType.facilityName}</TableCell>
                             <TableCell>{getAppointmentTypeLabel(appointmentType.type)}</TableCell>
                             <TableCell>{appointmentType.createdDate}</TableCell>
+                            <TableCell>{appointmentType.lastUpdatedDate}</TableCell>
                             <TableCell className="text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
