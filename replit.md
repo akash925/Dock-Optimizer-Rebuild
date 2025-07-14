@@ -187,6 +187,13 @@ Dock Optimizer is an enterprise-grade warehouse management system that streamlin
   - **API Protection Verified**: All protected routes (Asset Manager, Company Assets) work correctly after login
   - **Session Management**: Cookie-based sessions properly maintained across API calls
   - **User Context**: Tenant-based data isolation working correctly (279 assets loaded for tenant 2)
+- July 14, 2025: **ASSET MANAGER & EXTERNAL BOOKING FIXES** - Resolved form submission and API issues:
+  - **Asset Manager Update**: Fixed form submission to use authenticated `apiRequest` instead of `fetch`
+  - **API Enum Values**: Confirmed proper enum mapping (EQUIPMENT, ACTIVE, DOCK) for asset categories
+  - **External Booking Questions**: Standard questions API working correctly (9 questions loaded for appointment type 1)
+  - **OCR File Upload**: Confirmed working with tesseract.js backend, files saved to uploads/ directory
+  - **Form Authentication**: All form submissions now use proper session-based authentication
+  - **API Testing**: Asset update API endpoint confirmed working with proper enum values
 
 ## User Preferences
 
