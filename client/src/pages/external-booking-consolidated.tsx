@@ -606,11 +606,14 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
             <Form {...form}>
               <form 
                 onSubmit={form.handleSubmit((data) => {
+                  console.log('=== FORM SUBMISSION DEBUG ===');
                   console.log('Form data being submitted:', data);
                   console.log('Form validation state:', form.formState.errors);
                   console.log('Current booking data:', bookingData);
+                  console.log('form.formState.isValid:', form.formState.isValid);
                   // Handle both nested and flat form data structures
                   const formData = data.customFields || data;
+                  console.log('Processed form data:', formData);
                   handleSubmitBooking(formData);
                 })}
                 className="space-y-6"
