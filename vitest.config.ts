@@ -1,4 +1,6 @@
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
+import { URL } from 'node:url';
 import path from 'path';
 
 export default defineConfig({
@@ -23,7 +25,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@shared': path.resolve(__dirname, 'shared'),
-      '~': path.resolve(__dirname, 'server/src')
+      '~': path.resolve(__dirname, 'server/src'),
+      '@/storage': fileURLToPath(new URL('./server/storage', import.meta.url))
     }
   },
   define: {

@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AppointmentMasterService } from '../service';
 import { camelToSnake, snakeToCamel } from '../../../../shared/utils/object-mapper';
+import { getStorage } from '@/storage';
 
 // Mock the storage
-vi.mock('../../storage', () => ({
+vi.mock('@/storage', () => ({
   getStorage: vi.fn()
 }));
 
@@ -22,7 +23,6 @@ describe('AppointmentMasterService Questions Mapping', () => {
     };
 
     // Mock the getStorage function
-    const { getStorage } = require('../../storage');
     vi.mocked(getStorage).mockResolvedValue(mockStorage);
     
     service = new AppointmentMasterService();
