@@ -193,14 +193,6 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         customFieldsShape[q.fieldKey] = validator;
       });
     
-    // Ensure default fields are still present if not in dynamic questions
-    if (!customFieldsShape.customerName) {
-      customFieldsShape.customerName = z.string().min(1, "Customer name is required");
-    }
-    if (!customFieldsShape.email) {
-      customFieldsShape.email = z.string().email("A valid email address is required");
-    }
-  
     return z.object({
       customFields: z.object(customFieldsShape).passthrough(),
     });
