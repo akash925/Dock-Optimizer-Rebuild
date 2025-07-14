@@ -27,6 +27,7 @@ import {
 } from "./controllers";
 import { isAuthenticated } from "../../middleware/auth";
 import express from "express";
+import multer from "multer";
 
 // Legacy routes for backward compatibility (/api/assets) - DISABLED
 // const legacyRouter = Router();
@@ -44,8 +45,8 @@ const companyAssetsRouter = Router();
 // Company asset CRUD operations
 companyAssetsRouter.get("/", isAuthenticated, listCompanyAssets);
 companyAssetsRouter.get("/:id", isAuthenticated, getCompanyAssetById);
-companyAssetsRouter.post("/", isAuthenticated, createCompanyAsset);
-companyAssetsRouter.put("/:id", isAuthenticated, updateCompanyAsset);
+companyAssetsRouter.post("/", isAuthenticated, multer().any(), createCompanyAsset);
+companyAssetsRouter.put("/:id", isAuthenticated, multer().any(), updateCompanyAsset);
 companyAssetsRouter.delete("/:id", isAuthenticated, deleteCompanyAsset);
 
 // Asset status and search operations

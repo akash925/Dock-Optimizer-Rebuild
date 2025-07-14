@@ -11,6 +11,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { processImageFile, processBase64Image, testOcr } from '../ocr/ocr_connector.mjs';
 import { BolService } from '../services/bolService.js';
 import { validateOcrResult, extractFieldsFromOcrResults } from '../utils/ocrValidator.mjs';
@@ -19,6 +20,10 @@ import { getStorage } from '../storage.js';
 
 const router = express.Router();
 const bolService = new BolService();
+
+// Replicate __dirname functionality in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
