@@ -72,7 +72,7 @@ const upload = multer({
  * @apiSuccess {Object} data The OCR processing results
  * @apiSuccess {Object} documentInfo Database record of the saved document
  */
-router.post('/upload', upload.single('bolImage'), async (req, res) => {
+router.post('/upload', upload.single('bolFile'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No file uploaded.' });

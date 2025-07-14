@@ -38,6 +38,7 @@ import { db, pool, safeQuery } from "./db";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { getRedisInstance } from './src/lib/redis';
+import { logger } from "./utils/logger";
 
 const redis = getRedisInstance();
 
@@ -50,7 +51,7 @@ async function invalidateAvailabilityCache(schedule: { date: string, facilityId:
   const cacheKey = `availability:${schedule.date}:${schedule.facilityId}:${schedule.appointmentTypeId}:${schedule.tenantId}`;
   try {
     await redis.del(cacheKey);
-    console.log(`[Cache] Invalidated availability cache for key: ${cacheKey}`);
+    logger.debug(`[Cache] Invalidated availability cache for key: ${cacheKey}`);
   } catch (error) {
     console.error(`[Cache] Error invalidating availability cache for key ${cacheKey}:`, error);
   }
@@ -456,7 +457,7 @@ export class MemStorage implements IStorage {
         tenantId: schedule.tenantId || 1
       });
       
-      console.log(`[Storage] appointment:created event emitted for schedule ${schedule.id}`);
+      logger.debug(`[Storage] appointment:created event emitted for schedule ${schedule.id}`);
     } catch (eventError) {
       console.error('[Storage] Error emitting appointment:created event:', eventError);
       // Don't fail the schedule creation if event fails
@@ -898,7 +899,7 @@ export class DatabaseStorage implements IStorage {
       ORDER BY s.id DESC
     `);
     
-    console.log('DEBUG: [DatabaseStorage] getSchedules tenant-filtered result count:', result.rows.length);
+    logger.debug('[DatabaseStorage] getSchedules tenant-filtered result count:', { count: result.rows.length });
     
     // Transform snake_case fields to camelCase for frontend compatibility
     const transformedSchedules = result.rows.map((row: any) => ({
@@ -966,7 +967,7 @@ export class DatabaseStorage implements IStorage {
         tenantId: insertSchedule.tenantId || 1
       });
       
-      console.log(`[Storage] appointment:created event emitted for schedule ${newSchedule.id}`);
+      logger.debug(`[Storage] appointment:created event emitted for schedule ${newSchedule.id}`);
     } catch (eventError) {
       console.error('[Storage] Error emitting appointment:created event:', eventError);
       // Don't fail the schedule creation if event fails
@@ -1084,7 +1085,7 @@ export class DatabaseStorage implements IStorage {
 
   // Dock operations with real database queries
   async getDocks(tenantId?: number): Promise<Dock[]> {
-    console.log('DEBUG: [DatabaseStorage] getDocks called');
+    logger.debug('[DatabaseStorage] getDocks called');
     try {
       if (tenantId) {
         // If tenantId is provided, join with facilities to filter
@@ -1093,11 +1094,11 @@ export class DatabaseStorage implements IStorage {
           .from(docks)
           .innerJoin(facilities, eq(docks.facilityId, facilities.id))
           .where(eq(facilities.tenantId, tenantId));
-        console.log(`DEBUG: [DatabaseStorage] getDocks for tenant ${tenantId} result count:`, dockList.length);
+        logger.debug(`[DatabaseStorage] getDocks for tenant ${tenantId} result count:`, { count: dockList.length });
         return dockList.map(item => item.dock);
       }
       const dockList = await db.select().from(docks);
-      console.log('DEBUG: [DatabaseStorage] getDocks (unfiltered) result count:', dockList.length);
+      logger.debug('[DatabaseStorage] getDocks (unfiltered) result count:', { count: dockList.length });
       return dockList;
     } catch (error) {
       console.error('Error fetching docks:', error);
@@ -1157,7 +1158,7 @@ export class DatabaseStorage implements IStorage {
 
   // Carrier database operations
   async getCarriers(tenantId?: number): Promise<Carrier[]> {
-    console.log('DEBUG: [DatabaseStorage] getCarriers called');
+    logger.debug('[DatabaseStorage] getCarriers called');
     if (tenantId) {
       // This is a more complex query as carriers are not directly linked to tenants.
       // We need to find carriers associated with schedules that belong to a tenant.
@@ -1169,24 +1170,24 @@ export class DatabaseStorage implements IStorage {
       return tenantCarriers.map(item => item.carrier);
     }
     const result = await db.select().from(carriers);
-    console.log('DEBUG: [DatabaseStorage] getCarriers result count:', result.length);
+    logger.debug('[DatabaseStorage] getCarriers result count:', { count: result.length });
     return result;
   }
 
   async getCarrier(id: number): Promise<Carrier | undefined> {
-    console.log('DEBUG: [DatabaseStorage] getCarrier called with id:', id);
+    logger.debug('[DatabaseStorage] getCarrier called with id:', { id });
     const result = await db.select().from(carriers).where(eq(carriers.id, id));
     return result[0];
   }
 
   async createCarrier(insertCarrier: InsertCarrier): Promise<Carrier> {
-    console.log('DEBUG: [DatabaseStorage] createCarrier called');
+    logger.debug('[DatabaseStorage] createCarrier called');
     const result = await db.insert(carriers).values(insertCarrier).returning();
     return result[0];
   }
 
   async updateCarrier(id: number, data: any): Promise<Carrier | undefined> {
-    console.log('DEBUG: [DatabaseStorage] updateCarrier called with id:', id);
+    logger.debug('[DatabaseStorage] updateCarrier called with id:', { id });
     const result = await db.update(carriers).set(data).where(eq(carriers.id, id)).returning();
     return result[0];
   }
@@ -1210,9 +1211,9 @@ export class DatabaseStorage implements IStorage {
   
   async createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType> {
     try {
-      console.log('DEBUG: [DatabaseStorage] createAppointmentType called with:', appointmentType);
+      logger.debug('[DatabaseStorage] createAppointmentType called with:', { appointmentType });
       const [newAppointmentType] = await db.insert(appointmentTypes).values(appointmentType).returning();
-      console.log('DEBUG: [DatabaseStorage] createAppointmentType created:', newAppointmentType);
+      logger.debug('[DatabaseStorage] createAppointmentType created:', { newAppointmentType });
       return newAppointmentType;
     } catch (error) {
       console.error('Error creating appointment type:', error);
@@ -1222,13 +1223,13 @@ export class DatabaseStorage implements IStorage {
   
   async updateAppointmentType(id: number, data: Partial<AppointmentType>): Promise<AppointmentType | undefined> {
     try {
-      console.log('DEBUG: [DatabaseStorage] updateAppointmentType called with id:', id, 'data:', data);
+      logger.debug('[DatabaseStorage] updateAppointmentType called with id:', { id, data });
       const [updatedAppointmentType] = await db
         .update(appointmentTypes)
         .set({ ...data, lastModifiedAt: new Date() })
         .where(eq(appointmentTypes.id, id))
         .returning();
-      console.log('DEBUG: [DatabaseStorage] updateAppointmentType result:', updatedAppointmentType);
+      logger.debug('[DatabaseStorage] updateAppointmentType result:', { updatedAppointmentType });
       return updatedAppointmentType;
     } catch (error) {
       console.error('Error updating appointment type:', error);
@@ -1249,10 +1250,10 @@ export class DatabaseStorage implements IStorage {
   async getSystemSettings() { return this.memStorage.getSystemSettings(); }
   async updateSystemSettings(settings: any) { return this.memStorage.updateSystemSettings(settings); }
   async getBookingPages(): Promise<BookingPage[]> {
-    console.log('DEBUG: [DatabaseStorage] getBookingPages called');
+    logger.debug('[DatabaseStorage] getBookingPages called');
     try {
       const pages = await db.select().from(bookingPages);
-      console.log('DEBUG: [DatabaseStorage] getBookingPages result count:', pages.length);
+      logger.debug('[DatabaseStorage] getBookingPages result count:', { count: pages.length });
       return pages;
     } catch (error) {
       console.error('Error fetching booking pages:', error);
@@ -1261,10 +1262,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBookingPageBySlug(slug: string): Promise<BookingPage | undefined> {
-    console.log('DEBUG: [DatabaseStorage] getBookingPageBySlug called with slug:', slug);
+    logger.debug('[DatabaseStorage] getBookingPageBySlug called with slug:', { slug });
     try {
       const [page] = await db.select().from(bookingPages).where(eq(bookingPages.slug, slug)).limit(1);
-      console.log('DEBUG: [DatabaseStorage] getBookingPageBySlug result:', page ? 'found' : 'not found');
+      logger.debug('[DatabaseStorage] getBookingPageBySlug result:', { page: page ? 'found' : 'not found' });
       return page;
     } catch (error) {
       console.error('Error fetching booking page by slug:', error);
@@ -1273,10 +1274,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBookingPage(id: number): Promise<BookingPage | undefined> {
-    console.log('DEBUG: [DatabaseStorage] getBookingPage called with id:', id);
+    logger.debug('[DatabaseStorage] getBookingPage called with id:', { id });
     try {
       const [page] = await db.select().from(bookingPages).where(eq(bookingPages.id, id)).limit(1);
-      console.log('DEBUG: [DatabaseStorage] getBookingPage result:', page ? 'found' : 'not found');
+      logger.debug('[DatabaseStorage] getBookingPage result:', { page: page ? 'found' : 'not found' });
       return page;
     } catch (error) {
       console.error('Error fetching booking page by id:', error);
@@ -1285,19 +1286,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBookingPage(insertBookingPage: InsertBookingPage): Promise<BookingPage> {
-    console.log('DEBUG: [DatabaseStorage] createBookingPage called');
+    logger.debug('[DatabaseStorage] createBookingPage called');
     const result = await db.insert(bookingPages).values(insertBookingPage).returning();
     return result[0];
   }
 
   async updateBookingPage(id: number, data: any): Promise<BookingPage | undefined> {
-    console.log('DEBUG: [DatabaseStorage] updateBookingPage called with id:', id);
+    logger.debug('[DatabaseStorage] updateBookingPage called with id:', { id });
     const result = await db.update(bookingPages).set(data).where(eq(bookingPages.id, id)).returning();
     return result[0];
   }
 
   async deleteBookingPage(id: number): Promise<boolean> {
-    console.log('DEBUG: [DatabaseStorage] deleteBookingPage called with id:', id);
+    logger.debug('[DatabaseStorage] deleteBookingPage called with id:', { id });
     const result = await db.delete(bookingPages).where(eq(bookingPages.id, id));
     return result.rowCount > 0;
   }
@@ -1308,7 +1309,7 @@ export class DatabaseStorage implements IStorage {
   async deleteStandardQuestion(id: number) { return this.memStorage.deleteStandardQuestion(id); }
   async getCompanyAssets(filters?: any): Promise<any[]> {
     try {
-      console.log('DEBUG: [Storage] getCompanyAssets called with filters:', JSON.stringify(filters, null, 2));
+      logger.debug('[Storage] getCompanyAssets called with filters:', { filters: JSON.stringify(filters, null, 2) });
       
       let query = db.select().from(companyAssets);
       const conditions = [];
@@ -1318,7 +1319,7 @@ export class DatabaseStorage implements IStorage {
         console.error('[Storage] getCompanyAssets called without tenantId - this is a security violation');
         return [];
       }
-      console.log(`DEBUG: [Storage] Filtering by tenantId: ${filters.tenantId}`);
+      logger.debug(`[Storage] Filtering by tenantId: ${filters.tenantId}`);
       conditions.push(eq(companyAssets.tenantId, filters.tenantId));
       
       // Apply additional filters
@@ -1347,16 +1348,16 @@ export class DatabaseStorage implements IStorage {
         query = query.where(and(...conditions));
       }
       
-      console.log(`[Storage] Executing company assets query with ${conditions.length} conditions for tenant ${filters.tenantId}`);
-      console.log(`[Storage] Generated SQL conditions:`, conditions);
+      logger.debug(`[Storage] Executing company assets query with ${conditions.length} conditions for tenant ${filters.tenantId}`);
+      logger.debug(`[Storage] Generated SQL conditions:`, { conditions });
       
       // Test with raw SQL first to verify data exists
       const rawTestResult = await db.execute(sql`SELECT COUNT(*) as count FROM company_assets WHERE tenant_id = ${filters.tenantId}`);
-      console.log(`[Storage] Raw SQL test - found ${rawTestResult.rows[0]?.count} assets for tenant ${filters.tenantId}`);
+      logger.debug(`[Storage] Raw SQL test - found ${rawTestResult.rows[0]?.count} assets for tenant ${filters.tenantId}`);
       
       const assets = await query;
-      console.log(`[Storage] Drizzle query returned ${assets.length} company assets with filters:`, filters);
-      console.log(`[Storage] Sample asset data:`, assets.slice(0, 2));
+      logger.debug(`[Storage] Drizzle query returned ${assets.length} company assets with filters:`, { filters });
+      logger.debug(`[Storage] Sample asset data:`, { assets: assets.slice(0, 2) });
       return assets;
     } catch (error) {
       console.error('Error fetching company assets:', error);
@@ -1365,17 +1366,17 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getFilteredCompanyAssets(filters: any): Promise<any[]> {
-    console.log('DEBUG: [DatabaseStorage] getFilteredCompanyAssets called with filters:', filters);
+    logger.debug('[DatabaseStorage] getFilteredCompanyAssets called with filters:', { filters });
     const result = await this.getCompanyAssets(filters);
-    console.log('DEBUG: [DatabaseStorage] getFilteredCompanyAssets result count:', result.length);
+    logger.debug('[DatabaseStorage] getFilteredCompanyAssets result count:', { count: result.length });
     return result;
   }
 
   async getCompanyAsset(id: number): Promise<any | undefined> {
     try {
-      console.log('DEBUG: [DatabaseStorage] getCompanyAsset called with id:', id);
+      logger.debug('[DatabaseStorage] getCompanyAsset called with id:', { id });
       const [asset] = await db.select().from(companyAssets).where(eq(companyAssets.id, id)).limit(1);
-      console.log('DEBUG: [DatabaseStorage] getCompanyAsset result:', asset ? 'found' : 'not found');
+      logger.debug('[DatabaseStorage] getCompanyAsset result:', { asset: asset ? 'found' : 'not found' });
       return asset;
     } catch (error) {
       console.error('Error fetching company asset by id:', error);
@@ -1389,9 +1390,9 @@ export class DatabaseStorage implements IStorage {
   
   async createCompanyAsset(companyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
     try {
-      console.log('DEBUG: [DatabaseStorage] createCompanyAsset called with:', companyAsset);
+      logger.debug('[DatabaseStorage] createCompanyAsset called with:', { companyAsset });
       const [newAsset] = await db.insert(companyAssets).values(companyAsset).returning();
-      console.log('DEBUG: [DatabaseStorage] createCompanyAsset created asset with id:', newAsset.id);
+      logger.debug('[DatabaseStorage] createCompanyAsset created asset with id:', { id: newAsset.id });
       return newAsset;
     } catch (error) {
       console.error('Error creating company asset:', error);
@@ -1401,12 +1402,12 @@ export class DatabaseStorage implements IStorage {
   
   async updateCompanyAsset(id: number, companyAssetUpdate: UpdateCompanyAsset): Promise<CompanyAsset | undefined> {
     try {
-      console.log('DEBUG: [DatabaseStorage] updateCompanyAsset called with id:', id, 'data:', companyAssetUpdate);
+      logger.debug('[DatabaseStorage] updateCompanyAsset called with id:', { id, data: companyAssetUpdate });
       const [updatedAsset] = await db.update(companyAssets)
         .set({ ...companyAssetUpdate, updatedAt: new Date() })
         .where(eq(companyAssets.id, id))
         .returning();
-      console.log('DEBUG: [DatabaseStorage] updateCompanyAsset updated asset:', updatedAsset ? 'success' : 'not found');
+      logger.debug('[DatabaseStorage] updateCompanyAsset updated asset:', { success: updatedAsset ? 'success' : 'not found' });
       return updatedAsset;
     } catch (error) {
       console.error('Error updating company asset:', error);
@@ -1416,9 +1417,9 @@ export class DatabaseStorage implements IStorage {
 
   async findCompanyAssetByBarcode(barcode: string): Promise<CompanyAsset | undefined> {
     try {
-      console.log('DEBUG: [DatabaseStorage] findCompanyAssetByBarcode called with barcode:', barcode);
+      logger.debug('[DatabaseStorage] findCompanyAssetByBarcode called with barcode:', { barcode });
       const [asset] = await db.select().from(companyAssets).where(eq(companyAssets.barcode, barcode)).limit(1);
-      console.log('DEBUG: [DatabaseStorage] findCompanyAssetByBarcode result:', asset ? 'found' : 'not found');
+      logger.debug('[DatabaseStorage] findCompanyAssetByBarcode result:', { asset: asset ? 'found' : 'not found' });
       return asset;
     } catch (error) {
       console.error('Error finding company asset by barcode:', error);
@@ -1502,7 +1503,7 @@ export class DatabaseStorage implements IStorage {
   }
   async getOrganizationByFacilityId(facilityId: number): Promise<Tenant | undefined> {
     try {
-      console.log(`[DatabaseStorage] getOrganizationByFacilityId called with facilityId: ${facilityId}`);
+      logger.debug(`[DatabaseStorage] getOrganizationByFacilityId called with facilityId: ${facilityId}`);
       
       // Query the organization_facilities junction table to find the organization for this facility
       const result = await db
@@ -1515,19 +1516,19 @@ export class DatabaseStorage implements IStorage {
         .limit(1);
       
       if (result.length > 0) {
-        console.log(`[DatabaseStorage] Found organization ${result[0].organization.id} (${result[0].organization.name}) for facility ${facilityId}`);
+        logger.debug(`[DatabaseStorage] Found organization ${result[0].organization.id} (${result[0].organization.name}) for facility ${facilityId}`);
         return result[0].organization;
       }
       
       // Fallback: Check if facility has tenantId directly
       const facility = await this.getFacility(facilityId);
       if (facility && facility.tenantId) {
-        console.log(`[DatabaseStorage] Using facility.tenantId (${facility.tenantId}) as fallback for facility ${facilityId}`);
+        logger.debug(`[DatabaseStorage] Using facility.tenantId (${facility.tenantId}) as fallback for facility ${facilityId}`);
         const tenant = await this.getTenantById(facility.tenantId);
         return tenant;
       }
       
-      console.log(`[DatabaseStorage] No organization found for facility ${facilityId}`);
+      logger.debug(`[DatabaseStorage] No organization found for facility ${facilityId}`);
       return undefined;
     } catch (error) {
       console.error('Error fetching organization by facility ID:', error);
@@ -1536,28 +1537,28 @@ export class DatabaseStorage implements IStorage {
   }
   async getOrganizationByAppointmentTypeId(appointmentTypeId: number): Promise<Tenant | undefined> {
     try {
-      console.log(`[DatabaseStorage] getOrganizationByAppointmentTypeId called with appointmentTypeId: ${appointmentTypeId}`);
+      logger.debug(`[DatabaseStorage] getOrganizationByAppointmentTypeId called with appointmentTypeId: ${appointmentTypeId}`);
       
       // First get the appointment type to find its tenantId
       const appointmentType = await this.getAppointmentType(appointmentTypeId);
       if (!appointmentType) {
-        console.log(`[DatabaseStorage] Appointment type ${appointmentTypeId} not found`);
+        logger.debug(`[DatabaseStorage] Appointment type ${appointmentTypeId} not found`);
         return undefined;
       }
       
       if (appointmentType.tenantId) {
-        console.log(`[DatabaseStorage] Found tenantId ${appointmentType.tenantId} for appointment type ${appointmentTypeId}`);
+        logger.debug(`[DatabaseStorage] Found tenantId ${appointmentType.tenantId} for appointment type ${appointmentTypeId}`);
         const tenant = await this.getTenantById(appointmentType.tenantId);
         return tenant;
       }
       
       // Fallback: Use the facilityId to find the organization
       if (appointmentType.facilityId) {
-        console.log(`[DatabaseStorage] Using facilityId ${appointmentType.facilityId} as fallback for appointment type ${appointmentTypeId}`);
+        logger.debug(`[DatabaseStorage] Using facilityId ${appointmentType.facilityId} as fallback for appointment type ${appointmentTypeId}`);
         return await this.getOrganizationByFacilityId(appointmentType.facilityId);
       }
       
-      console.log(`[DatabaseStorage] No organization found for appointment type ${appointmentTypeId}`);
+      logger.debug(`[DatabaseStorage] No organization found for appointment type ${appointmentTypeId}`);
       return undefined;
     } catch (error) {
       console.error('Error fetching organization by appointment type ID:', error);
@@ -1566,23 +1567,23 @@ export class DatabaseStorage implements IStorage {
   }
   async getFacilityTenantId(facilityId: number): Promise<number> {
     try {
-      console.log(`[DatabaseStorage] getFacilityTenantId called with facilityId: ${facilityId}`);
+      logger.debug(`[DatabaseStorage] getFacilityTenantId called with facilityId: ${facilityId}`);
       
       // First try to get the organization via the organization_facilities junction table
       const organization = await this.getOrganizationByFacilityId(facilityId);
       if (organization) {
-        console.log(`[DatabaseStorage] Found tenant ID ${organization.id} for facility ${facilityId} via organization lookup`);
+        logger.debug(`[DatabaseStorage] Found tenant ID ${organization.id} for facility ${facilityId} via organization lookup`);
         return organization.id;
       }
       
       // Fallback: Check if facility has tenantId directly
       const facility = await this.getFacility(facilityId);
       if (facility && facility.tenantId) {
-        console.log(`[DatabaseStorage] Found tenant ID ${facility.tenantId} for facility ${facilityId} via facility.tenantId`);
+        logger.debug(`[DatabaseStorage] Found tenant ID ${facility.tenantId} for facility ${facilityId} via facility.tenantId`);
         return facility.tenantId;
       }
       
-      console.log(`[DatabaseStorage] No tenant ID found for facility ${facilityId}, returning default 1`);
+      logger.debug(`[DatabaseStorage] No tenant ID found for facility ${facilityId}, returning default 1`);
       return 1; // Default fallback
     } catch (error) {
       console.error('Error fetching facility tenant ID:', error);
@@ -1619,14 +1620,23 @@ export class DatabaseStorage implements IStorage {
 
   async getOrganizationDefaultHours(tenantId: number): Promise<any[]> {
     try {
-      const hours = await db.select().from(organizationDefaultHours)
-        .where(eq(organizationDefaultHours.tenantId, tenantId))
-        .orderBy(organizationDefaultHours.dayOfWeek);
+      const hours = await db.select({
+        id: organizationDefaultHours.id,
+        tenantId: organizationDefaultHours.tenantId,
+        dayOfWeek: organizationDefaultHours.dayOfWeek,
+        isOpen: organizationDefaultHours.isOpen,
+        openTime: organizationDefaultHours.openTime,
+        closeTime: organizationDefaultHours.closeTime,
+        breakStart: organizationDefaultHours.breakStart,
+        breakEnd: organizationDefaultHours.breakEnd,
+        createdAt: organizationDefaultHours.createdAt,
+        updatedAt: organizationDefaultHours.updatedAt,
+      }).from(organizationDefaultHours).where(eq(organizationDefaultHours.tenantId, tenantId)).orderBy(organizationDefaultHours.dayOfWeek);
       return hours;
     } catch (error) {
       // Gracefully handle missing table - this is expected in some deployments
       if (error.code === '42P01') { // Table does not exist
-        console.log(`[DatabaseStorage] organization_default_hours table does not exist - using defaults for tenant ${tenantId}`);
+        logger.debug(`[DatabaseStorage] organization_default_hours table does not exist - using defaults for tenant ${tenantId}`);
         return []; // Return empty array to trigger default hours logic
       }
       console.error('Error fetching organization default hours:', error);
@@ -1637,12 +1647,20 @@ export class DatabaseStorage implements IStorage {
   async updateOrganizationDefaultHours(tenantId: number, data: any): Promise<any> {
     try {
       // Check if record exists for this day
-      const [existing] = await db.select().from(organizationDefaultHours)
-        .where(and(
-          eq(organizationDefaultHours.tenantId, tenantId),
-          eq(organizationDefaultHours.dayOfWeek, data.dayOfWeek)
-        ))
-        .limit(1);
+      const [existing] = await db.select({
+        id: organizationDefaultHours.id,
+        tenantId: organizationDefaultHours.tenantId,
+        dayOfWeek: organizationDefaultHours.dayOfWeek,
+        isOpen: organizationDefaultHours.isOpen,
+        openTime: organizationDefaultHours.openTime,
+        closeTime: organizationDefaultHours.closeTime,
+        breakStart: organizationDefaultHours.breakStart,
+        breakEnd: organizationDefaultHours.breakEnd,
+        updatedAt: organizationDefaultHours.updatedAt,
+      }).from(organizationDefaultHours).where(and(
+        eq(organizationDefaultHours.tenantId, tenantId),
+        eq(organizationDefaultHours.dayOfWeek, data.dayOfWeek)
+      )).limit(1);
 
       if (existing) {
         // Update existing record
@@ -1686,7 +1704,15 @@ export class DatabaseStorage implements IStorage {
 
   async getOrganizationHolidays(tenantId?: number): Promise<any[]> {
     try {
-      let query = db.select().from(organizationHolidays);
+      let query = db.select({
+        id: organizationHolidays.id,
+        tenantId: organizationHolidays.tenantId,
+        name: organizationHolidays.name,
+        date: organizationHolidays.date,
+        isRecurring: organizationHolidays.isRecurring,
+        createdAt: organizationHolidays.createdAt,
+        updatedAt: organizationHolidays.updatedAt
+      }).from(organizationHolidays);
       
       // If tenantId is provided, filter by organization, otherwise return all (super-admin view)
       if (tenantId !== undefined) {
@@ -1698,7 +1724,7 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       // Gracefully handle missing holiday table - this is expected in some deployments
       if ((error as any).code === '42P01') { // Table does not exist
-        console.log(`[DatabaseStorage] organization_holidays table does not exist - returning empty array for tenant ${tenantId}`);
+        logger.debug(`[DatabaseStorage] organization_holidays table does not exist - returning empty array for tenant ${tenantId}`);
         return []; // Return empty array to prevent crashes
       }
       console.error('Error fetching organization holidays:', error);
@@ -1814,7 +1840,7 @@ export class DatabaseStorage implements IStorage {
 
   async createCustomQuestion(customQuestion: InsertCustomQuestion): Promise<CustomQuestion> {
     try {
-      console.log('[DatabaseStorage] Creating custom question:', customQuestion);
+      logger.debug('[DatabaseStorage] Creating custom question:', customQuestion);
       
       // Ensure proper field mapping for database insertion
       const dbData = {
@@ -1831,11 +1857,11 @@ export class DatabaseStorage implements IStorage {
         lastModifiedAt: new Date()
       };
       
-      console.log('[DatabaseStorage] Inserting with data:', dbData);
+      logger.debug('[DatabaseStorage] Inserting with data:', dbData);
       
       const [newQuestion] = await db.insert(customQuestions).values(dbData).returning();
       
-      console.log('[DatabaseStorage] Created question:', newQuestion);
+      logger.debug('[DatabaseStorage] Created question:', newQuestion);
       
       // Return the question with proper field mapping
       return {
@@ -2181,10 +2207,10 @@ export async function getStorage(): Promise<IStorage> {
   if (!storageInstance) {
     // Use database storage if DATABASE_URL is provided, otherwise use memory storage
     if (process.env.DATABASE_URL) {
-      console.log("Using PostgreSQL database storage");
+      logger.info("Using PostgreSQL database storage");
       storageInstance = new DatabaseStorage();
     } else {
-      console.log("Using memory storage for development");
+      logger.info("Using memory storage for development");
       storageInstance = new MemStorage();
     }
   }
