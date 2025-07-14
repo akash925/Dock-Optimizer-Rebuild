@@ -35,16 +35,11 @@ describe('Company Assets Upload Functionality', () => {
       expect(true).toBe(true);
     });
 
-    it('should register legacy routes at /api/assets', async () => {
-      // Mock the service method
-      mockCompanyAssetsService.list.mockResolvedValue([]);
-      
-      const response = await request(app)
+    it('should NOT register legacy routes at /api/assets (should return 404)', async () => {
+      // Legacy routes are disabled - should return 404
+      await request(app)
         .get('/api/assets')
-        .expect(200);
-      
-      expect(response.body).toEqual([]);
-      expect(mockCompanyAssetsService.list).toHaveBeenCalled();
+        .expect(404);
     });
 
     it('should register company assets routes at /api/company-assets', async () => {

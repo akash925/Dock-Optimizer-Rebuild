@@ -1025,7 +1025,7 @@ export function CompanyAssetList({ onEditAsset }: CompanyAssetListProps) {
                     setIsDialogOpen(false);
                     
                     // Build query key that includes current search/filter context
-                    let queryKey = ['/api/company-assets/company-assets'];
+                    let queryKey = ['companyAssets'];
                     // Add the current search term and filters to maintain context
                     if (debouncedSearchTerm || Object.values(filters).some(val => val !== null && (Array.isArray(val) ? val.length > 0 : true))) {
                       queryKey.push('filtered');

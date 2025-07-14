@@ -27,16 +27,16 @@ export function createTestApp(customUser?: any) {
     next();
   });
 
-  // Company Assets routes for testing
-  app.get('/api/assets', async (req: any, res) => {
-    try {
-      const { mockStorage } = await import('./__mocks__/storage');
-      const assets = await mockStorage.getCompanyAssetsByTenantId(req.user.tenantId);
-      res.json(assets);
-    } catch (error) {
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
+  // Company Assets routes for testing - LEGACY ROUTE REMOVED
+  // app.get('/api/assets', async (req: any, res) => {
+  //   try {
+  //     const { mockStorage } = await import('./__mocks__/storage');
+  //     const assets = await mockStorage.getCompanyAssetsByTenantId(req.user.tenantId);
+  //     res.json(assets);
+  //   } catch (error) {
+  //     res.status(500).json({ error: 'Internal server error' });
+  //   }
+  // });
 
   app.get('/api/company-assets', async (req: any, res) => {
     try {

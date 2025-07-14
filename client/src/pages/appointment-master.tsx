@@ -153,7 +153,7 @@ export default function AppointmentMaster() {
           type: q.fieldType.toLowerCase(),
           required: q.required,
           included: q.included,
-          order: q.orderPosition,
+          order: q.orderPosition, // Already camelCase from backend
           appointmentType: "both" // Default value
         }));
         
@@ -574,7 +574,7 @@ export default function AppointmentMaster() {
         included: isIncluded, // Explicit boolean for included flag
         options: field.options ? JSON.stringify(field.options) : "[]",
         placeholder: field.placeholder || "",
-        order_position: field.order || customFields.length + 1, // Use order_position field for database
+        orderPosition: field.order || customFields.length + 1, // Use camelCase
         appointmentType: field.appointmentType || "both"
       };
       
@@ -615,7 +615,7 @@ export default function AppointmentMaster() {
               : newField.options) 
           : [],
         placeholder: newField.placeholder || "",
-        order: newField.order_position || 0,
+        order: newField.orderPosition || 0, // Use camelCase
         appointmentType: newField.appointmentType || "both"
       } as QuestionFormField;
       
@@ -823,7 +823,7 @@ export default function AppointmentMaster() {
           included: q.included !== false, // Ensure included defaults to true if not specified
           options: q.options ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options) : [],
           placeholder: q.placeholder || "",
-          order: q.order_position, // Map order_position to order
+          order: q.orderPosition, // Use camelCase
           appointmentType: q.appointmentType || "both"
         };
         

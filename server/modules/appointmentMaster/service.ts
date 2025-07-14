@@ -1,5 +1,7 @@
 import { getStorage, IStorage } from '../../storage';
 import { CustomQuestion } from '../../../shared/schema';
+import { camelToSnake, snakeToCamel, transformDbToFrontend, transformFrontendToDb } from '../../../shared/utils/object-mapper';
+import { validateAppointmentTypeQuestionsArray, validateCreateAppointmentTypeQuestion } from './validators';
 
 export class AppointmentMasterService {
   private storage: IStorage | null = null;
@@ -20,28 +22,22 @@ export class AppointmentMasterService {
       }
 
       // Handle questions array safely - default to empty array if undefined/null
-      const uiQs = payload.questions ?? [];
+      const frontendQuestions = payload.questions ?? [];
       
-      // Fix DTO mapping: isRequired (frontend) -> is_required (database)
-      const dbQs = uiQs.map((q: any) => {
-        const { isRequired, ...rest } = q; // Remove camelCase version
-        return {
-          ...rest,
-          is_required: Boolean(isRequired), // Explicit boolean conversion
-          appointmentTypeId: typeId // Ensure appointment type ID is set
-        };
+      // Transform frontend questions (camelCase) to database format (snake_case)
+      const dbQuestions = frontendQuestions.map((q: any) => {
+        const dbQuestion = transformFrontendToDb(q);
+        dbQuestion.appointment_type_id = typeId; // Ensure appointment type ID is set
+        return dbQuestion;
       });
       
       // Replace questions for this appointment type
-      await this.replaceQuestionsForType(typeId, dbQs);
+      await this.replaceQuestionsForType(typeId, dbQuestions);
       
-      // Return camelCase for frontend compatibility
-      const frontendQs = dbQs.map((q: any) => ({
-        ...q,
-        isRequired: q.is_required, // Map back to camelCase for frontend
-      }));
+      // Transform back to frontend format (camelCase) for response
+      const responseQuestions = dbQuestions.map((q: any) => transformDbToFrontend(q));
       
-      return { questions: frontendQs };
+      return { questions: responseQuestions };
     } catch (error) {
       console.error('Error saving appointment type:', error);
       throw error;
@@ -68,12 +64,12 @@ export class AppointmentMasterService {
       for (const question of questions) {
         const newQuestion: CustomQuestion = await this.storage.createCustomQuestion({
           ...question,
-          appointmentTypeId: typeId,
+          appointment_type_id: typeId,
           // Ensure required fields have defaults
           label: question.label || 'Untitled Question',
           type: question.type || 'TEXT',
           is_required: Boolean(question.is_required),
-          order: question.order || createdQuestions.length + 1,
+          order_position: question.order_position || createdQuestions.length + 1,
         });
         createdQuestions.push(newQuestion);
       }
@@ -91,9 +87,30 @@ export class AppointmentMasterService {
         this.storage = await getStorage();
       }
       
-      return await this.storage.getAppointmentType(typeId);
+      const appointmentType = await this.storage.getAppointmentType(typeId);
+      
+      // Transform to frontend format if needed
+      return transformDbToFrontend(appointmentType);
     } catch (error) {
       console.error('Error getting appointment type:', error);
+      throw error;
+    }
+  }
+
+  async getAppointmentTypeQuestions(typeId: number) {
+    try {
+      if (!this.storage) {
+        this.storage = await getStorage();
+      }
+      
+      const questions = await this.storage.getCustomQuestionsByAppointmentType(typeId);
+      
+      // Transform questions to frontend format (camelCase)
+      const frontendQuestions = questions.map(q => transformDbToFrontend(q));
+      
+      return frontendQuestions;
+    } catch (error) {
+      console.error('Error getting appointment type questions:', error);
       throw error;
     }
   }
@@ -104,7 +121,13 @@ export class AppointmentMasterService {
         this.storage = await getStorage();
       }
       
-      return await this.storage.updateAppointmentType(typeId, updateData);
+      // Transform frontend data to database format
+      const dbUpdateData = transformFrontendToDb(updateData);
+      
+      const updatedAppointmentType = await this.storage.updateAppointmentType(typeId, dbUpdateData);
+      
+      // Transform back to frontend format for response
+      return transformDbToFrontend(updatedAppointmentType);
     } catch (error) {
       console.error('Error updating appointment type:', error);
       throw error;

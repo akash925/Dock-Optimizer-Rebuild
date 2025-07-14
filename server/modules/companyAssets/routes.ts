@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { 
-  // Legacy asset endpoints
-  listAssets, 
-  getAssetById, 
-  uploadAsset, 
-  updateAsset, 
-  deleteAsset,
+  // Legacy asset endpoints - DISABLED (kept for potential future migration)
+  // listAssets, 
+  // getAssetById, 
+  // uploadAsset, 
+  // updateAsset, 
+  // deleteAsset,
   // Company asset endpoints
   listCompanyAssets,
   getCompanyAssetById,
@@ -28,15 +28,15 @@ import {
 import { isAuthenticated } from "../../middleware/auth";
 import express from "express";
 
-// Legacy routes for backward compatibility (/api/assets)
-const legacyRouter = Router();
+// Legacy routes for backward compatibility (/api/assets) - DISABLED
+// const legacyRouter = Router();
 
-// Legacy asset routes (backward compatibility)
-legacyRouter.get("/assets", isAuthenticated, listAssets);
-legacyRouter.get("/assets/:id", isAuthenticated, getAssetById);
-legacyRouter.post("/assets", isAuthenticated, uploadAsset);
-legacyRouter.put("/assets/:id", isAuthenticated, updateAsset);
-legacyRouter.delete("/assets/:id", isAuthenticated, deleteAsset);
+// Legacy asset routes (backward compatibility) - COMMENTED OUT TO RESOLVE ROUTE CONFLICTS
+// legacyRouter.get("/assets", isAuthenticated, listAssets);
+// legacyRouter.get("/assets/:id", isAuthenticated, getAssetById);
+// legacyRouter.post("/assets", isAuthenticated, uploadAsset);
+// legacyRouter.put("/assets/:id", isAuthenticated, updateAsset);
+// legacyRouter.delete("/assets/:id", isAuthenticated, deleteAsset);
 
 // Company Assets Router - main functionality
 const companyAssetsRouter = Router();
@@ -76,5 +76,9 @@ export function setupStaticFileServing(app: express.Express): void {
 // Export the company assets router
 export { companyAssetsRouter };
 
-// Export legacy routes as default for backward compatibility
-export default legacyRouter;
+// Export legacy routes as default for backward compatibility - DISABLED
+// export default legacyRouter;
+
+// Create empty router for backward compatibility while legacy routes are disabled
+const emptyRouter = Router();
+export default emptyRouter;

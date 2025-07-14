@@ -3,7 +3,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 
 interface Props {
-  /** asset id, used to hit /api/assets/:id/file */
+  /** asset id, used to hit /api/company-assets/:id/image */
   id: number;
   /** original filename, used for alt text */
   filename: string;
@@ -21,7 +21,7 @@ interface Props {
  */
 export default function AssetThumbnail({ id, filename, className = "" }: Props) {
   const [open, setOpen] = useState(false);
-  const src = `/api/assets/${id}/file`;
+  const src = `/api/company-assets/${id}/image`;
 
   return (
     <>

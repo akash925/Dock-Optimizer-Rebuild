@@ -10,7 +10,7 @@ import crypto from 'crypto';
 
 /**
  * List all assets or filter by user ID
- * Used by both /api/assets and /api/asset-manager/assets
+ * LEGACY: Previously used by /api/assets (now disabled)
  */
 export const listAssets = async (req: Request, res: Response) => {
   try {
@@ -32,7 +32,7 @@ export const listAssets = async (req: Request, res: Response) => {
 
 /**
  * Get asset by ID
- * Used by /api/assets/:id
+ * LEGACY: Previously used by /api/assets/:id (now disabled)
  */
 export const getAssetById = async (req: Request, res: Response) => {
   try {
@@ -55,7 +55,7 @@ export const getAssetById = async (req: Request, res: Response) => {
 
 /**
  * Upload a new asset
- * Used by both /api/assets and /api/asset-manager/assets
+ * LEGACY: Previously used by /api/assets (now disabled)
  */
 export const uploadAsset = async (req: Request, res: Response) => {
   try {
@@ -100,7 +100,7 @@ export const uploadAsset = async (req: Request, res: Response) => {
 
 /**
  * Update an existing asset
- * Used by /api/assets/:id
+ * LEGACY: Previously used by /api/assets/:id (now disabled)
  */
 export const updateAsset = async (req: Request, res: Response) => {
   try {
@@ -148,7 +148,7 @@ export const updateAsset = async (req: Request, res: Response) => {
 
 /**
  * Delete an asset
- * Used by both /api/assets/:id and /api/asset-manager/assets/:id
+ * LEGACY: Previously used by /api/assets/:id (now disabled)
  */
 export const deleteAsset = async (req: Request, res: Response) => {
   try {

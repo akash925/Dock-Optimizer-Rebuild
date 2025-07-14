@@ -738,7 +738,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`[QuestionsAPI] Getting custom questions for appointment type ${appointmentTypeId}`);
-      const questions = await storage.getCustomQuestionsByAppointmentType(appointmentTypeId);
+      const { appointmentMasterService } = await import('./modules/appointmentMaster/service');
+      const questions = await appointmentMasterService.getAppointmentTypeQuestions(appointmentTypeId);
       
       console.log(`[QuestionsAPI] Returning ${questions.length} custom questions`);
       res.json(questions);
@@ -753,10 +754,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       
       console.log(`[QuestionsAPI] Creating custom question:`, req.body);
-      const question = await storage.createCustomQuestion(req.body);
+      const { transformFrontendToDb, transformDbToFrontend } = await import('../shared/utils/object-mapper');
+      const dbData = transformFrontendToDb(req.body);
+      const question = await storage.createCustomQuestion(dbData);
+      const frontendQuestion = transformDbToFrontend(question);
       
       console.log(`[QuestionsAPI] Created custom question ${question.id}`);
-      res.json(question);
+      res.json(frontendQuestion);
     } catch (error) {
       console.error('Error creating custom question:', error);
       res.status(500).json({ error: 'Failed to create custom question' });
@@ -773,14 +777,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`[QuestionsAPI] Updating custom question ${questionId}:`, req.body);
-      const question = await storage.updateCustomQuestion(questionId, req.body);
+      const { transformFrontendToDb, transformDbToFrontend } = await import('../shared/utils/object-mapper');
+      const dbData = transformFrontendToDb(req.body);
+      const question = await storage.updateCustomQuestion(questionId, dbData);
       
       if (!question) {
         return res.status(404).json({ error: 'Question not found' });
       }
       
+      const frontendQuestion = transformDbToFrontend(question);
       console.log(`[QuestionsAPI] Updated custom question ${questionId}`);
-      res.json(question);
+      res.json(frontendQuestion);
     } catch (error) {
       console.error('Error updating custom question:', error);
       res.status(500).json({ error: 'Failed to update custom question' });

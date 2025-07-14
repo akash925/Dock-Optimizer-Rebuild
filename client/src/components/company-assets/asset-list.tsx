@@ -46,13 +46,13 @@ export function AssetList() {
   const queryClient = useQueryClient();
 
   const { data: assets, isLoading, error } = useQuery<Asset[]>({
-    queryKey: ['/api/assets'],
+    queryKey: ['companyAssets'],
     placeholderData: [],
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest('DELETE', `/api/assets/${id}`);
+      const response = await apiRequest('DELETE', `/api/company-assets/${id}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to delete asset');
@@ -66,7 +66,7 @@ export function AssetList() {
       });
       
       // Invalidate assets query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['/api/assets'] });
+      queryClient.invalidateQueries({ queryKey: ['companyAssets'] });
     },
     onError: (error: Error) => {
       toast({
