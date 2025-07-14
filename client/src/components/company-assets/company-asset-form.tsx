@@ -39,6 +39,8 @@ interface CompanyAssetFormProps {
   onSuccess?: () => void;
 }
 
+type CompanyAssetFormData = Omit<InsertCompanyAsset, 'tenantId'>;
+
 export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormProps) {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -70,8 +72,13 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
   };
 
   // Define form with validation
-  const form = useForm<InsertCompanyAsset>({
-    resolver: zodResolver(insertCompanyAssetSchema.omit({ photoUrl: true, tags: true, documentUrls: true })),
+  const form = useForm<CompanyAssetFormData>({
+    resolver: zodResolver(insertCompanyAssetSchema.omit({ 
+      photoUrl: true, 
+      tags: true, 
+      documentUrls: true,
+      tenantId: true,
+    })),
     defaultValues: {
       name: assetToEdit?.name || '',
       manufacturer: assetToEdit?.manufacturer || '',
@@ -86,7 +93,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       purchasePrice: assetToEdit?.purchasePrice || '',
       currency: assetToEdit?.currency || 'USD',
       purchaseDate: assetToEdit?.purchaseDate ? formatDate(assetToEdit.purchaseDate) : undefined,
-      implementedDate: assetToEdit?.implementedDate ? formatDate(assetToEdit.implementedDate) : undefined,
+      implementationDate: assetToEdit?.implementationDate ? formatDate(assetToEdit.implementationDate) : undefined,
       warrantyExpiration: assetToEdit?.warrantyExpiration ? formatDate(assetToEdit.warrantyExpiration) : undefined,
       depreciation: assetToEdit?.depreciation || '',
       assetValue: assetToEdit?.assetValue || '',
@@ -108,8 +115,8 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
       vendorInformation: assetToEdit?.vendorInformation || '',
       
       // Tracking dates and maintenance info
-      lastServiceDate: assetToEdit?.lastServiceDate ? formatDate(assetToEdit.lastServiceDate) : undefined,
-      nextServiceDate: assetToEdit?.nextServiceDate ? formatDate(assetToEdit.nextServiceDate) : undefined,
+      lastMaintenanceDate: assetToEdit?.lastMaintenanceDate ? formatDate(assetToEdit.lastMaintenanceDate) : undefined,
+      nextMaintenanceDate: assetToEdit?.nextMaintenanceDate ? formatDate(assetToEdit.nextMaintenanceDate) : undefined,
       maintenanceSchedule: assetToEdit?.maintenanceSchedule || '',
       certificationDate: assetToEdit?.certificationDate ? formatDate(assetToEdit.certificationDate) : undefined,
       certificationExpiry: assetToEdit?.certificationExpiry ? formatDate(assetToEdit.certificationExpiry) : undefined,
@@ -130,7 +137,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: async (data: InsertCompanyAsset) => {
+    mutationFn: async (data: CompanyAssetFormData) => {
       const formData = new FormData();
       
       // Add form fields to FormData
@@ -183,7 +190,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: async (data: InsertCompanyAsset) => {
+    mutationFn: async (data: CompanyAssetFormData) => {
       if (!assetToEdit) throw new Error('No asset to update');
       
       const formData = new FormData();
@@ -241,7 +248,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
   });
 
   // Handle form submission
-  const onSubmit = (data: InsertCompanyAsset) => {
+  const onSubmit = (data: CompanyAssetFormData) => {
     console.log("=== ASSET FORM SUBMISSION ===");
     console.log("Form submission data:", data);
     console.log("Is editing:", isEditing);
@@ -351,7 +358,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Model</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter model number/name" {...field} />
+                          <Input placeholder="Enter model number/name" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -381,7 +388,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Department</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter department or business unit" {...field} />
+                          <Input placeholder="Enter department or business unit" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -458,7 +465,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             placeholder="Enter asset description" 
                             className="min-h-[100px]" 
                             {...field} 
-                            value={field.value || ''} 
+                            value={field.value ?? ''} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -479,7 +486,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Barcode</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter barcode" {...field} />
+                          <Input placeholder="Enter barcode" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -494,7 +501,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Serial Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter serial number" {...field} />
+                          <Input placeholder="Enter serial number" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -509,7 +516,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Template</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter template name" {...field} />
+                          <Input placeholder="Enter template name" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -524,7 +531,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Manufacturer Part #</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter manufacturer part number" {...field} />
+                          <Input placeholder="Enter manufacturer part number" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -539,7 +546,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Condition</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter asset condition" {...field} />
+                          <Input placeholder="Enter asset condition" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -554,7 +561,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Supplier Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter supplier/vendor name" {...field} />
+                          <Input placeholder="Enter supplier/vendor name" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -569,7 +576,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>PO Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter purchase order reference" {...field} />
+                          <Input placeholder="Enter purchase order reference" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -584,7 +591,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                       <FormItem>
                         <FormLabel>Vendor Information</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter additional vendor details" {...field} />
+                          <Input placeholder="Enter additional vendor details" {...field} value={field.value ?? ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -611,7 +618,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   {/* Last Service Date */}
                   <FormField
                     control={form.control}
-                    name="lastServiceDate"
+                    name="lastMaintenanceDate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Last Service Date</FormLabel>
@@ -648,7 +655,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   {/* Next Service Date */}
                   <FormField
                     control={form.control}
-                    name="nextServiceDate"
+                    name="nextMaintenanceDate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Next Service Date</FormLabel>
@@ -694,7 +701,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             placeholder="Enter additional notes about this asset" 
                             className="min-h-[100px]" 
                             {...field} 
-                            value={field.value || ''} 
+                            value={field.value ?? ''} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -722,6 +729,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                               placeholder="0.00" 
                               className="pl-8" 
                               {...field} 
+                              value={field.value ?? ''}
                             />
                           </div>
                         </FormControl>
@@ -802,7 +810,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                   {/* Implemented Date */}
                   <FormField
                     control={form.control}
-                    name="implementedDate"
+                    name="implementationDate"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
                         <FormLabel>Implementation Date</FormLabel>
@@ -884,7 +892,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                           <Input 
                             placeholder="Enter depreciation amount or schedule" 
                             {...field} 
-                            value={field.value || ''}
+                            value={field.value ?? ''}
                           />
                         </FormControl>
                         <FormDescription>
@@ -910,7 +918,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                               placeholder="0.00" 
                               className="pl-8" 
                               {...field} 
-                              value={field.value || ''}
+                              value={field.value ?? ''}
                             />
                           </div>
                         </FormControl>
@@ -1012,7 +1020,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                           <Input 
                             placeholder="e.g., Monthly, Quarterly, Annually" 
                             {...field} 
-                            value={field.value || ''}
+                            value={field.value ?? ''}
                           />
                         </FormControl>
                         <FormDescription>
@@ -1034,7 +1042,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                           <Input 
                             placeholder="Enter maintenance contact person or company" 
                             {...field} 
-                            value={field.value || ''}
+                            value={field.value ?? ''}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1054,7 +1062,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                             placeholder="Enter maintenance history or requirements" 
                             className="min-h-[100px]" 
                             {...field} 
-                            value={field.value || ''}
+                            value={field.value ?? ''}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1113,7 +1121,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                           <Input 
                             placeholder="e.g., 5 years" 
                             {...field} 
-                            value={field.value || ''}
+                            value={field.value ?? ''}
                           />
                         </FormControl>
                         <FormDescription>

@@ -669,6 +669,13 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   const formData = data.customFields || data;
                   console.log('Processed form data:', formData);
                   handleSubmitBooking(formData);
+                }, (errors) => {
+                  console.error("Form validation errors:", errors);
+                  toast({
+                    title: "Validation Error",
+                    description: "Please check the form for errors and fill in all required fields.",
+                    variant: "destructive",
+                  });
                 })}
                 className="space-y-6"
               >
