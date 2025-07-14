@@ -85,10 +85,8 @@ class MediaService {
   private cloudFrontDomain?: string;
   private initialized = false;
   private configurationValid = false;
-  private storage: IStorage;
 
-  constructor(storage: IStorage) {
-    this.storage = storage;
+  constructor() {
     // Load environment variables but don't validate in constructor
     this.bucket = process.env.AWS_S3_BUCKET || '';
     this.region = process.env.AWS_REGION || 'us-east-1';
@@ -223,6 +221,7 @@ class MediaService {
       const size = headResult.ContentLength || 0;
 
       // Create file record in storage
+      const storage = await getStorage();
       const fileRecord = {
         id: uuidv4(),
         filename: originalName,
@@ -234,7 +233,7 @@ class MediaService {
         uploadedAt: new Date(),
       };
 
-      await this.storage.createFileRecord(fileRecord);
+      await storage.createFileRecord(fileRecord);
 
       const publicUrl = this.getPublicUrl(key);
 
@@ -376,6 +375,7 @@ class MediaService {
       await this.s3Client!.send(command);
 
       // Create file record
+      const storage = await getStorage();
       const fileRecord = {
         id: uuidv4(),
         filename: originalName,
@@ -387,7 +387,7 @@ class MediaService {
         uploadedAt: new Date(),
       };
 
-      await this.storage.createFileRecord(fileRecord);
+      await storage.createFileRecord(fileRecord);
 
       const publicUrl = this.getPublicUrl(key);
 
@@ -411,5 +411,5 @@ class MediaService {
 }
 
 // Create and export a singleton instance
-// export const mediaService = new MediaService(); - This will be instantiated in index.ts now
+export const mediaService = new MediaService();
 export default MediaService; 

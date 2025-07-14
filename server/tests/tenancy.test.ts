@@ -4,9 +4,13 @@ import { getStorage } from '../storage';
 import { MockStorage } from './__mocks__/storage';
 
 // Mock the storage module
-vi.mock('../storage', () => ({
-  getStorage: vi.fn().mockResolvedValue(new MockStorage()),
-}));
+vi.mock('../storage', async () => {
+  const actual = await vi.importActual('../storage');
+  return {
+    ...actual,
+    getStorage: vi.fn().mockResolvedValue(new MockStorage()),
+  };
+});
 
 describe('Tenant Isolation Tests', () => {
   let storage: IStorage;

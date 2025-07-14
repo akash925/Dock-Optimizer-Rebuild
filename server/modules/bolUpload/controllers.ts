@@ -1,15 +1,7 @@
 import { Request, Response } from 'express';
-import { getStorage, IStorage } from '../../storage';
-import MediaService from '../../services/MediaService';
+import { getStorage } from '../../storage';
+import { mediaService } from '../../services/MediaService';
 import { User } from '@shared/types/user';
-
-let mediaService: MediaService;
-
-(async () => {
-  const storage = await getStorage();
-  mediaService = new MediaService(storage);
-})();
-
 
 interface AuthenticatedRequest extends Request {
   user: User;
