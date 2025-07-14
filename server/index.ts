@@ -7,6 +7,24 @@ import path from "path";
 import fs from "fs";
 import { tenantMiddleware } from "./middleware/tenant";
 import { initializeWebSocket } from "./websocket/index";
+
+// Environment variable checks
+const requiredEnvVars = [
+  'DATABASE_URL',
+  'SENDGRID_API_KEY',
+  'AWS_S3_BUCKET',
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+];
+
+const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+
+if (missingVars.length > 0) {
+  console.error(`❌ Missing critical environment variables: ${missingVars.join(', ')}`);
+  console.error('Please ensure these are configured in your .env file or hosting environment.');
+  process.exit(1);
+}
+
 // Production logging and error handling
 
 // Default system modules (always loaded)

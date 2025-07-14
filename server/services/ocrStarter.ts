@@ -60,7 +60,6 @@ export async function startOcrService() {
       console.log('[OCR] 📦 Tesseract.js loaded, creating worker...');
       const worker = await createWorker();
       
-      await worker.load();
       console.log('[OCR] ✅ JavaScript OCR worker ready');
       
       // Store worker reference globally for use by other modules

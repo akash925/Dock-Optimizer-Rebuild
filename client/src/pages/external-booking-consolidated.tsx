@@ -21,7 +21,7 @@ import { SimpleTimeSlots } from '@/components/booking/simple-time-slots';
 import { BOLUploadWizard } from '@/components/booking/bol-upload-wizard';
 import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
 import { api } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 
 // Organization Logo Component
 function OrganizationLogo({ bookingPage, className }: { bookingPage: any; className: string }) {

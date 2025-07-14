@@ -339,3 +339,14 @@
     text-shadow: none !important;
   }
 } 
+
+.fc-event-content-enhanced {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.fc-event-content-enhanced .font-semibold {
+  white-space: normal;
+  word-wrap: break-word;
+} 

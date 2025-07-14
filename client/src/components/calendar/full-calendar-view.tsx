@@ -27,6 +27,7 @@ import {
   getCommonTimezones 
 } from '@shared/timezone-service';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 
 // Get common timezones from the centralized timezone service
 const COMMON_TIMEZONES = getCommonTimezones().map(tz => tz.value);
@@ -197,7 +198,7 @@ export default function FullCalendarView({
   };
 
   // NEW: Alternative color assignment for better visual variety
-  const getVisualColor = (facilityId: number | null, customerName?: string | null, facilityName?: string): { backgroundColor: string, borderColor: string } => {
+  const getVisualColor = (status: string, facilityId: number | null, customerName?: string | null, facilityName?: string): { backgroundColor: string, borderColor: string } => {
     // Define an expanded color palette for better visual distinction
     const colorPalette = [
       { backgroundColor: '#3b82f6', borderColor: '#2563eb' }, // Blue
@@ -218,27 +219,37 @@ export default function FullCalendarView({
       { backgroundColor: '#ef4444', borderColor: '#b91c1c' }, // Red variant
     ];
     
-    // Create a hash from customer name or facility name for consistent color assignment
-    let hashSource = '';
-    if (customerName) {
-      hashSource = customerName.toLowerCase();
-    } else if (facilityName) {
-      hashSource = facilityName.toLowerCase();
-    } else if (facilityId) {
-      hashSource = facilityId.toString();
+    // Status-based color coding
+    switch (status) {
+      case 'scheduled':
+        return { backgroundColor: '#3b82f6', borderColor: '#2563eb' }; // Blue
+      case 'in-progress':
+        return { backgroundColor: '#f59e0b', borderColor: '#d97706' }; // Yellow/Amber
+      case 'completed':
+        return { backgroundColor: '#10b981', borderColor: '#059669' }; // Green
+      case 'checked_out_late': // Placeholder for late checkout
+        return { backgroundColor: '#ef4444', borderColor: '#dc2626' }; // Red
+      default:
+        // Fallback to facility/customer-based color
+        let hashSource = '';
+        if (customerName) {
+          hashSource = customerName.toLowerCase();
+        } else if (facilityName) {
+          hashSource = facilityName.toLowerCase();
+        } else if (facilityId) {
+          hashSource = facilityId.toString();
+        }
+        
+        let hash = 0;
+        for (let i = 0; i < hashSource.length; i++) {
+          const char = hashSource.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash; // Convert to 32-bit integer
+        }
+        
+        const colorIndex = Math.abs(hash) % colorPalette.length;
+        return colorPalette[colorIndex];
     }
-    
-    // Simple hash function for consistent color assignment
-    let hash = 0;
-    for (let i = 0; i < hashSource.length; i++) {
-      const char = hashSource.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    
-    // Use absolute value and modulo to get color index
-    const colorIndex = Math.abs(hash) % colorPalette.length;
-    return colorPalette[colorIndex];
   };
 
   // Check if appointment needs urgent attention
@@ -328,7 +339,7 @@ export default function FullCalendarView({
     }
 
     // NEW: Get facility-based colors with customer name variety
-    const facilityColors = getVisualColor(extractedFacilityId, schedule.customerName, extractedFacilityName);
+    const facilityColors = getVisualColor(schedule.status, extractedFacilityId, schedule.customerName, extractedFacilityName);
     let backgroundColor = facilityColors.backgroundColor;
     let borderColor = facilityColors.borderColor;
     
@@ -354,9 +365,6 @@ export default function FullCalendarView({
         backgroundColor = '#f59e0b'; // Amber for attention
         borderColor = '#d97706';
       }
-    } else if (schedule.status === 'completed') {
-      backgroundColor = '#16a34a'; // Green for completed
-      borderColor = '#15803d';
     } else if (schedule.status === 'cancelled') {
       backgroundColor = '#6b7280'; // Gray for cancelled
       borderColor = '#4b5563';
@@ -798,7 +806,9 @@ export default function FullCalendarView({
               eventContent={(eventInfo) => {
                 const { event } = eventInfo;
                 const props = event.extendedProps;
-                
+                const startTime = format(new Date(event.startStr), 'h:mm a');
+                const endTime = event.endStr ? format(new Date(event.endStr), 'h:mm a') : '';
+
                 return (
                   <div className="fc-event-content-enhanced p-1 overflow-hidden">
                     {/* IN/OUT indicator and Status */}
@@ -818,9 +828,17 @@ export default function FullCalendarView({
                       </span>
                     </div>
                     
+                    <div className="font-semibold text-sm leading-tight mb-1 truncate">
+                      {startTime} - {endTime}
+                    </div>
+
                     {/* Customer Name prominently displayed */}
                     <div className="font-semibold text-sm leading-tight mb-1 truncate">
                       {props.customerName || 'Appointment'}
+                    </div>
+
+                    <div className="text-xs opacity-90 leading-tight mb-1 truncate">
+                      {props.carrierName || 'No Carrier'}
                     </div>
                     
                     {/* Facility Name */}
