@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { apiRequest } from '@/lib/queryClient';
 import { 
   AssetCategory, 
   AssetLocation, 
@@ -150,16 +151,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         formData.append('photo', photoFile);
       }
       
-      const response = await fetch('/api/company-assets', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create company asset');
-      }
-      
+      const response = await apiRequest('POST', '/api/company-assets', formData, { useFormData: true });
       return await response.json();
     },
     onSuccess: () => {
@@ -214,15 +206,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         formData.append('photo', photoFile);
       }
       
-      const response = await fetch(`/api/company-assets/${assetToEdit.id}`, {
-        method: 'PUT',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to update company asset');
-      }
+      const response = await apiRequest('PUT', `/api/company-assets/${assetToEdit.id}`, formData, { useFormData: true });
       
       return await response.json();
     },
