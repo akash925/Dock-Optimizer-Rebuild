@@ -46,10 +46,12 @@ import {
   Users,
   Shield,
   Bell,
+  Mail,
   Database,
   Loader2
 } from 'lucide-react';
 import { OrganizationSettings } from "@shared/schema";
+import { EmailTemplateEditor } from '@/components/admin/email-template-editor';
 
 // Types for organization settings
 interface OrganizationInfo {
@@ -127,6 +129,7 @@ export default function OrganizationSettingsPage() {
     isRecurring: false,
     description: ''
   });
+  const [selectedTemplate, setSelectedTemplate] = useState('confirmation');
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -551,7 +554,8 @@ export default function OrganizationSettingsPage() {
           { id: 'general', label: 'General', icon: Building2 },
           { id: 'hours', label: 'Default Hours', icon: Clock },
           { id: 'holidays', label: 'Holidays', icon: Calendar },
-          { id: 'modules', label: 'Modules', icon: Database }
+          { id: 'modules', label: 'Modules', icon: Database },
+          { id: 'email', label: 'Email Templates', icon: Mail }
         ].map((tab) => (
           <Button
             key={tab.id}
@@ -1100,6 +1104,64 @@ export default function OrganizationSettingsPage() {
                 <p className="text-muted-foreground">No modules available.</p>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Email Tab */}
+      {activeTab === 'email' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Email Template Customization</CardTitle>
+            <CardDescription>
+              Customize the email templates sent to drivers and customers. You can use variables like {`{{confirmationCode}}`}, {`{{facilityName}}`}, and {`{{customerName}}`} in your templates.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex space-x-2 mb-4">
+              <Button
+                variant={selectedTemplate === 'confirmation' ? 'default' : 'outline'}
+                onClick={() => setSelectedTemplate('confirmation')}
+              >
+                Confirmation Emails
+              </Button>
+              <Button
+                variant={selectedTemplate === 'reminder' ? 'default' : 'outline'}
+                onClick={() => setSelectedTemplate('reminder')}
+              >
+                Reminder Emails
+              </Button>
+              <Button
+                variant={selectedTemplate === 'reschedule' ? 'default' : 'outline'}
+                onClick={() => setSelectedTemplate('reschedule')}
+              >
+                Reschedule Emails
+              </Button>
+              <Button
+                variant={selectedTemplate === 'cancellation' ? 'default' : 'outline'}
+                onClick={() => setSelectedTemplate('cancellation')}
+              >
+                Cancellation Emails
+              </Button>
+              <Button
+                variant={selectedTemplate === 'checkout' ? 'default' : 'outline'}
+                onClick={() => setSelectedTemplate('checkout')}
+              >
+                Checkout Emails
+              </Button>
+            </div>
+            <EmailTemplateEditor
+              template={(settings.emailTemplates as any)?.[selectedTemplate] || {}}
+              onTemplateChange={(template) => {
+                const newTemplates = {
+                  ...settings.emailTemplates,
+                  [selectedTemplate]: template,
+                };
+                handleInputChange('emailTemplates', newTemplates);
+              }}
+              onSave={handleSave}
+              isSaving={updateSettingsMutation.isPending}
+            />
           </CardContent>
         </Card>
       )}

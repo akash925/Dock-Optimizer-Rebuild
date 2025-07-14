@@ -14,6 +14,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, addDays, startOfDay, isAfter } from 'date-fns';
 import { getUserTimeZone } from '@shared/timezone-utils';
+import { formatDateTimeInTimezone } from '@/lib/timezone';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { StandardQuestionsFormFields, type StandardQuestion } from '@/components/shared/standard-questions-form-fields';
 import { SimpleTimeSlots } from '@/components/booking/simple-time-slots';
@@ -733,11 +734,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">Date:</span>
-                  <span>{bookingDetails.startTime ? new Date(bookingDetails.startTime).toLocaleDateString() : bookingData.date}</span>
+                  <span>{bookingDetails.startTime ? formatDateTimeInTimezone(new Date(bookingDetails.startTime), bookingDetails.timezone || 'Etc/UTC', 'MM/dd/yyyy') : bookingData.date}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">Time:</span>
-                  <span>{bookingDetails.startTime ? new Date(bookingDetails.startTime).toLocaleTimeString() : bookingData.time}</span>
+                  <span>{bookingDetails.startTime ? formatDateTimeInTimezone(new Date(bookingDetails.startTime), bookingDetails.timezone || 'Etc/UTC', 'h:mm a zzz') : bookingData.time}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">Facility:</span>

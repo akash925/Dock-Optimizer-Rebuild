@@ -1657,43 +1657,19 @@ export default function AppointmentMaster() {
                     <Alert variant="default" className="bg-blue-50 border-blue-200">
                       <AlertCircle className="h-4 w-4 text-blue-600" />
                       <AlertDescription>
-                        No standard questions have been configured. Click "Seed Standard Questions" to add common questions.
+                        No standard questions have been configured for this appointment type. 
+                        You can add them automatically by seeding the standard questions.
                       </AlertDescription>
                     </Alert>
                   )}
                   
-                  <div className="flex justify-between mt-4">
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => {
-                          setSelectedQuestionId(null);
-                          setQuestionForm({
-                            label: "",
-                            type: "text",
-                            required: false,
-                            options: [],
-                            placeholder: "",
-                            appointmentType: "both"
-                          });
-                          setShowQuestionDialog(true);
-                        }}
-                      >
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Add Custom Question
-                      </Button>
-                      
-                      {selectedAppointmentTypeId && (
-                        <SeedQuestionsButton 
-                          appointmentTypeId={selectedAppointmentTypeId}
-                          onSuccess={() => {
-                            // Reload standard questions after seeding
-                            loadStandardQuestionsForAppointmentType(selectedAppointmentTypeId);
-                          }}
-                        />
-                      )}
-                    </div>
+                  <div className="flex justify-center mt-4">
+                    {selectedAppointmentTypeId && (
+                      <SeedQuestionsButton 
+                        appointmentTypeId={selectedAppointmentTypeId} 
+                        onSuccess={() => loadStandardQuestionsForAppointmentType(selectedAppointmentTypeId)}
+                      />
+                    )}
                   </div>
                 </div>
               </div>

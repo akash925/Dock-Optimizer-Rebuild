@@ -39,6 +39,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { getRedisInstance } from './src/lib/redis';
 import { logger } from "./utils/logger";
+import { emailService } from './services/email';
 
 const redis = getRedisInstance();
 
@@ -446,6 +447,25 @@ export class MemStorage implements IStorage {
     const id = this.scheduleIdCounter++;
     const schedule: Schedule = { ...insertSchedule, id, tenantId: insertSchedule.tenantId ?? 1, createdAt: new Date(), lastModifiedAt: new Date(), createdBy: insertSchedule.createdBy ?? 1, lastModifiedBy: insertSchedule.createdBy, facilityId: insertSchedule.facilityId ?? null, dockId: insertSchedule.dockId ?? null, carrierId: insertSchedule.carrierId ?? null, appointmentTypeId: insertSchedule.appointmentTypeId ?? null, truckNumber: insertSchedule.truckNumber, trailerNumber: insertSchedule.trailerNumber ?? null, driverName: insertSchedule.driverName ?? null, driverPhone: insertSchedule.driverPhone ?? null, driverEmail: insertSchedule.driverEmail ?? null, customerName: insertSchedule.customerName ?? null, carrierName: insertSchedule.carrierName ?? null, mcNumber: insertSchedule.mcNumber ?? null, bolNumber: insertSchedule.bolNumber ?? null, poNumber: insertSchedule.poNumber ?? null, palletCount: insertSchedule.palletCount ?? null, weight: insertSchedule.weight ?? null, appointmentMode: insertSchedule.appointmentMode ?? 'trailer', notes: insertSchedule.notes ?? null, customFormData: insertSchedule.customFormData ?? null, creatorEmail: insertSchedule.creatorEmail ?? null, actualStartTime: insertSchedule.actualStartTime ? new Date(insertSchedule.actualStartTime) : null, actualEndTime: insertSchedule.actualEndTime ? new Date(insertSchedule.actualEndTime) : null, confirmationCode: insertSchedule.confirmationCode ?? null };
     this.schedules.set(id, schedule);
+    
+    // Send confirmation email
+    try {
+      if (schedule.driverEmail) {
+        await emailService.sendAppointmentConfirmation(
+          schedule.driverEmail,
+          {
+            confirmationCode: schedule.confirmationCode,
+            facilityName: (await this.getFacility(schedule.facilityId!))?.name,
+            appointmentDate: schedule.startTime,
+            appointmentTime: schedule.startTime,
+            customerName: schedule.customerName,
+          }
+        );
+        logger.debug(`[Storage] Confirmation email sent for schedule ${schedule.id}`);
+      }
+    } catch (emailError) {
+      console.error(`[Storage] Error sending confirmation email for schedule ${schedule.id}:`, emailError);
+    }
     
     // 🔥 REAL-TIME: Emit appointment:created event after DB insert
     try {
@@ -955,6 +975,25 @@ export class DatabaseStorage implements IStorage {
         appointmentTypeId: newSchedule.appointmentTypeId!,
         tenantId: newSchedule.tenantId!,
       });
+    }
+    
+    // Send confirmation email
+    try {
+      if (newSchedule.driverEmail) {
+        await emailService.sendAppointmentConfirmation(
+          newSchedule.driverEmail,
+          {
+            confirmationCode: newSchedule.confirmationCode,
+            facilityName: (await this.getFacility(newSchedule.facilityId!))?.name,
+            appointmentDate: newSchedule.startTime,
+            appointmentTime: newSchedule.startTime,
+            customerName: newSchedule.customerName,
+          }
+        );
+        logger.debug(`[Storage] Confirmation email sent for schedule ${newSchedule.id}`);
+      }
+    } catch (emailError) {
+      console.error(`[Storage] Error sending confirmation email for schedule ${newSchedule.id}:`, emailError);
     }
     
     // 🔥 REAL-TIME: Emit appointment:created event after DB insert
