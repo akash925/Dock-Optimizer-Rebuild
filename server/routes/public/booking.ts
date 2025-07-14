@@ -204,7 +204,7 @@ router.post("/booking-pages/:slug/book", async (req, res) => {
     
     // Send real-time notification to all connected clients
     try {
-      const { broadcastToTenant } = await import("../../lib/secure-websocket");
+      const { broadcastToTenant } = await import("../../websocket");
       await broadcastToTenant(bookingPage.tenantId, {
         type: 'appointment_created',
         data: {

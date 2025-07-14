@@ -969,6 +969,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
+    if (insertSchedule.appointmentTypeId && insertSchedule.startTime) {
+      const appointmentType = await db.query.appointmentTypes.findFirst({
+        where: eq(appointmentTypes.id, insertSchedule.appointmentTypeId),
+      });
+      if (appointmentType) {
+        const duration = appointmentType.duration || 60;
+        const startTime = new Date(insertSchedule.startTime);
+        insertSchedule.endTime = new Date(startTime.getTime() + duration * 60000);
+      }
+    }
+
     const [newSchedule] = await db.insert(schedules).values(insertSchedule).returning();
     
     // Invalidate cache

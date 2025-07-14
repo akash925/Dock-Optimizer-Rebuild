@@ -21,6 +21,7 @@ import { SimpleTimeSlots } from '@/components/booking/simple-time-slots';
 import { BOLUploadWizard } from '@/components/booking/bol-upload-wizard';
 import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
 import { api } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Organization Logo Component
 function OrganizationLogo({ bookingPage, className }: { bookingPage: any; className: string }) {
@@ -73,12 +74,20 @@ interface BookingData {
 
 interface BookingDetails {
   confirmationCode?: string;
+  id?: number;
+  scheduleId?: number;
   emailSent?: boolean;
   startTime?: string;
   endTime?: string;
+  timezone?: string;
+  facilityId?: number;
   facilityName?: string;
+  appointmentTypeId?: number;
   appointmentTypeName?: string;
-  [key: string]: any;
+  driverName?: string;
+  carrierName?: string;
+  truckNumber?: string;
+  bolNumber?: string;
 }
 
 // Main external booking component
@@ -126,13 +135,12 @@ export default function ExternalBookingConsolidated({ slug }: { slug: string }) 
 // Main booking wizard component
 function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: string }) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
-  const [bookingData, setBookingData] = useState<BookingData>({
-    timezone: getUserTimeZone()
-  });
-  const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
+  const [bookingData, setBookingData] = useState<any>({});
+  const [confirmationCode, setConfirmationCode] = useState("");
   const [bookingDetails, setBookingDetails] = useState<BookingDetails>({});
-  const [isLoadingTimes, setIsLoadingTimes] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
   const buildBookingFormSchema = (questions: StandardQuestion[]) => {
@@ -333,6 +341,10 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         facilityName: bookingPage.facilities?.find((f: any) => f.id === appointment.facilityId)?.name,
         appointmentTypeId: appointment.appointmentTypeId,
         appointmentTypeName: bookingPage.appointmentTypes?.find((t: any) => t.id === appointment.appointmentTypeId)?.name,
+        driverName: bookingData.driverName,
+        carrierName: bookingData.carrierName,
+        truckNumber: bookingData.truckNumber,
+        bolNumber: bookingData.bolNumber,
       });
       
       // Trigger real-time notification update
@@ -691,6 +703,22 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   <span className="font-medium">Appointment Type:</span>
                   <span>{bookingDetails.appointmentTypeName || 'N/A'}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Driver:</span>
+                  <span>{bookingDetails.driverName || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Carrier:</span>
+                  <span>{bookingDetails.carrierName || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Truck #:</span>
+                  <span>{bookingDetails.truckNumber || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">BOL #:</span>
+                  <span>{bookingDetails.bolNumber || 'N/A'}</span>
+                </div>
               </div>
               
               {bookingDetails.emailSent && (
@@ -707,7 +735,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
               <Button onClick={() => {
                 setStep(1);
                 setBookingData({ timezone: getUserTimeZone() });
-                setConfirmationCode(null);
+                setConfirmationCode("");
                 setBookingDetails({});
                 form.reset();
               }}>

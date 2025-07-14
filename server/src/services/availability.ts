@@ -883,9 +883,12 @@ export async function calculateAvailabilitySlots(
             
             // Check if there's ANY time overlap between slot and existing appointment
             const hasOverlap = (slotStart < apptEnd && slotEnd > apptStart);
+
+            console.log(`[DEBUG] Checking overlap: slot [${new Date(slotStart).toISOString()} - ${new Date(slotEnd).toISOString()}] vs appt ${appt.id} [${new Date(apptStart).toISOString()} - ${new Date(apptEnd).toISOString()}] -> hasOverlap: ${hasOverlap}`);
             
             if (hasOverlap) {
                 console.log(`[AvailabilityService] Found overlapping appointment: ID ${appt.id}, type: ${appt.appointmentTypeId}, time: ${tzFormat(new Date(apptStart), effectiveTimezone, 'HH:mm')} - ${tzFormat(new Date(apptEnd), effectiveTimezone, 'HH:mm')}`);
+                console.log(`[DEBUG] Comparing appt type: ${appt.appointmentTypeId} vs requested type: ${appointmentTypeId}`);
                 
                 // **AUTHORITATIVE RULE: Only count appointments of the SAME TYPE for concurrent limits**
                 if (appt.appointmentTypeId === appointmentTypeId) {

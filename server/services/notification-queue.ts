@@ -1,4 +1,5 @@
 import { Queue, Worker, Job } from 'bullmq';
+import IORedis from 'ioredis';
 import { getRedisInstance } from '../src/lib/redis';
 import { getStorage } from '../storage';
 import { broadcastToTenant } from '../websocket';
@@ -13,6 +14,13 @@ import { logger } from '../utils/logger';
 
 // Get Redis connection from shared lib
 const redis = getRedisInstance();
+
+// Create a dedicated Redis connection for BullMQ workers.
+// BullMQ recommends setting maxRetriesPerRequest to null.
+const workerConnection = redis ? new IORedis(process.env.REDIS_URL!, {
+  maxRetriesPerRequest: null,
+  enableOfflineQueue: false, // Recommended for workers
+}) : null;
 
 // Notification job types
 export interface NotificationJobData {
@@ -46,7 +54,7 @@ export let notificationWorker: Worker | null = null;
 export let urgentNotificationWorker: Worker | null = null;
 
 // Initialize queues and workers only if Redis is available
-if (redis) {
+if (redis && workerConnection) {
   notificationQueue = new Queue('notifications', { 
     connection: redis,
     defaultJobOptions: {
@@ -79,10 +87,12 @@ if (redis) {
     
     try {
       logger.info('NotificationWorker', `Processing ${data.type} notification for tenant ${data.tenantId}`, { 
-        jobId: job.id,
         tenantId: data.tenantId,
-        notificationType: data.type
-      }, { tenantId: data.tenantId });
+        data: { 
+          jobId: job.id,
+          notificationType: data.type 
+        }
+      });
 
       switch (data.type) {
         case 'email':
@@ -99,10 +109,12 @@ if (redis) {
       }
 
       logger.info('NotificationWorker', `Successfully processed ${data.type} notification`, { 
-        jobId: job.id,
         tenantId: data.tenantId,
-        notificationType: data.type
-      }, { tenantId: data.tenantId });
+        data: { 
+          jobId: job.id,
+          notificationType: data.type 
+        }
+      });
     } catch (error) {
       logger.error('NotificationWorker', `Failed to process ${data.type} notification`, error, { 
         tenantId: data.tenantId
@@ -110,7 +122,7 @@ if (redis) {
       throw error;
     }
   }, { 
-    connection: redis,
+    connection: workerConnection,
     concurrency: 5,
   });
 
@@ -119,10 +131,12 @@ if (redis) {
     
     try {
       logger.info('UrgentNotificationWorker', `Processing urgent ${data.type} notification for tenant ${data.tenantId}`, { 
-        jobId: job.id,
         tenantId: data.tenantId,
-        notificationType: data.type
-      }, { tenantId: data.tenantId });
+        data: {
+          jobId: job.id,
+          notificationType: data.type
+        }
+      });
 
       // Process urgent notifications with higher priority
       switch (data.type) {
@@ -140,20 +154,24 @@ if (redis) {
       }
 
       logger.info('UrgentNotificationWorker', `Successfully processed urgent ${data.type} notification`, { 
-        jobId: job.id,
         tenantId: data.tenantId,
-        notificationType: data.type
-      }, { tenantId: data.tenantId });
+        data: {
+          jobId: job.id,
+          notificationType: data.type
+        }
+      });
     } catch (error) {
       logger.error('UrgentNotificationWorker', `Failed to process urgent ${data.type} notification`, error, { 
-        jobId: job.id,
         tenantId: data.tenantId,
-        notificationType: data.type
-      }, { tenantId: data.tenantId });
+        data: { 
+          jobId: job.id,
+          notificationType: data.type 
+        }
+      });
       throw error;
     }
   }, { 
-    connection: redis,
+    connection: workerConnection,
     concurrency: 10, // Higher concurrency for urgent notifications
   });
 
@@ -186,10 +204,12 @@ async function processEmailNotification(data: NotificationJobData): Promise<void
     }
   } catch (error) {
     logger.error('EmailNotification', 'Failed to send email', error, { 
-      recipient: to,
-      confirmationCode,
-      scheduleId: schedule.id,
-      tenantId: data.tenantId
+      tenantId: data.tenantId,
+      data: {
+        recipient: to,
+        confirmationCode,
+        scheduleId: schedule.id,
+      }
     });
     throw error;
   }
@@ -205,13 +225,17 @@ async function processWebSocketNotification(data: NotificationJobData): Promise<
     const clientCount = broadcastToTenant(data.tenantId, data.websocketData.eventType, data.websocketData.data);
     logger.info('WebSocketNotification', `Broadcast to ${clientCount} clients`, { 
       tenantId: data.tenantId,
-      eventName: data.websocketData.eventType,
-      clientCount
+      data: {
+        eventName: data.websocketData.eventType,
+        clientCount
+      }
     });
   } catch (error) {
     logger.error('WebSocketNotification', 'Failed to broadcast WebSocket message', error, { 
       tenantId: data.tenantId,
-      eventName: data.websocketData.eventType
+      data: {
+        eventName: data.websocketData.eventType
+      }
     });
     throw error;
   }
@@ -340,17 +364,19 @@ export async function createAndQueueNotification(
     }, priority);
 
     logger.info('NotificationQueue', `Queued notification for user ${userId}`, { 
-      notificationId: notification.id,
-      urgency,
-      notificationType: type,
       tenantId,
-      userId
+      userId,
+      data: { 
+        notificationId: notification.id,
+        urgency,
+        notificationType: type 
+      }
     });
   } catch (error) {
     logger.error('NotificationQueue', 'Failed to create and queue notification', error, { 
       tenantId,
       userId,
-      notificationType: type
+      data: { notificationType: type }
     });
     throw error;
   }

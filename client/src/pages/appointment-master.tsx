@@ -764,7 +764,7 @@ export default function AppointmentMaster() {
   const fetchCustomQuestions = async (appointmentTypeId: number) => {
     try {
       console.log(`[AppointmentMaster] Loading custom questions for appointment type ${appointmentTypeId}`);
-      const response = await api.get(`/custom-questions/${appointmentTypeId}`);
+      const response = await api.get(`/api/custom-questions/${appointmentTypeId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch custom questions');
       }
