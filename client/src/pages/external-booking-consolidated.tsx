@@ -20,16 +20,13 @@ import { StandardQuestionsFormFields, type StandardQuestion } from '@/components
 import { SimpleTimeSlots } from '@/components/booking/simple-time-slots';
 import { BOLUploadWizard } from '@/components/booking/bol-upload-wizard';
 import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
+import { api } from '@/lib/api';
 
 // Organization Logo Component
 function OrganizationLogo({ bookingPage, className }: { bookingPage: any; className: string }) {
-  const { data: logoData, isLoading } = useQuery({
+  const { data: logoData, isLoading } = useQuery<{logo: string} | null>({
     queryKey: [`/api/booking-pages/logo/${bookingPage.tenantId}`],
-    queryFn: async () => {
-      const res = await fetch(`/api/booking-pages/logo/${bookingPage.tenantId}`);
-      if (!res.ok) return null;
-      return res.json();
-    },
+    queryFn: () => api.get(`/api/booking-pages/logo/${bookingPage.tenantId}`),
     enabled: !!bookingPage.tenantId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -91,22 +88,7 @@ export default function ExternalBookingConsolidated({ slug }: { slug: string }) 
   // Fetch booking page data
   const { data: bookingPage, isLoading, error } = useQuery({
     queryKey: [`/api/booking-pages/slug/${slug}`],
-    queryFn: async () => {
-      const res = await fetch(`/api/booking-pages/slug/${slug}`);
-      if (!res.ok) throw new Error('Failed to fetch booking page');
-      
-      const data = await res.json();
-      
-      // Process appointment types to add showRemainingSlots property
-      if (data?.appointmentTypes && Array.isArray(data.appointmentTypes)) {
-        data.appointmentTypes = data.appointmentTypes.map((type: any) => ({
-          ...type,
-          showRemainingSlots: type.showRemainingSlots || false
-        }));
-      }
-      
-      return data;
-    }
+    queryFn: () => api.get(`/api/booking-pages/slug/${slug}`)
   });
 
   if (isLoading) {
@@ -209,13 +191,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       }
       
       console.log(`[StandardQuestions] Fetching questions for appointment type ${bookingData.appointmentTypeId}`);
-      const res = await fetch(`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
-      if (!res.ok) {
-        console.error(`[StandardQuestions] Failed to fetch questions: ${res.status} ${res.statusText}`);
-        throw new Error(`Failed to fetch questions: ${res.status} ${res.statusText}`);
-      }
-      
-      const data = await res.json();
+      const data = await api.get<any[]>(`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
       console.log(`[StandardQuestions] Received data:`, data);
       if (!Array.isArray(data)) {
         console.error(`[StandardQuestions] Data is not an array:`, typeof data);
@@ -263,7 +239,7 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       setStep(4);
       
       // Fetch the appointment details by confirmation code
-      fetch(`/api/schedules/confirmation/${confirmationParam}`)
+      api.get(`/api/schedules/confirmation/${confirmationParam}`)
         .then(res => {
           if (!res.ok) throw new Error("Failed to fetch appointment details");
           return res.json();
@@ -314,17 +290,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     
     setIsLoadingTimes(true);
     try {
-      const response = await fetch(
+      const data = await api.get<any[]>(
         `/api/availability/slots?date=${bookingData.date}&appointmentTypeId=${bookingData.appointmentTypeId}&facilityId=${bookingData.facilityId}`
       );
-      
-      if (response.ok) {
-        const data = await response.json();
-        const times = data.map((slot: any) => slot.time);
-        setAvailableTimes(times);
-      } else {
-        setAvailableTimes([]);
-      }
+      const times = data.map((slot: any) => slot.time);
+      setAvailableTimes(times);
     } catch (error) {
       console.error('Error fetching available times:', error);
       setAvailableTimes([]);
@@ -335,32 +305,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
 
   // Create booking mutation
   const bookingMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: (data: any) => {
       console.log("Creating booking with data:", data);
-      
-      const res = await fetch(`/api/booking-pages/${slug}/book`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      let responseData;
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        responseData = await res.json();
-      } else {
-        responseData = { message: await res.text() };
-      }
-      
-      if (!res.ok) {
-        throw new Error(responseData.message || 'Failed to create booking');
-      }
-      
-      return responseData;
+      return api.post(`/api/booking-pages/${slug}/book`, data);
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       console.log("Booking created successfully:", data);
       
       const confirmationCode = data.appointment?.confirmationCode || 
@@ -388,16 +337,10 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
       
       // Trigger real-time notification update
       try {
-        fetch('/api/notifications/trigger', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'new_appointment',
-            appointmentId: appointment.id,
-            message: `New appointment scheduled: ${confirmationCode}`
-          })
-        }).catch(notificationError => {
-          console.log('Could not trigger notification update:', notificationError);
+        api.post('/api/notifications/trigger', {
+          type: 'new_appointment',
+          appointmentId: appointment.id,
+          message: `New appointment scheduled: ${confirmationCode}`
         });
       } catch (notificationError) {
         console.log('Could not trigger notification update:', notificationError);

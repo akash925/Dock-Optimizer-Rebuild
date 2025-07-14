@@ -52,6 +52,7 @@ import {
 } from 'lucide-react';
 import { OrganizationSettings } from "@shared/schema";
 import { EmailTemplateEditor } from '@/components/admin/email-template-editor';
+import { api } from '@/lib/api';
 
 // Types for organization settings
 interface OrganizationInfo {
@@ -140,55 +141,31 @@ export default function OrganizationSettingsPage() {
   // Fetch organization info
   const { data: orgInfo, isLoading: orgLoading } = useQuery<OrganizationInfo>({
     queryKey: ['/api/organizations/current'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/organizations/current');
-      if (!response.ok) throw new Error('Failed to fetch organization info');
-      return response.json();
-    }
+    queryFn: () => api.get('/api/organizations/current')
   });
 
   // Fetch default hours
   const { data: defaultHours, isLoading: hoursLoading } = useQuery<DefaultHours[]>({
     queryKey: ['/api/organizations/default-hours'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/organizations/default-hours');
-      if (!response.ok) throw new Error('Failed to fetch default hours');
-      return response.json();
-    }
+    queryFn: () => api.get('/api/organizations/default-hours')
   });
 
   // Fetch holidays
   const { data: holidays, isLoading: holidaysLoading } = useQuery<Holiday[]>({
     queryKey: ['/api/organizations/holidays'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/organizations/holidays');
-      if (!response.ok) throw new Error('Failed to fetch holidays');
-      return response.json();
-    }
+    queryFn: () => api.get('/api/organizations/holidays')
   });
 
   // Fetch organization modules
   const { data: modules, isLoading: modulesLoading } = useQuery<OrganizationModule[]>({
     queryKey: ['/api/organizations/modules'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/organizations/modules');
-      if (!response.ok) throw new Error('Failed to fetch organization modules');
-      return response.json();
-    }
+    queryFn: () => api.get('/api/organizations/modules')
   });
 
   // Fetch organization settings
   const { data: organizationSettings, isLoading: settingsLoading } = useQuery<OrganizationSettings>({
     queryKey: ['organizationSettings'],
-    queryFn: async () => {
-      const response = await fetch('/api/organizations/settings', {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch organization settings');
-      }
-      return response.json();
-    }
+    queryFn: () => api.get('/api/organizations/settings')
   });
 
   // Update local state when data is loaded
@@ -200,11 +177,7 @@ export default function OrganizationSettingsPage() {
 
   // Update organization info mutation
   const updateOrgMutation = useMutation({
-    mutationFn: async (data: Partial<OrganizationInfo>) => {
-      const response = await apiRequest('PATCH', '/api/organizations/current', data);
-      if (!response.ok) throw new Error('Failed to update organization');
-      return response.json();
-    },
+    mutationFn: (data: Partial<OrganizationInfo>) => api.patch('/api/organizations/current', data),
     onSuccess: () => {
       toast({
         title: "Success",
@@ -224,11 +197,8 @@ export default function OrganizationSettingsPage() {
 
   // Update default hours mutation
   const updateHoursMutation = useMutation({
-    mutationFn: async (data: { dayOfWeek: number; isOpen: boolean; openTime?: string; closeTime?: string; breakStart?: string; breakEnd?: string }) => {
-      const response = await apiRequest('PATCH', '/api/organizations/default-hours', data);
-      if (!response.ok) throw new Error('Failed to update default hours');
-      return response.json();
-    },
+    mutationFn: (data: { dayOfWeek: number; isOpen: boolean; openTime?: string; closeTime?: string; breakStart?: string; breakEnd?: string }) => 
+      api.patch('/api/organizations/default-hours', data),
     onSuccess: () => {
       toast({
         title: "Success",
@@ -247,12 +217,10 @@ export default function OrganizationSettingsPage() {
 
   // Create/update holiday mutation
   const saveHolidayMutation = useMutation({
-    mutationFn: async (data: Partial<Holiday>) => {
+    mutationFn: (data: Partial<Holiday>) => {
       const url = editingHoliday ? `/api/organizations/holidays/${editingHoliday.id}` : '/api/organizations/holidays';
-      const method = editingHoliday ? 'PATCH' : 'POST';
-      const response = await apiRequest(method, url, data);
-      if (!response.ok) throw new Error(`Failed to ${editingHoliday ? 'update' : 'create'} holiday`);
-      return response.json();
+      const method = editingHoliday ? 'patch' : 'post';
+      return api[method](url, data);
     },
     onSuccess: () => {
       toast({
@@ -275,11 +243,7 @@ export default function OrganizationSettingsPage() {
 
   // Delete holiday mutation
   const deleteHolidayMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiRequest('DELETE', `/api/organizations/holidays/${id}`);
-      if (!response.ok) throw new Error('Failed to delete holiday');
-      return id;
-    },
+    mutationFn: (id: number) => api.delete(`/api/organizations/holidays/${id}`),
     onSuccess: () => {
       toast({
         title: "Success",
@@ -298,11 +262,8 @@ export default function OrganizationSettingsPage() {
 
   // Toggle module mutation
   const toggleModuleMutation = useMutation({
-    mutationFn: async ({ moduleName, enabled }: { moduleName: string; enabled: boolean }) => {
-      const response = await apiRequest('PATCH', '/api/organizations/modules', { moduleName, enabled });
-      if (!response.ok) throw new Error('Failed to update module');
-      return response.json();
-    },
+    mutationFn: ({ moduleName, enabled }: { moduleName: string; enabled: boolean }) => 
+      api.patch('/api/organizations/modules', { moduleName, enabled }),
     onSuccess: () => {
       toast({
         title: "Success",
@@ -321,23 +282,8 @@ export default function OrganizationSettingsPage() {
 
   // Update settings mutation
   const updateSettingsMutation = useMutation({
-    mutationFn: async (newSettings: Partial<OrganizationSettings>) => {
-      const response = await fetch('/api/organizations/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(newSettings)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update settings');
-      }
-
-      return response.json();
-    },
+    mutationFn: (newSettings: Partial<OrganizationSettings>) => 
+      api.put('/api/organizations/settings', newSettings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organizationSettings'] });
       setIsDirty(false);
@@ -412,13 +358,12 @@ export default function OrganizationSettingsPage() {
 
       // Add each new holiday
       for (const holiday of newHolidays) {
-        const response = await apiRequest('POST', '/api/organizations/holidays', {
+        await api.post('/api/organizations/holidays', {
           name: holiday.name,
           date: holiday.date,
           isRecurring: true,
           description: `Federal Holiday - ${holiday.name}`
         });
-        if (!response.ok) throw new Error(`Failed to add ${holiday.name}`);
       }
 
       return { added: newHolidays.length, skipped: holidaysToAdd.length - newHolidays.length };

@@ -1,4 +1,5 @@
 import { MailService } from '@sendgrid/mail';
+import { formatDateTimeInTimezone } from '../utils/timezone';
 
 if (!process.env.SENDGRID_API_KEY) {
   throw new Error("SENDGRID_API_KEY environment variable must be set");
@@ -92,3 +93,36 @@ If you have any questions, please contact your administrator.
     text: textContent
   });
 }
+
+const emailService = {
+  async sendAppointmentConfirmation(to: string, data: { confirmationCode?: string | null, facilityName?: string, appointmentDate: Date, appointmentTime: Date, customerName?: string | null, timezone: string, template: any }) {
+    const { confirmationCode, facilityName, appointmentDate, customerName, timezone, template } = data;
+    
+    const subject = template?.subject?.replace('{{confirmationCode}}', confirmationCode || '') || `Appointment Confirmation: ${confirmationCode}`;
+    
+    let html = template?.headerText || `<p>Hi ${customerName || ''},</p><p>Your appointment at ${facilityName} is confirmed.</p>`;
+    html = html.replace('{{confirmationCode}}', confirmationCode || '');
+    html = html.replace('{{facilityName}}', facilityName || '');
+    html = html.replace('{{customerName}}', customerName || '');
+    html = html.replace('{{appointmentDate}}', formatDateTimeInTimezone(appointmentDate, timezone, 'MM/dd/yyyy'));
+    html = html.replace('{{appointmentTime}}', formatDateTimeInTimezone(appointmentDate, timezone, 'h:mm a zzz'));
+
+    html += `<br><p>Your confirmation code is: <strong>${confirmationCode}</strong></p>`;
+
+    if (template?.footerText) {
+      html += `<br><hr><p>${template.footerText}</p>`;
+    }
+
+    const text = `Your appointment at ${facilityName} is confirmed for ${formatDateTimeInTimezone(appointmentDate, timezone, 'MM/dd/yyyy')} at ${formatDateTimeInTimezone(appointmentDate, timezone, 'h:mm a zzz')}. Your confirmation code is: ${confirmationCode}`;
+
+    return sendEmail({
+      to,
+      from: process.env.FROM_EMAIL || 'noreply@dock-optimizer.com',
+      subject,
+      html,
+      text,
+    });
+  },
+};
+
+export { emailService };

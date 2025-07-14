@@ -450,15 +450,20 @@ export class MemStorage implements IStorage {
     
     // Send confirmation email
     try {
-      if (schedule.driverEmail) {
+      if (schedule.driverEmail && schedule.tenantId) {
+        const tenant = await this.getTenantById(schedule.tenantId);
+        const emailTemplates = (tenant?.settings as any)?.emailTemplates || {};
+        const confirmationTemplate = emailTemplates.confirmation || {};
+
         await emailService.sendAppointmentConfirmation(
           schedule.driverEmail,
           {
             confirmationCode: schedule.confirmationCode,
             facilityName: (await this.getFacility(schedule.facilityId!))?.name,
             appointmentDate: schedule.startTime,
-            appointmentTime: schedule.startTime,
             customerName: schedule.customerName,
+            timezone: tenant?.timezone || 'Etc/UTC',
+            template: confirmationTemplate,
           }
         );
         logger.debug(`[Storage] Confirmation email sent for schedule ${schedule.id}`);
@@ -979,15 +984,20 @@ export class DatabaseStorage implements IStorage {
     
     // Send confirmation email
     try {
-      if (newSchedule.driverEmail) {
+      if (newSchedule.driverEmail && newSchedule.tenantId) {
+        const tenant = await this.getTenantById(newSchedule.tenantId);
+        const emailTemplates = (tenant?.settings as any)?.emailTemplates || {};
+        const confirmationTemplate = emailTemplates.confirmation || {};
+
         await emailService.sendAppointmentConfirmation(
           newSchedule.driverEmail,
           {
             confirmationCode: newSchedule.confirmationCode,
             facilityName: (await this.getFacility(newSchedule.facilityId!))?.name,
             appointmentDate: newSchedule.startTime,
-            appointmentTime: newSchedule.startTime,
             customerName: newSchedule.customerName,
+            timezone: tenant?.timezone || 'Etc/UTC',
+            template: confirmationTemplate,
           }
         );
         logger.debug(`[Storage] Confirmation email sent for schedule ${newSchedule.id}`);
@@ -1099,12 +1109,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTenantById(id: number): Promise<Tenant | undefined> {
+    const cacheKey = `tenant:${id}`;
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    }
+
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
+
+    if (redis && tenant) {
+      await redis.set(cacheKey, JSON.stringify(tenant), 'EX', 3600); // Cache for 1 hour
+    }
     return tenant;
   }
 
   async createTenant(insertTenant: InsertTenant): Promise<Tenant> {
     const [newTenant] = await db.insert(tenants).values(insertTenant).returning();
+    if (redis) {
+      await redis.del(`tenant:${newTenant.id}`);
+    }
     return newTenant;
   }
 
@@ -1114,11 +1137,18 @@ export class DatabaseStorage implements IStorage {
       .set(tenantUpdate)
       .where(eq(tenants.id, id))
       .returning();
+    
+    if (redis && updatedTenant) {
+      await redis.del(`tenant:${id}`);
+    }
     return updatedTenant;
   }
 
   async deleteTenant(id: number): Promise<boolean> {
     const result = await db.delete(tenants).where(eq(tenants.id, id));
+    if (redis && result.rowCount > 0) {
+      await redis.del(`tenant:${id}`);
+    }
     return result.rowCount > 0;
   }
 

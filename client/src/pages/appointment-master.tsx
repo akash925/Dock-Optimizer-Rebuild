@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon, GripVertical, Calendar, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { weekDays } from "@/lib/utils";
@@ -41,6 +41,7 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { queryClient } from '@/lib/queryClient';
 
 // Sortable Row component for drag-and-drop question reordering
 interface SortableQuestionRowProps {
@@ -136,13 +137,7 @@ export default function AppointmentMaster() {
     console.log(`[StandardQuestions] Loading questions for appointment type ${appointmentTypeId}`);
     
     // Use the direct standard questions endpoint instead of the redirect
-    fetch(`/api/standard-questions/appointment-type/${appointmentTypeId}`)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`Failed to fetch standard questions: ${res.statusText}`);
-        }
-        return res.json();
-      })
+    api.get<StandardQuestion[]>(`/api/standard-questions/appointment-type/${appointmentTypeId}`)
       .then(data => {
         console.log(`[StandardQuestions] Loaded ${data.length} questions for appointment type ${appointmentTypeId}:`, data);
         
@@ -236,9 +231,7 @@ export default function AppointmentMaster() {
   const { data: loadedSystemSettings } = useQuery({
     queryKey: ["/api/system-settings"],
     queryFn: async () => {
-      const response = await fetch("/api/system-settings");
-      if (!response.ok) throw new Error("Failed to fetch system settings");
-      return response.json();
+      return api.get<any>("/api/system-settings");
     }
   });
 
@@ -251,10 +244,7 @@ export default function AppointmentMaster() {
 
   // Mutation to save system settings
   const saveSystemSettingsMutation = useMutation({
-    mutationFn: async (settings: typeof systemSettings) => {
-      const response = await apiRequest("PUT", "/api/system-settings", settings);
-      return response.json();
-    },
+    mutationFn: (settings: typeof systemSettings) => api.put("/api/system-settings", settings),
     onSuccess: () => {
       toast({
         title: "Settings Saved",
@@ -425,10 +415,7 @@ export default function AppointmentMaster() {
   // Helper functions and mutations
   // Delete appointment type
   const deleteAppointmentTypeMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiRequest("DELETE", `/api/appointment-types/${id}`);
-      return id;
-    },
+    mutationFn: (id: number) => api.delete(`/api/appointment-types/${id}`),
     onSuccess: (id) => {
       toast({
         title: "Appointment Type Deleted",
@@ -447,21 +434,9 @@ export default function AppointmentMaster() {
   
   // Update appointment type
   const updateAppointmentTypeMutation = useMutation({
-    mutationFn: async (appointmentType: any) => {
-      // Remove any <!DOCTYPE> or HTML-like content that might be causing parsing issues
+    mutationFn: (appointmentType: any) => {
       const cleanedData = JSON.parse(JSON.stringify(appointmentType));
-      try {
-        const response = await apiRequest("PUT", `/api/appointment-types/${cleanedData.id}`, cleanedData);
-        return await response.json();
-      } catch (error: any) {
-        // Handle authentication errors
-        if (error.message.includes("401") || error.message.includes("Unauthorized")) {
-          // Trigger a page refresh to redirect to login
-          window.location.href = "/auth";
-          throw new Error("Your session has expired. Please log in again.");
-        }
-        throw error;
-      }
+      return api.put(`/api/appointment-types/${cleanedData.id}`, cleanedData);
     },
     onSuccess: (data) => {
       toast({
@@ -493,20 +468,7 @@ export default function AppointmentMaster() {
   
   // Create appointment type
   const createAppointmentTypeMutation = useMutation({
-    mutationFn: async (appointmentType: any) => {
-      try {
-        const response = await apiRequest("POST", `/api/appointment-types`, appointmentType);
-        return await response.json();
-      } catch (error: any) {
-        // Handle authentication errors
-        if (error.message.includes("401") || error.message.includes("Unauthorized")) {
-          // Trigger a page refresh to redirect to login
-          window.location.href = "/auth";
-          throw new Error("Your session has expired. Please log in again.");
-        }
-        throw error;
-      }
-    },
+    mutationFn: (appointmentType: any) => api.post(`/api/appointment-types`, appointmentType),
     onSuccess: (data) => {
       toast({
         title: "Appointment Type Created",
@@ -538,18 +500,7 @@ export default function AppointmentMaster() {
         id: undefined // Remove ID so the server creates a new one
       };
       
-      try {
-        const response = await apiRequest("POST", `/api/appointment-types`, duplicateData);
-        return await response.json();
-      } catch (error: any) {
-        // Handle authentication errors
-        if (error.message.includes("401") || error.message.includes("Unauthorized")) {
-          // Trigger a page refresh to redirect to login
-          window.location.href = "/auth";
-          throw new Error("Your session has expired. Please log in again.");
-        }
-        throw error;
-      }
+      return api.post(`/api/appointment-types`, duplicateData);
     },
     onSuccess: (data) => {
       toast({
@@ -598,15 +549,15 @@ export default function AppointmentMaster() {
       console.log("[AppointmentMaster] Custom question payload:", payload);
       
       let url = '/api/custom-questions';
-      let method = 'POST';
+      let method: 'post' | 'put' = 'post';
       
       // If editing existing question, use PUT to update
       if (selectedQuestionId) {
         url = `/api/custom-questions/${selectedQuestionId}`;
-        method = 'PUT';
+        method = 'put';
       }
       
-      const res = await apiRequest(method, url, payload);
+      const res = await api[method](url, payload);
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
@@ -638,7 +589,7 @@ export default function AppointmentMaster() {
       console.log("[AppointmentMaster] Formatted saved question:", formattedField);
       return formattedField;
     },
-    onSuccess: (newField) => {
+    onSuccess: (newField: any) => {
       console.log("[AppointmentMaster] Successfully saved custom question:", newField);
       
       const updatedFields = selectedQuestionId 
@@ -685,14 +636,7 @@ export default function AppointmentMaster() {
   
   // Delete custom field mutation
   const deleteCustomFieldMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest('DELETE', `/api/custom-questions/${id}`);
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.message || 'Failed to delete custom field');
-      }
-      return id;
-    },
+    mutationFn: (id: number) => api.delete(`/api/custom-questions/${id}`),
     onSuccess: (id) => {
       setCustomFields(customFields.filter(field => field.id !== id));
       
@@ -820,7 +764,7 @@ export default function AppointmentMaster() {
   const fetchCustomQuestions = async (appointmentTypeId: number) => {
     try {
       console.log(`[AppointmentMaster] Loading custom questions for appointment type ${appointmentTypeId}`);
-      const response = await fetch(`/api/custom-questions/${appointmentTypeId}`);
+      const response = await api.get(`/custom-questions/${appointmentTypeId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch custom questions');
       }
