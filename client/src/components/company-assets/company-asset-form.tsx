@@ -216,6 +216,11 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
         description: 'Company asset has been updated successfully.',
       });
       
+      // Reset form state
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setTagsInput('');
+      
       // Invalidate queries to refresh lists - this will match all query keys that start with this prefix
       // ensuring that searches with different filter parameters are also refreshed
       queryClient.invalidateQueries({
@@ -241,6 +246,7 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
     console.log("Form submission data:", data);
     console.log("Is editing:", isEditing);
     console.log("Asset to edit:", assetToEdit);
+    console.log("Form validation errors:", form.formState.errors);
     
     // Make sure all data that's in a Select component is properly included
     if (isEditing) {
@@ -1144,6 +1150,14 @@ export function CompanyAssetForm({ assetToEdit, onSuccess }: CompanyAssetFormPro
                 disabled={isSubmitting}
                 className="min-w-32"
                 size="lg"
+                onClick={() => {
+                  console.log("=== ASSET FORM BUTTON CLICKED ===");
+                  console.log("Form state:", form.formState);
+                  console.log("Form errors:", form.formState.errors);
+                  console.log("Form values:", form.getValues());
+                  console.log("Is editing:", isEditing);
+                  console.log("Asset to edit:", assetToEdit);
+                }}
               >
                 {isSubmitting ? (
                   <>

@@ -149,7 +149,8 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   });
   const [confirmationCode, setConfirmationCode] = useState<string | null>(null);
   const [bookingDetails, setBookingDetails] = useState<BookingDetails>({});
-  // Remove unused state - SimpleTimeSlots handles this internally
+  const [isLoadingTimes, setIsLoadingTimes] = useState(false);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
   // Form setup for standard questions
   const bookingFormSchema = z.object({
@@ -633,7 +634,18 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                   <Button type="button" variant="outline" onClick={() => setStep(2)}>
                     Back
                   </Button>
-                  <Button type="submit" disabled={bookingMutation.isPending}>
+                  <Button 
+                    type="submit" 
+                    disabled={bookingMutation.isPending}
+                    onClick={() => {
+                      console.log("=== BOOKING FORM BUTTON CLICKED ===");
+                      console.log("Form state:", form.formState);
+                      console.log("Form errors:", form.formState.errors);
+                      console.log("Form values:", form.getValues());
+                      console.log("Current booking data:", bookingData);
+                      console.log("Standard questions:", standardQuestions);
+                    }}
+                  >
                     {bookingMutation.isPending ? (
                       <>
                         <Loader2 className="animate-spin h-4 w-4 mr-2" />
