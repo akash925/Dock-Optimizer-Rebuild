@@ -107,7 +107,7 @@ export interface EnhancedSchedule {
   dockName?: string;
   timezone?: string;
   userTimeZone?: string; // User's actual timezone for personalized emails
-  creatorEmail?: string;  // Email of the person who created the appointment
+  creatorEmail?: string | null;  // Email of the person who created the appointment
   confirmationCode?: string; // Standardized confirmation code format
   
   // BOL-related properties
