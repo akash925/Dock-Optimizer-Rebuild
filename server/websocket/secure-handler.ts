@@ -176,14 +176,18 @@ export class SecureWebSocketHandler {
       // Here you would verify the token/session against your authentication system
       // For this implementation, we'll just check that the tenant ID is valid
       try {
-        // Check if tenant ID is valid by checking for a facility with this tenant ID
-        const validTenant = await this.storage.getFacilityTenantId(1); // Just check if method exists
-        if (validTenant === undefined) {
-          return this.sendError(ws, 'Storage method not available');
+        if (userId) {
+          const user = await this.storage.getUser(userId);
+          if (!user || user.tenantId !== tenantId) {
+            return this.sendError(ws, 'Invalid user or tenant mismatch');
+          }
+        } else {
+          // If no user ID, at least validate the tenant exists
+          const tenant = await this.storage.getTenantById(tenantId);
+          if (!tenant) {
+            return this.sendError(ws, 'Invalid tenant ID');
+          }
         }
-        
-        // In a real implementation, you would check if this tenant ID is valid
-        // For now, we'll accept any tenant ID as valid for demonstration
         
         // Store authenticated client info
         const currentInfo = this.clients.get(ws) || { isAlive: true, isAuthenticated: false };

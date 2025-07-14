@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
 import { AppointmentMasterService } from './service';
 import { getStorage } from '../../storage';
 import { CustomQuestion } from '../../../shared/schema';
 
 // Mock the storage module
-vi.mock('../../storage');
+vi.mock('../../storage', () => ({
+  getStorage: vi.fn(),
+}));
 
 describe('AppointmentMasterService', () => {
   let service: AppointmentMasterService;
@@ -19,7 +21,7 @@ describe('AppointmentMasterService', () => {
       updateAppointmentType: vi.fn(),
     };
 
-    vi.mocked(getStorage).mockResolvedValue(mockStorage);
+    (getStorage as Mock).mockResolvedValue(mockStorage);
     service = new AppointmentMasterService();
   });
 

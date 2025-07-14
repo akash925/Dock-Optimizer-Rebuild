@@ -301,7 +301,7 @@ export default function AppointmentMaster() {
   // ENHANCED: Handle state changes for standard questions
   const handleStandardQuestionChange = (id: number, field: 'included' | 'required', value: boolean) => {
     setStandardFields(prevFields => {
-      return prevFields.map(q => {
+      const updatedFields = prevFields.map(q => {
         if (q.id === id) {
           const updatedQuestion = { ...q, [field]: value };
           // If a question is not included, it cannot be required
@@ -312,6 +312,21 @@ export default function AppointmentMaster() {
         }
         return q;
       });
+
+      // Find the specific question that was updated
+      const questionToUpdate = updatedFields.find(q => q.id === id);
+      if (questionToUpdate) {
+        // Immediately persist the change to the backend
+        updateStandardQuestionMutation.mutate({
+          id: questionToUpdate.id,
+          data: { 
+            included: questionToUpdate.included,
+            required: questionToUpdate.required,
+          }
+        });
+      }
+
+      return updatedFields;
     });
   };
   
@@ -1676,56 +1691,6 @@ export default function AppointmentMaster() {
                         />
                       )}
                     </div>
-                    
-                    <Button 
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={async () => {
-                        if (!selectedAppointmentTypeId) return;
-                        
-                        console.log("=== SAVING APPOINTMENT MASTER QUESTIONS ===");
-                        console.log("Selected appointment type ID:", selectedAppointmentTypeId);
-                        console.log("Standard fields to save:", standardFields);
-                        
-                        try {
-                          // Save each standard question individually
-                          const updatePromises = standardFields.map(field => {
-                            console.log(`Updating question ID ${field.id}:`, {
-                              included: field.included,
-                              required: field.required,
-                              orderPosition: field.order
-                            });
-                            
-                            return updateStandardQuestionMutation.mutateAsync({
-                              id: field.id,
-                              data: {
-                                included: field.included,
-                                required: field.required,
-                                orderPosition: field.order
-                              }
-                            });
-                          });
-                          
-                          await Promise.all(updatePromises);
-                          
-                          console.log("All questions saved successfully");
-                          toast({
-                            title: "Questions saved",
-                            description: "Your form questions have been updated successfully",
-                            variant: "default",
-                          });
-                        } catch (error) {
-                          console.error('Error saving questions:', error);
-                          toast({
-                            title: "Error saving questions",
-                            description: "Failed to save questions. Please try again.",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Changes
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -1900,53 +1865,9 @@ export default function AppointmentMaster() {
             </Button>
             <Button 
               onClick={() => {
-                // In a real implementation this would use saveCustomFieldMutation
-                if (selectedQuestionId) {
-                  // Update existing field
-                  const updatedFields = customFields.map(field => {
-                    if (field.id === selectedQuestionId) {
-                      // Ensure all required properties are included
-                      return {
-                        id: field.id,
-                        label: questionForm.label || field.label,
-                        type: questionForm.type || field.type,
-                        required: questionForm.required ?? field.required,
-                        included: questionForm.included ?? field.included,
-                        options: questionForm.options || field.options,
-                        placeholder: questionForm.placeholder || field.placeholder,
-                        order: field.order,
-                        appointmentType: questionForm.appointmentType || field.appointmentType
-                      };
-                    }
-                    return field;
-                  });
-                  setCustomFields(updatedFields);
-                  toast({
-                    title: "Question updated",
-                    description: `"${questionForm.label}" has been updated`,
-                  });
-                } else {
-                  // Add new field
-                  const newField: QuestionFormField = {
-                    id: customFields.length ? Math.max(...customFields.map(f => f.id)) + 1 : 13,
-                    label: questionForm.label || "New Question",
-                    type: questionForm.type || "text", 
-                    required: questionForm.required || false,
-                    included: questionForm.included || true,
-                    options: questionForm.options || [],
-                    placeholder: questionForm.placeholder || "",
-                    order: customFields.length + 13,
-                    appointmentType: questionForm.appointmentType || "both"
-                  };
-                  setCustomFields([...customFields, newField]);
-                  toast({
-                    title: "Custom question added",
-                    description: `"${newField.label}" has been added to the form`,
-                  });
-                }
-                setShowQuestionDialog(false);
+                saveCustomFieldMutation.mutate(questionForm);
               }}
-              disabled={!questionForm.label}
+              disabled={!questionForm.label || saveCustomFieldMutation.isPending}
             >
               {saveCustomFieldMutation.isPending ? (
                 <>

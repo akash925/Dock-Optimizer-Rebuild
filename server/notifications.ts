@@ -75,7 +75,7 @@ export interface EnhancedSchedule {
   dockId: number | null;
   carrierId: number | null;
   appointmentTypeId: number | null;
-  truckNumber: string;
+  truckNumber: string | null;
   trailerNumber: string | null;
   driverName: string | null;
   driverPhone: string | null;
@@ -96,7 +96,7 @@ export interface EnhancedSchedule {
   status: string;
   notes: string | null;
   customFormData: any | null;
-  createdBy: number;
+  createdBy: number | null;
   createdAt: Date;
   lastModifiedAt: Date | null;
   lastModifiedBy: number | null;

@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { format, addDays, startOfDay, isAfter } from 'date-fns';
 import { getUserTimeZone } from '@shared/timezone-utils';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { StandardQuestionsFormFields } from '@/components/shared/standard-questions-form-fields';
+import { StandardQuestionsFormFields, type StandardQuestion } from '@/components/shared/standard-questions-form-fields';
 import { SimpleTimeSlots } from '@/components/booking/simple-time-slots';
 import { BOLUploadWizard } from '@/components/booking/bol-upload-wizard';
 import dockOptimizerLogo from '@/assets/dock_optimizer_logo.jpg';
@@ -152,19 +152,111 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
   const [isLoadingTimes, setIsLoadingTimes] = useState(false);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
-  // Form setup for standard questions
-  const bookingFormSchema = z.object({
-    customFields: z.object({
-      customerName: z.string().min(1, "Customer name is required"),
-      email: z.string().email("A valid email address is required"),
-    }).passthrough()
+  const buildBookingFormSchema = (questions: StandardQuestion[]) => {
+    const customFieldsShape: Record<string, z.ZodType<any, any>> = {};
+  
+    questions
+      .filter(q => q.included)
+      .forEach(q => {
+        let validator: z.ZodType<any, any>;
+        const fieldType = q.fieldType?.toLowerCase();
+        
+        switch (fieldType) {
+          case 'email':
+            validator = z.string().email({ message: "Invalid email address" });
+            break;
+          case 'number':
+            validator = z.coerce.number({ invalid_type_error: "Must be a number" });
+            break;
+          case 'checkbox':
+            validator = z.boolean();
+            break;
+          default:
+            validator = z.string();
+            break;
+        }
+  
+        if (q.required) {
+          if (fieldType === 'checkbox') {
+            validator = (validator as z.ZodBoolean).refine(val => val === true, {
+              message: `${q.label} is required`,
+            });
+          } else if (fieldType !== 'number') {
+            validator = (validator as z.ZodString).min(1, { message: `${q.label} is required` });
+          }
+        }
+  
+        if (!q.required) {
+          validator = validator.optional().nullable();
+        }
+  
+        customFieldsShape[q.fieldKey] = validator;
+      });
+    
+    // Ensure default fields are still present if not in dynamic questions
+    if (!customFieldsShape.customerName) {
+      customFieldsShape.customerName = z.string().min(1, "Customer name is required");
+    }
+    if (!customFieldsShape.email) {
+      customFieldsShape.email = z.string().email("A valid email address is required");
+    }
+  
+    return z.object({
+      customFields: z.object(customFieldsShape).passthrough(),
+    });
+  };
+
+  // Form setup for standard questions - NOW DYNAMIC
+  const { data: standardQuestions, isLoading: loadingQuestions, error: questionsError } = useQuery<StandardQuestion[]>({
+    queryKey: [`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`],
+    queryFn: async () => {
+      if (!bookingData.appointmentTypeId) {
+        console.log("[StandardQuestions] No appointment type ID, returning empty array");
+        return [];
+      }
+      
+      console.log(`[StandardQuestions] Fetching questions for appointment type ${bookingData.appointmentTypeId}`);
+      const res = await fetch(`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
+      if (!res.ok) {
+        console.error(`[StandardQuestions] Failed to fetch questions: ${res.status} ${res.statusText}`);
+        throw new Error(`Failed to fetch questions: ${res.status} ${res.statusText}`);
+      }
+      
+      const data = await res.json();
+      console.log(`[StandardQuestions] Received data:`, data);
+      if (!Array.isArray(data)) {
+        console.error(`[StandardQuestions] Data is not an array:`, typeof data);
+        throw new Error(`Invalid response format: expected array, got ${typeof data}`);
+      }
+      
+      const mappedQuestions = data.map((q: any) => ({
+        id: q.id,
+        label: q.label || '',
+        fieldKey: q.fieldKey || `field_${q.id}`,
+        fieldType: q.fieldType || 'TEXT',
+        required: q.required || false,
+        included: q.included || false,
+        orderPosition: q.orderPosition || q.order || 0,
+        appointmentTypeId: q.appointmentTypeId || bookingData.appointmentTypeId,
+        options: q.options || []
+      }));
+      
+      console.log(`[StandardQuestions] Mapped ${mappedQuestions.length} questions:`, mappedQuestions);
+      return mappedQuestions;
+    },
+    enabled: !!bookingData.appointmentTypeId,
+    staleTime: 60000,
+    retry: 1
   });
 
+  const bookingFormSchema = React.useMemo(() => buildBookingFormSchema(standardQuestions || []), [standardQuestions]);
+
   const form = useForm({
+    resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       customFields: {}
     },
-    resolver: zodResolver(bookingFormSchema)
+    mode: "onChange"
   });
 
   // Check for direct confirmation code in URL params
@@ -213,48 +305,9 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
     }
   }, [confirmationParam, toast]);
 
-  // Fetch standard questions based on appointment type using public API
-  const { data: standardQuestions, isLoading: loadingQuestions, error: questionsError } = useQuery({
-    queryKey: [`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`],
-    queryFn: async () => {
-      if (!bookingData.appointmentTypeId) {
-        console.log("[StandardQuestions] No appointment type ID, returning empty array");
-        return [];
-      }
-      
-      console.log(`[StandardQuestions] Fetching questions for appointment type ${bookingData.appointmentTypeId}`);
-      const res = await fetch(`/api/booking-pages/standard-questions/appointment-type/${bookingData.appointmentTypeId}`);
-      if (!res.ok) {
-        console.error(`[StandardQuestions] Failed to fetch questions: ${res.status} ${res.statusText}`);
-        throw new Error(`Failed to fetch questions: ${res.status} ${res.statusText}`);
-      }
-      
-      const data = await res.json();
-      console.log(`[StandardQuestions] Received data:`, data);
-      if (!Array.isArray(data)) {
-        console.error(`[StandardQuestions] Data is not an array:`, typeof data);
-        throw new Error(`Invalid response format: expected array, got ${typeof data}`);
-      }
-      
-      const mappedQuestions = data.map((q: any) => ({
-        id: q.id,
-        label: q.label || '',
-        fieldKey: q.fieldKey || `field_${q.id}`,
-        fieldType: q.fieldType || 'TEXT',
-        required: q.required || false,
-        included: q.included || false,
-        orderPosition: q.orderPosition || q.order || 0,
-        appointmentTypeId: q.appointmentTypeId || bookingData.appointmentTypeId,
-        options: q.options || []
-      }));
-      
-      console.log(`[StandardQuestions] Mapped ${mappedQuestions.length} questions:`, mappedQuestions);
-      return mappedQuestions;
-    },
-    enabled: !!bookingData.appointmentTypeId,
-    staleTime: 60000,
-    retry: 1
-  });
+  // Fetch standard questions based on appointment type using public API - this is now moved up to be available for schema generation
+  /* This query is now above the form initialization */
+
 
   // Fetch available times when date and appointment type are selected
   useEffect(() => {

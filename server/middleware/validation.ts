@@ -6,11 +6,11 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 
 // Validate tenant belongs to user
 export const checkTenant = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
+  if (req.isAuthenticated && !req.isAuthenticated()) {
     return res.status(401).json({ message: 'Authentication required' });
   }
 
@@ -42,7 +42,7 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
 // Role-based authorization middleware
 export const checkRole = (roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated()) {
+    if (req.isAuthenticated && !req.isAuthenticated()) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
@@ -116,6 +116,26 @@ export const validateWithZod = (schema: z.ZodSchema) => {
       // Handle other types of errors
       console.error('Validation error:', error);
       return res.status(500).json({ message: 'Server error during validation' });
+    }
+  };
+};
+
+type RequestLocation = 'body' | 'query' | 'params';
+
+export const validate = (location: RequestLocation, schema: z.ZodTypeAny) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await schema.parseAsync(req[location]);
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const errors = error.errors.map(err => ({
+          path: err.path.join('.'),
+          message: err.message,
+        }));
+        return res.status(400).json({ success: false, errors });
+      }
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 };

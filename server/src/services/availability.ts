@@ -5,6 +5,10 @@ import { schedules, appointmentTypes, facilities, docks, organizationFacilities 
 import type { IStorage } from '../../storage';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { db } from '../../db';
+import { getRedisInstance } from '../../src/lib/redis';
+
+const redis = getRedisInstance();
+const AVAILABILITY_CACHE_TTL = 300; // 5 minutes
 
 // We'll use drizzle ORM queries instead of raw SQL for better type safety
 const AVAILABILITY_DEBUG = process.env.AVAILABILITY_DEBUG === 'true';
@@ -439,6 +443,22 @@ export async function calculateAvailabilitySlots(
   config?: Partial<SchedulingConfig>,
   customTimezone?: string // Allow passing a custom timezone
 ): Promise<AvailabilitySlot[]> {
+
+  const cacheKey = `availability:${date}:${facilityId}:${appointmentTypeId}:${effectiveTenantId}`;
+  
+  if (redis) {
+    try {
+      const cachedSlots = await redis.get(cacheKey);
+      if (cachedSlots) {
+        debugLog(`Cache HIT for key: ${cacheKey}`);
+        return JSON.parse(cachedSlots);
+      }
+    } catch (error) {
+      debugLog(`Redis cache read error for key ${cacheKey}:`, error);
+    }
+  }
+
+  debugLog(`Cache MISS for key: ${cacheKey}. Calculating availability...`);
 
   debugLog(`Starting calculation for date=${date}, facilityId=${facilityId}, appointmentTypeId=${appointmentTypeId}, tenantId=${effectiveTenantId}`);
 
@@ -927,6 +947,15 @@ export async function calculateAvailabilitySlots(
     result.push(slotResult);
 
     currentSlotStartTime = addMinutes(currentSlotStartTime, slotIntervalMinutes);
+  }
+
+  if (redis) {
+    try {
+      await redis.set(cacheKey, JSON.stringify(result), 'EX', AVAILABILITY_CACHE_TTL);
+      debugLog(`Cache SET for key: ${cacheKey}`);
+    } catch (error) {
+      debugLog(`Redis cache write error for key ${cacheKey}:`, error);
+    }
   }
 
   return result;

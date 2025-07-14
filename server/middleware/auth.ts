@@ -5,7 +5,7 @@ import { Role } from '@shared/schema';
  * Middleware to check if the user is authenticated
  */
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  if (req.isAuthenticated()) {
+  if (req.isAuthenticated && req.isAuthenticated()) {
     return next();
   }
   return res.status(401).json({ error: 'Unauthorized' });
@@ -15,11 +15,13 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
  * Middleware to check if the user is an admin
  */
 export function isAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
+  if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   
-  if (req.user.role === 'admin') {
+  const userRole = (req.user as any).role;
+  // Allow both 'admin' and 'super-admin' roles
+  if (userRole === 'admin' || userRole === 'super-admin') {
     return next();
   }
   
@@ -32,11 +34,11 @@ export function isAdmin(req: Request, res: Response, next: NextFunction) {
  */
 export function hasRole(role: Role | Role[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const userRole = req.user.role;
+    const userRole = (req.user as any).role;
     const requiredRoles = Array.isArray(role) ? role : [role];
 
     if (requiredRoles.includes(userRole as Role) || (userRole === 'admin')) {
@@ -53,12 +55,12 @@ export function hasRole(role: Role | Role[]) {
  */
 export function isOwnerOrAdmin(getOwnerId: (req: Request) => Promise<number | null>) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const userId = req.user.id;
-    const userRole = req.user.role;
+    const userId = (req.user as any).id;
+    const userRole = (req.user as any).role;
 
     // Admins can access any resource
     if (userRole === 'admin') {
@@ -81,7 +83,7 @@ export function isOwnerOrAdmin(getOwnerId: (req: Request) => Promise<number | nu
  * Middleware to validate that the user has a valid tenant ID
  */
 export function validateTenant(req: Request, res: Response, next: NextFunction) {
-  if (!req.isAuthenticated()) {
+  if (!req.isAuthenticated || !req.isAuthenticated() || !req.user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

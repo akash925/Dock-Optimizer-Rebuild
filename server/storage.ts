@@ -37,10 +37,24 @@ import { eq, and, gte, lte, or, ilike, SQL, sql, inArray } from "drizzle-orm";
 import { db, pool, safeQuery } from "./db";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { getRedisInstance } from '../src/lib/redis';
+
+const redis = getRedisInstance();
 
 const scryptAsync = promisify(scrypt);
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
+
+async function invalidateAvailabilityCache(schedule: { date: string, facilityId: number, appointmentTypeId: number, tenantId: number }) {
+  if (!redis) return;
+  const cacheKey = `availability:${schedule.date}:${schedule.facilityId}:${schedule.appointmentTypeId}:${schedule.tenantId}`;
+  try {
+    await redis.del(cacheKey);
+    console.log(`[Cache] Invalidated availability cache for key: ${cacheKey}`);
+  } catch (error) {
+    console.error(`[Cache] Error invalidating availability cache for key ${cacheKey}:`, error);
+  }
+}
 
 // Password hashing functions
 async function hashPassword(password: string) {
@@ -144,7 +158,7 @@ export interface IStorage {
   getStandardQuestion(id: number): Promise<StandardQuestion | undefined>;
   getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]>;
   createStandardQuestion(standardQuestion: InsertStandardQuestion): Promise<StandardQuestion>;
-  createStandardQuestionWithId(id: number, standardQuestion: InsertStandardQuestion): Promise<StandardQuestion>;
+  createStandardQuestionWithId(question: InsertStandardQuestion & { id: number }): Promise<StandardQuestion>;
   updateStandardQuestion(id: number, standardQuestion: Partial<StandardQuestion>): Promise<StandardQuestion | undefined>;
   deleteStandardQuestion(id: number): Promise<boolean>;
   
@@ -392,6 +406,16 @@ export class MemStorage implements IStorage {
   }
   async getUsers(): Promise<User[]> { return Array.from(this.users.values()); }
   // Dock operations - removed delegations to use DatabaseStorage implementations
+  async getDocks(tenantId?: number): Promise<Dock[]> {
+    if (tenantId) {
+      const facilityIds = Array.from(this.facilities.values())
+        .filter(f => f.tenantId === tenantId)
+        .map(f => f.id);
+      return Array.from(this.docks.values()).filter(d => d.facilityId && facilityIds.includes(d.facilityId));
+    }
+    return Array.from(this.docks.values());
+  }
+  async getDocksByFacility(facilityId: number): Promise<Dock[]> { return Array.from(this.docks.values()).filter(d => d.facilityId === facilityId); }
   async createDock(insertDock: InsertDock): Promise<Dock> {
     const id = this.dockIdCounter++;
     const dock: Dock = { ...insertDock, id, isActive: insertDock.isActive ?? true, type: insertDock.type as any, customType: insertDock.customType ?? null, constraints: insertDock.constraints ?? null };
@@ -419,7 +443,7 @@ export class MemStorage implements IStorage {
   async getScheduleByConfirmationCode(code: string): Promise<Schedule | undefined> { return undefined; }
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
     const id = this.scheduleIdCounter++;
-    const schedule: Schedule = { ...insertSchedule, id, createdAt: new Date(), lastModifiedAt: new Date(), createdBy: insertSchedule.createdBy, lastModifiedBy: insertSchedule.createdBy, facilityId: insertSchedule.facilityId ?? null, dockId: insertSchedule.dockId ?? null, carrierId: insertSchedule.carrierId ?? null, appointmentTypeId: insertSchedule.appointmentTypeId ?? null, truckNumber: insertSchedule.truckNumber, trailerNumber: insertSchedule.trailerNumber ?? null, driverName: insertSchedule.driverName ?? null, driverPhone: insertSchedule.driverPhone ?? null, driverEmail: insertSchedule.driverEmail ?? null, customerName: insertSchedule.customerName ?? null, carrierName: insertSchedule.carrierName ?? null, mcNumber: insertSchedule.mcNumber ?? null, bolNumber: insertSchedule.bolNumber ?? null, poNumber: insertSchedule.poNumber ?? null, palletCount: insertSchedule.palletCount ?? null, weight: insertSchedule.weight ?? null, appointmentMode: insertSchedule.appointmentMode ?? 'trailer', notes: insertSchedule.notes ?? null, customFormData: insertSchedule.customFormData ?? null, creatorEmail: insertSchedule.creatorEmail ?? null, actualStartTime: insertSchedule.actualStartTime ? new Date(insertSchedule.actualStartTime) : null, actualEndTime: insertSchedule.actualEndTime ? new Date(insertSchedule.actualEndTime) : null, confirmationCode: insertSchedule.confirmationCode ?? null };
+    const schedule: Schedule = { ...insertSchedule, id, createdAt: new Date(), lastModifiedAt: new Date(), createdBy: insertSchedule.createdBy ?? 1, lastModifiedBy: insertSchedule.createdBy, facilityId: insertSchedule.facilityId ?? null, dockId: insertSchedule.dockId ?? null, carrierId: insertSchedule.carrierId ?? null, appointmentTypeId: insertSchedule.appointmentTypeId ?? null, truckNumber: insertSchedule.truckNumber, trailerNumber: insertSchedule.trailerNumber ?? null, driverName: insertSchedule.driverName ?? null, driverPhone: insertSchedule.driverPhone ?? null, driverEmail: insertSchedule.driverEmail ?? null, customerName: insertSchedule.customerName ?? null, carrierName: insertSchedule.carrierName ?? null, mcNumber: insertSchedule.mcNumber ?? null, bolNumber: insertSchedule.bolNumber ?? null, poNumber: insertSchedule.poNumber ?? null, palletCount: insertSchedule.palletCount ?? null, weight: insertSchedule.weight ?? null, appointmentMode: insertSchedule.appointmentMode ?? 'trailer', notes: insertSchedule.notes ?? null, customFormData: insertSchedule.customFormData ?? null, creatorEmail: insertSchedule.creatorEmail ?? null, actualStartTime: insertSchedule.actualStartTime ? new Date(insertSchedule.actualStartTime) : null, actualEndTime: insertSchedule.actualEndTime ? new Date(insertSchedule.actualEndTime) : null, confirmationCode: insertSchedule.confirmationCode ?? null };
     this.schedules.set(id, schedule);
     
     // 🔥 REAL-TIME: Emit appointment:created event after DB insert
@@ -526,7 +550,7 @@ export class MemStorage implements IStorage {
   async getAppointmentTypesByFacility(facilityId: number): Promise<AppointmentType[]> { return Array.from(this.appointmentTypes.values()).filter(t => t.facilityId === facilityId); }
   async createAppointmentType(appointmentType: InsertAppointmentType): Promise<AppointmentType> {
     const id = this.appointmentTypeIdCounter++;
-    const newAppointmentType: AppointmentType = { ...appointmentType, id, createdAt: new Date(), lastModifiedAt: new Date(), description: appointmentType.description ?? null, maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay ?? null, tenantId: appointmentType.tenantId ?? null, type: appointmentType.type as 'inbound' | 'outbound' };
+    const newAppointmentType: AppointmentType = { ...appointmentType, id, createdAt: new Date(), lastModifiedAt: new Date(), description: appointmentType.description ?? null, maxAppointmentsPerDay: appointmentType.maxAppointmentsPerDay ?? null, tenantId: appointmentType.tenantId ?? null, type: appointmentType.type as 'INBOUND' | 'OUTBOUND' };
     this.appointmentTypes.set(id, newAppointmentType);
     return newAppointmentType;
   }
@@ -558,7 +582,7 @@ export class MemStorage implements IStorage {
   async getCustomQuestionsByAppointmentType(appointmentTypeId: number): Promise<CustomQuestion[]> { return Array.from(this.customQuestions.values()).filter(q => q.appointmentTypeId === appointmentTypeId); }
   async createCustomQuestion(customQuestion: InsertCustomQuestion): Promise<CustomQuestion> {
     const id = this.customQuestionIdCounter++;
-    const newCustomQuestion: CustomQuestion = { ...customQuestion, id, createdAt: new Date(), lastModifiedAt: new Date(), placeholder: customQuestion.placeholder ?? null, options: customQuestion.options ?? null, defaultValue: customQuestion.defaultValue ?? null, appointmentTypeId: customQuestion.appointmentTypeId ?? null, type: customQuestion.type as any };
+    const newCustomQuestion: CustomQuestion = { ...customQuestion, id, createdAt: new Date(), lastModifiedAt: new Date(), placeholder: customQuestion.placeholder ?? null, options: customQuestion.options ?? null, defaultValue: customQuestion.defaultValue ?? null, appointmentTypeId: customQuestion.appointmentTypeId ?? null, type: customQuestion.type as any, isRequired: customQuestion.isRequired ?? false, applicableType: customQuestion.applicableType ?? 'both' };
     this.customQuestions.set(id, newCustomQuestion);
     return newCustomQuestion;
   }
@@ -574,12 +598,12 @@ export class MemStorage implements IStorage {
   async getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]> { return Array.from(this.standardQuestions.values()).filter(q => q.appointmentTypeId === appointmentTypeId); }
   async createStandardQuestion(insertStandardQuestion: InsertStandardQuestion): Promise<StandardQuestion> {
     const id = this.standardQuestionIdCounter++;
-    const standardQuestion: StandardQuestion = { ...insertStandardQuestion, id, createdAt: new Date() };
+    const standardQuestion: StandardQuestion = { ...insertStandardQuestion, id, createdAt: new Date(), fieldType: insertStandardQuestion.fieldType as any, included: insertStandardQuestion.included ?? true, required: insertStandardQuestion.required ?? false };
     this.standardQuestions.set(id, standardQuestion);
     return standardQuestion;
   }
   async createStandardQuestionWithId(id: number, standardQuestion: InsertStandardQuestion): Promise<StandardQuestion> {
-    const newQuestion: StandardQuestion = { ...standardQuestion, id, createdAt: new Date() };
+    const newQuestion: StandardQuestion = { ...standardQuestion, id, createdAt: new Date(), fieldType: standardQuestion.fieldType as any, included: standardQuestion.included ?? true, required: standardQuestion.required ?? false };
     this.standardQuestions.set(id, newQuestion);
     return newQuestion;
   }
@@ -594,7 +618,7 @@ export class MemStorage implements IStorage {
   // Booking Page operations - removed delegations to use DatabaseStorage implementations
   async createBookingPage(insertBookingPage: InsertBookingPage): Promise<BookingPage> {
     const id = this.bookingPageIdCounter++;
-    const bookingPage: BookingPage = { ...insertBookingPage, id, createdAt: new Date(), lastModifiedAt: new Date(), lastModifiedBy: insertBookingPage.createdBy, description: insertBookingPage.description ?? null, welcomeMessage: insertBookingPage.welcomeMessage ?? null, confirmationMessage: insertBookingPage.confirmationMessage ?? null, excludedAppointmentTypes: insertBookingPage.excludedAppointmentTypes ?? null, customLogo: insertBookingPage.customLogo ?? null, tenantId: insertBookingPage.tenantId ?? null, isActive: insertBookingPage.isActive ?? true, primaryColor: insertBookingPage.primaryColor ?? '#4CAF50' };
+    const bookingPage: BookingPage = { ...insertBookingPage, id, createdAt: new Date(), lastModifiedAt: new Date(), lastModifiedBy: insertBookingPage.createdBy, description: insertBookingPage.description ?? null, welcomeMessage: insertBookingPage.welcomeMessage ?? null, confirmationMessage: insertBookingPage.confirmationMessage ?? null, excludedAppointmentTypes: insertBookingPage.excludedAppointmentTypes ?? null, customLogo: insertBookingPage.customLogo ?? null, tenantId: insertBookingPage.tenantId ?? null, isActive: insertBookingPage.isActive ?? true, primaryColor: insertBookingPage.primaryColor ?? '#4CAF50', useOrganizationLogo: insertBookingPage.useOrganizationLogo ?? false };
     this.bookingPages.set(id, bookingPage);
     return bookingPage;
   }
@@ -631,7 +655,7 @@ export class MemStorage implements IStorage {
   async getFilteredCompanyAssets(filters: Record<string, any>): Promise<CompanyAsset[]> { return []; }
   async createCompanyAsset(companyAsset: InsertCompanyAsset): Promise<CompanyAsset> {
     const id = this.companyAssetIdCounter++;
-    const newCompanyAsset: CompanyAsset = { ...companyAsset, id, createdAt: new Date(), updatedAt: new Date(), department: companyAsset.department ?? null, barcode: companyAsset.barcode ?? null, serialNumber: companyAsset.serialNumber ?? null, description: companyAsset.description ?? null, purchasePrice: companyAsset.purchasePrice ?? null, purchaseDate: companyAsset.purchaseDate ?? null, warrantyExpiration: companyAsset.warrantyExpiration ?? null, depreciation: companyAsset.depreciation ?? null, assetValue: companyAsset.assetValue ?? null, template: companyAsset.template ?? null, tags: companyAsset.tags ?? null, model: companyAsset.model ?? null, assetCondition: companyAsset.assetCondition ?? null, notes: companyAsset.notes ?? null, manufacturerPartNumber: companyAsset.manufacturerPartNumber ?? null, supplierName: companyAsset.supplierName ?? null, poNumber: companyAsset.poNumber ?? null, vendorInformation: companyAsset.vendorInformation ?? null, photoUrl: companyAsset.photoUrl ?? null, documentUrls: companyAsset.documentUrls ?? null, lastMaintenanceDate: companyAsset.lastMaintenanceDate ?? null, nextMaintenanceDate: companyAsset.nextMaintenanceDate ?? null, maintenanceSchedule: companyAsset.maintenanceSchedule ?? null, maintenanceContact: companyAsset.maintenanceContact ?? null, maintenanceNotes: companyAsset.maintenanceNotes ?? null, implementationDate: companyAsset.implementationDate ?? null, expectedLifetime: companyAsset.expectedLifetime ?? null, certificationDate: companyAsset.certificationDate ?? null, certificationExpiry: companyAsset.certificationExpiry ?? null, createdBy: companyAsset.createdBy ?? null, updatedBy: companyAsset.updatedBy ?? null };
+    const newCompanyAsset: CompanyAsset = { ...companyAsset, id, createdAt: new Date(), updatedAt: new Date(), department: companyAsset.department ?? null, barcode: companyAsset.barcode ?? null, serialNumber: companyAsset.serialNumber ?? null, description: companyAsset.description ?? null, purchasePrice: companyAsset.purchasePrice ?? null, purchaseDate: companyAsset.purchaseDate ?? null, warrantyExpiration: companyAsset.warrantyExpiration ?? null, depreciation: companyAsset.depreciation ?? null, assetValue: companyAsset.assetValue ?? null, template: companyAsset.template ?? null, tags: companyAsset.tags ?? null, model: companyAsset.model ?? null, assetCondition: companyAsset.assetCondition ?? null, notes: companyAsset.notes ?? null, manufacturerPartNumber: companyAsset.manufacturerPartNumber ?? null, supplierName: companyAsset.supplierName ?? null, poNumber: companyAsset.poNumber ?? null, vendorInformation: companyAsset.vendorInformation ?? null, photoUrl: companyAsset.photoUrl ?? null, documentUrls: companyAsset.documentUrls ?? null, lastMaintenanceDate: companyAsset.lastMaintenanceDate ?? null, nextMaintenanceDate: companyAsset.nextMaintenanceDate ?? null, maintenanceSchedule: companyAsset.maintenanceSchedule ?? null, maintenanceContact: companyAsset.maintenanceContact ?? null, maintenanceNotes: companyAsset.maintenanceNotes ?? null, implementationDate: companyAsset.implementationDate ?? null, expectedLifetime: companyAsset.expectedLifetime ?? null, certificationDate: companyAsset.certificationDate ?? null, certificationExpiry: companyAsset.certificationExpiry ?? null, createdBy: companyAsset.createdBy ?? null, updatedBy: companyAsset.updatedBy ?? null, status: companyAsset.status ?? 'ACTIVE' };
     this.companyAssets.set(id, newCompanyAsset);
     return newCompanyAsset;
   }
@@ -916,6 +940,17 @@ export class DatabaseStorage implements IStorage {
   async createSchedule(insertSchedule: InsertSchedule): Promise<Schedule> {
     const [newSchedule] = await db.insert(schedules).values(insertSchedule).returning();
     
+    // Invalidate cache
+    if (newSchedule) {
+      const scheduleDate = new Date(newSchedule.startTime).toISOString().split('T')[0];
+      invalidateAvailabilityCache({
+        date: scheduleDate,
+        facilityId: newSchedule.facilityId!,
+        appointmentTypeId: newSchedule.appointmentTypeId!,
+        tenantId: newSchedule.tenantId!,
+      });
+    }
+    
     // 🔥 REAL-TIME: Emit appointment:created event after DB insert
     try {
       const { eventSystem } = await import('./services/enhanced-event-system');
@@ -941,11 +976,38 @@ export class DatabaseStorage implements IStorage {
       .set(scheduleUpdate)
       .where(eq(schedules.id, id))
       .returning();
+
+    // Invalidate cache
+    if (updatedSchedule) {
+      const scheduleDate = new Date(updatedSchedule.startTime).toISOString().split('T')[0];
+      invalidateAvailabilityCache({
+        date: scheduleDate,
+        facilityId: updatedSchedule.facilityId!,
+        appointmentTypeId: updatedSchedule.appointmentTypeId!,
+        tenantId: updatedSchedule.tenantId!,
+      });
+    }
+
     return updatedSchedule;
   }
 
   async deleteSchedule(id: number): Promise<boolean> {
+    // To invalidate cache, we need to fetch the schedule first
+    const scheduleToDelete = await this.getSchedule(id);
+
     const result = await db.delete(schedules).where(eq(schedules.id, id));
+
+    // Invalidate cache if deletion was successful
+    if (result.rowCount > 0 && scheduleToDelete) {
+      const scheduleDate = new Date(scheduleToDelete.startTime).toISOString().split('T')[0];
+      invalidateAvailabilityCache({
+        date: scheduleDate,
+        facilityId: scheduleToDelete.facilityId!,
+        appointmentTypeId: scheduleToDelete.appointmentTypeId!,
+        tenantId: scheduleToDelete.tenantId!,
+      });
+    }
+
     return result.rowCount > 0;
   }
 
@@ -1016,11 +1078,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Dock operations with real database queries
-  async getDocks(): Promise<Dock[]> {
+  async getDocks(tenantId?: number): Promise<Dock[]> {
     console.log('DEBUG: [DatabaseStorage] getDocks called');
     try {
+      if (tenantId) {
+        // If tenantId is provided, join with facilities to filter
+        const dockList = await db
+          .select({ dock: docks })
+          .from(docks)
+          .innerJoin(facilities, eq(docks.facilityId, facilities.id))
+          .where(eq(facilities.tenantId, tenantId));
+        console.log(`DEBUG: [DatabaseStorage] getDocks for tenant ${tenantId} result count:`, dockList.length);
+        return dockList.map(item => item.dock);
+      }
       const dockList = await db.select().from(docks);
-      console.log('DEBUG: [DatabaseStorage] getDocks result count:', dockList.length);
+      console.log('DEBUG: [DatabaseStorage] getDocks (unfiltered) result count:', dockList.length);
       return dockList;
     } catch (error) {
       console.error('Error fetching docks:', error);
@@ -1079,8 +1151,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Carrier database operations
-  async getCarriers(): Promise<Carrier[]> {
+  async getCarriers(tenantId?: number): Promise<Carrier[]> {
     console.log('DEBUG: [DatabaseStorage] getCarriers called');
+    if (tenantId) {
+      // This is a more complex query as carriers are not directly linked to tenants.
+      // We need to find carriers associated with schedules that belong to a tenant.
+      const tenantCarriers = await db.selectDistinct({ carrier: carriers })
+        .from(carriers)
+        .innerJoin(schedules, eq(carriers.id, schedules.carrierId))
+        .innerJoin(appointmentTypes, eq(schedules.appointmentTypeId, appointmentTypes.id))
+        .where(eq(appointmentTypes.tenantId, tenantId));
+      return tenantCarriers.map(item => item.carrier);
+    }
     const result = await db.select().from(carriers);
     console.log('DEBUG: [DatabaseStorage] getCarriers result count:', result.length);
     return result;
@@ -1104,7 +1186,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getAppointmentTypes(): Promise<AppointmentType[]> {
+  async getAppointmentTypes(tenantId?: number): Promise<AppointmentType[]> {
+    if (tenantId) {
+      return db.select().from(appointmentTypes).where(eq(appointmentTypes.tenantId, tenantId));
+    }
     return await db.select().from(appointmentTypes);
   }
   

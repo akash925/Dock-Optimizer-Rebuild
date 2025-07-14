@@ -15,6 +15,7 @@ import { processImageFile, processBase64Image, testOcr } from '../ocr/ocr_connec
 import { BolService } from '../services/bolService.js';
 import { validateOcrResult, extractFieldsFromOcrResults } from '../utils/ocrValidator.mjs';
 import logger from '../logger.js';
+import { getStorage } from '../storage.js';
 
 const router = express.Router();
 const bolService = new BolService();
@@ -73,149 +74,78 @@ const upload = multer({
  */
 router.post('/upload', upload.single('bolImage'), async (req, res) => {
   try {
-    // Check if file was uploaded
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: 'No file uploaded. Please provide a BOL image file.'
-      });
+      return res.status(400).json({ success: false, error: 'No file uploaded.' });
     }
-    
-    // Get the tenant ID and user ID from the authenticated session if available
+
     const tenantId = req.user?.tenantId;
     const userId = req.user?.id;
     const scheduleId = req.body.scheduleId ? parseInt(req.body.scheduleId, 10) : null;
-    
-    // Start tracking processing time for metrics
-    const startTime = Date.now();
-    
-    // Log file details
-    logger.info('BOL-OCR', `Processing BOL image: ${req.file.originalname}`, {
-      size: req.file.size,
-      path: req.file.path,
-      mimetype: req.file.mimetype,
-      tenantId
+    const storage = await getStorage();
+
+    // Immediately create an OCR job record in a 'queued' state
+    const ocrJob = await storage.createOcrJob({
+      tenantId: tenantId,
+      originalFileName: req.file.originalname,
+      storedFileName: req.file.filename,
+      filePath: req.file.path,
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype,
+      status: 'queued',
+      scheduleId: scheduleId,
+      uploadedBy: userId,
     });
-    
-    // Prepare file info for database storage regardless of OCR outcome
-    const fileInfo = {
-      originalName: req.file.originalname,
-      name: req.file.filename,
-      path: req.file.path,
-      size: req.file.size,
-      mimetype: req.file.mimetype
-    };
-    
-    let ocrResult = null;
-    let ocrStatus = 'failed'; // Default to failed, will update if successful
-    let savedDocument = null;
-    
-    try {
-      // Process the uploaded file with OCR using the service with timeout and retry
-      console.log('🔍 [BOL-OCR] Processing file with OCR:', req.file.path);
-      ocrResult = await bolService.processImageWithTimeout(req.file.path);
-      
-      // If we got here, OCR was successful
-      ocrStatus = 'completed';
-      
-      // Calculate processing time for metrics
-      const processingTime = (Date.now() - startTime) / 1000; // Convert to seconds
-      if (ocrResult && typeof ocrResult === 'object') {
-        ocrResult.processingTime = processingTime;
-      }
-      
-      console.log('🔍 [BOL-OCR] OCR processing successful! Result:', JSON.stringify(ocrResult, null, 2));
-      
-      logger.info('BOL-OCR', 'OCR processing successful', {
-        processingTime,
-        filename: req.file.originalname
-      });
-    } catch (ocrError) {
-      // Log the OCR error but continue processing to save the file
-      logger.error('BOL-OCR', 'Error processing BOL image with OCR', ocrError, {
-        filename: req.file.originalname,
-        path: req.file.path
-      });
-      
-      // Create a minimal result object to indicate failure but still allow file storage
-      ocrResult = {
-        success: false,
-        error: ocrError.message || 'OCR processing failed',
-        processingTime: (Date.now() - startTime) / 1000
-      };
-    }
-    
-    try {
-      // Save the document regardless of OCR success or failure
-      savedDocument = await bolService.saveBolDocument(
-        fileInfo,
-        ocrResult,
-        tenantId,
-        userId,
-        ocrStatus // Pass the status which could be 'completed' or 'failed'
-      );
-      
-      logger.info('BOL-OCR', `Document saved to database with ID ${savedDocument.id}`, {
-        status: ocrStatus,
-        tenantId
-      });
-      
-      // If a schedule ID was provided, link the BOL to the appointment
-      if (scheduleId && !isNaN(scheduleId)) {
-        await bolService.linkBolToAppointment(savedDocument.id, scheduleId);
-        logger.info('BOL-OCR', `Linked BOL document ${savedDocument.id} to appointment ${scheduleId}`);
-      }
-    } catch (dbError) {
-      // Log database errors but don't fail the request
-      logger.error('BOL-OCR', 'Error saving document to database', dbError, {
-        filename: req.file.originalname
-      });
-      
-      // If we can't save to the database, we should still return what we have
-      // but indicate the storage failed
-      return res.status(207).json({ // 207 Multi-Status
-        success: ocrStatus === 'completed',
-        partialSuccess: true,
-        message: 'OCR processing completed but document storage failed',
-        error: dbError.message,
-        ocrData: ocrResult,
-        file: fileInfo
-      });
-    }
-    
-    // Prepare response object
-    const result = { 
-      success: true, // Always report success since we stored the file
-      ocrSuccess: ocrStatus === 'completed',
-      ocrData: ocrResult,
-      file: fileInfo
-    };
-    
-    // Include the database record ID in the response
-    if (savedDocument) {
-      result.documentInfo = {
-        id: savedDocument.id,
-        status: ocrStatus,
-        createdAt: savedDocument.createdAt
-      };
-    }
-    
-    // Always return a 200 OK with document info, even if OCR failed
-    // This lets the client know the document was saved and can be 
-    // associated with appointments, even if text extraction failed
-    res.json(result);
-    
+
+    // In a real implementation, a separate worker process would pick this up.
+    // For now, we'll trigger it asynchronously without awaiting the result.
+    processOcrJob(ocrJob.id);
+
+    res.status(202).json({
+      success: true,
+      message: 'Document uploaded and queued for processing.',
+      jobId: ocrJob.id,
+    });
   } catch (error) {
     logger.error('BOL-OCR', 'Unexpected error in BOL upload handler', error);
-    
-    // Still return 200 if possible with failure details
-    res.status(200).json({
+    res.status(500).json({
       success: false,
       error: error.message || 'An unexpected error occurred during the BOL upload process.',
-      message: 'The file upload was received but could not be fully processed. Please try again or contact support.'
     });
   }
 });
+
+// This function simulates a background worker processing a job.
+async function processOcrJob(jobId) {
+  const storage = await getStorage();
+  let ocrJob = await storage.getOcrJob(jobId);
+
+  if (!ocrJob) {
+    logger.error('BOL-OCR-WORKER', `Job ${jobId} not found.`);
+    return;
+  }
+
+  try {
+    await storage.updateOcrJob(jobId, { status: 'processing', startedAt: new Date() });
+
+    const ocrResult = await bolService.processImageWithTimeout(ocrJob.filePath);
+    
+    await storage.updateOcrJob(jobId, { 
+      status: 'completed', 
+      completedAt: new Date(),
+      resultData: ocrResult 
+    });
+
+    logger.info('BOL-OCR-WORKER', `Job ${jobId} completed successfully.`);
+
+  } catch (error) {
+    logger.error('BOL-OCR-WORKER', `Job ${jobId} failed`, error);
+    await storage.updateOcrJob(jobId, { 
+      status: 'failed',
+      completedAt: new Date(),
+      resultData: { error: error.message }
+    });
+  }
+}
 
 /**
  * @api {post} /api/bol-ocr/process-base64 Process BOL base64 image

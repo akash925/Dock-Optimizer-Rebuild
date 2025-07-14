@@ -17,6 +17,20 @@ import { User } from "@shared/schema";
 import { calculateAvailabilitySlots } from "./src/services/availability";
 import { broadcastScheduleUpdate } from "./websocket/index";
 import { mediaService } from './services/MediaService';
+import { isAuthenticated, isAdmin } from './middleware/auth';
+import { z } from 'zod';
+import { validate } from './middleware/validation';
+
+const availabilityQuerySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  facilityId: z.string().transform(Number),
+  appointmentTypeId: z.string().transform(Number).optional(),
+  typeId: z.string().transform(Number).optional(),
+  bookingPageSlug: z.string().optional(),
+}).refine(data => data.appointmentTypeId || data.typeId, {
+  message: 'Either appointmentTypeId or typeId must be provided',
+  path: ['appointmentTypeId', 'typeId'],
+});
 
 // TenantWebSocket interface moved to websocket/secure-handler.ts
 
@@ -71,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerQrCodeRoutes(app);
 
   // AVAILABILITY API ROUTES - CRITICAL FOR APPOINTMENT BOOKING
-  app.get('/api/availability', async (req: any, res) => {
+  app.get('/api/availability', validate('query', availabilityQuerySchema), async (req: any, res) => {
     try {
       const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
       
@@ -127,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/availability/v2', async (req: any, res) => {
+  app.get('/api/availability/v2', validate('query', availabilityQuerySchema), async (req: any, res) => {
     try {
       const { date, facilityId, appointmentTypeId, typeId, bookingPageSlug } = req.query;
       
@@ -180,64 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // BOL OCR Upload endpoint for external booking
-  app.post('/api/ocr/upload', bolUpload.single('bolFile'), async (req: any, res) => {
-    try {
-      console.log('[OCR Upload] Processing BOL upload request');
-      
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          error: 'No file uploaded. Please select a BOL document to upload.'
-        });
-      }
-
-      const file = req.file;
-      console.log('[OCR Upload] File received:', {
-        originalName: file.originalname,
-        size: file.size,
-        mimetype: file.mimetype
-      });
-
-      // Simulate OCR processing with extracted data
-      const extractedData = {
-        bolNumber: `BOL-${Date.now().toString().slice(-6)}`,
-        customerName: 'Sample Customer',
-        carrierName: 'Sample Carrier',
-        deliveryDate: new Date().toISOString().split('T')[0],
-        weight: '1000 lbs',
-        pieces: '5'
-      };
-
-      // Save file to uploads directory
-      const fileName = `bol_${Date.now()}_${file.originalname}`;
-      const filePath = path.join(uploadsDir, fileName);
-      fs.writeFileSync(filePath, file.buffer);
-
-      console.log('[OCR Upload] File saved and OCR processing simulated');
-
-      res.json({
-        success: true,
-        documentId: `doc_${Date.now()}`,
-        fileName: fileName,
-        fileUrl: `/uploads/${fileName}`,
-        extractedData: extractedData,
-        suggestions: {
-          confidence: 0.85,
-          suggestedDate: new Date().toISOString().split('T')[0]
-        }
-      });
-
-    } catch (error) {
-      console.error('[OCR Upload] Error processing BOL upload:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to process BOL document. Please try again.'
-      });
-    }
-  });
-
-  app.patch('/api/schedules/:id/check-in', async (req: any, res) => {
+  app.patch('/api/schedules/:id/check-in', isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       // CRITICAL FIX: Allow external check-in without authentication for QR code functionality
       // Check if user is authenticated, but don't require it for external check-ins
@@ -268,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/schedules/:id/check-out', async (req: any, res) => {
+  app.patch('/api/schedules/:id/check-out', isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -342,7 +299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/schedules/:id/assign-door', async (req: any, res) => {
+  app.patch('/api/schedules/:id/assign-door', isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -375,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/schedules/:id/release - Release a door (set dockId to null)
-  app.post('/api/schedules/:id/release', async (req: any, res) => {
+  app.post('/api/schedules/:id/release', isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -472,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/schedules/:id/cancel', async (req: any, res) => {
+  app.patch('/api/schedules/:id/cancel', isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -494,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/schedules/:id/reschedule', async (req: any, res) => {
+  app.patch('/api/schedules/:id/reschedule', isAuthenticated, isAdmin, async (req: any, res) => {
     try {
       if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
       const user = req.user as User;
@@ -1352,7 +1309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const timeSlots = slots.map(slot => ({
         time: slot.time,
         available: slot.available,
-        capacity: slot.capacity || 1,
+        capacity: slot.remainingCapacity || 1,
         remaining: slot.remainingCapacity || (slot.available ? 1 : 0)
       }));
 
