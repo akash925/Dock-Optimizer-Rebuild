@@ -56,6 +56,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { SeedQuestionsButton } from '@/components/appointment-master/SeedQuestionsButton';
+import SeedAppointmentTypes from '@/components/appointment-master/seed-appointment-types';
 import { Facility, AppointmentType } from '@shared/schema';
 
 // Add the missing StandardQuestion type import
