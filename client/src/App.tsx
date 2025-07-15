@@ -200,6 +200,22 @@ const adminRoutes: RouteConfig[] = [
 // Define public routes that don't require authentication or modules
 const publicRoutes: RouteConfig[] = [
   { path: "/auth", component: () => <AuthPage /> },
+  { path: "/forgot-password", component: () => {
+    const ForgotPasswordPage = lazy(() => import("@/pages/forgot-password"));
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <ForgotPasswordPage />
+      </Suspense>
+    );
+  }},
+  { path: "/reset-password", component: () => {
+    const ResetPasswordPage = lazy(() => import("@/pages/reset-password"));
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+        <ResetPasswordPage />
+      </Suspense>
+    );
+  }},
   { path: "/door-manager-demo", component: () => <BasicDoorManager /> },
   { path: "/external/:slug", component: () => <BookingRouter /> }, // External booking pages
   { path: "/booking/:slug", component: () => <BookingRouter /> }, // Internal booking pages

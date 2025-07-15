@@ -30,7 +30,7 @@ export async function fixAdminPassword() {
       // Update the existing user's password with proper hashing
       console.log("Admin user exists, updating password...");
       const hashedPassword = await hashPassword("password123");
-      await storage.updateUserPassword(existingUser.id, hashedPassword);
+      await storage.updateUserPasswordDirect(existingUser.id, hashedPassword);
       console.log("Updated admin user password");
       userId = existingUser.id;
     }

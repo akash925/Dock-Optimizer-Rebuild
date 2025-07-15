@@ -28,7 +28,8 @@ import {
   tenants, roles, organizationUsers, organizationModules, organizationFacilities, userPreferences,
   organizationDefaultHours, organizationHolidays, bolDocuments,
   BolDocument, InsertBolDocument,
-  OcrJob, InsertOcrJob, ocrJobs
+  OcrJob, InsertOcrJob, ocrJobs,
+  PasswordResetToken, InsertPasswordResetToken, passwordResetTokens
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -40,6 +41,7 @@ import { promisify } from "util";
 import { getRedisInstance } from './src/lib/redis';
 import { logger } from "./utils/logger";
 import { emailService } from './services/email';
+import crypto from "crypto";
 
 const redis = getRedisInstance();
 
@@ -322,6 +324,15 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getFacilityById(id: number, tenantId?: number): Promise<Facility | undefined>;
   getFacility(id: number, tenantId?: number): Promise<Facility | undefined>;
+  
+  // Password Reset Token methods
+  createPasswordResetToken(userId: number): Promise<PasswordResetToken>;
+  getPasswordResetToken(token: string): Promise<PasswordResetToken | null>;
+  markPasswordResetTokenAsUsed(tokenId: number): Promise<void>;
+  cleanupExpiredPasswordResetTokens(): Promise<void>;
+  getUserByEmail(email: string): Promise<User | null>;
+  updateUserPasswordDirect(userId: number, hashedPassword: string): Promise<void>;
+  updateUserEmail(userId: number, email: string): Promise<void>;
 }
 
 // In-Memory Storage Implementation
@@ -874,10 +885,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const hashedPassword = await hashPassword(insertUser.password);
+    // Check if password is already a bcrypt hash (starts with $2b$ and proper length)
+    const isBcryptHash = insertUser.password.startsWith('$2b$') && insertUser.password.length >= 60;
+    
+    console.log('[Storage] createUser password analysis:', {
+      passwordLength: insertUser.password.length,
+      startsWithBcrypt: insertUser.password.startsWith('$2b$'),
+      isBcryptHash,
+      passwordPrefix: insertUser.password.substring(0, 10) + '...'
+    });
+    
+    // Only hash if it's not already a bcrypt hash
+    const finalPassword = isBcryptHash ? insertUser.password : await hashPassword(insertUser.password);
+    
+    console.log('[Storage] Final password to store:', {
+      length: finalPassword.length,
+      startsWithBcrypt: finalPassword.startsWith('$2b$'),
+      prefix: finalPassword.substring(0, 10) + '...'
+    });
+    
     const [newUser] = await db
       .insert(users)
-      .values({ ...insertUser, password: hashedPassword })
+      .values({ ...insertUser, password: finalPassword })
       .returning();
     return newUser;
   }
@@ -2373,6 +2402,88 @@ export class DatabaseStorage implements IStorage {
       console.error('Error saving standard questions for appointment type:', error);
       throw error;
     }
+  }
+
+  // Password Reset Token methods
+  async createPasswordResetToken(userId: number): Promise<PasswordResetToken> {
+    // Generate secure random token
+    const token = crypto.randomBytes(32).toString('hex');
+    
+    // Set expiration to 1 hour from now
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    
+    // Clean up any existing unused tokens for this user
+    await db
+      .update(passwordResetTokens)
+      .set({ used: true, usedAt: new Date() })
+      .where(and(
+        eq(passwordResetTokens.userId, userId),
+        eq(passwordResetTokens.used, false)
+      ));
+    
+    const [resetToken] = await db
+      .insert(passwordResetTokens)
+      .values({
+        userId,
+        token,
+        expiresAt,
+        used: false
+      })
+      .returning();
+    
+    return resetToken;
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | null> {
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(and(
+        eq(passwordResetTokens.token, token),
+        eq(passwordResetTokens.used, false),
+        gte(passwordResetTokens.expiresAt, new Date())
+      ));
+    
+    return resetToken || null;
+  }
+
+  async markPasswordResetTokenAsUsed(tokenId: number): Promise<void> {
+    await db
+      .update(passwordResetTokens)
+      .set({ used: true, usedAt: new Date() })
+      .where(eq(passwordResetTokens.id, tokenId));
+  }
+
+  async cleanupExpiredPasswordResetTokens(): Promise<void> {
+    await db
+      .delete(passwordResetTokens)
+      .where(or(
+        eq(passwordResetTokens.used, true),
+        lte(passwordResetTokens.expiresAt, new Date())
+      ));
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+    
+    return user || null;
+  }
+
+  async updateUserPasswordDirect(userId: number, hashedPassword: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.id, userId));
+  }
+
+  async updateUserEmail(userId: number, email: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ email })
+      .where(eq(users.id, userId));
   }
 }
 

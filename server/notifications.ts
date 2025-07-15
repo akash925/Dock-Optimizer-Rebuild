@@ -2149,3 +2149,121 @@ export async function sendCheckoutEmail(
     text
   });
 }
+
+// Add this function after the existing email functions
+
+/**
+ * Send password reset email
+ */
+export async function sendPasswordResetEmail(
+  to: string,
+  resetToken: string,
+  user: any
+): Promise<boolean> {
+  if (!isEmailServiceConfigured()) {
+    console.log('[EMAIL] Email service not configured, skipping password reset email');
+    return false;
+  }
+
+  try {
+    // Get the base URL for reset links
+    const baseUrl = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
+    const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
+    
+    console.log(`[EMAIL] Sending password reset email to ${to}`);
+    console.log(`[EMAIL] Reset URL: ${resetUrl}`);
+    
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #1f2937; color: white; padding: 20px; text-align: center;">
+          <h1 style="margin: 0;">Password Reset Request</h1>
+          <p style="margin-top: 5px;">Dock Optimizer</p>
+        </div>
+        
+        <div style="padding: 20px;">
+          <p>Hello ${user.firstName || 'User'},</p>
+          
+          <p>We received a request to reset the password for your Dock Optimizer account associated with this email address.</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              Reset Password
+            </a>
+          </div>
+          
+          <p style="color: #666; font-size: 14px;">
+            If the button above doesn't work, copy and paste this link into your browser:
+          </p>
+          <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 14px;">
+            ${resetUrl}
+          </p>
+          
+          <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; color: #92400e;">
+              <strong>Security Notice:</strong><br>
+              • This link will expire in 1 hour<br>
+              • If you didn't request this reset, please ignore this email<br>
+              • Never share this link with anyone
+            </p>
+          </div>
+          
+          <p>If you have any questions or need assistance, please contact our support team.</p>
+          
+          <p>
+            Best regards,<br>
+            The Dock Optimizer Team
+          </p>
+        </div>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+          <p style="margin: 0;">
+            This email was sent to ${to}. If you didn't request a password reset, please ignore this email.
+          </p>
+        </div>
+      </div>
+    `;
+    
+    const textContent = `
+Password Reset Request - Dock Optimizer
+
+Hello ${user.firstName || 'User'},
+
+We received a request to reset the password for your Dock Optimizer account associated with this email address.
+
+To reset your password, click the following link:
+${resetUrl}
+
+Security Notice:
+- This link will expire in 1 hour
+- If you didn't request this reset, please ignore this email  
+- Never share this link with anyone
+
+If you have any questions or need assistance, please contact our support team.
+
+Best regards,
+The Dock Optimizer Team
+
+---
+This email was sent to ${to}. If you didn't request a password reset, please ignore this email.
+    `;
+
+    // Send the email
+    const result = await sendEmail({
+      to,
+      subject: 'Password Reset Request - Dock Optimizer',
+      html,
+      text: textContent
+    });
+
+    if (result) {
+      console.log(`[EMAIL] Password reset email sent successfully to ${to}`);
+      return true;
+    } else {
+      console.error(`[EMAIL] Failed to send password reset email to ${to}`);
+      return false;
+    }
+  } catch (error) {
+    console.error('[EMAIL] Error sending password reset email:', error);
+    return false;
+  }
+}

@@ -82,6 +82,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.use('/uploads', express.static(uploadsDir));
   setupAuth(app);
+  
+  // Register auth routes for password reset
+  const authRoutes = await import('./routes/auth');
+  app.use('/api/auth', authRoutes.default);
+  
+  // Add registration endpoint after setupAuth and before other routes
+  // Registration route to match frontend expectation
+  app.post('/api/register', async (req: any, res) => {
+    try {
+      // Import bcrypt for proper password hashing
+      const bcrypt = await import('bcryptjs');
+      
+      const registerSchema = z.object({
+        email: z.string().email('Invalid email address'),
+        username: z.string().min(3, 'Username must be at least 3 characters'),
+        password: z.string().min(6, 'Password must be at least 6 characters'),
+        firstName: z.string().min(1, 'First name is required'),
+        lastName: z.string().min(1, 'Last name is required'),
+        role: z.string().optional().default('user'),
+      });
+      
+      const validatedData = registerSchema.parse(req.body);
+      const storage = await getStorage();
+      
+      // Check if username already exists
+      const existingUserByUsername = await storage.getUserByUsername(validatedData.username);
+      if (existingUserByUsername) {
+        return res.status(400).json({ 
+          error: 'Username already exists' 
+        });
+      }
+      
+      // Check if email already exists
+      const existingUserByEmail = await storage.getUserByEmail(validatedData.email);
+      if (existingUserByEmail) {
+        return res.status(400).json({ 
+          error: 'Email address is already in use' 
+        });
+      }
+      
+      // Hash password with bcrypt (consistent with auth system)
+      const hashedPassword = await bcrypt.default.hash(validatedData.password, 12);
+      console.log('[Registration] Original password length:', validatedData.password.length);
+      console.log('[Registration] Bcrypt hash format check:', {
+        startsWithBcrypt: hashedPassword.startsWith('$2b$'),
+        length: hashedPassword.length,
+        hash: hashedPassword.substring(0, 20) + '...'
+      });
+      
+      // Create the user with properly hashed password
+      const newUser = await storage.createUser({
+        username: validatedData.username,
+        email: validatedData.email,
+        password: hashedPassword, // Use pre-hashed password to bypass storage's scrypt hashing
+        firstName: validatedData.firstName,
+        lastName: validatedData.lastName,
+        role: validatedData.role as any,
+        tenantId: null // New users start without tenant assignment
+      });
+      
+      // Return user data without password
+      const { password, ...safeUser } = newUser;
+      res.status(201).json({
+        ...safeUser,
+        modules: [] // New users start with no modules until assigned to organization
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: 'Invalid input', 
+          details: error.errors 
+        });
+      }
+      
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   registerQrCodeRoutes(app);
 
   // AVAILABILITY API ROUTES - CRITICAL FOR APPOINTMENT BOOKING

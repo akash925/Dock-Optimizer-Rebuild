@@ -6,29 +6,42 @@
   "scripts": {
     "test:ci": "vitest run --exclude '**/*.int.test.ts' --exclude '**/*.jest.test.ts'",
     "test:ci:watch": "vitest watch --exclude '**/*.int.test.ts' --exclude '**/*.jest.test.ts'",
+    
     "dev:server": "tsx -r dotenv/config server/index.ts",
     "dev:client": "vite",
     "dev": "concurrently -k -n server,client -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    
     "server": "tsx -r dotenv/config server/index.ts",
     "client": "vite",
-    "dev:prod": "NODE_ENV=production doppler run -- tsx server/index.ts",
+    
+    "dev:server-only": "echo '🚀 Starting BACKEND only (port 5001)' && tsx -r dotenv/config server/index.ts",
+    "dev:client-only": "echo '🎨 Starting FRONTEND only (port 5173)' && vite",
+    "dev:full": "echo '🔥 Starting FULL STACK (ports 5001 + 5173)' && concurrently -k -n server,client -c green,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    
+    "dev:doppler": "echo '☁️ Starting with DOPPLER secrets' && doppler run --config dev -- tsx server/index.ts",
+    "dev:prod": "echo '🏭 Starting PRODUCTION mode with Doppler' && NODE_ENV=production doppler run --config prd -- tsx server/index.ts",
+    
     "production": "bash scripts/production-replit.sh",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "start:doppler": "NODE_ENV=production doppler run --config prd -- node dist/index.js",
+    
     "check": "tsc -p tsconfig.soft.json",
     "typecheck": "tsc -p tsconfig.soft.json",
     "lint": "eslint . --ext .js,.mjs,.cjs,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.mjs,.cjs,.ts,.tsx --fix",
+    
     "db:push": "drizzle-kit push",
     "db:migrate": "node scripts/run-migrations.cjs",
     "db:seed": "tsx server/seeds/20250623_us_holidays.ts",
     "db:setup-production": "tsx server/scripts/comprehensive-production-fixes.ts",
     "db:check-production": "tsx server/scripts/production-readiness-check.ts",
     "setup-production": "bash scripts/production-setup.sh",
+    
     "test": "vitest",
     "test:watch": "vitest watch",
     "test:availability": "vitest run server/src/services/availability.test.ts",
+    
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
     "cypress:debug": "cypress open --env DEBUG_MODE=true,ENABLE_BREAKPOINTS=true",
@@ -36,7 +49,10 @@
     "e2e:booking": "cypress run --spec cypress/e2e/booking-flow.spec.ts",
     "e2e:debug": "cypress open --spec cypress/e2e/debugging-breakpoints.spec.ts --env DEBUG_MODE=true",
     "e2e:modules": "cypress run --spec cypress/e2e/module_toggles.spec.ts",
-    "redis:health": "tsx tools/redisHealth.ts"
+    
+    "redis:health": "tsx tools/redisHealth.ts",
+    
+    "help": "echo '\n🚀 DOCK OPTIMIZER - LAUNCH OPTIONS:\n' && echo '  dev:server-only  → Backend only (port 5001)' && echo '  dev:client-only  → Frontend only (port 5173)' && echo '  dev:full         → Full stack (both ports)' && echo '  dev:doppler      → Backend with Doppler secrets' && echo '  dev:prod         → Production mode with Doppler' && echo '\n📖 For more info: npm run help\n'"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.840.0",

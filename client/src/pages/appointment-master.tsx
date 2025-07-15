@@ -66,7 +66,7 @@ import { Facility, AppointmentType } from '@shared/schema';
 interface StandardQuestion {
   id: number;
   label: string;
-  fieldKey: string;
+  fieldKey?: string;
   fieldType: string;
   required: boolean;
   included: boolean;
@@ -79,7 +79,7 @@ interface StandardQuestion {
 interface QuestionFormField {
   id: number;
   label: string;
-  type: string;
+  type: "text" | "textarea" | "select" | "radio" | "checkbox" | "file" | "email" | "number";
   required: boolean;
   included: boolean;
   options?: string[];
@@ -178,18 +178,6 @@ function SortableQuestionRow({
   );
 }
 
-interface QuestionFormField {
-  id: number;
-  label: string;
-  type: "text" | "textarea" | "select" | "radio" | "checkbox" | "file" | "email" | "number";
-  required: boolean;
-  included?: boolean;
-  options?: string[];
-  placeholder?: string;
-  order: number;
-  appointmentType: "inbound" | "outbound" | "both";
-}
-
 export default function AppointmentMaster() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("types");
@@ -207,37 +195,39 @@ export default function AppointmentMaster() {
   const [selectedAppointmentTypeId, setSelectedAppointmentTypeId] = useState<number | null>(null);
   
   // Function to load standard questions for an appointment type
-  const loadStandardQuestionsForAppointmentType = (appointmentTypeId: number) => {
+  const loadStandardQuestionsForAppointmentType = async (appointmentTypeId: number) => {
     console.log(`[StandardQuestions] Loading questions for appointment type ${appointmentTypeId}`);
     
-    // Use the direct standard questions endpoint instead of the redirect
-    api.get<StandardQuestion[]>(`/api/standard-questions/appointment-type/${appointmentTypeId}`)
-      .then(data => {
-        console.log(`[StandardQuestions] Loaded ${data.length} questions for appointment type ${appointmentTypeId}:`, data);
-        
-        // Transform backend data to match frontend format
-        const formattedQuestions = data.map((q: any) => ({
-          id: q.id,
-          label: q.label,
-          type: q.fieldType.toLowerCase(),
-          required: q.required,
-          included: q.included,
-          order: q.orderPosition, // Already camelCase from backend
-          appointmentType: "both" // Default value
-        }));
-        
-        console.log(`[StandardQuestions] Transformed questions for appointment type ${appointmentTypeId}:`, formattedQuestions);
-        setStandardFields(formattedQuestions);
-        console.log(`[StandardQuestions] Updated standardFields state:`, formattedQuestions.length);
-      })
-      .catch(error => {
-        console.error(`[StandardQuestions] Error loading questions:`, error);
-        toast({
-          title: "Error",
-          description: `Failed to load standard questions: ${error.message}`,
-          variant: "destructive"
-        });
+    try {
+      // Use the direct standard questions endpoint instead of the redirect
+      const data = await api.get<StandardQuestion[]>(`/api/standard-questions/appointment-type/${appointmentTypeId}`);
+      console.log(`[StandardQuestions] Loaded ${data.length} questions for appointment type ${appointmentTypeId}:`, data);
+      
+      // Transform backend data to match frontend format
+      const formattedQuestions = data.map((q: any) => ({
+        id: q.id,
+        label: q.label,
+        type: q.fieldType.toLowerCase() as QuestionFormField['type'],
+        required: q.required,
+        included: q.included,
+        order: q.orderPosition, // Already camelCase from backend
+        appointmentType: "both" as const // Default value
+      }));
+      
+      console.log(`[StandardQuestions] Transformed questions for appointment type ${appointmentTypeId}:`, formattedQuestions);
+      setStandardFields(formattedQuestions);
+      console.log(`[StandardQuestions] Updated standardFields state:`, formattedQuestions.length);
+      
+      return formattedQuestions;
+    } catch (error) {
+      console.error(`[StandardQuestions] Error loading questions:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to load standard questions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
       });
+      throw error;
+    }
   };
   const [appointmentTypeFormStep, setAppointmentTypeFormStep] = useState(1); // 1: Details, 2: Scheduling, 3: Questions
   
@@ -823,7 +813,7 @@ export default function AppointmentMaster() {
             questions: standardFields.map(field => ({
               id: field.id,
               label: field.label,
-              fieldKey: field.fieldKey || `field_${field.id}`,
+              fieldKey: `field_${field.id}`,
               fieldType: field.type,
               required: field.required,
               included: field.included,
@@ -866,7 +856,7 @@ export default function AppointmentMaster() {
           description: "Appointment type and questions updated successfully",
         });
       } else {
-        const newType = await createAppointmentTypeMutation.mutateAsync(formData);
+        const newType = await createAppointmentTypeMutation.mutateAsync(formData) as { id: number };
         
         // After creating a new appointment type, set it as selected and load questions
         setSelectedAppointmentTypeId(newType.id);

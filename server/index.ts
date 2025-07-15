@@ -7,6 +7,7 @@ import path from "path";
 import fs from "fs";
 import { tenantMiddleware } from "./middleware/tenant";
 import { initializeWebSocket } from "./websocket/index";
+import authRoutes from './routes/auth';
 
 // Environment variable checks - separate critical from optional
 const criticalEnvVars = [
