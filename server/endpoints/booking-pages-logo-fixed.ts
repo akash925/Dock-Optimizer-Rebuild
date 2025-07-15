@@ -29,8 +29,8 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       
       console.log(`[Booking Page Logo] Found organization '${organization.name}' for tenant ID: ${tenantIdNum}`);
       
-      // Return the logo URL or data
-      const logoData = organization.logo ? organization.logo : null;
+      // Return the logo URL or data - check both logo and logoUrl fields
+      const logoData = organization.logo || (organization as any).logoUrl;
       
       // First, check if we have actual logo data in the organization record
       if (logoData) {
@@ -68,7 +68,7 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
    * Endpoint to get an organization logo by booking page slug
    * This allows public booking pages to display tenant-specific logos without requiring authentication
    */
-  const getLogoBySlug = async (req, res) => {
+  const getLogoBySlug = async (req: any, res: any) => {
     try {
       const { slug } = req.params;
       console.log(`[Booking Page Logo] Fetching logo for booking page with slug: ${slug}`);
@@ -89,6 +89,11 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       console.log(`[Booking Page Logo] Found booking page '${bookingPage.name}' with tenant ID: ${bookingPage.tenantId}`);
       
       // If we found the booking page, we can now get the organization/tenant by ID
+      if (!bookingPage.tenantId) {
+        console.log(`[Booking Page Logo] No tenant ID found for booking page ${bookingPage.name}`);
+        return res.status(404).json({ message: 'No organization associated with this booking page' });
+      }
+      
       const organization = await storage.getTenantById(bookingPage.tenantId);
       if (!organization) {
         console.log(`[Booking Page Logo] Organization with ID ${bookingPage.tenantId} not found`);

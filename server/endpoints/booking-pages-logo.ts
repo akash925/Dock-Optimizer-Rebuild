@@ -31,8 +31,8 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       
       console.log(`[Booking Page Logo] ✅ Found organization '${organization.name}' for tenant ID: ${tenantIdNum}`);
       
-      // Return the logo URL or data
-      const logoData = organization.logoUrl ? organization.logoUrl : null;
+      // Return the logo URL or data - check both logo and logoUrl fields
+      const logoData = organization.logo || (organization as any).logoUrl;
       
       // First, check if we have actual logo data in the organization record
       if (logoData) {
@@ -107,8 +107,8 @@ export function registerBookingPagesLogoEndpoint(app: Express) {
       
       console.log(`[Booking Page Logo] Found organization '${organization.name}' for booking page`);
       
-      // Return the logo URL or data
-      const logoData = organization.logoUrl ? organization.logoUrl : null;
+      // Return the logo URL or data - check both logo and logoUrl fields
+      const logoData = organization.logo || (organization as any).logoUrl;
       
       // First, check if we have actual logo data in the organization record
       if (logoData) {
