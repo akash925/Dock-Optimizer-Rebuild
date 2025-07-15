@@ -9,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, Mail, Bell, User, Lock, Palette, Calendar, Building2, Link2 } from 'lucide-react';
+import { AlertCircle, Mail, Bell, User, Lock, Palette, Calendar, Building2, Link2, Upload, Image, X } from 'lucide-react';
 
 interface UserPreferences {
   id?: number;
@@ -31,6 +31,7 @@ interface UserProfile {
   firstName: string;
   lastName: string;
   role: string;
+  tenantId?: number;
 }
 
 export default function Settings() {
@@ -499,7 +500,7 @@ export default function Settings() {
               <CardDescription>Customize the look and feel of your workspace</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Appearance settings coming soon...</p>
+              <OrganizationLogoSettings />
             </CardContent>
           </Card>
         </TabsContent>
@@ -541,6 +542,274 @@ export default function Settings() {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Add new component for organization logo settings
+function OrganizationLogoSettings() {
+  const [dragActive, setDragActive] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Get current user to get tenantId
+  const { data: user } = useQuery<UserProfile>({
+    queryKey: ['/api/user'],
+  });
+
+  // Fetch current organization logo
+  const { data: currentLogo, isLoading } = useQuery({
+    queryKey: ['/api/admin/organizations', user?.tenantId, 'logo'],
+    queryFn: async () => {
+      if (!user?.tenantId) return null;
+      const response = await fetch(`/api/admin/organizations/${user.tenantId}/logo`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!user?.tenantId,
+  });
+
+  // Upload logo mutation
+  const uploadLogoMutation = useMutation({
+    mutationFn: async (logoData: string) => {
+      if (!user?.tenantId) throw new Error('User tenant ID required');
+      
+      const response = await fetch(`/api/admin/organizations/${user.tenantId}/logo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ logoData }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload logo');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Logo updated',
+        description: 'Your organization logo has been updated successfully.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/organizations', user?.tenantId, 'logo'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      setLogoFile(null);
+      setLogoPreview(null);
+    },
+    onError: () => {
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload logo. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleFile = (file: File) => {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please select an image file (PNG, JPG, etc.)',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please select an image file smaller than 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLogoFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setLogoPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpload = () => {
+    if (logoPreview) {
+      uploadLogoMutation.mutate(logoPreview);
+    }
+  };
+
+  const handleRemovePreview = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium mb-4">Organization Logo</h3>
+        <p className="text-sm text-muted-foreground mb-6">
+          Upload your organization's logo to personalize your workspace and booking pages. 
+          Recommended size: 200x200px or larger. Supported formats: PNG, JPG, WebP.
+        </p>
+
+        {/* Current Logo Display */}
+        {currentLogo?.logo && (
+          <div className="mb-6">
+            <Label className="text-sm font-medium mb-2 block">Current Logo</Label>
+            <div className="w-32 h-32 border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+              <img 
+                src={currentLogo.logo} 
+                alt="Current organization logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Logo Upload Area */}
+        <div className="space-y-4">
+          <Label className="text-sm font-medium">Upload New Logo</Label>
+          
+          {/* Preview Area */}
+          {logoPreview && (
+            <div className="mb-4">
+              <Label className="text-sm font-medium mb-2 block">Preview</Label>
+              <div className="relative inline-block">
+                <div className="w-32 h-32 border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                  <img 
+                    src={logoPreview} 
+                    alt="Logo preview"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full"
+                  onClick={handleRemovePreview}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Upload Drop Zone */}
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              dragActive 
+                ? 'border-primary bg-primary/5' 
+                : 'border-gray-300 hover:border-gray-400'
+            }`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
+            <div className="space-y-4">
+              <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                {dragActive ? (
+                  <Upload className="h-6 w-6 text-primary" />
+                ) : (
+                  <Image className="h-6 w-6 text-gray-400" />
+                )}
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium">
+                  {dragActive ? 'Drop your logo here' : 'Drag and drop your logo here'}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  PNG, JPG, WebP up to 5MB
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileInput}
+                  className="hidden"
+                  id="logo-upload"
+                />
+                <Label htmlFor="logo-upload">
+                  <Button variant="outline" className="cursor-pointer" asChild>
+                    <span>Choose File</span>
+                  </Button>
+                </Label>
+              </div>
+            </div>
+          </div>
+
+          {/* Upload Actions */}
+          {logoPreview && (
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleUpload}
+                disabled={uploadLogoMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {uploadLogoMutation.isPending ? 'Uploading...' : 'Upload Logo'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleRemovePreview}
+                disabled={uploadLogoMutation.isPending}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Info Box */}
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-blue-900 mb-1">Logo Usage</p>
+              <p className="text-blue-700">
+                Your logo will appear in the top navigation, booking pages, and email communications. 
+                For best results, use a square logo with a transparent background.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
