@@ -80,8 +80,8 @@ export async function seedUSFederalHolidays(orgIds: number[]): Promise<void> {
           totalInserted++;
         } catch (err: any) {
           // If description column doesn't exist, try without it (for older schema)
-          if (err?.code === '42703' && err?.message?.includes('description')) {
-            console.log(`[Holiday Seeder] Description column not found, trying without it for ${holiday.name}...`);
+          if (err?.code === '42703') {
+            console.log(`[Holiday Seeder] Column error detected, trying without description for ${holiday.name}...`);
             try {
               await db.insert(organizationHolidays)
                 .values({
@@ -95,6 +95,7 @@ export async function seedUSFederalHolidays(orgIds: number[]): Promise<void> {
                 .onConflictDoNothing();
               
               totalInserted++;
+              console.log(`[Holiday Seeder] ✅ Successfully inserted ${holiday.name} for org ${orgId} without description`);
             } catch (fallbackErr) {
               console.warn(`[Holiday Seeder] Warning: Could not insert ${holiday.name} for org ${orgId}:`, fallbackErr);
             }

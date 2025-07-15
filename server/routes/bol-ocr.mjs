@@ -83,12 +83,53 @@ router.post('/upload', upload.single('bolFile'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'No file uploaded.' });
     }
 
-    const tenantId = req.user?.tenantId;
-    const userId = req.user?.id;
+    // Handle both authenticated and unauthenticated requests (for external booking)
+    const tenantId = req.user?.tenantId || 1; // Default to tenant 1 for external booking
+    const userId = req.user?.id || null;
     const scheduleId = req.body.scheduleId ? parseInt(req.body.scheduleId, 10) : null;
+    const bookingPageSlug = req.body.bookingPageSlug;
     const storage = await getStorage();
 
-    // Immediately create an OCR job record in a 'queued' state
+    console.log(`[OCR Upload] Processing BOL upload for tenant ${tenantId}, user ${userId || 'anonymous'}`);
+    console.log(`[OCR Upload] File: ${req.file.originalname}, Size: ${req.file.size} bytes`);
+
+    // For external booking, we'll process the OCR immediately instead of queuing
+    if (bookingPageSlug && !req.user) {
+      console.log(`[OCR Upload] Processing external booking BOL upload for page: ${bookingPageSlug}`);
+      
+      // Process the file immediately for external booking
+      try {
+        const { processImageFile } = await import('../ocr/ocr_connector.mjs');
+        const ocrResult = await processImageFile(req.file.path);
+        
+        // Return the OCR result directly for external booking
+        return res.json({
+          success: true,
+          extractedData: ocrResult?.detectedFields || {},
+          suggestions: {
+            confidence: ocrResult?.confidenceScore || 0,
+            processingTime: ocrResult?.processingTime || 0
+          },
+          documentId: `temp_${Date.now()}`,
+          fileName: req.file.originalname,
+          fileUrl: `/uploads/bol/${req.file.filename}` // Temporary URL for display
+        });
+      } catch (ocrError) {
+        console.error('[OCR Upload] Error processing external BOL:', ocrError);
+        // Return success even if OCR fails, so upload can still proceed
+        return res.json({
+          success: true,
+          extractedData: {},
+          suggestions: { confidence: 0 },
+          documentId: `temp_${Date.now()}`,
+          fileName: req.file.originalname,
+          fileUrl: `/uploads/bol/${req.file.filename}`,
+          error: 'OCR processing failed, but file was uploaded successfully'
+        });
+      }
+    }
+
+    // For authenticated users, create an OCR job record in a 'queued' state
     const ocrJob = await storage.createOcrJob({
       tenantId: tenantId,
       originalFileName: req.file.originalname,
