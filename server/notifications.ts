@@ -792,6 +792,14 @@ export async function sendConfirmationEmail(
   confirmationCode: string,
   schedule: EnhancedSchedule
 ): Promise<{ html: string, text: string, attachments?: any[] } | boolean> {
+  console.log(`[EMAIL] ========== CONFIRMATION EMAIL START ==========`);
+  console.log(`[EMAIL] Attempting to send confirmation email`);
+  console.log(`[EMAIL] To: ${to}`);
+  console.log(`[EMAIL] Confirmation Code: ${confirmationCode}`);
+  console.log(`[EMAIL] Schedule ID: ${schedule.id}`);
+  console.log(`[EMAIL] Schedule startTime: ${schedule.startTime} (type: ${typeof schedule.startTime})`);
+  console.log(`[EMAIL] Schedule endTime: ${schedule.endTime} (type: ${typeof schedule.endTime})`);
+  
   // Safely get timezones with fallbacks - NOW USES ACTUAL USER TIMEZONE
   const facilityTimezone = schedule.timezone || 'America/New_York';
   const userTimezone = schedule.userTimeZone || schedule.timezone || 'America/New_York';
@@ -1097,7 +1105,14 @@ export async function sendConfirmationEmail(
   const calendarEvent = generateICalEvent(schedule, confirmationCode);
   
   // Create email with calendar attachment
-  return sendEmail({
+  console.log(`[EMAIL] About to call sendEmail with:`);
+  console.log(`[EMAIL] - to: ${to}`);
+  console.log(`[EMAIL] - subject: Dock Appointment Confirmation #${confirmationCode}`);
+  console.log(`[EMAIL] - html length: ${html.length} characters`);
+  console.log(`[EMAIL] - text length: ${text.length} characters`);
+  console.log(`[EMAIL] - attachments count: 1 (calendar file)`);
+  
+  const emailResult = await sendEmail({
     to,
     subject: `Dock Appointment Confirmation #${confirmationCode}`,
     html,
@@ -1111,6 +1126,10 @@ export async function sendConfirmationEmail(
       }
     ]
   });
+  
+  console.log(`[EMAIL] sendEmail returned:`, emailResult);
+  console.log(`[EMAIL] ========== CONFIRMATION EMAIL END ==========`);
+  return emailResult;
 }
 
 /**

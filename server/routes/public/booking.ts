@@ -282,40 +282,87 @@ router.post("/booking-pages/:slug/book", async (req, res) => {
     try {
       if (bookingData.driverEmail) {
         console.log('[BookingSubmission] Sending confirmation email to:', bookingData.driverEmail);
+        console.log('[BookingSubmission] Appointment object:', JSON.stringify(appointment, null, 2));
         
-        // Get facility and appointment type details for email
-        const facility = await storage.getFacility(bookingData.facilityId);
-        const appointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
-        
-        // Create enhanced schedule object for email
-        const enhancedSchedule = {
-          ...appointment,
-          facilityName: facility?.name || 'Main Facility',
-          appointmentTypeName: appointmentType?.name || 'Standard Appointment',
-          dockName: 'Not assigned',
-          timezone: facility?.timezone || 'America/New_York',
-          userTimeZone: facility?.timezone || 'America/New_York',
-          confirmationCode: appointment.confirmationCode,
-          creatorEmail: bookingData.driverEmail,
-          bolFileUploaded: false
-        };
-        
-        // Import email notification function dynamically to avoid circular imports
-        const { sendConfirmationEmail } = await import('../../notifications');
-        
-        // Send the confirmation email
-        const emailResult = await sendConfirmationEmail(
-          bookingData.driverEmail,
-          appointment.confirmationCode!,
-          enhancedSchedule
-        );
-        
-        if (emailResult) {
-          console.log('[BookingSubmission] Confirmation email sent successfully');
-          emailSent = true;
-        } else {
-          console.log('[BookingSubmission] Confirmation email failed to send');
+        // Validate confirmation code exists
+        if (!appointment.confirmationCode) {
+          console.error('[BookingSubmission] No confirmation code found on appointment object');
           emailSent = false;
+        } else {
+          // Create enhanced schedule object for email with all required properties
+          const enhancedSchedule = {
+            // Core required properties
+            id: appointment.id,
+            facilityId: appointment.facilityId,
+            dockId: appointment.dockId,
+            carrierId: appointment.carrierId,
+            appointmentTypeId: appointment.appointmentTypeId,
+            truckNumber: appointment.truckNumber,
+            trailerNumber: appointment.trailerNumber,
+            driverName: appointment.driverName,
+            driverPhone: appointment.driverPhone,
+            driverEmail: appointment.driverEmail,
+            customerName: appointment.customerName,
+            carrierName: appointment.carrierName,
+            mcNumber: appointment.mcNumber,
+            bolNumber: appointment.bolNumber,
+            poNumber: appointment.poNumber,
+            palletCount: appointment.palletCount,
+            weight: appointment.weight,
+            appointmentMode: appointment.appointmentMode,
+            // CRITICAL: Ensure dates are Date objects
+            startTime: new Date(appointment.startTime),
+            endTime: new Date(appointment.endTime),
+            actualStartTime: appointment.actualStartTime ? new Date(appointment.actualStartTime) : null,
+            actualEndTime: appointment.actualEndTime ? new Date(appointment.actualEndTime) : null,
+            type: appointment.type,
+            status: appointment.status,
+            notes: appointment.notes,
+            customFormData: appointment.customFormData,
+            createdBy: appointment.createdBy,
+            createdAt: new Date(appointment.createdAt),
+            lastModifiedAt: appointment.lastModifiedAt ? new Date(appointment.lastModifiedAt) : null,
+            lastModifiedBy: appointment.lastModifiedBy,
+            
+            // Enhanced properties for email (using already fetched facility and appointmentType)
+            facilityName: facility?.name || 'Main Facility',
+            appointmentTypeName: appointmentType?.name || 'Standard Appointment',
+            dockName: 'Not assigned',
+            timezone: facilityTimezone,
+            userTimeZone: facilityTimezone,
+            confirmationCode: appointment.confirmationCode,
+            creatorEmail: bookingData.driverEmail,
+            bolFileUploaded: false,
+            bolData: null,
+            bookingPageUrl: undefined
+          };
+          
+          console.log('[BookingSubmission] Enhanced schedule for email:', JSON.stringify({
+            id: enhancedSchedule.id,
+            confirmationCode: enhancedSchedule.confirmationCode,
+            facilityName: enhancedSchedule.facilityName,
+            startTime: enhancedSchedule.startTime,
+            endTime: enhancedSchedule.endTime,
+            timezone: enhancedSchedule.timezone
+          }, null, 2));
+          
+          // Import email notification function dynamically to avoid circular imports
+          const { sendConfirmationEmail } = await import('../../notifications');
+          
+          // Send the confirmation email
+          const emailResult = await sendConfirmationEmail(
+            bookingData.driverEmail,
+            appointment.confirmationCode,
+            enhancedSchedule
+          );
+          
+          if (emailResult) {
+            console.log('[BookingSubmission] Confirmation email sent successfully');
+            emailSent = true;
+          } else {
+            console.log('[BookingSubmission] Confirmation email failed to send - emailResult was false/null');
+            emailSent = false;
+          }
         }
       } else {
         console.log('[BookingSubmission] No email provided - skipping confirmation email');
@@ -323,6 +370,7 @@ router.post("/booking-pages/:slug/book", async (req, res) => {
       }
     } catch (emailError) {
       console.error('[BookingSubmission] Error sending confirmation email:', emailError);
+      console.error('[BookingSubmission] Email error stack:', emailError.stack);
       // Don't fail the entire request if email fails
       emailSent = false;
     }
