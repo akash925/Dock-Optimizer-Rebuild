@@ -623,8 +623,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log(`[QuestionsAPI] Getting custom questions for appointment type ${appointmentTypeId}`);
-      const { appointmentMasterService } = await import('./modules/appointmentMaster/service');
-      const questions = await appointmentMasterService.getAppointmentTypeQuestions(appointmentTypeId);
+      
+      // Use storage directly instead of appointment master service to avoid import issues
+      const storage = await getStorage();
+      const questions = await storage.getCustomQuestionsByAppointmentType(appointmentTypeId);
       
       console.log(`[QuestionsAPI] Returning ${questions.length} custom questions`);
       res.json(questions);

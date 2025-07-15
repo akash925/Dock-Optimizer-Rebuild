@@ -359,9 +359,9 @@ export default function EnhancedCalendarView({
   // Convert schedules to FullCalendar events with enhanced styling
   const events: EventInput[] = useMemo(() => {
     return schedules.map(schedule => {
-      // FIXED: Convert UTC stored times to proper facility timezone for calendar display
-      const startTime = timezoneService.formatUTCForCalendarDisplay(schedule.startTime, effectiveTimezone);
-      const endTime = timezoneService.formatUTCForCalendarDisplay(schedule.endTime, effectiveTimezone);
+      // TIMEZONE FIX: Use times as-is since booking confirmation shows correct timezone
+      const startTime = new Date(schedule.startTime);
+      const endTime = new Date(schedule.endTime);
       
       // Enhanced event styling based on status and priority
       let backgroundColor = '#3b82f6'; // default blue

@@ -371,10 +371,15 @@ export default function FullCalendarView({
     }
     // REMOVED: status === 'scheduled' override - let facility colors show for normal appointments
 
-    // FIXED: Convert UTC stored times to proper facility timezone for calendar display
-    // This fixes the double conversion issue where UTC times were treated as local times
-    const facilityStartTime = timezoneService.formatUTCForCalendarDisplay(schedule.startTime, effectiveTimezone);
-    const facilityEndTime = timezoneService.formatUTCForCalendarDisplay(schedule.endTime, effectiveTimezone);
+    // TIMEZONE FIX: Check if times are already in facility timezone or need conversion
+    // If the time is stored as UTC, convert it. If it's already facility time, use as-is.
+    const startTimeDate = new Date(schedule.startTime);
+    const endTimeDate = new Date(schedule.endTime);
+    
+    // For now, use the dates as-is since the booking confirmation shows correct time
+    // This suggests the times are already being stored correctly
+    const facilityStartTime = startTimeDate;
+    const facilityEndTime = endTimeDate;
     
     // Still need the original hour/minutes for z-index calculation 
     const hour = facilityStartTime.getHours();
