@@ -69,7 +69,6 @@ export async function seedUSFederalHolidays(orgIds: number[]): Promise<void> {
               tenantId: orgId,
               name: holiday.name,
               date: holiday.date,
-              description: `US Federal Holiday - ${holiday.name} ${holiday.year}`,
               isRecurring: true,
               createdAt: new Date(),
               updatedAt: new Date(),
