@@ -167,16 +167,21 @@ function AddressAutocomplete({ value, onChange, onAddressSelect, placeholder = "
   const [searchQuery, setSearchQuery] = useState(value);
 
   const searchAddresses = async (query: string) => {
-    if (query.length < 3) {
+    if (query.length < 5) {  // Increased from 3 to 5 characters to reduce API calls
       setSuggestions([]);
       return;
     }
 
     setIsLoading(true);
     try {
-      // Using Nominatim (OpenStreetMap) geocoding service
+      // Using Nominatim (OpenStreetMap) geocoding service with better parameters
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=us,ca&q=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            'User-Agent': 'DockOptimizer/1.0'  // Required by Nominatim usage policy
+          }
+        }
       );
       
       if (response.ok) {

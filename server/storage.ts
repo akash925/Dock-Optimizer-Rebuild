@@ -1110,7 +1110,14 @@ export class DatabaseStorage implements IStorage {
   // Facility operations with real database queries
   async getFacilities(tenantId?: number): Promise<Facility[]> {
     if (tenantId) {
-      return await db.select().from(facilities).where(eq(facilities.tenantId, tenantId));
+      // Use organization_facilities junction table for tenant isolation
+      const results = await db
+        .select({ facility: facilities })
+        .from(facilities)
+        .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
+        .where(eq(organizationFacilities.organizationId, tenantId));
+      
+      return results.map(r => r.facility);
     }
     return await db.select().from(facilities);
   }
