@@ -8,6 +8,7 @@ import { users } from "@shared/schema";
 import { getUserByUsername, validatePassword } from "./storage/users";
 import { getTenantIdForUser } from "./storage/tenants";
 import { getModulesForOrganization } from "./storage/modules";
+import { setTenantSearchPath, resetSearchPath } from "./utils/setTenantSearchPath";
 
 
 passport.use(
@@ -19,10 +20,30 @@ passport.use(
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) return done(null, false, { message: "Incorrect password." });
 
+      // Get tenant ID for the user
+      const tenantId = await getTenantIdForUser(user.id);
+      
+      // Set search path for tenant isolation
+      if (tenantId) {
+        try {
+          await setTenantSearchPath(tenantId);
+        } catch (searchPathError) {
+          console.error(`[Auth] Failed to set search path for tenant ${tenantId} during login:`, searchPathError);
+          return done(new Error(`Authentication failed: Could not establish tenant context`));
+        }
+      } else {
+        // Reset to public schema if no tenant
+        try {
+          await resetSearchPath();
+        } catch (resetError) {
+          console.error(`[Auth] Failed to reset search path during login:`, resetError);
+        }
+      }
+
       // Transform user data to match Express user type
       const authUser = {
         ...user,
-        tenantId: user.tenantId || undefined
+        tenantId: tenantId || undefined
       };
 
       return done(null, authUser);
@@ -42,6 +63,25 @@ passport.deserializeUser(async (id: number, done) => {
     if (!user) return done(null, false);
 
     const tenantId = await getTenantIdForUser(user.id);
+    
+    // Set search path for tenant isolation on every request
+    if (tenantId) {
+      try {
+        await setTenantSearchPath(tenantId);
+      } catch (searchPathError) {
+        console.error(`[Auth] Failed to set search path for tenant ${tenantId} during session restoration:`, searchPathError);
+        // Continue with authentication but log the critical error
+        console.error(`[Auth] CRITICAL: Tenant isolation may be compromised for user ${user.id}`);
+      }
+    } else {
+      // Reset to public schema if no tenant
+      try {
+        await resetSearchPath();
+      } catch (resetError) {
+        console.error(`[Auth] Failed to reset search path during session restoration:`, resetError);
+      }
+    }
+    
     const modules = await getModulesForOrganization(tenantId || 0);
 
     const authUser = {
