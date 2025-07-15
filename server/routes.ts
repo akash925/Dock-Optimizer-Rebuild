@@ -87,8 +87,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const authRoutes = await import('./routes/auth');
   app.use('/api/auth', authRoutes.default);
   
-  // Add registration endpoint after setupAuth and before other routes
-  // Registration route to match frontend expectation
+  // Registration endpoint now handled by routes/auth.ts to avoid duplication
+  /*
   app.post('/api/register', async (req: any, res) => {
     try {
       // Import bcrypt for proper password hashing
@@ -161,6 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Internal server error' });
     }
   });
+  */
 
   registerQrCodeRoutes(app);
 
