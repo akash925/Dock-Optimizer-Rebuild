@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Pencil, Trash, Plus, Settings } from "lucide-react";
+import { Loader2, Pencil, Trash, Plus, Settings, MapPin, Search } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -54,6 +54,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Define the facility schema for form validation
 const facilitySchema = z.object({
@@ -115,6 +128,156 @@ const US_TIMEZONES = [
   { value: "America/Anchorage", label: "Alaska Time (AKT)" },
   { value: "Pacific/Honolulu", label: "Hawaii Time (HT)" }
 ];
+
+// Address suggestion interface
+interface AddressSuggestion {
+  display_name: string;
+  address: {
+    house_number?: string;
+    road?: string;
+    city?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+  };
+  lat: string;
+  lon: string;
+}
+
+// Address autocomplete component
+interface AddressAutocompleteProps {
+  value: string;
+  onChange: (value: string) => void;
+  onAddressSelect: (address: {
+    address1: string;
+    city: string;
+    state: string;
+    postcode: string;
+    country: string;
+    latitude?: string;
+    longitude?: string;
+  }) => void;
+  placeholder?: string;
+}
+
+function AddressAutocomplete({ value, onChange, onAddressSelect, placeholder = "Enter address" }: AddressAutocompleteProps) {
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(value);
+
+  const searchAddresses = async (query: string) => {
+    if (query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Using Nominatim (OpenStreetMap) geocoding service
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`
+      );
+      
+      if (response.ok) {
+        const results = await response.json();
+        setSuggestions(results);
+      }
+    } catch (error) {
+      console.error('Address search error:', error);
+      setSuggestions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (newValue: string) => {
+    setSearchQuery(newValue);
+    onChange(newValue);
+    
+    // Debounce the search
+    const timeoutId = setTimeout(() => {
+      searchAddresses(newValue);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  };
+
+  const handleAddressSelect = (suggestion: AddressSuggestion) => {
+    const address = suggestion.address;
+    
+    // Extract address components
+    const address1 = [address.house_number, address.road].filter(Boolean).join(' ');
+    const city = address.city || '';
+    const state = address.state || '';
+    const postcode = address.postcode || '';
+    const country = address.country === 'United States' || address.country === 'United States of America' ? 'USA' : address.country || '';
+
+    // Update the input value and form
+    setSearchQuery(suggestion.display_name);
+    onChange(suggestion.display_name);
+    onAddressSelect({
+      address1,
+      city,
+      state,
+      postcode,
+      country,
+      latitude: suggestion.lat,
+      longitude: suggestion.lon
+    });
+
+    setIsOpen(false);
+    setSuggestions([]);
+  };
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <div className="relative">
+          <Input
+            value={searchQuery}
+            onChange={(e) => handleInputChange(e.target.value)}
+            placeholder={placeholder}
+            onFocus={() => setIsOpen(true)}
+            className="pr-10"
+          />
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+            ) : (
+              <MapPin className="h-4 w-4 text-gray-400" />
+            )}
+          </div>
+        </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-[400px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search addresses..." className="h-9" />
+          <CommandEmpty>
+            {isLoading ? "Searching..." : "No addresses found."}
+          </CommandEmpty>
+          <CommandGroup>
+            <CommandList>
+              {suggestions.map((suggestion, index) => (
+                <CommandItem
+                  key={index}
+                  value={suggestion.display_name}
+                  onSelect={() => handleAddressSelect(suggestion)}
+                  className="cursor-pointer"
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">{suggestion.display_name}</span>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandList>
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function FacilityMaster() {
   const { user } = useAuth();
@@ -815,7 +978,20 @@ export default function FacilityMaster() {
                     <FormItem>
                       <FormLabel>Address Line 1</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter address line 1" {...field} />
+                        <AddressAutocomplete
+                          value={field.value}
+                          onChange={field.onChange}
+                          onAddressSelect={(address) => {
+                            field.onChange(address.address1);
+                            createForm.setValue("city", address.city);
+                            createForm.setValue("state", address.state);
+                            createForm.setValue("pincode", address.postcode);
+                            createForm.setValue("country", address.country);
+                            createForm.setValue("latitude", address.latitude);
+                            createForm.setValue("longitude", address.longitude);
+                          }}
+                          placeholder="Enter address line 1"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -995,7 +1171,20 @@ export default function FacilityMaster() {
                     <FormItem>
                       <FormLabel>Address Line 1</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter address line 1" {...field} />
+                        <AddressAutocomplete
+                          value={field.value}
+                          onChange={field.onChange}
+                          onAddressSelect={(address) => {
+                            field.onChange(address.address1);
+                            editForm.setValue("city", address.city);
+                            editForm.setValue("state", address.state);
+                            editForm.setValue("pincode", address.postcode);
+                            editForm.setValue("country", address.country);
+                            editForm.setValue("latitude", address.latitude);
+                            editForm.setValue("longitude", address.longitude);
+                          }}
+                          placeholder="Enter address line 1"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
