@@ -413,6 +413,15 @@ export const adminRoutes = (app: Express) => {
         roleId: validatedData.roleId
       });
       
+      // CRITICAL: Update user's tenantId for immediate session updates
+      try {
+        await storage.updateUser(validatedData.userId, { tenantId: id });
+        console.log(`[AdminAPI] Updated user ${validatedData.userId} tenantId to ${id}`);
+      } catch (updateError) {
+        console.error('[AdminAPI] Failed to update user tenantId:', updateError);
+        // Continue - the organization assignment succeeded
+      }
+      
       res.status(201).json(orgUser);
     } catch (error) {
       console.error('Error adding user to organization:', error);
