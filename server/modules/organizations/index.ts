@@ -77,9 +77,9 @@ export const registerOrganizationsRoutes = (app: Express) => {
   app.get('/api/organizations/settings', getOrganizationSettings);
   app.put('/api/organizations/settings', updateOrganizationSettings);
   
-  // Default hours routes
+  // Default hours routes - NOTE: PUT route removed to avoid conflicts
+  // Main routes.ts handles PATCH /api/organizations/default-hours for individual day updates
   app.get('/api/organizations/default-hours', getDefaultHours);
-  app.put('/api/organizations/default-hours/:dayOfWeek', updateDefaultHours);
   
   // Holidays routes
   app.get('/api/organizations/holidays', getHolidays);

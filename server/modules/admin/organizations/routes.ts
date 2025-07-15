@@ -75,61 +75,8 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
     }
   });
   
-  // Update organization default hours
-  app.put('/api/organizations/default-hours', async (req: Request, res: Response) => {
-    // Check if user is authenticated
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Not authenticated' });
-    }
-    
-    try {
-      // Get user's tenant ID
-      const tenantId = req.user?.tenantId;
-      
-      if (!tenantId) {
-        return res.status(403).json({ 
-          message: "User must belong to an organization" 
-        });
-      }
-      
-      // Check if user has admin role
-      if (req.user.role !== 'admin' && req.user.role !== 'super-admin') {
-        return res.status(403).json({ 
-          message: "Only administrators can update organization default hours" 
-        });
-      }
-      
-      const { defaultHours } = req.body;
-      
-      if (!defaultHours) {
-        return res.status(400).json({ 
-          message: "Default hours are required" 
-        });
-      }
-      
-      const storage = await getStorage();
-      
-      // Update organization default hours
-      const updateSuccess = await storage.updateOrganizationDefaultHours(tenantId, defaultHours);
-      
-      if (!updateSuccess) {
-        return res.status(404).json({ 
-          message: "Failed to update organization default hours" 
-        });
-      }
-      
-      // Fetch and return the updated hours
-      const updatedHours = await storage.getOrganizationDefaultHours(tenantId);
-      
-      res.json(updatedHours);
-    } catch (error) {
-      console.error('Error updating organization default hours:', error);
-      res.status(500).json({ 
-        message: "Failed to update organization default hours", 
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
+  // NOTE: Organization default hours PUT route removed to avoid conflicts
+  // Use PATCH /api/organizations/default-hours from main routes.ts for individual day updates
 
   // Toggle a single module for an organization
   app.patch('/api/admin/orgs/:orgId/modules/:moduleName', async (req: Request, res: Response) => {

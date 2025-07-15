@@ -409,20 +409,44 @@ export default function OrganizationHoursPage() {
     }
   }, [defaultHours, form]);
   
-  // Mutation for saving default hours
+  // Mutation for saving default hours (using individual day updates)
   const mutation = useMutation({
     mutationFn: async (data: DefaultHoursFormValues) => {
-      const apiData = transformFormToApi(data);
-      const response = await apiRequest("PUT", "/api/organizations/default-hours", {
-        defaultHours: apiData
-      });
+      // Convert form data to individual day updates
+      const dayMappings = [
+        { dayOfWeek: 1, prefix: 'monday' },      // Monday = 1
+        { dayOfWeek: 2, prefix: 'tuesday' },     // Tuesday = 2  
+        { dayOfWeek: 3, prefix: 'wednesday' },   // Wednesday = 3
+        { dayOfWeek: 4, prefix: 'thursday' },    // Thursday = 4
+        { dayOfWeek: 5, prefix: 'friday' },      // Friday = 5
+        { dayOfWeek: 6, prefix: 'saturday' },    // Saturday = 6
+        { dayOfWeek: 0, prefix: 'sunday' },      // Sunday = 0
+      ];
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update default hours: ${errorText}`);
+      // Update each day individually
+      const results = [];
+      for (const { dayOfWeek, prefix } of dayMappings) {
+        const isOpen = data[`${prefix}Open` as keyof DefaultHoursFormValues] as boolean;
+        const updateData = {
+          dayOfWeek,
+          isOpen,
+          openTime: isOpen ? (data[`${prefix}Start` as keyof DefaultHoursFormValues] as string) : '',
+          closeTime: isOpen ? (data[`${prefix}End` as keyof DefaultHoursFormValues] as string) : '',
+          breakStart: isOpen ? (data[`${prefix}BreakStart` as keyof DefaultHoursFormValues] as string || '') : '',
+          breakEnd: isOpen ? (data[`${prefix}BreakEnd` as keyof DefaultHoursFormValues] as string || '') : '',
+        };
+        
+        const response = await apiRequest("PATCH", "/api/organizations/default-hours", updateData);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to update ${prefix} hours: ${errorText}`);
+        }
+        
+        results.push(await response.json());
       }
       
-      return response.json();
+      return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/organizations/default-hours'] });
