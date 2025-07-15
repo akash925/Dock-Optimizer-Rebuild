@@ -1123,14 +1123,22 @@ export class DatabaseStorage implements IStorage {
   async getTenantById(id: number): Promise<Tenant | undefined> {
     const cacheKey = `tenant:${id}`;
     if (redis) {
-      const cached = await redis.get(cacheKey);
-      if (cached) return JSON.parse(cached);
+      try {
+        const cached = await redis.get(cacheKey);
+        if (cached) return JSON.parse(cached);
+      } catch (error) {
+        console.warn(`[Storage] Redis cache read failed for ${cacheKey}:`, error);
+      }
     }
 
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
 
     if (redis && tenant) {
-      await redis.set(cacheKey, JSON.stringify(tenant), 'EX', 3600); // Cache for 1 hour
+      try {
+        await redis.set(cacheKey, JSON.stringify(tenant), 'EX', 3600); // Cache for 1 hour
+      } catch (error) {
+        console.warn(`[Storage] Redis cache write failed for ${cacheKey}:`, error);
+      }
     }
     return tenant;
   }
@@ -1138,7 +1146,11 @@ export class DatabaseStorage implements IStorage {
   async createTenant(insertTenant: InsertTenant): Promise<Tenant> {
     const [newTenant] = await db.insert(tenants).values(insertTenant).returning();
     if (redis) {
-      await redis.del(`tenant:${newTenant.id}`);
+      try {
+        await redis.del(`tenant:${newTenant.id}`);
+      } catch (error) {
+        console.warn(`[Storage] Redis cache invalidation failed for tenant:${newTenant.id}:`, error);
+      }
     }
     return newTenant;
   }
@@ -1151,7 +1163,11 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     if (redis && updatedTenant) {
-      await redis.del(`tenant:${id}`);
+      try {
+        await redis.del(`tenant:${id}`);
+      } catch (error) {
+        console.warn(`[Storage] Redis cache invalidation failed for tenant:${id}:`, error);
+      }
     }
     return updatedTenant;
   }
@@ -1159,7 +1175,11 @@ export class DatabaseStorage implements IStorage {
   async deleteTenant(id: number): Promise<boolean> {
     const result = await db.delete(tenants).where(eq(tenants.id, id));
     if (redis && result.rowCount > 0) {
-      await redis.del(`tenant:${id}`);
+      try {
+        await redis.del(`tenant:${id}`);
+      } catch (error) {
+        console.warn(`[Storage] Redis cache invalidation failed for tenant:${id}:`, error);
+      }
     }
     return result.rowCount > 0;
   }

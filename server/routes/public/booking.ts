@@ -182,7 +182,7 @@ router.post("/booking-pages/:slug/book", async (req, res) => {
     console.log(`[BookingSubmission] Original date: ${bookingData.date}, time: ${bookingData.time}`);
     
     // Import timezone utility for proper conversion
-    const { convertAppointmentTimeToUTC } = await import('../../shared/timezone-service');
+    const { convertAppointmentTimeToUTC } = await import('../../../shared/timezone-service');
     
     // Convert appointment time from facility timezone to UTC for storage
     const appointmentStartTime = convertAppointmentTimeToUTC(bookingData.date, bookingData.time, facilityTimezone);
