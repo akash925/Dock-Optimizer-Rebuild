@@ -246,9 +246,60 @@ router.post("/booking-pages/:slug/book", async (req, res) => {
       console.error("[BookingSubmission] WebSocket notification failed:", wsError);
     }
     
+    // Send confirmation email after appointment creation
+    let emailSent = false;
+    try {
+      if (bookingData.driverEmail) {
+        console.log('[BookingSubmission] Sending confirmation email to:', bookingData.driverEmail);
+        
+        // Get facility and appointment type details for email
+        const facility = await storage.getFacility(bookingData.facilityId);
+        const appointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
+        
+        // Create enhanced schedule object for email
+        const enhancedSchedule = {
+          ...appointment,
+          facilityName: facility?.name || 'Main Facility',
+          appointmentTypeName: appointmentType?.name || 'Standard Appointment',
+          dockName: 'Not assigned',
+          timezone: facility?.timezone || 'America/New_York',
+          userTimeZone: facility?.timezone || 'America/New_York',
+          confirmationCode: appointment.confirmationCode,
+          creatorEmail: bookingData.driverEmail,
+          bolFileUploaded: false
+        };
+        
+        // Import email notification function dynamically to avoid circular imports
+        const { sendConfirmationEmail } = await import('../../notifications');
+        
+        // Send the confirmation email
+        const emailResult = await sendConfirmationEmail(
+          bookingData.driverEmail,
+          appointment.confirmationCode!,
+          enhancedSchedule
+        );
+        
+        if (emailResult) {
+          console.log('[BookingSubmission] Confirmation email sent successfully');
+          emailSent = true;
+        } else {
+          console.log('[BookingSubmission] Confirmation email failed to send');
+          emailSent = false;
+        }
+      } else {
+        console.log('[BookingSubmission] No email provided - skipping confirmation email');
+        emailSent = false;
+      }
+    } catch (emailError) {
+      console.error('[BookingSubmission] Error sending confirmation email:', emailError);
+      // Don't fail the entire request if email fails
+      emailSent = false;
+    }
+    
     // Return the booking confirmation with facility timezone information
     res.json({
       success: true,
+      emailSent: emailSent,
       appointment: {
         id: appointment.id,
         confirmationCode: appointment.confirmationCode,

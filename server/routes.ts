@@ -743,8 +743,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: 'Tenant context required' });
+      }
+      
       console.log('DEBUG: /api/docks endpoint called');
-      const docks = await storage.getDocks();
+      const docks = await storage.getDocks(user.tenantId);
       console.log('DEBUG: /api/docks returning', docks.length, 'docks');
       res.json(docks);
     } catch (error) {
@@ -760,8 +765,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
+      const user = req.user;
+      if (!user?.tenantId) {
+        return res.status(403).json({ error: 'Tenant context required' });
+      }
+      
       console.log('DEBUG: /api/carriers endpoint called');
-      const carriers = await storage.getCarriers();
+      const carriers = await storage.getCarriers(user.tenantId);
       console.log('DEBUG: /api/carriers returning', carriers.length, 'carriers');
       res.json(carriers);
     } catch (error) {
