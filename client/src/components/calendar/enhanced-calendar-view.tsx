@@ -22,7 +22,7 @@ import { Schedule } from '@shared/schema';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { getUserTimeZone, getTimeZoneAbbreviation } from '@shared/timezone-service';
+import { getUserTimeZone, getTimeZoneAbbreviation, timezoneService } from '@shared/timezone-service';
 import './calendar-enhanced.css';
 
 interface CalendarDisplaySettings {
@@ -359,8 +359,9 @@ export default function EnhancedCalendarView({
   // Convert schedules to FullCalendar events with enhanced styling
   const events: EventInput[] = useMemo(() => {
     return schedules.map(schedule => {
-      const startTime = new Date(schedule.startTime);
-      const endTime = new Date(schedule.endTime);
+      // FIXED: Convert UTC stored times to proper facility timezone for calendar display
+      const startTime = timezoneService.formatUTCForCalendarDisplay(schedule.startTime, effectiveTimezone);
+      const endTime = timezoneService.formatUTCForCalendarDisplay(schedule.endTime, effectiveTimezone);
       
       // Enhanced event styling based on status and priority
       let backgroundColor = '#3b82f6'; // default blue

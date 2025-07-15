@@ -371,12 +371,14 @@ export default function FullCalendarView({
     }
     // REMOVED: status === 'scheduled' override - let facility colors show for normal appointments
 
-    // Date utilities - use effective timezone for display
-    const localStartTime = new Date(schedule.startTime);
+    // FIXED: Convert UTC stored times to proper facility timezone for calendar display
+    // This fixes the double conversion issue where UTC times were treated as local times
+    const facilityStartTime = timezoneService.formatUTCForCalendarDisplay(schedule.startTime, effectiveTimezone);
+    const facilityEndTime = timezoneService.formatUTCForCalendarDisplay(schedule.endTime, effectiveTimezone);
     
     // Still need the original hour/minutes for z-index calculation 
-    const hour = localStartTime.getHours();
-    const mins = localStartTime.getMinutes();
+    const hour = facilityStartTime.getHours();
+    const mins = facilityStartTime.getMinutes();
     
     // Calculate and store the event hour for z-index calculation
     const eventHour = hour.toString().padStart(2, '0');
@@ -412,15 +414,14 @@ export default function FullCalendarView({
       ? attention.isUrgent ? 'urgent-attention' : 'needs-attention'
       : '';
     
-    // Use the potentially adjusted dates
-    const easternStartDate = new Date(schedule.startTime);
-    const easternEndDate = new Date(schedule.endTime);
+    // FIXED: Use the properly converted facility timezone dates
+    // These are now correctly converted from UTC storage to facility timezone display
     
     return {
       id: schedule.id.toString(),
       title: title,
-      start: easternStartDate,
-      end: easternEndDate,
+      start: facilityStartTime,
+      end: facilityEndTime,
       backgroundColor: backgroundColor,
       borderColor: borderColor,
       textColor: '#FFFFFF',

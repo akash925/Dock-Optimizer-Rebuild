@@ -226,24 +226,55 @@ router.post("/booking-pages/:slug/book", async (req, res) => {
     
     console.log(`[BookingSubmission] Created appointment ${appointment.id} with confirmation code ${appointment.confirmationCode}`);
     
-    // Send real-time notification to all connected clients
+    // FIXED: Use Enhanced Event System for proper notifications and WebSocket broadcasting
     try {
-      const { broadcastToTenant } = await import("../../websocket");
-      await broadcastToTenant(bookingPage.tenantId, {
-        type: 'appointment_created',
-        data: {
-          id: appointment.id,
-          confirmationCode: appointment.confirmationCode,
-          startTime: appointment.startTime,
-          facilityId: appointment.facilityId,
-          appointmentTypeId: appointment.appointmentTypeId,
-          driverName: appointment.driverName,
-          message: `New appointment scheduled: ${appointment.confirmationCode}`
-        }
+      const { eventSystem } = await import("../../services/enhanced-event-system");
+      
+      // Create enhanced schedule object for the event system
+      const enhancedSchedule = {
+        ...appointment,
+        facilityName: facility?.name || 'Unknown Facility',
+        appointmentTypeName: appointmentType?.name || 'Standard Appointment',
+        dockName: 'Not assigned',
+        timezone: facilityTimezone,
+        userTimeZone: facilityTimezone,
+        confirmationCode: appointment.confirmationCode,
+        creatorEmail: bookingData.driverEmail,
+        bolFileUploaded: false
+      };
+      
+      // Emit appointment:created event - this will automatically:
+      // 1. Create notifications in the database
+      // 2. Send WebSocket broadcasts to all connected clients 
+      // 3. Update the notification bell for all users
+      eventSystem.emit('appointment:created', {
+        schedule: enhancedSchedule,
+        tenantId: bookingPage.tenantId
       });
-      console.log(`[BookingSubmission] Real-time notification sent for appointment ${appointment.id}`);
-    } catch (wsError) {
-      console.error("[BookingSubmission] WebSocket notification failed:", wsError);
+      
+      console.log(`[BookingSubmission] Enhanced event system notification sent for appointment ${appointment.id}`);
+    } catch (eventError) {
+      console.error("[BookingSubmission] Enhanced event system failed:", eventError);
+      
+      // Fallback to direct WebSocket broadcast if event system fails
+      try {
+        const { broadcastToTenant } = await import("../../websocket");
+        await broadcastToTenant(bookingPage.tenantId, {
+          type: 'appointment_created',
+          data: {
+            id: appointment.id,
+            confirmationCode: appointment.confirmationCode,
+            startTime: appointment.startTime,
+            facilityId: appointment.facilityId,
+            appointmentTypeId: appointment.appointmentTypeId,
+            driverName: appointment.driverName,
+            message: `New appointment scheduled: ${appointment.confirmationCode}`
+          }
+        });
+        console.log(`[BookingSubmission] Fallback WebSocket notification sent for appointment ${appointment.id}`);
+      } catch (wsError) {
+        console.error("[BookingSubmission] Both event system and WebSocket fallback failed:", wsError);
+      }
     }
     
     // Send confirmation email after appointment creation

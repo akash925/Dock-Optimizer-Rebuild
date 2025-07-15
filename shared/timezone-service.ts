@@ -234,6 +234,30 @@ export class TimezoneService {
   }
 
   /**
+   * Convert stored UTC time back to facility timezone for calendar display
+   * This fixes the double conversion issue where UTC times were treated as local times
+   */
+  public convertUTCToFacilityTime(utcDate: Date | string, facilityTimezone: string): Date {
+    const dateObj = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
+    
+    // The stored date is in UTC, so we convert it to facility timezone for display
+    return toZonedTime(dateObj, facilityTimezone);
+  }
+
+  /**
+   * Format stored UTC time for calendar display in facility timezone
+   * This ensures calendar shows times in the correct facility timezone
+   */
+  public formatUTCForCalendarDisplay(utcDate: Date | string, facilityTimezone: string): Date {
+    const dateObj = typeof utcDate === 'string' ? new Date(utcDate) : utcDate;
+    
+    // For calendar display, we need to show the time as it would appear
+    // in the facility timezone, but the calendar component expects a Date object
+    // that represents the wall-clock time in the facility timezone
+    return toZonedTime(dateObj, facilityTimezone);
+  }
+
+  /**
    * Get current time in specific timezone
    */
   public getCurrentTimeInTimeZone(timezone?: string): Date {
