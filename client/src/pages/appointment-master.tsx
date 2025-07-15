@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, Save, ArrowLeft, ArrowRight, AlertCircle, GripVertical, Loader2, Settings, FilePlus } from 'lucide-react';
+import { Plus, Edit, Trash2, Save, ArrowLeft, ArrowRight, AlertCircle, GripVertical, Loader2, Settings, FilePlus, PlusCircle, MoreHorizontal, Pencil, Copy, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -1648,7 +1648,7 @@ export default function AppointmentMaster() {
                 <div className="p-4 border rounded-md space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <InfoIcon className="h-5 w-5 text-muted-foreground mr-2" />
+                      <Info className="h-5 w-5 text-muted-foreground mr-2" />
                       <h3 className="font-medium">Appointment Form Questions Area</h3>
                     </div>
                     <Button 
