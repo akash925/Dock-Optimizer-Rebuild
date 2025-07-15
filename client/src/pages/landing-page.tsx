@@ -18,6 +18,8 @@ import {
   PlayCircleIcon
 } from "lucide-react";
 import dockOptimizerLogo from "@/assets/dock_optimizer_logo.jpg";
+import hanzoLogo from "@/assets/hanzo_logo.jpeg";
+import freshConnectLogo from "@/assets/fresh-connect-logo.png";
 
 const stats = [
   { number: "1M+", label: "Loads Scheduled", description: "across all warehouses" },
@@ -85,21 +87,33 @@ const testimonials = [
     logo: null
   },
   {
-    quote: "The ability to customize schedules and handle changes effortlessly with Dock Optimizer has made a significant impact on our operations. Previously, managing schedule adjustments and last-minute changes was a cumbersome task, but Dock Optimizer's flexibility has streamlined this process. We can now tailor schedules to fit our specific needs and adapt quickly to any unforeseen changes without disrupting our workflow. This level of control and ease has greatly improved our operational efficiency. Dock Optimizer has truly become a valuable asset in our daily operations, providing us with the tools we need to manage our warehouse scheduling more effectively and efficiently.",
+    quote: "The ability to customize schedules and handle changes effortlessly with Dock Optimizer has made a significant impact on our operations. Previously, managing schedule adjustments and last-minute changes was a cumbersome task, but Dock Optimizer's flexibility has streamlined this process. We can now tailor schedules to fit our specific needs and adapt quickly to any unforeseen changes without disrupting our workflow.",
     author: "Seth Colson",
     company: "Director of IT, Hanzo Logistics",
-    logo: "/src/assets/hanzo_logo.jpeg"
+    logo: hanzoLogo
   },
   {
-    quote: "The ability to customize schedules and handle changes effortlessly with Dock Optimizer has made a significant impact on our operations. Previously, managing schedule adjustments and last-minute changes was a cumbersome task, but Dock Optimizer's flexibility has streamlined this process. We can now tailor schedules to fit our specific needs and adapt quickly to any unforeseen changes without disrupting our workflow. This level of control and ease has greatly improved our operational efficiency. Dock Optimizer has truly become a valuable asset in our daily operations, providing us with the tools we need to manage our warehouse scheduling more effectively and efficiently.",
+    quote: "Dock Optimizer has truly revolutionized our scheduling process. We've significantly reduced appointment conflicts and streamlined our operations. The real-time visibility and automated notifications have been game-changers for our team.",
     author: "Alexa Jacobs",
     company: "Warehouse Manager, MGD Logistics",
     logo: null
   },
   {
-    quote: "Dock Optimizer has truly revolutionized our scheduling process. We've significantly reduced appointment conflicts and streamlined our operations. The intuitive interface made it easy for our team to adapt quickly.",
+    quote: "Implementation was incredibly smooth, and our drivers love how easy it is to use. The system has improved our dock utilization by 30% and reduced wait times significantly. It's been a fantastic investment for our operations.",
     author: "Jared Palmer",
     company: "CSO, Backhaul Direct",
+    logo: null
+  },
+  {
+    quote: "Fresh Connect has seen tremendous improvements in our logistics coordination since implementing Dock Optimizer. The platform's reliability and ease of use make it an indispensable tool for our daily operations.",
+    author: "Maria Rodriguez",
+    company: "Operations Director, Fresh Connect",
+    logo: freshConnectLogo
+  },
+  {
+    quote: "The analytics and reporting features have given us insights we never had before. We can now make data-driven decisions that have improved our overall efficiency and reduced operational costs.",
+    author: "David Chen",
+    company: "Supply Chain Manager, Global Logistics Solutions",
     logo: null
   }
 ];
@@ -134,8 +148,8 @@ export default function LandingPage() {
   };
 
   const handleBookDemo = () => {
-    // For now, navigate to auth page, but this could be a demo booking form
-    navigate("/auth");
+    // Open Calendly in a new window
+    window.open("https://calendly.com/dockoptimizer/intro", "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -148,9 +162,8 @@ export default function LandingPage() {
               <img 
                 src={dockOptimizerLogo} 
                 alt="Dock Optimizer" 
-                className="h-12 w-auto"
+                className="h-12 w-auto object-contain"
               />
-
             </div>
             <nav className="hidden md:flex space-x-8">
               <a href="#why-dock-optimizer" className="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors">Why Dock Optimizer</a>
@@ -202,7 +215,7 @@ export default function LandingPage() {
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="border-2 border-white text-white hover:bg-white hover:text-blue-600 font-bold text-lg px-8 py-4 rounded-xl backdrop-blur-sm transform hover:scale-105 transition-all"
+                className="border-2 border-white text-blue-600 bg-white hover:bg-blue-50 hover:text-blue-700 font-bold text-lg px-8 py-4 rounded-xl backdrop-blur-sm transform hover:scale-105 transition-all"
                 onClick={handleSignUp}
               >
                 Get Started Free
@@ -327,23 +340,25 @@ export default function LandingPage() {
             </Button>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mt-12">
             {testimonials.map((testimonial, index) => (
-              <Card key={index} className="border-0 shadow-lg">
-                <CardContent className="p-8">
+              <Card key={index} className="border-0 shadow-lg h-full">
+                <CardContent className="p-8 flex flex-col h-full">
                   <div className="flex mb-4">
                     {[...Array(5)].map((_, i) => (
                       <StarIcon key={i} className="h-5 w-5 text-yellow-400 fill-current" />
                     ))}
                   </div>
-                  <p className="text-gray-700 mb-6 italic">"{testimonial.quote}"</p>
+                  <p className="text-gray-700 mb-6 italic flex-1">"{testimonial.quote}"</p>
                   <div className="flex items-center">
                     {testimonial.logo && (
-                      <img 
-                        src={testimonial.logo} 
-                        alt={testimonial.company}
-                        className="w-10 h-10 rounded-full mr-4"
-                      />
+                      <div className="w-12 h-12 mr-4 flex-shrink-0">
+                        <img 
+                          src={testimonial.logo} 
+                          alt={testimonial.company}
+                          className="w-full h-full object-contain rounded-lg"
+                        />
+                      </div>
                     )}
                     <div>
                       <div className="font-semibold text-gray-900">{testimonial.author}</div>
@@ -416,7 +431,7 @@ export default function LandingPage() {
               <img 
                 src={dockOptimizerLogo} 
                 alt="Dock Optimizer" 
-                className="h-10 w-auto mb-4"
+                className="h-10 w-auto object-contain mb-4"
               />
               <p className="text-gray-400 mb-4">
                 Effortless scheduling for superior supply chain management. Take control of your warehouse schedule and streamline your dock scheduling with Dock Optimizer.
