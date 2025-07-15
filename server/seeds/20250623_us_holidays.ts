@@ -64,11 +64,13 @@ export async function seedUSFederalHolidays(orgIds: number[]): Promise<void> {
       
       for (const holiday of US_FEDERAL_HOLIDAYS) {
         try {
+          // Try with description field first (for newer schema)
           await db.insert(organizationHolidays)
             .values({
               tenantId: orgId,
               name: holiday.name,
               date: holiday.date,
+              description: `US Federal Holiday - ${holiday.name} ${holiday.year}`,
               isRecurring: true,
               createdAt: new Date(),
               updatedAt: new Date(),
@@ -76,9 +78,30 @@ export async function seedUSFederalHolidays(orgIds: number[]): Promise<void> {
             .onConflictDoNothing(); // Handle duplicate entries gracefully
           
           totalInserted++;
-        } catch (err) {
-          // Log individual holiday insertion errors but continue
-          console.warn(`[Holiday Seeder] Warning: Could not insert ${holiday.name} for org ${orgId}:`, err);
+        } catch (err: any) {
+          // If description column doesn't exist, try without it (for older schema)
+          if (err?.code === '42703' && err?.message?.includes('description')) {
+            console.log(`[Holiday Seeder] Description column not found, trying without it for ${holiday.name}...`);
+            try {
+              await db.insert(organizationHolidays)
+                .values({
+                  tenantId: orgId,
+                  name: holiday.name,
+                  date: holiday.date,
+                  isRecurring: true,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                })
+                .onConflictDoNothing();
+              
+              totalInserted++;
+            } catch (fallbackErr) {
+              console.warn(`[Holiday Seeder] Warning: Could not insert ${holiday.name} for org ${orgId}:`, fallbackErr);
+            }
+          } else {
+            // Log other types of errors but continue
+            console.warn(`[Holiday Seeder] Warning: Could not insert ${holiday.name} for org ${orgId}:`, err);
+          }
         }
       }
     }
