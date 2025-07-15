@@ -1625,14 +1625,24 @@ export class DatabaseStorage implements IStorage {
   // Carrier operations implemented above in database section
   async getFacility(id: number, tenantId?: number): Promise<Facility | undefined> {
     try {
-      let query = db.select().from(facilities).where(eq(facilities.id, id));
-      
       if (tenantId) {
-        query = query.where(and(eq(facilities.id, id), sql`${facilities}.tenant_id = ${tenantId}`));
+        // Use organization_facilities junction table for tenant isolation
+        const results = await db
+          .select({ facility: facilities })
+          .from(facilities)
+          .innerJoin(organizationFacilities, eq(facilities.id, organizationFacilities.facilityId))
+          .where(and(
+            eq(facilities.id, id),
+            eq(organizationFacilities.organizationId, tenantId)
+          ))
+          .limit(1);
+        
+        return results.length > 0 ? results[0].facility : undefined;
+      } else {
+        // No tenant isolation - return facility directly
+        const [facility] = await db.select().from(facilities).where(eq(facilities.id, id)).limit(1);
+        return facility;
       }
-      
-      const [facility] = await query.limit(1);
-      return facility;
     } catch (error) {
       console.error('Error fetching facility:', error);
       return undefined;
