@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { Request, Response } from 'express';
 
 /**
  * Generate a QR code SVG for appointment check-in
@@ -77,7 +78,7 @@ export async function generateQRCodeDataURL(confirmationCode: string, baseUrl: s
  */
 export function registerQrCodeRoutes(app: any) {
   // Test endpoint to display a QR code
-  app.get('/api/qr-code-test', async (req, res) => {
+  app.get('/api/qr-code-test', async (req: Request, res: Response) => {
     try {
       // Generate a random test code
       const testCode = 'TEST' + Math.floor(Math.random() * 10000);
@@ -124,26 +125,27 @@ export function registerQrCodeRoutes(app: any) {
   
   // Endpoint that generates a QR code SVG for a specific confirmation code
   // This is used by the email templates and driver check-in page
-  app.get('/api/qr-code/:confirmationCode', async (req, res) => {
+  app.get('/api/qr-code/:confirmationCode', async (req: Request, res: Response) => {
     try {
       const confirmationCode = req.params.confirmationCode;
       if (!confirmationCode) {
         return res.status(400).send('Missing confirmation code');
       }
       
-      const baseUrl = process.env.HOST_URL || 'https://dockoptimizer.replit.app';
+      // Use environment HOST_URL or fallback to request origin for better compatibility
+      const baseUrl = process.env.HOST_URL || `${req.protocol}://${req.get('host')}`;
       const checkInUrl = `${baseUrl}/driver-check-in?code=${encodeURIComponent(confirmationCode)}`;
       
       // Log the request for debugging
       console.log(`[QR] Generating QR code for confirmation code: ${confirmationCode}`);
       console.log(`[QR] Check-in URL: ${checkInUrl}`);
       
-      // Generate QR code as SVG
+      // Generate QR code as SVG with optimal settings for mobile scanning
       const qrSvg = await QRCode.toString(checkInUrl, {
         type: 'svg',
-        errorCorrectionLevel: 'H',
-        margin: 2,
-        width: 200,
+        errorCorrectionLevel: 'M', // Medium error correction for better scanning reliability
+        margin: 4, // Larger margin for better scanner detection
+        width: 256, // Larger size for better mobile scanning
         color: {
           dark: '#000000',
           light: '#FFFFFF'
@@ -162,8 +164,9 @@ export function registerQrCodeRoutes(app: any) {
     }
   });
   
-  // Endpoint that generates a QR code as a PNG image for email clients that don't support SVG
-  app.get('/api/qr-code-image/:confirmationCode', async (req, res) => {
+  // Endpoint that generates a QR code image for a specific confirmation code
+  // This provides an IMG-friendly URL for email clients that can't handle SVG
+  app.get('/api/qr-code-image/:confirmationCode', async (req: Request, res: Response) => {
     try {
       const confirmationCode = req.params.confirmationCode;
       if (!confirmationCode) {
@@ -175,20 +178,23 @@ export function registerQrCodeRoutes(app: any) {
       
       // Generate QR code as PNG buffer
       const qrBuffer = await QRCode.toBuffer(checkInUrl, {
-        errorCorrectionLevel: 'H',
-        margin: 2,
-        width: 200,
-        type: 'png'
+        errorCorrectionLevel: 'M',
+        margin: 4,
+        width: 256,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
       });
       
       // Set headers
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
       
-      // Send PNG buffer
+      // Send image buffer
       res.send(qrBuffer);
     } catch (error) {
-      console.error('Error generating QR code PNG for API:', error);
+      console.error('Error generating QR code image for API:', error);
       res.status(500).send('Error generating QR code');
     }
   });

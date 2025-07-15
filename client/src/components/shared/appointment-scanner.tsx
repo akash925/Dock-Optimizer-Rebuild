@@ -124,7 +124,7 @@ export function AppointmentScanner({
       let confirmationCode = code;
       
       // Handle different URL formats
-      if (code.includes('http') || code.includes('://')) {
+      if (code.includes('http') || code.includes('://') || code.includes('driver-check-in')) {
         try {
           const url = new URL(code);
           
@@ -147,8 +147,8 @@ export function AppointmentScanner({
       // Handle direct confirmation codes (alphanumeric patterns)
       if (!confirmationCode || confirmationCode === code) {
         // If it looks like a confirmation code pattern (letters + numbers)
-        if (/^[A-Z0-9]{3,}-[A-Z0-9]{3,}$/.test(code) || /^[A-Z]{2,}[0-9]{2,}$/.test(code)) {
-          confirmationCode = code;
+        if (/^[A-Z0-9-]{6,}$/.test(code.toUpperCase()) || /^[A-Z]{2,}[0-9]{2,}$/.test(code.toUpperCase())) {
+          confirmationCode = code.toUpperCase();
           console.log('[AppointmentScanner] Direct confirmation code detected:', confirmationCode);
         }
       }
@@ -162,9 +162,11 @@ export function AppointmentScanner({
       const response = await apiRequest('GET', `/api/schedules/confirmation/${encodeURIComponent(confirmationCode)}`);
       
       if (response.ok) {
-        const schedule = await response.json();
+        const data = await response.json();
         
-        if (schedule && schedule.id) {
+        if (data && (data.id || data.schedule?.id)) {
+          const schedule = data.schedule || data;
+          
           toast({
             title: 'Appointment Found',
             description: `Found appointment for ${schedule.customerName || 'customer'} (${schedule.truckNumber || 'truck'})`,
@@ -181,7 +183,7 @@ export function AppointmentScanner({
           
           // Small delay to allow toast to show
           setTimeout(() => {
-            navigate(`/schedules/${schedule.id}`);
+            navigate(`/schedules?edit=${schedule.id}`);
           }, 1000);
         } else {
           toast({

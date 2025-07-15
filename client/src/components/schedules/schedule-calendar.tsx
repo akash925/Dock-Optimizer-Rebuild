@@ -3,7 +3,8 @@ import { cn } from "@/lib/utils";
 import { Schedule } from "@shared/schema";
 import { formatTime } from "@/lib/utils";
 import { format, parse, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
-import { formatInTimeZone } from "date-fns-tz";
+// Remove timezone conversion import that was causing over-correction
+// import { formatInTimeZone } from "date-fns-tz";
 
 interface ScheduleCalendarProps {
   schedules: Schedule[];

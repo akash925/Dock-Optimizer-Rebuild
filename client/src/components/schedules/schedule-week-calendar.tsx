@@ -19,7 +19,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { utcToUserTime, formatInFacilityTimeZone, getUserTimeZone, getCurrentTimeInTimeZone } from "@shared/timezone-service";
+// Remove timezone conversions to fix over-correction
+import { getUserTimeZone } from "@shared/timezone-service";
 
 interface ScheduleWeekCalendarProps {
   schedules: Schedule[];
@@ -252,11 +253,8 @@ export default function ScheduleWeekCalendar({
   
   // Function to calculate the current time position based on timezone
   const calculateTimePosition = () => {
-    // Use selected timezone if available, otherwise use local time
-    const tzToUse = timezone || getUserTimeZone();
-    
-    // Get current time in the selected timezone
-    const now = getCurrentTimeInTimeZone(tzToUse);
+    // Use current local time directly - no conversion needed
+    const now = new Date();
     
     const hours = now.getHours();
     const minutes = now.getMinutes();
@@ -266,11 +264,10 @@ export default function ScheduleWeekCalendar({
     return position;
   };
   
-  // Update current time every minute and when timezone changes
+  // Update current time every minute
   useEffect(() => {
-    // Get the timezone-adjusted current time
-    const tzToUse = timezone || getUserTimeZone();
-    const now = getCurrentTimeInTimeZone(tzToUse);
+    // Use current local time directly
+    const now = new Date();
     
     // Initial calculation
     setCurrentTime(now);
@@ -278,13 +275,13 @@ export default function ScheduleWeekCalendar({
     
     // Set up interval to update every minute
     const interval = setInterval(() => {
-      const updatedNow = getCurrentTimeInTimeZone(tzToUse);
+      const updatedNow = new Date();
       setCurrentTime(updatedNow);
       setCurrentTimePosition(calculateTimePosition());
     }, 60000); // Update every minute
     
     return () => clearInterval(interval);
-  }, [timezone]); // Recalculate when timezone changes
+  }, []); // Only set up once - no dependencies needed
 
   return (
     <div className="bg-white rounded-lg shadow p-3 pb-0 mb-4 relative w-full overflow-hidden">
