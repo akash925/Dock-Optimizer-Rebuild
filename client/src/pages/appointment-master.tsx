@@ -1,47 +1,114 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { useUpdateStandardQuestion } from "@/hooks/use-standard-questions";
-import { Facility, AppointmentType, insertAppointmentTypeSchema } from "@shared/schema";
-import SeedAppointmentTypes from "@/components/appointment-master/seed-appointment-types";
-import { SeedQuestionsButton } from "@/components/appointment-master/SeedQuestionsButton";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FilePlus, PlusCircle, Save, Settings, Shield, Trash2, AlertTriangle, HelpCircle, Loader2, Copy, Pencil, MoreHorizontal, CheckCircle, ArrowLeft, ArrowRight, ChevronRight, Info as InfoIcon, GripVertical, Calendar, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { api } from "@/lib/api";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { weekDays } from "@/lib/utils";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Checkbox } from "@/components/ui/checkbox";
+import React, { useState, useMemo, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, Edit, Trash2, Save, ArrowLeft, ArrowRight, AlertCircle, GripVertical, Loader2, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
+import { api } from '@/lib/api';
 import { 
   DndContext, 
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
+  closestCenter, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
   useSensors,
   DragEndEvent
 } from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy
+import { 
+  arrayMove, 
+  SortableContext, 
+  sortableKeyboardCoordinates, 
+  verticalListSortingStrategy 
+} from '@dnd-kit/sortable';
+import { 
+  useSortable 
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { queryClient } from '@/lib/queryClient';
+import { SeedQuestionsButton } from '@/components/appointment-master/SeedQuestionsButton';
+import { Facility, AppointmentType } from '@shared/schema';
+
+// Add the missing StandardQuestion type import
+interface StandardQuestion {
+  id: number;
+  label: string;
+  fieldKey: string;
+  fieldType: string;
+  required: boolean;
+  included: boolean;
+  orderPosition: number;
+  appointmentTypeId: number;
+  options?: any[];
+}
+
+// Define the QuestionFormField type to match the frontend expectations
+interface QuestionFormField {
+  id: number;
+  label: string;
+  type: string;
+  required: boolean;
+  included: boolean;
+  options?: string[];
+  placeholder?: string;
+  order: number;
+  appointmentType: "inbound" | "outbound" | "both";
+}
+
+// Create a custom hook for updating standard questions
+const useUpdateStandardQuestion = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await api.put(`/api/standard-questions/${id}`, data);
+      if (!response.ok) {
+        throw new Error('Failed to update standard question');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/standard-questions'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update standard question: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+};
 
 // Sortable Row component for drag-and-drop question reordering
 interface SortableQuestionRowProps {
@@ -127,6 +194,9 @@ export default function AppointmentMaster() {
   
   // Initialize the standard question update mutation
   const updateStandardQuestionMutation = useUpdateStandardQuestion();
+  
+  // Get the query client instance
+  const queryClient = useQueryClient();
   
   // Appointment Type Management
   const [showNewAppointmentTypeDialog, setShowNewAppointmentTypeDialog] = useState(false);
@@ -738,24 +808,76 @@ export default function AppointmentMaster() {
   };
   
   // Handle submit appointment type form
-  const handleAppointmentTypeSubmit = () => {
-    const formData = {
-      ...appointmentTypeForm,
-      id: selectedAppointmentTypeId,
-      // Ensure questions array is always included, even if empty
-      questions: standardFields ?? []
-    };
-    
-    if (selectedAppointmentTypeId) {
-      updateAppointmentTypeMutation.mutateAsync(formData).then((updatedType) => {
-        // After updating the appointment type, also load the custom questions
-        fetchCustomQuestions(updatedType.id);
-      });
-    } else {
-      createAppointmentTypeMutation.mutateAsync(formData).then((newType) => {
-        // After creating a new appointment type, set it as selected and load an empty questions list
+  const handleAppointmentTypeSubmit = async () => {
+    try {
+      // First, save the standard questions if they exist
+      if (selectedAppointmentTypeId && standardFields.length > 0) {
+        console.log(`[AppointmentMaster] Saving ${standardFields.length} standard questions for appointment type ${selectedAppointmentTypeId}`);
+        
+        // Save each standard question's current state
+        for (const standardField of standardFields) {
+          try {
+            await updateStandardQuestionMutation.mutateAsync({
+              id: standardField.id,
+              data: {
+                included: standardField.included,
+                required: standardField.required,
+                orderPosition: standardField.order
+              }
+            });
+          } catch (error) {
+            console.error(`Error saving standard question ${standardField.id}:`, error);
+          }
+        }
+      }
+
+      const formData = {
+        ...appointmentTypeForm,
+        id: selectedAppointmentTypeId,
+        // Include standard questions in the appointment type data
+        standardQuestions: standardFields.map(field => ({
+          id: field.id,
+          label: field.label,
+          fieldType: field.type,
+          required: field.required,
+          included: field.included,
+          orderPosition: field.order
+        }))
+      };
+      
+      if (selectedAppointmentTypeId) {
+        const updatedType = await updateAppointmentTypeMutation.mutateAsync(formData);
+        
+        // After updating the appointment type, reload the questions to ensure UI is in sync
+        loadStandardQuestionsForAppointmentType(selectedAppointmentTypeId);
+        fetchCustomQuestions(selectedAppointmentTypeId);
+        
+        toast({
+          title: "Success",
+          description: "Appointment type and questions updated successfully",
+        });
+      } else {
+        const newType = await createAppointmentTypeMutation.mutateAsync(formData);
+        
+        // After creating a new appointment type, set it as selected and load questions
         setSelectedAppointmentTypeId(newType.id);
         setCustomFields([]);
+        
+        toast({
+          title: "Success", 
+          description: "Appointment type created successfully",
+        });
+      }
+      
+      // Close the dialog
+      setShowNewAppointmentTypeDialog(false);
+      
+    } catch (error) {
+      console.error('Error saving appointment type:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save appointment type. Please try again.",
+        variant: "destructive"
       });
     }
   };

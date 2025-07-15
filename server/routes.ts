@@ -591,6 +591,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Save standard questions for appointment type
+  app.post('/api/standard-questions/appointment-type/:id/save', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+      
+      const appointmentTypeId = parseInt(req.params.id);
+      if (isNaN(appointmentTypeId)) {
+        return res.status(400).json({ error: 'Invalid appointment type ID' });
+      }
+      
+      console.log(`[QuestionsAPI] Saving standard questions for appointment type ${appointmentTypeId}:`, req.body);
+      const questions = await storage.saveStandardQuestionsForAppointmentType(appointmentTypeId, req.body.questions || []);
+      
+      console.log(`[QuestionsAPI] Saved ${questions.length} standard questions`);
+      res.json({ success: true, questions });
+    } catch (error) {
+      console.error('Error saving standard questions:', error);
+      res.status(500).json({ error: 'Failed to save standard questions' });
+    }
+  });
+
   // Custom Questions Routes  
   app.get('/api/custom-questions/:appointmentTypeId', async (req: any, res) => {
     try {

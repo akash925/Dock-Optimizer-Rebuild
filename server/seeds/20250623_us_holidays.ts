@@ -1,10 +1,25 @@
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from "ws";
 import { organizationHolidays, tenants } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { config } from 'dotenv';
 
-const sql = neon(process.env.DATABASE_URL!);
-const db = drizzle(sql);
+// Load environment variables
+config();
+
+// Configure Neon WebSocket for better connection handling
+neonConfig.webSocketConstructor = ws;
+
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
+// Create database pool
+const pool = new Pool({ connectionString });
+const db = drizzle(pool);
 
 // US Federal Holidays for 2025-2026 (fixed dates and calculated dates)
 const US_FEDERAL_HOLIDAYS = [
@@ -104,10 +119,13 @@ async function main() {
   } catch (error) {
     console.error('[Holiday Seeder] ❌ Standalone execution failed:', error);
     process.exit(1);
+  } finally {
+    // Clean up the database pool
+    await pool.end();
   }
 }
 
 // Execute if this file is run directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 } 

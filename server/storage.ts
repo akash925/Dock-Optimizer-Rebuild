@@ -163,6 +163,7 @@ export interface IStorage {
   createStandardQuestionWithId(question: InsertStandardQuestion & { id: number }): Promise<StandardQuestion>;
   updateStandardQuestion(id: number, standardQuestion: Partial<StandardQuestion>): Promise<StandardQuestion | undefined>;
   deleteStandardQuestion(id: number): Promise<boolean>;
+  saveStandardQuestionsForAppointmentType(appointmentTypeId: number, questions: Partial<StandardQuestion>[]): Promise<StandardQuestion[]>;
   
   // Booking Pages operations
   getBookingPage(id: number): Promise<BookingPage | undefined>;
@@ -1385,7 +1386,7 @@ export class DatabaseStorage implements IStorage {
   async getStandardQuestions() { return this.memStorage.getStandardQuestions(); }
   async createStandardQuestion(question: any) { return this.memStorage.createStandardQuestion(question); }
   async createStandardQuestionWithId(id: number, question: any) { return this.memStorage.createStandardQuestionWithId(id, question); }
-  async updateStandardQuestion(id: number, data: any) { return this.memStorage.updateStandardQuestion(id, data); }
+  // updateStandardQuestion method moved to DatabaseStorage implementation
   async deleteStandardQuestion(id: number) { return this.memStorage.deleteStandardQuestion(id); }
   async getCompanyAssets(filters?: any): Promise<any[]> {
     try {
@@ -2277,6 +2278,59 @@ export class DatabaseStorage implements IStorage {
       .where(eq(ocrJobs.id, id))
       .returning();
     return updatedOcrJob;
+  }
+
+  async updateStandardQuestion(id: number, standardQuestion: Partial<StandardQuestion>): Promise<StandardQuestion | undefined> {
+    try {
+      const [updated] = await db.update(standardQuestions)
+        .set({ ...standardQuestion, lastModifiedAt: new Date() })
+        .where(eq(standardQuestions.id, id))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error('Error updating standard question:', error);
+      return undefined;
+    }
+  }
+
+  async saveStandardQuestionsForAppointmentType(appointmentTypeId: number, questions: Partial<StandardQuestion>[]): Promise<StandardQuestion[]> {
+    try {
+      console.log(`[DatabaseStorage] Saving ${questions.length} standard questions for appointment type ${appointmentTypeId}`);
+      
+      const savedQuestions: StandardQuestion[] = [];
+      
+      for (const question of questions) {
+        if (question.id) {
+          // Update existing question
+          const updated = await this.updateStandardQuestion(question.id, {
+            ...question,
+            appointmentTypeId
+          });
+          if (updated) {
+            savedQuestions.push(updated);
+          }
+        } else {
+          // Create new question
+          const created = await this.createStandardQuestion({
+            ...question,
+            appointmentTypeId,
+            label: question.label || 'Untitled Question',
+            fieldKey: question.fieldKey || `field_${Date.now()}`,
+            fieldType: question.fieldType || 'TEXT',
+            included: question.included ?? true,
+            required: question.required ?? false,
+            orderPosition: question.orderPosition || savedQuestions.length + 1
+          } as InsertStandardQuestion);
+          savedQuestions.push(created);
+        }
+      }
+      
+      console.log(`[DatabaseStorage] Successfully saved ${savedQuestions.length} standard questions`);
+      return savedQuestions;
+    } catch (error) {
+      console.error('Error saving standard questions for appointment type:', error);
+      throw error;
+    }
   }
 }
 

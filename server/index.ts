@@ -8,21 +8,30 @@ import fs from "fs";
 import { tenantMiddleware } from "./middleware/tenant";
 import { initializeWebSocket } from "./websocket/index";
 
-// Environment variable checks
-const requiredEnvVars = [
+// Environment variable checks - separate critical from optional
+const criticalEnvVars = [
   'DATABASE_URL',
   'SENDGRID_API_KEY',
+];
+
+const optionalEnvVars = [
   'AWS_S3_BUCKET',
-  'AWS_ACCESS_KEY_ID',
+  'AWS_ACCESS_KEY_ID', 
   'AWS_SECRET_ACCESS_KEY',
 ];
 
-const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+const missingCritical = criticalEnvVars.filter(v => !process.env[v]);
+const missingOptional = optionalEnvVars.filter(v => !process.env[v]);
 
-if (missingVars.length > 0) {
-  console.error(`❌ Missing critical environment variables: ${missingVars.join(', ')}`);
+if (missingCritical.length > 0) {
+  console.error(`❌ Missing critical environment variables: ${missingCritical.join(', ')}`);
   console.error('Please ensure these are configured in your .env file or hosting environment.');
   process.exit(1);
+}
+
+if (missingOptional.length > 0) {
+  console.warn(`⚠️  Optional S3 environment variables not configured: ${missingOptional.join(', ')}`);
+  console.warn('S3 file upload features will be disabled. Local file storage will be used as fallback.');
 }
 
 // Production logging and error handling
