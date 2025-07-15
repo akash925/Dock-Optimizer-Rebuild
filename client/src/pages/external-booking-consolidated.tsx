@@ -336,11 +336,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
         emailSent: data.emailSent || false,
         startTime: appointment.startTime,
         endTime: appointment.endTime,
-        timezone: bookingData.timezone,
+        timezone: appointment.facilityTimezone || bookingData.timezone || 'America/New_York',
         facilityId: appointment.facilityId,
-        facilityName: bookingPage.facilities?.find((f: any) => f.id === appointment.facilityId)?.name,
+        facilityName: appointment.facilityName || bookingPage.facilities?.find((f: any) => f.id === appointment.facilityId)?.name,
         appointmentTypeId: appointment.appointmentTypeId,
-        appointmentTypeName: bookingPage.appointmentTypes?.find((t: any) => t.id === appointment.appointmentTypeId)?.name,
+        appointmentTypeName: appointment.appointmentTypeName || bookingPage.appointmentTypes?.find((t: any) => t.id === appointment.appointmentTypeId)?.name,
         driverName: bookingData.driverName,
         carrierName: bookingData.carrierName,
         truckNumber: bookingData.truckNumber,
@@ -689,11 +689,11 @@ function BookingWizardContent({ bookingPage, slug }: { bookingPage: any, slug: s
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">Date:</span>
-                  <span>{bookingDetails.startTime ? formatDateTimeInTimezone(new Date(bookingDetails.startTime), bookingDetails.timezone || 'Etc/UTC', 'MM/dd/yyyy') : bookingData.date}</span>
+                  <span>{bookingDetails.startTime ? formatDateTimeInTimezone(new Date(bookingDetails.startTime), bookingDetails.timezone || 'America/New_York', 'MM/dd/yyyy') : bookingData.date}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">Time:</span>
-                  <span>{bookingDetails.startTime ? formatDateTimeInTimezone(new Date(bookingDetails.startTime), bookingDetails.timezone || 'Etc/UTC', 'h:mm a zzz') : bookingData.time}</span>
+                  <span>{bookingDetails.startTime ? formatDateTimeInTimezone(new Date(bookingDetails.startTime), bookingDetails.timezone || 'America/New_York', 'h:mm a zzz') : bookingData.time}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium">Facility:</span>

@@ -174,12 +174,36 @@ router.post("/booking-pages/:slug/book", async (req, res) => {
     const { getStorage } = await import("../../storage");
     const storage = await getStorage();
     
+    // Get facility timezone for proper time conversion
+    const facility = await storage.getFacility(bookingData.facilityId);
+    const facilityTimezone = facility?.timezone || 'America/New_York';
+    
+    console.log(`[BookingSubmission] Converting appointment time from facility timezone: ${facilityTimezone}`);
+    console.log(`[BookingSubmission] Original date: ${bookingData.date}, time: ${bookingData.time}`);
+    
+    // Import timezone utility for proper conversion
+    const { convertAppointmentTimeToUTC } = await import('../../shared/timezone-service');
+    
+    // Convert appointment time from facility timezone to UTC for storage
+    const appointmentStartTime = convertAppointmentTimeToUTC(bookingData.date, bookingData.time, facilityTimezone);
+    
+    // Get the appointment type to determine the correct duration
+    const appointmentType = await storage.getAppointmentType(bookingData.appointmentTypeId);
+    const durationMinutes = appointmentType?.duration || 60; // Default to 60 minutes if not found
+    
+    console.log(`[BookingSubmission] Using appointment type "${appointmentType?.name}" with duration ${durationMinutes} minutes`);
+    
+    // Calculate end time based on appointment type duration
+    const appointmentEndTime = new Date(appointmentStartTime.getTime() + (durationMinutes * 60 * 1000));
+    
+    console.log(`[BookingSubmission] Final appointment times: ${appointmentStartTime.toISOString()} to ${appointmentEndTime.toISOString()}`);
+    
     // Create the appointment using the booking data with proper type and appointment settings
     const appointment = await storage.createSchedule({
       facilityId: bookingData.facilityId,
       appointmentTypeId: bookingData.appointmentTypeId,
-      startTime: new Date(`${bookingData.date}T${bookingData.time}`),
-      endTime: new Date(`${bookingData.date}T${bookingData.time}`), // Will be calculated based on duration
+      startTime: appointmentStartTime,
+      endTime: appointmentEndTime,
       status: 'scheduled',
       type: 'inbound', // Set proper appointment type
       driverName: bookingData.driverName,
@@ -222,7 +246,7 @@ router.post("/booking-pages/:slug/book", async (req, res) => {
       console.error("[BookingSubmission] WebSocket notification failed:", wsError);
     }
     
-    // Return the booking confirmation
+    // Return the booking confirmation with facility timezone information
     res.json({
       success: true,
       appointment: {
@@ -232,7 +256,10 @@ router.post("/booking-pages/:slug/book", async (req, res) => {
         endTime: appointment.endTime,
         status: appointment.status,
         facilityId: appointment.facilityId,
-        appointmentTypeId: appointment.appointmentTypeId
+        appointmentTypeId: appointment.appointmentTypeId,
+        facilityName: facility?.name || 'Unknown Facility',
+        facilityTimezone: facilityTimezone,
+        appointmentTypeName: appointmentType?.name || 'Standard Appointment'
       }
     });
     
