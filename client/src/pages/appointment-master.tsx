@@ -810,24 +810,29 @@ export default function AppointmentMaster() {
   // Handle submit appointment type form
   const handleAppointmentTypeSubmit = async () => {
     try {
-      // First, save the standard questions if they exist
+      // First, save the standard questions if they exist using the bulk save endpoint
       if (selectedAppointmentTypeId && standardFields.length > 0) {
-        console.log(`[AppointmentMaster] Saving ${standardFields.length} standard questions for appointment type ${selectedAppointmentTypeId}`);
+        console.log(`[AppointmentMaster] Bulk saving ${standardFields.length} standard questions for appointment type ${selectedAppointmentTypeId}`);
         
-        // Save each standard question's current state
-        for (const standardField of standardFields) {
-          try {
-            await updateStandardQuestionMutation.mutateAsync({
-              id: standardField.id,
-              data: {
-                included: standardField.included,
-                required: standardField.required,
-                orderPosition: standardField.order
-              }
-            });
-          } catch (error) {
-            console.error(`Error saving standard question ${standardField.id}:`, error);
+        try {
+          const response = await api.post(`/api/standard-questions/appointment-type/${selectedAppointmentTypeId}/save`, {
+            questions: standardFields.map(field => ({
+              id: field.id,
+              label: field.label,
+              fieldKey: field.fieldKey || `field_${field.id}`,
+              fieldType: field.type,
+              required: field.required,
+              included: field.included,
+              orderPosition: field.order,
+              appointmentTypeId: selectedAppointmentTypeId
+            }))
+          });
+          
+          if (response) {
+            console.log(`[AppointmentMaster] Successfully bulk saved standard questions`);
           }
+        } catch (error) {
+          console.error(`[AppointmentMaster] Error bulk saving standard questions:`, error);
         }
       }
 
@@ -876,7 +881,7 @@ export default function AppointmentMaster() {
       console.error('Error saving appointment type:', error);
       toast({
         title: "Error",
-        description: "Failed to save appointment type. Please try again.",
+        description: `Failed to save appointment type: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
         variant: "destructive"
       });
     }
@@ -919,7 +924,7 @@ export default function AppointmentMaster() {
       console.error('Error loading custom questions:', error);
       toast({
         title: "Error",
-        description: "Failed to load custom questions for this appointment type",
+        description: `Failed to load custom questions for this appointment type: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     }

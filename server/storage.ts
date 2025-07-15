@@ -2019,7 +2019,29 @@ export class DatabaseStorage implements IStorage {
     }
   }
   async getStandardQuestion(id: number): Promise<StandardQuestion | undefined> { return this.memStorage.getStandardQuestion(id); }
-  async getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]> { return this.memStorage.getStandardQuestionsByAppointmentType(appointmentTypeId); }
+  
+  async getStandardQuestionsByAppointmentType(appointmentTypeId: number): Promise<StandardQuestion[]> {
+    try {
+      const questions = await db.select().from(standardQuestions)
+        .where(eq(standardQuestions.appointmentTypeId, appointmentTypeId))
+        .orderBy(standardQuestions.orderPosition, standardQuestions.id);
+      
+      return questions.map(q => ({
+        id: q.id,
+        appointmentTypeId: q.appointmentTypeId,
+        fieldKey: q.fieldKey,
+        label: q.label,
+        fieldType: q.fieldType,
+        included: q.included,
+        required: q.required,
+        orderPosition: q.orderPosition,
+        createdAt: q.createdAt
+      }));
+    } catch (error) {
+      console.error('Error fetching standard questions by appointment type:', error);
+      return [];
+    }
+  }
   // getBookingPage is implemented above in the real database section
   async getAsset(id: number) { return this.memStorage.getAsset(id); }
   async getAssets() { return this.memStorage.getAssets(); }

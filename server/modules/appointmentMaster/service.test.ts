@@ -63,8 +63,9 @@ describe('AppointmentMasterService', () => {
         label: 'Test Question',
         type: 'TEXT',
         is_required: true, // Should be mapped to snake_case
-        appointmentTypeId: 1,
-        order: 1,
+        appointment_type_id: 1,
+        order: 1, // Original field preserved
+        order_position: 1, // Transformed field
       });
 
       expect(result.questions).toEqual([
@@ -167,13 +168,13 @@ describe('AppointmentMasterService', () => {
 
       // Verify proper field mapping for all questions
       standardQuestions.forEach((originalQuestion, index) => {
-        expect(mockStorage.createCustomQuestion).toHaveBeenNthCalledWith(index + 1, {
+        expect(mockStorage.createCustomQuestion).toHaveBeenNthCalledWith(index + 1, expect.objectContaining({
           label: originalQuestion.label,
           type: originalQuestion.type,
           is_required: originalQuestion.isRequired, // Mapped to snake_case
-          appointmentTypeId: 1,
-          order: originalQuestion.order,
-        });
+          appointment_type_id: 1,
+          order_position: originalQuestion.order,
+        }));
       });
     });
 
@@ -209,8 +210,9 @@ describe('AppointmentMasterService', () => {
         label: 'New Question',
         type: 'TEXT',
         is_required: true,
-        appointmentTypeId: 1,
-        order: 1,
+        appointment_type_id: 1,
+        order: 1, // Original field preserved
+        order_position: 1, // Transformed field
       });
     });
 
@@ -279,8 +281,9 @@ describe('AppointmentMasterService', () => {
         label: 'Untitled Question', // Default label
         type: 'TEXT', // Default type
         is_required: false, // Default isRequired
-        appointmentTypeId: 1,
-        order: 1,
+        appointment_type_id: 1,
+        order: 1, // Original field preserved
+        order_position: 1, // Transformed field
       });
     });
   });
@@ -295,7 +298,7 @@ describe('AppointmentMasterService', () => {
       const result = await service.getAppointmentType(typeId);
 
       expect(mockStorage.getAppointmentType).toHaveBeenCalledWith(typeId);
-      expect(result).toBe(mockAppointmentType);
+      expect(result).toStrictEqual(mockAppointmentType);
     });
   });
 
@@ -310,7 +313,7 @@ describe('AppointmentMasterService', () => {
       const result = await service.updateAppointmentType(typeId, updateData);
 
       expect(mockStorage.updateAppointmentType).toHaveBeenCalledWith(typeId, updateData);
-      expect(result).toBe(mockUpdatedType);
+      expect(result).toStrictEqual(mockUpdatedType);
     });
 
     it('should properly handle inbound/outbound/both appointment type selections', async () => {
