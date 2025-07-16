@@ -1,6 +1,6 @@
 import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
-import { getRedisInstance } from '../redis';
+import { getRedis } from '../src/utils/redis';
 import { getStorage } from '../storage';
 import { broadcastToTenant } from '../websocket';
 import { 
@@ -12,12 +12,14 @@ import {
 } from '../notifications';
 import { logger } from '../utils/logger';
 
-// Get Redis connection from shared lib
-const redis = getRedisInstance();
+// Get Redis connection from centralized utility
+const redis = getRedis();
 
 // Create a dedicated Redis connection for BullMQ workers.
 // BullMQ recommends setting maxRetriesPerRequest to null.
-const workerConnection = redis ? new IORedis(process.env.REDIS_URL!, {
+// Use BULLMQ_REDIS_URL if available, otherwise fall back to REDIS_URL
+const bullmqRedisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL;
+const workerConnection = redis && bullmqRedisUrl ? new IORedis(bullmqRedisUrl, {
   maxRetriesPerRequest: null,
   enableOfflineQueue: false, // Recommended for workers
 }) : null;

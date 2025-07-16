@@ -38,16 +38,18 @@ import { eq, and, gte, lte, or, ilike, SQL, sql, inArray } from "drizzle-orm";
 import { db, pool, safeQuery } from "./db";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { getRedisInstance } from './redis';
+import { getRedis } from './src/utils/redis';
 import { logger } from "./utils/logger";
 import { emailService } from './services/email';
 import crypto from "crypto";
+import connectRedis from 'connect-redis';
 
-const redis = getRedisInstance();
+const redis = getRedis();
 
 const scryptAsync = promisify(scrypt);
 const MemoryStore = createMemoryStore(session);
 const PostgresSessionStore = connectPg(session);
+const RedisStore = connectRedis(session);
 
 async function invalidateAvailabilityCache(schedule: { date: string, facilityId: number, appointmentTypeId: number, tenantId: number }) {
   if (!redis) return;
@@ -385,9 +387,20 @@ export class MemStorage implements IStorage {
   private activityLogIdCounter: number = 1;
 
   constructor() {
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
-    });
+    // Set up session store with Redis fallback
+    if (redis) {
+      this.sessionStore = new RedisStore({
+        client: redis,
+        prefix: 'sess:',
+        ttl: 86400, // 24 hours
+      });
+      console.log('[Session] Using Redis session store');
+    } else {
+      this.sessionStore = new MemoryStore({
+        checkPeriod: 86400000, // 24 hours
+      });
+      console.warn('[Session] ⚠️  Using MemoryStore fallback - Redis not configured');
+    }
     
     this.setupInitialData();
   }
@@ -855,11 +868,20 @@ export class DatabaseStorage implements IStorage {
   private memStorage: IStorage; // Add memStorage property
 
   constructor() {
-    // Initialize PostgreSQL session store
-    this.sessionStore = new PostgresSessionStore({
-      pool: pool,
-      createTableIfMissing: true,
-    });
+    // Set up session store with Redis fallback to MemoryStore
+    if (redis) {
+      this.sessionStore = new RedisStore({
+        client: redis,
+        prefix: 'sess:',
+        ttl: 86400, // 24 hours
+      });
+      console.log('[Session] Using Redis session store');
+    } else {
+      this.sessionStore = new MemoryStore({
+        checkPeriod: 86400000, // 24 hours
+      });
+      console.warn('[Session] ⚠️  Using MemoryStore fallback - Redis not configured');
+    }
     
     // Initialize memory storage as fallback for methods not yet implemented with database
     this.memStorage = new MemStorage();

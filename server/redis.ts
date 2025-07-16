@@ -1,7 +1,7 @@
 /**
  * Single source of truth Redis client for the application
  * 
- * This module re-exports the Redis client from the lib directory
+ * This module re-exports the Redis client from the utils directory
  * and provides a clean interface for other modules to import Redis.
  * 
  * Usage:
@@ -17,8 +17,8 @@
 
 export { 
   redis,
-  getRedisInstance,
+  getRedis,
   checkRedisHealth,
   shutdownRedis,
   getRedisConfigStatus 
-} from './src/lib/redis'; 
+} from './src/utils/redis'; 
