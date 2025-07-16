@@ -1,6 +1,6 @@
 modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
 
-run = "bash -lc 'doppler run --config prd -- pnpm dev'"
+run = "~/.nix-profile/bin/doppler run --config prd -- pnpm dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
@@ -26,7 +26,15 @@ packages = [
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = ["doppler", "run", "--config", "prd", "--", "pnpm", "start"]
+run = [
+  "~/.nix-profile/bin/doppler",
+  "run",
+  "--config",
+  "prd",
+  "--",
+  "pnpm",
+  "start",
+]
 
 [[ports]]
 localPort = 5001
