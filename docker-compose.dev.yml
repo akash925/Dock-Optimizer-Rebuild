@@ -3,19 +3,17 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
-    container_name: dock-optimizer-redis
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
     volumes:
-      - redis-data:/data
-    restart: unless-stopped
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
-  redis-data:
-    driver: local
+  redis_data:

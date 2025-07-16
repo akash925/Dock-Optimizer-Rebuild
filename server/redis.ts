@@ -1,24 +1,39 @@
 /**
- * Single source of truth Redis client for the application
- * 
- * This module re-exports the Redis client from the utils directory
- * and provides a clean interface for other modules to import Redis.
- * 
- * Usage:
- *   import { redis } from 'server/redis.ts';
- *   
- * The Redis client is configured with:
- * - Credentials from process.env.REDIS_URL (rediss://...)
- * - Max 3 retries with exponential backoff
- * - TLS support for Redis Cloud
- * - Graceful error handling
- * - Process exit on startup failure or auth issues
+ * Single source-of-truth Redis client for the application.
+ *
+ *  – Pulls the singleton + helpers from `src/utils/redis`
+ *  – Exposes a backwards-compat layer for old `getRedisInstance` imports
  */
 
-export { 
+import {
   redis,
   getRedis,
   checkRedisHealth,
   shutdownRedis,
-  getRedisConfigStatus 
-} from './src/utils/redis'; 
+  getRedisConfigStatus,
+  getBullMQRedisUrl,
+} from "./src/utils/redis";
+
+/* -------------------------------------------------------------------------- */
+/*                               Legacy wrapper                               */
+/* -------------------------------------------------------------------------- */
+/**
+ * @deprecated — migrate call-sites to `getRedis()` instead.
+ * Temporary shim so old code like
+ *   import { getRedisInstance } from "../../redis";
+ * keeps working until refactor is complete.
+ */
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const getRedisInstance = () => getRedis();
+
+/* -------------------------------------------------------------------------- */
+/*                               Public exports                               */
+/* -------------------------------------------------------------------------- */
+export {
+  redis,
+  getRedis,
+  checkRedisHealth,
+  shutdownRedis,
+  getRedisConfigStatus,
+  getBullMQRedisUrl,
+};

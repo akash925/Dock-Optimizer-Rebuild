@@ -212,6 +212,14 @@ Dock Optimizer is an enterprise-grade warehouse management system that streamlin
   - **Features Restored**: Organization hours settings, timezone configuration, appointment master access
   - **Authentication Flow**: Login system works correctly with proper session management
   - **API Testing**: Confirmed protected endpoints now work correctly with session authentication
+- July 16, 2025: **REDIS V4 PROMISE API MIGRATION COMPLETED** - Comprehensive Redis infrastructure modernization:
+  - **Centralized Redis Utility**: Created `server/src/utils/redis.ts` with singleton pattern and null guards
+  - **BullMQ Integration**: Updated notification queue to use centralized Redis with `BULLMQ_REDIS_URL` fallback
+  - **Session Store Migration**: Implemented Redis-based sessions with MemoryStore fallback and startup warnings
+  - **Frontend Error Handling**: Enhanced 401 handling in React Query fetcher to prevent "Unexpected token '<'" errors
+  - **Development Environment**: Added `docker-compose.dev.yml` with redis:7-alpine for local development
+  - **Jest Test Mocking**: Updated `__mocks__/redis.ts` to properly mock Redis utility functions
+  - **Doppler Configuration**: Updated .env.example to reflect Doppler-managed Redis configuration
 
 ## User Preferences
 
