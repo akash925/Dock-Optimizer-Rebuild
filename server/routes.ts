@@ -20,6 +20,7 @@ import { mediaService } from './services/MediaService';
 import { isAuthenticated, isAdmin } from './middleware/auth';
 import { z } from 'zod';
 import { validate } from './middleware/validation';
+import { checkRedisHealth } from './redis';
 
 const availabilityQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
@@ -86,6 +87,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register auth routes for password reset
   const authRoutes = await import('./routes/auth');
   app.use('/api/auth', authRoutes.default);
+  
+  // Health check endpoint for Redis
+  app.get('/healthz/redis', async (req, res) => {
+    try {
+      const isHealthy = await checkRedisHealth();
+      if (isHealthy) {
+        res.status(200).json({ status: 'ok', message: 'PONG' });
+      } else {
+        res.status(503).json({ status: 'error', message: 'Redis connection failed' });
+      }
+    } catch (error) {
+      res.status(503).json({ status: 'error', message: 'Redis health check failed' });
+    }
+  });
   
   // Registration endpoint now handled by routes/auth.ts to avoid duplication
   /*
