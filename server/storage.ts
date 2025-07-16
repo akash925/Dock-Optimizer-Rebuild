@@ -38,7 +38,7 @@ import { eq, and, gte, lte, or, ilike, SQL, sql, inArray } from "drizzle-orm";
 import { db, pool, safeQuery } from "./db";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { getRedisInstance } from './src/lib/redis';
+import { getRedisInstance } from './redis';
 import { logger } from "./utils/logger";
 import { emailService } from './services/email';
 import crypto from "crypto";

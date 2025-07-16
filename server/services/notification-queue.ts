@@ -1,6 +1,6 @@
 import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
-import { getRedisInstance } from '../src/lib/redis';
+import { getRedisInstance } from '../redis';
 import { getStorage } from '../storage';
 import { broadcastToTenant } from '../websocket';
 import { 

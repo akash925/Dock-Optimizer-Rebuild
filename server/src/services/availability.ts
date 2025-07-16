@@ -5,7 +5,7 @@ import { schedules, appointmentTypes, facilities, docks, organizationFacilities 
 import type { IStorage } from '../../storage';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { db } from '../../db';
-import { getRedisInstance } from '../../src/lib/redis';
+import { getRedisInstance } from '../../redis';
 
 const redis = getRedisInstance();
 const AVAILABILITY_CACHE_TTL = 300; // 5 minutes
