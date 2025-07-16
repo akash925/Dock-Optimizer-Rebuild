@@ -206,6 +206,12 @@ Dock Optimizer is an enterprise-grade warehouse management system that streamlin
   - **Redis Status Identified**: Redis configured via Doppler but has invalid credentials (WRONGPASS error)
   - **Application Status**: Server running successfully, Redis disabled due to authentication failure
   - **Next Action Required**: Update Redis credentials in Doppler secrets to enable queue processing
+- July 16, 2025: **AUTHENTICATION SYSTEM FIXED** - Resolved 401 errors preventing access to protected features:
+  - **Root Cause**: API client was missing `credentials: 'include'` option for session cookie transmission
+  - **Fix Applied**: Added `credentials: 'include'` to fetch requests in client/src/lib/api.ts
+  - **Features Restored**: Organization hours settings, timezone configuration, appointment master access
+  - **Authentication Flow**: Login system works correctly with proper session management
+  - **API Testing**: Confirmed protected endpoints now work correctly with session authentication
 
 ## User Preferences
 
