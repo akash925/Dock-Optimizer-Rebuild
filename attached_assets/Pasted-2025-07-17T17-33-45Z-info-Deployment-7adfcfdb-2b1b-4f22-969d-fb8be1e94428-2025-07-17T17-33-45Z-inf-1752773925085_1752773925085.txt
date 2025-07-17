@@ -1,0 +1,67 @@
+2025-07-17T17:33:45Z info: Deployment: 7adfcfdb-2b1b-4f22-969d-fb8be1e94428
+2025-07-17T17:33:45Z info: Build: 5c8c7c98-e6d7-4a50-8272-89c8e951d0d2
+2025-07-17T17:33:45Z info: Connecting to builder
+2025-07-17T17:33:47Z info: Builder connected
+2025-07-17T17:33:49Z info: Installing packages
+2025-07-17T17:33:50Z info: Starting Build
+
+> dock-optimizer@1.0.0 build
+> vite build && tsc -p tsconfig.build.json
+
+
+server/add-email-field.ts(5,8): error TS1192: Module '"/home/runner/workspace/server/storage"' has no default export.
+
+server/add-email-field.ts(52,47): error TS7006: Parameter 'q' implicitly has an 'any' type.
+
+server/db-migrate.ts(158,11): error TS18047: 'pool' is possibly 'null'.
+server/db.ts(3,16): error TS7016: Could not find a declaration file for module 'ws'. '/home/runner/workspace/node_modules/ws/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/ws` if it exists or add a new declaration (.d.ts) file containing `declare module 'ws';`
+
+server/endpoints/qr-codes.ts(1,20): error TS7016: Could not find a declaration file for module 'qrcode'. '/home/runner/workspace/node_modules/qrcode/lib/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/qrcode` if it exists or add a new declaration (.d.ts) file containing `declare module 'qrcode';`
+
+server/fix-admin-password.ts(2,10): error TS2305: Module '"./auth"' has no exported member 'hashPassword'.
+server/fix-admin-password.ts(81,26): error TS2551: Property 'getUserOrganizations' does not exist on type 'IStorage'. Did you mean 'getUserOrganizationRole'?
+server/fix-admin-password.ts(82,36): error TS2551: Property 'getUserOrganizations' does not exist on type 'IStorage'. Did you mean 'getUserOrganizationRole'?
+server/fix-admin-password.ts(83,37): error TS7006: Parameter 'org' implicitly has an 'any' type.
+
+server/modules/bolUpload/index.ts(10,58): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: AuthenticatedRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: AuthenticatedRequest, res: Response) => Promise<Response<any, Record<string, any>> | undefined>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to type 'AuthenticatedRequest'.
+            Types of property 'user' are incompatible.
+              Type 'User | undefined' is not assignable to type 'User'.
+                Type 'undefined' is not assignable to type 'User'.
+
+server/modules/companyAssets/controllers.ts(68,58): error TS2339: Property 'file' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/modules/companyAssets/controllers.ts(1032,33): error TS7016: Could not find a declaration file for module 'multer'. '/home/runner/workspace/node_modules/multer/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/multer` if it exists or add a new declaration (.d.ts) file containing `declare module 'multer';`
+server/modules/companyAssets/controllers.ts(1066,20): error TS7006: Parameter 'req' implicitly has an 'any' type.
+server/modules/companyAssets/controllers.ts(1066,25): error TS7006: Parameter 'file' implicitly has an 'any' type.
+
+server/modules/companyAssets/controllers.ts(1077,29): error TS7006: Parameter 'err' implicitly has an 'any' type.
+
+server/modules/featureFlags/controllers.ts(82,70): error TS2345: Argument of type 'import("/home/runner/workspace/shared/schema").AvailableModule' is not assignable to parameter of type 'import("/home/runner/workspace/shared/types/modules").AvailableModule'.
+  Type '"emailNotifications"' is not assignable to type 'AvailableModule'.
+
+server/services/bolService.ts(112,7): error TS2353: Object literal may only specify known properties, and 'processingStatus' does not exist in type '{ fileName: string; originalFileName: string; filePath: string; fileSize: number; mimeType: string; tenantId?: number | null | undefined; uploadedBy?: number | null | undefined; ocrData?: Json | undefined; parsedData?: Json | undefined; ocrStatus?: string | undefined; }'.
+
+server/storage.ts(662,87): error TS2339: Property 'id' does not exist on type '{ appointmentTypeId: number; label: string; fieldKey: string; fieldType: string; orderPosition: number; included?: boolean | undefined; required?: boolean | undefined; }'.
+
+server/storage.ts(1079,34): error TS2339: Property 'tenantId' does not exist on type '{ type: string; status: string; startTime: Date; endTime: Date; facilityId?: number | null | undefined; mcNumber?: string | null | undefined; dockId?: number | null | undefined; ... 23 more ...; confirmationCode?: string | ... 1 more ... | undefined; }'.
+server/storage.ts(1105,35): error TS2339: Property 'tenantId' does not exist on type '{ id: number; facilityId: number | null; dockId: number | null; carrierId: number | null; appointmentTypeId: number | null; truckNumber: string | null; trailerNumber: string | null; ... 26 more ...; confirmationCode: string | null; }'.
+server/storage.ts(1119,9): error TS18047: 'result.rowCount' is possibly 'null'.
+
+server/storage.ts(1790,9): error TS2416: Property 'getOrganizationDefaultHours' in type 'DatabaseStorage' is not assignable to the same property in base type 'IStorage'.
+  Type '(tenantId: number) => Promise<any[]>' is not assignable to type '{ (orgId: number): Promise<DefaultHours | null>; (tenantId: number): Promise<DefaultHours[] | null>; }'.
+    Type 'Promise<any[]>' is not assignable to type 'Promise<DefaultHours | null>'.
+      Type 'any[]' is missing the following properties from type 'DefaultHours': id, dayOfWeek, dayName, isOpen, and 2 more.
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.4.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.4.2
+npm notice To update run: npm install -g npm@11.4.2
+npm notice
+
