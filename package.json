@@ -8,22 +8,31 @@
     "node": ">=20.0.0 <=22.0.0"
   },
   "scripts": {
-    "dev": "doppler run --config prd -- concurrently -k -n server,client -c green,cyan \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "CHOKIDAR_USEPOLLING=1 tsx watch --exclude \"**/.pnpm/**\" --exclude \"**/.local/**\" --exclude \"**/node_modules/**\" -r dotenv/config server/index.ts",
-    "dev:client": "CHOKIDAR_USEPOLLING=1 vite",
-    "build": "vite build && tsc -p tsconfig.build.json",
-    "start": "NODE_ENV=production node dist/index.js",
-    "start:doppler": "doppler --no-check-version run --config prd -- sh -c \"npm run build && node dist/index.js\"",
-    "lint": "eslint . --ext .js,.mjs,.cjs,.ts,.tsx",
-    "lint:fix": "eslint . --ext .js,.mjs,.cjs,.ts,.tsx --fix",
+    
+    "dev":         "doppler run --config prd -- concurrently -k -n server,client -c green,cyan \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server":  "CHOKIDAR_USEPOLLING=1 tsx watch --exclude \"**/.pnpm/**\" --exclude \"**/.local/**\" --exclude \"**/node_modules/**\" -r dotenv/config server/index.ts",
+    "dev:client":  "vite --root client --config client/vite.config.ts",
+
+    
+    "build":        "pnpm build:client && pnpm build:server",
+    "build:client": "vite build --root client --config client/vite.config.ts",
+    "build:server": "tsc -p tsconfig.build.json",
+
+    
+    "start":         "node dist/server/index.js",
+    "start:doppler": "doppler --no-check-version run --config prd -- sh -c \"pnpm build && node dist/server/index.js\"",
+
+    
+    "lint":      "eslint . --ext .js,.mjs,.cjs,.ts,.tsx",
+    "lint:fix":  "eslint . --ext .js,.mjs,.cjs,.ts,.tsx --fix",
     "typecheck": "tsc -p tsconfig.soft.json",
-    "test": "vitest",
-    "test:watch": "vitest watch",
-    "db:push": "drizzle-kit push",
-    "db:migrate": "node scripts/run-migrations.cjs",
-    "db:seed": "tsx server/seeds/20250623_us_holidays.ts",
-    "preview": "npm run build && npm run start"
-  },
+    "test":      "vitest",
+    "test:watch":"vitest watch",
+    "db:push":   "drizzle-kit push",
+    "db:migrate":"node scripts/run-migrations.cjs",
+    "db:seed":   "tsx server/seeds/20250623_us_holidays.ts",
+    "preview":   "pnpm build && pnpm start"
+  }
   "dependencies": {
     "@aws-sdk/client-s3": "^3.840.0",
     "@aws-sdk/client-sts": "^3.840.0",
@@ -70,7 +79,6 @@
     "@tanstack/react-query": "^5.60.5",
     "@tanstack/react-table": "^8.21.3",
     "@types/express-session": "^1.18.2",
-    "@types/luxon": "^3.6.2",
     "@types/multer": "^2.0.0",
     "@types/qrcode": "^1.5.5",
     "@types/ws": "^8.18.1",
@@ -140,6 +148,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.14",
+    "@types/luxon": "^3.6.2",
     "@types/node": "20.16.11",
     "@types/passport-local": "^1.0.38",
     "@types/react": "^18.3.11",

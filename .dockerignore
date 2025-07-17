@@ -1,0 +1,7 @@
+.git
+node_modules
+dist
+replit.*
+*.log
+coverage
+*.pnpm-debug.log
