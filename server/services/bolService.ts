@@ -109,7 +109,7 @@ export class BolService {
       uploadedBy,
       ocrData: ocrResult as any,
       parsedData: ocrResult.detectedFields as any,
-      processingStatus: ocrResult.success ? 'completed' : 'failed',
+      ocrStatus: ocrResult.success ? 'completed' : 'failed',
     };
     
     // Save document to database

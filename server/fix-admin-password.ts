@@ -1,5 +1,4 @@
-import { getStorage } from "./storage";
-import { hashPassword } from './auth';
+import { getStorage, hashPassword } from "./storage";
 import { TenantStatus, AvailableModule } from "@shared/schema";
 
 // Fix the testadmin account password and organization association
@@ -78,12 +77,9 @@ export async function fixAdminPassword() {
     let existingOrgUser = null;
     try {
       // Try different methods as the storage interface might vary
-      if (typeof storage.getUserOrganizations === 'function') {
-        const orgs = await storage.getUserOrganizations(userId);
-        existingOrgUser = orgs.find(org => org.organizationId === hanzoOrg.id);
-      } else if (typeof storage.getUserOrganizationRoles === 'function') {
-        const orgs = await storage.getUserOrganizationRoles(userId);
-        existingOrgUser = orgs.find(org => org.organizationId === hanzoOrg.id);
+      if (typeof storage.getUserOrganizationRole === 'function') {
+        const org = await storage.getUserOrganizationRole(userId, hanzoOrg.id);
+        existingOrgUser = org && org.organizationId === hanzoOrg.id ? org : null;
       } else {
         console.log("No method found to check user organization association, assuming it doesn't exist");
       }

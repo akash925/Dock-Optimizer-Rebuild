@@ -2,7 +2,7 @@ import { db } from './db';
 import { standardQuestions, type StandardQuestion } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 // Import the storage directly
-import storage from './storage';
+import { getStorage } from './storage';
 
 /**
  * This script adds or updates the Driver/Dispatcher Email field as required
@@ -12,8 +12,9 @@ export async function addEmailField() {
   try {
     console.log('Starting email field update process...');
     
+    const storage = await getStorage();
     // Get all appointment types
-    const appointmentTypes = await storage.getAllAppointmentTypes();
+    const appointmentTypes = await storage.getAppointmentTypes();
     console.log(`Found ${appointmentTypes.length} appointment types to process`);
     
     for (const type of appointmentTypes) {
@@ -49,7 +50,7 @@ export async function addEmailField() {
         
         // Find the highest order position to add this after existing questions
         const maxOrder = existingQuestions.length > 0 
-          ? Math.max(...existingQuestions.map(q => q.orderPosition || 0)) 
+          ? Math.max(...existingQuestions.map((q: any) => q.orderPosition || 0)) 
           : 0;
         
         const newEmailField = {
@@ -71,6 +72,6 @@ export async function addEmailField() {
     return { success: true, message: 'Driver/Dispatcher Email field added or updated for all appointment types' };
   } catch (error) {
     console.error('Error in email field update process:', error);
-    return { success: false, message: `Error: ${error.message}` };
+    return { success: false, message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}` };
   }
 }

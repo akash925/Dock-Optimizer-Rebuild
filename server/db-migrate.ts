@@ -155,7 +155,7 @@ async function main() {
     console.error('Error creating database schema:', error);
     process.exit(1);
   } finally {
-    await pool.end();
+    await pool?.end();
   }
 }
 

@@ -11,7 +11,7 @@ async function createOrganizationUsersTable() {
       );
     `;
     
-    const tableExists = await pool.query(checkTableQuery);
+    const tableExists = await pool!.query(checkTableQuery);
     
     if (!tableExists.rows[0].exists) {
       console.log('Creating organization_users table...');
@@ -32,7 +32,7 @@ async function createOrganizationUsersTable() {
         );
       `;
       
-      await pool.query(createTableQuery);
+      await pool!.query(createTableQuery);
       console.log('organization_users table created successfully');
     } else {
       console.log('organization_users table already exists');

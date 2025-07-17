@@ -63,7 +63,7 @@ async function invalidateAvailabilityCache(schedule: { date: string, facilityId:
 }
 
 // Password hashing functions
-async function hashPassword(password: string) {
+export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
@@ -202,7 +202,7 @@ export interface IStorage {
   deleteTenant(id: number): Promise<boolean>;
   
   // Organization default hours operations
-  getOrganizationDefaultHours(orgId: number): Promise<DefaultHours | null>;
+  getOrganizationDefaultHours(tenantId: number): Promise<DefaultHours[] | null>;
   updateOrganizationDefaultHours(orgId: number, defaultHours: DefaultHours): Promise<boolean>;
   
   // Role operations
@@ -658,9 +658,9 @@ export class MemStorage implements IStorage {
     this.standardQuestions.set(id, standardQuestion);
     return standardQuestion;
   }
-  async createStandardQuestionWithId(id: number, standardQuestion: InsertStandardQuestion): Promise<StandardQuestion> {
-    const newQuestion: StandardQuestion = { ...standardQuestion, id: standardQuestion.id, createdAt: new Date(), fieldType: standardQuestion.fieldType as any, included: standardQuestion.included ?? true, required: standardQuestion.required ?? false, orderPosition: standardQuestion.orderPosition ?? 0 };
-    this.standardQuestions.set(standardQuestion.id, newQuestion);
+  async createStandardQuestionWithId(question: InsertStandardQuestion & { id: number }): Promise<StandardQuestion> {
+    const newQuestion: StandardQuestion = { ...question, createdAt: new Date(), fieldType: question.fieldType as any, included: question.included ?? true, required: question.required ?? false, orderPosition: question.orderPosition ?? 0 };
+    this.standardQuestions.set(question.id, newQuestion);
     return newQuestion;
   }
   async updateStandardQuestion(id: number, standardQuestionUpdate: Partial<StandardQuestion>): Promise<StandardQuestion | undefined> {
@@ -1076,7 +1076,7 @@ export class DatabaseStorage implements IStorage {
       // Emit appointment:created event with id and tenantId
       eventSystem.emit('appointment:created', {
         schedule: newSchedule as any, // Use 'any' to avoid type issues
-        tenantId: insertSchedule.tenantId || 1
+        tenantId: (insertSchedule as any).tenantId || 1
       });
       
       logger.debug(`[Storage] appointment:created event emitted for schedule ${newSchedule.id}`);
@@ -1102,7 +1102,7 @@ export class DatabaseStorage implements IStorage {
         date: scheduleDate,
         facilityId: updatedSchedule.facilityId!,
         appointmentTypeId: updatedSchedule.appointmentTypeId!,
-        tenantId: updatedSchedule.tenantId!,
+        tenantId: (updatedSchedule as any).tenantId!,
       });
     }
 
@@ -1116,17 +1116,17 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(schedules).where(eq(schedules.id, id));
 
     // Invalidate cache if deletion was successful
-    if (result.rowCount > 0 && scheduleToDelete) {
+    if (result.rowCount && result.rowCount > 0 && scheduleToDelete) {
       const scheduleDate = new Date(scheduleToDelete.startTime).toISOString().split('T')[0];
       invalidateAvailabilityCache({
         date: scheduleDate,
         facilityId: scheduleToDelete.facilityId!,
         appointmentTypeId: scheduleToDelete.appointmentTypeId!,
-        tenantId: scheduleToDelete.tenantId!,
+        tenantId: (scheduleToDelete as any).tenantId!,
       });
     }
 
-    return result.rowCount > 0;
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   // Facility operations with real database queries
@@ -1170,7 +1170,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFacility(id: number): Promise<boolean> {
     const result = await db.delete(facilities).where(eq(facilities.id, id));
-    return result.rowCount > 0;
+    return result.rowCount! > 0;
   }
 
   // Tenant/Organization operations with real database queries
@@ -1787,7 +1787,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getOrganizationDefaultHours(tenantId: number): Promise<any[]> {
+  async getOrganizationDefaultHours(tenantId: number): Promise<DefaultHours[] | null> {
     try {
       const hours = await db.select({
         id: organizationDefaultHours.id,
@@ -1801,7 +1801,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: organizationDefaultHours.createdAt,
         updatedAt: organizationDefaultHours.updatedAt,
       }).from(organizationDefaultHours).where(eq(organizationDefaultHours.tenantId, tenantId)).orderBy(organizationDefaultHours.dayOfWeek);
-      return hours;
+      return hours as DefaultHours[];
     } catch (error) {
       // Gracefully handle missing table - this is expected in some deployments
       if (error.code === '42P01') { // Table does not exist

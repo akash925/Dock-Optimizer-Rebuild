@@ -41,7 +41,7 @@ export const registerOrganizationModulesRoutes = (app: Express) => {
   // Get organization default hours
   app.get('/api/organizations/default-hours', async (req: Request, res: Response) => {
     // Check if user is authenticated
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated || !req.isAuthenticated()) {
       return res.status(401).json({ message: 'Not authenticated' });
     }
     try {
@@ -188,19 +188,19 @@ const updateOrgSchema = createOrgSchema.partial();
 
 // Middleware to check if the user is an admin/super-admin
 const isSuperAdmin = async (req: Request, res: Response, next: Function) => {
-  if (!req.isAuthenticated()) {
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
     return res.status(401).json({ message: 'Not authenticated' });
   }
 
   // Allow both regular admin and super-admin roles
-  if (req.user.role !== 'super-admin' && req.user.role !== 'admin') {
+  if (req.user!.role !== 'super-admin' && req.user!.role !== 'admin') {
     return res.status(403).json({ 
       message: 'Not authorized. Admin access required.', 
-      userRole: req.user.role 
+      userRole: req.user!.role 
     });
   }
 
-  console.log(`Admin API (org) access granted to user with role: ${req.user.role}`);
+  console.log(`Admin API (org) access granted to user with role: ${req.user!.role}`);
   next();
 };
 
@@ -378,18 +378,18 @@ export const organizationsRoutes = (app: Express) => {
       }
       
       // Check if user has permission (either super-admin or admin of this org)
-      if (!req.isAuthenticated()) {
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
         return res.status(401).json({ message: 'Not authenticated' });
       }
       
-      const isSuperAdmin = req.user.role === 'super-admin';
-      const isOrgAdmin = req.user.tenantId === id && req.user.role === 'admin';
+      const isSuperAdmin = req.user!.role === 'super-admin';
+      const isOrgAdmin = req.user!.tenantId === id && req.user!.role === 'admin';
       
       if (!isSuperAdmin && !isOrgAdmin) {
-        console.log(`Access denied: User (tenant ${req.user.tenantId}) attempted to update logo for organization ${id}`);
+        console.log(`Access denied: User (tenant ${req.user!.tenantId}) attempted to update logo for organization ${id}`);
         return res.status(403).json({ 
           message: 'Not authorized to update this organization\'s logo',
-          userTenant: req.user.tenantId,
+          userTenant: req.user!.tenantId,
           requestedTenant: id
         });
       }
@@ -448,16 +448,16 @@ export const organizationsRoutes = (app: Express) => {
       }
       
       // Ensure user is authenticated
-      if (!req.isAuthenticated()) {
+      if (!req.isAuthenticated || !req.isAuthenticated()) {
         return res.status(401).json({ message: 'Not authenticated' });
       }
       
       // Check if the user is requesting a logo for their organization
       const requestedOrgId = id;
-      const userOrgId = req.user.tenantId;
+      const userOrgId = req.user!.tenantId;
       
       // Non-super-admin users can only access their own organization's logo
-      if (req.user.role !== 'super-admin' && userOrgId !== requestedOrgId) {
+      if (req.user!.role !== 'super-admin' && userOrgId !== requestedOrgId) {
         console.log(`Access denied: User (tenant ${userOrgId}) attempted to access logo for organization ${requestedOrgId}`);
         return res.status(403).json({ 
           message: 'Not authorized to access another organization\'s logo',
@@ -557,7 +557,7 @@ export const organizationsRoutes = (app: Express) => {
       const modules = await storage.getOrganizationModules(orgId);
 
       // Get organization activity logs (if implemented)
-      let logs = [];
+      let logs: any[] = [];
       try {
         logs = await storage.getOrganizationLogs(orgId);
       } catch (logError) {
@@ -574,13 +574,8 @@ export const organizationsRoutes = (app: Express) => {
         contactEmail: org.contactEmail,
         primaryContact: org.primaryContact,
         contactPhone: org.contactPhone,
-        address: org.address,
-        city: org.city,
-        state: org.state,
-        country: org.country,
-        zipCode: org.zipCode,
         timezone: org.timezone,
-        logoUrl: org.logoUrl,
+        logoUrl: org.logo,
         modules,
         users,
         logs
@@ -823,7 +818,7 @@ export const organizationsRoutes = (app: Express) => {
         if (result.rows) {
           logs = result.rows.map(row => ({
             id: Number(row.id),
-            timestamp: new Date(row.timestamp).toISOString(),
+            timestamp: new Date(row.timestamp as string | number | Date).toISOString(),
             action: String(row.action),
             details: String(row.details)
           }));
@@ -941,7 +936,7 @@ export const organizationsRoutes = (app: Express) => {
         if (result.rows) {
           logs = result.rows.map(row => ({
             id: Number(row.id),
-            timestamp: new Date(row.timestamp).toISOString(),
+            timestamp: new Date(row.timestamp as string | number | Date).toISOString(),
             action: String(row.action),
             details: String(row.details)
           }));

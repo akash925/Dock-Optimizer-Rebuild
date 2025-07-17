@@ -11,7 +11,7 @@ async function createOrganizationModulesTable() {
       );
     `;
     
-    const tableExists = await pool.query(checkTableQuery);
+    const tableExists = await pool!.query(checkTableQuery);
     
     if (!tableExists.rows[0].exists) {
       console.log('Creating organization_modules table...');
@@ -29,7 +29,7 @@ async function createOrganizationModulesTable() {
         );
       `;
       
-      await pool.query(createTableQuery);
+      await pool!.query(createTableQuery);
       console.log('organization_modules table created successfully');
     } else {
       console.log('organization_modules table already exists');

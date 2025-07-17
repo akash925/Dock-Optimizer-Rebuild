@@ -20,4 +20,8 @@ export type AvailableModule =
   | 'appointments'
   | 'bookingPages'
   | 'hours'
-  | 'featureFlags'; 
+  | 'featureFlags'
+  | 'emailNotifications'
+  | 'facilityManagement'
+  | 'doorManager'
+  | 'userManagement'; 

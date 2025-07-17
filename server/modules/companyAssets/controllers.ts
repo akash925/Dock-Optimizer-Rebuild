@@ -1,4 +1,9 @@
 import { Request, Response } from 'express';
+import multer from 'multer';
+
+interface RequestWithFile extends Request {
+  file?: Express.Multer.File;
+}
 import { companyAssetsService } from './service';
 import { insertAssetSchema, insertCompanyAssetSchema, updateCompanyAssetSchema, AssetCategory } from '@shared/schema';
 import { ZodError } from 'zod';
@@ -57,7 +62,7 @@ export const getAssetById = async (req: Request, res: Response) => {
  * Upload a new asset
  * LEGACY: Previously used by /api/assets (now disabled)
  */
-export const uploadAsset = async (req: Request, res: Response) => {
+export const uploadAsset = async (req: RequestWithFile, res: Response) => {
   try {
     // Check if file was uploaded
     if (!req.file) {
@@ -1063,7 +1068,7 @@ export const uploadAssetPhotoLocal = async (req: Request, res: Response) => {
       limits: {
         fileSize: 10 * 1024 * 1024, // 10MB limit
       },
-      fileFilter: (req, file, cb) => {
+      fileFilter: (req: any, file: any, cb: any) => {
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
         if (allowedTypes.includes(file.mimetype)) {
           cb(null, true);
@@ -1074,7 +1079,7 @@ export const uploadAssetPhotoLocal = async (req: Request, res: Response) => {
     }).single('file');
 
     // Handle the upload
-    upload(req, res, async (err) => {
+    upload(req, res, async (err: any) => {
       if (err) {
         console.error('Multer error:', err);
         return res.status(400).json({ error: err.message });
