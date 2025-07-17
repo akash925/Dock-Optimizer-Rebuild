@@ -1,48 +1,26 @@
 modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
 
-run = "~/.nix-profile/bin/doppler run --config prd -- pnpm dev"
+run = "CHOKIDAR_USEPOLLING=1 doppler run --config prd -- pnpm run dev"
+
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["freetype", "jq", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "poppler_utils", "tcl", "tk", "zlib", "doppler"]
+packages = ["doppler", "freetype", "jq", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "poppler_utils", "tcl", "tk", "zlib"]
 
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = [
-  "~/.nix-profile/bin/doppler",
-  "run",
-  "--config",
-  "prd",
-  "--",
-  "pnpm",
-  "start",
-]
+run = ["~/.nix-profile/bin/doppler", "run", "--config", "prd", "--", "pnpm", "start"]
+
+[[ports]]
+localPort = 443
+externalPort = 3000
 
 [[ports]]
 localPort = 5001
 externalPort = 80
+
 [[ports]]
 localPort = 5173
 externalPort = 5173
-[[ports]]
-localPort = 443
-externalPort = 3000
-[[ports]]
-localPort = 5174
-externalPort = 3001
-
-[workflows]
-runButton = "Project"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "doppler run --config prd -- pnpm dev"
-waitForPort = 5001

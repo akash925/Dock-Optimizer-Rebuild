@@ -1,157 +1,87 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5, user-scalable=1" />
-    
-    <!-- SEO Meta Tags -->
-    <title>Dock Optimizer - Effortless Warehouse Scheduling & Supply Chain Management</title>
-    <meta name="description" content="Streamline your warehouse operations with Dock Optimizer. Intelligent scheduling, real-time tracking, and automated notifications. Trusted by 50+ warehouses with 20% average savings." />
-    <meta name="keywords" content="warehouse scheduling, dock scheduling, supply chain management, warehouse operations, appointment scheduling, truck scheduling, logistics software" />
+    <!-- Charset & Viewport -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+    <!-- Primary Meta -->
+    <title>Dock Optimizer – Warehouse Scheduling & Supply-Chain OS</title>
+    <meta
+      name="description"
+      content="Streamline your warehouse operations with Dock Optimizer – intelligent dock scheduling, real-time tracking and automated notifications."
+    />
+    <meta
+      name="keywords"
+      content="warehouse scheduling,dock scheduling,supply chain management,logistics software"
+    />
     <meta name="author" content="Conmitto Inc" />
-    <meta name="robots" content="index, follow" />
-    
-    <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="Dock Optimizer - Effortless Warehouse Scheduling & Supply Chain Management" />
-    <meta property="og:description" content="Streamline your warehouse operations with Dock Optimizer. Intelligent scheduling, real-time tracking, and automated notifications. Trusted by 50+ warehouses with 20% average savings." />
+
+    <!-- OpenGraph / LinkedIn -->
+    <meta property="og:title" content="Dock Optimizer – Warehouse Scheduling" />
+    <meta
+      property="og:description"
+      content="Intelligent dock scheduling and real-time visibility trusted by 50+ warehouses."
+    />
+    <meta property="og:url" content="https://dockoptimizer.com" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://dock-optimizer.com" />
     <meta property="og:image" content="/src/assets/dock_optimizer_logo.jpg" />
     <meta property="og:site_name" content="Dock Optimizer" />
-    
-    <!-- Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Dock Optimizer - Effortless Warehouse Scheduling & Supply Chain Management" />
-    <meta name="twitter:description" content="Streamline your warehouse operations with Dock Optimizer. Intelligent scheduling, real-time tracking, and automated notifications. Trusted by 50+ warehouses." />
-    <meta name="twitter:image" content="/src/assets/dock_optimizer_logo.jpg" />
-    
-    <!-- Favicon - Proper setup with multiple formats -->
+    <meta property="og:locale" content="en_US" />
+    <!-- LinkedIn company -->
+    <meta
+      property="og:see_also"
+      content="https://www.linkedin.com/company/conmitto"
+    />
+
+    <!-- Favicons -->
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#2563eb" />
     <meta name="theme-color" content="#2563eb" />
-    
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://dock-optimizer.com" />
-    
-    <!-- The most reliable way to apply CSS fixes is to load them here -->
-    <link rel="stylesheet" href="/main.css" />
-    <style>
-      /* Responsive layout fixes - strongly enforced */
-      .calendar-container {
-        height: 100% !important;
-        min-height: 50vh !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
-        width: 100% !important;
-        display: flex !important;
-        flex-direction: column !important;
-      }
 
-      .fc {
-        height: 100% !important;
-        width: 100% !important;
-        flex-grow: 1 !important;
-      }
-      
-      /* Force responsive calendar regardless of login state */
-      @media (max-width: 768px) {
-        .fc .fc-toolbar {
-          flex-direction: column !important;
-          align-items: flex-start !important;
-          gap: 0.5rem !important;
-        }
-        
-        .fc .fc-toolbar-title {
-          font-size: 1rem !important;
-        }
-        
-        .fc-event-title {
-          font-size: 0.7rem !important;
-        }
-        
-        .fc-col-header-cell-cushion {
-          font-size: 0.75rem !important;
-        }
-        
-        .fc-header-toolbar {
-          margin-bottom: 0.5rem !important;
-        }
-        
-        .fc-col-header {
-          font-size: 0.7rem !important;
-        }
-        
-        .fc-daygrid-day-number {
-          font-size: 0.7rem !important;
-        }
-      }
-      
-      /* Mobile styles for extra small screens */
-      @media (max-width: 475px) {
-        .fc-toolbar-chunk {
-          margin-bottom: 0.25rem !important;
-        }
-        
-        .fc-col-header-cell-cushion {
-          font-size: 0.65rem !important;
-          padding: 4px !important;
-        }
-        
-        .fc-timegrid-slot-label {
-          font-size: 0.65rem !important;
-        }
-      }
-      
-      /* Make sure content adapts to viewport */
-      .fc-view-harness {
-        flex-grow: 1 !important;
-        min-height: 50vh !important;
-        max-width: 100% !important; 
-      }
-      
-      /* Critical calendar fixes - added inline for immediate effect */
-      .fc-timegrid-col-events {
-        display: flex !important;
-        flex-direction: column-reverse !important;
-      }
-      .fc-timegrid-event {
-        z-index: 100 !important;
-        border-radius: 4px !important;
-        width: calc(100% - 4px) !important;
-        margin: 2px !important;
-        overflow: hidden !important;
-      }
-      /* Stronger z-index override directly in HTML */
-      .fc-timegrid-event[data-time="06:00"] { z-index: 2400 !important; }
-      .fc-timegrid-event[data-time="07:00"] { z-index: 2300 !important; }
-      .fc-timegrid-event[data-time="08:00"] { z-index: 2200 !important; }
-      .fc-timegrid-event[data-time="09:00"] { z-index: 2100 !important; }
-      .fc-timegrid-event[data-time="10:00"] { z-index: 2000 !important; }
-      .fc-timegrid-event[data-time="11:00"] { z-index: 1900 !important; }
-      .fc-timegrid-event[data-time="12:00"] { z-index: 1800 !important; }
-      .fc-timegrid-event[data-time="13:00"] { z-index: 1700 !important; }
-      .fc-timegrid-event[data-time="14:00"] { z-index: 1600 !important; }
-      .fc-timegrid-event[data-time="15:00"] { z-index: 1500 !important; }
-      .fc-timegrid-event[data-time="16:00"] { z-index: 1400 !important; }
-      .fc-timegrid-event[data-time="17:00"] { z-index: 1300 !important; }
-      .fc-timegrid-event[data-time="18:00"] { z-index: 1200 !important; }
-      .fc-timegrid-event[data-time="19:00"] { z-index: 1100 !important; }
-      .fc-timegrid-event[data-time="20:00"] { z-index: 1000 !important; }
-      
-      /* Force buttons to be visible */
-      .calendar-view-button {
-        display: inline-flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-      }
-    </style>
+    <!-- Canonical -->
+    <link rel="canonical" href="https://dockoptimizer.com" />
+
+    <!-- Preloads -->
+    <link rel="preload" href="/main.css" as="style" />
+    <link
+      rel="preload"
+      href="/fonts/inter-var-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/main.css" />
+    <link rel="stylesheet" href="/calendar.css" />
+
+    <!-- CSP (development-friendly) -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' blob: data:;
+        style-src  'self' 'unsafe-inline';
+        img-src    'self' data:;
+        connect-src 'self' ws: wss:;
+        font-src   'self' data:;
+      "
+    />
   </head>
-  <body>
+
+  <body class="bg-gray-50 text-slate-800">
     <div id="root"></div>
+
+    <!-- Vite entry point -->
     <script type="module" src="/src/main.tsx"></script>
-    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
-    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+
+    <!-- Replit dev banner (only visible outside prod) -->
+    <script
+      src="https://replit.com/public/js/replit-dev-banner.js"
+      defer
+    ></script>
   </body>
 </html>
