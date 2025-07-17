@@ -76,7 +76,7 @@ export default defineConfig(async () => {
       hmr: isReplit
         ? {
             protocol: "wss",
-            host: new URL(import.meta.url).hostname,
+            host: "workspace.akash225.replit.dev",
             port: 443,
           }
         : true,

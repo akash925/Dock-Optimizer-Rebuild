@@ -220,6 +220,13 @@ Dock Optimizer is an enterprise-grade warehouse management system that streamlin
   - **Development Environment**: Added `docker-compose.dev.yml` with redis:7-alpine for local development
   - **Jest Test Mocking**: Updated `__mocks__/redis.ts` to properly mock Redis utility functions
   - **Doppler Configuration**: Updated .env.example to reflect Doppler-managed Redis configuration
+- July 17, 2025: **VITE HMR HOSTNAME CONFIGURATION FIX** - Resolved critical development server access issue:
+  - **Root Cause**: `new URL(import.meta.url).hostname` was returning null for file:// URLs in vite.config.ts
+  - **HMR WebSocket Failure**: Hot Module Replacement connection failing due to invalid hostname configuration
+  - **Solution Applied**: Created fix-vite-hostname.js script to replace problematic configuration
+  - **Configuration Fixed**: Line 79 in vite.config.ts now shows `host: "workspace.akash225.replit.dev"`
+  - **Access Restored**: Both port 5173 (Vite dev server) and port 5001 (Express server) now properly accessible
+  - **No Workarounds**: Fixed the core issue without temporary solutions or configuration bypasses
 
 ## User Preferences
 
