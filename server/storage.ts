@@ -947,7 +947,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
-    return result.rowCount > 0;
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async updateUserModules(id: number, modules: string[]): Promise<boolean> {
@@ -955,7 +955,7 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ modules: modules as any })
       .where(eq(users.id, id));
-    return result.rowCount > 0;
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   // Schedule operations with real database queries
