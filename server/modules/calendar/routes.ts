@@ -12,8 +12,11 @@ async function generateOrgConfirmationCode(tenantId?: number): Promise<string> {
   return generateConfirmationCode('APP'); // Fallback
 }
 
-// Add authentication middleware
-const isAuthenticated = (req: any, res: any, next: any) => {
+// Add authentication middleware with proper typing
+import { Request, Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../../middleware/auth';
+
+const isAuthenticated = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   if (req.isAuthenticated && req.isAuthenticated()) {
     return next();
   }
@@ -29,7 +32,7 @@ router.get('/schedules/:id', isAuthenticated, controllers.getScheduleById);
 
 // Add missing booking endpoints
 // POST /api/booking-pages/book/:slug
-router.post('/booking-pages/book/:slug', async (req: any, res) => {
+router.post('/booking-pages/book/:slug', async (req: Request, res: Response) => {
   try {
     const { slug } = req.params;
     const storage = await getStorage();
