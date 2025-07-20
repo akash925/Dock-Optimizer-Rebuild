@@ -1,30 +1,26 @@
+
 modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
 
-run = "CHOKIDAR_USEPOLLING=1 doppler run --config prd -- pnpm run dev"
+
+run = "pnpm dev"
+
 
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
+
 [nix]
 channel = "stable-24_05"
-packages = ["doppler", "freetype", "jq", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "poppler_utils", "tcl", "tk", "zlib"]
+packages = ["doppler", "freetype", "jq", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "openjpeg", "openssl", "poppler_utils", "tcl", "tk", "zlib"]
 
-[deployment]
-deploymentTarget = "autoscale"
-build = ["npm", "run", "build"]
-run = ["~/.nix-profile/bin/doppler", "run", "--config", "prd", "--", "pnpm", "start"]
 
 [[ports]]
-localPort = 443
-externalPort = 3000
+localPort = 5173    
+externalPort = 5173
 
 [[ports]]
 localPort = 5001
 externalPort = 80
 
 [[ports]]
-localPort = 5173
-externalPort = 5173
-
-[[ports]]
-localPort = 5174
-externalPort = 3001
+localPort = 443
+externalPort = 3000

@@ -8,13 +8,25 @@
     "node": ">=20.0.0 <=22.0.0"
   },
   "scripts": {
-    "dev": "CHOKIDAR_USEPOLLING=1 doppler run -- concurrently -n \"VITE,API\" -c \"cyan,green\" \"vite\" \"SKIP_INTERNAL_VITE=1 nodemon --legacy-watch --ext ts,js --watch server --watch shared --signal SIGTERM --exec \\\"tsx server/index.ts\\\"\"",
-    "build": "doppler run -- vite build",
-    "start": "doppler run -- node server/index.js",
-    "preview": "doppler run -- vite preview",
-    "test": "vitest run",
-    "lint": "eslint . --ext .ts,.tsx"
-  },
+    "dev": "doppler run --config prd -- concurrently -k -n server,client -c green,cyan 'pnpm run dev:server' 'pnpm run dev:client'",
+    "dev:server": "CHOKIDAR_USEPOLLING=1 tsx watch --exclude **/.pnpm/** --exclude **/.local/** --exclude **/node_modules/** -r dotenv/config server/index.ts",
+    "dev:client": "vite --root client --config client/vite.config.ts",
+    "build": "pnpm run build:client && pnpm run build:server",
+    "build:client": "vite build --root client --config client/vite.config.ts",
+    "build:server": "tsc -p tsconfig.build.json",
+    "start": "node dist/server/index.js",
+    "start:doppler": "doppler --no-check-version run --config prd -- sh -c \"pnpm run build && node dist/server/index.js\"",
+    "lint": "eslint . --ext .js,.mjs,.cjs,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.mjs,.cjs,.ts,.tsx --fix",
+    "typecheck": "tsc -p tsconfig.soft.json",
+    "test": "vitest",
+    "test:watch": "vitest watch",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "node scripts/run-migrations.cjs",
+    "db:seed": "tsx server/seeds/20250623_us_holidays.ts",
+    "preview": "pnpm run build && pnpm run start"
+  }
+
   "dependencies": {
     "@aws-sdk/client-s3": "^3.840.0",
     "@aws-sdk/client-sts": "^3.840.0",
@@ -123,7 +135,6 @@
     "zod-validation-error": "^3.5.3"
   },
   "devDependencies": {
-    "@ampproject/remapping": "2.2.1",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@replit/vite-plugin-shadcn-theme-json": "^0.0.4",
     "@tailwindcss/aspect-ratio": "^0.4.2",
@@ -142,11 +153,9 @@
     "autoprefixer": "^10.4.20",
     "drizzle-kit": "^0.30.4",
     "eslint": "^9.29.0",
-    "nodemon": "^3.1.10",
     "postcss": "^8.4.47",
     "rxjs": "7.8.1",
     "tailwindcss": "^3.4.14",
-    "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
     "typescript": "5.6.3",
     "vite": "^5.4.14",
