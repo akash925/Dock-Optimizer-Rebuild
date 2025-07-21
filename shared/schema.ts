@@ -343,6 +343,12 @@ export const bookingPages = pgTable("booking_pages", {
   lastModifiedBy: integer("last_modified_by"),
 });
 
+export const insertBookingPageSchema = createInsertSchema(bookingPages).omit({
+  id: true,
+  createdAt: true,
+  lastModifiedAt: true,
+});
+
 /* ───────────────────────────── Asset manager tables ─────────────────────── */
 
 export const assets = pgTable("assets", {
@@ -367,6 +373,12 @@ export const companyAssets = pgTable("company_assets", {
     .references(() => tenants.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCompanyAssetSchema = createInsertSchema(companyAssets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 /* file_storage (unchanged)                                                  */
@@ -623,6 +635,23 @@ export const AssetCategory = {
   OTHER: "other",
 } as const;
 export type AssetCategory = (typeof AssetCategory)[keyof typeof AssetCategory];
+
+export const AssetLocation = {
+  EQUIPMENT: "EQUIPMENT",
+  DOCK: "DOCK",
+  OFFICE: "OFFICE",
+  WAREHOUSE: "WAREHOUSE",
+  FACILITY: "FACILITY",
+} as const;
+export type AssetLocation = (typeof AssetLocation)[keyof typeof AssetLocation];
+
+export const AssetStatus = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+  MAINTENANCE: "MAINTENANCE",
+  RETIRED: "RETIRED",
+} as const;
+export type AssetStatus = (typeof AssetStatus)[keyof typeof AssetStatus];
 
 export type Tenant = typeof tenants.$inferSelect;
 export type FeatureFlag = {

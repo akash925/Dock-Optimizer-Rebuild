@@ -14,26 +14,30 @@ import { setupVite, serveStatic, log } from "./vite";
 import { tenantMiddleware }    from "./middleware/tenant";
 import { initializeWebSocket } from "./websocket/index";
 import bookingPublicRouter     from "./routes/public/booking";
+import healthRouter            from "./routes/health";
+import { validateEnvironment, config } from "./config/environment";
 
 // ────────────────────────────────────────────────────────────────────────────
-// 1.  Environment sanity checks
+// 1.  Environment sanity checks and configuration
 // --------------------------------------------------------------------------
 
-const criticalEnvVars = ["DATABASE_URL", "SENDGRID_API_KEY"];
-const optionalEnvVars = [
-  "AWS_S3_BUCKET",
-  "AWS_ACCESS_KEY_ID",
-  "AWS_SECRET_ACCESS_KEY",
-];
+console.log(`🚀 Starting Dock Optimizer Server (${config.environment})`);
+console.log(`📡 Port: ${config.port}`);
+console.log(`🐘 Database: ${config.database.url ? 'Connected' : 'Not configured'}`);
+console.log(`📧 Email: ${config.email.apiKey ? 'Configured' : 'Not configured'}`);
+console.log(`☁️  AWS S3: ${config.aws.accessKeyId ? 'Configured' : 'Local storage only'}`);
+console.log(`🔴 Redis: ${config.redis.enabled ? 'Enabled' : 'Disabled'}`);
 
-const missingCrit = criticalEnvVars.filter((v) => !process.env[v]);
-if (missingCrit.length) {
-  console.error(`❌ Missing critical env vars: ${missingCrit.join(", ")}`);
-  process.exit(1);
-}
-
-if (optionalEnvVars.some((v) => !process.env[v])) {
-  console.warn("⚠️  AWS / S3 not fully configured → uploads will be local only");
+// Validate environment with error tolerance for deployment
+try {
+  validateEnvironment();
+} catch (error) {
+  if (config.environment === 'production') {
+    console.error('❌ Environment validation failed in production:', error);
+    process.exit(1);
+  } else {
+    console.warn('⚠️ Environment validation warnings (development mode):', error);
+  }
 }
 
 // Redis startup resilience
@@ -52,8 +56,17 @@ export default app;
 
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: false, limit: "5mb" }));
+
+// Health check endpoints (before tenant middleware)
+app.use("/api", healthRouter);
+
+// Public booking routes (before tenant middleware)
 app.use("/api", bookingPublicRouter);
+
+// Apply tenant middleware to protected routes
 app.use(tenantMiddleware);
+
+// Static file serving
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Concise per‑request log
@@ -63,7 +76,7 @@ app.use((req, res, next) => {
   const origJson = res.json;
   // eslint‑disable‑next‑line @typescript-eslint/ban-ts-comment
   // @ts‑ignore – override type safely
-  res.json = function (payload: unknown, ...args) {
+  res.json = function (this: typeof res, payload: unknown, ...args: unknown[]) {
     body = payload;
     return origJson.call(this, payload, ...args);
   } as typeof res.json;
@@ -166,9 +179,11 @@ async function loadModules(mods: string[], appRef: express.Express) {
     res.status(500).json({ error: "Internal Server Error" });
   });
 
-  const PORT = Number(process.env.PORT || 5001);
+  const PORT = config.port;
   server.listen(PORT, "0.0.0.0", () => {
-    console.log(`[express] 🔧 Listening on ${PORT} (${app.get("env")})`);
+    console.log(`[express] 🔧 Listening on ${PORT} (${config.environment})`);
+    console.log(`🌐 Health check available at http://localhost:${PORT}/api/health`);
+    console.log(`📊 Ready for deployment on port ${PORT}`);
   });
 })();
 
