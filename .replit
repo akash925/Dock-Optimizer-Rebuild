@@ -2,7 +2,9 @@
 modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
 
 
-run = "pnpm dev"
+build = ["pnpm", "run", "build"]
+
+run = ["doppler", "run", "--config", "prd", "--", "pnpm", "start"]
 
 
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
@@ -10,17 +12,24 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["doppler", "freetype", "jq", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "openjpeg", "openssl", "poppler_utils", "tcl", "tk", "zlib"]
+packages = [
+  "doppler",
+  "freetype",
+  "jq",
+  "lcms2",
+  "libimagequant",
+  "libjpeg",
+  "libtiff",
+  "libwebp",
+  "openjpeg",
+  "openssl",
+  "poppler_utils",
+  "tcl",
+  "tk",
+  "zlib",
+]
 
-
-[[ports]]
-localPort = 5173    
-externalPort = 5173
 
 [[ports]]
 localPort = 5001
 externalPort = 80
-
-[[ports]]
-localPort = 443
-externalPort = 3000

@@ -6,6 +6,8 @@ import {
   pgTable,
   serial,
   text,
+  varchar,
+  uuid,
   integer,
   boolean,
   timestamp,
@@ -305,6 +307,14 @@ export const appointmentTypes = pgTable("appointment_types", {
 /* dailyAvailability, customQuestions, standardQuestions  (unchanged)  */
 /* —> added legacy 'options' column back to standardQuestions          */
 
+export const customQuestions = pgTable("custom_questions", {
+  id: serial("id").primaryKey(),
+  tenantId: uuid("tenant_id").notNull(),
+  question: text("question").notNull(),
+  type: varchar("type", { length: 32 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const standardQuestions = pgTable("standard_questions", {
   id: serial("id").primaryKey(),
   appointmentTypeId: integer("appointment_type_id").notNull(),
@@ -412,7 +422,81 @@ export const organizationFacilities = pgTable(
   (t) => ({ orgFacilityUnique: unique().on(t.organizationId, t.facilityId) }),
 );
 
-/* activity_logs, user_preferences, etc. unchanged aside from updatedAt cols */
+/* ───────────────────────────── Daily availability ───────────────────────── */
+
+export const dailyAvailability = pgTable("daily_availability", {
+  id: serial("id").primaryKey(),
+  facilityId: integer("facility_id").notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 0 = Sun … 6 = Sat
+  startTime: text("start_time").default("08:00"),
+  endTime: text("end_time").default("17:00"),
+  tenantId: integer("tenant_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+/* ───────────────────────────── Holidays & hours ─────────────────────────── */
+
+export const holidays = pgTable("holidays", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  holidayDate: date("holiday_date").notNull(),
+  scope: text("scope").$type<typeof HolidayScope>().notNull(), // FACILITY | ORGANIZATION
+  facilityId: integer("facility_id"),
+  organizationId: integer("organization_id"),
+  tenantId: integer("tenant_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const organizationDefaultHours = pgTable("organization_default_hours", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  dayOfWeek: integer("day_of_week").notNull(),
+  startTime: text("start_time").default("08:00"),
+  endTime: text("end_time").default("17:00"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const organizationHolidays = pgTable("organization_holidays", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  holidayId: integer("holiday_id")
+    .notNull()
+    .references(() => holidays.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+/* ───────────────────────────── OCR job queue ────────────────────────────── */
+
+export const ocrJobs = pgTable("ocr_jobs", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  sourceAssetId: integer("source_asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 32 }).default("pending").notNull(),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+/* ───────────────────────────── Password resets ──────────────────────────── */
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 /* ───────────────────────────── Legacy / support tables ──────────────────── */
 
@@ -452,6 +536,93 @@ export const facilityHours = pgTable("facility_hours", {
 /* Keep exactly the relation blocks you already had – they still compile.    */
 
 /* ───────────────────────────── Types export (unchanged) ─────────────────── */
+
+/* ───────────────────────────── Generated type helpers ───────────────────── */
+
+export type AppointmentSettings = typeof appointmentSettings.$inferSelect;
+export type InsertAppointmentSettings = typeof appointmentSettings.$inferInsert;
+
+export type AppointmentType = typeof appointmentTypes.$inferSelect;
+export type InsertAppointmentType = typeof appointmentTypes.$inferInsert;
+
+export type Asset = typeof assets.$inferSelect;
+export type InsertAsset = typeof assets.$inferInsert;
+
+export type BolDocument = typeof bolDocuments.$inferSelect;
+export type InsertBolDocument = typeof bolDocuments.$inferInsert;
+
+export type BookingPage = typeof bookingPages.$inferSelect;
+export type InsertBookingPage = typeof bookingPages.$inferInsert;
+
+export type Carrier = typeof carriers.$inferSelect;
+export type InsertCarrier = typeof carriers.$inferInsert;
+
+export type CompanyAsset = typeof companyAssets.$inferSelect;
+export type InsertCompanyAsset = typeof companyAssets.$inferInsert;
+export type UpdateCompanyAsset = Partial<InsertCompanyAsset>;
+
+export type CustomQuestion = typeof customQuestions.$inferSelect;
+export type InsertCustomQuestion = typeof customQuestions.$inferInsert;
+
+export type DailyAvailability = typeof dailyAvailability.$inferSelect;
+export type InsertDailyAvailability = typeof dailyAvailability.$inferInsert;
+
+export type Dock = typeof docks.$inferSelect;
+export type InsertDock = typeof docks.$inferInsert;
+
+export type Facility = typeof facilities.$inferSelect;
+export type InsertFacility = typeof facilities.$inferInsert;
+
+export type Holiday = typeof holidays.$inferSelect;
+export type InsertHoliday = typeof holidays.$inferInsert;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
+export type OcrJob = typeof ocrJobs.$inferSelect;
+export type InsertOcrJob = typeof ocrJobs.$inferInsert;
+
+export type OrganizationDefaultHours =
+  typeof organizationDefaultHours.$inferSelect;
+export type InsertOrganizationDefaultHours =
+  typeof organizationDefaultHours.$inferInsert;
+
+export type OrganizationHoliday = typeof organizationHolidays.$inferSelect;
+export type InsertOrganizationHoliday =
+  typeof organizationHolidays.$inferInsert;
+
+export type OrganizationModule = typeof organizationModules.$inferSelect;
+export type InsertOrganizationModule = typeof organizationModules.$inferInsert;
+
+export type OrganizationUser = typeof organizationUsers.$inferSelect;
+export type InsertOrganizationUser = typeof organizationUsers.$inferInsert;
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+export type RoleRecord = typeof roles.$inferSelect; // convenience
+export type InsertRoleRecord = typeof roles.$inferInsert;
+
+export type Schedule = typeof schedules.$inferSelect;
+export type InsertSchedule = typeof schedules.$inferInsert;
+
+export type StandardQuestion = typeof standardQuestions.$inferSelect;
+export type InsertStandardQuestion = typeof standardQuestions.$inferInsert;
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+
+export type UserPreferences = typeof userPreferences.$inferSelect;
+export type InsertUserPreferences = typeof userPreferences.$inferInsert;
+
+/* Simple enum shared with the backend service layer */
+export const AssetCategory = {
+  IMAGE: "image",
+  DOCUMENT: "document",
+  VIDEO: "video",
+  OTHER: "other",
+} as const;
+export type AssetCategory = (typeof AssetCategory)[keyof typeof AssetCategory];
 
 export type Tenant = typeof tenants.$inferSelect;
 export type FeatureFlag = {
