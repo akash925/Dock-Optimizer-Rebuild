@@ -14,3 +14,4 @@ uploads/
 !uploads/.gitkeep
 .env
 package-lock.json
+.pnpm-store/
