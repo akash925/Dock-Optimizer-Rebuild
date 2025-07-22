@@ -1,34 +1,39 @@
+# .replit  (top of file, outside any table)
+install = [
+  "sh",
+  "-c",
+  "rm -rf $HOME/.local/share/pnpm/store && pnpm install --frozen-lockfile --force",
+]
 
+# .replit  (top of file stays the same)
 modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
-
-
-build = ["pnpm", "run", "build"]
-
-run = ["doppler", "run", "--config", "prd", "--", "pnpm", "start"]
-
-
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
+run = ["pnpm", "start"] # workspace Run button ⬅︎
 
 [nix]
 channel = "stable-24_05"
 packages = [
   "doppler",
   "freetype",
-  "jq",
-  "lcms2",
-  "libimagequant",
   "libjpeg",
-  "libtiff",
+  "libpng",
   "libwebp",
-  "openjpeg",
-  "openssl",
+  "nss",
+  "atk",
+  "pango",
+  "libvips",
+  "libimagequant",
   "poppler_utils",
-  "tcl",
-  "tk",
-  "zlib",
 ]
 
+# -----------------------------------------------------------------
+[deployment]
+deploymentTarget = "autoscale"
+install = ["sh", "-c", "pnpm install --frozen-lockfile"]
+
+build = ["sh", "-c", "pnpm run build"]
+run = ["pnpm", "start"]
 
 [[ports]]
 localPort = 5001

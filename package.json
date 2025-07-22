@@ -9,8 +9,10 @@
   },
   "scripts": {
     "dev": "CHOKIDAR_USEPOLLING=1 doppler run -- concurrently -n \"VITE,API\" -c \"cyan,green\" \"vite\" \"SKIP_INTERNAL_VITE=1 nodemon --legacy-watch --ext ts,js --watch server --watch shared --signal SIGTERM --exec \\\"tsx server/index.ts\\\"\"",
-    "build": "doppler run -- vite build",
-    "start": "doppler run -- node server/index.js",
+    "build:client": "vite build --emptyOutDir",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=4096\" pnpm run build:client && pnpm run build:server",
+    "start": "doppler run --config prd -- node dist/server/index.js",
     "preview": "doppler run -- vite preview",
     "test": "vitest run",
     "lint": "eslint . --ext .ts,.tsx"

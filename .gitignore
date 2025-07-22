@@ -13,3 +13,4 @@ server_output.log
 uploads/
 !uploads/.gitkeep
 .env
+package-lock.json

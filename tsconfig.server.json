@@ -1,18 +1,22 @@
 {
   "extends": "./tsconfig.json",
+
   "compilerOptions": {
+    "noEmit": false,
+    "noEmitOnError": false,
+    "outDir": "dist/server",
+
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "target": "ES2020",
+
+    /* 👇 override the inherited true value */
+    "allowImportingTsExtensions": false,
+
     "skipLibCheck": true,
-    "noEmit": true
+    "esModuleInterop": true
   },
-  "include": [
-    "server/**/*",
-    "shared/**/*",
-    "server/types/**/*",
-    "server/tests/**/*"
-  ],
-  "exclude": [
-    "client",
-    "scripts",
-    "**/*.test.*"
-  ]
-} 
+
+  "include": ["server/**/*", "shared/**/*"],
+  "exclude": ["client", "scripts", "**/*.test.*"]
+}
