@@ -32,9 +32,11 @@ packages = [
 # -----------------------------------------------------------------
 [deployment]
 deploymentTarget = "autoscale"
-install = ["sh", "-c", "pnpm install --frozen-lockfile"]
+build = [
+  "sh", "-c",
+  "rm -rf ~/.local/share/pnpm/store && pnpm install --force && pnpm run build"
+]
 
-build = ["sh", "-c", "pnpm run build"]
 run = ["pnpm", "start"]
 
 [[ports]]

@@ -1,0 +1,102 @@
+❗ SAFETY MODE – DO NOT TOUCH `main` UNTIL ALL TESTS PASS
+You are Dock Optimizer’s DevOps copilot.  
+Goal → make Production Deploy go green by fixing the `.replit` file and tightening PNPM hygiene – without risking data loss or downtime.
+
+╭──────────────────────────────────────────────────────────╮
+│ Ground rules                                            │
+│ • Work ONLY in branch `fix/replit-deploy`.              │
+│ • Abort immediately on any unhandled error.             │
+│ • Never commit `.pnpm-store/` or any large artefacts.   │
+│ • After each step, print a ✅/❌ summary before moving on.│
+╰──────────────────────────────────────────────────────────╯
+
+============================================================
+STEP 0 – INITIALISE & SELF-CHECK
+============================================================
+1. `pkill -f "pnpm install"` || true        # kill stale jobs  
+2. `rm -f .git/index.lock`                  # unlock repo  
+3. `git stash --include-untracked`          # store dirty work  
+4. `git switch -c fix/replit-deploy`        # new branch  
+5. `git clean -fdx`                         # pristine tree  
+6. Verify: `git status --short` → must be empty.  ✅
+
+============================================================
+STEP 1 – PATCH .replit SAFELY
+============================================================
+Edit `.replit` EXACTLY as follows (use TOML array-of-strings syntax):
+
+```toml
+# ── workspace settings (Run button) ─────────────────────
+modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
+hidden  = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+run     = ["pnpm", "start"]
+
+# ── production deploy ───────────────────────────────────
+[deployment]
+deploymentTarget = "autoscale"
+build = [
+  "sh", "-c",
+  "rm -rf ~/.local/share/pnpm/store && pnpm install --force && pnpm run build"
+]
+run = ["node", "dist/server.js"]
+Delete any other build = or install = keys outside [deployment].
+
+============================================================
+STEP 2 – PACKAGE MANAGER HARDENING
+Add / update .npmrc (repo root):
+
+ini
+Copy
+Edit
+store-dir=.pnpm-store
+Edit package.json
+• ensure "packageManager": "pnpm@10.12.1"
+• under "scripts" add "preinstall": "pnpm store prune || true"
+• upgrade vulnerable dep: pnpm up multer@^2 --latest
+
+Append .pnpm-store/ to .gitignore.
+
+============================================================
+STEP 3 – LOCAL SMOKE TEST
+bash
+Copy
+Edit
+set -euo pipefail
+rm -rf node_modules ~/.local/share/pnpm/store
+pnpm install --force
+pnpm run build
+node dist/server.js &   # background
+sleep 3
+curl -f http://localhost:5001/healthz/redis   # adjust route if different
+pkill -f dist/server.js
+• If any command fails → STOP and print error log (do NOT commit).
+
+============================================================
+STEP 4 – COMMIT & PUSH
+bash
+Copy
+Edit
+git add .replit .npmrc package.json pnpm-lock.yaml .gitignore
+git commit -m "chore: stable Replit deploy (cache purge, lockfile hygiene)"
+git push --set-upstream origin fix/replit-deploy
+============================================================
+STEP 5 – CANARY DEPLOY FROM BRANCH
+In Replit UI: Deploy → pick branch fix/replit-deploy → Deploy.
+
+Stream build logs. Confirm the FIRST line of the build step is:
+rm -rf ~/.local/share/pnpm/store && pnpm install --force && pnpm run build
+
+Build must finish with green ✅ and server up.
+
+============================================================
+STEP 6 – MERGE SAFELY
+Only if Step 5 passes: open PR → assign @ak → wait for approval → merge.
+Delete branch after merge. Print “🎉 DEPLOY PIPELINE GREEN” and exit.
+
+============================================================
+ERROR HANDLING
+• If any step fails, print the failing command & log snippet, then pause.
+• Do NOT attempt to auto-fix beyond the instructions above.
+• Never push partial or failing commits.
+
+End of runbook
