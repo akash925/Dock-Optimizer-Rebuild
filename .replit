@@ -1,4 +1,6 @@
 # .replit  (top of file, outside any table)
+build = "rm -rf ~/.local/share/pnpm/store && pnpm install --force && pnpm run build"
+
 install = [
   "sh",
   "-c",
