@@ -1,0 +1,85 @@
+services:
+  app:
+    build:
+      context: .
+      target: runtime
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://dock_user:${DB_PASSWORD:-dock_password}@db:5432/dock_optimizer
+      - REDIS_URL=redis://redis:6379
+      - SESSION_SECRET=${SESSION_SECRET:-dock-optimizer-session-secret-change-in-production}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-noreply@dockoptimizer.com}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET:-dock-optimizer-uploads}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - BASE_URL=${BASE_URL:-http://localhost:5001}
+    volumes:
+      - uploads:/app/uploads
+      - logs:/app/server/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=dock_optimizer
+      - POSTGRES_USER=dock_user  
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-dock_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dock_user -d dock_optimizer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      target: builder
+    environment:
+      - DATABASE_URL=postgresql://dock_user:${DB_PASSWORD:-dock_password}@db:5432/dock_optimizer
+    command: ["sh", "-c", "sleep 10 && pnpm drizzle-kit push"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: no
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads:
+  logs: 

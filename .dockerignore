@@ -1,7 +1,97 @@
+# Version control
 .git
+.gitignore
+
+# Dependencies
 node_modules
+.pnpm-store
+
+# Build outputs
 dist
-replit.*
+.next
+.nuxt
+build
+
+# Development files
 *.log
+*.log.*
+.env
+.env.local
+.env.*.local
 coverage
+.nyc_output
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing
+cypress/videos
+cypress/screenshots
+test-results
+
+# Development tools
+.replit
+replit.*
+doppler.tar.gz
+doppler
 *.pnpm-debug.log
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.temp
+
+# Runtime files
+uploads/*
+!uploads/.gitkeep
+logs
+*.pid
+
+# Documentation and assets (not needed in container)
+docs
+attached_assets
+README.md
+CHANGELOG.md
+*.md
+theme.json
+generated-icon.png
+
+# Test files
+test_session*.txt
+session.txt
+cookies.txt
+working_session.txt
+
+# Development scripts
+scripts/demo
+clear-replit-cache.sh
+setup-dev-db.sh
+launch-clean.sh
+
+# Cypress
+cypress
+
+# Tool configs (not needed at runtime)
+.github
+mcp-server.json
+s3-cors.json
+openapi.yaml
+eslint.config.js
+vitest.config.ts
+cypress.config.ts
+tailwind.config.ts
+postcss.config.js
+tsconfig*.json
+.swcrc
+
+# Package management
+package.json.bak
+pnpm-lock.yaml.bak
