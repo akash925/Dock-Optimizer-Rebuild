@@ -1,5 +1,5 @@
 // Test frontend form submission by accessing the actual page
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 
 async function testFrontendBookingForm() {
   console.log('Testing frontend booking form...');
