@@ -335,6 +335,9 @@ export const bookingPages = pgTable("booking_pages", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  primaryColor: text("primary_color"),
+  description: text("description"),
+  welcomeMessage: text("welcome_message"),
   /* other cols unchanged */
   tenantId: integer("tenant_id"),
   createdBy: integer("created_by").notNull(),
@@ -542,6 +545,16 @@ export const facilityHours = pgTable("facility_hours", {
   closeTime: text("close_time").default("17:00"),
   breakStart: text("break_start"),
   breakEnd: text("break_end"),
+});
+
+/* Activity logs table for tracking organization changes */
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull(),
+  userId: integer("user_id").notNull(),
+  action: varchar("action", { length: 255 }).notNull(),
+  details: text("details"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
 /* ───────────────────────────── Relations (unchanged) ────────────────────── */

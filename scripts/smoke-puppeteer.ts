@@ -27,7 +27,7 @@ async function smokePuppeteerTest() {
           executablePath = path;
           break;
         }
-      } catch (e) {
+      } catch (e: unknown) {
         // Continue trying other paths
       }
     }

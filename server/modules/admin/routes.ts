@@ -177,8 +177,8 @@ export const adminRoutes = (app: Express) => {
       let userCreated = false;
       if (validatedData.contactEmail && validatedData.primaryContact) {
         try {
-          // Import the hashPassword function from auth
-          const { hashPassword } = await import('../../auth');
+          // Import the hashPassword function from storage
+          const { hashPassword } = await import('../../storage');
           
           // Create a default password (contactEmail + name parts combined)
           const nameParts = validatedData.primaryContact.split(' ');
