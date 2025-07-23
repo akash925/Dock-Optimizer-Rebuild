@@ -128,6 +128,8 @@
     "@ampproject/remapping": "2.2.1",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@replit/vite-plugin-shadcn-theme-json": "^0.0.4",
+    "@swc/cli": "^0.7.8",
+    "@swc/core": "^1.13.2",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
