@@ -122,7 +122,6 @@ server/modules/bolUpload/index.ts(10,58): error TS2769: No overload matches this
             Types of property 'user' are incompatible.
               Type 'User | undefined' is not assignable to type 'User'.
                 Type 'undefined' is not assignable to type 'User'.
-server/modules/calendar/index.ts(5,40): error TS2307: Cannot find module './routes/index.js' or its corresponding type declarations.
 server/modules/calendar/routes.ts(17,10): error TS2305: Module '"../../middleware/auth"' has no exported member 'AuthenticatedRequest'.
 server/modules/calendar/routes.ts(200,9): error TS2740: Type '{ facilityName: string; appointmentTypeName: string; dockName: string; timezone: string; userTimeZone: string; confirmationCode: string; creatorEmail: any; bolFileUploaded: boolean; id: number; ... 9 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 15 more.
 server/modules/calendar/routes.ts(206,9): error TS2740: Type '{ facilityName: string; appointmentTypeName: string; dockName: string; timezone: string; userTimeZone: string; confirmationCode: string; creatorEmail: any; bolFileUploaded: boolean; id: number; ... 9 more ...; endTime: Date; }' is missing the following properties from type 'EnhancedSchedule': truckNumber, trailerNumber, driverName, driverPhone, and 15 more.
