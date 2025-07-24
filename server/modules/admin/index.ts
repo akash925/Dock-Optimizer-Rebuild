@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import { adminRoutes } from './routes/index.js';
+import { adminRoutes } from './routes.js';
 
 export default {
   name: 'admin',
