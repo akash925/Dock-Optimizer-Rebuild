@@ -575,6 +575,7 @@ export type InsertAsset = typeof assets.$inferInsert;
 
 export type BolDocument = typeof bolDocuments.$inferSelect;
 export type InsertBolDocument = typeof bolDocuments.$inferInsert;
+export const insertBolDocumentSchema = createInsertSchema(bolDocuments);
 
 export type BookingPage = typeof bookingPages.$inferSelect;
 export type InsertBookingPage = typeof bookingPages.$inferInsert;
