@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Request, Response } from 'express';
 import { getStorage } from '../../storage';
 import { isAuthenticated } from '../../middleware/auth';
 
