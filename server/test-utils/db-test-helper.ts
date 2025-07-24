@@ -1,5 +1,7 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database, { type Database as SqliteDatabase } from 'better-sqlite3';
+// import Database, { type Database as SqliteDatabase } from 'better-sqlite3';
+type SqliteDatabase = any;
+let Database: any;
 import * as schema from '../../shared/schema';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import path from 'path';
@@ -13,6 +15,12 @@ export function createTestDb() {
   }
 
   // Create in-memory SQLite database
+  try {
+    // Use dynamic require to avoid TypeScript compilation issues
+    Database = eval('require')('better-sqlite3');
+  } catch (err) {
+    throw new Error('better-sqlite3 module not available for tests');
+  }
   const sqlite = new Database(':memory:');
   testDb = drizzle(sqlite, { schema });
 

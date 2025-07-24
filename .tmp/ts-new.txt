@@ -735,7 +735,6 @@ server/storage.ts(2543,3): error TS2322: Type 'IStorage | null' is not assignabl
 server/storage/features.ts(4,10): error TS2724: '"@shared/schema"' has no exported member named 'featureFlags'. Did you mean 'FeatureFlag'?
 server/storage/organizations.ts(10,39): error TS2339: Property 'name' does not exist on type 'PgTableWithColumns<{ name: "organization_users"; schema: undefined; columns: { id: PgColumn<{ name: "id"; tableName: "organization_users"; dataType: "number"; columnType: "PgSerial"; data: number; driverParam: number; ... 8 more ...; generated: undefined; }, {}, {}>; ... 4 more ...; updatedAt: PgColumn<...>; }; dial...'.
 server/storage/organizations.ts(12,33): error TS2339: Property 'eq' does not exist on type 'PgColumn<{ name: "id"; tableName: "organization_users"; dataType: "number"; columnType: "PgSerial"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; ... 4 more ...; generated: undefined; }, {}, {}>'.
-server/test-utils/db-test-helper.ts(2,59): error TS2307: Cannot find module 'better-sqlite3' or its corresponding type declarations.
 server/tests/setup.ts(12,1): error TS2708: Cannot use namespace 'jest' as a value.
 server/tests/setup.ts(15,1): error TS2304: Cannot find name 'beforeAll'.
 server/tests/setup.ts(46,1): error TS2304: Cannot find name 'afterAll'.
