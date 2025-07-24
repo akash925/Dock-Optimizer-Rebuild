@@ -154,8 +154,8 @@ export const listBols = async (req: Request, res: Response) => {
     // Enhance with signed URLs and user information
     const enhancedDocs = await Promise.all(
       bolDocuments.map(async (doc) => {
-        const signedUrl = await blobStorageService.getSignedUrl(doc.fileKey);
-        const uploader = await storage.getUser(doc.uploadedBy);
+        const signedUrl = doc.fileKey ? await blobStorageService.getSignedUrl(doc.fileKey) : null;
+        const uploader = doc.uploadedBy ? await storage.getUser(doc.uploadedBy) : null;
         
         return {
           id: doc.id,
@@ -215,7 +215,9 @@ export const deleteBol = async (req: Request, res: Response) => {
 
     // Delete the physical file from blob storage
     try {
-      await blobStorageService.deleteFile(bolDocument.fileKey, req.user?.tenantId || 1);
+      if (bolDocument.fileKey) {
+        await blobStorageService.deleteFile(bolDocument.fileKey, req.user?.tenantId || 1);
+      }
     } catch (fileError) {
       console.warn('Warning: Failed to delete physical file:', fileError);
       // Continue with database deletion even if file deletion fails
