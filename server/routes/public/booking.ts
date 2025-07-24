@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { db } from "../../db";
 import { eq, inArray } from "drizzle-orm";
 import { bookingPages, facilities, appointmentTypes, standardQuestions } from "@shared/schema";

@@ -3,7 +3,7 @@
  * Provides comprehensive application health status
  */
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { getHealthStatus } from '../config/environment';
 
 const router = Router();

@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { getStorage } from "../../storage";
 import { isAuthenticated } from "../../middleware/auth";
 import { db } from "../../db.js";

@@ -1,4 +1,4 @@
-import { Express } from 'express';
+import { Express, Request, Response } from 'express';
 import { getStorage } from '../storage';
 
 export function registerBookingPagesLogoEndpoint(app: Express) {

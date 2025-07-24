@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import multer from "multer";
 import { blobStorageService } from "../services/blob-storage";
 import { getStorage } from "../storage";
