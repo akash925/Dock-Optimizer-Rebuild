@@ -49,7 +49,10 @@ export default defineConfig(async () => ({
   root: path.resolve(__dirname, "client"),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "client/src"),
+      "@":            path.resolve(__dirname, "client/src"),
+      "@components":  path.resolve(__dirname, "client/src/components"),
+      "@pages":       path.resolve(__dirname, "client/src/pages"),
+      "@lib":         path.resolve(__dirname, "client/src/lib"),
       "@shared": path.resolve(__dirname, "shared"),
       "@assets": path.resolve(__dirname, "attached_assets"),
       "/src": path.resolve(__dirname, "client/src"),
