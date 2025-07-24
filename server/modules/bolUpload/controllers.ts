@@ -105,7 +105,13 @@ export const presignBolUpload = async (req: AuthenticatedRequest, res: Response)
  */
 export const uploadBol = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const Busboy = (await import('busboy')).default;
+    let Busboy: any;
+    try {
+      // Use dynamic require to avoid TypeScript compilation issues
+      Busboy = eval('require')('busboy');
+    } catch (err) {
+      return res.status(500).json({ error: 'Busboy module not available' });
+    }
     const { PassThrough } = await import('stream');
     const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
 
