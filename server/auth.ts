@@ -2,6 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
 import session from "express-session";
+import type { Request, Response, NextFunction } from "express";
 import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { users } from "@shared/schema";

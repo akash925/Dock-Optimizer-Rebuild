@@ -1,5 +1,12 @@
 declare module "express-serve-static-core" {
   interface Request {
+    // Standard Express properties
+    params: any;
+    query: any;
+    body: any;
+    headers: any;
+    
+    // Passport authentication properties
     user?: {
       id: number;
       role: string;
@@ -10,6 +17,7 @@ declare module "express-serve-static-core" {
       lastName?: string;
     };
     isAuthenticated?: () => boolean;
+    logout?: (callback?: (err: any) => void) => void;
   }
 }
 
