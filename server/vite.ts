@@ -1,10 +1,17 @@
+/* -------------------------------------------------------------------------- */
+/*  server/vite.ts – Vite dev-middleware + static-file handler for Replit     */
+/* -------------------------------------------------------------------------- */
+
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+
+/* ───────────────────────────── Helpers ──────────────────────────────────── */
 
 const viteLogger = createLogger();
 
@@ -15,9 +22,10 @@ export function log(message: string, source = "express") {
     second: "2-digit",
     hour12: true,
   });
-
   console.log(`${formattedTime} [${source}] ${message}`);
 }
+
+/* ───────────────────────────── Dev middleware ───────────────────────────── */
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -29,60 +37,68 @@ export async function setupVite(app: Express, server: Server) {
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
+    server: serverOptions,
+    appType: "custom",
     customLogger: {
       ...viteLogger,
-      error: (msg, options) => {
-        viteLogger.error(msg, options);
+      error: (msg, opts) => {
+        viteLogger.error(msg, opts);
+        /* Hard-fail in Replit so we see the error immediately */
         process.exit(1);
       },
     },
-    server: serverOptions,
-    appType: "custom",
   });
 
+  // Inject Vite middlewares
   app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
-    const url = req.originalUrl;
 
+  // HTML entry (always read fresh from disk)
+  app.use("*", async (req, res, next) => {
     try {
-      const clientTemplate = path.resolve(
-        import.meta.dirname,
+      const url = req.originalUrl;
+      const templatePath = path.resolve(
+        path.dirname(fileURLToPath(import.meta.url)), // /server
         "..",
         "client",
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      template = template.replace(
-        `src="/src/main.tsx"`,
+      let html = await fs.promises.readFile(templatePath, "utf-8");
+      // Bust cache for the dev entry
+      html = html.replace(
+        'src="/src/main.tsx"',
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
-      const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
-    } catch (e) {
-      vite.ssrFixStacktrace(e as Error);
-      next(e);
+
+      const transformed = await vite.transformIndexHtml(url, html);
+      res.status(200).set({ "Content-Type": "text/html" }).end(transformed);
+    } catch (err) {
+      vite.ssrFixStacktrace(err as Error);
+      next(err);
     }
   });
 }
 
+/* ───────────────────────────── Production static server ─────────────────── */
+
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  // ≡  <repo-root>/dist/public  (output of `pnpm run build:client`)
+  const distPath = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "dist",
+    "public",
+  );
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+      `Static bundle not found at ${distPath}. Run "pnpm run build:client" first.`,
     );
   }
 
+  /* ①  Serve all static assets */
   app.use(express.static(distPath));
 
-  app.get('*', (_, res) => {
-    res.sendFile(path.join(clientDist, 'index.html'));
-  });
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
-  });
+  /* ②  SPA fallback: send index.html for any unknown route */
+  app.get("*", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
 }
