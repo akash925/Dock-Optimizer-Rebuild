@@ -1,4 +1,4 @@
-import routes, { companyAssetsRouter, setupStaticFileServing } from './routes/index.js';
+import routes, { companyAssetsRouter, setupStaticFileServing } from './routes.js';
 import express from 'express';
 
 export function initializeCompanyAssetsModule(app: express.Express): void {
