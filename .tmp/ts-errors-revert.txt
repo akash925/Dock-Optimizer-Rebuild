@@ -1,0 +1,5 @@
+npm warn Unknown project config "store-dir". This will stop working in the next major version of npm.
+server/endpoints/booking-pages-logo-fixed.ts(18,33): error TS1005: ',' expected.
+server/endpoints/booking-pages-logo-fixed.ts(18,47): error TS1005: ',' expected.
+server/endpoints/booking-pages-logo.ts(20,33): error TS1005: ',' expected.
+server/endpoints/booking-pages-logo.ts(20,47): error TS1005: ',' expected.
