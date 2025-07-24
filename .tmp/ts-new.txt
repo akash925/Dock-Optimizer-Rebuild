@@ -70,7 +70,6 @@ server/modules/admin/routes.ts(1022,9): error TS7005: Variable 'customFields' im
 server/modules/admin/routes.ts(1080,43): error TS2551: Property 'getCompanyAssetById' does not exist on type 'IStorage'. Did you mean 'getCompanyAsset'?
 server/modules/admin/routes.ts(1087,9): error TS2353: Object literal may only specify known properties, and 'status' does not exist in type 'Partial<{ name: string; tenantId: number; id?: number | undefined; createdAt?: Date | undefined; updatedAt?: Date | undefined; implementationDate?: string | null | undefined; implemented_date?: string | ... 1 more ... | undefined; last_service_date?: string | ... 1 more ... | undefined; next_service_date?: string | ...'.
 server/modules/admin/routes.ts(1122,43): error TS2551: Property 'getCompanyAssetById' does not exist on type 'IStorage'. Did you mean 'getCompanyAsset'?
-server/modules/admin/settings/index.ts(2,28): error TS2307: Cannot find module './routes/index.js' or its corresponding type declarations.
 server/modules/admin/settings/routes.ts(13,17): error TS2339: Property 'role' does not exist on type 'User'.
 server/modules/admin/users/routes.ts(16,17): error TS2339: Property 'role' does not exist on type 'User'.
 server/modules/admin/users/routes.ts(161,17): error TS2339: Property 'length' does not exist on type 'QueryResult<Record<string, unknown>>'.

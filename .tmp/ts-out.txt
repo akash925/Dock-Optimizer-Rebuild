@@ -15,7 +15,6 @@ server/index.ts(90,41): error TS2556: A spread argument must either have a tuple
 server/middleware/validation.ts(24,17): error TS2339: Property 'role' does not exist on type 'User'.
 server/middleware/validation.ts(24,53): error TS2339: Property 'username' does not exist on type 'User'.
 server/middleware/validation.ts(55,32): error TS2339: Property 'role' does not exist on type 'User'.
-server/modules/admin/index.ts(2,29): error TS2307: Cannot find module './routes/index.js' or its corresponding type declarations.
 server/modules/admin/organizations/routes.ts(13,10): error TS2304: Cannot find name 'isAuthenticated'.
 server/modules/admin/organizations/routes.ts(46,10): error TS2304: Cannot find name 'isAuthenticated'.
 server/modules/admin/organizations/routes.ts(89,10): error TS2304: Cannot find name 'isAuthenticated'.
