@@ -154,6 +154,10 @@ router.post("/booking-pages/:slug/book", async (req: Request, res: Response) => 
   const { slug } = req.params;
   const bookingData = req.body;
   
+  if (!bookingData) {
+    return res.status(400).json({ error: "Booking data is required" });
+  }
+  
   try {
     console.log(`[BookingSubmission] Processing booking for page ${slug}:`, bookingData);
     

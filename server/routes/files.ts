@@ -235,7 +235,7 @@ router.post('/upload/bol', bolUpload.single('bolFile'), async (req: Request, res
         if (appointment) {
           // Update appointment with BOL info
           await storage.updateSchedule(parseInt(finalAppointmentId), {
-            bolNumber: req.body.bolNumber || uploadedFile.originalName,
+            bolNumber: req.body?.bolNumber || uploadedFile.originalName,
             lastModifiedAt: new Date(),
             // Add custom data to track BOL upload
             customFormData: {
